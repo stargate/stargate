@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -89,7 +90,7 @@ import org.javatuples.Pair;
           name = "index",
           definedAs =
               "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from)"
-                  + " | (custom? index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)?)))"),
+                  + " | (index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? (custom options?)?)))"),
     })
 public class QueryBuilderImpl {
   private final Schema schema;
@@ -154,6 +155,7 @@ public class QueryBuilderImpl {
   private Integer defaultTTL;
   private String indexCreateColumn;
   private String customIndexClass;
+  private Map<String, String> customIndexOptions;
   private UserDefinedType type;
   private Value<Integer> ttl;
   private Value<Long> timestamp;
@@ -633,6 +635,17 @@ public class QueryBuilderImpl {
   }
 
   @DSLAction
+  public void custom(String customIndexClass, Map<String, String> customIndexOptions) {
+    custom(customIndexClass);
+    this.customIndexOptions = customIndexOptions;
+  }
+
+  @DSLAction
+  public void options(Map<String, String> customIndexOptions) {
+    this.customIndexOptions = customIndexOptions;
+  }
+
+  @DSLAction
   public void type(String keyspace, UserDefinedType type) {
     this.keyspaceName = keyspace;
     this.type = type;
@@ -1067,6 +1080,12 @@ public class QueryBuilderImpl {
     query.append(")");
     if (customIndexClass != null) {
       query.append(" USING").append(format(" '%s'", customIndexClass));
+      if (customIndexOptions != null && !customIndexOptions.isEmpty()) {
+        query.append(
+            customIndexOptions.entrySet().stream()
+                .map(e -> format("'%s': '%s'", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(", ", " WITH OPTIONS = { ", " }")));
+      }
     }
     return new BuiltOther(valueCodec, executor, query.toString());
   }

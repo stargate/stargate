@@ -8,6 +8,7 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.index.Index;
@@ -129,6 +130,18 @@ public class SchemaConverter
   @Override
   protected boolean isCustom(IndexMetadata index) {
     return index.kind == IndexMetadata.Kind.CUSTOM;
+  }
+
+  @Override
+  protected String indexClass(IndexMetadata index) {
+    return index.options.get("class_name");
+  }
+
+  @Override
+  protected Map<String, String> indexOptions(IndexMetadata index) {
+    return index.options.entrySet().stream()
+        .filter(x -> !EXCLUDED_INDEX_OPTIONS.contains(x.getKey()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   @Override

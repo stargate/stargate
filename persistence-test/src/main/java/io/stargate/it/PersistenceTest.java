@@ -49,9 +49,11 @@ import static io.stargate.db.schema.Column.Type.Uuid;
 import static io.stargate.db.schema.Column.Type.Varchar;
 import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.assertj.core.api.Fail.fail;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
@@ -90,6 +92,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -539,6 +542,12 @@ public abstract class PersistenceTest {
 
   @Test
   public void testSecondaryIndexes() throws ExecutionException, InterruptedException {
+    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
+    assumeThat(isCassandra4())
+        .as(
+            "Disabled because it is currently not possible to enable SAI indexes "
+                + "on a Cassandra 4 backend")
+        .isFalse();
     createKeyspace();
     dataStore
         .queryBuilder()
@@ -547,6 +556,7 @@ public abstract class PersistenceTest {
         .column("a", Int, PartitionKey)
         .column("b", Varchar)
         .column("c", Uuid)
+        .column("d", Varchar)
         .build()
         .execute()
         .join();
@@ -569,6 +579,7 @@ public abstract class PersistenceTest {
                 .column("a", Int, PartitionKey)
                 .column("b", Varchar)
                 .column("c", Uuid)
+                .column("d", Varchar)
                 .secondaryIndex("byB")
                 .column("b")
                 .build()
@@ -594,6 +605,7 @@ public abstract class PersistenceTest {
                 .column("a", Int, PartitionKey)
                 .column("b", Varchar)
                 .column("c", Uuid)
+                .column("d", Varchar)
                 .secondaryIndex("byB")
                 .column("b")
                 .secondaryIndex("byC")
@@ -602,6 +614,49 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .toString());
+
+    String indexClass = "org.apache.cassandra.index.sasi.SASIIndex";
+    Map<String, String> indexOptions = new HashMap<>();
+    indexOptions.put("mode", "CONTAINS");
+    dataStore
+        .queryBuilder()
+        .create()
+        .index("byD")
+        .ifNotExists()
+        .on(keyspace, table)
+        .column("d")
+        .custom(indexClass)
+        .options(indexOptions)
+        .build()
+        .execute()
+        .join();
+
+    Table actualTable = dataStore.schema().keyspace(keyspace).table(this.table);
+    Table expectedTable =
+        Schema.build()
+            .keyspace(keyspace)
+            .table(table)
+            .column("a", Int, PartitionKey)
+            .column("b", Varchar)
+            .column("c", Uuid)
+            .column("d", Varchar)
+            .secondaryIndex("byB")
+            .column("b")
+            .secondaryIndex("byC")
+            .column("c")
+            .secondaryIndex("byD")
+            .column("d")
+            .indexClass(indexClass)
+            .indexOptions(indexOptions)
+            .build()
+            .keyspace(keyspace)
+            .table(table);
+
+    // TODO: as indexes are stored in a Map there's no guarantee that the order they
+    // printed when calling table#toString() is the same in both expected and actual table
+    assertThat(actualTable.indexes().size()).isEqualTo(expectedTable.indexes().size());
+    assertThat(actualTable.index("byD").toString())
+        .isEqualTo(expectedTable.index("byD").toString());
   }
 
   @Disabled("Disabling for now since it currently just hangs")
@@ -1410,5 +1465,10 @@ public abstract class PersistenceTest {
   @Test
   public void testSchemaAgreementAchievable() {
     assertThat(persistence().isSchemaAgreementAchievable()).isTrue();
+  }
+
+  private boolean isCassandra4() {
+    return !backend.isDse()
+        && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 }

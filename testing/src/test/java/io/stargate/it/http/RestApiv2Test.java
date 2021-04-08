@@ -16,9 +16,11 @@
 package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +46,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -379,7 +382,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
@@ -442,6 +445,56 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+  }
+
+  @Test
+  public void createCustomIndex(CqlSession session) throws IOException {
+    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
+    assumeThat(isCassandra4())
+        .as(
+            "Disabled because it is currently not possible to enable SAI indexes "
+                + "on a Cassandra 4 backend")
+        .isFalse();
+
+    createKeyspace(keyspaceName);
+    tableName = "tbl_createtable_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
+
+    IndexAdd indexAdd = new IndexAdd();
+    String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
+    indexAdd.setColumn("lastName");
+    indexAdd.setName("test_custom_idx");
+    indexAdd.setType(indexType);
+    indexAdd.setIfNotExists(false);
+    indexAdd.setKind(null);
+
+    Map<String, String> options = new HashMap<>();
+    options.put("mode", "CONTAINS");
+    indexAdd.setOptions(options);
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
+    SuccessResponse successResponse =
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    assertThat(successResponse.getSuccess()).isTrue();
+
+    Collection<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    Optional<Row> row =
+        rows.stream().filter(i -> "test_custom_idx".equals(i.getString("index_name"))).findFirst();
+    Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
+
+    assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
+    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
+    assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
   @Test
@@ -564,7 +617,12 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
-    List<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    SimpleStatement selectIndexes =
+        SimpleStatement.newInstance(
+            "SELECT * FROM system_schema.indexes WHERE keyspace_name = ? AND table_name = ?",
+            keyspaceName,
+            tableName);
+    List<Row> rows = session.execute(selectIndexes).all();
     assertThat(rows.size()).isEqualTo(1);
 
     String indexName = "test_idx";
@@ -575,7 +633,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             host, keyspaceName, tableName, indexName),
         HttpStatus.SC_NO_CONTENT);
 
-    rows = session.execute("SELECT * FROM system_schema.indexes;").all();
+    rows = session.execute(selectIndexes).all();
     assertThat(rows.size()).isEqualTo(0);
 
     indexName = "invalid_idx";
@@ -590,6 +648,15 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     Error response = objectMapper.readValue(body, Error.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found.");
+
+    // ifExists=true
+    indexName = "invalid_idx";
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
+            host, keyspaceName, tableName, indexName),
+        HttpStatus.SC_NO_CONTENT);
   }
 
   @Test

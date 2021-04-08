@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.18-SNAPSHOT</version>
+    <version>1.0.19-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing-services</artifactId>
@@ -47,9 +47,12 @@
             <Bundle-SymbolicName>io.stargate.testing</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.testing.TestingServicesActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
-            <Import-Package>io.stargate.auth.*, org.osgi.framework</Import-Package>
+            <Import-Package><![CDATA[
+              org.osgi.framework,
+              io.stargate.auth.*,
+              io.stargate.core.*,
+            ]]></Import-Package>
             <Export-Package>!*</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
         </configuration>

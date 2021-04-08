@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.18-SNAPSHOT</version>
+    <version>1.0.19-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.jwt</groupId>
   <artifactId>auth-jwt-service</artifactId>
@@ -83,9 +83,17 @@
             <Bundle-Description>AuthJWTService component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth.jwt</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.auth.jwt.AuthJWTServiceActivator</Bundle-Activator>
-            <Import-Package>io.stargate.auth, org.osgi.framework</Import-Package>
+            <Import-Package><![CDATA[
+              org.osgi.framework,
+              io.stargate.core.*,
+              io.stargate.auth,
+              io.stargate.db.*,
+              org.apache.cassandra.stargate,
+              org.apache.cassandra.stargate.*,
+              org.javatuples,
+              com.datastax.oss.driver.shaded.guava.*,
+            ]]></Import-Package>
             <Export-Package>!*</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
         </configuration>

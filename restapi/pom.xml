@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.18-SNAPSHOT</version>
+    <version>1.0.19-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -207,50 +207,20 @@
             <Bundle-Activator>io.stargate.web.RestApiActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
-                            !org.eclipse.jetty.http,
-                            !org.eclipse.jetty.http.pathmap,
-                            !com.sun.nio.file,
-                            !org.eclipse.jetty.io,
-                            !org.eclipse.jetty.io.ssl,
-                            !org.eclipse.jetty.jmx,
-                            !org.eclipse.jetty.servlet,
-                            !org.eclipse.jetty.util,
-                            !org.eclipse.jetty.util.annotation,
-                            !org.eclipse.jetty.util.compression,
-                            !org.eclipse.jetty.util.log,
-                            !org.eclipse.jetty.util.resource,
-                            !org.eclipse.jetty.util.ssl,
-                            !org.eclipse.jetty.util.statistic,
-                            !org.eclipse.jetty.util.thread,
-                            !org.eclipse.jetty.websocket.common,
-                            !org.eclipse.jetty.websocket.common.events,
-                            !org.eclipse.jetty.websocket.common.extensions,
-                            !org.eclipse.jetty.websocket.common.io,
-                            !org.eclipse.jetty.websocket.common.scopes,
-                            !org.eclipse.jetty.websocket.servlet,
-                            !org.eclipse.core.runtime.content,
-                            !org.slf4j,
-                            !org.slf4j.helpers,
-                            !org.slf4j.spi,
-                            !org.eclipse.jetty.security,
-                            !ch.qos.logback.classic.*,
-                            !ch.qos.logback.core.*,
-                            !io.dropwizard.logging,
+                            org.osgi.framework,
+                            io.stargate.auth,
+                            io.stargate.auth.*,
+                            io.stargate.db,
+                            io.stargate.db.*,
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
-                            io.stargate.db,
-                            io.stargate.db.query,
-                            io.stargate.db.query.builder,
-                            io.stargate.db.datastore,
                             org.javatuples,
-                            io.stargate.core,
+                            io.stargate.core.*,
                             com.codahale.metrics,
                             com.codahale.metrics.*,
                             com.datastax.oss.driver.*,
-                            org.osgi.framework
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
           <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>

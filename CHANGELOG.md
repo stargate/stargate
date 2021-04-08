@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.0.18](https://github.com/stargate/stargate/tree/v1.0.18) (2021-04-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.17...v1.0.18)
+
+**Closed issues:**
+
+- Fix geotype warnings in GraphQL tests [\#817](https://github.com/stargate/stargate/issues/817)
+- \[Document API\] Ability to initialize empty collection  [\#805](https://github.com/stargate/stargate/issues/805)
+- Consider removing dynamic OSGi imports [\#730](https://github.com/stargate/stargate/issues/730)
+
+**Merged pull requests:**
+
+- Skip geo types in GraphQL scalars test \(fixes \#817\) [\#822](https://github.com/stargate/stargate/pull/822) ([olim7t](https://github.com/olim7t))
+- Use logback for logging in Dropwizard.  [\#816](https://github.com/stargate/stargate/pull/816) ([tomekl007](https://github.com/tomekl007))
+- Bumping version for next release [\#807](https://github.com/stargate/stargate/pull/807) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Remove dynamic OSGi imports [\#806](https://github.com/stargate/stargate/pull/806) ([dimas-b](https://github.com/dimas-b))
+- Use ResourceKind in IndexesResource [\#795](https://github.com/stargate/stargate/pull/795) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.17](https://github.com/stargate/stargate/tree/v1.0.17) (2021-03-29)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.16...v1.0.17)

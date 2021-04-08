@@ -3,7 +3,7 @@
 	<parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.18-SNAPSHOT</version>
+    <version>1.0.19-SNAPSHOT</version>
   </parent>
 	<modelVersion>4.0.0</modelVersion>
     <groupId>io.stargate.config.store.yaml</groupId>
@@ -89,11 +89,11 @@
 						<Import-Package><![CDATA[
                                         org.osgi.framework,
                                         io.stargate.config.store.api,
+                                        io.stargate.core.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
                                         ]]>
 						</Import-Package>
-						<DynamicImport-Package>*</DynamicImport-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
 					</instructions>

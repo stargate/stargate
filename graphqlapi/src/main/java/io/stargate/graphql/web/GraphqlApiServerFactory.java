@@ -32,7 +32,6 @@ import org.eclipse.jetty.util.thread.ThreadPool;
  */
 @JsonTypeName("graphql-api")
 public class GraphqlApiServerFactory extends SimpleServerFactory {
-
   @Override
   public Server build(Environment environment) {
     configure(environment);
@@ -61,7 +60,6 @@ public class GraphqlApiServerFactory extends SimpleServerFactory {
     final ContextRoutingHandler routingHandler = new ContextRoutingHandler(handlers);
     final Handler gzipHandler = buildGzipHandler(routingHandler);
     server.setHandler(addStatsHandler(addRequestLog(server, gzipHandler, environment.getName())));
-
     return server;
   }
 

@@ -42,6 +42,7 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentSearchPageState;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
@@ -127,7 +128,6 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "updateExistenceForMap",
             Set.class,
-            Map.class,
             List.class,
             List.class,
             boolean.class,
@@ -173,6 +173,7 @@ public class DocumentServiceTest {
             String.class,
             String.class,
             DocumentDB.class,
+            List.class,
             List.class,
             List.class,
             List.class,
@@ -1238,7 +1239,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(new ArrayList<>(), null));
 
     List<FilterCondition> filters =
@@ -1260,7 +1261,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1285,7 +1286,7 @@ public class DocumentServiceTest {
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
@@ -1310,12 +1311,9 @@ public class DocumentServiceTest {
   @Test
   public void updateExistenceForMap() throws InvocationTargetException, IllegalAccessException {
     Set<String> existenceByDoc = new HashSet<>();
-    Map<String, Integer> countsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData();
-    updateExistenceForMap.invoke(
-        service, existenceByDoc, countsByDoc, rows, new ArrayList<>(), false, true);
+    updateExistenceForMap.invoke(service, existenceByDoc, rows, new ArrayList<>(), false, true);
     assertThat(existenceByDoc.contains("1")).isTrue();
-    assertThat(countsByDoc.get("1")).isEqualTo(3);
   }
 
   @Test
@@ -1326,37 +1324,25 @@ public class DocumentServiceTest {
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
     Mockito.when(
             serviceMock.getFullDocuments(
                 any(),
-                any(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
-            dbFactoryMock,
-            dbMock,
-            "authToken",
-            "keyspace",
-            "collection",
-            new ArrayList<>(),
-            null,
-            100,
-            1,
-            EMPTY_HEADERS);
+            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
     assertThat(result.right).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
@@ -1371,38 +1357,26 @@ public class DocumentServiceTest {
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(ImmutablePair.of(twoDocsRows, null));
     Mockito.when(
             serviceMock.getFullDocuments(
                 any(),
-                any(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyListOf(String.class),
                 any(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
 
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    ImmutablePair<JsonNode, DocumentSearchPageState> result =
         serviceMock.getFullDocuments(
-            dbFactoryMock,
-            dbMock,
-            "authToken",
-            "keyspace",
-            "collection",
-            new ArrayList<>(),
-            null,
-            100,
-            1,
-            EMPTY_HEADERS);
-    assertThat(result.right).isNull();
+            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
+    assertThat(result.right.getPageState()).isNull();
     assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 
@@ -1434,6 +1408,7 @@ public class DocumentServiceTest {
                 "keyspace",
                 "collection",
                 dbMock,
+                new ArrayList<>(),
                 filters,
                 new ArrayList<>(),
                 ImmutableList.of("a,b", "*", "c"),
@@ -1452,6 +1427,7 @@ public class DocumentServiceTest {
                 "keyspace",
                 "collection",
                 dbMock,
+                new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
@@ -1492,6 +1468,7 @@ public class DocumentServiceTest {
                     "keyspace",
                     "collection",
                     dbMock,
+                    new ArrayList<>(),
                     filters,
                     new ArrayList<>(),
                     ImmutableList.of("a,b", "*", "c"),

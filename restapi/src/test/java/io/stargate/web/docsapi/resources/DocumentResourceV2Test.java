@@ -1,7 +1,6 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
@@ -211,7 +210,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -261,7 +260,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -324,7 +323,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -375,7 +374,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -425,7 +424,7 @@ public class DocumentResourceV2Test {
 
     Keyspace keyspaceMock = mock(Keyspace.class);
     Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), any()))
+    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
         .thenReturn(authenticatedDBMock);
     when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
     when(keyspaceMock.table(collection)).thenReturn(tableMock);
@@ -476,7 +475,7 @@ public class DocumentResourceV2Test {
     String where = "";
     String fields = null;
     int pageSizeParam = 0;
-    String pageStateParam = "dmFsdWU=";
+    String pageStateParam = null;
     boolean raw = false;
 
     List<FilterCondition> conditions = new ArrayList<>();
@@ -493,16 +492,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -554,16 +550,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -615,16 +608,13 @@ public class DocumentResourceV2Test {
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
                 anyObject(),
-                anyObject(),
-                anyString(),
                 anyString(),
                 anyString(),
                 anyList(),
                 anyList(),
                 anyObject(),
                 anyInt(),
-                anyInt(),
-                any()))
+                anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =
@@ -744,16 +734,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocuments(
-                anyObject(),
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt(),
-                any()))
+                anyObject(), anyString(), anyString(), anyList(), anyObject(), anyInt(), anyInt()))
         .thenReturn(ImmutablePair.of(searchResult, null));
 
     Response r =

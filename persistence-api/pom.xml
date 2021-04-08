@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.18-SNAPSHOT</version>
+    <version>1.0.19-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -117,7 +117,7 @@
             <Bundle-Activator>io.stargate.db.DbActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
-              io.stargate.core
+              io.stargate.core.*
             ]]></Import-Package>
             <Export-Package><![CDATA[
               io.stargate.db,
@@ -131,7 +131,6 @@
               org.apache.cassandra.stargate.*,
               com.datastax.oss.driver.*
             ]]></Export-Package>
-            <DynamicImport-Package>*</DynamicImport-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
           </instructions>
