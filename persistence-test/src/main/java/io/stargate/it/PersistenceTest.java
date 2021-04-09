@@ -69,6 +69,7 @@ import io.stargate.db.datastore.PersistenceDataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
@@ -1397,6 +1398,146 @@ public abstract class PersistenceTest {
 
     assertThat(select.hasNoMoreFetchedRows()).isFalse();
     assertThat(select.one().getBoolean("graph")).isTrue();
+  }
+
+  @Test
+  public void testLimit() throws ExecutionException, InterruptedException {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("pk", Int, PartitionKey)
+        .column("cc", Int, Clustering)
+        .column("val", Int)
+        .build()
+        .execute()
+        .join();
+
+    dataStore.waitForSchemaAgreement();
+
+    BuiltQuery<?> insert =
+        dataStore
+            .queryBuilder()
+            .insertInto(keyspace, table)
+            .value("pk")
+            .value("cc")
+            .value("val")
+            .build();
+
+    insert.bind(10, 1, 1).execute().join();
+    insert.bind(10, 2, 2).execute().join();
+    insert.bind(20, 3, 3).execute().join();
+
+    BuiltQuery<?> select =
+        dataStore.queryBuilder().select().column("val").from(keyspace, table).limit().build();
+
+    assertThat(select.bind(1).execute().get().rows()).hasSize(1);
+    assertThat(select.bind(2).execute().get().rows()).hasSize(2);
+    assertThat(select.bind(10).execute().get().rows()).hasSize(3);
+
+    assertThat(
+            dataStore
+                .queryBuilder()
+                .select()
+                .column("val")
+                .from(keyspace, table)
+                .limit(2) // literal limit
+                .build()
+                .execute()
+                .get()
+                .rows())
+        .hasSize(2);
+  }
+
+  @Test
+  public void testPerPartitionLimit() throws ExecutionException, InterruptedException {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("pk", Int, PartitionKey)
+        .column("cc", Int, Clustering)
+        .column("val", Int)
+        .build()
+        .execute()
+        .join();
+
+    dataStore.waitForSchemaAgreement();
+
+    BuiltQuery<?> insert =
+        dataStore
+            .queryBuilder()
+            .insertInto(keyspace, table)
+            .value("pk")
+            .value("cc")
+            .value("val")
+            .build();
+
+    insert.bind(10, 1, 1).execute().join();
+    insert.bind(10, 2, 2).execute().join();
+    insert.bind(10, 3, 3).execute().join();
+
+    insert.bind(20, 4, 4).execute().join();
+    insert.bind(20, 5, 5).execute().join();
+    insert.bind(20, 6, 6).execute().join();
+
+    BuiltQuery<?> select =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("val")
+            .from(keyspace, table)
+            .perPartitionLimit()
+            .build();
+
+    assertThat(select.bind(1).execute().get().rows()).hasSize(2); // 1 row * 2 partitions
+    assertThat(select.bind(2).execute().get().rows()).hasSize(4); // 2 rows * 2 partitions
+    assertThat(select.bind(10).execute().get().rows()).hasSize(6); // all data
+
+    assertThat(
+            dataStore
+                .queryBuilder()
+                .select()
+                .column("val")
+                .from(keyspace, table)
+                .perPartitionLimit(2) // literal limit
+                .build()
+                .execute()
+                .get()
+                .rows())
+        .hasSize(4); // 2 rows * 2 partitions
+
+    assertThat(
+            dataStore
+                .queryBuilder()
+                .select()
+                .column("val")
+                .from(keyspace, table)
+                .perPartitionLimit(3) // literal limit
+                .limit(2) // literal limit
+                .build()
+                .execute()
+                .get()
+                .rows())
+        .hasSize(2); // hard limit for 2 rows
+
+    select =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("val")
+            .from(keyspace, table)
+            .perPartitionLimit()
+            .limit()
+            .build();
+
+    assertThat(select.bind(1, 10).execute().get().rows()).hasSize(2); // 1 row * 2 partitions
+    assertThat(select.bind(1, 1).execute().get().rows()).hasSize(1); // 1 row hard limit
+    assertThat(select.bind(2, 10).execute().get().rows()).hasSize(4); // 2 rows * 2 partitions
+    assertThat(select.bind(2, 3).execute().get().rows()).hasSize(3); // 3 rows hard limit
+    assertThat(select.bind(10, 10).execute().get().rows()).hasSize(6); // all data
   }
 
   private Keyspace createKeyspace() {

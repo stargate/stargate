@@ -147,4 +147,38 @@ class BuiltSelectTest extends BuiltQueryTest {
     assertThat(select.isStarSelect()).isTrue();
     assertThat(select.selectedColumns()).isEmpty();
   }
+
+  @Test
+  public void testSelectWithPerPartitionLimit() {
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit(123).build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT 123",
+        emptyList());
+
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit().build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT ?",
+        markerFor("[per-partition-limit]", Type.Int));
+
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit(123).limit(456).build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT 123 LIMIT 456",
+        emptyList());
+
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit().limit().build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT ? LIMIT ?",
+        markerFor("[per-partition-limit]", Type.Int),
+        markerFor("[limit]", Type.Int));
+
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit(123).limit().build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT 123 LIMIT ?",
+        markerFor("[limit]", Type.Int));
+
+    assertBuiltQuery(
+        newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit().limit(456).build(),
+        "SELECT * FROM ks.t1 PER PARTITION LIMIT ? LIMIT 456",
+        markerFor("[per-partition-limit]", Type.Int));
+  }
 }
