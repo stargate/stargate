@@ -10,15 +10,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * Annotates a test class or method to check whether a bundle has been built and deployed i.e. it's
  * available for testing.
  *
- * Uses {@link BundleAvailableCondition}.
+ * <p>Uses {@link BundleAvailableCondition}.
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(BundleAvailableCondition.class)
 public @interface SkipIfBundleNotAvailable {
 
-  /**
-   * The name of the bundle to check for.
-   */
+  /** The name of the bundle to check for. */
   String bundleName();
 }
