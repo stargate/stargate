@@ -1,7 +1,7 @@
 server:
   type: health-checker
-  applicationContextPath: /checker/
-  adminContextPath: /
+  applicationContextPath: /
+  adminContextPath: /admin
   connector:
     type: http
     port: 8084

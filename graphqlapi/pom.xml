@@ -176,6 +176,7 @@
                             io.stargate.auth.*,
                             com.codahale.metrics,
                             com.codahale.metrics.*,
+                            io.micrometer.core.*,
                             com.datastax.oss.driver.shaded.guava.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>

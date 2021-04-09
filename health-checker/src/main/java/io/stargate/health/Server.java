@@ -17,21 +17,25 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.dropwizard.DropwizardExports;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.api.MetricsScraper;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 public class Server extends Application<ApplicationConfiguration> {
   private BundleService bundleService;
   private final Metrics metrics;
+  private final MetricsScraper metricsScraper;
   private final HealthCheckRegistry healthCheckRegistry;
 
   public Server(
-      BundleService bundleService, Metrics metrics, HealthCheckRegistry healthCheckRegistry) {
+      BundleService bundleService,
+      Metrics metrics,
+      MetricsScraper metricsScraper,
+      HealthCheckRegistry healthCheckRegistry) {
     this.bundleService = bundleService;
     this.metrics = metrics;
+    this.metricsScraper = metricsScraper;
     this.healthCheckRegistry = healthCheckRegistry;
   }
 
@@ -66,13 +70,11 @@ public class Server extends Application<ApplicationConfiguration> {
               protected void configure() {
                 bind(bundleService).to(BundleService.class);
                 bind(healthCheckRegistry).to(HealthCheckRegistry.class);
+                bind(metricsScraper).to(MetricsScraper.class);
               }
             });
     environment.jersey().register(CheckerResource.class);
-
-    // Export all DropWizard metrics to Prometheus, they will be picked up later by the
-    // Prometheus MetricsServlet.
-    CollectorRegistry.defaultRegistry.register(new DropwizardExports(metrics.getRegistry()));
+    environment.jersey().register(PrometheusResource.class);
   }
 
   @Override
