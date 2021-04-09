@@ -128,7 +128,6 @@
         <module>persistence-cassandra-4.0</module>
         <module>persistence-dse-6.8</module>
         <module>cql</module>
-        <module>grpc</module>
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>auth-api</module>
@@ -145,6 +144,15 @@
       </modules>
     </profile>
     <profile>
+      <id>grpc</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>grpc</module>
+      </modules>
+    </profile>
+    <profile>
       <id>default</id>
       <activation>
         <activeByDefault>true</activeByDefault>
@@ -158,7 +166,6 @@
         <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
         <module>cql</module>
-        <module>grpc</module>
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>auth-api</module>

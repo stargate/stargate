@@ -17,16 +17,9 @@ package io.stargate.grpc.impl;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.ImmutableParameters;
-import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import io.stargate.db.SimpleStatement;
-import io.stargate.proto.QueryOuterClass.Empty;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Result;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.slf4j.Logger;
@@ -37,17 +30,13 @@ public class GrpcImpl {
 
   private final Server server;
 
-  private final Persistence persistence;
-  private final Metrics metrics;
-  private final AuthenticationService authentication;
-
-  public GrpcImpl(Persistence persistence, Metrics metrics, AuthenticationService authentication) {
-    this.persistence = persistence;
-    this.metrics = metrics;
-    this.authentication = authentication;
-
-    // TODO: Make port configurable
-    server = ServerBuilder.forPort(8090).addService(new StargateServer()).build();
+  public GrpcImpl(
+      Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
+    server =
+        ServerBuilder.forPort(8090) // TODO: Make port configurable
+            .addService(
+                new io.stargate.grpc.server.Server(persistence, metrics, authenticationService))
+            .build();
   }
 
   public void start() {
@@ -56,9 +45,6 @@ public class GrpcImpl {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-
-    // TODO: What do we do here?
-    persistence.setRpcReady(true);
   }
 
   public void stop() {
@@ -66,32 +52,6 @@ public class GrpcImpl {
       server.shutdown().awaitTermination();
     } catch (InterruptedException e) {
       logger.error("Failed waiting for gRPC shutdown", e);
-    }
-
-    // TODO: Same as above. What do we do here?
-    persistence.setRpcReady(false);
-  }
-
-  private class StargateServer extends io.stargate.proto.StargateGrpc.StargateImplBase {
-
-    @Override
-    public void execute(Query query, StreamObserver<Result> responseObserver) {
-      // TODO: Handle parameters and result set
-      long queryStartNanoTime = System.nanoTime();
-      Parameters parameters = ImmutableParameters.builder().build();
-      persistence
-          .newConnection()
-          .execute(new SimpleStatement(query.getCql()), parameters, queryStartNanoTime)
-          .whenComplete(
-              (r, t) -> {
-                if (t != null) {
-                  responseObserver.onError(t);
-                } else {
-                  responseObserver.onNext(
-                      Result.newBuilder().setEmpty(Empty.newBuilder().build()).build());
-                  responseObserver.onCompleted();
-                }
-              });
     }
   }
 }

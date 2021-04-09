@@ -36,9 +36,6 @@ public class GrpcActivator extends BaseActivator {
   private final ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
 
-  private static final boolean USE_AUTH_SERVICE =
-      Boolean.parseBoolean(System.getProperty("stargate.grpc_use_auth_service", "false"));
-
   public GrpcActivator() {
     super("gRPC", true);
   }
@@ -66,10 +63,6 @@ public class GrpcActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    if (USE_AUTH_SERVICE) {
-      return Arrays.asList(metrics, persistence, authentication);
-    } else {
-      return Arrays.asList(metrics, persistence);
-    }
+    return Arrays.asList(metrics, persistence, authentication);
   }
 }
