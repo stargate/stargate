@@ -19,6 +19,7 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
+import io.stargate.health.metrics.HealthCheckerHttpMetricsEventListener;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
@@ -75,6 +76,7 @@ public class Server extends Application<ApplicationConfiguration> {
             });
     environment.jersey().register(CheckerResource.class);
     environment.jersey().register(PrometheusResource.class);
+    environment.jersey().register(new HealthCheckerHttpMetricsEventListener(metrics));
   }
 
   @Override

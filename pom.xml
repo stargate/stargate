@@ -537,6 +537,11 @@
         <version>${micrometer.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-jersey2</artifactId>
+        <version>${micrometer.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.prometheus</groupId>
         <artifactId>simpleclient_dropwizard</artifactId>
         <version>${prometheus.version}</version>

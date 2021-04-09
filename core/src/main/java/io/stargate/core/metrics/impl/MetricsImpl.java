@@ -3,6 +3,8 @@ package io.stargate.core.metrics.impl;
 import com.codahale.metrics.MetricRegistry;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.CollectorRegistry;
@@ -11,6 +13,17 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 
 public class MetricsImpl implements Metrics, MetricsScraper {
+
+  // metric names
+  public static final String SERVER_HTTP_REQUESTS_METRIC_NAME = "server.http.requests";
+
+  // tag keys
+  public static final String MODULE_KEY = "module";
+  public static final String TENANT_KEY = "tenant";
+
+  // unknown tag instances
+  public static final Tag TAG_MODULE_UNKNOWN = Tag.of(MODULE_KEY, "UNKNOWN");
+  public static final Tag TAG_TENANT_UNKNOWN = Tag.of(TENANT_KEY, "UNKNOWN");
 
   private final MetricRegistry registry;
 
@@ -46,6 +59,18 @@ public class MetricsImpl implements Metrics, MetricsScraper {
   @Override
   public MeterRegistry getMeterRegistry() {
     return prometheusMeterRegistry;
+  }
+
+  @Override
+  public Tags tagsWithoutTenant(String module) {
+    Tag moduleTag = null != module ? Tag.of(MODULE_KEY, module) : TAG_MODULE_UNKNOWN;
+    return Tags.of(moduleTag);
+  }
+
+  @Override
+  public Tags tagsWithTenant(String module, String tenant) {
+    Tag tenantTag = null != tenant ? Tag.of(TENANT_KEY, tenant) : TAG_TENANT_UNKNOWN;
+    return tagsWithoutTenant(module).and(tenantTag);
   }
 
   @Override
