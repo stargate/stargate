@@ -45,7 +45,7 @@ public class TableOptions {
 
   @ApiModelProperty(
       value =
-          "Order rows storage to make use of the on-disk sorting of columns. Specifying order can make query results more efficient.")
+          "Order rows storage to make use of the on-disk sorting of columns. Specifying order can make query results more efficient. Defaults to ascending if not provided.")
   public List<ClusteringExpression> getClusteringExpression() {
     return clusteringExpression;
   }

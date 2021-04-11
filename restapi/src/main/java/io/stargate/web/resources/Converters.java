@@ -1000,6 +1000,11 @@ public class Converters {
 
   public static Order getColumnOrder(ColumnDefinition def, TableOptions tableOptions)
       throws Exception {
+    if (tableOptions.getClusteringExpression() == null
+        || tableOptions.getClusteringExpression().size() == 0) {
+      return Order.ASC;
+    }
+
     for (ClusteringExpression expression : tableOptions.getClusteringExpression()) {
       if (expression.getOrder() == null || expression.getColumn() == null) {
         throw new Exception("both order and column are required for clustering expression");
