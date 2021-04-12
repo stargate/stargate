@@ -721,6 +721,18 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     SuccessResponse successResponse =
         objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
+        .isEqualTo("ASC");
   }
 
   @Test
