@@ -105,11 +105,10 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>RestAPI</Bundle-Name>
+            <Bundle-Name>gRPC</Bundle-Name>
             <Bundle-Description>gRPC service for Stargate</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.grpc</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.grpc.GrpcActivator</Bundle-Activator>
-            <!-- TODO [doug] do this the right way https://baptiste-wicht.com/posts/2010/03/bundle-non-osgi-dependencies-maven.html -->
             <Import-Package><![CDATA[
                             org.osgi.framework,
                             io.stargate.core.*,

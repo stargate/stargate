@@ -11,7 +11,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
 
 /**
- * A condition that implements the logic for {@link SkipIfBundleNotAvailable}. It checks to make
+ * A condition that implements the logic for {@link IfBundleAvailable}. It checks to make
  * sure a bundle exists so that tests can be run against it.
  */
 public class BundleAvailableCondition implements ExecutionCondition {
@@ -21,15 +21,15 @@ public class BundleAvailableCondition implements ExecutionCondition {
         context
             .getElement()
             .orElseThrow(() -> new IllegalStateException("Expected to have an element"));
-    Optional<SkipIfBundleNotAvailable> maybeBundleSkip =
-        AnnotationSupport.findAnnotation(element, SkipIfBundleNotAvailable.class);
+    Optional<IfBundleAvailable> maybeBundleSkip =
+        AnnotationSupport.findAnnotation(element, IfBundleAvailable.class);
     if (!maybeBundleSkip.isPresent() && element instanceof Method) {
       maybeBundleSkip =
           AnnotationSupport.findAnnotation(
-              ((Method) element).getDeclaringClass(), SkipIfBundleNotAvailable.class);
+              ((Method) element).getDeclaringClass(), IfBundleAvailable.class);
     }
 
-    SkipIfBundleNotAvailable bundleSkip =
+    IfBundleAvailable bundleSkip =
         maybeBundleSkip.orElseThrow(
             () -> new IllegalStateException("SkipIfBundleNotAvailable annotation not present"));
 

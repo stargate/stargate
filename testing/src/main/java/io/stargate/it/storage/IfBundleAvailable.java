@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(BundleAvailableCondition.class)
-public @interface SkipIfBundleNotAvailable {
+public @interface IfBundleAvailable {
 
   /** The name of the bundle to check for. */
   String bundleName();
