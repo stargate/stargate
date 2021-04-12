@@ -7,6 +7,7 @@ import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheck.Result;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.annotation.Timed;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -29,6 +30,9 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/checker")
 @Produces(MediaType.TEXT_PLAIN)
+@Timed(
+    percentiles = {0.5, 0.75, 0.95, 0.99},
+    histogram = true)
 public class CheckerResource {
 
   private static final Logger logger = LoggerFactory.getLogger(CheckerResource.class);

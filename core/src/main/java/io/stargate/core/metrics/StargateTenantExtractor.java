@@ -76,7 +76,7 @@ public class StargateTenantExtractor {
    */
   private static Optional<String> tenantFromHost(String host) {
     int firstDotIndex = host.indexOf('.');
-    if (firstDotIndex > 0) {
+    if (firstDotIndex >= 36) {
       String tenantWithRegion = host.substring(0, firstDotIndex);
       Matcher matcher = TENANT_PATTERN.matcher(tenantWithRegion);
       if (matcher.find()) {

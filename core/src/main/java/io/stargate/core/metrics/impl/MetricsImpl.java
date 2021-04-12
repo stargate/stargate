@@ -15,7 +15,7 @@ import io.stargate.core.metrics.api.MetricsScraper;
 public class MetricsImpl implements Metrics, MetricsScraper {
 
   // metric names
-  public static final String SERVER_HTTP_REQUESTS_METRIC_NAME = "server.http.requests";
+  public static final String SERVER_HTTP_REQUESTS_METRIC_NAME = "http.server.requests";
 
   // tag keys
   public static final String MODULE_KEY = "module";
