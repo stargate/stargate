@@ -18,8 +18,18 @@ package io.stargate.graphql.schema.schemafirst.migration;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.schema.UserDefinedType;
+import java.util.Collections;
+import java.util.List;
 
 public class CreateUdtQuery extends MigrationQuery {
+
+  /**
+   * This method only exist to mirror {@link CreateTableQuery#createTableAndIndexes} (there is some
+   * common code that abstracts over both).
+   */
+  public static List<MigrationQuery> createUdt(UserDefinedType type) {
+    return Collections.singletonList(new CreateUdtQuery(type));
+  }
 
   private final UserDefinedType type;
 

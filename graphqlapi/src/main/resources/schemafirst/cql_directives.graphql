@@ -62,6 +62,59 @@ directive @cql_column(
 
 ) on FIELD_DEFINITION
 
+
+"Which part of a collection field will be indexed."
+enum IndexTarget {
+
+    """
+    Indexes the values of a list field.
+    This is only allowed if the CQL type is not frozen.
+    """
+    VALUES
+
+    """
+    Indexes the full collection for a list, set or map column.
+    This is only allowed if the CQL type is frozen.
+    """
+    FULL
+}
+
+
+"""
+Requests the creation of a CQL index for a GraphQL object field.
+
+This is only allowed for objects that map to CQL tables, and only for non-partition-key fields (in
+other words, fields that have neither `@cql_column.partitionKey` nor `@cql_column.clusteringOrder`
+set).
+"""
+directive @cql_index (
+
+    """
+    A custom name for the index. If not specified, one will be generated.
+    """
+    name: String
+
+    """
+    If the index is custom, the name of the index class to use. If not specified, this will be a
+    regular secondary index.
+    """
+    class: String
+
+    """
+    (Only used with list fields) Which part of the field to index. If not specified, this will
+    default to `VALUES`.
+    """
+    target: IndexTarget
+
+    """
+    Any custom options to pass to the index, in the format: `'option1': 'value1', 'option2':
+    'value2'...`
+    """
+    options: String
+
+) on FIELD_DEFINITION
+
+
 """
 Provides additional options to the CQL SELECT generated for a query.
 This is only required if you pass arguments to the directive. Otherwise, GraphQL queries are always
