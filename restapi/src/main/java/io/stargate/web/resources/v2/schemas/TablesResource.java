@@ -204,7 +204,7 @@ public class TablesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "", required = true) @NotNull final TableAdd tableAdd,
+      @ApiParam(required = true) @NotNull final TableAdd tableAdd,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
