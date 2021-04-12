@@ -11,8 +11,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
 
 /**
- * A condition that implements the logic for {@link IfBundleAvailable}. It checks to make
- * sure a bundle exists so that tests can be run against it.
+ * A condition that implements the logic for {@link IfBundleAvailable}. It checks to make sure a
+ * bundle exists so that tests can be run against it.
  */
 public class BundleAvailableCondition implements ExecutionCondition {
   @Override
