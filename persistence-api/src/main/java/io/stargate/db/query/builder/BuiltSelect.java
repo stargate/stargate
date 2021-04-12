@@ -32,7 +32,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
   private final List<BindMarker> internalBindMarkers;
   private final List<BuiltCondition> whereClause;
   private final @Nullable Value<Integer> limit;
-  private final @Nullable Value<Integer> limitPerPartition;
+  private final @Nullable Value<Integer> perPartitionLimit;
 
   protected BuiltSelect(
       Table table,
@@ -44,7 +44,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
       List<BindMarker> internalBindMarkers,
       List<BuiltCondition> whereClause,
       @Nullable Value<Integer> limit,
-      @Nullable Value<Integer> limitPerPartition) {
+      @Nullable Value<Integer> perPartitionLimit) {
     this(
         table,
         codec,
@@ -58,9 +58,9 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
         internalBindMarkers,
         whereClause,
         limit,
-        limitPerPartition);
+        perPartitionLimit);
     int internalBoundValuesCount =
-        internalWhereValues.size() + (limit == null ? 0 : 1) + (limitPerPartition == null ? 0 : 1);
+        internalWhereValues.size() + (limit == null ? 0 : 1) + (perPartitionLimit == null ? 0 : 1);
     Preconditions.checkArgument(
         builder.internalBindMarkers() == internalBoundValuesCount,
         "Provided %s values, but the builder has seen %s values",
@@ -81,7 +81,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
       List<BindMarker> internalBindMarkers,
       List<BuiltCondition> whereClause,
       @Nullable Value<Integer> limit,
-      @Nullable Value<Integer> limitPerPartition) {
+      @Nullable Value<Integer> perPartitionLimit) {
     super(QueryType.SELECT, codec, preparedId, executor, unboundMarkers);
     this.table = table;
     this.internalQueryString = internalQueryString;
@@ -91,7 +91,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
     this.internalBindMarkers = internalBindMarkers;
     this.whereClause = whereClause;
     this.limit = limit;
-    this.limitPerPartition = limitPerPartition;
+    this.perPartitionLimit = perPartitionLimit;
   }
 
   public Table table() {
@@ -144,10 +144,10 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
       }
     }
 
-    OptionalInt optLimitPerPartition = OptionalInt.empty();
-    if (limitPerPartition != null) {
-      TypedValue v = convertValue(limitPerPartition, "[per-partition-limit]", Type.Int, values);
-      int internalIndex = limitPerPartition.internalIndex();
+    OptionalInt optPerPartitionLimit = OptionalInt.empty();
+    if (perPartitionLimit != null) {
+      TypedValue v = convertValue(perPartitionLimit, "[per-partition-limit]", Type.Int, values);
+      int internalIndex = perPartitionLimit.internalIndex();
       if (internalIndex >= 0) {
         internalBoundValues[internalIndex] = v;
       }
@@ -157,7 +157,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
           throw new IllegalArgumentException(
               "Cannot pass null as bound value for the PER PARTITION LIMIT");
         }
-        optLimit = OptionalInt.of(lvalue);
+        optPerPartitionLimit = OptionalInt.of(lvalue);
       }
     }
     return new Bound(
@@ -166,7 +166,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
         Arrays.asList(internalBoundValues),
         whereProcessor.process(whereClause),
         optLimit,
-        optLimitPerPartition);
+        optPerPartitionLimit);
   }
 
   @Override
@@ -184,7 +184,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
         internalBindMarkers,
         whereClause,
         limit,
-        limitPerPartition);
+        perPartitionLimit);
   }
 
   @Override
@@ -195,7 +195,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
   public static class Bound extends AbstractBound<BuiltSelect> implements BoundSelect {
     private final @Nullable RowsImpacted selectedRows;
     private final OptionalInt limit;
-    private final OptionalInt limitPerPartition;
+    private final OptionalInt perPartitionLimit;
 
     private Bound(
         BuiltSelect builtQuery,
@@ -203,11 +203,11 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
         List<TypedValue> values,
         @Nullable RowsImpacted selectedRows,
         OptionalInt limit,
-        OptionalInt limitPerPartition) {
+        OptionalInt perPartitionLimit) {
       super(builtQuery, boundedValues, values);
       this.selectedRows = selectedRows;
       this.limit = limit;
-      this.limitPerPartition = limitPerPartition;
+      this.perPartitionLimit = perPartitionLimit;
     }
 
     @Override
@@ -273,9 +273,9 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
               oldBuilt.internalBindMarkers,
               oldBuilt.whereClause,
               limit.isPresent() ? Value.of(limit.getAsInt()) : null,
-              limitPerPartition.isPresent() ? Value.of(limitPerPartition.getAsInt()) : null);
+              perPartitionLimit.isPresent() ? Value.of(perPartitionLimit.getAsInt()) : null);
       return new Bound(
-          newBuilt, source().values(), values(), selectedRows, limit, limitPerPartition);
+          newBuilt, source().values(), values(), selectedRows, limit, perPartitionLimit);
     }
 
     @Override

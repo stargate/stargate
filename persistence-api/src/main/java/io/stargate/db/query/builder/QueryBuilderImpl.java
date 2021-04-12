@@ -145,7 +145,7 @@ public class QueryBuilderImpl {
   private final List<BuiltCondition> ifs = new ArrayList<>();
 
   private @Nullable Value<Integer> limit;
-  private @Nullable Value<Integer> limitPerPartition;
+  private @Nullable Value<Integer> perPartitionLimit;
   private List<ColumnOrder> orders = new ArrayList<>();
 
   private Replication replication;
@@ -668,14 +668,14 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void perPartitionLimit() {
-    this.limitPerPartition = Value.marker();
-    preprocessValue(this.limitPerPartition);
+    this.perPartitionLimit = Value.marker();
+    preprocessValue(this.perPartitionLimit);
   }
 
   @DSLAction
   public void perPartitionLimit(Integer limit) {
     if (limit != null) {
-      this.limitPerPartition = Value.of(limit);
+      this.perPartitionLimit = Value.of(limit);
     }
   }
 
@@ -1463,9 +1463,9 @@ public class QueryBuilderImpl {
             orders,
             order -> builder.append(order.column()).append(order.order().name().toUpperCase()));
 
-    if (limitPerPartition != null) {
+    if (perPartitionLimit != null) {
       BindMarker marker = markerFor("[per-partition-limit]", Type.Int);
-      builder.append("PER PARTITION LIMIT").append(marker, limitPerPartition);
+      builder.append("PER PARTITION LIMIT").append(marker, perPartitionLimit);
       internalBindMarkers.add(marker);
     }
 
@@ -1489,6 +1489,6 @@ public class QueryBuilderImpl {
         internalBindMarkers,
         wheres,
         limit,
-        limitPerPartition);
+        perPartitionLimit);
   }
 }
