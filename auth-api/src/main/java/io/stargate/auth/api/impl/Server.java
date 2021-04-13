@@ -26,7 +26,9 @@ import io.stargate.auth.api.AuthApiActivator;
 import io.stargate.auth.api.config.ApplicationConfiguration;
 import io.stargate.auth.api.resources.AuthResource;
 import io.stargate.auth.api.swagger.SwaggerUIResource;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -42,12 +44,16 @@ import org.osgi.framework.FrameworkUtil;
 
 public class Server extends Application<ApplicationConfiguration> {
 
+  private static final String MODULE_NAME = "authapi";
+
   AuthenticationService authenticationService;
   private final Metrics metrics;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  public Server(AuthenticationService authenticationService, Metrics metrics) {
+  public Server(AuthenticationService authenticationService, Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider) {
     this.authenticationService = authenticationService;
     this.metrics = metrics;
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
 
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
@@ -102,13 +108,16 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(SwaggerUIResource.class);
 
     enableCors(environment);
+
+    ResourceMetricsEventListener metricsListener = new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+    environment.jersey().register(metricsListener);
   }
 
   @Override
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry("authapi"));
+    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

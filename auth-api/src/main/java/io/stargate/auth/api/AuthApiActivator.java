@@ -18,6 +18,7 @@ package io.stargate.auth.api;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.api.impl.WebImpl;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +30,7 @@ public class AuthApiActivator extends BaseActivator {
 
   private final WebImpl web = new WebImpl();
   private final ServicePointer<Metrics> metric = ServicePointer.create(Metrics.class);
+  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider = ServicePointer.create(HttpMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authenticationService =
       ServicePointer.create(
           AuthenticationService.class,
@@ -43,6 +45,7 @@ public class AuthApiActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     web.setAuthenticationService(authenticationService.get());
     web.setMetrics(metric.get());
+    web.setHttpMetricsTagProvider(httpTagProvider.get());
     try {
       this.web.start();
     } catch (Exception e) {
@@ -54,6 +57,6 @@ public class AuthApiActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metric, authenticationService);
+    return Arrays.asList(metric, httpTagProvider, authenticationService);
   }
 }
