@@ -212,20 +212,21 @@ public class WhereParserTest {
     where = WhereParser.parseWhere(whereParam, table);
     assertThat(where).isEqualTo(whereExpected);
 
-    whereParam = "{\"set\": {\"$containskey\": [\"a\", \"b\"]}}";
+    whereParam = "{\"text_map\": {\"$containskey\": [\"a\", \"b\"]}}";
     whereExpected =
         asList(
-            BuiltCondition.of("set", Predicate.CONTAINS_KEY, 76),
-            BuiltCondition.of("set", Predicate.CONTAINS_KEY, 1));
+            BuiltCondition.of("text_map", Predicate.CONTAINS_KEY, "a"),
+            BuiltCondition.of("text_map", Predicate.CONTAINS_KEY, "b"));
     where = WhereParser.parseWhere(whereParam, table);
     assertThat(where).isEqualTo(whereExpected);
 
     whereParam =
-        "{\"set\": {\"$containsentry\": [{\"key\": \"a\", \"value\": \"1\"}, {\"key\": \"b\", \"value\": \"1\"}]}}";
+        "{\"text_map\": {\"$containsentry\": [{\"key\": \"a\", \"value\": \"1\"}, {\"key\": \"b\", \"value\": \"2\"}]}}";
+
     whereExpected =
         asList(
-            BuiltCondition.of("set", Predicate.CONTAINS, 76),
-            BuiltCondition.of("set", Predicate.CONTAINS, 1));
+            BuiltCondition.of(BuiltCondition.LHS.mapAccess("text_map", "a"), Predicate.EQ, "1"),
+            BuiltCondition.of(BuiltCondition.LHS.mapAccess("text_map", "b"), Predicate.EQ, "2"));
     where = WhereParser.parseWhere(whereParam, table);
     assertThat(where).isEqualTo(whereExpected);
   }

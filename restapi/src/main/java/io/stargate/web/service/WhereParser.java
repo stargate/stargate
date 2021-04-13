@@ -96,6 +96,7 @@ public class WhereParser {
           default: // GT, GTE, LT, LTE, EQ, NE
             {
               addToCondition(conditions, context);
+              break;
             }
         }
       }
