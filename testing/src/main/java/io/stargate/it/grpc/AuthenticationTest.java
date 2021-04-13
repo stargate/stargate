@@ -2,7 +2,6 @@ package io.stargate.it.grpc;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass.Query;
 import org.junit.jupiter.api.Test;
