@@ -20,6 +20,8 @@ import io.grpc.ServerBuilder;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.grpc.server.interceptors.AuthenticationInterceptor;
+import io.stargate.grpc.server.interceptors.RemoteAddressInterceptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.slf4j.Logger;
@@ -28,14 +30,17 @@ import org.slf4j.LoggerFactory;
 public class GrpcImpl {
   private static final Logger logger = LoggerFactory.getLogger(GrpcImpl.class);
 
+  private static final int PORT = Integer.getInteger("stargate.grpc.port", 8090);
+
   private final Server server;
 
   public GrpcImpl(
       Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
     server =
-        ServerBuilder.forPort(8090) // TODO: Make port configurable
-            .addService(
-                new io.stargate.grpc.server.Server(persistence, metrics, authenticationService))
+        ServerBuilder.forPort(PORT)
+            .intercept(new AuthenticationInterceptor(authenticationService))
+            .intercept(new RemoteAddressInterceptor())
+            .addService(new io.stargate.grpc.server.Server(persistence, metrics))
             .build();
   }
 

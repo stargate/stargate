@@ -31,7 +31,7 @@ public class BundleAvailableCondition implements ExecutionCondition {
 
     IfBundleAvailable bundleSkip =
         maybeBundleSkip.orElseThrow(
-            () -> new IllegalStateException("SkipIfBundleNotAvailable annotation not present"));
+            () -> new IllegalStateException("IfBundleAvailable annotation not present"));
 
     String bundleName = bundleSkip.bundleName();
     File[] files = StargateContainer.LIB_DIR.listFiles();
