@@ -1,18 +1,20 @@
 package io.stargate.graphql.schema.schemafirst.processor;
 
 import com.google.common.collect.ImmutableList;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.EntityListReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.EntityReturnType;
 import io.stargate.graphql.schema.schemafirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 abstract class OperationModelBuilderBase<T extends OperationModel> extends ModelBuilderBase<T> {
 
@@ -95,15 +97,26 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
 
   private WhereConditionModel buildWhereCondition(
       InputValueDefinition inputValue, EntityModel entity) throws SkipException {
+
+    Optional<Directive> whereDirective = DirectiveHelper.getDirective("cql_where", inputValue);
+    String fieldName =
+        whereDirective
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
+            .orElse(inputValue.getName());
+    Predicate predicate =
+        whereDirective
+            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
+            .orElse(Predicate.EQ);
+
     FieldModel field =
         entity.getAllColumns().stream()
-            .filter(f -> f.getGraphqlName().equals(inputValue.getName()))
+            .filter(f -> f.getGraphqlName().equals(fieldName))
             .findFirst()
             .orElseThrow(
                 () -> {
                   invalidMapping(
-                      "Operation %s: argument %s does not match any field of type %s",
-                      operationName, inputValue.getName(), entity.getGraphqlName());
+                      "Operation %s: could not find field %s in type %s",
+                      operationName, fieldName, entity.getGraphqlName());
                   return SkipException.INSTANCE;
                 });
 
@@ -115,51 +128,53 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
       throw SkipException.INSTANCE;
     }
 
-    Type<?> inputType = inputValue.getType();
-    if (!TypeHelper.unwrapNonNull(inputType)
-        .isEqualTo(TypeHelper.unwrapNonNull(field.getGraphqlType()))) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have the same type as %s.%s",
-          operationName, inputValue.getName(), entity.getGraphqlName(), field.getGraphqlName());
-      throw SkipException.INSTANCE;
-    }
-    // TODO support operators other than '=' for clustering and regular columns
-    return new WhereConditionModel(field);
-  }
-
-  /** Validates that the given set of conditions will produce a valid CQL query. */
-  protected void validateWhereConditions(
-      List<WhereConditionModel> whereConditions, EntityModel entity) throws SkipException {
-    // TODO revisit these rules when we allow regular columns and operators other than '='
-
-    for (FieldModel field : entity.getPartitionKey()) {
-      if (whereConditions.stream().noneMatch(c -> c.getField().equals(field))) {
-        invalidMapping(
-            "Operation %s: every partition key field of type %s must be present (expected: %s)",
-            operationName,
-            entity.getGraphqlName(),
-            entity.getPartitionKey().stream()
-                .map(FieldModel::getGraphqlName)
-                .collect(Collectors.joining(", ")));
-        throw SkipException.INSTANCE;
-      }
-    }
-
-    String lastMissingField = null;
-    for (FieldModel field : entity.getClusteringColumns()) {
-      if (whereConditions.stream().noneMatch(c -> c.getField().equals(field))) {
-        if (lastMissingField == null) {
-          lastMissingField = field.getGraphqlName();
-        }
-      } else {
-        if (lastMissingField != null) {
+    Type<?> inputType = TypeHelper.unwrapNonNull(inputValue.getType());
+    Type<?> fieldType = TypeHelper.unwrapNonNull(field.getGraphqlType());
+    switch (predicate) {
+      case EQ:
+      case LT:
+      case GT:
+      case LTE:
+      case GTE:
+        if (!inputType.isEqualTo(fieldType)) {
           invalidMapping(
-              "Operation %s: unexpected argument %s. Clustering field %s is not an argument, "
-                  + "so no other clustering field after it can be either.",
-              operationName, field.getGraphqlName(), lastMissingField);
+              "Operation %s: expected argument %s to have type %s to match %s.%s",
+              operationName,
+              inputValue.getName(),
+              TypeHelper.format(fieldType),
+              entity.getGraphqlName(),
+              field.getGraphqlName());
           throw SkipException.INSTANCE;
         }
-      }
+        break;
+      case IN:
+        if (!(inputType instanceof ListType)
+            || !TypeHelper.unwrapNonNull(((ListType) inputType).getType()).isEqualTo(fieldType)) {
+          invalidMapping(
+              "Operation %s: expected argument %s to have type [%s] to match %s.%s",
+              operationName,
+              inputValue.getName(),
+              TypeHelper.format(fieldType),
+              entity.getGraphqlName(),
+              field.getGraphqlName());
+        }
+        break;
+      case NEQ:
+        // TODO implement these when indexes are supported:
+      case CONTAINS:
+      case CONTAINS_KEY:
+        throw new IllegalArgumentException("Unsupported predicate " + predicate);
+    }
+
+    return new WhereConditionModel(field, predicate, inputValue.getName());
+  }
+
+  protected void validateWhereConditions(
+      List<WhereConditionModel> whereConditions, EntityModel entity) throws SkipException {
+    Optional<String> maybeError = entity.validateConditions(whereConditions);
+    if (maybeError.isPresent()) {
+      invalidMapping("Operation %s: %s", operationName, maybeError.get());
+      throw SkipException.INSTANCE;
     }
   }
 }
