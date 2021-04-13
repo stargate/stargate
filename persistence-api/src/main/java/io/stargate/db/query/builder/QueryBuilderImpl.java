@@ -85,7 +85,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* writeTimeColumn? from (where* limit? orderBy*) allowFiltering?"),
+              "select star? column* writeTimeColumn? from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -145,6 +145,7 @@ public class QueryBuilderImpl {
   private final List<BuiltCondition> ifs = new ArrayList<>();
 
   private @Nullable Value<Integer> limit;
+  private @Nullable Value<Integer> perPartitionLimit;
   private List<ColumnOrder> orders = new ArrayList<>();
 
   private Replication replication;
@@ -662,6 +663,19 @@ public class QueryBuilderImpl {
   public void limit(Integer limit) {
     if (limit != null) {
       this.limit = Value.of(limit);
+    }
+  }
+
+  @DSLAction
+  public void perPartitionLimit() {
+    this.perPartitionLimit = Value.marker();
+    preprocessValue(this.perPartitionLimit);
+  }
+
+  @DSLAction
+  public void perPartitionLimit(Integer limit) {
+    if (limit != null) {
+      this.perPartitionLimit = Value.of(limit);
     }
   }
 
@@ -1449,11 +1463,18 @@ public class QueryBuilderImpl {
             orders,
             order -> builder.append(order.column()).append(order.order().name().toUpperCase()));
 
+    if (perPartitionLimit != null) {
+      BindMarker marker = markerFor("[per-partition-limit]", Type.Int);
+      builder.append("PER PARTITION LIMIT").append(marker, perPartitionLimit);
+      internalBindMarkers.add(marker);
+    }
+
     if (limit != null) {
       BindMarker marker = markerFor("[limit]", Type.Int);
       builder.append("LIMIT").append(marker, limit);
       internalBindMarkers.add(marker);
     }
+
     if (allowFiltering) {
       builder.append("ALLOW FILTERING");
     }
@@ -1467,6 +1488,7 @@ public class QueryBuilderImpl {
         internalWhereValues,
         internalBindMarkers,
         wheres,
-        limit);
+        limit,
+        perPartitionLimit);
   }
 }
