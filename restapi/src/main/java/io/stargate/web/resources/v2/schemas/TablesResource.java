@@ -66,6 +66,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 @Api(
@@ -374,7 +375,7 @@ public class TablesResource {
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
-          return Response.status(Response.Status.CREATED)
+          return Response.status(Status.OK)
               .entity(
                   Converters.writeResponse(Collections.singletonMap("name", tableUpdate.getName())))
               .build();
