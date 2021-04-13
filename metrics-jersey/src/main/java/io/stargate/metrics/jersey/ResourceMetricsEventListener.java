@@ -16,9 +16,8 @@
 
 package io.stargate.metrics.jersey;
 
-import static io.stargate.core.metrics.impl.MetricsImpl.SERVER_HTTP_REQUESTS_METRIC_NAME;
-
 import io.micrometer.jersey2.server.MetricsApplicationEventListener;
+import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 
@@ -28,8 +27,8 @@ public class ResourceMetricsEventListener extends MetricsApplicationEventListene
       Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider, String module) {
     super(
         metrics.getMeterRegistry(),
-        new ResourceTagsProvider(httpMetricsTagProvider, module),
-        SERVER_HTTP_REQUESTS_METRIC_NAME,
+        new ResourceTagsProvider(httpMetricsTagProvider, metrics.defaultTagsForModule(module)),
+        StargateMetricConstants.METRIC_HTTP_SERVER_REQUESTS,
         true);
   }
 }

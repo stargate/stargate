@@ -18,26 +18,25 @@ package io.stargate.testing.metrics;
 
 import io.micrometer.core.instrument.Tags;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
-
 import java.util.List;
 import java.util.Map;
 
 /**
- * Simple {@link HttpMetricsTagProvider} for testing that extracts {@value TAG_ME_HEADER} header and converts to tag.
+ * Simple {@link HttpMetricsTagProvider} for testing that extracts {@value TAG_ME_HEADER} header and
+ * converts to tag.
  */
 public class TagMeHttpMetricsTagProvider implements HttpMetricsTagProvider {
 
-    public static final String TAG_ME_HEADER = "x-tag-me";
-    public static final String TAG_ME_KEY = "tag.me";
+  public static final String TAG_ME_HEADER = "x-tag-me";
+  public static final String TAG_ME_KEY = "tagme";
 
-    @Override
-    public Tags getRequestTags(Map<String, List<String>> headers) {
-        List<String> values = headers.get(TAG_ME_HEADER);
-        if (null != values && !values.isEmpty()) {
-            return Tags.of(TAG_ME_KEY, values.iterator().next());
-        } else {
-            return Tags.of(TAG_ME_KEY, "UNKNOWN");
-        }
+  @Override
+  public Tags getRequestTags(Map<String, List<String>> headers) {
+    List<String> values = headers.get(TAG_ME_HEADER);
+    if (null != values && !values.isEmpty()) {
+      return Tags.of(TAG_ME_KEY, values.iterator().next());
+    } else {
+      return Tags.of(TAG_ME_KEY, "UNKNOWN");
     }
-
+  }
 }

@@ -35,11 +35,11 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
 
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  private final Tag moduleTag;
+  private final Tags defaultTags;
 
-  public ResourceTagsProvider(HttpMetricsTagProvider httpMetricsTagProvider, String module) {
+  public ResourceTagsProvider(HttpMetricsTagProvider httpMetricsTagProvider, Tags defaultTags) {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
-    this.moduleTag = Tag.of("module", module);
+    this.defaultTags = defaultTags;
   }
 
   /** {@inheritDoc} */
@@ -52,11 +52,12 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
     Tags requestTags =
         httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
 
-    return requestTags.and(
-        moduleTag,
-        JerseyTags.method(containerRequest),
-        JerseyTags.uri(event),
-        JerseyTags.status(response));
+    return defaultTags
+        .and(requestTags)
+        .and(
+            JerseyTags.method(containerRequest),
+            JerseyTags.uri(event),
+            JerseyTags.status(response));
   }
 
   /** {@inheritDoc} */
@@ -68,6 +69,8 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
     Tags requestTags =
         httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
 
-    return requestTags.and(moduleTag, JerseyTags.method(containerRequest), JerseyTags.uri(event));
+    return defaultTags
+        .and(requestTags)
+        .and(JerseyTags.method(containerRequest), JerseyTags.uri(event));
   }
 }

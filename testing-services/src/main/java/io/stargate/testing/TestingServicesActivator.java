@@ -20,7 +20,6 @@ import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.testing.auth.LoggingAuthorizationProcessorImpl;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;

@@ -44,14 +44,5 @@ public interface Metrics {
    * @param module module name
    * @return Tags
    */
-  Tags tagsWithoutTenant(String module);
-
-  /**
-   * Returns set of default micrometer {@link Tags} for the given module and tenant.
-   *
-   * @param module module name
-   * @param tenant tenant id
-   * @return Tags
-   */
-  Tags tagsWithTenant(String module, String tenant);
+  Tags defaultTagsForModule(String module);
 }
