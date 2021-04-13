@@ -27,8 +27,10 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.resources.CollectionsResource;
@@ -62,19 +64,24 @@ import org.osgi.framework.FrameworkUtil;
 
 public class Server extends Application<ApplicationConfiguration> {
 
+  private static final String MODULE_NAME = "restapi";
+
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final Metrics metrics;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final DataStoreFactory dataStoreFactory;
 
   public Server(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider,
       DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.dataStoreFactory = dataStoreFactory;
 
     BeanConfig beanConfig = new BeanConfig();
@@ -147,6 +154,10 @@ public class Server extends Application<ApplicationConfiguration> {
 
     environment.jersey().register(SwaggerUIResource.class);
     enableCors(environment);
+
+    ResourceMetricsEventListener metricListener =
+        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+    environment.jersey().register(metricListener);
   }
 
   @VisibleForTesting
@@ -159,7 +170,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry("restapi"));
+    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

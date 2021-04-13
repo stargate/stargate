@@ -2,13 +2,7 @@ package io.stargate.health;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.jvm.BufferPoolMetricSet;
-import com.codahale.metrics.jvm.ClassLoadingGaugeSet;
-import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
-import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+import com.codahale.metrics.jvm.*;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
@@ -17,26 +11,33 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
-import io.stargate.health.metrics.HealthCheckerHttpMetricsEventListener;
+import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 public class Server extends Application<ApplicationConfiguration> {
+
+  private static final String MODULE_NAME = "health-checker";
+
   private BundleService bundleService;
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final HealthCheckRegistry healthCheckRegistry;
 
   public Server(
       BundleService bundleService,
       Metrics metrics,
       MetricsScraper metricsScraper,
+      HttpMetricsTagProvider httpMetricsTagProvider,
       HealthCheckRegistry healthCheckRegistry) {
     this.bundleService = bundleService;
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.healthCheckRegistry = healthCheckRegistry;
   }
 
@@ -76,14 +77,17 @@ public class Server extends Application<ApplicationConfiguration> {
             });
     environment.jersey().register(CheckerResource.class);
     environment.jersey().register(PrometheusResource.class);
-    environment.jersey().register(new HealthCheckerHttpMetricsEventListener(metrics));
+
+    ResourceMetricsEventListener component =
+        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+    environment.jersey().register(component);
   }
 
   @Override
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry("health-checker"));
+    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
     bootstrap.setHealthCheckRegistry(healthCheckRegistry);
   }
 

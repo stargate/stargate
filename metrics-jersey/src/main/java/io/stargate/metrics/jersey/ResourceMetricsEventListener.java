@@ -14,19 +14,21 @@
  *  limitations under the License.
  */
 
-package io.stargate.health.metrics;
+package io.stargate.metrics.jersey;
 
 import static io.stargate.core.metrics.impl.MetricsImpl.SERVER_HTTP_REQUESTS_METRIC_NAME;
 
 import io.micrometer.jersey2.server.MetricsApplicationEventListener;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 
-public class HealthCheckerHttpMetricsEventListener extends MetricsApplicationEventListener {
+public class ResourceMetricsEventListener extends MetricsApplicationEventListener {
 
-  public HealthCheckerHttpMetricsEventListener(Metrics metrics) {
+  public ResourceMetricsEventListener(
+      Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider, String module) {
     super(
         metrics.getMeterRegistry(),
-        new HealthCheckerTagsProvider(metrics, "health-checker"),
+        new ResourceTagsProvider(httpMetricsTagProvider, module),
         SERVER_HTTP_REQUESTS_METRIC_NAME,
         true);
   }

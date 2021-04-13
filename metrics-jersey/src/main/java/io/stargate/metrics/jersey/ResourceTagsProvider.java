@@ -14,13 +14,13 @@
  *  limitations under the License.
  */
 
-package io.stargate.health.metrics;
+package io.stargate.metrics.jersey;
 
 import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.jersey2.server.JerseyTags;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
-import io.stargate.core.metrics.StargateTenantExtractor;
-import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.ContainerResponse;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
@@ -31,15 +31,15 @@ import org.glassfish.jersey.server.monitoring.RequestEvent;
  * @see RequestEvent
  * @see io.micrometer.jersey2.server.DefaultJerseyTagsProvider
  */
-public class HealthCheckerTagsProvider implements JerseyTagsProvider {
+public class ResourceTagsProvider implements JerseyTagsProvider {
 
-  private final Metrics metrics;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  private final String module;
+  private final Tag moduleTag;
 
-  public HealthCheckerTagsProvider(Metrics metrics, String module) {
-    this.metrics = metrics;
-    this.module = module;
+  public ResourceTagsProvider(HttpMetricsTagProvider httpMetricsTagProvider, String module) {
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.moduleTag = Tag.of("module", module);
   }
 
   /** {@inheritDoc} */
@@ -48,15 +48,15 @@ public class HealthCheckerTagsProvider implements JerseyTagsProvider {
     // adds method, uri, status and tenant & module
     ContainerResponse response = event.getContainerResponse();
     ContainerRequest containerRequest = event.getContainerRequest();
-    String tenant =
-        StargateTenantExtractor.tenantFromHeaders(event.getContainerRequest().getHeaders());
 
-    return metrics
-        .tagsWithTenant(module, tenant)
-        .and(
-            JerseyTags.method(containerRequest),
-            JerseyTags.uri(event),
-            JerseyTags.status(response));
+    Tags requestTags =
+        httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
+
+    return requestTags.and(
+        moduleTag,
+        JerseyTags.method(containerRequest),
+        JerseyTags.uri(event),
+        JerseyTags.status(response));
   }
 
   /** {@inheritDoc} */
@@ -64,11 +64,10 @@ public class HealthCheckerTagsProvider implements JerseyTagsProvider {
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
     // adds method, uri and tenant & module, omit status in order not to depend on the response
     ContainerRequest containerRequest = event.getContainerRequest();
-    String tenant =
-        StargateTenantExtractor.tenantFromHeaders(event.getContainerRequest().getHeaders());
 
-    return metrics
-        .tagsWithTenant(module, tenant)
-        .and(JerseyTags.method(containerRequest), JerseyTags.uri(event));
+    Tags requestTags =
+        httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
+
+    return requestTags.and(moduleTag, JerseyTags.method(containerRequest), JerseyTags.uri(event));
   }
 }

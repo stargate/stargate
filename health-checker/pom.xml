@@ -98,10 +98,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-jersey2</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
