@@ -46,7 +46,8 @@ public class WebImpl {
   }
 
   public void start() {
-    Server server = new Server(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
+    Server server =
+        new Server(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
     server.run("server", "config.yaml");
   }
 }

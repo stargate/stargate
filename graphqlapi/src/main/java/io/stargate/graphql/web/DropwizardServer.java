@@ -34,11 +34,10 @@ import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDmlResource;
+import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
-
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -127,7 +126,8 @@ public class DropwizardServer extends Application<Configuration> {
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricListener = new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+    ResourceMetricsEventListener metricListener =
+        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
     environment.jersey().register(metricListener);
 
     environment

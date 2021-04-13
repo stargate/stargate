@@ -48,7 +48,8 @@ public class GraphqlActivator extends BaseActivator {
   private ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<HttpMetricsTagProvider> httpTagProvider = ServicePointer.create(HttpMetricsTagProvider.class);
+  private ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+      ServicePointer.create(HttpMetricsTagProvider.class);
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
@@ -80,7 +81,13 @@ public class GraphqlActivator extends BaseActivator {
   @Override
   protected List<ServicePointer<?>> dependencies() {
     return Arrays.asList(
-        persistence, metrics, httpTagProvider, healthCheckRegistry, authentication, authorization, dataStoreFactory);
+        persistence,
+        metrics,
+        httpTagProvider,
+        healthCheckRegistry,
+        authentication,
+        authorization,
+        dataStoreFactory);
   }
 
   private synchronized void maybeStartService() {

@@ -50,7 +50,10 @@ public class Server extends Application<ApplicationConfiguration> {
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  public Server(AuthenticationService authenticationService, Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider) {
+  public Server(
+      AuthenticationService authenticationService,
+      Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider) {
     this.authenticationService = authenticationService;
     this.metrics = metrics;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
@@ -109,7 +112,8 @@ public class Server extends Application<ApplicationConfiguration> {
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricsListener = new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+    ResourceMetricsEventListener metricsListener =
+        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
     environment.jersey().register(metricsListener);
   }
 

@@ -30,7 +30,8 @@ public class AuthApiActivator extends BaseActivator {
 
   private final WebImpl web = new WebImpl();
   private final ServicePointer<Metrics> metric = ServicePointer.create(Metrics.class);
-  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider = ServicePointer.create(HttpMetricsTagProvider.class);
+  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+      ServicePointer.create(HttpMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authenticationService =
       ServicePointer.create(
           AuthenticationService.class,
