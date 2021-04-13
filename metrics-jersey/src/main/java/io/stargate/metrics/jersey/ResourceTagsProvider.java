@@ -47,7 +47,7 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
     // adds method, uri, status and tenant & module
     ContainerResponse response = event.getContainerResponse();
-    ContainerRequest containerRequest = event.getContainerRequest();
+    ContainerRequest request = event.getContainerRequest();
 
     Tags requestTags =
         httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
@@ -55,7 +55,7 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
     return defaultTags
         .and(requestTags)
         .and(
-            JerseyTags.method(containerRequest),
+            JerseyTags.method(request),
             JerseyTags.uri(event),
             JerseyTags.status(response));
   }
