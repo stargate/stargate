@@ -71,7 +71,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
   private static final String ARGS_PROVIDER_CLASS_NAME =
       System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
-  private static final File LIB_DIR = initLibDir();
+  public static final File LIB_DIR = initLibDir();
   private static final int MAX_NODES = 10;
 
   /**

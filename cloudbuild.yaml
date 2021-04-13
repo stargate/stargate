@@ -3,6 +3,9 @@ steps:
     name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
+  - id: 'git submodules'
+    name: gcr.io/cloud-builders/git
+    args: ['submodule', 'update', '--init', '--recursive']
   - id: 'fetch_secret'
     waitFor: [ '-' ]
     name: gcr.io/cloud-builders/gcloud
@@ -32,7 +35,7 @@ steps:
     waitFor: [ 'fetch_secret', 'init_cache' ]
     entrypoint: mvn
     args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'pom.xml', '-DskipITs',
-            '-Dmaven.javadoc.skip=true', '-Pdse', '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
+            '-Dmaven.javadoc.skip=true', '-Pdse,grpc', '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
     ]
     volumes:
       - path: '/cache/.m2'

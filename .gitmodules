@@ -1,0 +1,6 @@
+[submodule "grpc/src/main/proto"]
+	path = grpc/src/main/proto
+	url = https://github.com/stargate/stargate-grpc-proto.git
+[submodule "testing/src/main/proto"]
+	path = testing/src/main/proto
+	url = https://github.com/stargate/stargate-grpc-proto.git

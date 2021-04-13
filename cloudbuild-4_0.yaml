@@ -3,6 +3,9 @@ steps:
     name: 'gcr.io/stargateio/stargate-builder:v1.0.3'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
+  - id: 'git submodules'
+    name: gcr.io/cloud-builders/git
+    args: ['submodule', 'update', '--init', '--recursive']
   - id: 'fetch_secret'
     waitFor: [ '-' ]
     name: gcr.io/cloud-builders/gcloud
