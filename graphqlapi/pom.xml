@@ -32,6 +32,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>io.stargate.metrics</groupId>
+      <artifactId>metrics-jersey</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-servlet</artifactId>
       <version>4.1.9</version>

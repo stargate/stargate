@@ -20,6 +20,7 @@ import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
@@ -47,6 +48,7 @@ public class GraphqlActivator extends BaseActivator {
   private ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private ServicePointer<HttpMetricsTagProvider> httpTagProvider = ServicePointer.create(HttpMetricsTagProvider.class);
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
@@ -90,6 +92,7 @@ public class GraphqlActivator extends BaseActivator {
                 authentication.get(),
                 authorization.get(),
                 metrics.get(),
+                httpTagProvider.get(),
                 dataStoreFactory.get());
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
