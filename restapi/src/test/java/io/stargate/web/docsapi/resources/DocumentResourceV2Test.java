@@ -1,7 +1,6 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
@@ -33,7 +32,6 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -312,9 +310,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyList(),
                 anyString(),
-                anyInt(),
                 anyObject()))
-        .thenReturn(ImmutablePair.of(mockedReturn, null));
+        .thenReturn(mockedReturn);
 
     Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
         .thenCallRealMethod();
@@ -491,15 +488,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -549,15 +539,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -607,15 +590,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(),
-                anyString(),
-                anyString(),
-                anyList(),
-                anyList(),
-                anyObject(),
-                anyInt(),
-                anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(
@@ -734,8 +710,8 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocuments(
-                anyObject(), anyString(), anyString(), anyList(), anyObject(), anyInt(), anyInt()))
-        .thenReturn(ImmutablePair.of(searchResult, null));
+                anyObject(), anyString(), anyString(), anyList(), anyObject()))
+        .thenReturn(searchResult);
 
     Response r =
         documentResourceV2.searchDoc(

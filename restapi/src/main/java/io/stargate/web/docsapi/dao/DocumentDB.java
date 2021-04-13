@@ -44,6 +44,7 @@ public class DocumentDB {
   private static final List<Column.ColumnType> allColumnTypes;
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
+  public static final int MAX_PAGE_SIZE = 20;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
   private Boolean useLoggedBatches;
   public static final Integer SEARCH_PAGE_SIZE =
