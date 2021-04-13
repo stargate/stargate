@@ -45,7 +45,7 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
-    // adds method, uri, status and tenant & module
+    // adds method, uri, status, default and request tags
     ContainerResponse response = event.getContainerResponse();
     ContainerRequest request = event.getContainerRequest();
 
@@ -60,7 +60,7 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
-    // adds method, uri and tenant & module, omit status in order not to depend on the response
+    // adds method, uri, default and request tags
     ContainerRequest containerRequest = event.getContainerRequest();
 
     Tags requestTags =
