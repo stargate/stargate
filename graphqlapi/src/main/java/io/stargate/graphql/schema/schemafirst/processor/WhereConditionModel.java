@@ -18,15 +18,17 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 
-/**
- * Turns a GraphQL operation argument into a WHERE clause that will be added to the generated query.
- */
+/** Maps a GraphQL operation argument to a CQL WHERE clause. */
 public class WhereConditionModel {
 
   private final FieldModel field;
+  private final Predicate predicate;
+  private final String argumentName;
 
-  public WhereConditionModel(FieldModel field) {
+  public WhereConditionModel(FieldModel field, Predicate predicate, String argumentName) {
     this.field = field;
+    this.predicate = predicate;
+    this.argumentName = argumentName;
   }
 
   /** The entity field that the condition applies to. */
@@ -34,9 +36,18 @@ public class WhereConditionModel {
     return field;
   }
 
+  public Predicate getPredicate() {
+    return predicate;
+  }
+
+  /** The name of the argument that will contain the value to bind. */
+  public String getArgumentName() {
+    return argumentName;
+  }
+
   public BuiltCondition build(Object cqlValue) {
     // TODO change this when we support operators other than EQ
     // The user will specify which operator to use via a directive, and we'll apply it here.
-    return BuiltCondition.of(field.getCqlName(), Predicate.EQ, cqlValue);
+    return BuiltCondition.of(field.getCqlName(), predicate, cqlValue);
   }
 }

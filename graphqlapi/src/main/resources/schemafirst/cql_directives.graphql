@@ -153,6 +153,35 @@ directive @cql_delete(
 ) on FIELD_DEFINITION
 
 """
+A predicate used in `@cql_where` to define a condition.
+"""
+enum Predicate {
+    EQ
+    IN
+    LT
+    GT
+    LTE
+    GTE
+}
+
+"""
+Annotates a parameter to customize the WHERE condition that is generated from it.
+"""
+directive @cql_where (
+
+    """
+    The name of the field that the condition applies to (if absent, it will be the name of the
+    argument).
+    """
+    field: String
+
+    """
+    The predicate to use for the condition.
+    """
+    predicate: Predicate = EQ
+) on ARGUMENT_DEFINITION
+
+"""
 Indicates that a type represents a "payload" object that will be used as the argument or return
 type of a GraphQL operation. Such objects  are NOT mapped to a CQL table.
 """

@@ -50,11 +50,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -373,58 +371,36 @@ abstract class DynamicFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param getArgument how to get the value of an argument (same).
    */
   protected List<BuiltCondition> bind(
-      List<WhereConditionModel> whereConditionModels,
+      List<WhereConditionModel> whereConditions,
       EntityModel entity,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
-    Set<String> partitionKeys = new HashSet<>();
-    Set<String> clusteringColumns = new HashSet<>();
-    for (WhereConditionModel model : whereConditionModels) {
-      FieldModel field = model.getField();
-      String graphqlName = field.getGraphqlName();
-      if (hasArgument.test(graphqlName)) {
-        Object graphqlValue = getArgument.apply(graphqlName);
-        Object cqlValue = toCqlValue(graphqlValue, field.getCqlType(), keyspace);
-        if (cqlValue != null) {
-          if (field.isPartitionKey()) {
-            partitionKeys.add(field.getGraphqlName());
-          }
-          if (field.isClusteringColumn()) {
-            clusteringColumns.add(field.getGraphqlName());
-          }
-        }
-        result.add(model.build(cqlValue));
+    List<WhereConditionModel> activeConditions = new ArrayList<>();
+    for (WhereConditionModel whereCondition : whereConditions) {
+      FieldModel field = whereCondition.getField();
+      if (hasArgument.test(whereCondition.getArgumentName())) {
+        activeConditions.add(whereCondition);
+        Object graphqlValue = getArgument.apply(whereCondition.getArgumentName());
+        Column.ColumnType cqlType =
+            whereCondition.getPredicate() == io.stargate.db.query.Predicate.IN
+                ? Column.Type.List.of(field.getCqlType())
+                : field.getCqlType();
+        Object cqlValue = toCqlValue(graphqlValue, cqlType, keyspace);
+        result.add(whereCondition.build(cqlValue));
       }
     }
 
-    // Re-check that we have enough values for a valid CQL query
-    // TODO update this when we allow conditions on regular (indexed) columns
-    for (FieldModel field : entity.getPartitionKey()) {
-      String name = field.getGraphqlName();
-      if (!partitionKeys.contains(name)) {
-        throw new IllegalArgumentException(
-            String.format("Missing value for partition key field '%s'.", name));
-      }
-    }
-    String firstUnset = null;
-    for (FieldModel field : entity.getClusteringColumns()) {
-      String name = field.getGraphqlName();
-      if (clusteringColumns.contains(name)) {
-        if (firstUnset != null) {
-          throw new IllegalArgumentException(
-              String.format(
-                  "Unexpected value for clustering field '%s': field '%s' was unset, "
-                      + "so no clustering fields after it should be set.",
-                  name, firstUnset));
-        }
-      } else if (firstUnset == null) {
-        firstUnset = name;
-      }
-    }
-
+    // Re-check the validity of the query (we already did while building the model, but some
+    // conditions might not apply if the corresponding argument was missing).
+    entity
+        .validateConditions(activeConditions)
+        .ifPresent(
+            message -> {
+              throw new IllegalArgumentException("Invalid arguments: " + message);
+            });
     return result;
   }
 }

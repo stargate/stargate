@@ -16,8 +16,10 @@
 package io.stargate.graphql.schema.schemafirst.processor;
 
 import com.google.common.collect.ImmutableList;
+import io.stargate.db.query.Predicate;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -70,7 +72,9 @@ public class EntityModel {
     this.primaryKey =
         ImmutableList.<FieldModel>builder().addAll(partitionKey).addAll(clusteringColumns).build();
     this.primaryKeyWhereConditions =
-        primaryKey.stream().map(WhereConditionModel::new).collect(Collectors.toList());
+        primaryKey.stream()
+            .map(field -> new WhereConditionModel(field, Predicate.EQ, field.getGraphqlName()))
+            .collect(Collectors.toList());
     this.regularColumns = ImmutableList.copyOf(regularColumns);
     this.allColumns =
         ImmutableList.<FieldModel>builder().addAll(primaryKey).addAll(regularColumns).build();
@@ -147,6 +151,76 @@ public class EntityModel {
 
   public Optional<String> getInputTypeName() {
     return inputTypeName;
+  }
+
+  /**
+   * Validates a set of conditions to ensure that they will produce a valid CQL query for this
+   * entity.
+   *
+   * @return an optional error message if the validation failed, empty otherwise.
+   */
+  public Optional<String> validateConditions(Collection<WhereConditionModel> conditions) {
+
+    // TODO revisit these rules when we allow regular columns
+
+    // All partition key fields must be restricted by equality relations
+    for (FieldModel field : this.getPartitionKey()) {
+      Optional<WhereConditionModel> maybeCondition =
+          conditions.stream().filter(c -> c.getField().equals(field)).findFirst();
+      if (!maybeCondition.isPresent()) {
+        return Optional.of(
+            String.format(
+                "every partition key field of type %s must be present (expected: %s).",
+                this.getGraphqlName(),
+                this.getPartitionKey().stream()
+                    .map(FieldModel::getGraphqlName)
+                    .collect(Collectors.joining(", "))));
+      }
+      WhereConditionModel condition = maybeCondition.get();
+      if (condition.getPredicate() != Predicate.EQ && condition.getPredicate() != Predicate.IN) {
+        return Optional.of(
+            String.format(
+                "the only predicates allowed for partition key fields are EQ and IN (got %s for %s).",
+                condition.getPredicate(), field.getGraphqlName()));
+      }
+    }
+
+    // When a clustering field is NOT restricted by an equality relation, then no other clustering
+    // field after it can be restricted by any condition.
+    String firstNonEqField = null;
+    for (FieldModel field : this.getClusteringColumns()) {
+      Optional<WhereConditionModel> maybeCondition =
+          conditions.stream().filter(c -> c.getField().equals(field)).findFirst();
+      if (!maybeCondition.isPresent()) {
+        if (firstNonEqField == null) {
+          firstNonEqField = field.getGraphqlName();
+        }
+      } else {
+        if (firstNonEqField != null) {
+          return Optional.of(
+              String.format(
+                  "clustering field %s is not restricted by EQ or IN, "
+                      + "so no other clustering field after it can be restricted (offending: %s).",
+                  firstNonEqField, field.getGraphqlName()));
+        }
+        Predicate predicate = maybeCondition.get().getPredicate();
+        switch (predicate) {
+          case CONTAINS:
+          case CONTAINS_KEY:
+            return Optional.of(
+                String.format(
+                    "clustering field %s can't use predicate %s.",
+                    field.getGraphqlName(), predicate));
+          case EQ:
+          case IN:
+            // nothing to do
+            break;
+          default:
+            firstNonEqField = field.getGraphqlName();
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   @Override

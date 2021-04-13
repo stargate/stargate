@@ -139,7 +139,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
   @DisplayName("Should fail if not all partition keys are present")
   public void deleteWithMissingPartitionKey() {
     assertThat(CLIENT.getKeyspaceError(KEYSPACE, "mutation { deleteFoo2(cc1: 1, cc2: 1) }"))
-        .contains("Missing value for partition key field 'pk'.");
+        .contains(
+            "Invalid arguments: every partition key field of type Foo must be present (expected: pk)");
   }
 
   @Test
@@ -147,7 +148,8 @@ public class DeleteTest extends GraphqlFirstTestBase {
   public void deleteByPartialPrimaryKeyNotPrefix() {
     assertThat(CLIENT.getKeyspaceError(KEYSPACE, "mutation { deleteFoo2(pk: 1, cc2: 1) }"))
         .contains(
-            "Unexpected value for clustering field 'cc2': field 'cc1' was unset, so no clustering fields after it should be set.");
+            "Invalid arguments: clustering field cc1 is not restricted by EQ or IN, "
+                + "so no other clustering field after it can be restricted (offending: cc2).");
   }
 
   @Test

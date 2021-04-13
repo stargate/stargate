@@ -52,9 +52,9 @@ public class SelectTest extends GraphqlFirstTestBase {
             + "  pagingState: String\n"
             + "}\n"
             + "type Query {\n"
-            + "  foo(pk1: Int!, pk2: Int!, cc1: Int!, cc2: Int!): Foo\n"
+            + "  foo(pk1: Int!, pk2: Int!, cc1: Int, cc2: Int): Foo\n"
             + "  fooByPkAndCc1(pk1: Int!, pk2: Int!, cc1: Int!): [Foo]\n"
-            + "  fooByPk(pk1: Int!, pk2: Int!): [Foo]\n"
+            + "  fooByPk(pk1: Int!, pk2: Int): [Foo]\n"
             + "  fooByPkLimit(\n"
             + "    pk1: Int!,\n"
             + "    pk2: Int!\n"
@@ -220,6 +220,24 @@ public class SelectTest extends GraphqlFirstTestBase {
         new int[] {1, 2, 4, 1});
     pagingState = JsonPath.read(page2, "$.results.pagingState");
     assertThat(pagingState).isNull();
+  }
+
+  @Test
+  @DisplayName("Should fail if not all partition keys are present")
+  public void selectWithMissingPartitionKey() {
+    assertThat(CLIENT.getKeyspaceError(KEYSPACE, "{ fooByPk(pk1: 1) { pk1 } }"))
+        .contains(
+            "Invalid arguments: every partition key field of type Foo must be present "
+                + "(expected: pk1, pk2)");
+  }
+
+  @Test
+  @DisplayName("Should fail if partial primary key is not a prefix")
+  public void selectByPartialPrimaryKeyNotPrefix() {
+    assertThat(CLIENT.getKeyspaceError(KEYSPACE, "{ foo(pk1: 1, pk2: 2, cc2: 1) { pk1 } }"))
+        .contains(
+            "Invalid arguments: clustering field cc1 is not restricted by EQ or IN, "
+                + "so no other clustering field after it can be restricted (offending: cc2).");
   }
 
   private void assertResults(Object response, int[]... rows) {
