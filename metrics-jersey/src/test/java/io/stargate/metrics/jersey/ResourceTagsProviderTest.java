@@ -16,9 +16,14 @@
 
 package io.stargate.metrics.jersey;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
+import java.util.Collections;
+import javax.ws.rs.core.MultivaluedMap;
 import org.glassfish.jersey.internal.util.collection.MultivaluedStringMap;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.ContainerResponse;
@@ -32,114 +37,106 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.ws.rs.core.MultivaluedMap;
-import java.util.Collections;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class ResourceTagsProviderTest {
 
-    @Mock
-    HttpMetricsTagProvider httpMetricsTagProvider;
+  @Mock HttpMetricsTagProvider httpMetricsTagProvider;
 
-    @Mock
-    RequestEvent requestEvent;
+  @Mock RequestEvent requestEvent;
 
-    @Mock
-    ContainerResponse containerResponse;
+  @Mock ContainerResponse containerResponse;
 
-    @Mock
-    ContainerRequest containerRequest;
+  @Mock ContainerRequest containerRequest;
 
-    @Mock
-    ExtendedUriInfo extendedUriInfo;
+  @Mock ExtendedUriInfo extendedUriInfo;
 
-    @BeforeEach
-    public void mockEvent() {
-        when(requestEvent.getContainerRequest()).thenReturn(containerRequest);
-        when(requestEvent.getContainerResponse()).thenReturn(containerResponse);
-        when(requestEvent.getUriInfo()).thenReturn(extendedUriInfo);
+  @BeforeEach
+  public void mockEvent() {
+    when(requestEvent.getContainerRequest()).thenReturn(containerRequest);
+    when(requestEvent.getContainerResponse()).thenReturn(containerResponse);
+    when(requestEvent.getUriInfo()).thenReturn(extendedUriInfo);
+  }
+
+  @Nested
+  class HttpRequestTags {
+
+    @Test
+    public void happyPath() {
+      Tags defaultTags = Tags.of("default", "true");
+      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
+      headers.putSingle("some", "header");
+
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("GET");
+      when(containerRequest.getHeaders()).thenReturn(headers);
+      when(containerResponse.getStatus()).thenReturn(200);
+      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
+
+      ResourceTagsProvider resourceTagsProvider =
+          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
+      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
+
+      assertThat(result)
+          .containsAll(defaultTags)
+          .contains(Tag.of("extra", "true"))
+          .contains(Tag.of("method", "GET"))
+          .contains(Tag.of("status", "200"))
+          .contains(Tag.of("uri", "/base/target/uri"));
     }
 
-    @Nested
-    class HttpRequestTags {
+    @Test
+    public void defaultAndExtraEmpty() {
+      Tags defaultTags = Tags.empty();
+      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
+      headers.putSingle("some", "header");
 
-        @Test
-        public void happyPath() {
-            Tags defaultTags = Tags.of("default", "true");
-            MultivaluedMap<String, String> headers = new MultivaluedStringMap();
-            headers.putSingle("some", "header");
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("POST");
+      when(containerRequest.getHeaders()).thenReturn(headers);
+      when(containerResponse.getStatus()).thenReturn(201);
+      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.empty());
 
-            when(extendedUriInfo.getMatchedTemplates()).thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
-            when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
-            when(containerRequest.getMethod()).thenReturn("GET");
-            when(containerRequest.getHeaders()).thenReturn(headers);
-            when(containerResponse.getStatus()).thenReturn(200);
-            when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
+      ResourceTagsProvider resourceTagsProvider =
+          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
+      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
 
-            ResourceTagsProvider resourceTagsProvider = new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-            Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
-
-            assertThat(result)
-                    .containsAll(defaultTags)
-                    .contains(Tag.of("extra", "true"))
-                    .contains(Tag.of("method", "GET"))
-                    .contains(Tag.of("status", "200"))
-                    .contains(Tag.of("uri", "/base/target/uri"));
-        }
-
-        @Test
-        public void defaultAndExtraEmpty() {
-            Tags defaultTags = Tags.empty();
-            MultivaluedMap<String, String> headers = new MultivaluedStringMap();
-            headers.putSingle("some", "header");
-
-            when(extendedUriInfo.getMatchedTemplates()).thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
-            when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
-            when(containerRequest.getMethod()).thenReturn("POST");
-            when(containerRequest.getHeaders()).thenReturn(headers);
-            when(containerResponse.getStatus()).thenReturn(201);
-            when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.empty());
-
-            ResourceTagsProvider resourceTagsProvider = new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-            Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
-
-            assertThat(result)
-                    .contains(Tag.of("method", "POST"))
-                    .contains(Tag.of("status", "201"))
-                    .contains(Tag.of("uri", "/base/target/uri"));
-        }
-
+      assertThat(result)
+          .contains(Tag.of("method", "POST"))
+          .contains(Tag.of("status", "201"))
+          .contains(Tag.of("uri", "/base/target/uri"));
     }
+  }
 
-    @Nested
-    class HttpLongRequestTags {
+  @Nested
+  class HttpLongRequestTags {
 
-        @Test
-        public void happyPath() {
-            Tags defaultTags = Tags.of("default", "true");
-            MultivaluedMap<String, String> headers = new MultivaluedStringMap();
-            headers.putSingle("some", "header");
+    @Test
+    public void happyPath() {
+      Tags defaultTags = Tags.of("default", "true");
+      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
+      headers.putSingle("some", "header");
 
-            when(extendedUriInfo.getMatchedTemplates()).thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
-            when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
-            when(containerRequest.getMethod()).thenReturn("GET");
-            when(containerRequest.getHeaders()).thenReturn(headers);
-            when(containerResponse.getStatus()).thenReturn(200);
-            when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("GET");
+      when(containerRequest.getHeaders()).thenReturn(headers);
+      when(containerResponse.getStatus()).thenReturn(200);
+      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
 
-            ResourceTagsProvider resourceTagsProvider = new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-            Iterable<Tag> result = resourceTagsProvider.httpLongRequestTags(requestEvent);
+      ResourceTagsProvider resourceTagsProvider =
+          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
+      Iterable<Tag> result = resourceTagsProvider.httpLongRequestTags(requestEvent);
 
-            assertThat(result)
-                    .containsAll(defaultTags)
-                    .contains(Tag.of("extra", "true"))
-                    .contains(Tag.of("method", "GET"))
-                    .contains(Tag.of("uri", "/base/target/uri"));
-        }
-
+      assertThat(result)
+          .containsAll(defaultTags)
+          .contains(Tag.of("extra", "true"))
+          .contains(Tag.of("method", "GET"))
+          .contains(Tag.of("uri", "/base/target/uri"));
     }
-
+  }
 }

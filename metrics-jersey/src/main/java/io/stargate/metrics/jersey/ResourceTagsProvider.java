@@ -54,10 +54,7 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
 
     return defaultTags
         .and(requestTags)
-        .and(
-            JerseyTags.method(request),
-            JerseyTags.uri(event),
-            JerseyTags.status(response));
+        .and(JerseyTags.method(request), JerseyTags.uri(event), JerseyTags.status(response));
   }
 
   /** {@inheritDoc} */

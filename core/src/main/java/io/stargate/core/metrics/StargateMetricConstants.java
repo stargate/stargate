@@ -18,9 +18,7 @@ package io.stargate.core.metrics;
 
 import io.micrometer.core.instrument.Tag;
 
-/**
- * Contains all constant related to the micrometer metrics and tags.
- */
+/** Contains all constant related to the micrometer metrics and tags. */
 public class StargateMetricConstants {
 
   // metric names
