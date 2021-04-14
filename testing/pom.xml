@@ -14,6 +14,12 @@
     <code.coverage.project.folder>${basedir}/../</code.coverage.project.folder>
     <code.coverage.overall.data.folder>${basedir}/../target/</code.coverage.overall.data.folder>
   </properties>
+  <repositories>
+    <repository>
+      <id>stargate-grpc-proto</id>
+      <url>https://maven.pkg.github.com/stargate/stargate-grpc-proto</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -84,6 +90,11 @@
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
       <version>1.35.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate</groupId>
+      <artifactId>stargate-grpc-proto</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.apollographql.apollo</groupId>
@@ -194,34 +205,7 @@
     </dependency>
   </dependencies>
   <build>
-    <extensions>
-      <extension>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <version>1.6.2</version>
-      </extension>
-    </extensions>
     <plugins>
-      <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
-        <artifactId>protobuf-maven-plugin</artifactId>
-        <version>0.6.1</version>
-        <configuration>
-          <protocArtifact>com.google.protobuf:protoc:3.12.0:exe:${os.detected.classifier}</protocArtifact>
-          <pluginId>grpc-java</pluginId>
-          <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.35.0:exe:${os.detected.classifier}</pluginArtifact>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>compile-custom</goal>
-              <goal>test-compile</goal>
-              <goal>test-compile-custom</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>com.github.sparow199</groupId>
         <artifactId>apollo-client-maven-plugin</artifactId>
