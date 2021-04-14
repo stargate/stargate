@@ -362,7 +362,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
         objectMapper.writeValueAsString(tableUpdate),
-        HttpStatus.SC_CREATED);
+        HttpStatus.SC_OK);
   }
 
   @Test
