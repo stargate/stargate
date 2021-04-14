@@ -42,6 +42,7 @@ esac
 
 echoinfo "Using backend $PERSISTENCE_BACKEND"
 
+git submodule update --init --recursive
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 mvn -B verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
