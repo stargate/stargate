@@ -4,8 +4,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.db.BatchType;
+import io.stargate.db.PagingPosition;
+import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -19,7 +22,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.PageSize;
@@ -29,6 +34,7 @@ import org.apache.cassandra.cql3.QueryOptions.PagingOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
+import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.LineStringType;
 import org.apache.cassandra.db.marshal.ListType;
@@ -40,6 +46,8 @@ import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.CassandraException;
+import org.apache.cassandra.schema.SchemaManager;
+import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -72,6 +80,7 @@ import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.Flags;
 import org.apache.cassandra.utils.NoSpamLogger;
+import org.apache.cassandra.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +161,56 @@ public class Conversion {
     types.put(LineStringType.class, Column.Type.LineString);
 
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
+  }
+
+  public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
+    Row row = pos.currentRow();
+    Set<Pair<String, String>> tables =
+        row.columns().stream()
+            .map(c -> Pair.create(c.keyspace(), c.table()))
+            .collect(Collectors.toSet());
+
+    if (tables.isEmpty()) {
+      throw new IllegalArgumentException("Missing table information in custom paging request.");
+    }
+
+    if (tables.size() > 1) {
+      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
+    }
+
+    Pair<String, String> tableName = tables.iterator().next();
+    TableMetadata table = SchemaManager.instance.validateTable(tableName.left, tableName.right);
+
+    Object[] pkValues =
+        table.partitionKeyColumns().stream()
+            .map(
+                c -> {
+                  ByteBuffer value = row.getBytesUnsafe(c.name.toCQLString());
+
+                  if (value == null) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Partition key value is not present in current row (table: %s, column: %s)",
+                            table, c.name.toCQLString()));
+                  }
+
+                  return value;
+                })
+            .toArray();
+    Clustering clustering = table.partitionKeyAsClusteringComparator().make(pkValues);
+
+    if (pos.resumeFrom() != ResumeMode.NEXT_PARTITION) {
+      throw new UnsupportedOperationException("Unsupported paging mode: " + pos.resumeFrom());
+    }
+
+    ByteBuffer serializedKey = clustering.serializeAsPartitionKey();
+    PagingState pagingState =
+        new PagingState(
+            serializedKey, null, pos.remainingRows(), pos.remainingRowsInPartition(), false);
+
+    org.apache.cassandra.transport.ProtocolVersion protocolVersion =
+        toInternal(parameters.protocolVersion());
+    return pagingState.serialize(protocolVersion);
   }
 
   public static QueryOptions toInternal(

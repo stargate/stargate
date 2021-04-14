@@ -15,6 +15,7 @@
  */
 package io.stargate.db.datastore;
 
+import io.stargate.db.PagingPosition;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
@@ -72,6 +73,11 @@ public interface ResultSet extends Iterable<Row> {
     }
 
     @Override
+    public ByteBuffer makePagingState(PagingPosition position) {
+      return null;
+    }
+
+    @Override
     public boolean waitedForSchemaAgreement() {
       return waitedForSchemaAgreement;
     }
@@ -115,6 +121,12 @@ public interface ResultSet extends Iterable<Row> {
   boolean hasNoMoreFetchedRows();
 
   ByteBuffer getPagingState();
+
+  /**
+   * Creates a paging state from a custom paging position for fetching more data from the query that
+   * returned this {@link ResultSet}.
+   */
+  ByteBuffer makePagingState(PagingPosition position);
 
   /** Returns true of this request waited for schema agreement. */
   default boolean waitedForSchemaAgreement() {

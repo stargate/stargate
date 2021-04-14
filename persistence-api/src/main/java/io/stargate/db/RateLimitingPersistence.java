@@ -174,5 +174,10 @@ public class RateLimitingPersistence implements Persistence {
     public void setCustomProperties(Map<String, String> customProperties) {
       connection.setCustomProperties(customProperties);
     }
+
+    @Override
+    public ByteBuffer makePagingState(PagingPosition position, Parameters parameters) {
+      return connection.makePagingState(position, parameters);
+    }
   }
 }
