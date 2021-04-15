@@ -37,11 +37,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
@@ -752,7 +752,6 @@ public class DocumentService {
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
-    boolean firstRequest = true;
     do {
 
       List<Row> rows =
@@ -774,24 +773,25 @@ public class DocumentService {
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
     if (rowsByDoc.keySet().size() > paginator.docPageSize) {
-      AtomicReference<String> lastIdSeen = new AtomicReference<>();
+      MutableObject<String> lastIdSeen = new MutableObject<>();
       rowsByDoc.entrySet().stream()
           .limit(paginator.docPageSize)
           .forEach(
               e -> {
                 List<Row> rows =
                     e.getValue().stream()
-                        .filter(
+                        .map(
                             row -> {
-                              lastIdSeen.set(row.getString("key"));
-                              return fields.isEmpty() || fields.contains(row.getString("p0"));
+                              lastIdSeen.setValue(row.getString("key"));
+                              return row;
                             })
+                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
               });
 
-      paginator.setDocumentPageState(lastIdSeen.get());
+      paginator.setDocumentPageState(lastIdSeen.getValue());
     } else {
       rowsByDoc.entrySet().stream()
           .forEach(

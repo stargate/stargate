@@ -2118,11 +2118,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}",
+                + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}",
             200);
     JsonNode responseBody1 = objectMapper.readTree(r);
 
-    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(100);
+    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(20);
     String pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
@@ -2131,13 +2131,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}&page-state="
+                + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     JsonNode responseBody2 = objectMapper.readTree(r);
 
-    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(5);
-    assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
+    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(20);
 
     JsonNode data = responseBody2.requiredAt("/data");
     Iterator<JsonNode> iter = data.iterator();
@@ -2156,11 +2155,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50",
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10",
             200);
     responseBody1 = objectMapper.readTree(r);
 
-    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(50);
+    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(10);
     pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
@@ -2169,13 +2168,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50&page-state="
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     responseBody2 = objectMapper.readTree(r);
 
-    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(34);
-    assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
+    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(10);
 
     data = responseBody2.requiredAt("/data");
     iter = data.iterator();

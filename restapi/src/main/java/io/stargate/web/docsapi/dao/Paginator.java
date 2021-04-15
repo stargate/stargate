@@ -23,24 +23,46 @@ public class Paginator {
   public final int dbPageSize;
   public final int docPageSize;
 
-  private boolean initialState = true;
   private ByteBuffer currentDbPageState; // keeps track of the DB page state while querying the DB
   private DocumentSearchPageState documentPageState = null;
 
-  public Paginator(String pageStateParam, int pageSizeParam, int dbPageSize) throws IOException {
-    docPageSize = Math.max(1, pageSizeParam);
+  public Paginator(String pageState, int pageSize, int dbPageSize) throws IOException {
+    docPageSize = Math.max(1, pageSize);
     if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
       throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
     }
 
     this.dbPageSize = dbPageSize;
 
-    if (pageStateParam != null) {
-      byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
+    if (pageState != null) {
+      byte[] decodedBytes = Base64.getDecoder().decode(pageState);
       documentPageState = mapper.readValue(decodedBytes, DocumentSearchPageState.class);
     }
 
     this.currentDbPageState = (documentPageState != null) ? documentPageState.getPageState() : null;
+  }
+
+  // Some parts of the document API use bytes that correspond directly to cassandra page states,
+  // rather than DocumentSearchPageState which is only used for collections search.
+  public Paginator(String pageState, int pageSize, int dbPageSize, boolean raw) throws IOException {
+    docPageSize = Math.max(1, pageSize);
+    if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
+      throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
+    }
+
+    this.dbPageSize = dbPageSize;
+
+    if (pageState != null) {
+      byte[] decodedBytes = Base64.getDecoder().decode(pageState);
+      if (raw) {
+        this.currentDbPageState = ByteBuffer.wrap(decodedBytes);
+      } else {
+        documentPageState = mapper.readValue(decodedBytes, DocumentSearchPageState.class);
+        this.currentDbPageState = documentPageState.getPageState();
+      }
+    } else {
+      this.currentDbPageState = null;
+    }
   }
 
   public String getDocumentPageStateAsString() throws JsonProcessingException {
@@ -69,6 +91,14 @@ public class Paginator {
 
   public ByteBuffer getCurrentDbPageState() {
     return currentDbPageState;
+  }
+
+  // Only used to get the internal Cassandra paging state
+  public String getCurrentDbPageStateAsString() {
+    if (currentDbPageState != null) {
+      return Base64.getEncoder().encodeToString(currentDbPageState.array());
+    }
+    return null;
   }
 
   public List<Row> maybeSkipRows(List<Row> rows) {

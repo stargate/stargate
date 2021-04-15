@@ -674,7 +674,8 @@ public class DocumentResourceV2 {
                 new Paginator(
                     pageStateParam,
                     pageSizeParam,
-                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE);
+                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE,
+                    true);
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
@@ -687,7 +688,7 @@ public class DocumentResourceV2 {
             String json;
 
             if (raw == null || !raw) {
-              String pagingStateStr = paginator.getDocumentPageStateAsString();
+              String pagingStateStr = paginator.getCurrentDbPageStateAsString();
               json =
                   mapper.writeValueAsString(
                       new DocumentResponseWrapper<>(id, pagingStateStr, result));
