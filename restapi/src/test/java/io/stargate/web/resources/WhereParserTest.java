@@ -145,7 +145,7 @@ public class WhereParserTest {
 
     assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Unknown field name 'invalid_field' in where clause.");
+        .hasMessageContaining("Unknown field name 'invalid_field'");
   }
 
   @Test
@@ -165,6 +165,69 @@ public class WhereParserTest {
 
     List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
 
+    assertThat(where).isEqualTo(whereExpected);
+  }
+
+  @Test
+  public void testDuplicateJsonKey() throws IOException {
+    String whereParam = "{\"text\": {\"$eq\": \"a\", \"$eq\": \"b\"}}";
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(ImmutableColumn.create("text", Column.Type.Text))
+            .build();
+
+    assertThatThrownBy(() -> WhereParser.parseWhere(whereParam, table))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Duplicate field '$eq'");
+  }
+
+  @Test
+  public void testParseMap() throws IOException {
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(
+                ImmutableColumn.create("text", Column.Type.Text),
+                ImmutableColumn.create("set", Column.Type.Set.of(Column.Type.Int)),
+                ImmutableColumn.create(
+                    "text_map", Column.Type.Map.of(Column.Type.Text, Column.Type.Text)))
+            .build();
+
+    String whereParam = "{\"text_map\": {\"$contains\": [\"a\", \"b\"]}}";
+    List<BuiltCondition> whereExpected =
+        asList(
+            BuiltCondition.of("text_map", Predicate.CONTAINS, "a"),
+            BuiltCondition.of("text_map", Predicate.CONTAINS, "b"));
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
+    assertThat(where).isEqualTo(whereExpected);
+
+    whereParam = "{\"set\": {\"$contains\": [76, 1]}}";
+    whereExpected =
+        asList(
+            BuiltCondition.of("set", Predicate.CONTAINS, 76),
+            BuiltCondition.of("set", Predicate.CONTAINS, 1));
+    where = WhereParser.parseWhere(whereParam, table);
+    assertThat(where).isEqualTo(whereExpected);
+
+    whereParam = "{\"text_map\": {\"$containskey\": [\"a\", \"b\"]}}";
+    whereExpected =
+        asList(
+            BuiltCondition.of("text_map", Predicate.CONTAINS_KEY, "a"),
+            BuiltCondition.of("text_map", Predicate.CONTAINS_KEY, "b"));
+    where = WhereParser.parseWhere(whereParam, table);
+    assertThat(where).isEqualTo(whereExpected);
+
+    whereParam =
+        "{\"text_map\": {\"$containsentry\": [{\"key\": \"a\", \"value\": \"1\"}, {\"key\": \"b\", \"value\": \"2\"}]}}";
+
+    whereExpected =
+        asList(
+            BuiltCondition.of(BuiltCondition.LHS.mapAccess("text_map", "a"), Predicate.EQ, "1"),
+            BuiltCondition.of(BuiltCondition.LHS.mapAccess("text_map", "b"), Predicate.EQ, "2"));
+    where = WhereParser.parseWhere(whereParam, table);
     assertThat(where).isEqualTo(whereExpected);
   }
 
