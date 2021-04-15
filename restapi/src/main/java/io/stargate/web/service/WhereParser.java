@@ -79,7 +79,7 @@ public class WhereParser {
 
         switch (operator) {
           case $IN:
-            evaluateIN(conditions, context);
+            evaluateIn(conditions, context);
             break;
           case $EXISTS:
             evaluateExists(conditions, context);
@@ -233,7 +233,7 @@ public class WhereParser {
             mapValue));
   }
 
-  private static void evaluateIN(List<BuiltCondition> conditions, QueryContext context)
+  private static void evaluateIn(List<BuiltCondition> conditions, QueryContext context)
       throws IOException {
     if (!context.value.isArray()) {
       throw new IllegalArgumentException(
