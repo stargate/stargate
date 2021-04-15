@@ -1,8 +1,11 @@
-package io.stargate.grpc.server;
+package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
+import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.core.metrics.api.Metrics;
@@ -25,7 +28,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.function.BiConsumer;
 
-public class Server extends io.stargate.proto.StargateGrpc.StargateImplBase {
+public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
@@ -38,7 +41,7 @@ public class Server extends io.stargate.proto.StargateGrpc.StargateImplBase {
   @SuppressWarnings("unused")
   private final Metrics metrics;
 
-  public Server(Persistence persistence, Metrics metrics) {
+  public Service(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
     this.metrics = metrics;
   }
@@ -65,9 +68,11 @@ public class Server extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   private void handleError(Throwable throwable, StreamObserver<Result> responseObserver) {
-    // TODO: Do something better here. Log and maybe return as a response type instead of using
-    // `onError()`.
-    responseObserver.onError(throwable);
+    if (throwable instanceof StatusException || throwable instanceof StatusRuntimeException) {
+      responseObserver.onError(throwable);
+    } else {
+      responseObserver.onError(Status.UNKNOWN.withCause(throwable).asRuntimeException());
+    }
   }
 
   private void prepare(
@@ -115,7 +120,8 @@ public class Server extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       PayloadHandler handler = PayloadHandlers.HANDLERS.get(payloadType);
       if (handler == null) {
-        handleError(new IllegalArgumentException("Unsupported payload type"), responseObserver);
+        responseObserver.onError(
+            Status.UNIMPLEMENTED.withDescription("Unsupported payload type").asException());
         return;
       }
 
@@ -147,9 +153,13 @@ public class Server extends io.stargate.proto.StargateGrpc.StargateImplBase {
                         break;
                       case SetKeyspace:
                         // TODO: Prevent "USE <keyspace>" from happening
-                        throw new RuntimeException("USE <keyspace> not supported");
+                        throw Status.INTERNAL
+                            .withDescription("USE <keyspace> not supported")
+                            .asException();
                       default:
-                        throw new RuntimeException("Unhandled result kind");
+                        throw Status.INTERNAL
+                            .withDescription("Unhandled result kind")
+                            .asException();
                     }
                     responseObserver.onNext(resultBuilder.build());
                     responseObserver.onCompleted();

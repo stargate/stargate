@@ -1,4 +1,4 @@
-package io.stargate.grpc.server.interceptors;
+package io.stargate.grpc.service.interceptors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,7 +17,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
-import io.stargate.grpc.server.Server;
+import io.stargate.grpc.service.Service;
 import org.junit.jupiter.api.Test;
 
 public class AuthenticationInterceptorTest {
@@ -42,7 +42,7 @@ public class AuthenticationInterceptorTest {
         call,
         metadata,
         (c, h) -> {
-          AuthenticationSubject subject = Server.AUTHENTICATION_KEY.get();
+          AuthenticationSubject subject = Service.AUTHENTICATION_KEY.get();
           assertThat(subject).isNotNull();
           AuthenticatedUser user = subject.asUser();
           assertThat(user.name()).isEqualTo("def");

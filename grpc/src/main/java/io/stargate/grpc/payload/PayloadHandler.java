@@ -8,5 +8,5 @@ import io.stargate.proto.QueryOuterClass.Payload;
 public interface PayloadHandler {
   BoundStatement bindValues(Prepared prepared, Payload payload) throws Exception;
 
-  Payload processResult(Rows rows);
+  Payload processResult(Rows rows) throws Exception;
 }

@@ -1,4 +1,4 @@
-package io.stargate.grpc.server.interceptors;
+package io.stargate.grpc.service.interceptors;
 
 import io.grpc.Context;
 import io.grpc.Contexts;
@@ -8,7 +8,7 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
-import io.stargate.grpc.server.Server;
+import io.stargate.grpc.service.Service;
 
 public class RemoteAddressInterceptor implements ServerInterceptor {
   @Override
@@ -17,7 +17,7 @@ public class RemoteAddressInterceptor implements ServerInterceptor {
     Context context = Context.current();
     context =
         context.withValue(
-            Server.REMOTE_ADDRESS_KEY, call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
+            Service.REMOTE_ADDRESS_KEY, call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
     return Contexts.interceptCall(context, call, headers, next);
   }
 }

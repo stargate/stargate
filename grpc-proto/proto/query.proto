@@ -169,13 +169,12 @@ message ColumnSpec {
 }
 
 message Result {
-  Error error = 1;
   oneof results {
-    Empty empty = 2;
-    Payload payload = 3;
+    Empty empty = 1;
+    Payload payload = 2;
   }
-  bytes tracing_id = 4;
-  repeated string warnings = 5;
+  bytes tracing_id = 3;
+  repeated string warnings = 4;
 }
 
 message Empty {}
@@ -225,11 +224,6 @@ message WriteFailure {
 message AlreadyExists {
   string keyspace = 1;
   string table = 2;
-}
-
-message Error {
-  string message = 1;
-  repeated google.protobuf.Any details = 2;
 }
 
 message Row {

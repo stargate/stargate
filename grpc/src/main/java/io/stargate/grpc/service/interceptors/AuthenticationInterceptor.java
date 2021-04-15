@@ -1,4 +1,4 @@
-package io.stargate.grpc.server.interceptors;
+package io.stargate.grpc.service.interceptors;
 
 import io.grpc.Context;
 import io.grpc.Contexts;
@@ -10,7 +10,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.grpc.server.Server;
+import io.stargate.grpc.service.Service;
 
 public class AuthenticationInterceptor implements ServerInterceptor {
   public static final Metadata.Key<String> TOKEN_KEY =
@@ -32,7 +32,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
         return null;
       }
       Context context = Context.current();
-      context = context.withValue(Server.AUTHENTICATION_KEY, authentication.validateToken(token));
+      context = context.withValue(Service.AUTHENTICATION_KEY, authentication.validateToken(token));
       return Contexts.interceptCall(context, call, headers, next);
     } catch (UnauthorizedException e) {
       call.close(

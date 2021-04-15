@@ -2,6 +2,8 @@ package io.stargate.grpc.payload.cql;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
@@ -22,12 +24,17 @@ import java.util.List;
 public class ValuesHandler implements PayloadHandler {
   @Override
   public BoundStatement bindValues(Prepared prepared, Payload payload)
-      throws InvalidProtocolBufferException {
+      throws InvalidProtocolBufferException, StatusException {
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     if (values == null && columnCount > 0 || columnCount != values.getValuesCount()) {
-      throw new IllegalArgumentException("Invalid number of bind parameters");
+      throw Status.FAILED_PRECONDITION
+          .withDescription(
+              String.format(
+                  "Invalid number of bind parameters. Expected %d, but received %d",
+                  columnCount, values == null ? 0 : values.getValuesCount()))
+          .asException();
     }
     final List<ByteBuffer> boundValues = new ArrayList<>(columnCount);
     List<String> boundValueNames = null;
@@ -45,7 +52,9 @@ public class ValuesHandler implements PayloadHandler {
         ValueCodec codec = ValueCodecs.CODECS.get(column.type());
         Value value = values.getValues(i);
         if (codec == null) {
-          throw new IllegalArgumentException("Unsupported type");
+          throw Status.UNIMPLEMENTED
+              .withDescription(String.format("Unsupported type %s", column.type()))
+              .asException();
         }
         boundValues.add(codec.encode(value, column.type()));
         boundValueNames.add(name);
@@ -56,7 +65,9 @@ public class ValuesHandler implements PayloadHandler {
         Value value = values.getValues(i);
         ValueCodec codec = ValueCodecs.CODECS.get(column.type());
         if (codec == null) {
-          throw new IllegalArgumentException("Unsupported type");
+          throw Status.UNIMPLEMENTED
+              .withDescription(String.format("Unsupported type %s", column.type()))
+              .asException();
         }
         boundValues.add(codec.encode(value, column.type()));
       }
@@ -66,7 +77,7 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   @Override
-  public Payload processResult(Rows rows) {
+  public Payload processResult(Rows rows) throws StatusException {
     Payload.Builder payloadBuilder = Payload.newBuilder().setType(Type.TYPE_CQL);
 
     final List<Column> columns = rows.resultMetadata.columns;
@@ -81,7 +92,7 @@ public class ValuesHandler implements PayloadHandler {
         Column column = columns.get(i);
         ValueCodec codec = ValueCodecs.CODECS.get(column.type());
         if (codec == null) {
-          throw new IllegalArgumentException("Unsupported type");
+          throw Status.FAILED_PRECONDITION.withDescription("Unsupported column type").asException();
         }
         resultSetBuilder.addRows(Row.newBuilder().addValues(codec.decode(row.get(i))).build());
       }
