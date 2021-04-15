@@ -215,6 +215,7 @@ enum Predicate {
     GT
     LTE
     GTE
+    CONTAINS
 }
 
 """
