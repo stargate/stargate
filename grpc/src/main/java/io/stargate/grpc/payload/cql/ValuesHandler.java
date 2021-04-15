@@ -8,15 +8,14 @@ import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.proto.QueryOuterClass.Payload;
+import io.stargate.proto.QueryOuterClass.*;
 import io.stargate.proto.QueryOuterClass.Payload.Type;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.QueryOuterClass.Values;
+import io.stargate.proto.QueryOuterClass.TypeSpec.Builder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +76,7 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   @Override
-  public Payload processResult(Rows rows) throws StatusException {
+  public Payload processResult(Rows rows, QueryParameters parameters) throws StatusException {
     Payload.Builder payloadBuilder = Payload.newBuilder().setType(Type.TYPE_CQL);
 
     final List<Column> columns = rows.resultMetadata.columns;
@@ -85,7 +84,11 @@ public class ValuesHandler implements PayloadHandler {
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 
-    // TODO: Add column types
+    if (!parameters.getSkipMetadata()) {
+      for (Column column : columns) {
+        ColumnSpec.newBuilder().setType(convertType(column.type())).setName(column.name());
+      }
+    }
 
     for (List<ByteBuffer> row : rows.rows) {
       for (int i = 0; i < columnCount; ++i) {
@@ -98,5 +101,69 @@ public class ValuesHandler implements PayloadHandler {
       }
     }
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
+  }
+
+  private TypeSpec convertType(ColumnType columnType) throws StatusException {
+    Builder builder = TypeSpec.newBuilder().setType(TypeSpec.Type.forNumber(columnType.id()));
+
+    List<ColumnType> parameters = columnType.parameters();
+
+    switch (columnType.rawType()) {
+      case List:
+        if (parameters.size() != 1) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected list type to have a parameterized type")
+              .asException();
+        }
+        builder.setList(ListSpec.newBuilder().setElement(convertType(parameters.get(0))).build());
+        break;
+      case Map:
+        if (parameters.size() != 2) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected map type to have key/value parameterized types")
+              .asException();
+        }
+        builder.setMap(
+            MapSpec.newBuilder()
+                .setKey(convertType(parameters.get(0)))
+                .setValue(convertType(parameters.get(1)))
+                .build());
+        break;
+      case Set:
+        if (parameters.size() != 1) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected set type to have a parameterized type")
+              .asException();
+        }
+        builder.setSet(SetSpec.newBuilder().setElement(convertType(parameters.get(0))).build());
+        break;
+      case Tuple:
+        if (parameters.isEmpty()) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected tuple type to have at least one parameterized type")
+              .asException();
+        }
+        TupleSpec.Builder tupleBuilder = TupleSpec.newBuilder();
+        for (ColumnType parameter : parameters) {
+          tupleBuilder.addElements(convertType(parameter));
+        }
+        builder.setTuple(tupleBuilder.build());
+        break;
+      case UDT:
+        UserDefinedType udt = (UserDefinedType) columnType;
+        if (udt.columns().isEmpty()) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected user defined type to have at least one field")
+              .asException();
+        }
+        UdtSpec.Builder udtBuilder = UdtSpec.newBuilder();
+        for (Column column : udt.columns()) {
+          udtBuilder.putFields(column.name(), convertType(column.type()));
+        }
+        builder.setUdt(udtBuilder.build());
+        break;
+    }
+
+    return builder.build();
   }
 }

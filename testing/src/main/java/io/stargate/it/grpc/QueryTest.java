@@ -20,7 +20,7 @@ public class QueryTest extends GrpcIntegrationTest {
   public void simpleQuery() throws InvalidProtocolBufferException {
     Result result =
         stub.withCallCredentials(new StargateBearerToken(authToken))
-            .execute(
+            .executeQuery(
                 Query.newBuilder()
                     .setCql("SELECT release_version FROM system.local WHERE key = ?")
                     .setParameters(
@@ -37,6 +37,7 @@ public class QueryTest extends GrpcIntegrationTest {
                                     .build())
                             .build())
                     .build());
+    assertThat(result.hasPayload()).isTrue();
     ResultSet rs = result.getPayload().getValue().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);

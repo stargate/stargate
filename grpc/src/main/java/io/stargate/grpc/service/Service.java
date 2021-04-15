@@ -12,21 +12,22 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.proto.QueryOuterClass.Empty;
 import io.stargate.proto.QueryOuterClass.Payload;
-import io.stargate.proto.QueryOuterClass.Payload.Type;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Result;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
@@ -47,7 +48,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @Override
-  public void execute(Query query, StreamObserver<Result> responseObserver) {
+  public void executeQuery(Query query, StreamObserver<Result> responseObserver) {
     try {
       AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
       Connection connection = newConnection(authenticationSubject.asUser());
@@ -79,9 +80,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection, Query query, BiConsumer<Prepared, ? super Throwable> afterPrepare) {
     final StringBuilder keyBuilder = new StringBuilder(query.getCql());
     connection.loggedUser().ifPresent(user -> keyBuilder.append(user.name()));
-    String keyspace = query.getParameters().getKeyspace();
-    if (keyspace != null) {
-      keyBuilder.append(keyspace);
+    QueryParameters queryParameters = query.getParameters();
+    if (queryParameters.getKeyspace().isInitialized()) {
+      keyBuilder.append(queryParameters.getKeyspace().getValue());
     }
     final String key = keyBuilder.toString();
     // Caching here to avoid round trip to the persistence backend thread.
@@ -116,9 +117,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       QueryParameters parameters = query.getParameters();
       Payload payload = parameters.getPayload();
 
-      Payload.Type payloadType = payload.getType() == null ? Type.TYPE_CQL : payload.getType();
-
-      PayloadHandler handler = PayloadHandlers.HANDLERS.get(payloadType);
+      PayloadHandler handler = PayloadHandlers.HANDLERS.get(payload.getType());
       if (handler == null) {
         responseObserver.onError(
             Status.UNIMPLEMENTED.withDescription("Unsupported payload type").asException());
@@ -127,9 +126,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .execute(
-              handler.bindValues(prepared, payload),
-              ImmutableParameters.builder().build(), // TODO: Build parameters
-              queryStartNanoTime)
+              handler.bindValues(prepared, payload), makeParameters(parameters), queryStartNanoTime)
           .whenComplete(
               (result, t) -> {
                 if (t != null) {
@@ -139,17 +136,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     Result.Builder resultBuilder = Result.newBuilder();
                     switch (result.kind) {
                       case Void:
-                        resultBuilder.setEmpty(Empty.newBuilder().build());
                         break;
                       case Rows:
-                        resultBuilder.setPayload(handler.processResult((Rows) result));
+                        resultBuilder.setPayload(handler.processResult((Rows) result, parameters));
                         break;
                       case SchemaChange:
-                        // TODO: Wait for schema agreement, etc.
-                        persistence.waitForSchemaAgreement(); // TODO: Could this be made
-                        // async? This is blocking the
-                        // gRPC thread.
-                        resultBuilder.setEmpty(Empty.newBuilder().build());
+                        // TODO: Wait for schema agreement, etc. Could this be made async? This is
+                        // blocking the gRPC thread.
+                        persistence.waitForSchemaAgreement();
                         break;
                       case SetKeyspace:
                         // TODO: Prevent "USE <keyspace>" from happening
@@ -171,6 +165,42 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } catch (Exception e) {
       handleError(e, responseObserver);
     }
+  }
+
+  private Parameters makeParameters(QueryParameters parameters) {
+    ImmutableParameters.Builder builder = ImmutableParameters.builder();
+
+    if (parameters.hasConsistency()) {
+      builder.consistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
+    }
+
+    if (parameters.hasKeyspace()) {
+      builder.defaultKeyspace(parameters.getKeyspace().getValue());
+    }
+
+    if (parameters.hasPageSize()) {
+      builder.pageSize(parameters.getPageSize().getValue());
+    }
+
+    if (parameters.hasPagingState()) {
+      builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().toByteArray()));
+    }
+
+    if (parameters.hasSerialConsistency()) {
+      builder.serialConsistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
+    }
+
+    if (parameters.hasTimestamp()) {
+      builder.defaultTimestamp(parameters.getTimestamp().getValue());
+    }
+
+    if (parameters.hasNowInSeconds()) {
+      builder.nowInSeconds(parameters.getNowInSeconds().getValue());
+    }
+
+    return builder.tracingRequested(parameters.getTracing()).build();
   }
 
   private Connection newConnection(AuthenticatedUser user) {

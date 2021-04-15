@@ -13,5 +13,8 @@ public class ValueCodecs {
     CODECS.put(Type.Text, new StringCodec(TypeCodecs.TEXT));
     CODECS.put(Type.Varchar, new StringCodec(TypeCodecs.TEXT));
     CODECS.put(Type.Int, new IntCodec());
+    CODECS.put(Type.Uuid, new UuidCodec(TypeCodecs.UUID));
+    CODECS.put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID));
+    CODECS.put(Type.Blob, new BytesCodec());
   }
 }
