@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.schemafirst.processor;
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava._FieldSet;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
@@ -57,9 +56,9 @@ import io.stargate.graphql.schema.schemafirst.fetchers.dynamic.FederatedEntityFe
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SchemaProcessor {
@@ -215,9 +214,13 @@ public class SchemaProcessor {
     return GraphQL.newGraphQL(schema).build();
   }
 
-  // For convenience we make users not fill `@key.fields`: it will always be the CQL primary key, so
-  // we can infer it. However it is a required field, so fill it now before we try to validate the
-  // schema.
+  /**
+   * The federation key is always the CQL primary key, so for convenience we allow users to omit
+   * {@code @key.fields}. However it is a required field, so fill it now before we try to validate
+   * the schema.
+   *
+   * @see EntityModelBuilder
+   */
   private void finalizeKeyDirectives(TypeDefinitionRegistry registry, MappingModel mappingModel) {
     if (!mappingModel.hasFederatedEntities()) {
       return;
@@ -226,12 +229,24 @@ public class SchemaProcessor {
       if (!entity.isFederated()) {
         continue;
       }
-      Optional<ObjectTypeDefinition> maybeType =
-          registry.getType(entity.getGraphqlName(), ObjectTypeDefinition.class);
-      assert maybeType.isPresent(); // because we built an EntityMappingModel from it
-      ObjectTypeDefinition type = maybeType.get();
+      ObjectTypeDefinition type =
+          registry
+              .getType(entity.getGraphqlName(), ObjectTypeDefinition.class)
+              .orElseThrow(
+                  () ->
+                      new AssertionError(
+                          "Should find type in registry since we've built an EntityModel from it"));
 
-      String primaryKeyFields =
+      Collection<Directive> keyDirectives = type.getDirectives("key");
+      // We only allow one @key directive at the moment.
+      assert keyDirectives.size() == 1;
+      Directive keyDirective = keyDirectives.iterator().next();
+      if (keyDirective.getArgument("fields") != null) {
+        // We've already validated it in EntityModelBuilder.
+        continue;
+      }
+
+      String newFieldsValue =
           entity.getPrimaryKey().stream()
               .map(FieldModel::getGraphqlName)
               .collect(Collectors.joining(" "));
@@ -239,20 +254,13 @@ public class SchemaProcessor {
           Directive.newDirective()
               .name("key")
               .argument(
-                  Argument.newArgument(
-                          "fields", StringValue.newStringValue(primaryKeyFields).build())
+                  Argument.newArgument("fields", StringValue.newStringValue(newFieldsValue).build())
                       .build())
               .build();
-      List<Directive> newDirectives = Lists.newArrayListWithCapacity(type.getDirectives().size());
-      newDirectives.add(newKeyDirective);
-      // Other directives are unchanged. Note: this assumes that there is only one @key directive.
-      // This is true now, but if we allow multiple @key in the future this will have to be
-      // revisited.
-      for (Directive directive : type.getDirectives()) {
-        if (!directive.getName().equals("key")) {
-          newDirectives.add(directive);
-        }
-      }
+      List<Directive> newDirectives =
+          type.getDirectives().stream()
+              .map(d -> (d == keyDirective) ? newKeyDirective : d)
+              .collect(Collectors.toList());
       ObjectTypeDefinition newType = type.transform(builder -> builder.directives(newDirectives));
       registry.remove(type);
       registry.add(newType);
