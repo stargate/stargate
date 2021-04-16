@@ -890,7 +890,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&fields=id,firstName",
+                host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
@@ -900,6 +901,84 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
     assertThat(data).isEmpty();
+  }
+
+  @Test
+  public void getAllRowsWithPaging() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Collections.singletonList("id"),
+        null);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Jonh"),
+            Arrays.asList("id 2", "firstName Jane"),
+            Arrays.asList("id 3", "firstName Scott"),
+            Arrays.asList("id 4", "firstName April")));
+
+    // get first page
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2", host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(getResponseWrapper.getPageState()).isNotEmpty();
+
+    // get second page
+    String pageState = getResponseWrapper.getPageState();
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
+                host, keyspaceName, tableName, pageState),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+  }
+
+  @Test
+  public void getAllRowsNoPaging() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Collections.singletonList("id"),
+        null);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Jonh"),
+            Arrays.asList("id 2", "firstName Jane"),
+            Arrays.asList("id 3", "firstName Scott"),
+            Arrays.asList("id 4", "firstName April")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?fields=id, firstName",
+                host, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(4);
   }
 
   @Test
@@ -2350,6 +2429,23 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         String.format("%s:8082/v2/schemas/keyspaces", host),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
+  }
+
+  private void insertTestTableRows(List<List<String>> rows) throws IOException {
+
+    for (List<String> row : rows) {
+      Map<String, String> rowMap = new HashMap<>();
+      for (String kv : row) {
+        String[] parts = kv.split(" ");
+        rowMap.put(parts[0].trim(), parts[1].trim());
+      }
+
+      RestUtils.post(
+          authToken,
+          String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+          objectMapper.writeValueAsString(rowMap),
+          HttpStatus.SC_CREATED);
+    }
   }
 
   private String setupClusteringTestCase() throws IOException {
