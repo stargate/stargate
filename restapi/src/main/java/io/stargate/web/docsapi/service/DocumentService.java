@@ -479,7 +479,7 @@ public class DocumentService {
     if (!filterOpt.isPresent()) return;
     FilterOp filterOp = filterOpt.get();
 
-    if (filterOp == FilterOp.NE) {
+    if (filterOp == FilterOp.EQ || filterOp == FilterOp.NE) {
       if (value.isArray() || value.isObject()) {
         throw new DocumentAPIRequestException(
             String.format(
@@ -494,8 +494,7 @@ public class DocumentService {
     } else if (filterOp == FilterOp.GT
         || filterOp == FilterOp.GTE
         || filterOp == FilterOp.LT
-        || filterOp == FilterOp.LTE
-        || filterOp == FilterOp.EQ) {
+        || filterOp == FilterOp.LTE) {
       if (value.isArray() || value.isObject() || value.isNull()) {
         throw new DocumentAPIRequestException(
             String.format(
@@ -595,7 +594,17 @@ public class DocumentService {
           }
           conditions.add(new ListFilterCondition(convertedFieldNamePath, op, valueAsList));
         } else {
-          conditions.add(new SingleFilterCondition(convertedFieldNamePath, op, (String) null));
+          // EQ does not support null values in Cassandra 3.x, thus we would manually move that to
+          // the IN [null]
+          SingleFilterCondition nullFilterCondition =
+              new SingleFilterCondition(convertedFieldNamePath, op, (String) null);
+          if (Objects.equals(nullFilterCondition.getFilterOp(), FilterOp.EQ)) {
+            conditions.add(
+                new ListFilterCondition(
+                    convertedFieldNamePath, FilterOp.IN.rawValue, Collections.singletonList(null)));
+          } else {
+            conditions.add(nullFilterCondition);
+          }
         }
       }
     }

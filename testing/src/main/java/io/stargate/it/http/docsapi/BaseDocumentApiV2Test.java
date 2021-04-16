@@ -1568,6 +1568,31 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testSearchEquals() throws IOException {
+    JsonNode fullObj =
+        objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        fullObj.toString(),
+        200);
+
+    // EQ with null
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection/cool-search-id?where={\"products.food.*.sku\": {\"$eq\": null}}",
+            200);
+
+    String searchResultStr = "[{\"products\": {\"food\": { \"Pear\": {\"sku\": null}}}}]";
+    assertThat(objectMapper.readTree(r))
+        .isEqualTo(wrapResponse(objectMapper.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
   public void testSearchNotEquals() throws IOException {
     JsonNode fullObj =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -1944,23 +1969,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}",
-            400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
-
-    r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}",
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a value or `null`\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1972,7 +1985,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Bad request: Value entry for field a, operation $eq was expecting a value or `null`\",\"code\":400}");
 
     r =
         RestUtils.get(
