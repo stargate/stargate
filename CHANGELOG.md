@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.20](https://github.com/stargate/stargate/tree/v1.0.20) (2021-04-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.19...v1.0.20)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#859](https://github.com/stargate/stargate/pull/859) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.19](https://github.com/stargate/stargate/tree/v1.0.19) (2021-04-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.18...v1.0.19)
