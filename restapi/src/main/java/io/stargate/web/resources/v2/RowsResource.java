@@ -319,6 +319,7 @@ public class RowsResource {
           Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
               db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           BoundQuery query =
               authenticatedDB
@@ -343,15 +344,9 @@ public class RowsResource {
                       Collections.emptyList(),
                       SourceAPI.REST);
 
-          final List<Map<String, Object>> rows =
-              r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
-
-          String newPagingState =
-              r.getPagingState() != null
-                  ? Base64.getEncoder().encodeToString(r.getPagingState().array())
-                  : null;
+          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, null);
           return Response.status(Response.Status.OK)
-              .entity(new Rows(rows.size(), newPagingState, rows))
+              .entity(Converters.writeResponse(response))
               .build();
         });
   }

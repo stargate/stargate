@@ -919,6 +919,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             Arrays.asList("id 3", "firstName Scott"),
             Arrays.asList("id 4", "firstName April")));
 
+    // get first page
     String body =
         RestUtils.get(
             authToken,
@@ -927,6 +928,20 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
+    assertThat(rows.getCount()).isEqualTo(2);
+    assertThat(rows.getPageState()).isNotNull();
+
+    // get second page
+    String pageState = rows.getPageState();
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
+                host, keyspaceName, tableName, pageState),
+            HttpStatus.SC_OK);
+
+    rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getCount()).isEqualTo(2);
     assertThat(rows.getPageState()).isNotNull();
   }
@@ -956,6 +971,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
     assertThat(rows.getPageState()).isNull();
     assertThat(rows.getCount()).isEqualTo(4);
+    assertThat(rows.getRows().get(0).containsKey("id"));
+    assertThat(rows.getRows().get(0).containsKey("firstName"));
   }
 
   @Test
