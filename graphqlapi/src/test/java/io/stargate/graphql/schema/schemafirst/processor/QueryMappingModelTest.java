@@ -137,7 +137,7 @@ class QueryMappingModelTest {
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
         .isEqualTo(
-            "Operation foo: every partition key field of type Foo must be present (expected: pk1, pk2)");
+            "Operation foo: every partition key field of type Foo must be present (expected: pk1, pk2).");
   }
 
   @Test

@@ -29,6 +29,7 @@ public class FieldModel {
   private final ColumnType cqlType;
   private final boolean partitionKey;
   private final Optional<Order> clusteringOrder;
+  private final Optional<IndexModel> index;
 
   FieldModel(
       String graphqlName,
@@ -36,13 +37,15 @@ public class FieldModel {
       String cqlName,
       ColumnType cqlType,
       boolean partitionKey,
-      Optional<Order> clusteringOrder) {
+      Optional<Order> clusteringOrder,
+      Optional<IndexModel> index) {
     this.graphqlName = graphqlName;
     this.graphqlType = graphqlType;
     this.cqlName = cqlName;
     this.cqlType = cqlType;
     this.partitionKey = partitionKey;
     this.clusteringOrder = clusteringOrder;
+    this.index = index;
   }
 
   public String getGraphqlName() {
@@ -71,7 +74,7 @@ public class FieldModel {
   }
 
   public FieldModel asPartitionKey() {
-    return new FieldModel(graphqlName, graphqlType, cqlName, cqlType, true, clusteringOrder);
+    return new FieldModel(graphqlName, graphqlType, cqlName, cqlType, true, clusteringOrder, index);
   }
 
   public Optional<Order> getClusteringOrder() {
@@ -84,5 +87,9 @@ public class FieldModel {
 
   public boolean isPrimaryKey() {
     return partitionKey || clusteringOrder.isPresent();
+  }
+
+  public Optional<IndexModel> getIndex() {
+    return index;
   }
 }

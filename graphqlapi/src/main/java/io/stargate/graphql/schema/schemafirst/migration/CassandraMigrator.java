@@ -21,6 +21,7 @@ import graphql.GraphqlErrorException;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.SchemaEntity;
+import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.schemafirst.migration.CassandraSchemaHelper.Difference;
@@ -34,6 +35,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class CassandraMigrator {
+
+  private static final BiFunction<UserDefinedType, SecondaryIndex, MigrationQuery>
+      UDT_NO_CREATE_INDEX =
+          (table, index) -> {
+            throw new AssertionError(
+                "This should never get invoked since UDT fields can't be indexed");
+          };
 
   /** Creates a new instance for a deployment initiated by the user. */
   public static CassandraMigrator forDeployment(MigrationStrategy strategy) {
@@ -70,9 +78,10 @@ public class CassandraMigrator {
               expectedTable,
               actualTable,
               CassandraSchemaHelper::compare,
-              CreateTableQuery::new,
+              CreateTableQuery::createTableAndIndexes,
               DropTableQuery::new,
               AddTableColumnQuery::new,
+              CreateIndexQuery::new,
               "table",
               queries,
               errors);
@@ -84,9 +93,10 @@ public class CassandraMigrator {
               expectedType,
               actualType,
               CassandraSchemaHelper::compare,
-              CreateUdtQuery::new,
+              CreateUdtQuery::createUdt,
               DropUdtQuery::new,
               AddUdtFieldQuery::new,
+              UDT_NO_CREATE_INDEX,
               "UDT",
               queries,
               errors);
@@ -116,9 +126,10 @@ public class CassandraMigrator {
       T expected,
       T actual,
       BiFunction<T, T, List<Difference>> comparator,
-      Function<T, MigrationQuery> createBuilder,
+      Function<T, List<MigrationQuery>> createBuilder,
       Function<T, MigrationQuery> dropBuilder,
       BiFunction<T, Column, MigrationQuery> addColumnBuilder,
+      BiFunction<T, SecondaryIndex, MigrationQuery> createIndexBuilder,
       String entityType,
       List<MigrationQuery> queries,
       List<String> errors) {
@@ -133,30 +144,31 @@ public class CassandraMigrator {
         break;
       case ADD_MISSING_TABLES:
         if (actual == null) {
-          queries.add(createBuilder.apply(expected));
+          queries.addAll(createBuilder.apply(expected));
         } else {
           failIfMismatch(expected, actual, comparator, errors);
         }
         break;
       case ADD_MISSING_TABLES_AND_COLUMNS:
         if (actual == null) {
-          queries.add(createBuilder.apply(expected));
+          queries.addAll(createBuilder.apply(expected));
         } else {
-          addMissingColumns(expected, actual, comparator, addColumnBuilder, queries, errors);
+          addMissingColumns(
+              expected, actual, comparator, addColumnBuilder, createIndexBuilder, queries, errors);
         }
         break;
       case DROP_AND_RECREATE_ALL:
         queries.add(dropBuilder.apply(expected));
-        queries.add(createBuilder.apply(expected));
+        queries.addAll(createBuilder.apply(expected));
         break;
       case DROP_AND_RECREATE_IF_MISMATCH:
         if (actual == null) {
-          queries.add(createBuilder.apply(expected));
+          queries.addAll(createBuilder.apply(expected));
         } else {
           List<Difference> differences = comparator.apply(expected, actual);
           if (!differences.isEmpty()) {
             queries.add(dropBuilder.apply(expected));
-            queries.add(createBuilder.apply(expected));
+            queries.addAll(createBuilder.apply(expected));
           }
         }
         break;
@@ -179,6 +191,7 @@ public class CassandraMigrator {
       T actual,
       BiFunction<T, T, List<Difference>> comparator,
       BiFunction<T, Column, MigrationQuery> addColumnBuilder,
+      BiFunction<T, SecondaryIndex, MigrationQuery> createIndexBuilder,
       List<MigrationQuery> queries,
       List<String> errors) {
     List<Difference> differences = comparator.apply(expected, actual);
@@ -188,7 +201,11 @@ public class CassandraMigrator {
       if (blockers.isEmpty()) {
         for (Difference difference : differences) {
           assert isAddableColumn(difference);
-          queries.add(addColumnBuilder.apply(expected, difference.getColumn()));
+          if (difference.getType() == CassandraSchemaHelper.DifferenceType.MISSING_COLUMN) {
+            queries.add(addColumnBuilder.apply(expected, difference.getColumn()));
+          } else if (difference.getType() == CassandraSchemaHelper.DifferenceType.MISSING_INDEX) {
+            queries.add(createIndexBuilder.apply(expected, difference.getIndex()));
+          }
         }
       } else {
         errors.addAll(
@@ -198,7 +215,8 @@ public class CassandraMigrator {
   }
 
   private boolean isAddableColumn(Difference difference) {
-    return difference.getType() == CassandraSchemaHelper.DifferenceType.MISSING_COLUMN
+    return (difference.getType() == CassandraSchemaHelper.DifferenceType.MISSING_COLUMN
+            || difference.getType() == CassandraSchemaHelper.DifferenceType.MISSING_INDEX)
         && !difference.getColumn().isPartitionKey()
         && !difference.getColumn().isClusteringKey();
   }

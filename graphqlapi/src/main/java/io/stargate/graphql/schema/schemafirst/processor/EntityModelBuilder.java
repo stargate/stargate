@@ -15,13 +15,16 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
+import com.google.common.collect.ImmutableList;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableSecondaryIndex;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
@@ -63,7 +66,12 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
       try {
         FieldModel fieldMapping =
             new FieldModelBuilder(
-                    fieldDefinition, context, graphqlName, target, inputTypeName.isPresent())
+                    fieldDefinition,
+                    context,
+                    cqlName,
+                    graphqlName,
+                    target,
+                    inputTypeName.isPresent())
                 .build();
         if (fieldMapping.isPartitionKey()) {
           partitionKey.add(fieldMapping);
@@ -216,6 +224,29 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
       List<FieldModel> partitionKey,
       List<FieldModel> clusteringColumns,
       List<FieldModel> regularColumns) {
+
+    ImmutableList.Builder<Column> columnMetadatas = ImmutableList.builder();
+    ImmutableList.Builder<SecondaryIndex> indexes = ImmutableList.builder();
+    for (FieldModel field : regularColumns) {
+      Column column =
+          cqlColumnBuilder(keyspaceName, tableName, field).kind(Column.Kind.Regular).build();
+      columnMetadatas.add(column);
+      field
+          .getIndex()
+          .ifPresent(
+              index -> {
+                ImmutableSecondaryIndex.Builder builder =
+                    ImmutableSecondaryIndex.builder()
+                        .keyspace(keyspaceName)
+                        .column(column)
+                        .name(index.getName())
+                        .indexingClass(index.getIndexClass().orElse(null))
+                        .indexingType(index.getIndexingType())
+                        .putAllIndexingOptions(index.getOptions());
+                indexes.add(builder.build());
+              });
+    }
+
     return ImmutableTable.builder()
         .keyspace(keyspaceName)
         .name(tableName)
@@ -238,14 +269,8 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
                           .build();
                     })
                 .collect(Collectors.toList()))
-        .addAllColumns(
-            regularColumns.stream()
-                .map(
-                    field ->
-                        cqlColumnBuilder(keyspaceName, tableName, field)
-                            .kind(Column.Kind.Regular)
-                            .build())
-                .collect(Collectors.toList()))
+        .addAllColumns(columnMetadatas.build())
+        .addAllIndexes(indexes.build())
         .build();
   }
 

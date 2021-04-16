@@ -15,31 +15,19 @@
  */
 package io.stargate.graphql.schema.schemafirst.migration;
 
-import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.AbstractBound;
-import io.stargate.db.schema.Index;
 import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
-import java.util.List;
 
-public class CreateTableQuery extends MigrationQuery {
-
-  public static List<MigrationQuery> createTableAndIndexes(Table table) {
-    ImmutableList.Builder<MigrationQuery> builder = ImmutableList.builder();
-    builder.add(new CreateTableQuery(table));
-    for (Index index : table.indexes()) {
-      if (index instanceof SecondaryIndex) {
-        builder.add(new CreateIndexQuery(table, ((SecondaryIndex) index)));
-      }
-    }
-    return builder.build();
-  }
+public class CreateIndexQuery extends MigrationQuery {
 
   private final Table table;
+  private final SecondaryIndex index;
 
-  public CreateTableQuery(Table table) {
+  public CreateIndexQuery(Table table, SecondaryIndex index) {
     this.table = table;
+    this.index = index;
   }
 
   public Table getTable() {
@@ -51,31 +39,34 @@ public class CreateTableQuery extends MigrationQuery {
     return dataStore
         .queryBuilder()
         .create()
-        .table(table.keyspace(), table.name())
-        .column(table.columns())
+        .index(index.name())
+        .on(table)
+        .column(index.column())
+        .indexingType(index.indexingType())
+        .custom(index.indexingClass())
+        .options(index.indexingOptions())
         .build()
         .bind();
   }
 
   @Override
   public String getDescription() {
-    return "Create table " + table.name();
+    return String.format(
+        "Create %s index on %s.%s", index.name(), table.name(), index.column().name());
   }
 
   @Override
   public boolean mustRunBefore(MigrationQuery that) {
-    // Must create a table before creating any index on it.
-    return (that instanceof CreateIndexQuery)
-        && ((CreateIndexQuery) that).getTable().name().equals(table.name());
+    return false;
   }
 
   @Override
-  public boolean addsReferenceTo(String udtName) {
-    return table.columns().stream().anyMatch(c -> references(c.type(), udtName));
+  protected boolean addsReferenceTo(String udtName) {
+    return false;
   }
 
   @Override
-  public boolean dropsReferenceTo(String udtName) {
+  protected boolean dropsReferenceTo(String udtName) {
     return false;
   }
 }
