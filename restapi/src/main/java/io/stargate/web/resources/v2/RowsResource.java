@@ -50,6 +50,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -320,7 +321,8 @@ public class RowsResource {
               db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
-          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, null);
+          Object response =
+              getRows(fields, raw, sort, authenticatedDB, tableMetadata, Collections.emptyList());
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -634,7 +636,11 @@ public class RowsResource {
       columns = tableMetadata.columns();
     } else {
       columns =
-          Arrays.stream(fields.split(",")).map(Column::reference).collect(Collectors.toList());
+          Arrays.stream(fields.split(","))
+              .map(String::trim)
+              .filter(c -> c.length() != 0)
+              .map(Column::reference)
+              .collect(Collectors.toList());
     }
 
     BoundQuery query =

@@ -38,7 +38,6 @@ import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.PrimaryKey;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.models.Rows;
 import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
@@ -891,7 +890,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&fields=id,firstName",
+                host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
@@ -927,12 +927,15 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
-    assertThat(rows.getCount()).isEqualTo(2);
-    assertThat(rows.getPageState()).isNotNull();
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    assertThat(getResponseWrapper.getPageState()).isNotEmpty();
 
     // get second page
-    String pageState = rows.getPageState();
+    String pageState = getResponseWrapper.getPageState();
     body =
         RestUtils.get(
             authToken,
@@ -941,9 +944,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, pageState),
             HttpStatus.SC_OK);
 
-    rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
-    assertThat(rows.getCount()).isEqualTo(2);
-    assertThat(rows.getPageState()).isNotNull();
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
   }
 
   @Test
@@ -965,14 +969,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/rows", host, keyspaceName, tableName),
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows?fields=id, firstName",
+                host, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
-    assertThat(rows.getPageState()).isNull();
-    assertThat(rows.getCount()).isEqualTo(4);
-    assertThat(rows.getRows().get(0).containsKey("id"));
-    assertThat(rows.getRows().get(0).containsKey("firstName"));
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    objectMapper.convertValue(
+        getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(getResponseWrapper.getCount()).isEqualTo(4);
   }
 
   @Test
