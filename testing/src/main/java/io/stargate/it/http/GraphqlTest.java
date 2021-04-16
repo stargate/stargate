@@ -125,10 +125,7 @@ import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -178,6 +175,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     if (session != null) {
       session.close();
     }
+  }
+
+  @AfterEach
+  public void cleanUpProducts() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    getProducts(client, 100, Optional.empty())
+        .flatMap(Products::getValues)
+        .ifPresent(
+            products ->
+                products.forEach(p -> p.getId().ifPresent(id -> cleanupProduct(client, id))));
   }
 
   private static void createSessionAndSchema() throws Exception {
@@ -827,9 +835,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getPrice()).hasValue(input.price());
     assertThat(product.getCreated()).hasValue(input.created());
     assertThat(product.getDescription()).hasValue(input.description());
-
-    // cleanup on the end
-    cleanupProduct(client, productId);
   }
 
   @Test
@@ -860,9 +865,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                         assertThat(value.getId()).hasValue(productId);
                       });
             });
-
-    // cleanup on the end
-    cleanupProduct(client, productId);
   }
 
   @Test
@@ -914,9 +916,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
                             .hasValue(input.description()); // existing value returned
                       });
             });
-
-    // cleanup on the end
-    cleanupProduct(client, productId);
   }
 
   public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
@@ -984,9 +983,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getPrice()).hasValue(input.price());
     assertThat(product.getCreated()).hasValue(input.created());
     assertThat(product.getDescription()).hasValue(input.description());
-
-    // cleanup on the end
-    cleanupProduct(client, productId);
   }
 
   @Test
@@ -1731,7 +1727,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             });
   }
 
-  private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, String productId) {
+  private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
     DeleteProductsMutation mutation =
         DeleteProductsMutation.builder()
             .value(ProductsInput.builder().id(productId).build())
