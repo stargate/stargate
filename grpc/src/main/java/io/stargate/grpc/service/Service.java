@@ -38,6 +38,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();
 
   private final Persistence persistence;
+  private final ByteBuffer unsetValue;
 
   @SuppressWarnings("unused")
   private final Metrics metrics;
@@ -45,6 +46,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public Service(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
     this.metrics = metrics;
+    unsetValue = persistence.unsetValue();
   }
 
   @Override
@@ -126,7 +128,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .execute(
-              handler.bindValues(prepared, payload), makeParameters(parameters), queryStartNanoTime)
+              handler.bindValues(prepared, payload, unsetValue),
+              makeParameters(parameters),
+              queryStartNanoTime)
           .whenComplete(
               (result, t) -> {
                 if (t != null) {

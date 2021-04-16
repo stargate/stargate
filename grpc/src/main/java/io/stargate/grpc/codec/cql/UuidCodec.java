@@ -14,7 +14,6 @@ import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class UuidCodec implements ValueCodec {
   private TypeCodec<UUID> innerCodec;
@@ -23,9 +22,8 @@ public class UuidCodec implements ValueCodec {
     this.innerCodec = innerCodec;
   }
 
-  @Nullable
   @Override
-  public ByteBuffer encode(@Nullable QueryOuterClass.Value value, @NotNull Column.ColumnType type)
+  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NotNull Column.ColumnType type)
       throws StatusException {
     if (value.getInnerCase() != InnerCase.UUID) {
       throw Status.FAILED_PRECONDITION.withDescription("Expected UUID type").asException();
@@ -42,10 +40,10 @@ public class UuidCodec implements ValueCodec {
     return innerCodec.encode(uuid, ProtocolVersion.DEFAULT);
   }
 
-  @NotNull
   @Override
-  public QueryOuterClass.Value decode(@Nullable ByteBuffer bytes) throws StatusException {
+  public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes) {
     UUID uuid = innerCodec.decode(bytes, ProtocolVersion.DEFAULT);
+    assert uuid != null;
     return Value.newBuilder()
         .setUuid(
             Uuid.newBuilder()
