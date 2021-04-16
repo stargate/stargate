@@ -27,7 +27,7 @@ public class ResourceMetricsEventListener extends MetricsApplicationEventListene
       Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider, String module) {
     super(
         metrics.getMeterRegistry(),
-        new ResourceTagsProvider(httpMetricsTagProvider, metrics.defaultTagsForModule(module)),
+        new ResourceTagsProvider(httpMetricsTagProvider, metrics.tagsForModule(module)),
         StargateMetricConstants.METRIC_HTTP_SERVER_REQUESTS,
         true);
   }

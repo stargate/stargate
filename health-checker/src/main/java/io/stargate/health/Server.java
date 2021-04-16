@@ -20,8 +20,6 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 public class Server extends Application<ApplicationConfiguration> {
 
-  private static final String MODULE_NAME = "health-checker";
-
   private BundleService bundleService;
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
@@ -79,7 +77,8 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(PrometheusResource.class);
 
     ResourceMetricsEventListener component =
-        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+        new ResourceMetricsEventListener(
+            metrics, httpMetricsTagProvider, HealthCheckerActivator.MODULE_NAME);
     environment.jersey().register(component);
   }
 
@@ -87,7 +86,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
+    bootstrap.setMetricRegistry(metrics.getRegistry(HealthCheckerActivator.MODULE_NAME));
     bootstrap.setHealthCheckRegistry(healthCheckRegistry);
   }
 

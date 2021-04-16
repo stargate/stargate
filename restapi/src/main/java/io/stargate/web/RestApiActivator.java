@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 /** Activator for the restapi bundle */
 public class RestApiActivator extends BaseActivator {
+
+  public static final String MODULE_NAME = "restapi";
   private static final Logger logger = LoggerFactory.getLogger(RestApiActivator.class);
   private final WebImpl web = new WebImpl();
   private final ServicePointer<AuthenticationService> authenticationService =

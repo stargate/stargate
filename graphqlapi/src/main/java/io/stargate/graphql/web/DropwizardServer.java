@@ -46,7 +46,6 @@ import org.osgi.framework.FrameworkUtil;
 
 public class DropwizardServer extends Application<Configuration> {
 
-  public static final String MODULE_NAME = "graphqlapi";
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -127,7 +126,8 @@ public class DropwizardServer extends Application<Configuration> {
     enableCors(environment);
 
     ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+        new ResourceMetricsEventListener(
+            metrics, httpMetricsTagProvider, GraphqlActivator.MODULE_NAME);
     environment.jersey().register(metricListener);
 
     environment
@@ -139,7 +139,7 @@ public class DropwizardServer extends Application<Configuration> {
   public void initialize(final Bootstrap<Configuration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
+    bootstrap.setMetricRegistry(metrics.getRegistry(GraphqlActivator.MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

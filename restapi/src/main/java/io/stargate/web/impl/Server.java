@@ -64,8 +64,6 @@ import org.osgi.framework.FrameworkUtil;
 
 public class Server extends Application<ApplicationConfiguration> {
 
-  private static final String MODULE_NAME = "restapi";
-
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final Metrics metrics;
@@ -156,7 +154,8 @@ public class Server extends Application<ApplicationConfiguration> {
     enableCors(environment);
 
     ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+        new ResourceMetricsEventListener(
+            metrics, httpMetricsTagProvider, RestApiActivator.MODULE_NAME);
     environment.jersey().register(metricListener);
   }
 
@@ -170,7 +169,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
+    bootstrap.setMetricRegistry(metrics.getRegistry(RestApiActivator.MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

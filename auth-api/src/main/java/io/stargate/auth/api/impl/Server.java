@@ -44,8 +44,6 @@ import org.osgi.framework.FrameworkUtil;
 
 public class Server extends Application<ApplicationConfiguration> {
 
-  private static final String MODULE_NAME = "authapi";
-
   AuthenticationService authenticationService;
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
@@ -113,7 +111,8 @@ public class Server extends Application<ApplicationConfiguration> {
     enableCors(environment);
 
     ResourceMetricsEventListener metricsListener =
-        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, MODULE_NAME);
+        new ResourceMetricsEventListener(
+            metrics, httpMetricsTagProvider, AuthApiActivator.MODULE_NAME);
     environment.jersey().register(metricsListener);
   }
 
@@ -121,7 +120,7 @@ public class Server extends Application<ApplicationConfiguration> {
   public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
+    bootstrap.setMetricRegistry(metrics.getRegistry(AuthApiActivator.MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

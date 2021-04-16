@@ -17,6 +17,7 @@ public class HealthCheckerActivator extends BaseActivator {
 
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
+  public static final String MODULE_NAME = "health-checker";
   public static final String BUNDLES_CHECK_NAME = "bundles";
   public static final String STORAGE_CHECK_NAME = "storage";
   public static final String DATA_STORE_CHECK_NAME = "datastore";

@@ -26,6 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuthApiActivator extends BaseActivator {
+
+  public static final String MODULE_NAME = "authapi";
+
   private static final Logger log = LoggerFactory.getLogger(AuthApiActivator.class);
 
   private final WebImpl web = new WebImpl();

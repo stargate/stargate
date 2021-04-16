@@ -52,7 +52,7 @@ public class MetricsImpl implements Metrics, MetricsScraper {
   }
 
   @Override
-  public Tags defaultTagsForModule(String module) {
+  public Tags tagsForModule(String module) {
     Tag moduleTag =
         null != module
             ? Tag.of(StargateMetricConstants.MODULE_KEY, module)

@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 /** Activator for the web bundle */
 public class GraphqlActivator extends BaseActivator {
 
+  public static final String MODULE_NAME = "graphqlapi";
+
   private static final Logger LOG = LoggerFactory.getLogger(GraphqlActivator.class);
 
   private static final String AUTH_IDENTIFIER =

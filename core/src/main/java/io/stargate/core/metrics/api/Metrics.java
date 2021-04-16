@@ -44,5 +44,5 @@ public interface Metrics {
    * @param module module name
    * @return Tags
    */
-  Tags defaultTagsForModule(String module);
+  Tags tagsForModule(String module);
 }
