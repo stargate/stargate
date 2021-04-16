@@ -16,19 +16,18 @@
 package io.stargate.graphql.schema.schemafirst.migration;
 
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.schema.schemafirst.processor.IndexTarget;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class CassandraSchemaHelper {
 
   /** @return a list of differences, or empty if the tables match. */
   public static List<Difference> compare(Table expectedTable, Table actualTable) {
-
-    // Note: we deliberately avoid comparing the keyspaces, they might differ because of keyspace
-    // decoration.
-
     String tableName = expectedTable.name();
 
     if (!tableName.equals(actualTable.name())) {
@@ -41,6 +40,13 @@ public class CassandraSchemaHelper {
     for (Column expectedColumn : expectedTable.columns()) {
       Column actualColumn = actualTable.column(expectedColumn.name());
       compareColumn(expectedColumn, actualColumn, differences);
+
+      SecondaryIndex expectedIndex = findSecondaryIndex(expectedTable, expectedColumn);
+      if (expectedIndex != null) {
+        SecondaryIndex actualIndex =
+            (actualColumn == null) ? null : findSecondaryIndex(actualTable, actualColumn);
+        compareIndex(expectedIndex, actualIndex, expectedColumn, differences);
+      }
     }
     return differences;
   }
@@ -109,12 +115,63 @@ public class CassandraSchemaHelper {
     return true;
   }
 
+  private static SecondaryIndex findSecondaryIndex(Table table, Column column) {
+    if (column == null) {
+      return null;
+    }
+    return (SecondaryIndex)
+        table.indexes().stream()
+            .filter(
+                index ->
+                    index instanceof SecondaryIndex
+                        && column.equals(((SecondaryIndex) index).column()))
+            .findFirst()
+            .orElse(null);
+  }
+
+  private static void compareIndex(
+      SecondaryIndex expectedIndex,
+      SecondaryIndex actualIndex,
+      Column expectedColumn,
+      List<Difference> differences) {
+
+    if (actualIndex == null) {
+      differences.add(
+          new Difference(expectedColumn, expectedIndex, DifferenceType.MISSING_INDEX, null));
+      return;
+    }
+
+    // TODO maybe support dropping/recreating indexes
+    String description = null;
+    if (!Objects.equals(expectedIndex.name(), actualIndex.name())) {
+      description =
+          String.format("expected name %s, found %s", expectedIndex.name(), actualIndex.name());
+    } else if (!Objects.equals(expectedIndex.indexingClass(), actualIndex.indexingClass())) {
+      description =
+          String.format(
+              "expected index class %s, found %s",
+              expectedIndex.indexingClass(), actualIndex.indexingClass());
+    } else if (!Objects.equals(expectedIndex.indexingType(), actualIndex.indexingType())) {
+      description =
+          String.format(
+              "expected index target %s, found %s",
+              IndexTarget.fromIndexingType(expectedIndex.indexingType()),
+              IndexTarget.fromIndexingType(actualIndex.indexingType()));
+    } else if (!Objects.equals(expectedIndex.indexingOptions(), actualIndex.indexingOptions())) {
+      description =
+          String.format(
+              "expected index options %s, found %s",
+              expectedIndex.indexingOptions(), actualIndex.indexingOptions());
+    }
+
+    if (description != null) {
+      differences.add(
+          new Difference(expectedColumn, expectedIndex, DifferenceType.WRONG_INDEX, description));
+    }
+  }
+
   /** @return a list of differences, or empty if the UDTs match. */
   public static List<Difference> compare(UserDefinedType expectedType, UserDefinedType actualType) {
-
-    // Note: we deliberately avoid comparing the keyspaces, they might differ because of keyspace
-    // decoration.
-
     String typeName = expectedType.name();
 
     if (!typeName.equals(actualType.name())) {
@@ -134,22 +191,35 @@ public class CassandraSchemaHelper {
     WRONG_TYPE,
     WRONG_KIND,
     WRONG_CLUSTERING_ORDER,
+    MISSING_INDEX,
+    WRONG_INDEX,
   }
 
   public static class Difference {
 
     private final Column column;
+    private final SecondaryIndex index;
     private final DifferenceType type;
     private final String description;
 
-    public Difference(Column column, DifferenceType type, String description) {
+    public Difference(
+        Column column, SecondaryIndex index, DifferenceType type, String description) {
       this.column = column;
+      this.index = index;
       this.type = type;
       this.description = description;
     }
 
+    public Difference(Column column, DifferenceType type, String description) {
+      this(column, null, type, description);
+    }
+
     public Column getColumn() {
       return column;
+    }
+
+    public SecondaryIndex getIndex() {
+      return index;
     }
 
     public DifferenceType getType() {

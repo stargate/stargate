@@ -49,7 +49,7 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
           .build();
 
   private final FieldDefinition field;
-  private final String parentName;
+  private final String parentCqlName;
   private final EntityModel.Target targetContainer;
   private final boolean checkForInputType;
   private final String graphqlName;
@@ -60,20 +60,21 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
   FieldModelBuilder(
       FieldDefinition field,
       ProcessingContext context,
-      String parentName,
+      String parentCqlName,
+      String parentGraphqlName,
       EntityModel.Target targetContainer,
       boolean checkForInputType) {
 
     super(context, field.getSourceLocation());
 
     this.field = field;
-    this.parentName = parentName;
+    this.parentCqlName = parentCqlName;
     this.targetContainer = targetContainer;
     this.checkForInputType = checkForInputType;
 
     this.graphqlName = field.getName();
     this.graphqlType = field.getType();
-    this.messagePrefix = parentName + "." + graphqlName;
+    this.messagePrefix = parentGraphqlName + "." + graphqlName;
     this.cqlColumnDirective = DirectiveHelper.getDirective("cql_column", field);
   }
 
@@ -161,8 +162,27 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
       cqlType = cqlTypeHint;
     }
 
+    Optional<Directive> cqlIndexDirective = DirectiveHelper.getDirective("cql_index", field);
+    if (cqlIndexDirective.isPresent()) {
+      if (isPk) {
+        invalidMapping("%s: partition or clustering columns can't have an index", messagePrefix);
+        throw SkipException.INSTANCE;
+      }
+      if (isUdtField) {
+        invalidMapping("%s: UDT fields can't have an index", messagePrefix);
+        throw SkipException.INSTANCE;
+      }
+    }
+    Column.ColumnType finalCqlType = cqlType;
+    Optional<IndexModel> index =
+        cqlIndexDirective.map(
+            d ->
+                new IndexModelBuilder(
+                        d, parentCqlName, cqlName, finalCqlType, messagePrefix, context)
+                    .build());
+
     return new FieldModel(
-        graphqlName, graphqlType, cqlName, cqlType, partitionKey, clusteringOrder);
+        graphqlName, graphqlType, cqlName, cqlType, partitionKey, clusteringOrder, index);
   }
 
   private Column.ColumnType inferCqlType(Type<?> graphqlType, ProcessingContext context)
