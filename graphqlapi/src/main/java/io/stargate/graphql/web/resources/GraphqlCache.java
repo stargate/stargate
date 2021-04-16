@@ -108,20 +108,29 @@ public class GraphqlCache implements KeyspaceChangeListener {
       return currentHolder.getGraphql();
     }
 
-    DmlGraphqlHolder newHolder =
-        new DmlGraphqlHolder(latestSource, dataStore.schema().keyspace(keyspaceName));
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    if (keyspace == null) {
+      LOG.trace("Keyspace {} does not exist", decoratedKeyspaceName);
+      return null;
+    }
+
+    LOG.trace(
+        "Computing new version for {} ({})",
+        decoratedKeyspaceName,
+        (currentHolder == null) ? "wasn't cached before" : "schema has changed");
+    DmlGraphqlHolder newHolder = new DmlGraphqlHolder(latestSource, keyspace);
     boolean installed =
         (currentHolder == null)
             ? dmlGraphqls.putIfAbsent(decoratedKeyspaceName, newHolder) == null
             : dmlGraphqls.replace(decoratedKeyspaceName, currentHolder, newHolder);
 
     if (installed) {
-      LOG.debug("Installing new version for {} in the cache", decoratedKeyspaceName);
+      LOG.trace("Installing new version for {} in the cache", decoratedKeyspaceName);
       newHolder.init();
       return newHolder.getGraphql();
     }
 
-    LOG.debug(
+    LOG.trace(
         "Got beat installing new version for {} in the cache, fetching again",
         decoratedKeyspaceName);
     currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
