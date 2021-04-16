@@ -71,7 +71,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
   }
 
   private static Object buildError(String message, MediaType mediaType) {
-    return "json".equals(mediaType.getSubtype()) || "graphql".equals(mediaType.getSubtype())
+    return mediaType != null
+            && ("json".equals(mediaType.getSubtype()) || "graphql".equals(mediaType.getSubtype()))
         ? ImmutableMap.of("errors", ImmutableList.of(message))
         : message;
   }
