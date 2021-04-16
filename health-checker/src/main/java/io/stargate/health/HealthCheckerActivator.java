@@ -2,6 +2,7 @@ package io.stargate.health;
 
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -16,6 +17,7 @@ public class HealthCheckerActivator extends BaseActivator {
 
   private static final Logger log = LoggerFactory.getLogger(HealthCheckerActivator.class);
 
+  public static final String MODULE_NAME = "health-checker";
   public static final String BUNDLES_CHECK_NAME = "bundles";
   public static final String STORAGE_CHECK_NAME = "storage";
   public static final String DATA_STORE_CHECK_NAME = "datastore";
@@ -24,6 +26,8 @@ public class HealthCheckerActivator extends BaseActivator {
   private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private ServicePointer<MetricsScraper> metricsScraper =
       ServicePointer.create(MetricsScraper.class);
+  private ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+      ServicePointer.create(HttpMetricsTagProvider.class);
   private ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
   private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
@@ -55,7 +59,12 @@ public class HealthCheckerActivator extends BaseActivator {
       healthCheckRegistry.get().register(SCHEMA_CHECK_NAME, new SchemaAgreementChecker(context));
 
       WebImpl web =
-          new WebImpl(context, metrics.get(), metricsScraper.get(), healthCheckRegistry.get());
+          new WebImpl(
+              context,
+              metrics.get(),
+              metricsScraper.get(),
+              httpTagProvider.get(),
+              healthCheckRegistry.get());
       web.start();
       log.info("Started healthchecker....");
     } catch (Exception e) {
@@ -66,6 +75,7 @@ public class HealthCheckerActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, metricsScraper, healthCheckRegistry, dataStoreFactory);
+    return Arrays.asList(
+        metrics, metricsScraper, httpTagProvider, healthCheckRegistry, dataStoreFactory);
   }
 }

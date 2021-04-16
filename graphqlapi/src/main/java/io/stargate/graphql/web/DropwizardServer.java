@@ -24,6 +24,7 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -33,6 +34,7 @@ import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlCache;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDdlResource;
 import io.stargate.graphql.web.resources.cqlfirst.GraphqlDmlResource;
+import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -49,6 +51,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final Metrics metrics;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
   private volatile Server jettyServer;
 
   public DropwizardServer(
@@ -56,11 +59,13 @@ public class DropwizardServer extends Application<Configuration> {
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider,
       DataStoreFactory dataStoreFactory) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.dataStoreFactory = dataStoreFactory;
   }
 
@@ -120,6 +125,11 @@ public class DropwizardServer extends Application<Configuration> {
 
     enableCors(environment);
 
+    ResourceMetricsEventListener metricListener =
+        new ResourceMetricsEventListener(
+            metrics, httpMetricsTagProvider, GraphqlActivator.MODULE_NAME);
+    environment.jersey().register(metricListener);
+
     environment
         .lifecycle()
         .addServerLifecycleListener(server -> DropwizardServer.this.jettyServer = server);
@@ -129,7 +139,7 @@ public class DropwizardServer extends Application<Configuration> {
   public void initialize(final Bootstrap<Configuration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry("graphqlapi"));
+    bootstrap.setMetricRegistry(metrics.getRegistry(GraphqlActivator.MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

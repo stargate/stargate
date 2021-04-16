@@ -3,10 +3,13 @@ package io.stargate.core.metrics.impl;
 import com.codahale.metrics.MetricRegistry;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
+import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 
@@ -46,6 +49,15 @@ public class MetricsImpl implements Metrics, MetricsScraper {
   @Override
   public MeterRegistry getMeterRegistry() {
     return prometheusMeterRegistry;
+  }
+
+  @Override
+  public Tags tagsForModule(String module) {
+    Tag moduleTag =
+        null != module
+            ? Tag.of(StargateMetricConstants.MODULE_KEY, module)
+            : StargateMetricConstants.TAG_MODULE_UNKNOWN;
+    return Tags.of(moduleTag);
   }
 
   @Override

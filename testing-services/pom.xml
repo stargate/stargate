@@ -51,6 +51,7 @@
               org.osgi.framework,
               io.stargate.auth.*,
               io.stargate.core.*,
+              io.micrometer.core.*
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

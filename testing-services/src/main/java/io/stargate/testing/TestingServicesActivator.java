@@ -17,7 +17,10 @@ package io.stargate.testing;
 
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.testing.auth.LoggingAuthorizationProcessorImpl;
+import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
@@ -27,23 +30,33 @@ public class TestingServicesActivator extends BaseActivator {
   public static final String AUTHZ_PROCESSOR_PROPERTY = "stargate.authorization.processor.id";
   public static final String LOGGING_AUTHZ_PROCESSOR_ID = "LoggingAuthzProcessor";
 
+  public static final String HTTP_TAG_PROVIDER_PROPERTY = "stargate.metrics.http_tag_provider.id";
+  public static final String TAG_ME_HTTP_TAG_PROVIDER = "TagMeProvider";
+
   public TestingServicesActivator() {
     super("testing-services");
   }
 
   @Override
   protected List<ServiceAndProperties> createServices() {
+    List<ServiceAndProperties> services = new ArrayList<>();
+
     if (LOGGING_AUTHZ_PROCESSOR_ID.equals(System.getProperty(AUTHZ_PROCESSOR_PROPERTY))) {
       LoggingAuthorizationProcessorImpl authzProcessor = new LoggingAuthorizationProcessorImpl();
 
       Hashtable<String, String> props = new Hashtable<>();
       props.put("AuthProcessorId", LOGGING_AUTHZ_PROCESSOR_ID);
 
-      return Collections.singletonList(
-          new ServiceAndProperties(authzProcessor, AuthorizationProcessor.class, props));
+      services.add(new ServiceAndProperties(authzProcessor, AuthorizationProcessor.class, props));
     }
 
-    return Collections.emptyList();
+    if (TAG_ME_HTTP_TAG_PROVIDER.equals(System.getProperty(HTTP_TAG_PROVIDER_PROPERTY))) {
+      TagMeHttpMetricsTagProvider tagProvider = new TagMeHttpMetricsTagProvider();
+
+      services.add(new ServiceAndProperties(tagProvider, HttpMetricsTagProvider.class, null));
+    }
+
+    return services;
   }
 
   @Override

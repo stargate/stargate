@@ -16,12 +16,14 @@
 package io.stargate.auth.api.impl;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 
 public class WebImpl {
 
   private AuthenticationService authenticationService;
   private Metrics metrics;
+  private HttpMetricsTagProvider httpMetricsTagProvider;
 
   public AuthenticationService getAuthenticationService() {
     return authenticationService;
@@ -39,8 +41,13 @@ public class WebImpl {
     this.metrics = metrics;
   }
 
+  public void setHttpMetricsTagProvider(HttpMetricsTagProvider httpMetricsTagProvider) {
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
+  }
+
   public void start() {
-    Server server = new Server(this.authenticationService, this.metrics);
+    Server server =
+        new Server(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
     server.run("server", "config.yaml");
   }
 }

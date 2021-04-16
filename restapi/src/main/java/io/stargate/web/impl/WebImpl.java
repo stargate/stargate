@@ -17,6 +17,7 @@ package io.stargate.web.impl;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 
@@ -25,6 +26,7 @@ public class WebImpl {
   private AuthenticationService authenticationService;
   private AuthorizationService authorizationService;
   private Metrics metrics;
+  private HttpMetricsTagProvider httpMetricsTagProvider;
   private DataStoreFactory dataStoreFactory;
 
   public AuthenticationService getAuthenticationService() {
@@ -47,6 +49,10 @@ public class WebImpl {
     this.metrics = metrics;
   }
 
+  public void setHttpMetricsTagProvider(HttpMetricsTagProvider httpMetricsTagProvider) {
+    this.httpMetricsTagProvider = httpMetricsTagProvider;
+  }
+
   public AuthorizationService getAuthorizationService() {
     return authorizationService;
   }
@@ -62,7 +68,11 @@ public class WebImpl {
   public void start() throws Exception {
     Server server =
         new Server(
-            this.authenticationService, this.authorizationService, this.metrics, dataStoreFactory);
+            this.authenticationService,
+            this.authorizationService,
+            this.metrics,
+            this.httpMetricsTagProvider,
+            dataStoreFactory);
     server.run("server", "config.yaml");
   }
 }

@@ -2,6 +2,7 @@ package io.stargate.core.metrics.api;
 
 import com.codahale.metrics.MetricRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 
 /**
  * Entry point to the Stargate metrics.
@@ -36,4 +37,12 @@ public interface Metrics {
    * <p>Note that this registry will warp all the metrics reported via {@link #getRegistry()}.
    */
   MeterRegistry getMeterRegistry();
+
+  /**
+   * Returns set of default micrometer {@link Tags} for the given module.
+   *
+   * @param module module name
+   * @return Tags
+   */
+  Tags tagsForModule(String module);
 }
