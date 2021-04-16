@@ -30,6 +30,11 @@
     </dependency>
     <!-- gRPC -->
     <dependency>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>grpc-proto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
       <version>1.35.0</version>
@@ -43,11 +48,6 @@
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
       <version>1.35.0</version>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate.grpc</groupId>
-      <artifactId>grpc-proto</artifactId>
-      <version>0.0.2-SNAPSHOT</version>
     </dependency>
     <!-- Other -->
     <dependency>
