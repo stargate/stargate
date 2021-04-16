@@ -1,5 +1,38 @@
 # Changelog
 
+## [v1.0.19](https://github.com/stargate/stargate/tree/v1.0.19) (2021-04-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.18...v1.0.19)
+
+**Closed issues:**
+
+- Prototype Go client [\#850](https://github.com/stargate/stargate/issues/850)
+- Add another example of retrieving a composite primary key [\#849](https://github.com/stargate/stargate/issues/849)
+- CDC solution using the C\* as an outbox [\#846](https://github.com/stargate/stargate/issues/846)
+- Support per partition limits in QueryBuilder [\#835](https://github.com/stargate/stargate/issues/835)
+- `contains` and `containsEntry` don't seem to work when conjuncted in the REST API \(NOT documents\) [\#819](https://github.com/stargate/stargate/issues/819)
+- Persistence API does not surface all index properties [\#803](https://github.com/stargate/stargate/issues/803)
+- Publish integration tests as a normal jar with dependencies [\#774](https://github.com/stargate/stargate/issues/774)
+- REST API for v2 create table fails when there is no "clusteringExpression" provided as part of the "tableOptions" [\#764](https://github.com/stargate/stargate/issues/764)
+- REST v2: Allow complex JSON types as $eq arguments in where clause [\#639](https://github.com/stargate/stargate/issues/639)
+- GraphQL: Make all data fetchers async [\#421](https://github.com/stargate/stargate/issues/421)
+- Use prepared statements for GraphQL query executions [\#273](https://github.com/stargate/stargate/issues/273)
+
+**Merged pull requests:**
+
+- Include gRPC proto files in repo \(remove submodules\) [\#856](https://github.com/stargate/stargate/pull/856) ([mpenick](https://github.com/mpenick))
+- Add basic authentication to gRPC [\#847](https://github.com/stargate/stargate/pull/847) ([mpenick](https://github.com/mpenick))
+- Return 200 when updating a table with REST [\#844](https://github.com/stargate/stargate/pull/844) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- When creating a table with restapi default clustering to asc [\#840](https://github.com/stargate/stargate/pull/840) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add perPartitionLimit\(\) to QueryBuilder DSL [\#838](https://github.com/stargate/stargate/pull/838) ([dimas-b](https://github.com/dimas-b))
+- Fix \#819 - contains and containsEntry with AND [\#837](https://github.com/stargate/stargate/pull/837) ([eribeiro](https://github.com/eribeiro))
+- Package integration tests as plain jar [\#833](https://github.com/stargate/stargate/pull/833) ([dimas-b](https://github.com/dimas-b))
+- gRPC boilerplate [\#832](https://github.com/stargate/stargate/pull/832) ([mpenick](https://github.com/mpenick))
+- Introduce micrometer, wrap Dropwizard metrics [\#827](https://github.com/stargate/stargate/pull/827) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#826](https://github.com/stargate/stargate/pull/826) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fixes \#803 - surface all index properties [\#813](https://github.com/stargate/stargate/pull/813) ([eribeiro](https://github.com/eribeiro))
+- Add optimization for multiple filters in `where` for documents API [\#748](https://github.com/stargate/stargate/pull/748) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.18](https://github.com/stargate/stargate/tree/v1.0.18) (2021-04-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.17...v1.0.18)
