@@ -50,7 +50,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -320,29 +319,6 @@ public class RowsResource {
           AuthenticatedDB authenticatedDB =
               db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
-
-          BoundQuery query =
-              authenticatedDB
-                  .getDataStore()
-                  .queryBuilder()
-                  .select()
-                  .from(keyspaceName, tableName)
-                  .build()
-                  .bind();
-
-          final ResultSet r =
-              db.getAuthorizationService()
-                  .authorizedDataRead(
-                      () ->
-                          authenticatedDB
-                              .getDataStore()
-                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
-                              .get(),
-                      authenticatedDB.getAuthenticationSubject(),
-                      keyspaceName,
-                      tableName,
-                      Collections.emptyList(),
-                      SourceAPI.REST);
 
           Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, null);
           return Response.status(Response.Status.OK)
