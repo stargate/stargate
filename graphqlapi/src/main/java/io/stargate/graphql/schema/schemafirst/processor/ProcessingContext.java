@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
@@ -56,10 +55,7 @@ class ProcessingContext {
     return keyspace;
   }
 
-  /**
-   * @see SchemaProcessor#SchemaProcessor(AuthenticationService, AuthorizationService,
-   *     DataStoreFactory, boolean)
-   */
+  /** @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean) */
   public boolean isPersisted() {
     return isPersisted;
   }

@@ -43,12 +43,7 @@ public class FederationTest extends GraphqlFirstTestBase {
           + "  cc2: Int! @cql_column(clusteringOrder: ASC)\n"
           + "}\n"
           + "type Key @cql_entity(target: UDT) { k: Int }\n"
-          + "type Entity4 @key { k: Key! @cql_column(partitionKey: true) }\n"
-          // Currently we need to add a dummy query manually. This is not used anywhere in the test,
-          // but the schema will fail to validate if it's not here.
-          + "type Query {\n"
-          + "  entity1(k: ID!): Entity1\n"
-          + "}\n";
+          + "type Entity4 @key { k: Key! @cql_column(partitionKey: true) }";
 
   private static final UUID UUID_KEY = UUID.randomUUID();
 

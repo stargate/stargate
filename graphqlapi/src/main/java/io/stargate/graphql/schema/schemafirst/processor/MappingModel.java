@@ -22,12 +22,12 @@ import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.OperationTypeDefinition;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +41,17 @@ public class MappingModel {
   private final Map<String, EntityModel> entities;
   private final Map<String, ResponsePayloadModel> responses;
   private final List<OperationModel> operations;
+  private final boolean hasUserQueries;
 
   MappingModel(
       Map<String, EntityModel> entities,
       Map<String, ResponsePayloadModel> responses,
-      List<OperationModel> operations) {
+      List<OperationModel> operations,
+      boolean hasUserQueries) {
     this.entities = entities;
     this.responses = responses;
     this.operations = operations;
+    this.hasUserQueries = hasUserQueries;
   }
 
   public Map<String, EntityModel> getEntities() {
@@ -67,27 +70,50 @@ public class MappingModel {
     return operations;
   }
 
+  public boolean hasUserQueries() {
+    return hasUserQueries;
+  }
+
   /** @throws GraphqlErrorException if the model contains mapping errors */
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
-    // The Query type is always present (otherwise the GraphQL parser would have failed)
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
-    ObjectTypeDefinition queryType = getOperationType(registry, "query", "Query").get();
+    Optional<ObjectTypeDefinition> maybeQueryType = getOperationType(registry, "query", "Query");
     Optional<ObjectTypeDefinition> maybeMutationType =
         getOperationType(registry, "mutation", "Mutation");
     Optional<ObjectTypeDefinition> maybeSubscriptionType =
         getOperationType(registry, "subscription", "Subscription");
+    maybeSubscriptionType.ifPresent(
+        t ->
+            context.addError(
+                t.getSourceLocation(),
+                ProcessingErrorType.InvalidMapping,
+                "This GraphQL implementation does not support subscriptions"));
 
+    // Don't map the default Query, Mutation and Subscription types to CQL tables:
     Set<ObjectTypeDefinition> typesToIgnore =
-        buildTypesToIgnore(queryType, maybeMutationType, maybeSubscriptionType, context);
+        ImmutableList.of(maybeQueryType, maybeMutationType, maybeSubscriptionType).stream()
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(Collectors.toSet());
 
     Map<String, EntityModel> entities = buildEntities(registry, typesToIgnore, context);
+    // Query is required, but if there are federated entities an `_entities` query will
+    // automatically be added later, so we don't require any user-defined queries.
+    if (!maybeQueryType.isPresent()
+        && entities.values().stream().noneMatch(EntityModel::isFederated)) {
+      context.addError(
+          null,
+          ProcessingErrorType.InvalidSyntax,
+          "A schema MUST have a 'query' operation defined");
+    }
 
     Map<String, ResponsePayloadModel> responsePayloads =
         buildResponsePayloads(registry, typesToIgnore, entities, context);
 
     ImmutableList.Builder<OperationModel> operationsBuilder = ImmutableList.builder();
-    buildQueries(queryType, entities, responsePayloads, operationsBuilder, context);
+    maybeQueryType.ifPresent(
+        queryType ->
+            buildQueries(queryType, entities, responsePayloads, operationsBuilder, context));
     maybeMutationType.ifPresent(
         mutationType ->
             buildMutations(mutationType, entities, responsePayloads, operationsBuilder, context));
@@ -104,7 +130,8 @@ public class MappingModel {
           .extensions(ImmutableMap.of("mappingErrors", context.getErrors()))
           .build();
     }
-    return new MappingModel(entities, responsePayloads, operationsBuilder.build());
+    return new MappingModel(
+        entities, responsePayloads, operationsBuilder.build(), maybeQueryType.isPresent());
   }
 
   /**
@@ -143,28 +170,6 @@ public class MappingModel {
         .getType(typeName)
         .filter(t -> t instanceof ObjectTypeDefinition)
         .map(t -> (ObjectTypeDefinition) t);
-  }
-
-  /**
-   * Ensure we won't try to map the default Query, Mutation and Subscription types to CQL tables.
-   */
-  private static Set<ObjectTypeDefinition> buildTypesToIgnore(
-      ObjectTypeDefinition queryType,
-      Optional<ObjectTypeDefinition> maybeMutationType,
-      Optional<ObjectTypeDefinition> maybeSubscriptionType,
-      ProcessingContext context) {
-    Set<ObjectTypeDefinition> typesToIgnore = new HashSet<>();
-    typesToIgnore.add(queryType);
-    maybeMutationType.ifPresent(typesToIgnore::add);
-    maybeSubscriptionType.ifPresent(
-        t -> {
-          context.addError(
-              t.getSourceLocation(),
-              ProcessingErrorType.InvalidMapping,
-              "This GraphQL implementation does not support subscriptions");
-          typesToIgnore.add(t);
-        });
-    return typesToIgnore;
   }
 
   /**

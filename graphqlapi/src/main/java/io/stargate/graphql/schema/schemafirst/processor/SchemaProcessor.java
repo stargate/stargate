@@ -25,6 +25,7 @@ import graphql.GraphqlErrorException;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.EnumTypeDefinition;
+import graphql.language.FieldDefinition;
 import graphql.language.InputObjectTypeDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
@@ -177,10 +178,12 @@ public class SchemaProcessor {
 
     // SchemaGenerator fails if the schema uses directives that are not defined. Add everything we
     // need:
-    registry = registry.merge(FEDERATION_DIRECTIVES); // GraphQL federation
+    if (mappingModel.hasFederatedEntities()) {
+      registry = registry.merge(FEDERATION_DIRECTIVES); // GraphQL federation directives
+      finalizeKeyDirectives(registry, mappingModel);
+      stubQueryTypeIfNeeded(registry, mappingModel);
+    }
     registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
-
-    finalizeKeyDirectives(registry, mappingModel);
 
     RuntimeWiring.Builder runtimeWiring =
         RuntimeWiring.newRuntimeWiring()
@@ -256,6 +259,32 @@ public class SchemaProcessor {
       ObjectTypeDefinition newType = type.transform(builder -> builder.directives(newDirectives));
       registry.remove(type);
       registry.add(newType);
+    }
+  }
+
+  /**
+   * If there are federated entities, we allow users to omit the Query type, because federation-jvm
+   * will generate queries of its own (_entities and _service). However we try to parse the schema
+   * before that, so we need a dummy query type.
+   */
+  private void stubQueryTypeIfNeeded(TypeDefinitionRegistry registry, MappingModel mappingModel) {
+    if (!mappingModel.hasUserQueries()) {
+      FieldDefinition mockEntitiesQuery =
+          FieldDefinition.newFieldDefinition()
+              .name("_entities")
+              .type(TypeName.newTypeName("Int").build())
+              .build();
+      registry.add(
+          ObjectTypeDefinition.newObjectTypeDefinition()
+              .name("Query")
+              .fieldDefinition(
+                  // Dummy query. It doesn't need to match the actual signature, federation-jvm will
+                  // completely replace it.
+                  FieldDefinition.newFieldDefinition()
+                      .name("_entities")
+                      .type(TypeName.newTypeName("Int").build())
+                      .build())
+              .build());
     }
   }
 
