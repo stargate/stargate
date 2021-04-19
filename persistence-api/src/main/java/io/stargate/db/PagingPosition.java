@@ -16,8 +16,14 @@
 
 package io.stargate.db;
 
+import io.stargate.db.ImmutablePagingPosition.Builder;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.datastore.Row;
+import io.stargate.db.schema.Column;
+import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 /**
@@ -32,8 +38,26 @@ public interface PagingPosition {
     return ImmutablePagingPosition.builder();
   }
 
+  static ImmutablePagingPosition.Builder ofCurrentRow(Row row) {
+    Builder builder = ImmutablePagingPosition.builder();
+    for (Column c : row.columns()) {
+      ByteBuffer value = row.getBytesUnsafe(c.name());
+      if (value != null) {
+        builder.putCurrentRow(c, value);
+      }
+    }
+
+    return builder;
+  }
+
   /** The reference row for the paging state. */
-  Row currentRow();
+  Map<Column, ByteBuffer> currentRow();
+
+  @Value.Lazy
+  default Map<String, ByteBuffer> currentRowValuesByColumnName() {
+    return currentRow().entrySet().stream()
+        .collect(Collectors.toMap(e -> e.getKey().name(), Entry::getValue));
+  }
 
   /** Defines how to resume paging relative to the {@link #currentRow() reference row}. */
   ResumeMode resumeFrom();

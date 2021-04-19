@@ -1704,8 +1704,7 @@ public abstract class PersistenceTest {
 
     ByteBuffer pagingState =
         rs.makePagingState(
-            PagingPosition.builder()
-                .currentRow(row2)
+            PagingPosition.ofCurrentRow(row2)
                 .resumeFrom(ResumeMode.NEXT_PARTITION)
                 .remainingRows(7) // not inherited from the query
                 .build());

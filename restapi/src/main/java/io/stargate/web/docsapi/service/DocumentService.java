@@ -766,7 +766,6 @@ public class DocumentService {
               false,
               null,
               paginator);
-      rows = paginator.maybeSkipRows(rows);
       addRowsToMap(rowsByDoc, rows);
     } while (rowsByDoc.keySet().size() <= paginator.docPageSize && paginator.hasDbPageState());
 
@@ -940,9 +939,7 @@ public class DocumentService {
                 null,
                 paginator);
         candidatesThisPage = new LinkedHashSet<>();
-        List<Row> rows = page;
-        rows = paginator.maybeSkipRows(rows);
-        for (Row row : rows) {
+        for (Row row : page) {
           candidatesThisPage.add(row.getString("key"));
         }
       } else {
@@ -1000,8 +997,7 @@ public class DocumentService {
               paginator);
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
-      List<Row> rows = paginator.maybeSkipRows(page);
-      rowsResult.addAll(rows);
+      rowsResult.addAll(page);
       leftoverRows =
           updateExistenceForMap(
               existsByDoc,
@@ -1179,8 +1175,7 @@ public class DocumentService {
 
     List<Row> rows = r.currentPageRows();
 
-    // this is the only place that currently updates C* page state property
-    paginator.setCurrentDbPageState(r.getPagingState());
+    paginator.useResultSet(r);
 
     if (documentKey != null) {
       rows =
