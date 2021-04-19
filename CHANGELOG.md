@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.0.21](https://github.com/stargate/stargate/tree/v1.0.21) (2021-04-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.20...v1.0.21)
+
+**Merged pull requests:**
+
+- Use project version for grpc-proto [\#863](https://github.com/stargate/stargate/pull/863) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#860](https://github.com/stargate/stargate/pull/860) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added server http requests micrometer metric with custom tags [\#836](https://github.com/stargate/stargate/pull/836) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.20](https://github.com/stargate/stargate/tree/v1.0.20) (2021-04-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.19...v1.0.20)
