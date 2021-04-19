@@ -269,11 +269,6 @@ public class SchemaProcessor {
    */
   private void stubQueryTypeIfNeeded(TypeDefinitionRegistry registry, MappingModel mappingModel) {
     if (!mappingModel.hasUserQueries()) {
-      FieldDefinition mockEntitiesQuery =
-          FieldDefinition.newFieldDefinition()
-              .name("_entities")
-              .type(TypeName.newTypeName("Int").build())
-              .build();
       registry.add(
           ObjectTypeDefinition.newObjectTypeDefinition()
               .name("Query")
