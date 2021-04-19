@@ -58,6 +58,8 @@ public class InsertTest extends GraphqlFirstTestBase {
             + "  insertUser(user: UserInput!): User\n"
             + "  persistUser(user: UserInput!): User @cql_insert\n"
             + "  insertUser2(user: UserInput!): InsertUserResponse\n"
+            + "  bulkInsertUsers(users: [UserInput!]): [User]\n"
+            // todo + "  bulkInsertUsers(users: [UserInput!]): [InsertUserResponse]\n"
             + "  insertUserIfNotExists(user: UserInput!): InsertUserResponse\n"
             + "  insertUser3(user: UserInput!): InsertUserResponse @cql_insert(ifNotExists: true)\n"
             + "}");
@@ -67,6 +69,58 @@ public class InsertTest extends GraphqlFirstTestBase {
   @DisplayName("Should map simple insert")
   public void testSimpleInsert() {
     testSimpleInsert("insertUser");
+  }
+
+  //  @Test
+  //  @DisplayName("Should map two inserts in one graphQL statement")
+  //  public void testTwoInserts() {
+  //    Object response =
+  //        CLIENT.executeKeyspaceQuery(
+  //            KEYSPACE,
+  //            String.format(
+  //                "mutation {\n"
+  //                    + "  ada: %s(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
+  //                    + "    id, name, username\n"
+  //                    + "  }\n"
+  //                    + "  alan: %s(user: {name: \"Alan Turing\n\", username: \"@alan\"}) {\n"
+  //                    + "    id, name, username\n"
+  //                    + "  }\n"
+  //                    + "}",
+  //                "insertUser", "insertUser"));
+  //    // Should have generated an ids
+  //    String id = JsonPath.read(response, "$.result.id");
+  //    assertThatCode(() -> UUID.fromString(id)).doesNotThrowAnyException();
+  //
+  //    String name = JsonPath.read(response, "$.result.name");
+  //    assertThat(name).isEqualTo("Ada Lovelace");
+  //    String username = JsonPath.read(response, "$.result.username");
+  //    assertThat(username).isEqualTo("@ada");
+  //  }
+
+  @Test
+  @DisplayName("Should map two inserts in one graphQL statement")
+  public void testBulkInsert() {
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation {\n"
+                    + "%s (users: [\n"
+                    + " { name: \"Ada Lovelace\", username: \"@ada\" },\n"
+                    + " { name: \"Alan Turing\", username: \"@alan\"}\n"
+                    + "]) \n"
+                    + "{ \n"
+                    + "id, name, username }\n"
+                    + "}",
+                "bulkInsertUsers"));
+    // Should have generated an ids
+    String id = JsonPath.read(response, "$.result.id");
+    assertThatCode(() -> UUID.fromString(id)).doesNotThrowAnyException();
+
+    String name = JsonPath.read(response, "$.result.name");
+    assertThat(name).isEqualTo("Ada Lovelace");
+    String username = JsonPath.read(response, "$.result.username");
+    assertThat(username).isEqualTo("@ada");
   }
 
   @Test
