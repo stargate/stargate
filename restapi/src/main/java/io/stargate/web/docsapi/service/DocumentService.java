@@ -785,7 +785,12 @@ public class DocumentService {
                               lastIdSeen.setValue(row.getString("key"));
                               return row;
                             })
-                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
+                        .filter(
+                            row ->
+                                fields.isEmpty()
+                                    || fields.stream()
+                                        .anyMatch(
+                                            field -> getFieldPathFromRow(row).startsWith(field)))
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
@@ -798,7 +803,12 @@ public class DocumentService {
               e -> {
                 List<Row> rows =
                     e.getValue().stream()
-                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
+                        .filter(
+                            row ->
+                                fields.isEmpty()
+                                    || fields.stream()
+                                        .anyMatch(
+                                            field -> getFieldPathFromRow(row).startsWith(field)))
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
@@ -896,7 +906,8 @@ public class DocumentService {
       String key = row.getString("key");
       if (docNames.contains(key)) {
         List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-        if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+        if (fields.isEmpty()
+            || fields.stream().anyMatch(field -> getFieldPathFromRow(row).startsWith(field))) {
           rowsAtKey.add(row);
         }
         rowsByDoc.put(key, rowsAtKey);
@@ -1035,7 +1046,8 @@ public class DocumentService {
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+      if (fields.isEmpty()
+          || fields.stream().anyMatch(field -> getFieldPathFromRow(row).startsWith(field))) {
         rowsAtKey.add(row);
       }
       rowsByDoc.put(key, rowsAtKey);
@@ -1217,6 +1229,25 @@ public class DocumentService {
       }
     }
     return s.toString();
+  }
+
+  private String getFieldPathFromRow(Row row) {
+    boolean pathComplete = false;
+    int i = 0;
+    StringBuilder fullPath = new StringBuilder();
+    while (!pathComplete) {
+      String value = row.getString("p" + i);
+      if (value.isEmpty()) {
+        pathComplete = true;
+      } else {
+        if (i != 0) {
+          fullPath.append(".");
+        }
+        fullPath.append(value);
+      }
+      i++;
+    }
+    return fullPath.toString();
   }
 
   private boolean pathsMatch(String path1, String path2) {
