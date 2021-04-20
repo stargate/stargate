@@ -38,11 +38,17 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
   OperationModel.ReturnType getReturnType(String operationDescription) throws SkipException {
     Type<?> graphqlType = TypeHelper.unwrapNonNull(operation.getType());
 
+    System.out.println("graphType: " + graphqlType);
     if (graphqlType instanceof ListType) {
+      System.out.println("ListType: " + graphqlType);
       Type<?> elementType = ((ListType) graphqlType).getType();
       elementType = TypeHelper.unwrapNonNull(elementType);
+      System.out.println("elementType:" + elementType);
       if (elementType instanceof TypeName) {
+        System.out.println("elementType: " + elementType);
+        System.out.println("entities:" + entities);
         EntityModel entity = entities.get(((TypeName) elementType).getName());
+        System.out.println("entity: " + entity);
         if (entity != null) {
           return new EntityListReturnType(entity);
         }
@@ -50,8 +56,10 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     } else {
       assert graphqlType instanceof TypeName;
       String typeName = ((TypeName) graphqlType).getName();
+      System.out.println("normal typeName: " + typeName + " for" + graphqlType);
 
       SimpleReturnType simple = SimpleReturnType.fromTypeName(typeName);
+      System.out.println("simple:" + simple);
       if (simple != null) {
         return simple;
       }

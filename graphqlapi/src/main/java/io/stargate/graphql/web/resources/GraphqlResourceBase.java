@@ -328,6 +328,7 @@ public class GraphqlResourceBase {
 
   protected static void executeAsync(
       ExecutionInput input, GraphQL graphql, @Suspended AsyncResponse asyncResponse) {
+    System.out.println("input : " + input + "graphQL:" + graphql);
     graphql
         .executeAsync(input)
         .thenApply(result -> asyncResponse.resume(result.toSpecification()))

@@ -15,11 +15,7 @@
  */
 package io.stargate.graphql.schema.schemafirst.processor;
 
-import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
-import graphql.language.Type;
-import graphql.language.TypeName;
+import graphql.language.*;
 import io.stargate.graphql.schema.schemafirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
@@ -38,11 +34,15 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
+    String inputTypeName;
     if (type instanceof ListType) {
-      return Optional.empty();
+      Type<?> innerListType = TypeHelper.unwrapNonNull(((ListType) type).getType());
+      inputTypeName = ((TypeName) innerListType).getName();
+
+    } else {
+      inputTypeName = ((TypeName) type).getName();
     }
 
-    String inputTypeName = ((TypeName) type).getName();
     return entities.values().stream()
         .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
         .findFirst();

@@ -43,6 +43,7 @@ class InsertModelBuilder extends MutationModelBuilder {
 
     // Validate inputs: must be a single entity argument
     List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
+    System.out.println("--> inputs" + inputs);
     if (inputs.isEmpty()) {
       invalidMapping(
           "Mutation %s: inserts must take the entity input type as the first argument",
@@ -54,6 +55,8 @@ class InsertModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
+    System.out.println("--> input " + input);
+
     EntityModel entity =
         findEntity(input)
             .orElseThrow(
@@ -65,10 +68,11 @@ class InsertModelBuilder extends MutationModelBuilder {
                   return SkipException.INSTANCE;
                 });
 
-    // Validate return type: must be the entity itself, or a wrapper payload
+    // Validate return type: must be the entity itself, or a wrapper payload, or a list of entities
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (returnType.isEntityList()
-        || !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()) {
+    System.out.println("return type: " + returnType);
+    System.out.println("return type.getEntity: " + returnType.getEntity() + " entity: " + entity);
+    if (!returnType.getEntity().filter(e -> e.equals(entity)).isPresent()) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
               + "single instance of it.",

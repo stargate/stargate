@@ -72,6 +72,7 @@ public class InsertFetcher extends DynamicFetcher<Map<String, Object>> {
     EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    System.out.println("model.getEntityArgumentName(): " + model.getEntityArgumentName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Collection<ValueModifier> setters = new ArrayList<>();

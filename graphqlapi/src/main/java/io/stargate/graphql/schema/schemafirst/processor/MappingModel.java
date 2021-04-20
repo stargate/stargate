@@ -182,6 +182,7 @@ public class MappingModel {
         .forEach(
             type -> {
               try {
+                System.out.println("-> create EntityModel for: " + type);
                 entitiesBuilder.put(type.getName(), new EntityModelBuilder(type, context).build());
               } catch (SkipException e) {
                 LOG.debug(
