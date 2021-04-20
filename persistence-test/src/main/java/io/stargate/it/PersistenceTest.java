@@ -60,6 +60,8 @@ import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.db.PagingPosition;
+import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
@@ -69,6 +71,7 @@ import io.stargate.db.datastore.PersistenceDataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column;
@@ -1606,6 +1609,125 @@ public abstract class PersistenceTest {
   @Test
   public void testSchemaAgreementAchievable() {
     assertThat(persistence().isSchemaAgreementAchievable()).isTrue();
+  }
+
+  @Test
+  public void testPagingStateForNextPartition() throws ExecutionException, InterruptedException {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("pk", Int, PartitionKey)
+        .column("cc", Int, Clustering)
+        .column("val", Int)
+        .build()
+        .execute()
+        .join();
+
+    dataStore.waitForSchemaAgreement();
+
+    BuiltQuery<?> insert =
+        dataStore
+            .queryBuilder()
+            .insertInto(keyspace, table)
+            .value("pk")
+            .value("cc")
+            .value("val")
+            .build();
+
+    insert.bind(10, 1, 1).execute().join();
+    insert.bind(10, 2, 2).execute().join();
+    insert.bind(10, 3, 3).execute().join();
+    insert.bind(10, 4, 4).execute().join();
+
+    insert.bind(20, 5, 5).execute().join();
+    insert.bind(20, 6, 6).execute().join();
+    insert.bind(20, 7, 7).execute().join();
+    insert.bind(20, 8, 8).execute().join();
+
+    insert.bind(30, 9, 9).execute().join();
+    insert.bind(30, 10, 10).execute().join();
+    insert.bind(30, 11, 11).execute().join();
+    insert.bind(30, 12, 12).execute().join();
+
+    insert.bind(40, 13, 13).execute().join();
+    insert.bind(40, 14, 14).execute().join();
+    insert.bind(40, 15, 15).execute().join();
+    insert.bind(40, 16, 16).execute().join();
+
+    // Obtain partition keys in "ring" order
+    AbstractBound<?> selectAll =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .build()
+            .bind();
+
+    java.util.List<Row> allRows = dataStore.execute(selectAll).get().rows();
+    List<Integer> keys = allRows.stream().map(r -> r.getInt(0)).collect(Collectors.toList());
+    List<Integer> values = allRows.stream().map(r -> r.getInt(1)).collect(Collectors.toList());
+    int key2 = keys.get(1);
+    int val2 = values.get(1);
+    int key5 = keys.get(4);
+    int val5 = values.get(4);
+    int key6 = keys.get(5);
+    int val6 = values.get(5);
+    int key10 = keys.get(9);
+    int val10 = values.get(9);
+
+    AbstractBound<?> select =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .perPartitionLimit(3)
+            .limit(10)
+            .build()
+            .bind();
+
+    ResultSet rs = dataStore.execute(select, p -> p.toBuilder().pageSize(5).build()).get();
+    java.util.List<Row> rows = rs.currentPageRows();
+    assertThat(rows).hasSize(5); // full page
+    Row row2 = rows.get(1);
+    assertThat(row2.getInt(0)).isEqualTo(key2);
+    assertThat(row2.getInt(1)).isEqualTo(val2);
+    // with 3 row per partition, the last row in page 1 is the second row of the second partition
+    Row row6 = rows.get(4);
+    assertThat(row6.getInt(0)).isEqualTo(key6);
+    assertThat(row6.getInt(1)).isEqualTo(val6);
+
+    ByteBuffer pagingState =
+        rs.makePagingState(
+            PagingPosition.builder()
+                .currentRow(row2)
+                .resumeFrom(ResumeMode.NEXT_PARTITION)
+                .remainingRows(7) // not inherited from the query
+                .build());
+
+    rs =
+        dataStore
+            .execute(select, p -> p.toBuilder().pageSize(5).pagingState(pagingState).build())
+            .get();
+    rows = rs.currentPageRows();
+    assertThat(rows).hasSize(5); // full page
+
+    Row row5 = rows.get(0);
+    assertThat(row5.getInt(0)).isEqualTo(key5);
+    assertThat(row5.getInt(1)).isEqualTo(val5);
+    // with 3 row per partition, the last row in page 1 is the second row of the third partition
+    Row row10 = rows.get(4);
+    assertThat(row10.getInt(0)).isEqualTo(key10);
+    assertThat(row10.getInt(1)).isEqualTo(val10);
+
+    // With the limit of 7 rows in the second execution and 5 rows read in the second page,
+    // 2 rows remain
+    assertThat(rs.rows()).hasSize(2);
   }
 
   private boolean isCassandra4() {
