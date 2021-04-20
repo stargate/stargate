@@ -35,7 +35,7 @@ public class FederationTest extends GraphqlFirstTestBase {
 
   private static final String SCHEMA =
       "type Entity1 @key { k: ID! }\n"
-          + "type Entity2 @key { k: Int! @cql_column(partitionKey: true) }\n"
+          + "type Entity2 @key(fields: \"k\") { k: Int! @cql_column(partitionKey: true) }\n"
           + "type Entity3 @key {\n"
           + "  k1: Int! @cql_column(partitionKey: true)\n"
           + "  k2: Int! @cql_column(partitionKey: true)\n"
