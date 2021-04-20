@@ -1461,7 +1461,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         .map(p -> p.getValues().map(v -> !v.isEmpty()).orElse(false))
         .orElse(false)); // Continue if there are still values
 
-    assertThat(names).containsExactlyInAnyOrder("a", "b", "c");
+    assertThat(names).contains("a", "b", "c");
   }
 
   @Test
