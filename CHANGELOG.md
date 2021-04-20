@@ -1,3 +1,7 @@
+# Changelog
+
+## [v1.0.21](https://github.com/stargate/stargate/tree/v1.0.21) (2021-04-16)
+
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.20...v1.0.21)
 
 **Merged pull requests:**
