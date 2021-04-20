@@ -33,12 +33,9 @@ import com.example.graphql.client.betterbotz.collections.InsertCollectionsSimple
 import com.example.graphql.client.betterbotz.collections.UpdateCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
-import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
-import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
+import com.example.graphql.client.betterbotz.products.*;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Products;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
-import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
-import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.tuples.GetTuplesPkQuery;
 import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
 import com.example.graphql.client.betterbotz.tuples.InsertTuplesMutation;
@@ -829,6 +826,48 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getDescription()).hasValue(input.description());
   }
 
+  @Test
+  public void bulkInsertProducts() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId1 = UUID.randomUUID().toString();
+    String productId2 = UUID.randomUUID().toString();
+    ProductsInput product1 =
+        ProductsInput.builder()
+            .id(productId1)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+    ProductsInput product2 =
+        ProductsInput.builder()
+            .id(productId2)
+            .name("Non-Legs")
+            .price("1000.99")
+            .created(now())
+            .description("Non-legs.")
+            .build();
+
+    bulkInsertProducts(client, Arrays.asList(product1, product2));
+
+    GetProductsWithFilterQuery.Value product1Result = getProduct(client, productId1);
+
+    assertThat(product1Result.getId()).hasValue(productId1);
+    assertThat(product1Result.getName()).hasValue(product1.name());
+    assertThat(product1Result.getPrice()).hasValue(product1.price());
+    assertThat(product1Result.getCreated()).hasValue(product1.created());
+    assertThat(product1Result.getDescription()).hasValue(product1.description());
+
+    GetProductsWithFilterQuery.Value product2Result = getProduct(client, productId2);
+
+    assertThat(product2Result.getId()).hasValue(productId2);
+    assertThat(product2Result.getName()).hasValue(product2.name());
+    assertThat(product2Result.getPrice()).hasValue(product2.price());
+    assertThat(product2Result.getCreated()).hasValue(product2.created());
+    assertThat(product2Result.getDescription()).hasValue(product2.description());
+  }
+
   public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
     List<GetProductsWithFilterQuery.Value> valuesList = getProductValues(client, productId);
     return valuesList.get(0);
@@ -849,6 +888,18 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     GetProductsWithFilterQuery.Products products = result.getProducts().get();
     assertThat(products.getValues()).isPresent();
     return products.getValues().get();
+  }
+
+  public List<BulkInsertProductsMutation.BulkInsertProduct> bulkInsertProducts(
+      ApolloClient client, List<ProductsInput> productsInputs) {
+    BulkInsertProductsMutation mutation =
+        BulkInsertProductsMutation.builder().values(productsInputs).build();
+    BulkInsertProductsMutation.Data result = getObservable(client.mutate(mutation));
+    assertThat(result.getBulkInsertProducts()).isPresent();
+    System.out.println("result: " + result.getBulkInsertProducts().get());
+    assertThat(result.getBulkInsertProducts()).isPresent();
+    assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(productsInputs.size());
+    return result.getBulkInsertProducts().get();
   }
 
   public InsertProductsMutation.InsertProducts insertProduct(

@@ -44,10 +44,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.DeleteMutationFetcher;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.InsertMutationFetcher;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.QueryFetcher;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.UpdateMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -242,6 +239,7 @@ public class DmlSchemaBuilder {
     List<GraphQLFieldDefinition> mutationFields = new ArrayList<>();
     mutationFields.add(buildDelete(table));
     mutationFields.add(buildInsert(table));
+    mutationFields.add(buildBulkInsert(table));
     mutationFields.add(buildUpdate(table));
 
     return mutationFields;
@@ -288,6 +286,32 @@ public class DmlSchemaBuilder {
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(
             new UpdateMutationFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildBulkInsert(Table table) {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name("bulkInsert" + nameMapping.getGraphqlName(table))
+        .description(
+            String.format(
+                "Bulk insert mutations for the table '%s'.%s",
+                table.name(), primaryKeyDescription(table)))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("values")
+                .type(
+                    new GraphQLList(
+                        new GraphQLNonNull(
+                            new GraphQLTypeReference(
+                                nameMapping.getGraphqlName(table) + "Input")))))
+        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
+        .type(
+            new GraphQLList(
+                new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult")))
+        .dataFetcher(
+            new BulkInsertMutationFetcher(
+                table, nameMapping, authorizationService, dataStoreFactory))
         .build();
   }
 
