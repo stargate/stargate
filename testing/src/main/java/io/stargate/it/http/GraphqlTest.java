@@ -826,7 +826,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .description("Normal legs but shiny.")
             .build();
 
-    insertProduct(client, input);
+    InsertProductsMutation.InsertProducts result = insertProduct(client, input);
+    assertThat(result.getApplied()).hasValue(true);
+    assertThat(result.getValue())
+        .hasValueSatisfying(
+            product -> {
+              assertThat(product.getId()).hasValue(productId);
+              assertThat(product.getName()).hasValue(input.name());
+              assertThat(product.getPrice()).hasValue(input.price());
+              assertThat(product.getCreated()).hasValue(input.created());
+              assertThat(product.getDescription()).hasValue(input.description());
+            });
 
     GetProductsWithFilterQuery.Value product = getProduct(client, productId);
 
@@ -975,9 +985,22 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     UpdateProductsMutation mutation = UpdateProductsMutation.builder().value(input).build();
     UpdateProductsMutation.Data result = getObservable(client.mutate(mutation));
-    assertThat(result.getUpdateProducts()).isPresent();
-    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
+    assertThat(result.getUpdateProducts())
+        .hasValueSatisfying(
+            updateProducts -> {
+              assertThat(updateProducts.getApplied()).hasValue(true);
+              assertThat(updateProducts.getValue())
+                  .hasValueSatisfying(
+                      product -> {
+                        assertThat(product.getId()).hasValue(productId);
+                        assertThat(product.getName()).hasValue(input.name());
+                        assertThat(product.getPrice()).hasValue(input.price());
+                        assertThat(product.getCreated()).hasValue(input.created());
+                        assertThat(product.getDescription()).hasValue(input.description());
+                      });
+            });
 
+    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
     assertThat(product.getId()).hasValue(productId);
     assertThat(product.getName()).hasValue(input.name());
     assertThat(product.getPrice()).hasValue(input.price());
@@ -1042,9 +1065,23 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
 
-    assertThat(result.getDeleteProducts()).isPresent();
+    assertThat(result.getDeleteProducts())
+        .hasValueSatisfying(
+            deleteProducts -> {
+              assertThat(deleteProducts.getApplied()).hasValue(true);
+              assertThat(deleteProducts.getValue())
+                  .hasValueSatisfying(
+                      product -> {
+                        assertThat(product.getId()).hasValue(productId);
+                        assertThat(product.getName()).isEmpty();
+                        assertThat(product.getPrice()).isEmpty();
+                        assertThat(product.getCreated()).isEmpty();
+                        assertThat(product.getDescription()).isEmpty();
+                      });
+            });
 
-    assertThat(getProductValues(client, productId)).hasSize(0);
+    List<Value> remainingProductValues = getProductValues(client, productId);
+    assertThat(remainingProductValues).isEmpty();
   }
 
   @Test
