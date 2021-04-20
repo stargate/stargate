@@ -46,6 +46,7 @@ public class SelectTest extends GraphqlFirstTestBase {
             + "  pk2: Int! @cql_column(partitionKey: true)\n"
             + "  cc1: Int! @cql_column(clusteringOrder: ASC)\n"
             + "  cc2: Int! @cql_column(clusteringOrder: DESC)\n"
+            + "  v: Int @cql_index\n"
             + "}\n"
             + "type SelectFooResult @cql_payload {\n"
             + "  data: [Foo]\n"
@@ -64,31 +65,33 @@ public class SelectTest extends GraphqlFirstTestBase {
             + "    pk2: Int!,\n"
             + "    pagingState: String @cql_pagingState\n"
             + "  ): SelectFooResult @cql_select(pageSize: 5)\n"
+            + "  fooByV(v: Int): [Foo]\n"
+            + "  fooByPkAndV(pk1: Int, pk2: Int, v: Int): [Foo]\n"
             + "}\n"
             + "type Mutation {\n"
             + "  insertFoo(foo: FooInput!): Foo \n"
             + "}");
 
-    insert(1, 2, 1, 2);
-    insert(1, 2, 1, 1);
-    insert(1, 2, 2, 2);
-    insert(1, 2, 2, 1);
-    insert(1, 2, 3, 2);
-    insert(1, 2, 3, 1);
-    insert(1, 2, 4, 2);
-    insert(1, 2, 4, 1);
+    insert(1, 2, 1, 2, 2);
+    insert(1, 2, 1, 1, 1);
+    insert(1, 2, 2, 2, 2);
+    insert(1, 2, 2, 1, 1);
+    insert(1, 2, 3, 2, 2);
+    insert(1, 2, 3, 1, 1);
+    insert(1, 2, 4, 2, 2);
+    insert(1, 2, 4, 1, 1);
   }
 
-  private static void insert(int pk1, int pk2, int cc1, int cc2) {
+  private static void insert(int pk1, int pk2, int cc1, int cc2, int v) {
     CLIENT.executeKeyspaceQuery(
         KEYSPACE,
         String.format(
             "mutation {\n"
-                + "  result: insertFoo(foo: {pk1: %d, pk2: %d, cc1: %d, cc2: %d}) {\n"
+                + "  result: insertFoo(foo: {pk1: %d, pk2: %d, cc1: %d, cc2: %d, v: %d}) {\n"
                 + "    pk1, pk2, cc1, cc2\n"
                 + "  }\n"
                 + "}",
-            pk1, pk2, cc1, cc2));
+            pk1, pk2, cc1, cc2, v));
   }
 
   @Test
@@ -238,6 +241,49 @@ public class SelectTest extends GraphqlFirstTestBase {
         .contains(
             "Invalid arguments: clustering field cc1 is not restricted by EQ or IN, "
                 + "so no other clustering field after it can be restricted (offending: cc2).");
+  }
+
+  @Test
+  @DisplayName("Should select by indexed column")
+  public void selectByIndex() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "query { results: fooByV(v: 1) { pk1,pk2,cc1,cc2 } }");
+
+    // then
+    assertResults(
+        JsonPath.read(response, "$.results"),
+        new int[] {1, 2, 1, 1},
+        new int[] {1, 2, 2, 1},
+        new int[] {1, 2, 3, 1},
+        new int[] {1, 2, 4, 1});
+  }
+
+  @Test
+  @DisplayName("Should select by partition key and indexed column")
+  public void selectByPartitionKeyAndIndex() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "query { results: fooByPkAndV(pk1: 1, pk2: 2, v: 1) { pk1,pk2,cc1,cc2 } }");
+
+    // then
+    assertResults(
+        JsonPath.read(response, "$.results"),
+        new int[] {1, 2, 1, 1},
+        new int[] {1, 2, 2, 1},
+        new int[] {1, 2, 3, 1},
+        new int[] {1, 2, 4, 1});
+  }
+
+  @Test
+  @DisplayName("Should fail with partial partition key and index")
+  public void selectByPartialPartitionKeyAndIndex() {
+    assertThat(CLIENT.getKeyspaceError(KEYSPACE, "{ fooByPkAndV(pk1: 1, v: 1) { pk1 } }"))
+        .contains(
+            "Invalid arguments: when an indexed field is present, either none or all "
+                + "of the partition key fields must be present (expected pk1, pk2).");
   }
 
   private void assertResults(Object response, int[]... rows) {

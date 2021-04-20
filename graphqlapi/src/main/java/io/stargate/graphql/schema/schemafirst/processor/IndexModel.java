@@ -45,6 +45,10 @@ public class IndexModel {
     return indexClass;
   }
 
+  public boolean isCustom() {
+    return getIndexClass().isPresent();
+  }
+
   public CollectionIndexingType getIndexingType() {
     return indexingType;
   }

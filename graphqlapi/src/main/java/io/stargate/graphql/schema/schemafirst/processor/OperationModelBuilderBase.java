@@ -5,6 +5,7 @@ import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
+import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import io.stargate.db.query.Predicate;
@@ -107,6 +108,12 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
         whereDirective
             .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
             .orElse(Predicate.EQ);
+    if (predicate == Predicate.NEQ) {
+      invalidMapping(
+          "Operation %s: predicate NEQ (on %s) is not allowed for WHERE conditions",
+          operationName, inputValue.getName());
+      throw SkipException.INSTANCE;
+    }
 
     FieldModel field =
         entity.getAllColumns().stream()
@@ -120,12 +127,33 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
                   return SkipException.INSTANCE;
                 });
 
-    // TODO also allow regular columns, if they are indexed
     if (!field.isPrimaryKey()) {
-      invalidMapping(
-          "Operation %s: argument %s must be a primary key field in type %s",
-          operationName, inputValue.getName(), entity.getGraphqlName());
-      throw SkipException.INSTANCE;
+      if (!field.getIndex().isPresent()) {
+        invalidMapping(
+            "Operation %s: non-primary key argument %s must be indexed in order to use it "
+                + "in a condition",
+            operationName, inputValue.getName());
+        throw SkipException.INSTANCE;
+      }
+      IndexModel index = field.getIndex().get();
+      // Only do these checks for regular indexes, because we can't assume what custom indexes
+      // support
+      if (!index.isCustom()) {
+        if (predicate == Predicate.CONTAINS && !field.getCqlType().isCollection()) {
+          invalidMapping(
+              "Operation %s: CONTAINS predicate cannot be used with argument %s "
+                  + "because it is not a collection",
+              operationName, inputValue.getName());
+          throw SkipException.INSTANCE;
+        }
+        if (predicate == Predicate.CONTAINS_KEY && !field.getCqlType().isMap()) {
+          invalidMapping(
+              "Operation %s: CONTAINS_KEY predicate cannot be used with argument %s "
+                  + "because it is not a map",
+              operationName, inputValue.getName());
+          throw SkipException.INSTANCE;
+        }
+      }
     }
 
     Type<?> inputType = TypeHelper.unwrapNonNull(inputValue.getType());
@@ -148,8 +176,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
         }
         break;
       case IN:
-        if (!(inputType instanceof ListType)
-            || !TypeHelper.unwrapNonNull(((ListType) inputType).getType()).isEqualTo(fieldType)) {
+        if (!isListOf(fieldType, inputType)) {
           invalidMapping(
               "Operation %s: expected argument %s to have type [%s] to match %s.%s",
               operationName,
@@ -159,14 +186,32 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
               field.getGraphqlName());
         }
         break;
-      case NEQ:
-        // TODO implement these when indexes are supported:
       case CONTAINS:
+        if (!isListOf(inputType, fieldType)) {
+          invalidMapping(
+              "Operation %s: expected argument %s to match element type of %s.%s (%s)",
+              operationName,
+              inputValue.getName(),
+              entity.getGraphqlName(),
+              field.getGraphqlName(),
+              TypeHelper.format(fieldType));
+        }
+        break;
       case CONTAINS_KEY:
         throw new IllegalArgumentException("Unsupported predicate " + predicate);
     }
 
     return new WhereConditionModel(field, predicate, inputValue.getName());
+  }
+
+  private boolean isListOf(Type<?> expectedElement, Type<?> expectedList) {
+    assert !(expectedElement instanceof NonNullType); // we already unwrapped it in the caller
+    if (expectedList instanceof ListType) {
+      ListType list = (ListType) expectedList;
+      Type<?> actualElement = TypeHelper.unwrapNonNull(list.getType());
+      return actualElement.isEqualTo(expectedElement);
+    }
+    return false;
   }
 
   protected void validateWhereConditions(
