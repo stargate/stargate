@@ -66,7 +66,7 @@ public class ProcessingMessage<TypeT extends ErrorClassification> implements Gra
 
   @Override
   public List<SourceLocation> getLocations() {
-    return Collections.singletonList(location);
+    return location == null ? Collections.emptyList() : Collections.singletonList(location);
   }
 
   @Override
