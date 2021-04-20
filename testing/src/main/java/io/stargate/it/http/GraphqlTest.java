@@ -896,7 +896,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         BulkInsertProductsMutation.builder().values(productsInputs).build();
     BulkInsertProductsMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getBulkInsertProducts()).isPresent();
-    System.out.println("result: " + result.getBulkInsertProducts().get());
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(productsInputs.size());
     return result.getBulkInsertProducts().get();
