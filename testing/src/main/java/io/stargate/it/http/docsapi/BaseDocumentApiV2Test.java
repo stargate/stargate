@@ -2586,6 +2586,35 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testSearchFullDocWithNestedFields() throws IOException {
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
+
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?fields=[\"a.value\",\"b.value\",\"bb.value\"]",
+            200);
+    JsonNode resp = objectMapper.readTree(r);
+    JsonNode data = resp.requiredAt("/data");
+    assertThat(data.size()).isEqualTo(1);
+
+    assertThat(data.requiredAt("/1"))
+        .isEqualTo(
+            objectMapper.readTree(
+                "{\"a\": {\"value\": 1},\"b\": {\"value\": 2}, \"bb\": {\"value\": 4}}"));
+  }
+
+  @Test
   public void testPaginationFilterDocWithFields() throws IOException {
     JsonNode doc1 =
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
