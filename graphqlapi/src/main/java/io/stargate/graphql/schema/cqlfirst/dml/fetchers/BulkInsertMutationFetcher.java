@@ -43,7 +43,7 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
   }
 
   @Override
-  protected List<BoundQuery> buildQuery(
+  protected List<BoundQuery> buildQueries(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)

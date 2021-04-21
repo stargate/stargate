@@ -56,7 +56,7 @@ public abstract class BulkMutationFetcher
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      queries = buildQuery(environment, dataStore, authenticationSubject);
+      queries = buildQueries(environment, dataStore, authenticationSubject);
     } catch (Exception e) {
       buildException = e;
     }
@@ -91,7 +91,7 @@ public abstract class BulkMutationFetcher
     return results;
   }
 
-  protected abstract List<BoundQuery> buildQuery(
+  protected abstract List<BoundQuery> buildQueries(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
