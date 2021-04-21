@@ -125,10 +125,7 @@ import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -178,6 +175,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     if (session != null) {
       session.close();
     }
+  }
+
+  @AfterEach
+  public void cleanUpProducts() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    getProducts(client, 100, Optional.empty())
+        .flatMap(Products::getValues)
+        .ifPresent(
+            products ->
+                products.forEach(p -> p.getId().ifPresent(id -> cleanupProduct(client, id))));
   }
 
   private static void createSessionAndSchema() throws Exception {
@@ -818,7 +826,17 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .description("Normal legs but shiny.")
             .build();
 
-    insertProduct(client, input);
+    InsertProductsMutation.InsertProducts result = insertProduct(client, input);
+    assertThat(result.getApplied()).hasValue(true);
+    assertThat(result.getValue())
+        .hasValueSatisfying(
+            product -> {
+              assertThat(product.getId()).hasValue(productId);
+              assertThat(product.getName()).hasValue(input.name());
+              assertThat(product.getPrice()).hasValue(input.price());
+              assertThat(product.getCreated()).hasValue(input.created());
+              assertThat(product.getDescription()).hasValue(input.description());
+            });
 
     GetProductsWithFilterQuery.Value product = getProduct(client, productId);
 
@@ -827,6 +845,87 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product.getPrice()).hasValue(input.price());
     assertThat(product.getCreated()).hasValue(input.created());
     assertThat(product.getDescription()).hasValue(input.description());
+  }
+
+  @Test
+  public void insertProductsWithIfNotExists() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId = UUID.randomUUID().toString();
+    ProductsInput input =
+        ProductsInput.builder()
+            .id(productId)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+
+    InsertProductsMutation mutation =
+        InsertProductsMutation.builder().value(input).ifNotExists(true).build();
+    InsertProductsMutation.Data result = getObservable(client.mutate(mutation));
+
+    assertThat(result.getInsertProducts())
+        .hasValueSatisfying(
+            insertProducts -> {
+              assertThat(insertProducts.getApplied()).hasValue(true);
+              assertThat(insertProducts.getValue())
+                  .hasValueSatisfying(
+                      value -> {
+                        assertThat(value.getId()).hasValue(productId);
+                      });
+            });
+  }
+
+  @Test
+  public void insertProductsDuplicateWithIfNotExists() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId = UUID.randomUUID().toString();
+    ProductsInput input =
+        ProductsInput.builder()
+            .id(productId)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+
+    InsertProductsMutation mutation =
+        InsertProductsMutation.builder().value(input).ifNotExists(true).build();
+    InsertProductsMutation.Data insertResult = getObservable(client.mutate(mutation));
+
+    assertThat(insertResult.getInsertProducts())
+        .hasValueSatisfying(
+            insertProducts -> {
+              assertThat(insertProducts.getApplied()).hasValue(true);
+            });
+
+    // then duplicate (change desc)
+    ProductsInput duplicate =
+        ProductsInput.builder()
+            .id(productId)
+            .name(input.name())
+            .price(input.price())
+            .created(input.created())
+            .description("Normal legs but super shiny.")
+            .build();
+
+    InsertProductsMutation duplicateMutation =
+        InsertProductsMutation.builder().value(duplicate).ifNotExists(true).build();
+    InsertProductsMutation.Data duplicateResult = getObservable(client.mutate(duplicateMutation));
+
+    assertThat(duplicateResult.getInsertProducts())
+        .hasValueSatisfying(
+            insertProducts -> {
+              assertThat(insertProducts.getApplied()).hasValue(false);
+              assertThat(insertProducts.getValue())
+                  .hasValueSatisfying(
+                      value -> {
+                        assertThat(value.getDescription())
+                            .hasValue(input.description()); // existing value returned
+                      });
+            });
   }
 
   public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
@@ -886,14 +985,61 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     UpdateProductsMutation mutation = UpdateProductsMutation.builder().value(input).build();
     UpdateProductsMutation.Data result = getObservable(client.mutate(mutation));
-    assertThat(result.getUpdateProducts()).isPresent();
-    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
+    assertThat(result.getUpdateProducts())
+        .hasValueSatisfying(
+            updateProducts -> {
+              assertThat(updateProducts.getApplied()).hasValue(true);
+              assertThat(updateProducts.getValue())
+                  .hasValueSatisfying(
+                      product -> {
+                        assertThat(product.getId()).hasValue(productId);
+                        assertThat(product.getName()).hasValue(input.name());
+                        assertThat(product.getPrice()).hasValue(input.price());
+                        assertThat(product.getCreated()).hasValue(input.created());
+                        assertThat(product.getDescription()).hasValue(input.description());
+                      });
+            });
 
+    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
     assertThat(product.getId()).hasValue(productId);
     assertThat(product.getName()).hasValue(input.name());
     assertThat(product.getPrice()).hasValue(input.price());
     assertThat(product.getCreated()).hasValue(input.created());
     assertThat(product.getDescription()).hasValue(input.description());
+  }
+
+  @Test
+  public void updateProductsMissingIfExistsTrue() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId = UUID.randomUUID().toString();
+    ProductsInput input =
+        ProductsInput.builder()
+            .id(productId)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+
+    UpdateProductsMutation mutation =
+        UpdateProductsMutation.builder().value(input).ifExists(true).build();
+    UpdateProductsMutation.Data result = getObservable(client.mutate(mutation));
+
+    assertThat(result.getUpdateProducts())
+        .hasValueSatisfying(
+            products -> {
+              assertThat(products.getApplied()).hasValue(false);
+              assertThat(products.getValue())
+                  .hasValueSatisfying(
+                      value -> {
+                        assertThat(value.getId()).isEmpty();
+                        assertThat(value.getName()).isEmpty();
+                        assertThat(value.getPrice()).isEmpty();
+                        assertThat(value.getCreated()).isEmpty();
+                        assertThat(value.getDescription()).isEmpty();
+                      });
+            });
   }
 
   @Test
@@ -919,9 +1065,57 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
     DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
 
-    assertThat(result.getDeleteProducts()).isPresent();
+    assertThat(result.getDeleteProducts())
+        .hasValueSatisfying(
+            deleteProducts -> {
+              assertThat(deleteProducts.getApplied()).hasValue(true);
+              assertThat(deleteProducts.getValue())
+                  .hasValueSatisfying(
+                      product -> {
+                        assertThat(product.getId()).hasValue(productId);
+                        assertThat(product.getName()).isEmpty();
+                        assertThat(product.getPrice()).isEmpty();
+                        assertThat(product.getCreated()).isEmpty();
+                        assertThat(product.getDescription()).isEmpty();
+                      });
+            });
 
-    assertThat(getProductValues(client, productId)).hasSize(0);
+    List<Value> remainingProductValues = getProductValues(client, productId);
+    assertThat(remainingProductValues).isEmpty();
+  }
+
+  @Test
+  public void deleteProductsIfExistsTrue() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+
+    String productId = UUID.randomUUID().toString();
+    ProductsInput insertInput =
+        ProductsInput.builder()
+            .id(productId)
+            .name("Shiny Legs")
+            .price("3199.99")
+            .created(now())
+            .description("Normal legs but shiny.")
+            .build();
+
+    insertProduct(client, insertInput);
+
+    ProductsInput deleteInput =
+        ProductsInput.builder()
+            .id(productId)
+            .name(insertInput.name())
+            .price(insertInput.price())
+            .created(insertInput.created())
+            .build();
+    DeleteProductsMutation mutation =
+        DeleteProductsMutation.builder().value(deleteInput).ifExists(true).build();
+    DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
+
+    assertThat(result.getDeleteProducts())
+        .hasValueSatisfying(
+            deleteProducts -> {
+              assertThat(deleteProducts.getApplied()).hasValue(true);
+            });
   }
 
   @Test
@@ -1568,6 +1762,16 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
               assertThat(bs.get(0).getI()).hasValue(2);
               assertThat(bs.get(1).getI()).hasValue(3);
             });
+  }
+
+  private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
+    DeleteProductsMutation mutation =
+        DeleteProductsMutation.builder()
+            .value(ProductsInput.builder().id(productId).build())
+            .build();
+
+    DeleteProductsMutation.Data result = getObservable(client.mutate(mutation));
+    return result;
   }
 
   private void assertCollectionsSimple(
