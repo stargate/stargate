@@ -19,7 +19,7 @@ import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
-import graphql.language.OperationDefinition;
+import graphql.language.*;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -29,10 +29,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class BulkMutationFetcher
@@ -50,7 +47,7 @@ public abstract class BulkMutationFetcher
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject) {
-    List<BoundQuery> queries = null;
+    List<BoundQuery> queries = new ArrayList<>();
     Exception buildException = null;
 
     // Avoid mixing sync and async exceptions
@@ -64,7 +61,8 @@ public abstract class BulkMutationFetcher
     }
 
     OperationDefinition operation = environment.getOperationDefinition();
-    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))) {
+    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
+        && operation.getSelectionSet().getSelections().size() > 1) {
       return Collections.singletonList(
           executeAsBatch(environment, dataStore, queries, buildException));
     }
@@ -97,6 +95,7 @@ public abstract class BulkMutationFetcher
       DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException) {
+    int sumOfAllQueriesForAllSelections = calculateNumberOfAllQueries(environment.getOperationDefinition());
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
 
@@ -113,21 +112,45 @@ public abstract class BulkMutationFetcher
       }
     }
 
-    for (BoundQuery query : queries) {
-      if (buildException != null) {
-        batchContext.setExecutionResult(buildException);
-      } else {
-        batchContext.add(query);
+    if (buildException != null) {
+      batchContext.setExecutionResult(buildException);
+    } else {
+      for (BoundQuery query : queries) {
+        if (batchContext.add(query) == sumOfAllQueriesForAllSelections) {
+          // All the statements were added successfully
+          // Use the dataStore containing the options
+          DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+          batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+        }
       }
     }
-    // All the statements were added successfully
-    // Use the dataStore containing the options
-    DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-    batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
-
     return batchContext
         .getExecutionFuture()
         .thenApply(v -> ImmutableMap.of("values", environment.getArgument("values")));
+  }
+
+  private int calculateNumberOfAllQueries(OperationDefinition operationDefinition) {
+    int sumOfQueriesForAllSelections = 0;
+    for (Selection<?> selection : operationDefinition.getSelectionSet().getSelections()) {
+      if (selection instanceof Field) {
+        @SuppressWarnings("unchecked")
+        Optional<Value<?>> value =
+            ((Field) selection)
+                .getArguments().stream()
+                    .filter(arg -> arg.getName().equals("values"))
+                    .findAny()
+                    .map(Argument::getValue);
+        // for non bulk queries, one selection == one query
+        if (!value.isPresent()) {
+          sumOfQueriesForAllSelections += 1;
+        } else if (value.get() instanceof ArrayValue) {
+          sumOfQueriesForAllSelections += value.get().getChildren().size();
+        }
+      } else{
+        sumOfQueriesForAllSelections += 1;
+      }
+    }
+    return sumOfQueriesForAllSelections;
   }
 
   protected abstract List<BoundQuery> buildQueries(

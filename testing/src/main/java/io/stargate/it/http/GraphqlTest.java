@@ -24,6 +24,8 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsAndOrdersWithAtomicMutation;
+import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
@@ -910,6 +912,85 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(product2Result.getDescription()).hasValue(product2.description());
   }
 
+  @Test
+  @DisplayName("Should execute multiple mutations with atomic directive")
+  public void bulkInsertNProductsUsingBulkAndOrderWithAtomic() {
+    String productId1 = UUID.randomUUID().toString();
+    String productId2 = UUID.randomUUID().toString();
+    String productName = "Shiny Legs";
+    String description = "Normal legs but shiny.";
+    ProductsInput product1 =
+        ProductsInput.builder()
+            .id(productId1)
+            .name(productName)
+            .price("3199.99")
+            .created(now())
+            .description(description)
+            .build();
+    ProductsInput product2 =
+        ProductsInput.builder()
+            .id(productId2)
+            .name("Non-Legs")
+            .price("1000.99")
+            .created(now())
+            .description("Non-legs.")
+            .build();
+
+    String customerName = "c1";
+    OrdersInput order =
+        OrdersInput.builder()
+            .prodName(productName)
+            .customerName(customerName)
+            .price("3199.99")
+            .description(description)
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    BulkInsertProductsAndOrdersWithAtomicMutation mutation =
+        BulkInsertProductsAndOrdersWithAtomicMutation.builder()
+            .values(Arrays.asList(product1, product2))
+            .orderValue(order)
+            .build();
+
+    bulkInsertProductsAndOrdersWithAtomic(client, mutation);
+
+    GetProductsWithFilterQuery.Value product1Result = getProduct(client, productId1);
+
+    assertThat(product1Result.getId()).hasValue(productId1);
+    assertThat(product1Result.getName()).hasValue(product1.name());
+    assertThat(product1Result.getPrice()).hasValue(product1.price());
+    assertThat(product1Result.getCreated()).hasValue(product1.created());
+    assertThat(product1Result.getDescription()).hasValue(product1.description());
+
+    GetProductsWithFilterQuery.Value product2Result = getProduct(client, productId2);
+
+    assertThat(product2Result.getId()).hasValue(productId2);
+    assertThat(product2Result.getName()).hasValue(product2.name());
+    assertThat(product2Result.getPrice()).hasValue(product2.price());
+    assertThat(product2Result.getCreated()).hasValue(product2.created());
+    assertThat(product2Result.getDescription()).hasValue(product2.description());
+
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customerName, description);
+  }
+
+  private BulkInsertProductsAndOrdersWithAtomicMutation.Data bulkInsertProductsAndOrdersWithAtomic(
+      ApolloClient client, BulkInsertProductsAndOrdersWithAtomicMutation mutation) {
+    BulkInsertProductsAndOrdersWithAtomicMutation.Data result =
+        getObservable(client.mutate(mutation));
+    System.out.println("---> result: " + result);
+    assertThat(result.getOrders()).isPresent();
+    assertThat(result.getOrderMutation()).isPresent();
+    return result;
+  }
+
   public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
     List<GetProductsWithFilterQuery.Value> valuesList = getProductValues(client, productId);
     return valuesList.get(0);
@@ -950,8 +1031,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     BulkInsertProductsWithAtomicMutation.Data result = getObservable(client.mutate(mutation));
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts()).isPresent();
-    // batch returns one aggregated response
-    assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(1);
+    assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(productsInputs.size());
     return result.getBulkInsertProducts().get();
   }
 
