@@ -22,7 +22,7 @@ public class StringCodec implements ValueCodec {
   public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
       throws StatusException {
     if (value.getInnerCase() != InnerCase.STRING) {
-      throw Status.FAILED_PRECONDITION.withDescription("Expected string type").asException();
+      throw Status.INVALID_ARGUMENT.withDescription("Expected string type").asException();
     }
     return innerCodec.encode(value.getString(), ProtocolVersion.DEFAULT);
   }

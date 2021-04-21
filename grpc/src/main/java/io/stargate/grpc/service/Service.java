@@ -34,6 +34,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
 
+  private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
+
   // TODO: Add a maximum size and add tuning options
   private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();
 
@@ -210,9 +212,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private Connection newConnection(AuthenticatedUser user) {
     Connection connection;
     if (!user.isFromExternalAuth()) {
-      connection =
-          persistence.newConnection(
-              new ClientInfo((InetSocketAddress) REMOTE_ADDRESS_KEY.get(), null));
+      SocketAddress remoteAddress = REMOTE_ADDRESS_KEY.get();
+      InetSocketAddress inetSocketAddress = DUMMY_ADDRESS;
+      if (remoteAddress instanceof InetSocketAddress) {
+        inetSocketAddress = (InetSocketAddress) remoteAddress;
+      }
+      connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
     } else {
       connection = persistence.newConnection();
     }

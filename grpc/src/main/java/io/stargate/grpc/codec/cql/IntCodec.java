@@ -16,11 +16,11 @@ public class IntCodec implements ValueCodec {
   public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
       throws StatusException {
     if (value.getInnerCase() != InnerCase.INT) {
-      throw Status.FAILED_PRECONDITION.withDescription("Expected integer type").asException();
+      throw Status.INVALID_ARGUMENT.withDescription("Expected integer type").asException();
     }
     int intValue = (int) value.getInt();
     if (intValue != value.getInt()) {
-      throw Status.FAILED_PRECONDITION.withDescription("Integer overflow").asException();
+      throw Status.INVALID_ARGUMENT.withDescription("Integer overflow").asException();
     }
     return TypeCodecs.INT.encodePrimitive(intValue, ProtocolVersion.DEFAULT);
   }

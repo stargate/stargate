@@ -26,11 +26,11 @@ public class UuidCodec implements ValueCodec {
   public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NotNull Column.ColumnType type)
       throws StatusException {
     if (value.getInnerCase() != InnerCase.UUID) {
-      throw Status.FAILED_PRECONDITION.withDescription("Expected UUID type").asException();
+      throw Status.INVALID_ARGUMENT.withDescription("Expected UUID type").asException();
     }
     UUID uuid = new UUID(value.getUuid().getMsb(), value.getUuid().getLsb());
     if ((isTimeVersion() && uuid.version() != 1) || uuid.version() != 4) {
-      throw Status.FAILED_PRECONDITION
+      throw Status.INVALID_ARGUMENT
           .withDescription(
               String.format(
                   "Invalid UUID version. Expected version %d, but received version %d",

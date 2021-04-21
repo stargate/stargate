@@ -15,7 +15,7 @@ public class BytesCodec implements ValueCodec {
   public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
       throws StatusException {
     if (value.getInnerCase() != InnerCase.BYTES) {
-      throw Status.FAILED_PRECONDITION.withDescription("Expected bytes type").asException();
+      throw Status.INVALID_ARGUMENT.withDescription("Expected bytes type").asException();
     }
     return ByteBuffer.wrap(value.getBytes().toByteArray());
   }
