@@ -3,12 +3,7 @@ package io.stargate.web.docsapi.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.DoubleNode;
-import com.fasterxml.jackson.databind.node.LongNode;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -24,7 +19,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
@@ -54,11 +48,17 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
-  private static final ObjectMapper mapper = new ObjectMapper();
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
   private static final Splitter PATH_SPLITTER = Splitter.on('/');
+
+  private final JsonConverterService jsonConverterService = new JsonConverterService();
+
+  @VisibleForTesting
+  JsonConverterService getJsonConverterService() {
+    return jsonConverterService;
+  }
 
   /*
    * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
@@ -436,7 +436,7 @@ public class DocumentService {
 
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+      throws UnauthorizedException {
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
@@ -461,7 +461,7 @@ public class DocumentService {
       return null;
     }
     ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-        convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
+        getJsonConverterService().convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
     if (!result.right.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", result.right.size()));
       db.deleteDeadLeaves(keyspace, collection, id, result.right);
@@ -628,6 +628,7 @@ public class DocumentService {
       throws UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
+    ObjectMapper mapper = getJsonConverterService().getMapper();
 
     List<Row> rows =
         searchRows(
@@ -668,7 +669,10 @@ public class DocumentService {
         for (Row row : docRows) {
           List<Row> wrapped = new ArrayList<>(1);
           wrapped.add(row);
-          JsonNode jsonDoc = convertToJsonDoc(wrapped, true, db.treatBooleansAsNumeric()).left;
+          JsonNode jsonDoc =
+              getJsonConverterService()
+                  .convertToJsonDoc(wrapped, true, db.treatBooleansAsNumeric())
+                  .left;
           ref.add(jsonDoc);
         }
       }
@@ -683,7 +687,10 @@ public class DocumentService {
         }
 
         List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
-        JsonNode jsonDoc = convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric()).left;
+        JsonNode jsonDoc =
+            getJsonConverterService()
+                .convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric())
+                .left;
 
         if (documentId == null) {
           ((ArrayNode) docsResult.get(key)).add(jsonDoc);
@@ -758,6 +765,7 @@ public class DocumentService {
   public JsonNode getFullDocuments(
       DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
+    ObjectMapper mapper = getJsonConverterService().getMapper();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
     do {
@@ -801,7 +809,10 @@ public class DocumentService {
                                             field -> getFieldPathFromRow(row).startsWith(field)))
                         .collect(Collectors.toList());
                 docsResult.set(
-                    e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
+                    e.getKey(),
+                    getJsonConverterService()
+                        .convertToJsonDoc(rows, false, db.treatBooleansAsNumeric())
+                        .left);
               });
 
       paginator.setDocumentPageState(lastIdSeen.getValue());
@@ -818,7 +829,10 @@ public class DocumentService {
                                         .anyMatch(field -> fieldMatchesRowPath(row, field)))
                         .collect(Collectors.toList());
                 docsResult.set(
-                    e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
+                    e.getKey(),
+                    getJsonConverterService()
+                        .convertToJsonDoc(rows, false, db.treatBooleansAsNumeric())
+                        .left);
               });
       paginator.clearDocumentPageState();
     }
@@ -865,6 +879,7 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
+    ObjectMapper mapper = getJsonConverterService().getMapper();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> candidates = new LinkedHashSet<>();
     List<Row> rows = null;
@@ -924,7 +939,9 @@ public class DocumentService {
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       docsResult.set(
           entry.getKey(),
-          convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
+          getJsonConverterService()
+              .convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric())
+              .left);
     }
 
     return docsResult;
@@ -999,6 +1016,7 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
+    ObjectMapper mapper = getJsonConverterService().getMapper();
     List<Row> leftoverRows = Collections.emptyList();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
@@ -1062,7 +1080,9 @@ public class DocumentService {
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       docsResult.set(
           entry.getKey(),
-          convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric()).left);
+          getJsonConverterService()
+              .convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric())
+              .left);
     }
 
     return docsResult;
@@ -1522,265 +1542,6 @@ public class DocumentService {
     } else {
       if (!(value instanceof String) || value == null || textValue == null) return null;
       return ((String) value).compareTo(textValue) > 0;
-    }
-  }
-
-  public ImmutablePair<JsonNode, Map<String, List<JsonNode>>> convertToJsonDoc(
-      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
-    JsonNode doc = mapper.createObjectNode();
-    Map<String, Long> pathWriteTimes = new HashMap<>();
-    Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
-    if (rows.isEmpty()) {
-      return ImmutablePair.of(doc, deadLeaves);
-    }
-    Column writeTimeCol = Column.reference("writetime(leaf)");
-
-    for (Row row : rows) {
-      Long rowWriteTime = row.getLong(writeTimeCol.name());
-      String rowLeaf = row.getString("leaf");
-      if (rowLeaf.equals(DocumentDB.ROOT_DOC_MARKER)) {
-        continue;
-      }
-
-      String leaf = null;
-      JsonNode parentRef = null;
-      JsonNode ref = doc;
-
-      String parentPath = "$";
-
-      for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
-        String p = row.getString("p" + i);
-        String nextP = i < DocumentDB.MAX_DEPTH - 1 ? row.getString("p" + (i + 1)) : "";
-        boolean endOfPath = nextP.equals("");
-        boolean isArray = p.startsWith("[");
-        boolean nextIsArray = nextP.startsWith("[");
-
-        if (isArray) {
-          // This removes leading zeros if applicable
-          p = "[" + Integer.parseInt(p.substring(1, p.length() - 1)) + "]";
-        }
-
-        boolean shouldWrite =
-            !pathWriteTimes.containsKey(parentPath)
-                || pathWriteTimes.get(parentPath) <= rowWriteTime;
-
-        if (!shouldWrite) {
-          markFullPathAsDead(parentPath, p, deadLeaves);
-          break;
-        }
-
-        if (endOfPath) {
-          boolean shouldBeArray = isArray && !ref.isArray() && !writeAllPathsAsObjects;
-          if (i == 0 && shouldBeArray) {
-            doc = mapper.createArrayNode();
-            ref = doc;
-            pathWriteTimes.put(parentPath, rowWriteTime);
-          } else if (i != 0 && shouldBeArray) {
-            markObjectAtPathAsDead(ref, parentPath, deadLeaves);
-            ref = changeCurrentNodeToArray(row, parentRef, i);
-            pathWriteTimes.put(parentPath, rowWriteTime);
-          } else if (i != 0 && !isArray && !ref.isObject()) {
-            markArrayAtPathAsDead(ref, parentPath, deadLeaves);
-            ref = changeCurrentNodeToObject(row, parentRef, i, writeAllPathsAsObjects);
-            pathWriteTimes.put(parentPath, rowWriteTime);
-          }
-          leaf = p;
-          break;
-        }
-
-        JsonNode childRef;
-
-        if (isArray && !writeAllPathsAsObjects) {
-          if (!ref.isArray()) {
-            if (i == 0) {
-              doc = mapper.createArrayNode();
-              ref = doc;
-              pathWriteTimes.put(parentPath, rowWriteTime);
-            } else {
-              markObjectAtPathAsDead(ref, parentPath, deadLeaves);
-              ref = changeCurrentNodeToArray(row, parentRef, i);
-              pathWriteTimes.put(parentPath, rowWriteTime);
-            }
-          }
-
-          int index = Integer.parseInt(p.substring(1, p.length() - 1));
-
-          ArrayNode arrayRef = (ArrayNode) ref;
-
-          int currentSize = arrayRef.size();
-          for (int k = currentSize; k < index; k++) arrayRef.addNull();
-
-          if (currentSize <= index) {
-            childRef = nextIsArray ? mapper.createArrayNode() : mapper.createObjectNode();
-            arrayRef.add(childRef);
-          } else {
-            childRef = arrayRef.get(index);
-
-            // Replace null from above (out of order)
-            if (childRef.isNull()) {
-              childRef = nextIsArray ? mapper.createArrayNode() : mapper.createObjectNode();
-            }
-
-            arrayRef.set(index, childRef);
-          }
-          parentRef = ref;
-          ref = childRef;
-        } else {
-          childRef = ref.get(p);
-          if (childRef == null) {
-            childRef =
-                nextIsArray && !writeAllPathsAsObjects
-                    ? mapper.createArrayNode()
-                    : mapper.createObjectNode();
-
-            if (!ref.isObject()) {
-              markArrayAtPathAsDead(ref, parentPath, deadLeaves);
-              ref = changeCurrentNodeToObject(row, parentRef, i, writeAllPathsAsObjects);
-              pathWriteTimes.put(parentPath, rowWriteTime);
-            }
-
-            ((ObjectNode) ref).set(p, childRef);
-          }
-          parentRef = ref;
-          ref = childRef;
-        }
-        parentPath += "." + p;
-      }
-
-      if (leaf == null) {
-        continue;
-      }
-
-      writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime, numericBooleans);
-    }
-
-    return ImmutablePair.of(doc, deadLeaves);
-  }
-
-  private JsonNode changeCurrentNodeToArray(Row row, JsonNode parentRef, int pathIndex) {
-    String pbefore = row.getString("p" + (pathIndex - 1));
-    JsonNode ref = mapper.createArrayNode();
-    if (pbefore.startsWith("[")) {
-      int index = Integer.parseInt(pbefore.substring(1, pbefore.length() - 1));
-      ((ArrayNode) parentRef).set(index, ref);
-    } else {
-      ((ObjectNode) parentRef).set(pbefore, ref);
-    }
-
-    return ref;
-  }
-
-  private JsonNode changeCurrentNodeToObject(
-      Row row, JsonNode parentRef, int pathIndex, boolean writeAllPathsAsObjects) {
-    String pbefore = row.getString("p" + (pathIndex - 1));
-    JsonNode ref = mapper.createObjectNode();
-    if (pbefore.startsWith("[") && !writeAllPathsAsObjects) {
-      int index = Integer.parseInt(pbefore.substring(1, pbefore.length() - 1));
-      ((ArrayNode) parentRef).set(index, ref);
-    } else {
-      ((ObjectNode) parentRef).set(pbefore, ref);
-    }
-    return ref;
-  }
-
-  private void markFullPathAsDead(
-      String parentPath, String currentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!deadLeavesAtPath.isEmpty()) {
-      ObjectNode node = (ObjectNode) deadLeavesAtPath.get(0);
-      node.set(currentPath, NullNode.getInstance());
-    } else {
-      ObjectNode node = mapper.createObjectNode();
-      node.set(currentPath, NullNode.getInstance());
-      deadLeavesAtPath.add(node);
-    }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
-  }
-
-  private void markObjectAtPathAsDead(
-      JsonNode ref, String parentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!ref.isObject()) {
-      ObjectNode node = mapper.createObjectNode();
-      node.set("", ref);
-      deadLeavesAtPath.add(node);
-    } else {
-      deadLeavesAtPath.add(ref);
-    }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
-  }
-
-  private void markArrayAtPathAsDead(
-      JsonNode ref, String parentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!ref.isArray()) {
-      ObjectNode node = mapper.createObjectNode();
-      node.set("", ref);
-      deadLeavesAtPath.add(node);
-    } else {
-      deadLeavesAtPath.add(ref);
-    }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
-  }
-
-  private void writeLeafIfNewer(
-      JsonNode ref,
-      Row row,
-      String leaf,
-      String parentPath,
-      Map<String, Long> pathWriteTimes,
-      Long rowWriteTime,
-      boolean numericBooleans) {
-    JsonNode n = NullNode.getInstance();
-
-    if (!row.isNull("text_value")) {
-      String value = row.getString("text_value");
-      if (value.equals(DocumentDB.EMPTY_OBJECT_MARKER)) {
-        n = mapper.createObjectNode();
-      } else if (value.equals(DocumentDB.EMPTY_ARRAY_MARKER)) {
-        n = mapper.createArrayNode();
-      } else {
-        n = new TextNode(value);
-      }
-    } else if (!row.isNull("bool_value")) {
-      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value", numericBooleans));
-    } else if (!row.isNull("dbl_value")) {
-      // If not a fraction represent as a long to the user
-      // This lets us handle queries of doubles and longs without
-      // splitting them into separate columns
-      double dv = row.getDouble("dbl_value");
-      long lv = (long) dv;
-      if ((double) lv == dv) n = new LongNode(lv);
-      else n = new DoubleNode(dv);
-    }
-    if (ref == null)
-      throw new RuntimeException("Missing path @" + leaf + " v=" + n + " row=" + row.toString());
-
-    boolean shouldWrite =
-        !pathWriteTimes.containsKey(parentPath + "." + leaf)
-            || pathWriteTimes.get(parentPath + "." + leaf) <= rowWriteTime;
-    if (shouldWrite) {
-      if (ref.isObject()) {
-        ((ObjectNode) ref).set(leaf, n);
-      } else if (ref.isArray()) {
-        if (!leaf.startsWith("["))
-          throw new RuntimeException("Trying to write object to array " + leaf);
-
-        ArrayNode arrayRef = (ArrayNode) ref;
-        int index = Integer.parseInt(leaf.substring(1, leaf.length() - 1));
-
-        int currentSize = arrayRef.size();
-        for (int k = currentSize; k < index; k++) arrayRef.addNull();
-
-        if (currentSize <= index) {
-          arrayRef.add(n);
-        } else if (!arrayRef.hasNonNull(index)) {
-          arrayRef.set(index, n);
-        }
-      } else {
-        throw new IllegalStateException("Invalid document state: " + ref);
-      }
-      pathWriteTimes.put(parentPath + "." + leaf, rowWriteTime);
     }
   }
 }
