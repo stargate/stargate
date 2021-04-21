@@ -409,6 +409,10 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
         cmd.addArgument(String.valueOf(params.proxyPort()));
       }
 
+      if (params.enableGraphqlFirst()) {
+        cmd.addArgument("--enable-graphql-first");
+      }
+
       cmd.addArgument("--listen");
       cmd.addArgument(listenAddress);
       cmd.addArgument("--bind-to-listen-address");

@@ -233,6 +233,10 @@ public class Starter {
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
 
+  @Order(value = 21)
+  @Option(name = {"--enable-graphql-first", "Whether to enable the GraphQL-first API"})
+  protected boolean enableGraphqlFirst = false;
+
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -357,6 +361,7 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
+    System.setProperty("stargate.enable_graphql_first", String.valueOf(enableGraphqlFirst));
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
