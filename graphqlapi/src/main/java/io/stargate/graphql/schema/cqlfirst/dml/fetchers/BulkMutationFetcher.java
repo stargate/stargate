@@ -95,7 +95,8 @@ public abstract class BulkMutationFetcher
       DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException) {
-    int sumOfAllQueriesForAllSelections = calculateNumberOfAllQueries(environment.getOperationDefinition());
+    int sumOfAllQueriesForAllSelections =
+        calculateNumberOfAllQueries(environment.getOperationDefinition());
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
 
@@ -140,13 +141,13 @@ public abstract class BulkMutationFetcher
                     .filter(arg -> arg.getName().equals("values"))
                     .findAny()
                     .map(Argument::getValue);
-        // for non bulk queries, one selection == one query
+        // for non-bulk queries, one selection == one query
         if (!value.isPresent()) {
           sumOfQueriesForAllSelections += 1;
         } else if (value.get() instanceof ArrayValue) {
           sumOfQueriesForAllSelections += value.get().getChildren().size();
         }
-      } else{
+      } else {
         sumOfQueriesForAllSelections += 1;
       }
     }

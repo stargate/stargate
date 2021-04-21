@@ -25,10 +25,13 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -74,9 +77,32 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     }
 
     // Execute as a single statement
-    return dataStore
-        .execute(query)
-        .thenApply(rs -> ImmutableMap.of("value", environment.getArgument("value")));
+    return dataStore.execute(query).thenApply(rs -> toMutationResult(rs, environment));
+  }
+
+  private Map<String, Object> toMutationResult(
+      ResultSet resultSet, DataFetchingEnvironment environment) {
+
+    List<Row> rows = resultSet.currentPageRows();
+    Object originalValue = environment.getArgument("value");
+
+    if (rows.isEmpty()) {
+      // if we have no rows means that we got no information back from query execution, return
+      // original value to the user and applied true to denote that query was accepted
+      // not matter if the underlying data is not changed
+      return ImmutableMap.of("value", originalValue, "applied", true);
+
+    } else {
+      // otherwise check what can we get from the results
+      // mutation target only one row
+      Row row = rows.iterator().next();
+      boolean applied = row.getBoolean("[applied]");
+      Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+
+      // if applied we can return the original value, otherwise use database state
+      Object finalValue = applied ? originalValue : value;
+      return ImmutableMap.of("value", finalValue, "applied", applied);
+    }
   }
 
   private CompletableFuture<Map<String, Object>> executeAsBatch(

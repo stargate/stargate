@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.TtlFromOptionsExtractor.getTTL;
 
-import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.*;
 import io.stargate.db.datastore.DataStore;
@@ -79,8 +78,6 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
   }
 
   private List<ValueModifier> buildInsertValues(Map<String, Object> value) {
-
-    Preconditions.checkNotNull(value, "Insert statement must contain at least one field");
 
     List<ValueModifier> modifiers = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {

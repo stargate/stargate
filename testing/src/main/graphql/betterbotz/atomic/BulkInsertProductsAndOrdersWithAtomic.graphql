@@ -4,7 +4,7 @@ mutation BulkInsertProductsAndOrdersWithAtomic(
     $ifNotExists: Boolean
     $options: MutationOptions
 ) @atomic {
-    orders: bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
+    products: bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
         applied
         value {
             id

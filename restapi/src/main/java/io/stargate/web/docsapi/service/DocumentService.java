@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -742,6 +743,13 @@ public class DocumentService {
     return Collections.emptyList();
   }
 
+  private boolean fieldMatchesRowPath(Row row, String field) {
+    String rowPath = getFieldPathFromRow(row);
+    return rowPath.startsWith(field)
+        && (rowPath.substring(field.length()).isEmpty()
+            || rowPath.substring(field.length()).startsWith("."));
+  }
+
   /**
    * This method gets all the rows for @param Paginator#dbPageSize documents, by fetching result
    * sets sequentially and stringing them together. This is NOT expected to perform well for large
@@ -785,7 +793,12 @@ public class DocumentService {
                               lastIdSeen.setValue(row.getString("key"));
                               return row;
                             })
-                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
+                        .filter(
+                            row ->
+                                fields.isEmpty()
+                                    || fields.stream()
+                                        .anyMatch(
+                                            field -> getFieldPathFromRow(row).startsWith(field)))
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
@@ -798,7 +811,11 @@ public class DocumentService {
               e -> {
                 List<Row> rows =
                     e.getValue().stream()
-                        .filter(row -> fields.isEmpty() || fields.contains(row.getString("p0")))
+                        .filter(
+                            row ->
+                                fields.isEmpty()
+                                    || fields.stream()
+                                        .anyMatch(field -> fieldMatchesRowPath(row, field)))
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(), convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()).left);
@@ -896,7 +913,8 @@ public class DocumentService {
       String key = row.getString("key");
       if (docNames.contains(key)) {
         List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-        if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+        if (fields.isEmpty()
+            || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field))) {
           rowsAtKey.add(row);
         }
         rowsByDoc.put(key, rowsAtKey);
@@ -1035,7 +1053,7 @@ public class DocumentService {
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.contains(row.getString("p0"))) {
+      if (fields.isEmpty() || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field))) {
         rowsAtKey.add(row);
       }
       rowsByDoc.put(key, rowsAtKey);
@@ -1217,6 +1235,18 @@ public class DocumentService {
       }
     }
     return s.toString();
+  }
+
+  private String getFieldPathFromRow(Row row) {
+    List<String> path = new ArrayList<>();
+    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+      String value = row.getString("p" + i);
+      if (value.isEmpty()) {
+        break;
+      }
+      path.add(value);
+    }
+    return Joiner.on(".").join(path);
   }
 
   private boolean pathsMatch(String path1, String path2) {

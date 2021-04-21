@@ -226,5 +226,15 @@ public interface Persistence {
 
     /** Adds properties to be used by persistence backend (if supported) */
     default void setCustomProperties(Map<String, String> customProperties) {}
+
+    /**
+     * Converts a custom paging position to a persistence-specific paging state.
+     *
+     * @param position identifies desired paging position
+     * @param parameters request execution parameters (these should generally be the same or
+     *     compatible to what will be used for executing the query with the returned paging state).
+     * @see Parameters#pagingState()
+     */
+    ByteBuffer makePagingState(PagingPosition position, Parameters parameters);
   }
 }
