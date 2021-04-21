@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 
 import com.google.common.collect.ImmutableMap;
+import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
@@ -27,6 +28,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,13 +63,18 @@ public abstract class BulkMutationFetcher
       buildException = e;
     }
 
+    OperationDefinition operation = environment.getOperationDefinition();
+    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))) {
+      return Collections.singletonList(
+          executeAsBatch(environment, dataStore, queries, buildException));
+    }
+
     if (buildException != null) {
       CompletableFuture<Map<String, Object>> f = new CompletableFuture<>();
       f.completeExceptionally(buildException);
       return Collections.singletonList(f);
     }
 
-    OperationDefinition operation = environment.getOperationDefinition();
     List<Map<String, Object>> values = environment.getArgument("values");
     if (values.size() != queries.size()) {
       throw new IllegalStateException("Number of values to insert should match number of queries");
@@ -75,12 +82,6 @@ public abstract class BulkMutationFetcher
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
     for (int i = 0; i < queries.size(); i++) {
-      if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
-          && operation.getSelectionSet().getSelections().size() > 1) {
-        throw new UnsupportedOperationException(
-            "The @" + ATOMIC_DIRECTIVE + "in not supported for bulk inserts.");
-      }
-
       // Execute as a single statement
       int finalI = i;
       results.add(
@@ -89,6 +90,44 @@ public abstract class BulkMutationFetcher
               .thenApply(rs -> ImmutableMap.of("value", values.get(finalI))));
     }
     return results;
+  }
+
+  private CompletableFuture<Map<String, Object>> executeAsBatch(
+      DataFetchingEnvironment environment,
+      DataStore dataStore,
+      List<BoundQuery> queries,
+      Exception buildException) {
+    HttpAwareContext context = environment.getContext();
+    HttpAwareContext.BatchContext batchContext = context.getBatchContext();
+
+    if (environment.getArgument("options") != null) {
+      // Users should specify query options once in the batch
+      boolean dataStoreAlreadySet = batchContext.setDataStore(dataStore);
+
+      if (dataStoreAlreadySet) {
+        // DataStore can be set at most once.
+        // The instance that should be used should contain the user options (if any).
+        buildException =
+            new GraphQLException(
+                "options can only de defined once in an @atomic mutation selection");
+      }
+    }
+
+    for (BoundQuery query : queries) {
+      if (buildException != null) {
+        batchContext.setExecutionResult(buildException);
+      } else {
+        batchContext.add(query);
+      }
+    }
+    // All the statements were added successfully
+    // Use the dataStore containing the options
+    DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+    batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+
+    return batchContext
+        .getExecutionFuture()
+        .thenApply(v -> ImmutableMap.of("values", environment.getArgument("values")));
   }
 
   protected abstract List<BoundQuery> buildQueries(
