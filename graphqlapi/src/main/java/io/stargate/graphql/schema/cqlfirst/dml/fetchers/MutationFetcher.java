@@ -90,10 +90,8 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // if we have no rows means that we got no information back from query execution, return
       // original value to the user and applied true to denote that query was accepted
       // not matter if the underlying data is not changed
-      ImmutableMap.Builder<String, Object> resultBuilder = ImmutableMap.builder();
-      resultBuilder.put("value", originalValue);
-      resultBuilder.put("applied", true);
-      return resultBuilder.build();
+      return ImmutableMap.of("value", originalValue, "applied", true);
+
     } else {
       // otherwise check what can we get from the results
       // mutation target only one row
@@ -103,10 +101,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
       // if applied we can return the original value, otherwise use database state
       Object finalValue = applied ? originalValue : value;
-      ImmutableMap.Builder<String, Object> resultBuilder = ImmutableMap.builder();
-      resultBuilder.put("value", finalValue);
-      resultBuilder.put("applied", applied);
-      return resultBuilder.build();
+      return ImmutableMap.of("value", finalValue, "applied", applied);
     }
   }
 
