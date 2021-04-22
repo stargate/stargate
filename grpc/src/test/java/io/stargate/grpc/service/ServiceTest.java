@@ -21,13 +21,12 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
-import io.stargate.db.Result.Flag;
 import io.stargate.db.Result.Prepared;
-import io.stargate.db.Result.PreparedMetadata;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
@@ -41,19 +40,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ServiceTest {
   private static final String SERVER_NAME = "ServiceTests";
-  private static final MD5Digest RESULT_METADATA_ID = MD5Digest.compute("resultMetadata");
-  private static final MD5Digest STATEMENT_ID = MD5Digest.compute("statement");
-  private static final EnumSet EMPTY_FLAGS = EnumSet.noneOf(Flag.class);
 
   private Server server;
 
@@ -80,13 +74,13 @@ public class ServiceTest {
     Connection connection = mock(Connection.class);
 
     ResultMetadata resultMetadata =
-        makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
     Prepared prepared =
         new Prepared(
-            STATEMENT_ID,
-            RESULT_METADATA_ID,
+            Utils.STATEMENT_ID,
+            Utils.RESULT_METADATA_ID,
             resultMetadata,
-            makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -95,7 +89,7 @@ public class ServiceTest {
             invocation -> {
               BoundStatement statement =
                   (BoundStatement) invocation.getArgument(0, Statement.class);
-              assertThat(statement.preparedId()).isEqualTo(STATEMENT_ID);
+              assertThat(statement.preparedId()).isEqualTo(Utils.STATEMENT_ID);
               assertThat(statement.values()).hasSize(1);
               List<List<ByteBuffer>> rows =
                   Arrays.asList(
@@ -153,14 +147,5 @@ public class ServiceTest {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-  }
-
-  private ResultMetadata makeResultMetadata(Column... columns) {
-    return new ResultMetadata(
-        EMPTY_FLAGS, columns.length, Arrays.asList(columns), RESULT_METADATA_ID, null);
-  }
-
-  private PreparedMetadata makePreparedMetadata(Column... columns) {
-    return new PreparedMetadata(EMPTY_FLAGS, Arrays.asList(columns), null);
   }
 }
