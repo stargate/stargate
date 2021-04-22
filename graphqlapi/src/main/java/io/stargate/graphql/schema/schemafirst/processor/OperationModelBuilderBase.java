@@ -139,19 +139,36 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
       // Only do these checks for regular indexes, because we can't assume what custom indexes
       // support
       if (!index.isCustom()) {
-        if (predicate == Predicate.CONTAINS && !field.getCqlType().isCollection()) {
-          invalidMapping(
-              "Operation %s: CONTAINS predicate cannot be used with argument %s "
-                  + "because it is not a collection",
-              operationName, inputValue.getName());
-          throw SkipException.INSTANCE;
-        }
-        if (predicate == Predicate.CONTAINS_KEY && !field.getCqlType().isMap()) {
-          invalidMapping(
-              "Operation %s: CONTAINS_KEY predicate cannot be used with argument %s "
-                  + "because it is not a map",
-              operationName, inputValue.getName());
-          throw SkipException.INSTANCE;
+        switch (predicate) {
+          case EQ:
+          case IN:
+            // nothing to do, continue
+            break;
+          case CONTAINS:
+            if (!field.getCqlType().isCollection()) {
+              invalidMapping(
+                  "Operation %s: CONTAINS predicate cannot be used with argument %s "
+                      + "because it is not a collection",
+                  operationName, inputValue.getName());
+              throw SkipException.INSTANCE;
+            }
+            break;
+          case CONTAINS_KEY:
+            // Note that this is not implemented yet (CONTAINS_KEY does not exist in the GraphQL
+            // schema, and map columns are not supported). But anticipate the check for when we add
+            // it.
+            if (!field.getCqlType().isMap()) {
+              invalidMapping(
+                  "Operation %s: CONTAINS_KEY predicate cannot be used with argument %s "
+                      + "because it is not a map",
+                  operationName, inputValue.getName());
+              throw SkipException.INSTANCE;
+            }
+            break;
+          default:
+            invalidMapping(
+                "Operation %s: %s predicate is not allowed for indexed fields",
+                operationName, predicate);
         }
       }
     }
