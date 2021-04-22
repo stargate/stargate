@@ -61,7 +61,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     } catch (Exception e) {
       buildException = e;
     }
-    System.out.println("query: " + query);
     OperationDefinition operation = environment.getOperationDefinition();
 
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
@@ -75,7 +74,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       f.completeExceptionally(buildException);
       return f;
     }
-    System.out.println("execute single statement from MutationFetcher");
     // Execute as a single statement
     return dataStore
         .execute(query)
@@ -103,7 +101,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
                 "options can only de defined once in an @atomic mutation selection");
       }
     }
-    System.out.println("execute batch for: " + query + " selections: " + selections);
     boolean isLastSelection = isLastSelection(environment);
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);

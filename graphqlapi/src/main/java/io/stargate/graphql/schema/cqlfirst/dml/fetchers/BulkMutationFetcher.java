@@ -66,11 +66,9 @@ public abstract class BulkMutationFetcher
     } catch (Exception e) {
       buildException = e;
     }
-    System.out.println("queries: " + queries);
     OperationDefinition operation = environment.getOperationDefinition();
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
         && operation.getSelectionSet().getSelections().size() > 1) {
-      System.out.println("Execute batch for queries: " + queries);
       return executeAsBatch(environment, dataStore, queries, buildException);
     }
 
@@ -94,7 +92,6 @@ public abstract class BulkMutationFetcher
               .execute(queries.get(i))
               .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
     }
-    System.out.println("returning: " + results);
     return convert(results);
   }
 
@@ -103,9 +100,7 @@ public abstract class BulkMutationFetcher
       DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException) {
-    System.out.println("environment: " + environment);
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
-    System.out.println("number of selections: " + selections);
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
 
@@ -128,7 +123,6 @@ public abstract class BulkMutationFetcher
     } else {
       batchContext.add(queries);
       if (isLastSelection) {
-        System.out.println("executing N queries:" + batchContext.getQueries());
         // All the statements were added successfully and this is the last selection
         // Use the dataStore containing the options
         DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);

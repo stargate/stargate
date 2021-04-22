@@ -1268,7 +1268,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
           ApolloClient client, InsertOrdersAndBulkInsertProductsWithAtomicMutation mutation) {
     InsertOrdersAndBulkInsertProductsWithAtomicMutation.Data result =
         getObservable(client.mutate(mutation));
-    System.out.println("---> result: " + result);
     assertThat(result.getProducts()).isPresent();
     assertThat(result.getOrder()).isPresent();
     return result;
@@ -1280,7 +1279,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         getObservable(client.mutate(mutation));
     assertThat(result.getProducts()).isPresent();
     assertThat(result.getOrder()).isPresent();
-    System.out.println("batch result: " + result);
     return result;
   }
 
@@ -1289,7 +1287,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     BulkInsertProductsMutation mutation =
         BulkInsertProductsMutation.builder().values(productsInputs).build();
     BulkInsertProductsMutation.Data result = getObservable(client.mutate(mutation));
-    System.out.println("---> result: " + result);
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(productsInputs.size());
