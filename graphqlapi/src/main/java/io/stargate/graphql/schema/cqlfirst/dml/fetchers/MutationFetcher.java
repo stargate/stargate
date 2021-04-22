@@ -19,7 +19,9 @@ import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
+import graphql.language.Field;
 import graphql.language.OperationDefinition;
+import graphql.language.Selection;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -61,7 +63,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     } catch (Exception e) {
       buildException = e;
     }
-
+    System.out.println("query: " + query);
     OperationDefinition operation = environment.getOperationDefinition();
 
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
@@ -75,7 +77,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       f.completeExceptionally(buildException);
       return f;
     }
-
+    System.out.println("execute single statement from MutationFetcher");
     // Execute as a single statement
     return dataStore.execute(query).thenApply(rs -> toMutationResult(rs, environment));
   }
@@ -126,19 +128,36 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
                 "options can only de defined once in an @atomic mutation selection");
       }
     }
-
+    System.out.println("execute batch for: " + query + " selections: " + selections);
+    boolean isLastSelection = isLastSelection(environment);
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
-    } else if (batchContext.add(query) == selections) {
-      // All the statements were added successfully
-      // Use the dataStore containing the options
-      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+    } else {
+      batchContext.add(query);
+
+      if (isLastSelection) {
+        // All the statements were added successfully and this is the last selection
+        // Use the dataStore containing the options
+        DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+        batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      }
     }
 
     return batchContext
         .getExecutionFuture()
         .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
+  }
+
+  private boolean isLastSelection(DataFetchingEnvironment environment) {
+    String currentSelectionName = environment.getExecutionStepInfo().getField().getName();
+    List<Selection> selectionSet =
+        environment.getOperationDefinition().getSelectionSet().getSelections();
+    Selection<?> lastSelection = selectionSet.get(selectionSet.size() - 1);
+    if (lastSelection instanceof Field) {
+      String lastFieldName = ((Field) lastSelection).getName();
+      return currentSelectionName.equals(lastFieldName);
+    }
+    return false;
   }
 
   protected abstract BoundQuery buildQuery(

@@ -59,10 +59,11 @@ public abstract class BulkMutationFetcher
     } catch (Exception e) {
       buildException = e;
     }
-
+    System.out.println("queries: " + queries);
     OperationDefinition operation = environment.getOperationDefinition();
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
         && operation.getSelectionSet().getSelections().size() > 1) {
+      System.out.println("Execute batch for queries: " + queries);
       return Collections.singletonList(
           executeAsBatch(environment, dataStore, queries, buildException));
     }
@@ -95,8 +96,9 @@ public abstract class BulkMutationFetcher
       DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException) {
-    int sumOfAllQueriesForAllSelections =
-        calculateNumberOfAllQueries(environment.getOperationDefinition());
+    System.out.println("environment: " + environment);
+    int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
+    System.out.println("number of selections: " + selections);
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
 
@@ -113,45 +115,35 @@ public abstract class BulkMutationFetcher
       }
     }
 
+    boolean isLastSelection = isLastSelection(environment);
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
     } else {
-      for (BoundQuery query : queries) {
-        if (batchContext.add(query) == sumOfAllQueriesForAllSelections) {
-          // All the statements were added successfully
-          // Use the dataStore containing the options
-          DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-          batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
-        }
+      batchContext.add(queries);
+      if (isLastSelection) {
+        System.out.println("executing N queries:" + batchContext.getQueries());
+        // All the statements were added successfully and this is the last selection
+        // Use the dataStore containing the options
+        DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+        batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
       }
     }
+
     return batchContext
         .getExecutionFuture()
         .thenApply(v -> ImmutableMap.of("values", environment.getArgument("values")));
   }
 
-  private int calculateNumberOfAllQueries(OperationDefinition operationDefinition) {
-    int sumOfQueriesForAllSelections = 0;
-    for (Selection<?> selection : operationDefinition.getSelectionSet().getSelections()) {
-      if (selection instanceof Field) {
-        @SuppressWarnings("unchecked")
-        Optional<Value<?>> value =
-            ((Field) selection)
-                .getArguments().stream()
-                    .filter(arg -> arg.getName().equals("values"))
-                    .findAny()
-                    .map(Argument::getValue);
-        // for non-bulk queries, one selection == one query
-        if (!value.isPresent()) {
-          sumOfQueriesForAllSelections += 1;
-        } else if (value.get() instanceof ArrayValue) {
-          sumOfQueriesForAllSelections += value.get().getChildren().size();
-        }
-      } else {
-        sumOfQueriesForAllSelections += 1;
-      }
+  private boolean isLastSelection(DataFetchingEnvironment environment) {
+    String currentSelectionName = environment.getExecutionStepInfo().getField().getName();
+    List<Selection> selectionSet =
+        environment.getOperationDefinition().getSelectionSet().getSelections();
+    Selection<?> lastSelection = selectionSet.get(selectionSet.size() - 1);
+    if (lastSelection instanceof Field) {
+      String lastFieldName = ((Field) lastSelection).getName();
+      return currentSelectionName.equals(lastFieldName);
     }
-    return sumOfQueriesForAllSelections;
+    return false;
   }
 
   protected abstract List<BoundQuery> buildQueries(

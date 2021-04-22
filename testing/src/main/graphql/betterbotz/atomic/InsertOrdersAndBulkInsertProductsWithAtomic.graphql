@@ -1,19 +1,9 @@
-mutation BulkInsertProductsAndOrdersWithAtomic(
+mutation InsertOrdersAndBulkInsertProductsWithAtomic(
     $values: [ProductsInput!],
     $orderValue: OrdersInput!
     $ifNotExists: Boolean
     $options: MutationOptions
 ) @atomic {
-    products: bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
-        applied
-        value {
-            id
-            name
-            price
-            created
-            description
-        }
-    },
     order: insertOrders(value: $orderValue, ifNotExists: $ifNotExists, options: $options) {
         applied
         value {
@@ -25,6 +15,16 @@ mutation BulkInsertProductsAndOrdersWithAtomic(
             description
             price
             sellPrice
+        }
+    },
+    products: bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
         }
     }
 }

@@ -94,6 +94,11 @@ public class HttpAwareContext {
       return queries.size();
     }
 
+    public synchronized int add(List<BoundQuery> newQueries) {
+      queries.addAll(newQueries);
+      return queries.size();
+    }
+
     /** Sets the data store and returns whether it was already set */
     public boolean setDataStore(DataStore dataStore) {
       return this.dataStore.getAndSet(dataStore) != null;
