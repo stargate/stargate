@@ -15,11 +15,24 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.proto.QueryOuterClass.*;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.proto.QueryOuterClass.ListSpec;
+import io.stargate.proto.QueryOuterClass.MapSpec;
+import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Payload.Type;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
+import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.proto.QueryOuterClass.SetSpec;
+import io.stargate.proto.QueryOuterClass.TupleSpec;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Builder;
+import io.stargate.proto.QueryOuterClass.UdtSpec;
+import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ValuesHandler implements PayloadHandler {
@@ -29,6 +42,10 @@ public class ValuesHandler implements PayloadHandler {
   @Override
   public BoundStatement bindValues(Prepared prepared, Payload payload, ByteBuffer unsetValue)
       throws InvalidProtocolBufferException, StatusException {
+    if (!payload.hasValue()) {
+      return new BoundStatement(prepared.statementId, Collections.EMPTY_LIST, null);
+    }
+    
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
