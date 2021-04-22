@@ -54,6 +54,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
+  private final boolean enableGraphqlFirst;
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private volatile Server jettyServer;
@@ -64,13 +65,15 @@ public class DropwizardServer extends Application<Configuration> {
       AuthorizationService authorizationService,
       Metrics metrics,
       HttpMetricsTagProvider httpMetricsTagProvider,
-      DataStoreFactory dataStoreFactory) {
+      DataStoreFactory dataStoreFactory,
+      boolean enableGraphqlFirst) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.metrics = metrics;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.dataStoreFactory = dataStoreFactory;
+    this.enableGraphqlFirst = enableGraphqlFirst;
   }
 
   /**
@@ -93,7 +96,7 @@ public class DropwizardServer extends Application<Configuration> {
   public void run(final Configuration config, final Environment environment) throws Exception {
 
     GraphqlCache graphqlCache =
-        new GraphqlCache(persistence, authorizationService, dataStoreFactory);
+        new GraphqlCache(persistence, authorizationService, dataStoreFactory, enableGraphqlFirst);
     environment
         .jersey()
         .register(
@@ -157,8 +160,10 @@ public class DropwizardServer extends Application<Configuration> {
 
     environment.jersey().register(DmlResource.class);
     environment.jersey().register(DdlResource.class);
-    environment.jersey().register(AdminResource.class);
-    environment.jersey().register(FilesResource.class);
+    if (enableGraphqlFirst) {
+      environment.jersey().register(AdminResource.class);
+      environment.jersey().register(FilesResource.class);
+    }
 
     enableCors(environment);
 

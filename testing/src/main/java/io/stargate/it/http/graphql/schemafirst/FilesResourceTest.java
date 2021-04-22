@@ -18,7 +18,6 @@ package io.stargate.it.http.graphql.schemafirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
@@ -31,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class FilesResourceTest extends BaseOsgiIntegrationTest {
+public class FilesResourceTest extends GraphqlFirstTestBase {
 
   private static final String SCHEMA_CONTENTS =
       "type User { id: ID! name: String username: String } "

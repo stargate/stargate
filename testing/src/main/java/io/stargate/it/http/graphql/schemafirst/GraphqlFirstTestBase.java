@@ -17,8 +17,17 @@ package io.stargate.it.http.graphql.schemafirst;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.storage.StargateParameters;
+import io.stargate.it.storage.StargateSpec;
 
-abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
+@StargateSpec(parametersCustomizer = "enableGraphqlFirst")
+public abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
+
+  @SuppressWarnings("ununsed") // invoked by StargateSpec
+  public static void enableGraphqlFirst(StargateParameters.Builder builder) {
+    builder.putSystemProperties("stargate.enable_graphql_first", "true");
+  }
+
   protected static void deleteAllGraphqlSchemas(String keyspace, CqlSession session) {
     session
         .getMetadata()
