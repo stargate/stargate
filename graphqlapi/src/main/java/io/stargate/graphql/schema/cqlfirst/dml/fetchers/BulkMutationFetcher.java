@@ -16,10 +16,12 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
+import static java.util.stream.Stream.concat;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
-import graphql.language.*;
+import graphql.language.Field;
+import graphql.language.OperationDefinition;
+import graphql.language.Selection;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -29,11 +31,16 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class BulkMutationFetcher
-    extends DmlFetcher<List<CompletableFuture<Map<String, Object>>>> {
+    extends DmlFetcher<CompletableFuture<List<Map<String, Object>>>> {
   protected BulkMutationFetcher(
       Table table,
       NameMapping nameMapping,
@@ -43,7 +50,7 @@ public abstract class BulkMutationFetcher
   }
 
   @Override
-  protected List<CompletableFuture<Map<String, Object>>> get(
+  protected CompletableFuture<List<Map<String, Object>>> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject) {
@@ -64,14 +71,13 @@ public abstract class BulkMutationFetcher
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
         && operation.getSelectionSet().getSelections().size() > 1) {
       System.out.println("Execute batch for queries: " + queries);
-      return Collections.singletonList(
-          executeAsBatch(environment, dataStore, queries, buildException));
+      return executeAsBatch(environment, dataStore, queries, buildException);
     }
 
     if (buildException != null) {
-      CompletableFuture<Map<String, Object>> f = new CompletableFuture<>();
+      CompletableFuture<List<Map<String, Object>>> f = new CompletableFuture<>();
       f.completeExceptionally(buildException);
-      return Collections.singletonList(f);
+      return f;
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");
@@ -86,12 +92,13 @@ public abstract class BulkMutationFetcher
       results.add(
           dataStore
               .execute(queries.get(i))
-              .thenApply(rs -> ImmutableMap.of("value", values.get(finalI))));
+              .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
     }
-    return results;
+    System.out.println("returning: " + results);
+    return convert(results);
   }
 
-  private CompletableFuture<Map<String, Object>> executeAsBatch(
+  private CompletableFuture<List<Map<String, Object>>> executeAsBatch(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       List<BoundQuery> queries,
@@ -129,9 +136,11 @@ public abstract class BulkMutationFetcher
       }
     }
 
-    return batchContext
-        .getExecutionFuture()
-        .thenApply(v -> ImmutableMap.of("values", environment.getArgument("values")));
+    List<Map<String, Object>> result = new ArrayList<>();
+    List<Map<String, Object>> values = environment.getArgument("values");
+    // ImmutableMap.of("value", environment.getArgument("values"))
+
+    return batchContext.getExecutionFuture().thenApply(v -> values);
   }
 
   private boolean isLastSelection(DataFetchingEnvironment environment) {
@@ -144,6 +153,14 @@ public abstract class BulkMutationFetcher
       return currentSelectionName.equals(lastFieldName);
     }
     return false;
+  }
+
+  public static <T> CompletableFuture<List<T>> convert(List<CompletableFuture<T>> futures) {
+    return futures.stream()
+        .map(f -> f.thenApply(Stream::of))
+        .reduce((a, b) -> a.thenCompose(xs -> b.thenApply(ys -> concat(xs, ys))))
+        .map(f -> f.thenApply(s -> s.collect(Collectors.toList())))
+        .orElse(CompletableFuture.completedFuture(Collections.emptyList()));
   }
 
   protected abstract List<BoundQuery> buildQueries(

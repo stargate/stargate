@@ -969,8 +969,28 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .description("Non-legs.")
             .build();
 
-    bulkInsertProducts(client, Arrays.asList(product1, product2));
+    List<BulkInsertProductsMutation.BulkInsertProduct> bulkInsertedProducts =
+        bulkInsertProducts(client, Arrays.asList(product1, product2));
 
+    BulkInsertProductsMutation.BulkInsertProduct firstInsertedProduct = bulkInsertedProducts.get(0);
+    BulkInsertProductsMutation.BulkInsertProduct secondInsertedProduct =
+        bulkInsertedProducts.get(1);
+
+    assertThat(firstInsertedProduct.getApplied().get()).isTrue();
+    assertThat(firstInsertedProduct.getValue())
+        .hasValueSatisfying(
+            value -> {
+              assertThat(value.getId()).hasValue(productId1);
+            });
+
+    assertThat(secondInsertedProduct.getApplied().get()).isTrue();
+    assertThat(secondInsertedProduct.getValue())
+        .hasValueSatisfying(
+            value -> {
+              assertThat(value.getId()).hasValue(productId2);
+            });
+
+    // retrieve from db
     GetProductsWithFilterQuery.Value product1Result = getProduct(client, productId1);
 
     assertThat(product1Result.getId()).hasValue(productId1);
@@ -1240,7 +1260,6 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
       ApolloClient client, BulkInsertProductsAndOrdersWithAtomicMutation mutation) {
     BulkInsertProductsAndOrdersWithAtomicMutation.Data result =
         getObservable(client.mutate(mutation));
-    System.out.println("---> result: " + result);
     assertThat(result.getProducts()).isPresent();
     assertThat(result.getOrder()).isPresent();
     return result;
@@ -1251,6 +1270,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     BulkInsertProductsMutation mutation =
         BulkInsertProductsMutation.builder().values(productsInputs).build();
     BulkInsertProductsMutation.Data result = getObservable(client.mutate(mutation));
+    System.out.println("---> result: " + result);
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts()).isPresent();
     assertThat(result.getBulkInsertProducts().get().size()).isEqualTo(productsInputs.size());

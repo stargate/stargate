@@ -1,11 +1,14 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
@@ -98,6 +101,33 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
         relations.add(BuiltCondition.of(column.name(), Predicate.EQ, whereValue));
       }
       return relations;
+    }
+  }
+
+  protected Map<String, Object> toMutationResult(ResultSet resultSet, Object originalValue) {
+
+    List<Row> rows = resultSet.currentPageRows();
+
+    if (rows.isEmpty()) {
+      // if we have no rows means that we got no information back from query execution, return
+      // original value to the user and applied true to denote that query was accepted
+      // not matter if the underlying data is not changed
+      ImmutableMap<String, Object> m = ImmutableMap.of("value", originalValue, "applied", true);
+      System.out.println("return if.m: " + m);
+      return m;
+
+    } else {
+      // otherwise check what can we get from the results
+      // mutation target only one row
+      Row row = rows.iterator().next();
+      boolean applied = row.getBoolean("[applied]");
+      Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+
+      // if applied we can return the original value, otherwise use database state
+      Object finalValue = applied ? originalValue : value;
+      ImmutableMap<String, Object> m = ImmutableMap.of("value", finalValue, "applied", applied);
+      System.out.println("return else.m: " + m);
+      return m;
     }
   }
 
