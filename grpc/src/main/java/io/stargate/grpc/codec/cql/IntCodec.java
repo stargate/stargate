@@ -3,8 +3,6 @@ package io.stargate.grpc.codec.cql;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -13,16 +11,16 @@ import java.nio.ByteBuffer;
 
 public class IntCodec implements ValueCodec {
   @Override
-  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
-      throws StatusException {
+  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type) {
     if (value.getInnerCase() != InnerCase.INT) {
-      throw Status.INVALID_ARGUMENT.withDescription("Expected integer type").asException();
+      throw new IllegalArgumentException("Expected integer type");
     }
-    int intValue = (int) value.getInt();
-    if (intValue != value.getInt()) {
-      throw Status.INVALID_ARGUMENT.withDescription("Integer overflow").asException();
+    try {
+      return TypeCodecs.INT.encodePrimitive(
+          Math.toIntExact(value.getInt()), ProtocolVersion.DEFAULT);
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("Integer overflow", e);
     }
-    return TypeCodecs.INT.encodePrimitive(intValue, ProtocolVersion.DEFAULT);
   }
 
   @Override

@@ -3,8 +3,6 @@ package io.stargate.grpc.codec.cql;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -19,10 +17,9 @@ public class StringCodec implements ValueCodec {
   }
 
   @Override
-  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
-      throws StatusException {
+  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type) {
     if (value.getInnerCase() != InnerCase.STRING) {
-      throw Status.INVALID_ARGUMENT.withDescription("Expected string type").asException();
+      throw new IllegalArgumentException("Expected string type");
     }
     return innerCodec.encode(value.getString(), ProtocolVersion.DEFAULT);
   }

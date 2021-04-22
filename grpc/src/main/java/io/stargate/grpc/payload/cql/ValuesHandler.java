@@ -65,7 +65,14 @@ public class ValuesHandler implements PayloadHandler {
               .withDescription(String.format("Unsupported type %s", columnType))
               .asException();
         }
-        boundValues.add(encodeValue(codec, value, columnType, unsetValue));
+        try {
+          boundValues.add(encodeValue(codec, value, columnType, unsetValue));
+        } catch (Exception e) {
+          throw Status.INVALID_ARGUMENT
+              .withDescription(String.format("Invalid argument for name '%s'", name))
+              .withCause(e)
+              .asException();
+        }
         boundValueNames.add(name);
       }
     } else {
@@ -79,7 +86,14 @@ public class ValuesHandler implements PayloadHandler {
               .withDescription(String.format("Unsupported type %s", columnType))
               .asException();
         }
-        boundValues.add(encodeValue(codec, value, columnType, unsetValue));
+        try {
+          boundValues.add(encodeValue(codec, value, columnType, unsetValue));
+        } catch (Exception e) {
+          throw Status.INVALID_ARGUMENT
+              .withDescription(String.format("Invalid argument at position %d", i + 1))
+              .withCause(e)
+              .asException();
+        }
       }
     }
 

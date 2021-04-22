@@ -2,8 +2,6 @@ package io.stargate.grpc.codec.cql;
 
 import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -12,10 +10,9 @@ import java.nio.ByteBuffer;
 
 public class BytesCodec implements ValueCodec {
   @Override
-  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type)
-      throws StatusException {
+  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type) {
     if (value.getInnerCase() != InnerCase.BYTES) {
-      throw Status.INVALID_ARGUMENT.withDescription("Expected bytes type").asException();
+      throw new IllegalArgumentException("Expected bytes type");
     }
     return ByteBuffer.wrap(value.getBytes().toByteArray());
   }

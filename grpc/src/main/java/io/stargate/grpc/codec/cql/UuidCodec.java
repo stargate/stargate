@@ -4,8 +4,6 @@ import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.grpc.Status;
-import io.grpc.StatusException;
 import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Uuid;
@@ -23,20 +21,11 @@ public class UuidCodec implements ValueCodec {
   }
 
   @Override
-  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NotNull Column.ColumnType type)
-      throws StatusException {
+  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NotNull Column.ColumnType type) {
     if (value.getInnerCase() != InnerCase.UUID) {
-      throw Status.INVALID_ARGUMENT.withDescription("Expected UUID type").asException();
+      throw new IllegalArgumentException("Expected UUID type");
     }
     UUID uuid = new UUID(value.getUuid().getMsb(), value.getUuid().getLsb());
-    if ((isTimeVersion() && uuid.version() != 1) || uuid.version() != 4) {
-      throw Status.INVALID_ARGUMENT
-          .withDescription(
-              String.format(
-                  "Invalid UUID version. Expected version %d, but received version %d",
-                  isTimeVersion() ? 1 : 4, uuid.version()))
-          .asException();
-    }
     return innerCodec.encode(uuid, ProtocolVersion.DEFAULT);
   }
 
