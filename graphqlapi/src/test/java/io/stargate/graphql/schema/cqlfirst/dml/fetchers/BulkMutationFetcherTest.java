@@ -44,22 +44,6 @@ public class BulkMutationFetcherTest extends DmlTestBase {
   }
 
   @Test
-  @DisplayName(
-      "Atomic bulk mutations with single selection with N values should use normal execution")
-  public void mutationAtomicBulkSingleSelectionTestNValues() {
-    ExecutionResult result =
-        executeGraphQl(
-            "mutation @atomic { m1: bulkInsertbooks(values: [{ title: \"a\" }, { title: \"b\" }] ) { applied } }");
-    assertThat(result.getErrors()).isEmpty();
-    String[] queries = {
-      "INSERT INTO library.books (title) VALUES ('a')",
-      "INSERT INTO library.books (title) VALUES ('b')"
-    };
-
-    assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
-  }
-
-  @Test
   @DisplayName("Atomic bulk mutations with multiple bulk queries should use batch execution")
   public void mutationAtomicBulkMultipleSelectionTest() {
     ExecutionResult result =
@@ -73,26 +57,6 @@ public class BulkMutationFetcherTest extends DmlTestBase {
     String[] queries = {
       "INSERT INTO library.books (title, author) VALUES ('1984', 'G.O.')",
       "INSERT INTO library.authors (author, title) VALUES ('G.O.', '1984')",
-      "DELETE FROM library.books WHERE title = 'Animal Farm'"
-    };
-
-    assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
-  }
-
-  @Test
-  @DisplayName(
-      "Atomic bulk mutations with multiple queries where bulk query inserts N values should use batch execution")
-  public void mutationAtomicBulkWithNValuesMultipleSelectionTest() {
-    ExecutionResult result =
-        executeGraphQl(
-            "mutation @atomic { "
-                + "m1: bulkInsertbooks(values: [{ title: \"1984\", author: \"G.O.\" }, { title: \"Animal Farm\", author: \"G.O.\" } ] ) { applied },"
-                + "m2: deletebooks(value: { title: \"Animal Farms\" } ) { applied }"
-                + "}");
-    assertThat(result.getErrors()).isEmpty();
-    String[] queries = {
-      "INSERT INTO library.books (title, author) VALUES ('1984', 'G.O.')",
-      "INSERT INTO library.books (title, author) VALUES ('Animal Farm', 'G.O')",
       "DELETE FROM library.books WHERE title = 'Animal Farm'"
     };
 
