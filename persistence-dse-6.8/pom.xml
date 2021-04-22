@@ -112,13 +112,8 @@
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-ganglia</artifactId>
-      <version>3.2.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-graphite</artifactId>
-      <version>4.1.2</version>
+      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auto.factory</groupId>
