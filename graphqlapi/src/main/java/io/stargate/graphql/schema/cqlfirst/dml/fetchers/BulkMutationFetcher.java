@@ -136,11 +136,9 @@ public abstract class BulkMutationFetcher
       }
     }
 
-    List<Map<String, Object>> result = new ArrayList<>();
     List<Map<String, Object>> values = environment.getArgument("values");
-    // ImmutableMap.of("value", environment.getArgument("values"))
 
-    return batchContext.getExecutionFuture().thenApply(v -> values);
+    return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
   }
 
   private boolean isLastSelection(DataFetchingEnvironment environment) {

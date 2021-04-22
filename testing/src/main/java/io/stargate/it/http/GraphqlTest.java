@@ -1090,8 +1090,26 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
             .orderValue(order)
             .build();
 
-    bulkInsertProductsAndOrdersWithAtomic(client, mutation);
+    List<BulkInsertProductsAndOrdersWithAtomicMutation.Product> result =
+        bulkInsertProductsAndOrdersWithAtomic(client, mutation).getProducts().get();
+    BulkInsertProductsAndOrdersWithAtomicMutation.Product firstInsertedProduct = result.get(0);
+    BulkInsertProductsAndOrdersWithAtomicMutation.Product secondInsertedProduct = result.get(1);
 
+    assertThat(firstInsertedProduct.getApplied().get()).isTrue();
+    assertThat(firstInsertedProduct.getValue())
+        .hasValueSatisfying(
+            value -> {
+              assertThat(value.getId()).hasValue(productId1);
+            });
+
+    assertThat(secondInsertedProduct.getApplied().get()).isTrue();
+    assertThat(secondInsertedProduct.getValue())
+        .hasValueSatisfying(
+            value -> {
+              assertThat(value.getId()).hasValue(productId2);
+            });
+
+    // retrieve from db
     GetProductsWithFilterQuery.Value product1Result = getProduct(client, productId1);
 
     assertThat(product1Result.getId()).hasValue(productId1);
@@ -1262,6 +1280,7 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
         getObservable(client.mutate(mutation));
     assertThat(result.getProducts()).isPresent();
     assertThat(result.getOrder()).isPresent();
+    System.out.println("batch result: " + result);
     return result;
   }
 

@@ -17,10 +17,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
@@ -104,6 +101,24 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
   }
 
+  protected List<Map<String, Object>> toListOfMutationResults(
+      ResultSet resultSet, List<Map<String, Object>> originalValues) {
+    List<Row> rows = resultSet.currentPageRows();
+    List<Map<String, Object>> results = new ArrayList<>();
+    if (rows.isEmpty()) {
+      for (Map<String, Object> originalValue : originalValues) {
+        results.add(toMutationResultWithOriginalValue(originalValue));
+      }
+    } else {
+      for (int i = 0; i <= rows.size(); i++) {
+        Row row = rows.get(i);
+        Map<String, Object> originalValue = originalValues.get(i);
+        results.add(toMutationResultSingleRow(originalValue, row));
+      }
+    }
+    return results;
+  }
+
   protected Map<String, Object> toMutationResult(ResultSet resultSet, Object originalValue) {
 
     List<Row> rows = resultSet.currentPageRows();
@@ -112,23 +127,26 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       // if we have no rows means that we got no information back from query execution, return
       // original value to the user and applied true to denote that query was accepted
       // not matter if the underlying data is not changed
-      ImmutableMap<String, Object> m = ImmutableMap.of("value", originalValue, "applied", true);
-      System.out.println("return if.m: " + m);
-      return m;
-
+      return toMutationResultWithOriginalValue(originalValue);
     } else {
       // otherwise check what can we get from the results
       // mutation target only one row
       Row row = rows.iterator().next();
-      boolean applied = row.getBoolean("[applied]");
-      Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
-
-      // if applied we can return the original value, otherwise use database state
-      Object finalValue = applied ? originalValue : value;
-      ImmutableMap<String, Object> m = ImmutableMap.of("value", finalValue, "applied", applied);
-      System.out.println("return else.m: " + m);
-      return m;
+      return toMutationResultSingleRow(originalValue, row);
     }
+  }
+
+  private ImmutableMap<String, Object> toMutationResultWithOriginalValue(Object originalValue) {
+    return ImmutableMap.of("value", originalValue, "applied", true);
+  }
+
+  private ImmutableMap<String, Object> toMutationResultSingleRow(Object originalValue, Row row) {
+    boolean applied = row.getBoolean("[applied]");
+    Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+
+    // if applied we can return the original value, otherwise use database state
+    Object finalValue = applied ? originalValue : value;
+    return ImmutableMap.of("value", finalValue, "applied", applied);
   }
 
   protected String getDBColumnName(Table table, String fieldName) {
