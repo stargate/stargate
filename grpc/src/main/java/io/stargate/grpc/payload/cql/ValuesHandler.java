@@ -33,17 +33,17 @@ public class ValuesHandler implements PayloadHandler {
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     final int valuesCount = values.getValuesCount();
-    if ((columnCount > 0 && values == null) || (values != null && columnCount != valuesCount)) {
+    if (columnCount != valuesCount) {
       throw Status.FAILED_PRECONDITION
           .withDescription(
               String.format(
                   "Invalid number of bind values. Expected %d, but received %d",
-                  columnCount, values == null ? 0 : valuesCount))
+                  columnCount, valuesCount))
           .asException();
     }
     final List<ByteBuffer> boundValues = new ArrayList<>(columnCount);
     List<String> boundValueNames = null;
-    if (values != null && values.getValueNamesCount() != 0) {
+    if (values.getValueNamesCount() != 0) {
       final int namesCount = values.getValueNamesCount();
       if (namesCount != columnCount) {
         throw Status.FAILED_PRECONDITION
