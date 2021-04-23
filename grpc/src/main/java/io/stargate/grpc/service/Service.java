@@ -42,12 +42,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private final Persistence persistence;
   private final ByteBuffer unsetValue;
 
-  @SuppressWarnings("unused")
   private final Metrics metrics;
 
   public Service(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
     this.metrics = metrics;
+    assert this.metrics != null;
     unsetValue = persistence.unsetValue();
   }
 
