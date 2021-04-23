@@ -10,6 +10,10 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.stargate.grpc.service.Service;
 
+/**
+ * An interceptor that attaches the remote address to the call context using the key {@link
+ * Service#REMOTE_ADDRESS_KEY}.
+ */
 public class RemoteAddressInterceptor implements ServerInterceptor {
   @Override
   public <ReqT, RespT> Listener<ReqT> interceptCall(

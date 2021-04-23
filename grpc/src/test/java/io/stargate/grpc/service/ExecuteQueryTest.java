@@ -1,7 +1,6 @@
 package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,7 +11,6 @@ import static org.mockito.Mockito.when;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.grpc.StatusRuntimeException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -25,6 +23,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
@@ -101,7 +100,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new Result.Rows(Collections.emptyList(), resultMetadata)));
+                new Result.Rows(Collections.emptyList(), resultMetadata))); // Return no payload
 
     when(persistence.newConnection()).thenReturn(connection);
 
@@ -109,14 +108,15 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    assertThatThrownBy(
-            () ->
-                stub.executeQuery(
-                    Query.newBuilder()
-                        .setCql("SELECT * FROM test")
-                        .setParameters(QueryParameters.newBuilder().build()) // No payload
-                        .build()))
-        .isInstanceOf(StatusRuntimeException.class)
-        .hasMessageContaining("No payload provided");
+    QueryOuterClass.Result result =
+        stub.executeQuery(
+            Query.newBuilder()
+                .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                .setParameters(QueryParameters.newBuilder().build()) // No payload
+                .build());
+
+    assertThat(result.hasPayload()).isTrue();
+    assertThat(result.getPayload().hasValue()).isFalse();
+    assertThat(result.getPayload().getType()).isEqualTo(Payload.Type.TYPE_CQL);
   }
 }
