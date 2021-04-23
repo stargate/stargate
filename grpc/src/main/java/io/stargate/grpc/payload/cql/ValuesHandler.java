@@ -32,19 +32,28 @@ public class ValuesHandler implements PayloadHandler {
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
+    final int valuesCount = values.getValuesCount();
     if ((columnCount > 0 && values == null)
-        || (values != null && columnCount != values.getValuesCount())) {
+        || (values != null && columnCount != valuesCount)) {
       throw Status.FAILED_PRECONDITION
           .withDescription(
               String.format(
-                  "Invalid number of bind parameters. Expected %d, but received %d",
-                  columnCount, values == null ? 0 : values.getValuesCount()))
+                  "Invalid number of bind values. Expected %d, but received %d",
+                  columnCount, values == null ? 0 : valuesCount))
           .asException();
     }
     final List<ByteBuffer> boundValues = new ArrayList<>(columnCount);
     List<String> boundValueNames = null;
     if (values != null && values.getValueNamesCount() != 0) {
       final int namesCount = values.getValueNamesCount();
+      if (namesCount != columnCount) {
+        throw Status.FAILED_PRECONDITION
+            .withDescription(
+                String.format(
+                    "Invalid number of bind names. Expected %d, but received %d",
+                    columnCount, namesCount))
+            .asException();
+      }
       boundValueNames = new ArrayList<>(namesCount);
       for (int i = 0; i < namesCount; ++i) {
         String name = values.getValueNames(i);
@@ -55,7 +64,7 @@ public class ValuesHandler implements PayloadHandler {
                 .orElseThrow(
                     () ->
                         Status.INVALID_ARGUMENT
-                            .withDescription("Unable to find bind marker with name")
+                            .withDescription(String.format("Unable to find bind marker with name '%s'", name))
                             .asException());
         ColumnType columnType = columnTypeNotNull(column);
         ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());

@@ -1,21 +1,15 @@
 package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.grpc.ManagedChannel;
-import io.grpc.Server;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
-import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -28,43 +22,16 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.Payload;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.QueryOuterClass.Values;
-import io.stargate.proto.StargateGrpc;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ServiceTest {
-  private static final String SERVER_NAME = "ServiceTests";
-
-  private Server server;
-
-  @BeforeEach
-  public void setup() {}
-
-  @AfterEach
-  void cleanUp() {
-    try {
-      if (server != null) {
-        server.shutdown().awaitTermination();
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
+public class SimpleQueryTest extends BaseServiceTest {
   @Test
   public void simpleQuery() throws InvalidProtocolBufferException {
     final String query = "SELECT release_version FROM system.local WHERE key = ?";
@@ -102,8 +69,7 @@ public class ServiceTest {
 
     startServer(persistence);
 
-    ManagedChannel channel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
-    StargateBlockingStub stub = StargateGrpc.newBlockingStub(channel);
+    StargateBlockingStub stub = makeBlockingStub();
 
     QueryOuterClass.Result result =
         executeQuery(stub, query, Value.newBuilder().setString("local").build());
@@ -113,39 +79,5 @@ public class ServiceTest {
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
-  }
-
-  private QueryOuterClass.Result executeQuery(
-      StargateBlockingStub stub, String cql, Value... values) {
-    return stub.executeQuery(
-        Query.newBuilder()
-            .setCql(cql)
-            .setParameters(
-                QueryParameters.newBuilder()
-                    .setPayload(
-                        Payload.newBuilder()
-                            .setType(Payload.Type.TYPE_CQL)
-                            .setValue(
-                                Any.pack(
-                                    Values.newBuilder()
-                                        .addAllValues(Arrays.asList(values))
-                                        .build()))
-                            .build())
-                    .build())
-            .build());
-  }
-
-  private void startServer(Persistence persistence) {
-    server =
-        InProcessServerBuilder.forName(SERVER_NAME)
-            .directExecutor()
-            .intercept(new MockInterceptor())
-            .addService(new Service(persistence, mock(Metrics.class)))
-            .build();
-    try {
-      server.start();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 }

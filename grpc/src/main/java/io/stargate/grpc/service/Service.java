@@ -190,7 +190,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
 
     if (parameters.hasPagingState()) {
-      builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().toByteArray()));
+      builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().getValue().toByteArray()));
     }
 
     if (parameters.hasSerialConsistency()) {
