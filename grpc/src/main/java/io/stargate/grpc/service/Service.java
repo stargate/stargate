@@ -10,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -26,6 +27,7 @@ import io.stargate.proto.QueryOuterClass.Result;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.function.BiConsumer;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -121,11 +123,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       QueryParameters parameters = query.getParameters();
       Payload payload = parameters.getPayload();
-      if (!payload.hasValue()) {
-        responseObserver.onError(
-            Status.INVALID_ARGUMENT.withDescription("No payload provided").asException());
-        return;
-      }
 
       PayloadHandler handler = PayloadHandlers.HANDLERS.get(payload.getType());
       if (handler == null) {
@@ -136,7 +133,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .execute(
-              handler.bindValues(prepared, payload, unsetValue),
+              bindValues(handler, prepared, payload),
               makeParameters(parameters),
               queryStartNanoTime)
           .whenComplete(
@@ -150,7 +147,16 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                       case Void:
                         break;
                       case Rows:
-                        resultBuilder.setPayload(handler.processResult((Rows) result, parameters));
+                        Rows rows = (Rows) result;
+                        if (rows.rows.isEmpty()
+                            && (parameters.getSkipMetadata()
+                                || rows.resultMetadata.columns.isEmpty())) {
+                          resultBuilder.setPayload(
+                              Payload.newBuilder().setType(payload.getType()).build());
+                        } else {
+                          resultBuilder.setPayload(
+                              handler.processResult((Rows) result, parameters));
+                        }
                         break;
                       case SchemaChange:
                         // TODO: Wait for schema agreement, etc. Could this be made async? This is
@@ -177,6 +183,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } catch (Exception e) {
       handleError(e, responseObserver);
     }
+  }
+
+  private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload payload)
+      throws Exception {
+    if (!payload.hasValue()) {
+      return new BoundStatement(prepared.statementId, Collections.emptyList(), null);
+    }
+    return handler.bindValues(prepared, payload, unsetValue);
   }
 
   private Parameters makeParameters(QueryParameters parameters) {

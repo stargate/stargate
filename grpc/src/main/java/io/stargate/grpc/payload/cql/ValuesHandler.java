@@ -140,6 +140,7 @@ public class ValuesHandler implements PayloadHandler {
       }
       resultSetBuilder.addRows(rowBuilder);
     }
+
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
   }
 
