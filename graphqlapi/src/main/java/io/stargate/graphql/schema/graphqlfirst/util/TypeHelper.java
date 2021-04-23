@@ -15,13 +15,19 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.util;
 
+import static graphql.language.ListType.newListType;
+import static graphql.language.NonNullType.newNonNullType;
+import static graphql.language.TypeName.newTypeName;
+
 import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.scalars.CqlScalar;
+import java.util.Map;
 import java.util.Set;
 
 public class TypeHelper {
@@ -50,6 +56,32 @@ public class TypeHelper {
   /** If the type is {@code !T}, return {@code T}, otherwise the type unchanged. */
   public static Type<?> unwrapNonNull(Type<?> type) {
     return type instanceof NonNullType ? ((NonNullType) type).getType() : type;
+  }
+
+  /** Recursively replaces every type that maps to an entity by its input type. */
+  public static Type<?> toInput(Type<?> type, Map<String, EntityModel> entities) {
+    if (type instanceof NonNullType) {
+      Type<?> elementType = toInput(((NonNullType) type).getType(), entities);
+      return newNonNullType(elementType).build();
+    }
+    if (type instanceof ListType) {
+      Type<?> elementType = toInput(((ListType) type).getType(), entities);
+      return newListType(elementType).build();
+    }
+    assert type instanceof TypeName;
+    String typeName = ((TypeName) type).getName();
+    EntityModel entity = entities.get(typeName);
+    if (entity == null) {
+      return type;
+    }
+    String inputTypeName =
+        entity
+            .getInputTypeName()
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        String.format("type %s has no input type", typeName)));
+    return newTypeName(inputTypeName).build();
   }
 
   public static String format(Type<?> type) {

@@ -95,7 +95,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
     } else {
       entity = entityFromDirective(cqlDeleteDirective);
       whereConditions = buildWhereConditions(entity);
-      validateWhereConditions(whereConditions, entity);
+      validateNoFiltering(whereConditions, entity);
     }
 
     return new DeleteModel(

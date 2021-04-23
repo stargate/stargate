@@ -52,7 +52,7 @@ public class CreateIndexQuery extends MigrationQuery {
   @Override
   public String getDescription() {
     return String.format(
-        "Create %s index on %s.%s", index.name(), table.name(), index.column().name());
+        "Create index %s on %s.%s", index.name(), table.name(), index.column().name());
   }
 
   @Override

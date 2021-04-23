@@ -155,41 +155,32 @@ public class EntityModel {
 
   /**
    * Validates a set of conditions to ensure that they will produce a valid CQL query that doesn't
-   * require ALLOW FILTERING.
+   * require ALLOW FILTERING for this entity.
    *
    * @return an optional error message if the validation failed, empty otherwise.
    */
-  public Optional<String> validateConditions(Collection<WhereConditionModel> conditions) {
+  public Optional<String> validateNoFiltering(Collection<WhereConditionModel> conditions) {
 
     long indexCount = conditions.stream().filter(c -> !c.getField().isPrimaryKey()).count();
 
     if (indexCount == 0) {
-      return validateConditionsNoIndex(conditions);
+      return validateNoFilteringWhenNoIndex(conditions);
     }
     if (indexCount == 1) {
-      return validateConditionsOneIndex(conditions);
+      return validateNoFilteringWhenOneIndex(conditions);
     }
     return Optional.of("cannot use more than one indexed field per operation");
   }
 
-  private Optional<String> validateConditionsNoIndex(Collection<WhereConditionModel> conditions) {
-    // All partition key fields must be restricted by equality relations
+  private Optional<String> validateNoFilteringWhenNoIndex(
+      Collection<WhereConditionModel> conditions) {
+    // All partition key fields must be present
     for (FieldModel field : this.getPartitionKey()) {
-      Optional<WhereConditionModel> maybeCondition =
-          conditions.stream().filter(c -> c.getField().equals(field)).findFirst();
-      if (!maybeCondition.isPresent()) {
+      if (conditions.stream().noneMatch(c -> c.getField().equals(field))) {
         return Optional.of(
             String.format(
                 "every partition key field of type %s must be present (expected: %s).",
                 this.getGraphqlName(), describePartitionKey()));
-      }
-      WhereConditionModel condition = maybeCondition.get();
-      if (condition.getPredicate() != Predicate.EQ && condition.getPredicate() != Predicate.IN) {
-        return Optional.of(
-            String.format(
-                "the only predicates allowed for partition key fields are EQ and IN "
-                    + "(got %s for %s).",
-                condition.getPredicate(), field.getGraphqlName()));
       }
     }
 
@@ -212,26 +203,16 @@ public class EntityModel {
                   firstNonEqField, field.getGraphqlName()));
         }
         Predicate predicate = maybeCondition.get().getPredicate();
-        switch (predicate) {
-          case CONTAINS:
-          case CONTAINS_KEY:
-            return Optional.of(
-                String.format(
-                    "clustering field %s can't use predicate %s.",
-                    field.getGraphqlName(), predicate));
-          case EQ:
-          case IN:
-            // nothing to do
-            break;
-          default:
-            firstNonEqField = field.getGraphqlName();
+        if (predicate != Predicate.EQ && predicate != Predicate.IN) {
+          firstNonEqField = field.getGraphqlName();
         }
       }
     }
     return Optional.empty();
   }
 
-  private Optional<String> validateConditionsOneIndex(Collection<WhereConditionModel> conditions) {
+  private Optional<String> validateNoFilteringWhenOneIndex(
+      Collection<WhereConditionModel> conditions) {
 
     // No clustering fields
     if (conditions.stream().anyMatch(c -> c.getField().isClusteringColumn())) {
@@ -239,22 +220,10 @@ public class EntityModel {
     }
 
     // Either no partition key fields, or all of them with equality restrictions
-    int partitionKeyCount = 0;
-    for (FieldModel field : this.getPartitionKey()) {
-      Optional<WhereConditionModel> maybeCondition =
-          conditions.stream().filter(c -> c.getField().equals(field)).findFirst();
-      if (maybeCondition.isPresent()) {
-        partitionKeyCount += 1;
-        WhereConditionModel condition = maybeCondition.get();
-        if (condition.getPredicate() != Predicate.EQ && condition.getPredicate() != Predicate.IN) {
-          return Optional.of(
-              String.format(
-                  "the only predicates allowed for partition key fields are EQ and IN "
-                      + "(got %s for %s).",
-                  condition.getPredicate(), field.getGraphqlName()));
-        }
-      }
-    }
+    long partitionKeyCount =
+        this.getPartitionKey().stream()
+            .filter(field -> conditions.stream().anyMatch(c -> c.getField().equals(field)))
+            .count();
     if (partitionKeyCount > 0 && partitionKeyCount != this.getPartitionKey().size()) {
       return Optional.of(
           String.format(

@@ -384,10 +384,17 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       if (hasArgument.test(whereCondition.getArgumentName())) {
         activeConditions.add(whereCondition);
         Object graphqlValue = getArgument.apply(whereCondition.getArgumentName());
-        Column.ColumnType cqlType =
-            whereCondition.getPredicate() == io.stargate.db.query.Predicate.IN
-                ? Column.Type.List.of(field.getCqlType())
-                : field.getCqlType();
+        Column.ColumnType cqlType;
+        switch (whereCondition.getPredicate()) {
+          case IN:
+            cqlType = Column.Type.List.of(field.getCqlType());
+            break;
+          case CONTAINS:
+            cqlType = field.getCqlType().parameters().get(0);
+            break;
+          default:
+            cqlType = field.getCqlType();
+        }
         Object cqlValue = toCqlValue(graphqlValue, cqlType, keyspace);
         result.add(whereCondition.build(cqlValue));
       }
@@ -396,7 +403,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
     // Re-check the validity of the query (we already did while building the model, but some
     // conditions might not apply if the corresponding argument was missing).
     entity
-        .validateConditions(activeConditions)
+        .validateNoFiltering(activeConditions)
         .ifPresent(
             message -> {
               throw new IllegalArgumentException("Invalid arguments: " + message);

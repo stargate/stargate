@@ -73,6 +73,11 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
             .flatMap(this::convertOptions)
             .orElse(Collections.emptyMap());
 
+    if (cqlType.isUserDefined() && !cqlType.isFrozen()) {
+      invalidMapping(
+          "%s: fields that map to UDTs can only be indexed if they are frozen", messagePrefix);
+    }
+
     return new IndexModel(indexName, indexClass, indexingType, indexOptions);
   }
 
