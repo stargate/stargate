@@ -560,6 +560,11 @@
         <version>${prometheus.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.bpodgursky</groupId>
+        <artifactId>jbool_expressions</artifactId>
+        <version>1.23</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
         <version>${errorprone.version}</version>
