@@ -35,7 +35,6 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class ValuesHandler implements PayloadHandler {
@@ -45,10 +44,6 @@ public class ValuesHandler implements PayloadHandler {
   @Override
   public BoundStatement bindValues(Prepared prepared, Payload payload, ByteBuffer unsetValue)
       throws InvalidProtocolBufferException, StatusException {
-    if (!payload.hasValue()) {
-      return new BoundStatement(prepared.statementId, Collections.EMPTY_LIST, null);
-    }
-
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
