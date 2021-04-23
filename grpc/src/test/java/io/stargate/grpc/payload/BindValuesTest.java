@@ -218,8 +218,6 @@ public class BindValuesTest {
   private static class CqlPayloadValidator implements PayloadValuesValidator {
     public static final PayloadValuesValidator INSTANCE = new CqlPayloadValidator();
 
-    private CqlPayloadValidator() {}
-
     @Override
     public void validate(BoundStatement statement, Prepared prepared, Payload payload)
         throws InvalidProtocolBufferException {

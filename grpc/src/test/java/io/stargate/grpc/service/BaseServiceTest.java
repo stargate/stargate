@@ -22,15 +22,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 
 public class BaseServiceTest {
   private static final String SERVER_NAME = "ServiceTests";
 
   private Server server;
-
-  @BeforeEach
-  public void setup() {}
 
   @AfterEach
   public void cleanUp() {

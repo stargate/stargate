@@ -2,7 +2,6 @@ package io.stargate.grpc.codec.cql;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
-import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass;
@@ -40,9 +39,5 @@ public class UuidCodec implements ValueCodec {
                 .setLsb(uuid.getLeastSignificantBits())
                 .build())
         .build();
-  }
-
-  private boolean isTimeVersion() {
-    return innerCodec == TypeCodecs.TIMEUUID;
   }
 }

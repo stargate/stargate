@@ -145,8 +145,7 @@ public class ValuesHandler implements PayloadHandler {
 
   @Nullable
   private ByteBuffer encodeValue(
-      ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue)
-      throws StatusException {
+      ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue) {
     if (value.hasNull()) {
       return null;
     } else if (value.hasUnset()) {
@@ -156,7 +155,7 @@ public class ValuesHandler implements PayloadHandler {
     }
   }
 
-  private Value decodeValue(ValueCodec codec, ByteBuffer bytes) throws StatusException {
+  private Value decodeValue(ValueCodec codec, ByteBuffer bytes) {
     if (bytes == null) {
       return NULL_VALUE;
     } else {
@@ -235,6 +234,8 @@ public class ValuesHandler implements PayloadHandler {
           }
           builder.setUdt(udtBuilder.build());
           break;
+        default:
+          throw new AssertionError("Unhandled parameterized type");
       }
     }
 
