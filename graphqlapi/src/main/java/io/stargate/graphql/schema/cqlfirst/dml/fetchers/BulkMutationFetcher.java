@@ -19,9 +19,7 @@ import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 import static java.util.stream.Stream.concat;
 
 import graphql.GraphQLException;
-import graphql.language.Field;
 import graphql.language.OperationDefinition;
-import graphql.language.Selection;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -117,34 +115,18 @@ public abstract class BulkMutationFetcher
       }
     }
 
-    boolean isLastSelection = isLastSelection(environment);
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
-    } else {
-      batchContext.add(queries);
-      if (isLastSelection) {
-        // All the statements were added successfully and this is the last selection
-        // Use the dataStore containing the options
-        DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-        batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
-      }
+    } else if (batchContext.add(queries) == selections) {
+      // All the statements were added successfully and this is the last selection
+      // Use the dataStore containing the options
+      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
+      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");
 
     return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
-  }
-
-  private boolean isLastSelection(DataFetchingEnvironment environment) {
-    String currentSelectionName = environment.getExecutionStepInfo().getField().getName();
-    List<Selection> selectionSet =
-        environment.getOperationDefinition().getSelectionSet().getSelections();
-    Selection<?> lastSelection = selectionSet.get(selectionSet.size() - 1);
-    if (lastSelection instanceof Field) {
-      String lastFieldName = ((Field) lastSelection).getName();
-      return currentSelectionName.equals(lastFieldName);
-    }
-    return false;
   }
 
   public static <T> CompletableFuture<List<T>> convert(List<CompletableFuture<T>> futures) {

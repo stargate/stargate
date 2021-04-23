@@ -68,6 +68,7 @@ public class HttpAwareContext {
    */
   public static class BatchContext {
     private final List<BoundQuery> queries = new ArrayList<>();
+    private int operationCount;
     private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
     private AtomicReference<DataStore> dataStore = new AtomicReference<>();
 
@@ -91,12 +92,14 @@ public class HttpAwareContext {
 
     public synchronized int add(BoundQuery query) {
       queries.add(query);
-      return queries.size();
+      operationCount += 1;
+      return operationCount;
     }
 
     public synchronized int add(List<BoundQuery> newQueries) {
       queries.addAll(newQueries);
-      return queries.size();
+      operationCount += 1;
+      return operationCount;
     }
 
     /** Sets the data store and returns whether it was already set */
