@@ -5,9 +5,12 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.PreparedMetadata;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.schema.Column;
+import io.stargate.proto.QueryOuterClass.Uuid;
+import io.stargate.proto.QueryOuterClass.Value;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.UUID;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
 public class Utils {
@@ -33,5 +36,22 @@ public class Utils {
         Utils.RESULT_METADATA_ID,
         Utils.makeResultMetadata(),
         Utils.makePreparedMetadata(bindColumns));
+  }
+
+  public static Value toValue(UUID value) {
+    return Value.newBuilder()
+        .setUuid(
+            Uuid.newBuilder()
+                .setMsb(value.getMostSignificantBits())
+                .setLsb(value.getLeastSignificantBits()))
+        .build();
+  }
+
+  public static Value toValue(long value) {
+    return Value.newBuilder().setInt(value).build();
+  }
+
+  public static Value toValue(String value) {
+    return Value.newBuilder().setString(value).build();
   }
 }

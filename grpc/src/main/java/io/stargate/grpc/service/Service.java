@@ -120,6 +120,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       QueryParameters parameters = query.getParameters();
       Payload payload = parameters.getPayload();
+      if (!payload.hasValue()) {
+        responseObserver.onError(
+            Status.INVALID_ARGUMENT.withDescription("No payload provided").asException());
+        return;
+      }
 
       PayloadHandler handler = PayloadHandlers.HANDLERS.get(payload.getType());
       if (handler == null) {

@@ -33,8 +33,7 @@ public class ValuesHandler implements PayloadHandler {
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     final int valuesCount = values.getValuesCount();
-    if ((columnCount > 0 && values == null)
-        || (values != null && columnCount != valuesCount)) {
+    if ((columnCount > 0 && values == null) || (values != null && columnCount != valuesCount)) {
       throw Status.FAILED_PRECONDITION
           .withDescription(
               String.format(
@@ -64,7 +63,8 @@ public class ValuesHandler implements PayloadHandler {
                 .orElseThrow(
                     () ->
                         Status.INVALID_ARGUMENT
-                            .withDescription(String.format("Unable to find bind marker with name '%s'", name))
+                            .withDescription(
+                                String.format("Unable to find bind marker with name '%s'", name))
                             .asException());
         ColumnType columnType = columnTypeNotNull(column);
         ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
@@ -129,15 +129,16 @@ public class ValuesHandler implements PayloadHandler {
     }
 
     for (List<ByteBuffer> row : rows.rows) {
+      Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
         ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
         if (codec == null) {
           throw Status.FAILED_PRECONDITION.withDescription("Unsupported column type").asException();
         }
-        resultSetBuilder.addRows(
-            Row.newBuilder().addValues(decodeValue(codec, row.get(i))).build());
+        rowBuilder.addValues(decodeValue(codec, row.get(i)));
       }
+      resultSetBuilder.addRows(rowBuilder);
     }
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
   }

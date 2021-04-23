@@ -29,9 +29,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class BindValuesTest {
   @ParameterizedTest
-  @MethodSource({"validPayloads","emptyPayload","unsetAndNullPayloads"})
+  @MethodSource({"validPayloads", "emptyPayload", "unsetAndNullPayloads"})
   public void bindValuesValid(
-      Payload.Type type, Prepared prepared, Payload payload, PayloadValidator validator)
+      Payload.Type type, Prepared prepared, Payload payload, PayloadValuesValidator validator)
       throws Exception {
     PayloadHandler handler = PayloadHandlers.HANDLERS.get(type);
     assertThat(handler).isNotNull();
@@ -67,8 +67,7 @@ public class BindValuesTest {
                     .addValueNames("v2")
                     .addValues(Value.newBuilder().setString("abc").build())
                     .build()),
-            CqlPayloadValidator.INSTANCE)
-    );
+            CqlPayloadValidator.INSTANCE));
   }
 
   public static Stream<Arguments> emptyPayload() {
@@ -77,8 +76,7 @@ public class BindValuesTest {
             Payload.Type.TYPE_CQL,
             Utils.makePrepared(),
             makeCqlPayload(Values.newBuilder().build()),
-            CqlPayloadValidator.INSTANCE)
-    );
+            CqlPayloadValidator.INSTANCE));
   }
 
   public static Stream<Arguments> unsetAndNullPayloads() {
@@ -102,19 +100,25 @@ public class BindValuesTest {
                     .addValueNames("v2")
                     .addValues(Value.newBuilder().setUnset(Unset.newBuilder().build()).build())
                     .build()),
-            CqlPayloadValidator.INSTANCE)
-    );
+            CqlPayloadValidator.INSTANCE));
   }
 
   @ParameterizedTest
   @MethodSource({"invalidArityPayloads", "invalidNamesPayloads", "invalidTypePayloads"})
-  public void bindValuesInvalid(Payload.Type type, Prepared prepared, Payload payload, Class<?> expectedException, String expectedMessage) {
+  public void bindValuesInvalid(
+      Payload.Type type,
+      Prepared prepared,
+      Payload payload,
+      Class<?> expectedException,
+      String expectedMessage) {
     PayloadHandler handler = PayloadHandlers.HANDLERS.get(type);
     assertThat(handler).isNotNull();
 
-    assertThatThrownBy(() -> {
-      handler.bindValues(prepared, payload, Utils.UNSET);
-    }).isInstanceOf(expectedException)
+    assertThatThrownBy(
+            () -> {
+              handler.bindValues(prepared, payload, Utils.UNSET);
+            })
+        .isInstanceOf(expectedException)
         .hasMessageContaining(expectedMessage);
   }
 
@@ -132,8 +136,7 @@ public class BindValuesTest {
         arguments(
             Payload.Type.TYPE_CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
-            makeCqlPayload(
-                Values.newBuilder().build()),
+            makeCqlPayload(Values.newBuilder().build()),
             StatusException.class,
             "Invalid number of bind values. Expected 2, but received 0"),
         arguments(
@@ -146,8 +149,7 @@ public class BindValuesTest {
                     .addValues(Value.newBuilder().setNull(Null.newBuilder().build()).build())
                     .build()),
             StatusException.class,
-            "Invalid number of bind values. Expected 2, but received 3")
-    );
+            "Invalid number of bind values. Expected 2, but received 3"));
   }
 
   public static Stream<Arguments> invalidNamesPayloads() {
@@ -155,10 +157,7 @@ public class BindValuesTest {
         arguments(
             Payload.Type.TYPE_CQL,
             Utils.makePrepared(),
-            makeCqlPayload(
-                Values.newBuilder()
-                    .addValueNames("v1")
-                    .build()),
+            makeCqlPayload(Values.newBuilder().addValueNames("v1").build()),
             StatusException.class,
             "Invalid number of bind names. Expected 0, but received 1"),
         arguments(
@@ -181,8 +180,7 @@ public class BindValuesTest {
                     .addValues(Value.newBuilder().setNull(Null.newBuilder().build()).build())
                     .build()),
             StatusException.class,
-            "Unable to find bind marker with name 'doesNotExist'")
-    );
+            "Unable to find bind marker with name 'doesNotExist'"));
   }
 
   public static Stream<Arguments> invalidTypePayloads() {
@@ -205,21 +203,20 @@ public class BindValuesTest {
                     .addValues(Value.newBuilder().setInt(456).build())
                     .build()),
             StatusException.class,
-            "Invalid argument at position 2")
-    );
+            "Invalid argument at position 2"));
   }
 
   private static Payload makeCqlPayload(Values values) {
     return Payload.newBuilder().setType(Payload.Type.TYPE_CQL).setValue(Any.pack(values)).build();
   }
 
-  private interface PayloadValidator {
+  private interface PayloadValuesValidator {
     void validate(BoundStatement statement, Prepared prepared, Payload payload)
         throws InvalidProtocolBufferException;
   }
 
-  private static class CqlPayloadValidator implements PayloadValidator {
-    public static final PayloadValidator INSTANCE = new CqlPayloadValidator();
+  private static class CqlPayloadValidator implements PayloadValuesValidator {
+    public static final PayloadValuesValidator INSTANCE = new CqlPayloadValidator();
 
     private CqlPayloadValidator() {}
 
@@ -246,7 +243,8 @@ public class BindValuesTest {
                             .findFirst()
                             .orElseThrow(() -> new AssertionError("Unable to find column"));
                     Column column = columns.get(index);
-                    Value decodedValue = decodeValue(column.type().rawType(), statement.values().get(index));
+                    Value decodedValue =
+                        decodeValue(column.type().rawType(), statement.values().get(index));
                     assertThat(decodedValue).isEqualTo(values.getValues(index));
                   }
                 });

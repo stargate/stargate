@@ -1,8 +1,6 @@
 package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 
 import com.google.protobuf.Any;
@@ -53,19 +51,13 @@ public class BaseServiceTest {
   protected QueryOuterClass.Result executeQuery(
       StargateBlockingStub stub, String cql, Value... values) {
     return stub.executeQuery(
-        Query.newBuilder()
-            .setCql(cql)
-            .setParameters(cqlQueryParameters(values)).build());
+        Query.newBuilder().setCql(cql).setParameters(cqlQueryParameters(values)).build());
   }
 
   protected static Payload.Builder cqlPayload(Value... values) {
     return Payload.newBuilder()
         .setType(Payload.Type.TYPE_CQL)
-        .setValue(
-            Any.pack(
-                Values.newBuilder()
-                    .addAllValues(Arrays.asList(values))
-                    .build()));
+        .setValue(Any.pack(Values.newBuilder().addAllValues(Arrays.asList(values)).build()));
   }
 
   protected static QueryParameters.Builder cqlQueryParameters(Value... values) {

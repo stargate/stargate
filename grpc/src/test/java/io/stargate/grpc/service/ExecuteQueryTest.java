@@ -1,8 +1,10 @@
 package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -10,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.StatusRuntimeException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
@@ -22,16 +25,19 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
-public class SimpleQueryTest extends BaseServiceTest {
+public class ExecuteQueryTest extends BaseServiceTest {
   @Test
   public void simpleQuery() throws InvalidProtocolBufferException {
     final String query = "SELECT release_version FROM system.local WHERE key = ?";
@@ -79,5 +85,38 @@ public class SimpleQueryTest extends BaseServiceTest {
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
+  }
+
+  @Test
+  public void noPayload() {
+    Persistence persistence = mock(Persistence.class);
+    Connection connection = mock(Connection.class);
+
+    ResultMetadata resultMetadata = Utils.makeResultMetadata();
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new Result.Rows(Collections.emptyList(), resultMetadata)));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () ->
+                stub.executeQuery(
+                    Query.newBuilder()
+                        .setCql("SELECT * FROM test")
+                        .setParameters(QueryParameters.newBuilder().build()) // No payload
+                        .build()))
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("No payload provided");
   }
 }
