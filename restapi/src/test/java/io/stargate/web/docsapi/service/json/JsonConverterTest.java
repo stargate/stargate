@@ -1,4 +1,4 @@
-package io.stargate.web.docsapi.service;
+package io.stargate.web.docsapi.service.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -6,21 +6,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.datastore.Row;
+import io.stargate.web.docsapi.service.DocumentServiceTest;
 import java.util.*;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class JsonConverterServiceTest {
-  private JsonConverterService service;
+public class JsonConverterTest {
+  private JsonConverter service;
   private static final ObjectMapper mapper = new ObjectMapper();
 
   @BeforeEach
   public void setup() {
-    service = new JsonConverterService();
+    service = new JsonConverter();
   }
 
   @Test
@@ -40,18 +39,19 @@ public class JsonConverterServiceTest {
                 + Objects.requireNonNull(row1.getString("p3"))
                         .compareTo(Objects.requireNonNull(row2.getString("p3")))
                     * 100));
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-        service.convertToJsonDoc(initial, false, false);
+    DeadLeafCollector collector = new DeadLeafCollectorImpl();
+    JsonNode result = service.convertToJsonDoc(initial, collector, false, false);
 
-    assertThat(result.left.toString())
+    assertThat(result.toString())
         .isEqualTo(
             mapper
                 .readTree("{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
                 .toString());
 
     // This state should have no dead leaves, as it's the initial write
-    assertThat(result.right).isEmpty();
+    assertThat(collector.isEmpty()).isTrue();
 
+    collector = new DeadLeafCollectorImpl();
     initial.addAll(DocumentServiceTest.makeSecondRowData());
     initial.sort(
         (row1, row2) ->
@@ -67,9 +67,9 @@ public class JsonConverterServiceTest {
                 + Objects.requireNonNull(row1.getString("p3"))
                         .compareTo(Objects.requireNonNull(row2.getString("p3")))
                     * 100));
-    result = service.convertToJsonDoc(initial, false, false);
+    result = service.convertToJsonDoc(initial, collector, false, false);
 
-    assertThat(result.left.toString())
+    assertThat(result.toString())
         .isEqualTo(
             mapper
                 .readTree(
@@ -83,8 +83,14 @@ public class JsonConverterServiceTest {
     node.set("", BooleanNode.valueOf(true));
     list.add(node);
     expected.put("$.a.b.c", list);
-    assertThat(result.right).isEqualTo(expected);
+    Map<String, Set<DeadLeaf>> deadLeaves = collector.getLeaves();
+    assertThat(deadLeaves.keySet().size()).isEqualTo(1);
+    assertThat(deadLeaves.containsKey("$.a.b.c")).isTrue();
+    Set<DeadLeaf> leaves = deadLeaves.get("$.a.b.c");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
 
+    collector = new DeadLeafCollectorImpl();
     initial.addAll(DocumentServiceTest.makeThirdRowData());
     initial.sort(
         (row1, row2) ->
@@ -100,22 +106,25 @@ public class JsonConverterServiceTest {
                 + Objects.requireNonNull(row1.getString("p3"))
                         .compareTo(Objects.requireNonNull(row2.getString("p3")))
                     * 100));
-    result = service.convertToJsonDoc(initial, false, false);
+    result = service.convertToJsonDoc(initial, collector, false, false);
 
-    assertThat(result.left.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
+    assertThat(result.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
 
     // This state should have 3 dead branches representing keys a, d, and f, since everything was
     // blown away by the latest change
-    expected = new HashMap<>();
-    list = new ArrayList<>();
-    node = mapper.createObjectNode();
-    node.set("a", NullNode.getInstance());
-    node.set("d", NullNode.getInstance());
-    node.set("f", NullNode.getInstance());
-
-    list.add(node);
-    expected.put("$", list);
-
-    assertThat(result.right).isEqualTo(expected);
+    deadLeaves = collector.getLeaves();
+    assertThat(deadLeaves.keySet().size()).isEqualTo(3);
+    assertThat(deadLeaves.containsKey("$.a")).isTrue();
+    assertThat(deadLeaves.containsKey("$.d")).isTrue();
+    assertThat(deadLeaves.containsKey("$.f")).isTrue();
+    leaves = deadLeaves.get("$.a");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
+    leaves = deadLeaves.get("$.d");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
+    leaves = deadLeaves.get("$.f");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
   }
 }

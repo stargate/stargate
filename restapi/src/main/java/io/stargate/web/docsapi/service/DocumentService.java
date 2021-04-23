@@ -27,6 +27,10 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
+import io.stargate.web.docsapi.service.json.DeadLeafCollector;
+import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
+import io.stargate.web.docsapi.service.json.DeadLeafCollectorNoOp;
+import io.stargate.web.docsapi.service.json.JsonConverter;
 import io.stargate.web.resources.Db;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -53,10 +57,10 @@ public class DocumentService {
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
   private static final Splitter PATH_SPLITTER = Splitter.on('/');
 
-  private final JsonConverterService jsonConverterService = new JsonConverterService();
+  private final JsonConverter jsonConverterService = new JsonConverter();
 
   @VisibleForTesting
-  JsonConverterService getJsonConverterService() {
+  JsonConverter getJsonConverterService() {
     return jsonConverterService;
   }
 
@@ -460,13 +464,15 @@ public class DocumentService {
     if (rows.isEmpty()) {
       return null;
     }
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-        getJsonConverterService().convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
-    if (!result.right.isEmpty()) {
-      logger.info(String.format("Deleting %d dead leaves", result.right.size()));
-      db.deleteDeadLeaves(keyspace, collection, id, result.right);
+    DeadLeafCollector collector = new DeadLeafCollectorImpl();
+    JsonNode result =
+        getJsonConverterService()
+            .convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
+    if (!collector.isEmpty()) {
+      logger.info(String.format("Deleting %d dead leaves", collector.getLeaves().size()));
+      db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves());
     }
-    JsonNode node = result.left.at(pathStr.toString());
+    JsonNode node = result.at(pathStr.toString());
     if (node.isMissingNode()) {
       return null;
     }
@@ -671,8 +677,8 @@ public class DocumentService {
           wrapped.add(row);
           JsonNode jsonDoc =
               getJsonConverterService()
-                  .convertToJsonDoc(wrapped, true, db.treatBooleansAsNumeric())
-                  .left;
+                  .convertToJsonDoc(
+                      wrapped, new DeadLeafCollectorNoOp(), true, db.treatBooleansAsNumeric());
           ref.add(jsonDoc);
         }
       }
@@ -689,8 +695,8 @@ public class DocumentService {
         List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
         JsonNode jsonDoc =
             getJsonConverterService()
-                .convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric())
-                .left;
+                .convertToJsonDoc(
+                    nonNull, new DeadLeafCollectorNoOp(), true, db.treatBooleansAsNumeric());
 
         if (documentId == null) {
           ((ArrayNode) docsResult.get(key)).add(jsonDoc);
@@ -811,8 +817,8 @@ public class DocumentService {
                 docsResult.set(
                     e.getKey(),
                     getJsonConverterService()
-                        .convertToJsonDoc(rows, false, db.treatBooleansAsNumeric())
-                        .left);
+                        .convertToJsonDoc(
+                            rows, new DeadLeafCollectorNoOp(), false, db.treatBooleansAsNumeric()));
               });
 
       paginator.setDocumentPageState(lastIdSeen.getValue());
@@ -831,8 +837,8 @@ public class DocumentService {
                 docsResult.set(
                     e.getKey(),
                     getJsonConverterService()
-                        .convertToJsonDoc(rows, false, db.treatBooleansAsNumeric())
-                        .left);
+                        .convertToJsonDoc(
+                            rows, new DeadLeafCollectorNoOp(), false, db.treatBooleansAsNumeric()));
               });
       paginator.clearDocumentPageState();
     }
@@ -940,8 +946,11 @@ public class DocumentService {
       docsResult.set(
           entry.getKey(),
           getJsonConverterService()
-              .convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric())
-              .left);
+              .convertToJsonDoc(
+                  entry.getValue(),
+                  new DeadLeafCollectorNoOp(),
+                  false,
+                  db.treatBooleansAsNumeric()));
     }
 
     return docsResult;
@@ -1081,8 +1090,11 @@ public class DocumentService {
       docsResult.set(
           entry.getKey(),
           getJsonConverterService()
-              .convertToJsonDoc(entry.getValue(), false, db.treatBooleansAsNumeric())
-              .left);
+              .convertToJsonDoc(
+                  entry.getValue(),
+                  new DeadLeafCollectorNoOp(),
+                  false,
+                  db.treatBooleansAsNumeric()));
     }
 
     return docsResult;

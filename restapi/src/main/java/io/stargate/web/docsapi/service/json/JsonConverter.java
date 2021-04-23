@@ -1,4 +1,4 @@
-package io.stargate.web.docsapi.service;
+package io.stargate.web.docsapi.service.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,13 +6,9 @@ import com.fasterxml.jackson.databind.node.*;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import java.util.*;
 
-public class JsonConverterService {
+public class JsonConverter {
   private static final ObjectMapper mapper = new ObjectMapper();
 
   public ObjectMapper getMapper() {
@@ -29,13 +25,16 @@ public class JsonConverterService {
     return row.getBoolean(colName);
   }
 
-  public ImmutablePair<JsonNode, Map<String, List<JsonNode>>> convertToJsonDoc(
-      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
+  public JsonNode convertToJsonDoc(
+      List<Row> rows,
+      DeadLeafCollector collector,
+      boolean writeAllPathsAsObjects,
+      boolean numericBooleans) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
     Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     if (rows.isEmpty()) {
-      return ImmutablePair.of(doc, deadLeaves);
+      return doc;
     }
     Column writeTimeCol = Column.reference("writetime(leaf)");
 
@@ -69,7 +68,7 @@ public class JsonConverterService {
                 || pathWriteTimes.get(parentPath) <= rowWriteTime;
 
         if (!shouldWrite) {
-          markFullPathAsDead(parentPath, p, deadLeaves);
+          markFullPathAsDead(parentPath, p, collector);
           break;
         }
 
@@ -80,11 +79,11 @@ public class JsonConverterService {
             ref = doc;
             pathWriteTimes.put(parentPath, rowWriteTime);
           } else if (i != 0 && shouldBeArray) {
-            markObjectAtPathAsDead(ref, parentPath, deadLeaves);
+            markObjectAtPathAsDead(ref, parentPath, collector);
             ref = changeCurrentNodeToArray(row, parentRef, i);
             pathWriteTimes.put(parentPath, rowWriteTime);
           } else if (i != 0 && !isArray && !ref.isObject()) {
-            markArrayAtPathAsDead(ref, parentPath, deadLeaves);
+            markArrayAtPathAsDead(ref, parentPath, collector);
             ref = changeCurrentNodeToObject(row, parentRef, i, writeAllPathsAsObjects);
             pathWriteTimes.put(parentPath, rowWriteTime);
           }
@@ -101,7 +100,7 @@ public class JsonConverterService {
               ref = doc;
               pathWriteTimes.put(parentPath, rowWriteTime);
             } else {
-              markObjectAtPathAsDead(ref, parentPath, deadLeaves);
+              markObjectAtPathAsDead(ref, parentPath, collector);
               ref = changeCurrentNodeToArray(row, parentRef, i);
               pathWriteTimes.put(parentPath, rowWriteTime);
             }
@@ -138,7 +137,7 @@ public class JsonConverterService {
                     : mapper.createObjectNode();
 
             if (!ref.isObject()) {
-              markArrayAtPathAsDead(ref, parentPath, deadLeaves);
+              markArrayAtPathAsDead(ref, parentPath, collector);
               ref = changeCurrentNodeToObject(row, parentRef, i, writeAllPathsAsObjects);
               pathWriteTimes.put(parentPath, rowWriteTime);
             }
@@ -158,7 +157,7 @@ public class JsonConverterService {
       writeLeafIfNewer(ref, row, leaf, parentPath, pathWriteTimes, rowWriteTime, numericBooleans);
     }
 
-    return ImmutablePair.of(doc, deadLeaves);
+    return doc;
   }
 
   private JsonNode changeCurrentNodeToArray(Row row, JsonNode parentRef, int pathIndex) {
@@ -188,43 +187,29 @@ public class JsonConverterService {
   }
 
   private void markFullPathAsDead(
-      String parentPath, String currentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!deadLeavesAtPath.isEmpty()) {
-      ObjectNode node = (ObjectNode) deadLeavesAtPath.get(0);
-      node.set(currentPath, NullNode.getInstance());
-    } else {
-      ObjectNode node = mapper.createObjectNode();
-      node.set(currentPath, NullNode.getInstance());
-      deadLeavesAtPath.add(node);
-    }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
+      String parentPath, String currentPath, DeadLeafCollector collector) {
+    collector.addAll(parentPath + "." + currentPath);
   }
 
   private void markObjectAtPathAsDead(
-      JsonNode ref, String parentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!ref.isObject()) {
-      ObjectNode node = mapper.createObjectNode();
-      node.set("", ref);
-      deadLeavesAtPath.add(node);
+      JsonNode ref, String parentPath, DeadLeafCollector collector) {
+    if (!ref.isObject()) { // it's a scalar
+      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
     } else {
-      deadLeavesAtPath.add(ref);
+      Iterator<String> fieldNames = ref.fieldNames();
+      while (fieldNames.hasNext()) {
+        String fieldName = fieldNames.next();
+        collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name(fieldName).build());
+      }
     }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
   }
 
-  private void markArrayAtPathAsDead(
-      JsonNode ref, String parentPath, Map<String, List<JsonNode>> deadLeaves) {
-    List<JsonNode> deadLeavesAtPath = deadLeaves.getOrDefault(parentPath, new ArrayList<>());
-    if (!ref.isArray()) {
-      ObjectNode node = mapper.createObjectNode();
-      node.set("", ref);
-      deadLeavesAtPath.add(node);
+  private void markArrayAtPathAsDead(JsonNode ref, String parentPath, DeadLeafCollector collector) {
+    if (!ref.isArray()) { // it's a scalar
+      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
     } else {
-      deadLeavesAtPath.add(ref);
+      collector.addArray(parentPath);
     }
-    deadLeaves.put(parentPath, deadLeavesAtPath);
   }
 
   private void writeLeafIfNewer(
