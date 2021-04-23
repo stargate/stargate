@@ -1,6 +1,9 @@
 package io.stargate.grpc.payload.cql;
 
 import com.google.protobuf.Any;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -45,7 +48,7 @@ public class ValuesHandler implements PayloadHandler {
     if (!payload.hasValue()) {
       return new BoundStatement(prepared.statementId, Collections.EMPTY_LIST, null);
     }
-    
+
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
@@ -147,6 +150,12 @@ public class ValuesHandler implements PayloadHandler {
             Row.newBuilder().addValues(decodeValue(codec, row.get(i))).build());
       }
     }
+
+    resultSetBuilder.setPagingState(
+        BytesValue.newBuilder()
+            .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
+            .build());
+    resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
   }
 
