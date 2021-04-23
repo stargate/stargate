@@ -52,19 +52,27 @@ public class ValuesHandler implements PayloadHandler {
     final Values values = payload.getValue().unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
-    if ((columnCount > 0 && values == null)
-        || (values != null && columnCount != values.getValuesCount())) {
+    final int valuesCount = values.getValuesCount();
+    if (columnCount != valuesCount) {
       throw Status.FAILED_PRECONDITION
           .withDescription(
               String.format(
-                  "Invalid number of bind parameters. Expected %d, but received %d",
-                  columnCount, values == null ? 0 : values.getValuesCount()))
+                  "Invalid number of bind values. Expected %d, but received %d",
+                  columnCount, valuesCount))
           .asException();
     }
     final List<ByteBuffer> boundValues = new ArrayList<>(columnCount);
     List<String> boundValueNames = null;
-    if (values != null && values.getValueNamesCount() != 0) {
+    if (values.getValueNamesCount() != 0) {
       final int namesCount = values.getValueNamesCount();
+      if (namesCount != columnCount) {
+        throw Status.FAILED_PRECONDITION
+            .withDescription(
+                String.format(
+                    "Invalid number of bind names. Expected %d, but received %d",
+                    columnCount, namesCount))
+            .asException();
+      }
       boundValueNames = new ArrayList<>(namesCount);
       for (int i = 0; i < namesCount; ++i) {
         String name = values.getValueNames(i);
@@ -75,7 +83,8 @@ public class ValuesHandler implements PayloadHandler {
                 .orElseThrow(
                     () ->
                         Status.INVALID_ARGUMENT
-                            .withDescription("Unable to find bind marker with name")
+                            .withDescription(
+                                String.format("Unable to find bind marker with name '%s'", name))
                             .asException());
         ColumnType columnType = columnTypeNotNull(column);
         ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
@@ -140,15 +149,16 @@ public class ValuesHandler implements PayloadHandler {
     }
 
     for (List<ByteBuffer> row : rows.rows) {
+      Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
         ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
         if (codec == null) {
           throw Status.FAILED_PRECONDITION.withDescription("Unsupported column type").asException();
         }
-        resultSetBuilder.addRows(
-            Row.newBuilder().addValues(decodeValue(codec, row.get(i))).build());
+        rowBuilder.addValues(decodeValue(codec, row.get(i)));
       }
+      resultSetBuilder.addRows(rowBuilder);
     }
 
     resultSetBuilder.setPagingState(
@@ -161,8 +171,7 @@ public class ValuesHandler implements PayloadHandler {
 
   @Nullable
   private ByteBuffer encodeValue(
-      ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue)
-      throws StatusException {
+      ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue) {
     if (value.hasNull()) {
       return null;
     } else if (value.hasUnset()) {
@@ -172,7 +181,7 @@ public class ValuesHandler implements PayloadHandler {
     }
   }
 
-  private Value decodeValue(ValueCodec codec, ByteBuffer bytes) throws StatusException {
+  private Value decodeValue(ValueCodec codec, ByteBuffer bytes) {
     if (bytes == null) {
       return NULL_VALUE;
     } else {
@@ -251,6 +260,8 @@ public class ValuesHandler implements PayloadHandler {
           }
           builder.setUdt(udtBuilder.build());
           break;
+        default:
+          throw new AssertionError("Unhandled parameterized type");
       }
     }
 

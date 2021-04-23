@@ -1,5 +1,6 @@
 package io.stargate.grpc.codec.cql;
 
+import static io.stargate.grpc.Utils.toValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -8,7 +9,6 @@ import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.google.protobuf.ByteString;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
@@ -123,9 +123,9 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> validUuidValues() {
     return Stream.of(
-        arguments(Type.Uuid, makeUuid(Uuids.random())),
-        arguments(Type.Uuid, makeUuid(UUID.nameUUIDFromBytes("abc".getBytes()))),
-        arguments(Type.Timeuuid, makeUuid(Uuids.timeBased())));
+        arguments(Type.Uuid, toValue(Uuids.random())),
+        arguments(Type.Uuid, toValue(UUID.nameUUIDFromBytes("abc".getBytes()))),
+        arguments(Type.Timeuuid, toValue(Uuids.timeBased())));
   }
 
   public static Stream<Arguments> invalidUuidValues() {
@@ -137,15 +137,7 @@ public class ValueCodecTest {
         arguments(
             Type.Timeuuid,
             Value.newBuilder().setUnset(Unset.newBuilder().build()).build(),
-            "Expected UUID type"));
-  }
-
-  private static Value makeUuid(UUID uuid) {
-    Uuid innerValue =
-        Uuid.newBuilder()
-            .setMsb(uuid.getMostSignificantBits())
-            .setLsb(uuid.getLeastSignificantBits())
-            .build();
-    return Value.newBuilder().setUuid(innerValue).build();
+            "Expected UUID type"),
+        arguments(Type.Timeuuid, toValue(UUID.randomUUID()), "is not a Type 1 (time-based) UUID"));
   }
 }

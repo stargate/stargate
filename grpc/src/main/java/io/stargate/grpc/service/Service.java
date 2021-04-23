@@ -42,12 +42,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private final Persistence persistence;
   private final ByteBuffer unsetValue;
 
-  @SuppressWarnings("unused")
   private final Metrics metrics;
 
   public Service(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
     this.metrics = metrics;
+    assert this.metrics != null;
     unsetValue = persistence.unsetValue();
   }
 
@@ -120,6 +120,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       QueryParameters parameters = query.getParameters();
       Payload payload = parameters.getPayload();
+      if (!payload.hasValue()) {
+        responseObserver.onError(
+            Status.INVALID_ARGUMENT.withDescription("No payload provided").asException());
+        return;
+      }
 
       PayloadHandler handler = PayloadHandlers.HANDLERS.get(payload.getType());
       if (handler == null) {
@@ -190,7 +195,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
 
     if (parameters.hasPagingState()) {
-      builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().toByteArray()));
+      builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().getValue().toByteArray()));
     }
 
     if (parameters.hasSerialConsistency()) {
