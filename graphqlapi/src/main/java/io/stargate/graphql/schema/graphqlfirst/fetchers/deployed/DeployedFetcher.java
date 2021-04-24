@@ -394,6 +394,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
             break;
           default:
             cqlType = field.getCqlType();
+            break;
         }
         Object cqlValue = toCqlValue(graphqlValue, cqlType, keyspace);
         result.add(whereCondition.build(cqlValue));

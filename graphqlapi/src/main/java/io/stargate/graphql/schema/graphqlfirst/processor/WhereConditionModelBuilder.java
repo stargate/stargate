@@ -64,89 +64,107 @@ class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
       throw SkipException.INSTANCE;
     }
 
-    FieldModel field =
-        entity.getAllColumns().stream()
-            .filter(f -> f.getGraphqlName().equals(fieldName))
-            .findFirst()
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Operation %s: could not find field %s in type %s",
-                      operationName, fieldName, entity.getGraphqlName());
-                  return SkipException.INSTANCE;
-                });
+    FieldModel field = findField(fieldName);
 
     // Check that the predicate is allowed for this type of field, and that the types match:
     if (field.isPartitionKey()) {
-      switch (predicate) {
-        case EQ:
-          checkArgumentIsSameAs(field);
-          break;
-        case IN:
-          checkArgumentIsListOf(field);
-          break;
-        default:
-          invalidMapping(
-              "Operation %s: predicate %s is not supported for partition key field %s "
-                  + "(expected EQ or IN)",
-              operationName, predicate, fieldName);
-          throw SkipException.INSTANCE;
-      }
+      checkValidForPartitionKey(predicate, field);
     } else if (field.isClusteringColumn()) {
-      switch (predicate) {
-        case EQ:
-        case LT:
-        case GT:
-        case LTE:
-        case GTE:
-          checkArgumentIsSameAs(field);
-          break;
-        case IN:
-          checkArgumentIsListOf(field);
-          break;
-        default:
-          invalidMapping(
-              "Operation %s: predicate %s is not supported for clustering field %s "
-                  + "(expected EQ, LT, GT, LTE, GTE or IN)",
-              operationName, predicate, fieldName);
-          throw SkipException.INSTANCE;
-      }
-    } else { // field is a regular column
-      IndexModel index =
-          field
-              .getIndex()
-              .orElseThrow(
-                  () -> {
-                    invalidMapping(
-                        "Operation %s: non-primary key argument %s must be indexed in order to "
-                            + "use it in a condition",
-                        operationName, argument.getName());
-                    return SkipException.INSTANCE;
-                  });
-      // Only perform these checks for regular indexes, because we can't assume what custom indexes
-      // support
-      if (!index.isCustom()) {
-        switch (predicate) {
-          case EQ:
-            checkArgumentIsSameAs(field);
-            break;
-          case IN:
-            checkArgumentIsListOf(field);
-            break;
-          case CONTAINS:
-            checkArgumentIsElementOf(field);
-            break;
-          default:
-            invalidMapping(
-                "Operation %s: predicate %s is not supported for indexed field %s "
-                    + "(expected EQ, IN or CONTAINS)",
-                operationName, predicate, fieldName);
-            throw SkipException.INSTANCE;
-        }
-      }
+      checkValidForClusteringColumn(predicate, field);
+    } else {
+      checkValidForRegularColumn(predicate, field);
     }
 
     return new WhereConditionModel(field, predicate, argument.getName());
+  }
+
+  private FieldModel findField(String fieldName) throws SkipException {
+    return entity.getAllColumns().stream()
+        .filter(f -> f.getGraphqlName().equals(fieldName))
+        .findFirst()
+        .orElseThrow(
+            () -> {
+              invalidMapping(
+                  "Operation %s: could not find field %s in type %s",
+                  operationName, fieldName, entity.getGraphqlName());
+              return SkipException.INSTANCE;
+            });
+  }
+
+  private void checkValidForPartitionKey(Predicate predicate, FieldModel field)
+      throws SkipException {
+    switch (predicate) {
+      case EQ:
+        checkArgumentIsSameAs(field);
+        break;
+      case IN:
+        checkArgumentIsListOf(field);
+        break;
+      default:
+        invalidMapping(
+            "Operation %s: predicate %s is not supported for partition key field %s "
+                + "(expected EQ or IN)",
+            operationName, predicate, field.getGraphqlName());
+        throw SkipException.INSTANCE;
+    }
+  }
+
+  private void checkValidForClusteringColumn(Predicate predicate, FieldModel field)
+      throws SkipException {
+    switch (predicate) {
+      case EQ:
+      case LT:
+      case GT:
+      case LTE:
+      case GTE:
+        checkArgumentIsSameAs(field);
+        break;
+      case IN:
+        checkArgumentIsListOf(field);
+        break;
+      default:
+        invalidMapping(
+            "Operation %s: predicate %s is not supported for clustering field %s "
+                + "(expected EQ, LT, GT, LTE, GTE or IN)",
+            operationName, predicate, field.getGraphqlName());
+        throw SkipException.INSTANCE;
+    }
+  }
+
+  private void checkValidForRegularColumn(Predicate predicate, FieldModel field)
+      throws SkipException {
+    IndexModel index =
+        field
+            .getIndex()
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Operation %s: non-primary key argument %s must be indexed in order to "
+                          + "use it in a condition",
+                      operationName, argument.getName());
+                  return SkipException.INSTANCE;
+                });
+    // Only perform these checks for regular indexes, because we can't assume what custom indexes
+    // support
+    if (!index.isCustom()) {
+      switch (predicate) {
+        case EQ:
+          checkArgumentIsSameAs(field);
+          break;
+        case IN:
+          checkArgumentIsListOf(field);
+          break;
+        case CONTAINS:
+          checkArgumentIsElementOf(field);
+          break;
+        default:
+          invalidMapping(
+              "Operation %s: predicate %s is not supported for indexed field %s "
+                  + "(expected EQ, IN or CONTAINS)",
+              operationName, predicate, field.getGraphqlName());
+          throw SkipException.INSTANCE;
+      }
+    }
   }
 
   private void checkArgumentIsSameAs(FieldModel field) throws SkipException {
