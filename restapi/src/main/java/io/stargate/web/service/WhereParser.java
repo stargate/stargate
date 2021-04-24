@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class WhereParser {
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -152,7 +153,7 @@ public class WhereParser {
   }
 
   private static BuiltCondition conditionToWhere(String fieldName, FilterOp op, Object value) {
-    return BuiltCondition.of(fieldName.toLowerCase(), op.predicate, value);
+    return BuiltCondition.of(fieldName, op.predicate, value);
   }
 
   private static void evaluateContainsKey(List<BuiltCondition> conditions, QueryContext context) {
@@ -242,8 +243,15 @@ public class WhereParser {
               context.fieldName, context.rawOp));
     }
     ObjectReader reader = mapper.readerFor(new TypeReference<List<Object>>() {});
+
+    List<Object> rawList = reader.readValue(context.value);
     conditions.add(
-        conditionToWhere(context.fieldName, context.operator, reader.readValue(context.value)));
+        conditionToWhere(
+            context.fieldName,
+            context.operator,
+            rawList.stream()
+                .map(obj -> Converters.toCqlValue(context.type, obj))
+                .collect(Collectors.toList())));
   }
 
   private static class QueryContext {
