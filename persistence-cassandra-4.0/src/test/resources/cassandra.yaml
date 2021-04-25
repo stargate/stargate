@@ -1394,7 +1394,7 @@ enable_materialized_views: false
 
 # Enables SASI index creation on this node.
 # SASI indexes are considered experimental and are not recommended for production use.
-enable_sasi_indexes: false
+enable_sasi_indexes: true
 
 # Enables creation of transiently replicated keyspaces on this node.
 # Transient replication is experimental and is not recommended for production use.

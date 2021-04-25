@@ -16,7 +16,6 @@
 package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -449,13 +448,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void createCustomIndex(CqlSession session) throws IOException {
-    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
-    assumeThat(isCassandra4())
-        .as(
-            "Disabled because it is currently not possible to enable SAI indexes "
-                + "on a Cassandra 4 backend")
-        .isFalse();
-
     createKeyspace(keyspaceName);
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
