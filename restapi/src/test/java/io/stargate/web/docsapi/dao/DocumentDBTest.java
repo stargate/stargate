@@ -316,7 +316,7 @@ public class DocumentDBTest {
     deadLeaves.get("$.a.b").add(ImmutableDeadLeaf.builder().name("").build());
 
     deadLeaves.put("$.b", new HashSet<>());
-    deadLeaves.get("$.b").add(ImmutableDeadLeaf.builder().name(DeadLeaf.ARRAY).build());
+    deadLeaves.get("$.b").add(DeadLeaf.ARRAYLEAF);
 
     documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves);
 

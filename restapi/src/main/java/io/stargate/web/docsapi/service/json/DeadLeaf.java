@@ -6,6 +6,8 @@ import org.immutables.value.Value;
 public interface DeadLeaf {
   String STAR = "*";
   String ARRAY = "[*]";
+  DeadLeaf ARRAYLEAF = ImmutableDeadLeaf.builder().name(DeadLeaf.ARRAY).build();
+  DeadLeaf STARLEAF = ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build();
 
   String getName();
 }

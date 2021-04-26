@@ -17,13 +17,13 @@ public class DeadLeafCollectorImpl implements DeadLeafCollector {
 
   public void addArray(String path) {
     Set<DeadLeaf> leavesAtPath = deadPaths.getOrDefault(path, new HashSet<>());
-    leavesAtPath.add(ImmutableDeadLeaf.builder().name(DeadLeaf.ARRAY).build());
+    leavesAtPath.add(DeadLeaf.ARRAYLEAF);
     deadPaths.put(path, leavesAtPath);
   }
 
   public void addAll(String path) {
     Set<DeadLeaf> leavesAtPath = new HashSet<>();
-    leavesAtPath.add(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build());
+    leavesAtPath.add(DeadLeaf.STARLEAF);
     deadPaths.put(path, leavesAtPath);
   }
 

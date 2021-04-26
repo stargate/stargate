@@ -39,7 +39,7 @@ public class JsonConverterTest {
                 + Objects.requireNonNull(row1.getString("p3"))
                         .compareTo(Objects.requireNonNull(row2.getString("p3")))
                     * 100));
-    DeadLeafCollector collector = new DeadLeafCollectorImpl();
+    DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
     JsonNode result = service.convertToJsonDoc(initial, collector, false, false);
 
     assertThat(result.toString())
@@ -119,12 +119,12 @@ public class JsonConverterTest {
     assertThat(deadLeaves.containsKey("$.f")).isTrue();
     leaves = deadLeaves.get("$.a");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
     leaves = deadLeaves.get("$.d");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
     leaves = deadLeaves.get("$.f");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name(DeadLeaf.STAR).build())).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
   }
 }

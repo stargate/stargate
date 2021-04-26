@@ -27,7 +27,6 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
-import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorNoOp;
 import io.stargate.web.docsapi.service.json.JsonConverter;
@@ -464,7 +463,7 @@ public class DocumentService {
     if (rows.isEmpty()) {
       return null;
     }
-    DeadLeafCollector collector = new DeadLeafCollectorImpl();
+    DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
     JsonNode result =
         getJsonConverterService()
             .convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
@@ -673,12 +672,13 @@ public class DocumentService {
         }
         List<Row> docRows = entry.getValue();
         for (Row row : docRows) {
-          List<Row> wrapped = new ArrayList<>(1);
-          wrapped.add(row);
           JsonNode jsonDoc =
               getJsonConverterService()
                   .convertToJsonDoc(
-                      wrapped, new DeadLeafCollectorNoOp(), true, db.treatBooleansAsNumeric());
+                      Collections.singletonList(row),
+                      new DeadLeafCollectorNoOp(),
+                      true,
+                      db.treatBooleansAsNumeric());
           ref.add(jsonDoc);
         }
       }
