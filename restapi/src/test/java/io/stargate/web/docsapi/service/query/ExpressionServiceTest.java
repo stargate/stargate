@@ -21,9 +21,9 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.ListCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.provider.ConditionProviderService;
 import org.junit.jupiter.api.BeforeEach;
@@ -248,7 +248,7 @@ class ExpressionServiceTest {
                     .anySatisfy(e -> assertThat(e).isInstanceOfSatisfying(FilterExpression.class, c -> {
                         assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                         assertThat(c.getFilterPath().getPath()).isEmpty();
-                        assertThat(c.getCondition()).isInstanceOfSatisfying(ListCondition.class, sc -> {
+                        assertThat(c.getCondition()).isInstanceOfSatisfying(BaseCondition.class, sc -> {
                             assertThat(sc.getBuiltCondition()).isEmpty();
                         });
                     }));

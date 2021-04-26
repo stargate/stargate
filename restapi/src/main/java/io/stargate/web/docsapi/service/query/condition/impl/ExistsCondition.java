@@ -16,42 +16,15 @@
 
 package io.stargate.web.docsapi.service.query.condition.impl;
 
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.predicate.impl.ExistsPredicate;
 import org.immutables.value.Value;
 
 import java.util.Optional;
 
+// TODO is this class needed at all? Can it provide a built in condition?
 @Value.Immutable
-public abstract class ExistsCondition implements BaseCondition {
-
-    /**
-     * @return Predicate for the condition.
-     */
-    @Value.Parameter
-    public abstract ExistsPredicate getFilterPredicate();
-
-    /**
-     * @return Filter query value.
-     */
-    @Value.Parameter
-    public abstract Boolean getQueryValue();
-
-    /**
-     * @return If booleans should be considered as numeric values.
-     */
-    @Value.Parameter
-    public abstract boolean isNumericBooleans();
-
-    /**
-     * Validates the value against the predicate.
-     */
-    @Value.Check
-    protected void validate() {
-        getFilterPredicate().validateBooleanFilterInput(getQueryValue());
-    }
+public abstract class ExistsCondition extends AnyValueCondition<Boolean> implements BaseCondition {
 
     /**
      * {@inheritDoc}
@@ -60,22 +33,6 @@ public abstract class ExistsCondition implements BaseCondition {
     public Optional<BuiltCondition> getBuiltCondition() {
         // TODO what's real predicate for the exists
         return Optional.empty();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Row row) {
-        Boolean dbValueBoolean = getBooleanDatabaseValue(row, isNumericBooleans());
-        Double dbValueDouble = getDoubleDatabaseValue(row);
-        String dbValueString = getStringDatabaseValue(row);
-
-        ExistsPredicate filterPredicate = getFilterPredicate();
-        Boolean queryValue = getQueryValue();
-        return filterPredicate.test(queryValue, dbValueBoolean) ||
-                filterPredicate.test(queryValue, dbValueDouble) ||
-                filterPredicate.test(queryValue, dbValueString);
     }
 
 }

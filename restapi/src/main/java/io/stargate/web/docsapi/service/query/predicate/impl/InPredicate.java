@@ -17,10 +17,12 @@
 package io.stargate.web.docsapi.service.query.predicate.impl;
 
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
 import org.immutables.value.Value;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -56,13 +58,27 @@ public abstract class InPredicate implements AnyValuePredicate<List<?>> {
     }
 
     /**
+     * Only one database value (string, boolean or double) has to match.
+     */
+    @Override
+    public boolean isMatchAll() {
+        return false;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public boolean test(List<?> filterValue, String dbValue) {
-        return filterValue.stream()
-                .filter(String.class::isInstance)
-                .anyMatch(value -> value.equals(dbValue));
+        // if null, check any is null, avoid .contains(null) as some impl could throw NPE
+        if (null == dbValue) {
+            return filterValue.stream()
+                    .anyMatch(Objects::isNull);
+        } else {
+            return filterValue.stream()
+                    .filter(String.class::isInstance)
+                    .anyMatch(value -> value.equals(dbValue));
+        }
     }
 
     /**
@@ -70,9 +86,15 @@ public abstract class InPredicate implements AnyValuePredicate<List<?>> {
      */
     @Override
     public boolean test(List<?> filterValue, Boolean dbValue) {
-        return filterValue.stream()
-                .filter(Boolean.class::isInstance)
-                .anyMatch(value -> value.equals(dbValue));
+        // if null, check any is null, avoid .contains(null) as some impl could throw NPE
+        if (null == dbValue) {
+            return filterValue.stream()
+                    .anyMatch(Objects::isNull);
+        } else {
+            return filterValue.stream()
+                    .filter(Boolean.class::isInstance)
+                    .anyMatch(value -> value.equals(dbValue));
+        }
     }
 
     /**
@@ -80,13 +102,50 @@ public abstract class InPredicate implements AnyValuePredicate<List<?>> {
      */
     @Override
     public boolean test(List<?> filterValue, Double dbValue) {
-        // TODO maybe more correct number matching here as well
-        return filterValue.stream()
-                .filter(Number.class::isInstance)
-                .map(Number.class::cast)
-                .anyMatch(value -> Double.valueOf(value.doubleValue()).equals(dbValue));
+        // if null, check any is null, avoid .contains(null) as some impl could throw NPE
+        if (null == dbValue) {
+            return filterValue.stream()
+                    .anyMatch(Objects::isNull);
+        } else {
+            // TODO maybe more correct number matching here as well
+
+            return filterValue.stream()
+                    .filter(Number.class::isInstance)
+                    .map(Number.class::cast)
+                    .anyMatch(value -> Double.valueOf(value.doubleValue()).equals(dbValue));
+        }
     }
 
-    // TODO empty list validation needed?
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateDoubleFilterInput(List<?> filterValue) {
+        validateNotEmpty(filterValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateBooleanFilterInput(List<?> filterValue) {
+        validateNotEmpty(filterValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateStringFilterInput(List<?> filterValue) {
+        validateNotEmpty(filterValue);
+    }
+
+    // validates not empty list
+    protected void validateNotEmpty(List<?> filterValue) {
+        if (null == filterValue || filterValue.isEmpty()) {
+            String msg = String.format("Operation %s was expecting a non-empty list", getRawValue());
+            throw new DocumentAPIRequestException(msg);
+        }
+    }
 
 }

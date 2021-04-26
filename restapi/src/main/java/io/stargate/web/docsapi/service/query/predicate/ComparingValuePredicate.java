@@ -23,6 +23,11 @@ import java.util.Comparator;
  */
 public interface ComparingValuePredicate extends StringFilterPredicate<String>, DoubleFilterPredicate<Number>, BooleanValuePredicate<Boolean> {
 
+    // default comparators we are using, nulls last
+    Comparator<String> STRING_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+    Comparator<Double> DOUBLE_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+    Comparator<Boolean> BOOLEAN_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+
     /**
      * Method for the comparing predicates that resolves if predicate test is true or false.
      * Note that we always compare filter value against the DB value.
@@ -36,7 +41,7 @@ public interface ComparingValuePredicate extends StringFilterPredicate<String>, 
      * {@inheritDoc}
      */
     default boolean test(String filterValue, String dbValue) {
-        int compare = Comparator.<String>naturalOrder().compare(filterValue, dbValue);
+        int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
         return isSatisfied(compare);
     }
 
@@ -45,7 +50,7 @@ public interface ComparingValuePredicate extends StringFilterPredicate<String>, 
      */
     default boolean test(Number filterValue, Double dbValue) {
         // TODO do we wanna have more sophisticated compare for the numbers
-        int compare = Comparator.<Double>naturalOrder().compare(filterValue.doubleValue(), dbValue);
+        int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
         return isSatisfied(compare);
     }
 
@@ -53,7 +58,7 @@ public interface ComparingValuePredicate extends StringFilterPredicate<String>, 
      * {@inheritDoc}
      */
     default boolean test(Boolean filterValue, Boolean dbValue) {
-        int compare = Comparator.<Boolean>naturalOrder().compare(filterValue, dbValue);
+        int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
         return isSatisfied(compare);
     }
 

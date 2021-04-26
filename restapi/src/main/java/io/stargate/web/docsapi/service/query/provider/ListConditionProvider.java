@@ -18,8 +18,8 @@ package io.stargate.web.docsapi.service.query.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.ImmutableListCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.ListCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableAnyValueCondition;
 import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
 import org.immutables.value.Value;
 
@@ -48,7 +48,7 @@ public abstract class ListConditionProvider implements ConditionProvider {
         if (node.isArray()) {
             Iterator<JsonNode> iterator = node.iterator();
             List<?> input = getListConditionValues(iterator);
-            ListCondition condition = ImmutableListCondition.of(listPredicate(), input, numericBooleans);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(listPredicate(), input, numericBooleans);
             return Optional.of(condition);
         }
         return Optional.empty();

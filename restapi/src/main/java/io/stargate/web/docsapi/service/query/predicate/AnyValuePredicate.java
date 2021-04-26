@@ -22,4 +22,10 @@ package io.stargate.web.docsapi.service.query.predicate;
  * @param <V> Type of a value used in the predicate.
  */
 public interface AnyValuePredicate<V> extends StringFilterPredicate<V>, DoubleFilterPredicate<V>, BooleanValuePredicate<V> {
+
+    /**
+     * @return Defines if all database values much match the predicate for the predicate to test true.
+     */
+    boolean isMatchAll();
+
 }

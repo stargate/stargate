@@ -25,20 +25,25 @@ import org.immutables.value.Value;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Condition that works with the {@link AnyValuePredicate} in order to match a single {@link Row} against
+ * multiple database column values.
+ * @param <V>
+ */
 @Value.Immutable
-public abstract class ListCondition implements BaseCondition {
+public abstract class AnyValueCondition<V> implements BaseCondition {
 
     /**
      * @return Predicate for the condition.
      */
     @Value.Parameter
-    public abstract AnyValuePredicate<List<?>> getFilterPredicate();
+    public abstract AnyValuePredicate<V> getFilterPredicate();
 
     /**
      * @return Filter query value.
      */
     @Value.Parameter
-    public abstract List<?> getQueryValue();
+    public abstract V getQueryValue();
 
     /**
      * @return If booleans should be considered as numeric values.
@@ -67,23 +72,22 @@ public abstract class ListCondition implements BaseCondition {
      */
     @Override
     public boolean test(Row row) {
-        // TODO support for all match or any match
-        AnyValuePredicate<List<?>> filterPredicate = getFilterPredicate();
-        List<?> queryValue = getQueryValue();
-
-        // test boolean, then number, then string
         Boolean dbValueBoolean = getBooleanDatabaseValue(row, isNumericBooleans());
-        if (null != dbValueBoolean) {
-            return filterPredicate.test(queryValue, dbValueBoolean);
-        }
-
         Double dbValueDouble = getDoubleDatabaseValue(row);
-        if (null != dbValueDouble) {
-            return filterPredicate.test(queryValue, dbValueDouble);
-        }
-
         String dbValueString = getStringDatabaseValue(row);
-        return filterPredicate.test(queryValue, dbValueString);
+
+        AnyValuePredicate<V> filterPredicate = getFilterPredicate();
+        V queryValue = getQueryValue();
+
+        if (filterPredicate.isMatchAll()) {
+            return filterPredicate.test(queryValue, dbValueBoolean) &&
+                    filterPredicate.test(queryValue, dbValueDouble) &&
+                    filterPredicate.test(queryValue, dbValueString);
+        } else {
+            return filterPredicate.test(queryValue, dbValueBoolean) ||
+                    filterPredicate.test(queryValue, dbValueDouble) ||
+                    filterPredicate.test(queryValue, dbValueString);
+        }
     }
 
 }

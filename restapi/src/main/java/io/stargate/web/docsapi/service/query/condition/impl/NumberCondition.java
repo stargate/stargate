@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 import java.util.Optional;
 
 /**
- * Condition that accepts boolean filter values and compare against boolean database row value.
+ * Condition that accepts number filter values and compare against double database row value.
  */
 @Value.Immutable
 public abstract class NumberCondition implements BaseCondition {

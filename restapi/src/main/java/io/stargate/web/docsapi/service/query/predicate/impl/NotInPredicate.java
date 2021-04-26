@@ -55,6 +55,14 @@ public abstract class NotInPredicate extends InPredicate {
     }
 
     /**
+     * All database values (string, boolean or double) have to match.
+     */
+    @Override
+    public boolean isMatchAll() {
+        return true;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

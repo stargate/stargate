@@ -25,6 +25,9 @@ import org.immutables.value.Value;
 
 import java.util.Optional;
 
+/**
+ * Condition that accepts string filter values and compare against string database row value.
+ */
 @Value.Immutable
 public abstract class StringCondition implements BaseCondition {
 

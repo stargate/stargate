@@ -57,6 +57,14 @@ public abstract class ExistsPredicate implements AnyValuePredicate<Boolean> {
     }
 
     /**
+     * Only one database value (string, boolean or double) has to match.
+     */
+    @Override
+    public boolean isMatchAll() {
+        return false;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
