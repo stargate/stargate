@@ -36,6 +36,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -71,6 +72,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class DocumentServiceTest {
+  private final DataStore dataStore = Mockito.mock(DataStore.class);
   private DocumentService service;
   private Method convertToBracketedPath;
   private Method leftPadTo6;
@@ -1240,7 +1242,8 @@ public class DocumentServiceTest {
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(
@@ -1264,7 +1267,8 @@ public class DocumentServiceTest {
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(
@@ -1292,7 +1296,8 @@ public class DocumentServiceTest {
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     JsonNode result =
         serviceMock.searchDocumentsV2(
             dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
@@ -1334,7 +1339,8 @@ public class DocumentServiceTest {
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     JsonNode result =
         serviceMock.getFullDocuments(
@@ -1363,7 +1369,8 @@ public class DocumentServiceTest {
     Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
         .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     JsonNode result =
         serviceMock.getFullDocuments(
@@ -1394,7 +1401,8 @@ public class DocumentServiceTest {
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
 
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<Row> result =
         (List<Row>)
@@ -1414,7 +1422,7 @@ public class DocumentServiceTest {
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(rows);
 
-    paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    paginator = new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     result =
         (List<Row>)
             searchRows.invoke(
@@ -1452,7 +1460,8 @@ public class DocumentServiceTest {
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
 
     int pageSizeParam = 0;
-    Paginator paginator = new Paginator(null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", true));

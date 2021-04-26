@@ -8,7 +8,6 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -83,9 +82,8 @@ public class Conversion {
   }
 
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    Row row = pos.currentRow();
     Set<Pair<String, String>> tables =
-        row.columns().stream()
+        pos.currentRow().keySet().stream()
             .map(c -> Pair.create(c.keyspace(), c.table()))
             .collect(Collectors.toSet());
 
@@ -104,7 +102,7 @@ public class Conversion {
         table.partitionKeyColumns().stream()
             .map(
                 c -> {
-                  ByteBuffer value = row.getBytesUnsafe(c.name.toCQLString());
+                  ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
 
                   if (value == null) {
                     throw new IllegalArgumentException(

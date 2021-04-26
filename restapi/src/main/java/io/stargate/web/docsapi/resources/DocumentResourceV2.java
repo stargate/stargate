@@ -672,10 +672,10 @@ public class DocumentResourceV2 {
           } else {
             final Paginator paginator =
                 new Paginator(
+                    dbFactory.getDataStore(),
                     pageStateParam,
                     pageSizeParam,
-                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE,
-                    true);
+                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE);
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
@@ -688,7 +688,7 @@ public class DocumentResourceV2 {
             String json;
 
             if (raw == null || !raw) {
-              String pagingStateStr = paginator.getCurrentDbPageStateAsString();
+              String pagingStateStr = paginator.makeExternalPagingState();
               json =
                   mapper.writeValueAsString(
                       new DocumentResponseWrapper<>(id, pagingStateStr, result));
@@ -773,7 +773,8 @@ public class DocumentResourceV2 {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
           final Paginator paginator =
-              new Paginator(pageStateParam, pageSizeParam, DEFAULT_PAGE_SIZE);
+              new Paginator(
+                  dbFactory.getDataStore(), pageStateParam, pageSizeParam, DEFAULT_PAGE_SIZE);
 
           JsonNode results;
 
@@ -799,7 +800,7 @@ public class DocumentResourceV2 {
             json =
                 mapper.writeValueAsString(
                     new DocumentResponseWrapper<>(
-                        null, paginator.getDocumentPageStateAsString(), results));
+                        null, paginator.makeExternalPagingState(), results));
           } else {
             json = mapper.writeValueAsString(results);
           }

@@ -106,6 +106,11 @@ class PersistenceBackedResultSet implements ResultSet {
     return processed;
   }
 
+  @Override
+  public List<Column> columns() {
+    return columns;
+  }
+
   private static @Nullable Column columnInSchema(Schema schema, Column toFind) {
     Keyspace ks = schema.keyspace(toFind.keyspace());
     if (ks == null) return null;
