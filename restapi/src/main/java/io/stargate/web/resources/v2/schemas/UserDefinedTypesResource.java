@@ -1,4 +1,3 @@
-package io.stargate.web.resources.v2.schemas;
 /*
  * Copyright The Stargate Authors
  *
@@ -14,11 +13,13 @@ package io.stargate.web.resources.v2.schemas;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.stargate.web.resources.v2.schemas;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.base.Strings;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
@@ -29,10 +30,10 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.web.models.ColumnDefinitionUserDefinedType;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.models.UserDefinedTypeAdd;
+import io.stargate.web.models.UserDefinedTypeField;
 import io.stargate.web.models.UserDefinedTypeResponse;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
@@ -68,7 +69,6 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
  * Exposes REST Endpoint to work with Cassandra User Defined Types
  *
  * @see https://cassandra.apache.org/doc/latest/cql/types.html
- * @author Cedrick LUNVEN (@clunven)
  */
 @Api(
     produces = APPLICATION_JSON,
@@ -80,10 +80,8 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class UserDefinedTypesResource {
 
   public static final String HEADER_TOKEN_AUTHENTICATION = "X-Cassandra-Token";
-  public static final String RESOURCE_KEYSPACES = "/v2/schemas/keyspaces/";
   public static final String PATH_PARAM_KEYSPACE = "keyspaceName";
 
-  /** Reference to the Data Store */
   @Inject private Db db;
 
   @Timed
@@ -115,26 +113,30 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          // Accessing datastore
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
-          // Load User Defined Type Definitions
-          List<UserDefinedTypeResponse> udtResponses =
-              authenticatedDB.getTypes(keyspaceName).stream()
-                  .map(this::mapUdtAsReponse)
-                  .collect(Collectors.toList());
-          // Filter based on user credentials
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
-                  udtResponses.stream()
-                      .map(UserDefinedTypeResponse::getName)
-                      .collect(Collectors.toList()),
+                  null,
                   SourceAPI.REST,
                   ResourceKind.TYPE);
-          // Wrap response if user does not asked for raw.
-          Object response =
-              raw ? udtResponses : new ResponseWrapper<List<UserDefinedTypeResponse>>(udtResponses);
+
+          List<UserDefinedTypeResponse> udtResponses =
+              authenticatedDB.getTypes(keyspaceName).stream()
+                  .map(this::mapUdtAsResponse)
+                  .collect(Collectors.toList());
+
+          Object response = raw ? udtResponses : new ResponseWrapper<>(udtResponses);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -175,9 +177,16 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          // Accessing datastore
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
-          // Permissions on a type are the same as keyspace (CreateTypeFetcher for graphQl API)
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -185,14 +194,11 @@ public class UserDefinedTypesResource {
                   null,
                   SourceAPI.REST,
                   ResourceKind.TYPE);
-          // Mapping to Rest API expected output
+
           UserDefinedTypeResponse udtResponse =
-              mapUdtAsReponse(authenticatedDB.getType(keyspaceName, typeName));
+              mapUdtAsResponse(authenticatedDB.getType(keyspaceName, typeName));
           return Response.ok(
-                  Converters.writeResponse(
-                      raw
-                          ? udtResponse
-                          : new ResponseWrapper<UserDefinedTypeResponse>(udtResponse)))
+                  Converters.writeResponse(raw ? udtResponse : new ResponseWrapper<>(udtResponse)))
               .build();
         });
   }
@@ -236,11 +242,9 @@ public class UserDefinedTypesResource {
 
     return RequestHandler.handle(
         () -> {
-          // Accessing datastore
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
 
-          // Parameters validations, Keyspacename, type
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -248,6 +252,15 @@ public class UserDefinedTypesResource {
                         "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
+          String typeName = udtAdd.getName();
+          if (Strings.isNullOrEmpty(typeName)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "Type name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
           db.getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
@@ -256,45 +269,39 @@ public class UserDefinedTypesResource {
                   Scope.CREATE,
                   SourceAPI.REST,
                   ResourceKind.TYPE);
-          String typeName = udtAdd.getName();
-          if (typeName == null || typeName.equals("")) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "Type name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
-          }
+
           List<Column> columns = new ArrayList<>();
-          for (ColumnDefinitionUserDefinedType colDef : udtAdd.getColumnDefinitions()) {
-            String columnName = colDef.getName();
-            if (columnName == null || columnName.equals("")) {
+          for (UserDefinedTypeField colDef : udtAdd.getFieldDefinitions()) {
+            String fieldName = colDef.getName();
+            String typeDef = colDef.getTypeDefinition();
+            if (Strings.isNullOrEmpty(fieldName) || Strings.isNullOrEmpty(typeDef)) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(
                       new Error(
-                          "column name must be provided",
+                          "Type name and definition must be provided.",
                           Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
             }
             columns.add(
                 Column.create(
-                    columnName,
+                    fieldName,
                     Kind.Regular,
                     Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition())));
           }
-          // Build target object from definition
+
           UserDefinedType udt =
               ImmutableUserDefinedType.builder()
                   .keyspace(keyspaceName)
                   .name(typeName)
-                  .addColumns((Column[]) columns.toArray(new Column[0]))
+                  .addColumns(columns.toArray(new Column[0]))
                   .build();
-          // Execute creation
+
           authenticatedDB
               .getDataStore()
               .queryBuilder()
               .create()
               .type(keyspaceName, udt)
-              .ifNotExists(udtAdd.isIfNotExists())
+              .ifNotExists(udtAdd.getIfNotExists())
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
@@ -335,14 +342,21 @@ public class UserDefinedTypesResource {
     return RequestHandler.handle(
         () -> {
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
 
-          // Permissions on a type are the same as keyspace
-          // (CreateTypeFetcher for graphQl API)
           db.getAuthorizationService()
-              .authorizeSchemaRead(
+              .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
+                  keyspaceName,
                   null,
+                  Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.TYPE);
 
@@ -360,15 +374,15 @@ public class UserDefinedTypesResource {
         });
   }
 
-  private UserDefinedTypeResponse mapUdtAsReponse(UserDefinedType udt) {
+  private UserDefinedTypeResponse mapUdtAsResponse(UserDefinedType udt) {
     return new UserDefinedTypeResponse(
         udt.name(),
         udt.keyspace(),
-        udt.columns().stream().map(this::mapUdtColumnDefinition).collect(Collectors.toList()));
+        udt.columns().stream().map(this::mapUdtFieldDefinition).collect(Collectors.toList()));
   }
 
-  private ColumnDefinitionUserDefinedType mapUdtColumnDefinition(Column col) {
-    return new ColumnDefinitionUserDefinedType(
+  private UserDefinedTypeField mapUdtFieldDefinition(Column col) {
+    return new UserDefinedTypeField(
         col.name(), null == col.type() ? null : col.type().cqlDefinition());
   }
 }

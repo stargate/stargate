@@ -25,21 +25,15 @@ import io.swagger.annotations.ApiModelProperty;
  *
  * <p>This class hase been introduced as the existing {@link ColumnDefinition} included attributes
  * relative to Table only (static). Inheritance would still be possible.
- *
- * @since 1.0.16
- * @author Cedrick LUNVEN (@clunven)
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ColumnDefinitionUserDefinedType {
+public class UserDefinedTypeField {
 
-  /** (Immutable) unique identifier for the column. */
   private final String name;
-
-  /** (Immutable) type definition like 'map<string,string>'. */
   private final String typeDefinition;
 
-  @JsonCreator
-  public ColumnDefinitionUserDefinedType(
+  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+  public UserDefinedTypeField(
       @JsonProperty("name") final String name,
       @JsonProperty("typeDefinition") final String typeDefinition) {
     this.name = name;
@@ -49,7 +43,7 @@ public class ColumnDefinitionUserDefinedType {
   @ApiModelProperty(
       example = "emailaddress",
       required = true,
-      value = "Name for the column, which must be unique.")
+      value = "Name for the type, which must be unique.")
   public String getName() {
     return name;
   }
@@ -57,7 +51,7 @@ public class ColumnDefinitionUserDefinedType {
   @ApiModelProperty(
       example = "text",
       required = true,
-      value = "The type of data allowed in the column.")
+      value = "The type of data allowed in the type.")
   public String getTypeDefinition() {
     return typeDefinition;
   }

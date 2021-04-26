@@ -2350,6 +2350,162 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(response.getDescription()).isNotEmpty();
   }
 
+  @Test
+  public void createUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}, {\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // throws error because same name, but ifNotExists = false
+    String response =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            udtString,
+            HttpStatus.SC_BAD_REQUEST);
+
+    String typeName = "udt1";
+
+    Error error = objectMapper.readValue(response, Error.class);
+    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.getDescription())
+        .isEqualTo(
+            String.format(
+                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+
+    // don't create and don't throw exception because ifNotExists = true
+    udtString =
+        "{\"name\": \"udt1\", \"ifNotExists\": true, \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+  }
+
+  @Test
+  public void createInvalidUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // no typeDefinition
+    String udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\"}]}";
+
+    String response =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            udtString,
+            HttpStatus.SC_BAD_REQUEST);
+
+    Error error = objectMapper.readValue(response, Error.class);
+    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.getDescription())
+        .isEqualTo("Bad request: Type name and definition must be provided.");
+  }
+
+  @Test
+  public void dropUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"int\"}]}";
+
+    createUdt(udtString);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
+        HttpStatus.SC_NO_CONTENT);
+
+    // delete a non existent UDT
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void getUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt1\", \"fieldDefinitions\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
+
+    createUdt(udtString);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    Map<String, Object> response = (Map<String, Object>) getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("test_udt1");
+    List<Map<String, String>> fieldDefinitions =
+        (List<Map<String, String>>) response.get("fieldDefinitions");
+    assertThat(fieldDefinitions.size()).isEqualTo(1);
+    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("arrival");
+    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("timestamp");
+
+    // get non existent UDT
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "invalid_udt"),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void listAllTypes() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Map<String, Object>>> response =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(),
+            new TypeReference<List<Map<String, Map<String, Object>>>>() {});
+    assertThat(response.size()).isEqualTo(0);
+
+    // creates 10 UDTs
+    String udtString =
+        "{\"name\": \"%s\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    for (int i = 0; i < 10; i++) {
+      createUdt(String.format(udtString, "udt" + i));
+    }
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    response =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(),
+            new TypeReference<List<Map<String, Map<String, Object>>>>() {});
+    assertThat(response.size()).isEqualTo(10);
+  }
+
   private void createTable(String keyspaceName, String tableName) throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
@@ -2608,6 +2764,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+  }
+
+  private void createUdt(String udt) throws IOException {
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udt,
         HttpStatus.SC_CREATED);
   }
 }

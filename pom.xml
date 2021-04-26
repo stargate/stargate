@@ -378,15 +378,6 @@
             </compilerArgs>
             <showWarnings>true</showWarnings>
             <failOnWarning>false</failOnWarning>
-            <!-- 
-            <annotationProcessorPaths>
-             <path>
-              <groupId>org.immutables</groupId>
-              <artifactId>value</artifactId>
-              <version>${immutables.version}</version>
-              </path>
-            </annotationProcessorPaths>
-            -->
           </configuration>
           <dependencies>
             <dependency>
@@ -445,53 +436,6 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M3</version>
         </plugin>
-        <!-- Required to build in eclipse = ignoring not supported plugins -->
-		<plugin>
-			<groupId>org.eclipse.m2e</groupId>
-			<artifactId>lifecycle-mapping</artifactId>
-			<version>1.0.0</version>
-			<configuration>
-		     <lifecycleMappingMetadata>
-			  <pluginExecutions>
-	           <pluginExecution>
-			    <pluginExecutionFilter>
-				 <groupId>au.com.acegi</groupId>
-				 <artifactId>xml-format-maven-plugin</artifactId>
-				 <versionRange>[3.1,)</versionRange>
-				 <goals><goal>xml-check</goal></goals>
-			   </pluginExecutionFilter>
-			   <action><execute /></action>
-			 </pluginExecution>
-	         <pluginExecution>
-			  <pluginExecutionFilter>
-			   <groupId>com.coveo</groupId>
-			   <artifactId>fmt-maven-plugin</artifactId>
-			   <versionRange>[2,)</versionRange>
-				<goals><goal>check</goal></goals>
-			  </pluginExecutionFilter>
-			  <action><execute /></action></pluginExecution>
-	          <pluginExecution>
-			   <pluginExecutionFilter>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<versionRange>[1,)</versionRange>
-				<goals><goal>run</goal></goals>
-			   </pluginExecutionFilter>
-			   <action><execute /></action>
-			  </pluginExecution>
-			  <pluginExecution>
-			   <pluginExecutionFilter>
-			    <groupId>com.github.sparow199</groupId>
-				<artifactId>apollo-client-maven-plugin</artifactId>
-				<versionRange>[3.2,)</versionRange>
-				<goals><goal>generate</goal></goals>
-		       </pluginExecutionFilter>
-			   <action><execute /></action>
-			  </pluginExecution>
-			 </pluginExecutions>
-			</lifecycleMappingMetadata>
-		   </configuration>
-		</plugin>
       </plugins>
     </pluginManagement>
   </build>
