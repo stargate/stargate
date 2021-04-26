@@ -2391,26 +2391,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void createInvalidUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    // no typeDefinition
-    String udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\"}]}";
-
-    String response =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
-            udtString,
-            HttpStatus.SC_BAD_REQUEST);
-
-    Error error = objectMapper.readValue(response, Error.class);
-    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(error.getDescription())
-        .isEqualTo("Bad request: Type name and definition must be provided.");
-  }
-
-  @Test
   public void dropUdt() throws IOException {
     createKeyspace(keyspaceName);
 
@@ -2479,10 +2459,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     @SuppressWarnings("rawtypes")
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
-    List<Map<String, Map<String, Object>>> response =
+    List<Map<String, Object>> response =
         objectMapper.convertValue(
-            getResponseWrapper.getData(),
-            new TypeReference<List<Map<String, Map<String, Object>>>>() {});
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(0);
 
     // creates 10 UDTs
@@ -2501,9 +2480,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
     response =
         objectMapper.convertValue(
-            getResponseWrapper.getData(),
-            new TypeReference<List<Map<String, Map<String, Object>>>>() {});
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(10);
+
+    List<Map<String, String>> fieldDefinitions =
+        (List<Map<String, String>>) response.get(0).get("fieldDefinitions");
+    assertThat(fieldDefinitions.size()).isEqualTo(1);
+    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("varchar");
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
