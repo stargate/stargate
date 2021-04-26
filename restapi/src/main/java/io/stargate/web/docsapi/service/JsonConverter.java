@@ -1,19 +1,19 @@
-package io.stargate.web.docsapi.service.json;
+package io.stargate.web.docsapi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.service.json.DeadLeafCollector;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import java.util.*;
+import javax.inject.Inject;
 
 public class JsonConverter {
-  private static final ObjectMapper mapper = new ObjectMapper();
-
-  public ObjectMapper getMapper() {
-    return mapper;
-  }
+  @Inject @VisibleForTesting ObjectMapper mapper;
 
   // TODO find a place to refactor this to, along with DocumentService#getBooleanFromRow
   private static Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
@@ -32,7 +32,6 @@ public class JsonConverter {
       boolean numericBooleans) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
-    Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     if (rows.isEmpty()) {
       return doc;
     }
@@ -98,12 +97,11 @@ public class JsonConverter {
             if (i == 0) {
               doc = mapper.createArrayNode();
               ref = doc;
-              pathWriteTimes.put(parentPath, rowWriteTime);
             } else {
               markObjectAtPathAsDead(ref, parentPath, collector);
               ref = changeCurrentNodeToArray(row, parentRef, i);
-              pathWriteTimes.put(parentPath, rowWriteTime);
             }
+            pathWriteTimes.put(parentPath, rowWriteTime);
           }
 
           int index = Integer.parseInt(p.substring(1, p.length() - 1));
@@ -126,8 +124,6 @@ public class JsonConverter {
 
             arrayRef.set(index, childRef);
           }
-          parentRef = ref;
-          ref = childRef;
         } else {
           childRef = ref.get(p);
           if (childRef == null) {
@@ -144,9 +140,9 @@ public class JsonConverter {
 
             ((ObjectNode) ref).set(p, childRef);
           }
-          parentRef = ref;
-          ref = childRef;
         }
+        parentRef = ref;
+        ref = childRef;
         parentPath += "." + p;
       }
 

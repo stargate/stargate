@@ -1,4 +1,4 @@
-package io.stargate.web.docsapi.service.json;
+package io.stargate.web.docsapi.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.datastore.Row;
-import io.stargate.web.docsapi.service.DocumentServiceTest;
+import io.stargate.web.docsapi.service.json.DeadLeaf;
+import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ public class JsonConverterTest {
   @BeforeEach
   public void setup() {
     service = new JsonConverter();
+    service.mapper = mapper;
   }
 
   @Test

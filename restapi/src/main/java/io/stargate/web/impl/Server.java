@@ -36,6 +36,7 @@ import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.NamespacesResource;
+import io.stargate.web.docsapi.service.JsonConverter;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
@@ -133,6 +134,26 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(IndexesResource.class);
 
     // Documents API
+    final JsonConverter jsonConverter = new JsonConverter();
+    final ObjectMapper mapper = new ObjectMapper();
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(jsonConverter).to(JsonConverter.class);
+              }
+            });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(mapper).to(ObjectMapper.class);
+              }
+            });
     environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);

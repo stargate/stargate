@@ -10,7 +10,6 @@ import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -46,7 +45,6 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
-import io.stargate.web.docsapi.service.json.JsonConverter;
 import io.stargate.web.resources.Db;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -66,11 +64,13 @@ import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.mockito.*;
 
 public class DocumentServiceTest {
   private final DataStore dataStore = Mockito.mock(DataStore.class);
-  private DocumentService service;
+  @InjectMocks DocumentService service;
+  @Mock JsonConverter jsonConverter;
+
   private Method convertToBracketedPath;
   private Method leftPadTo6;
   private Method convertArrayPath;
@@ -94,7 +94,9 @@ public class DocumentServiceTest {
 
   @BeforeEach
   public void setup() throws NoSuchMethodException {
-    service = new DocumentService();
+    MockitoAnnotations.initMocks(this);
+    jsonConverter.mapper = mapper;
+    service.mapper = mapper;
 
     convertToBracketedPath =
         DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);
@@ -1022,9 +1024,6 @@ public class DocumentServiceTest {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
-    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
@@ -1038,11 +1037,10 @@ public class DocumentServiceTest {
 
     List<PathSegment> path = smallPath();
 
-    when(jsonConverterServiceMock.convertToJsonDoc(
-            anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
+    when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.createObjectNode());
 
-    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
+    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isNull();
   }
@@ -1052,9 +1050,6 @@ public class DocumentServiceTest {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
-    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
@@ -1071,11 +1066,10 @@ public class DocumentServiceTest {
     ObjectNode jsonObj = mapper.createObjectNode();
     jsonObj.set("abc", mapper.readTree("[1]"));
 
-    when(jsonConverterServiceMock.convertToJsonDoc(
-            anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
+    when(jsonConverter.convertToJsonDoc(anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
         .thenReturn(jsonObj);
 
-    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
+    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isEqualTo(IntNode.valueOf(1));
   }
@@ -1202,7 +1196,6 @@ public class DocumentServiceTest {
     JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
     Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
-    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     Mockito.when(
             serviceMock.searchRows(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -1222,19 +1215,20 @@ public class DocumentServiceTest {
 
   @Test
   public void searchDocumentsV2_existingResult() throws Exception {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-    DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
-        .thenCallRealMethod();
-    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(makeInitialRowData());
-    Mockito.when(
-            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
-        .thenReturn(mapper.readTree("{\"a\": 1}"));
+
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData();
+    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
@@ -1243,28 +1237,29 @@ public class DocumentServiceTest {
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
     JsonNode result =
-        serviceMock.searchDocumentsV2(
+        service.searchDocumentsV2(
             dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+    assertThat(result.at("/1").isMissingNode()).isFalse();
   }
 
   @Test
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-    DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = Mockito.mock(JsonConverter.class);
-    Mockito.when(jsonConverterServiceMock.getMapper()).thenCallRealMethod();
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
-        .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(makeInitialRowData());
-    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
-    Mockito.when(
-            jsonConverterServiceMock.convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean()))
-        .thenReturn(mapper.readTree("{\"a\": 1}"));
+
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData();
+    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
+    doNothing()
+        .when(authorizationService)
+        .authorizeDataRead(
+            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
+
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
@@ -1272,10 +1267,10 @@ public class DocumentServiceTest {
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     JsonNode result =
-        serviceMock.searchDocumentsV2(
+        service.searchDocumentsV2(
             dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+    assertThat(result).isNull();
   }
 
   @Test
@@ -1297,30 +1292,25 @@ public class DocumentServiceTest {
   @Test
   public void getFullDocuments_lessThanLimit() throws Exception {
     Db dbFactoryMock = Mockito.mock(Db.class);
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-    DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    DocumentDB dbMock = mock(DocumentDB.class);
+
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData();
+    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(makeInitialRowData());
-    Mockito.when(
-            serviceMock.getFullDocuments(
-                any(), anyString(), anyString(), anyListOf(String.class), any()))
-        .thenCallRealMethod();
-    Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
-    Mockito.when(
-            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
-    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     JsonNode result =
-        serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+        service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
@@ -1328,33 +1318,27 @@ public class DocumentServiceTest {
   @Test
   public void getFullDocuments_greaterThanLimit() throws Exception {
     Db dbFactoryMock = Mockito.mock(Db.class);
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-    DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    DocumentDB dbMock = mock(DocumentDB.class);
+
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData();
+    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(twoDocsRows);
-    Mockito.when(
-            serviceMock.getFullDocuments(
-                any(), anyString(), anyString(), anyListOf(String.class), any()))
-        .thenCallRealMethod();
-    Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
-    Mockito.when(
-            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
-    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     JsonNode result =
-        serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+        service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
