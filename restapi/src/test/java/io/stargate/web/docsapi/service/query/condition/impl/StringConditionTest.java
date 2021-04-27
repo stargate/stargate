@@ -19,8 +19,8 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.BooleanValuePredicate;
-import org.apache.commons.lang3.RandomUtils;
+import io.stargate.web.docsapi.service.query.predicate.StringFilterPredicate;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,21 +33,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BooleanConditionTest {
+class StringConditionTest {
 
     @Mock
-    BooleanValuePredicate<Boolean> predicate;
+    StringFilterPredicate<String> predicate;
 
     @Nested
     class Constructor {
 
         @Test
         public void predicateValidated() {
-            boolean value = true;
+            String value = RandomStringUtils.randomAlphanumeric(16);
 
-            ImmutableBooleanCondition.of(predicate, value, true);
+            StringCondition condition = ImmutableStringCondition.of(predicate, value);
 
-            verify(predicate).validateBooleanFilterInput(true);
+            assertThat(condition).isNotNull();
+            verify(predicate).validateStringFilterInput(value);
             verifyNoMoreInteractions(predicate);
         }
 
@@ -59,25 +60,25 @@ class BooleanConditionTest {
         @Test
         public void happyPath() {
             Predicate eq = Predicate.EQ;
-            boolean value = RandomUtils.nextBoolean();
+            String value = RandomStringUtils.randomAlphanumeric(16);
             when(predicate.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).hasValueSatisfying(builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
                 assertThat(builtCondition.value().get()).isEqualTo(value);
-                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("text_value"));
             });
         }
 
         @Test
         public void emptyPredicate() {
-            boolean value = RandomUtils.nextBoolean();
+            String value = RandomStringUtils.randomAlphanumeric(16);
             when(predicate.getDatabasePredicate()).thenReturn(Optional.empty());
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -93,54 +94,26 @@ class BooleanConditionTest {
 
         @Test
         public void nullDatabaseValue() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(true);
+            String filterValue = RandomStringUtils.randomAlphanumeric(16);
+            when(row.isNull("text_value")).thenReturn(true);
             when(predicate.test(filterValue, null)).thenReturn(true);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void nonNumericBooleans() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            boolean databaseValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getBoolean("bool_value")).thenReturn(databaseValue);
+        public void notNullDatabaseValue() {
+            String filterValue = RandomStringUtils.randomAlphanumeric(16);
+            String databaseValue = RandomStringUtils.randomAlphanumeric(16);
+            when(row.isNull("text_value")).thenReturn(false);
+            when(row.getString("text_value")).thenReturn(databaseValue);
             when(predicate.test(filterValue, databaseValue)).thenReturn(true);
 
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansZero() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 0;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, false)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansOne() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 1;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, true)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.provider;
+package io.stargate.web.docsapi.service.query.condition.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;

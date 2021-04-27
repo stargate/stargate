@@ -33,7 +33,7 @@ public interface BasePredicate {
     /**
      * @return If this predicate can provide database predicate.
      */
-    default boolean canProvideDatabasePredicate() {
+    default boolean hasDatabasePredicate() {
         return getDatabasePredicate().isPresent();
     }
 

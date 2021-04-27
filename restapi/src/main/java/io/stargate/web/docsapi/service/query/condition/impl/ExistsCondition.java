@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import java.util.Optional;
 
 // TODO is this class needed at all? Can it provide a built in condition?
+//  if yes add test
 @Value.Immutable
 public abstract class ExistsCondition extends AnyValueCondition<Boolean> implements BaseCondition {
 

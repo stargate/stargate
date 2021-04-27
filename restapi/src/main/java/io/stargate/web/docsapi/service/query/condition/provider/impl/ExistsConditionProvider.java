@@ -14,12 +14,13 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.provider;
+package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
+import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.predicate.impl.ExistsPredicate;
 
 import java.util.Optional;

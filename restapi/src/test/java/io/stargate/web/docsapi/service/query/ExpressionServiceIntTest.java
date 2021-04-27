@@ -21,11 +21,12 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
-import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.condition.ConditionProviderService;
+import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
-import io.stargate.web.docsapi.service.query.provider.ConditionProviderService;
+import io.stargate.web.docsapi.service.query.predicate.impl.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,14 +35,15 @@ import javax.ws.rs.core.PathSegment;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// TODO this should be INT test
-// TODO create proper UNIT test
-class ExpressionServiceTest {
+// INT test in terms that it works against components and has no mocks
+// TODO ISE: move to the testing when DI allows
+class ExpressionServiceIntTest {
 
     ExpressionService service;
 
@@ -71,6 +73,8 @@ class ExpressionServiceTest {
                         assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                         assertThat(builtCondition.value().get()).isEqualTo("some-value");
                     });
+                    assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                    assertThat(sc.getQueryValue()).isEqualTo("some-value");
                 });
             });
         }
@@ -78,14 +82,12 @@ class ExpressionServiceTest {
         @Test
         public void andWrapping() {
             ObjectNode root = mapper.createObjectNode();
-            root.set("myField", mapper.createObjectNode().put("$eq", "some-value"));
-            root.set("myOtherField", mapper.createObjectNode().put("$eq", "some-value"));
+            root.set("myField", mapper.createObjectNode().put("$ne", "some-value"));
+            root.set("myOtherField", mapper.createObjectNode().put("$gt", "some-value"));
 
             Expression<FilterExpression> result = service.constructFilterExpression(Collections.emptyList(), root);
 
-            assertThat(result).isInstanceOfSatisfying(And.class, a -> {
-                assertThat(a.getChildren()).hasSize(2);
-            });
+            assertThat(result).isInstanceOfSatisfying(And.class, a -> assertThat(a.getChildren()).hasSize(2));
         }
     }
 
@@ -96,7 +98,7 @@ class ExpressionServiceTest {
         public void singleFieldString() {
             ObjectNode root = mapper
                     .createObjectNode()
-                    .set("myField", mapper.createObjectNode().put("$eq", "some-value"));
+                    .set("myField", mapper.createObjectNode().put("$lt", "some-value"));
 
             List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
 
@@ -106,9 +108,11 @@ class ExpressionServiceTest {
                         assertThat(c.getFilterPath().getPath()).isEmpty();
                         assertThat(c.getCondition()).isInstanceOfSatisfying(StringCondition.class, sc -> {
                             assertThat(sc.getBuiltCondition()).hasValueSatisfying(builtCondition -> {
-                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
+                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.LT);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(LtPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
         }
@@ -117,7 +121,7 @@ class ExpressionServiceTest {
         public void singleFieldBoolean() {
             ObjectNode root = mapper
                     .createObjectNode()
-                    .set("myField", mapper.createObjectNode().put("$eq", true));
+                    .set("myField", mapper.createObjectNode().put("$gte", true));
 
             List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
 
@@ -127,9 +131,11 @@ class ExpressionServiceTest {
                         assertThat(c.getFilterPath().getPath()).isEmpty();
                         assertThat(c.getCondition()).isInstanceOfSatisfying(BooleanCondition.class, sc -> {
                             assertThat(sc.getBuiltCondition()).hasValueSatisfying(builtCondition -> {
-                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
+                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.GTE);
                                 assertThat(builtCondition.value().get()).isEqualTo(Boolean.TRUE);
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(GtePredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo(true);
                         });
                     });
         }
@@ -138,7 +144,7 @@ class ExpressionServiceTest {
         public void singleFieldDouble() {
             ObjectNode root = mapper
                     .createObjectNode()
-                    .set("myField", mapper.createObjectNode().put("$eq", 22d));
+                    .set("myField", mapper.createObjectNode().put("$lte", 22d));
 
             List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
 
@@ -148,9 +154,11 @@ class ExpressionServiceTest {
                         assertThat(c.getFilterPath().getPath()).isEmpty();
                         assertThat(c.getCondition()).isInstanceOfSatisfying(NumberCondition.class, sc -> {
                             assertThat(sc.getBuiltCondition()).hasValueSatisfying(builtCondition -> {
-                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
+                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.LTE);
                                 assertThat(builtCondition.value().get()).isEqualTo(22d);
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(LtePredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo(22d);
                         });
                     });
         }
@@ -172,6 +180,8 @@ class ExpressionServiceTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
         }
@@ -193,6 +203,8 @@ class ExpressionServiceTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
         }
@@ -216,6 +228,8 @@ class ExpressionServiceTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
         }
@@ -243,13 +257,23 @@ class ExpressionServiceTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     }))
                     .anySatisfy(e -> assertThat(e).isInstanceOfSatisfying(FilterExpression.class, c -> {
                         assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                         assertThat(c.getFilterPath().getPath()).isEmpty();
-                        assertThat(c.getCondition()).isInstanceOfSatisfying(BaseCondition.class, sc -> {
-                            assertThat(sc.getBuiltCondition()).isEmpty();
+                        assertThat(c.getCondition()).isInstanceOfSatisfying(AnyValueCondition.class, sc -> {
+                            Optional<?> builtCondition = sc.getBuiltCondition();
+                            assertThat(builtCondition).isEmpty();
+                            assertThat(sc.getFilterPredicate()).isEqualTo(InPredicate.of());
+                            assertThat(sc.getQueryValue()).isInstanceOfSatisfying(List.class, qv -> {
+                                List<?> list = qv;
+                                assertThat(list).hasSize(2);
+                                assertThat(list).element(0).isEqualTo("array-one");
+                                assertThat(list).element(1).isEqualTo("array-two");
+                            });
                         });
                     }));
         }
@@ -258,7 +282,7 @@ class ExpressionServiceTest {
         public void multipleFields() {
             ObjectNode root = mapper.createObjectNode();
             root.set("myField", mapper.createObjectNode().put("$eq", "some-value"));
-            root.set("myOtherField", mapper.createObjectNode().put("$eq", "some-small-value"));
+            root.set("myOtherField", mapper.createObjectNode().put("$ne", "some-small-value"));
 
             List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
 
@@ -271,16 +295,17 @@ class ExpressionServiceTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
+                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     }))
                     .anySatisfy(e -> assertThat(e).isInstanceOfSatisfying(FilterExpression.class, c -> {
                         assertThat(c.getFilterPath().getField()).isEqualTo("myOtherField");
                         assertThat(c.getFilterPath().getPath()).isEmpty();
                         assertThat(c.getCondition()).isInstanceOfSatisfying(StringCondition.class, sc -> {
-                            assertThat(sc.getBuiltCondition()).hasValueSatisfying(builtCondition -> {
-                                assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                assertThat(builtCondition.value().get()).isEqualTo("some-small-value");
-                            });
+                            assertThat(sc.getBuiltCondition()).isEmpty();
+                            assertThat(sc.getFilterPredicate()).isEqualTo(NePredicate.of());
+                            assertThat(sc.getQueryValue()).isEqualTo("some-small-value");
                         });
                     }));
         }

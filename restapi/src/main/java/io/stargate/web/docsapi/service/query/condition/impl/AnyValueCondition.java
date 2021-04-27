@@ -56,7 +56,10 @@ public abstract class AnyValueCondition<V> implements BaseCondition {
      */
     @Value.Check
     protected void validate() {
-        getFilterPredicate().validateBooleanFilterInput(getQueryValue());
+        V queryValue = getQueryValue();
+        getFilterPredicate().validateBooleanFilterInput(queryValue);
+        getFilterPredicate().validateStringFilterInput(queryValue);
+        getFilterPredicate().validateDoubleFilterInput(queryValue);
     }
 
     /**

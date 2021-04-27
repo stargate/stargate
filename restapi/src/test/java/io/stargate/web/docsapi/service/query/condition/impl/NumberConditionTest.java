@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.BooleanValuePredicate;
+import io.stargate.web.docsapi.service.query.predicate.DoubleFilterPredicate;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,21 +33,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BooleanConditionTest {
+class NumberConditionTest {
 
     @Mock
-    BooleanValuePredicate<Boolean> predicate;
+    DoubleFilterPredicate<Number> predicate;
 
     @Nested
     class Constructor {
 
         @Test
         public void predicateValidated() {
-            boolean value = true;
+            Number value = RandomUtils.nextLong();
 
-            ImmutableBooleanCondition.of(predicate, value, true);
+            NumberCondition condition = ImmutableNumberCondition.of(predicate, value);
 
-            verify(predicate).validateBooleanFilterInput(true);
+            assertThat(condition).isNotNull();
+            verify(predicate).validateDoubleFilterInput(value);
             verifyNoMoreInteractions(predicate);
         }
 
@@ -59,25 +60,25 @@ class BooleanConditionTest {
         @Test
         public void happyPath() {
             Predicate eq = Predicate.EQ;
-            boolean value = RandomUtils.nextBoolean();
+            Number value = RandomUtils.nextLong();
             when(predicate.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).hasValueSatisfying(builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
-                assertThat(builtCondition.value().get()).isEqualTo(value);
-                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.value().get()).isEqualTo(value.doubleValue());
+                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("dbl_value"));
             });
         }
 
         @Test
         public void emptyPredicate() {
-            boolean value = RandomUtils.nextBoolean();
+            Number value = RandomUtils.nextLong();
             when(predicate.getDatabasePredicate()).thenReturn(Optional.empty());
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -93,54 +94,26 @@ class BooleanConditionTest {
 
         @Test
         public void nullDatabaseValue() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(true);
+            Number filterValue = RandomUtils.nextLong();
+            when(row.isNull("dbl_value")).thenReturn(true);
             when(predicate.test(filterValue, null)).thenReturn(true);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void nonNumericBooleans() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            boolean databaseValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getBoolean("bool_value")).thenReturn(databaseValue);
+        public void notNullDatabaseValue() {
+            Number filterValue = RandomUtils.nextLong();
+            Double databaseValue = RandomUtils.nextDouble();
+            when(row.isNull("dbl_value")).thenReturn(false);
+            when(row.getDouble("dbl_value")).thenReturn(databaseValue);
             when(predicate.test(filterValue, databaseValue)).thenReturn(true);
 
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansZero() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 0;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, false)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansOne() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 1;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, true)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.provider.ConditionProviderService;
+import io.stargate.web.docsapi.service.query.condition.ConditionProviderService;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.core.PathSegment;
@@ -56,7 +56,7 @@ public class ExpressionService {
      *
      * @param prependedPath Given collection or document path segments
      * @param filterJson    Filter JSON node
-     * @return Returns optimized joined {@link Expression<FilterCondition>} for filtering
+     * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
      */
     public Expression<FilterExpression> constructFilterExpression(List<PathSegment> prependedPath, JsonNode filterJson) {
         List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson);
@@ -126,7 +126,7 @@ public class ExpressionService {
         return ImmutableFilterPath.of(field, path);
     }
 
-    // TODO take fom document service, best to extract to some kind of static utils
+    // TODO ISE: taken fom document service, best to extract to some kind of static utils
     private String convertArrayPath(String path) {
 
         // to charAt can be faster here?
@@ -142,7 +142,7 @@ public class ExpressionService {
         return path;
     }
 
-    // TODO take fom document service, best to extract to some kind of static utils
+    // TODO ISE: taken fom document service, best to extract to some kind of static utils
     private String leftPadTo6(String value) {
         return StringUtils.leftPad(value, 6, '0');
     }

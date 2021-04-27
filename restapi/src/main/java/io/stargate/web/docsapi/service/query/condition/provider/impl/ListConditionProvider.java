@@ -14,14 +14,15 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.provider;
+package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableAnyValueCondition;
+import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
-import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,16 +30,22 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Condition provider for the {@link ListCondition}. Extract objects from the array JSON node.
+ * Condition provider for the {@link AnyValueCondition} for lists. Extract objects from the array JSON node.
  */
-@Value.Immutable
-public abstract class ListConditionProvider implements ConditionProvider {
+public class ListConditionProvider implements ConditionProvider {
+
+    public static ListConditionProvider of(AnyValuePredicate<List<?>> predicate) {
+        return new ListConditionProvider(predicate);
+    }
 
     /**
-     * @return Predicate to use in the condition
+     * Predicate to use in the condition
      */
-    @Value.Parameter
-    protected abstract AnyValuePredicate<List<?>> listPredicate();
+    private final AnyValuePredicate<List<?>> predicate;
+
+    public ListConditionProvider(AnyValuePredicate<List<?>> predicate) {
+        this.predicate = predicate;
+    }
 
     /**
      * {@inheritDoc}
@@ -48,7 +55,7 @@ public abstract class ListConditionProvider implements ConditionProvider {
         if (node.isArray()) {
             Iterator<JsonNode> iterator = node.iterator();
             List<?> input = getListConditionValues(iterator);
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(listPredicate(), input, numericBooleans);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(predicate, input, numericBooleans);
             return Optional.of(condition);
         }
         return Optional.empty();
@@ -57,22 +64,20 @@ public abstract class ListConditionProvider implements ConditionProvider {
     private List<?> getListConditionValues(Iterator<JsonNode> iterator) {
         List<Object> result = new ArrayList<>();
         iterator.forEachRemaining(node -> {
-            // TODO Eric? copied int branch from the Document service, is this actually wanted?
-
-            if (node.isInt()) {
-                result.add(node.asInt());
+            // collect supported values
+            if (node.isNumber()) {
+                result.add(node.numberValue());
             } else if (node.isBoolean()) {
                 result.add(node.asBoolean());
-            } else if (node.isNumber()) {
-                result.add(node.asDouble());
-            } else if (node.isTextual()) {
+            }  else if (node.isTextual()) {
                 result.add(node.asText());
             } else if (node.isNull()) {
                 result.add(null);
+            } else {
+                // if we hit anything else throw an exception
+                String msg = String.format("Operation %s was not expecting a list containing a %s node type.", predicate.getRawValue(), node.getNodeType());
+                throw new DocumentAPIRequestException(msg);
             }
-
-            // TODO should we throw the exception here if node is smth else?
-            //  for example $in: [ 1, [2]] would ignore 2 here
         });
         return result;
     }
