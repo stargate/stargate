@@ -20,12 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 
-/**
- * Represents a column in a User Defined type like {@link UserDefinedTypeAdd}
- *
- * <p>This class hase been introduced as the existing {@link ColumnDefinition} included attributes
- * relative to Table only (static). Inheritance would still be possible.
- */
+/** Represents a column in a User Defined type like {@link UserDefinedTypeAdd} */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDefinedTypeField {
 

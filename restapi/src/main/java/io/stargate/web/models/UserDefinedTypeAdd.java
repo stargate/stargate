@@ -63,6 +63,7 @@ public class UserDefinedTypeAdd implements Serializable {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
+        .add("name", name)
         .add("fields", fieldDefinitions)
         .add("ifNotExists", ifNotExists)
         .omitNullValues()

@@ -2397,7 +2397,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String udtString =
         "{\"name\": \"test_udt\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"int\"}]}";
 
-    createUdt(udtString);
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
 
     RestUtils.delete(
         authToken,
@@ -2418,7 +2422,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String udtString =
         "{\"name\": \"test_udt1\", \"fieldDefinitions\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
 
-    createUdt(udtString);
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
 
     String body =
         RestUtils.get(
@@ -2468,7 +2476,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     String udtString =
         "{\"name\": \"%s\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
     for (int i = 0; i < 10; i++) {
-      createUdt(String.format(udtString, "udt" + i));
+      RestUtils.post(
+          authToken,
+          String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+          String.format(udtString, "udt" + i),
+          HttpStatus.SC_CREATED);
     }
 
     body =
@@ -2748,14 +2760,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         authToken,
         String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-  }
-
-  private void createUdt(String udt) throws IOException {
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
-        udt,
         HttpStatus.SC_CREATED);
   }
 }

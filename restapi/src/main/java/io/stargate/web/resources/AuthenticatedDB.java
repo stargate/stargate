@@ -81,7 +81,7 @@ public class AuthenticatedDB {
   }
 
   /**
-   * Retrieve user defined types Definitions for a keyspace.
+   * Retrieve user defined types definitions for a keyspace.
    *
    * @param keyspaceName existing keyspace name
    * @return a collection of user defined types definitions
@@ -95,10 +95,10 @@ public class AuthenticatedDB {
   }
 
   /**
-   * Retrieve user defined types Definitions from its identifer in a keyspace.
+   * Retrieve user defined types definitions from its identifier in a keyspace.
    *
    * @param keyspaceName existing keyspace name
-   * @param typeName identifier for the typ
+   * @param typeName identifier for the type
    * @return a collection of user defined types definitions
    */
   public UserDefinedType getType(String keyspaceName, String typeName) {
