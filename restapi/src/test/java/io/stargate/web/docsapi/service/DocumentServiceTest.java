@@ -70,6 +70,7 @@ public class DocumentServiceTest {
   private final DataStore dataStore = Mockito.mock(DataStore.class);
   @InjectMocks DocumentService service;
   @Mock JsonConverter jsonConverter;
+  @Spy ObjectMapper serviceMapper;
 
   private Method convertToBracketedPath;
   private Method leftPadTo6;
@@ -89,14 +90,13 @@ public class DocumentServiceTest {
   private Method checkGtOp;
   private Method checkLtOp;
   private Method searchRows;
+
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
 
   @BeforeEach
   public void setup() throws NoSuchMethodException {
     MockitoAnnotations.initMocks(this);
-    jsonConverter.mapper = mapper;
-    service.mapper = mapper;
 
     convertToBracketedPath =
         DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);

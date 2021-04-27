@@ -21,8 +21,7 @@ public class JsonConverterTest {
 
   @BeforeEach
   public void setup() {
-    service = new JsonConverter();
-    service.mapper = mapper;
+    service = new JsonConverter(mapper);
   }
 
   @Test

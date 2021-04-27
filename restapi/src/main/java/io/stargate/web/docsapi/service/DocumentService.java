@@ -36,8 +36,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -57,9 +55,13 @@ public class DocumentService {
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
   private static final Splitter PATH_SPLITTER = Splitter.on('/');
 
-  @Inject @NotNull @VisibleForTesting JsonConverter jsonConverterService;
+  private JsonConverter jsonConverterService;
+  private ObjectMapper mapper;
 
-  @Inject @VisibleForTesting ObjectMapper mapper;
+  public DocumentService(ObjectMapper mapper, JsonConverter jsonConverterService) {
+    this.mapper = mapper;
+    this.jsonConverterService = jsonConverterService;
+  }
 
   /*
    * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string

@@ -34,19 +34,22 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 public class DocumentResourceV2Test {
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final DocumentService documentServiceMock = mock(DocumentService.class);
-  private final Db dbFactoryMock = mock(Db.class);
   private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
-  private DocumentResourceV2 documentResourceV2;
+  @InjectMocks private DocumentResourceV2 documentResourceV2;
+  @Mock private DocumentService documentServiceMock;
+  @Mock private Db dbFactoryMock;
   private HttpServletRequest httpServletRequest;
 
   @BeforeEach
   public void setup() {
-    documentResourceV2 = new DocumentResourceV2(dbFactoryMock, documentServiceMock);
+    MockitoAnnotations.initMocks(this);
     httpServletRequest = mock(HttpServletRequest.class);
     when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
   }

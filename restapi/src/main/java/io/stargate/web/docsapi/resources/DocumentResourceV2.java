@@ -5,7 +5,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -63,18 +62,8 @@ public class DocumentResourceV2 {
   @Inject private Db dbFactory;
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final DocumentService documentService;
+  @Inject private DocumentService documentService;
   private final int DEFAULT_PAGE_SIZE = DocumentDB.SEARCH_PAGE_SIZE;
-
-  public DocumentResourceV2() {
-    documentService = new DocumentService();
-  }
-
-  @VisibleForTesting
-  DocumentResourceV2(Db dbFactory, DocumentService documentService) {
-    this.dbFactory = dbFactory;
-    this.documentService = documentService;
-  }
 
   @POST
   @ManagedAsync

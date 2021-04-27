@@ -3,7 +3,6 @@ package io.stargate.web.docsapi.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
-import com.google.common.annotations.VisibleForTesting;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -13,7 +12,15 @@ import java.util.*;
 import javax.inject.Inject;
 
 public class JsonConverter {
-  @Inject @VisibleForTesting ObjectMapper mapper;
+  private ObjectMapper mapper;
+
+  @Inject
+  public JsonConverter(ObjectMapper mapper) {
+    if (mapper == null) {
+      throw new IllegalStateException("JsonConverter requires a non-null ObjectMapper");
+    }
+    this.mapper = mapper;
+  }
 
   // TODO find a place to refactor this to, along with DocumentService#getBooleanFromRow
   private static Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
