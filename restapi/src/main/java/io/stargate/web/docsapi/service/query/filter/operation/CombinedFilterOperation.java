@@ -17,15 +17,17 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
- * Special type of predicate that can test a generic value against all database values.
+ * Special type of filter operation that can test a generic value against all database values.
  *
  * @param <V> Type of a value used in the predicate.
  */
-public interface CustomValueFilterOperation<V> extends StringValueFilterOperation<V>, DoubleValueFilterOperation<V>, BooleanValueFilterOperation<V> {
+public interface CombinedFilterOperation<V>
+    extends StringValueFilterOperation<V>,
+        DoubleValueFilterOperation<V>,
+        BooleanValueFilterOperation<V> {
 
-    /**
-     * @return Defines if all database values much match the predicate for the predicate to test true.
-     */
-    boolean isMatchAll();
-
+  /**
+   * @return Defines if all database values much match the filter operation for the test to be true.
+   */
+  boolean isMatchAll();
 }

@@ -17,49 +17,36 @@
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * Less than or equal filter operation.
- */
+/** Less than or equal filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class LteFilterOperation extends NotNullValueFilterOperation {
 
-    public static final String RAW_VALUE = "$lte";
+  public static final String RAW_VALUE = "$lte";
 
-    /**
-     * @return Singleton instance
-     */
-    public static LteFilterOperation of() {
-        return ImmutableLteFilterOperation.of();
-    }
+  /** @return Singleton instance */
+  public static LteFilterOperation of() {
+    return ImmutableLteFilterOperation.of();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getRawValue() {
-        return RAW_VALUE;
-    }
+  /** {@inheritDoc} */
+  @Override
+  public String getRawValue() {
+    return RAW_VALUE;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Predicate> getDatabasePredicate() {
-        return Optional.of(Predicate.LTE);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Predicate> getDatabasePredicate() {
+    return Optional.of(Predicate.LTE);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isSatisfied(int compareValue) {
-        return compareValue <= 0;
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean isSatisfied(int compareValue) {
+    return compareValue <= 0;
+  }
 }
-

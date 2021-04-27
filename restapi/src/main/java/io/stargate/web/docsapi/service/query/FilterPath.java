@@ -16,50 +16,57 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import java.util.Collections;
+import java.util.List;
 import org.immutables.value.Value;
 
-import java.util.List;
-
-/**
- * Contains path information for a filter operation.
- */
+/** Contains path information for a filter operation. */
 @Value.Immutable
 public interface FilterPath {
 
-    /**
-     * @return The name of the field.
-     */
-    @Value.Parameter
-    String getField();
+  /** @return The complete path to the field, including the field name as the last element. */
+  @Value.Parameter
+  List<String> getFullPath();
 
-    /**
-     * @return The complete path to the filed.
-     */
-    @Value.Parameter
-    List<String> getPath();
-
-    /**
-     * @return Joins {@link #getPath()} with dot. Returns empty string if there are no paths.
-     */
-    default String getPathString() {
-        List<String> path = getPath();
-        if (null != path) {
-            return String.join(".", path);
-        } else {
-            return "";
-        }
+  /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */
+  default String getField() {
+    List<String> path = getFullPath();
+    if (null == path || path.isEmpty()) {
+      return null;
+    } else {
+      int length = path.size();
+      return path.get(length - 1);
     }
+  }
 
-    /**
-     * @return Returns complete JSON path as String to the field, including the field.
-     */
-    default String getFullFieldPathString() {
-        String pathString = getPathString();
-        if (pathString.isEmpty()) {
-            return getField();
-        } else {
-            return String.join(".", pathString, getField());
-        }
+  /** @return The path without the field. Effectively, the last element of {@link #getPath()}. */
+  default List<String> getPath() {
+    List<String> path = getFullPath();
+    if (null != path && path.size() > 1) {
+      int length = path.size();
+      return path.subList(0, length - 1);
+    } else {
+      return Collections.emptyList();
     }
+  }
 
+  /** @return Joins {@link #getPath()} with dot. Returns empty string if there are no paths. */
+  default String getPathString() {
+    List<String> path = getPath();
+    if (null != path) {
+      return String.join(".", path);
+    } else {
+      return "";
+    }
+  }
+
+  /** @return Returns complete JSON path as String to the field, including the field. */
+  default String getFullFieldPathString() {
+    List<String> path = getFullPath();
+    if (null != path) {
+      return String.join(".", path);
+    } else {
+      return "";
+    }
+  }
 }

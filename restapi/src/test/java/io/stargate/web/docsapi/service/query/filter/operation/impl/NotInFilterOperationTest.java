@@ -16,175 +16,169 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
-import io.stargate.db.query.Predicate;
-import org.apache.commons.lang3.RandomUtils;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import io.stargate.db.query.Predicate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class NotInFilterOperationTest {
 
-    NotInFilterOperation nin = NotInFilterOperation.of();
+  NotInFilterOperation nin = NotInFilterOperation.of();
 
-    @Nested
-    class FilterTest {
+  @Nested
+  class FilterTest {
 
-        @Test
-        public void stringIn() {
-            List<?> filterValue = Collections.singletonList("filterValue");
+    @Test
+    public void stringIn() {
+      List<?> filterValue = Collections.singletonList("filterValue");
 
-            boolean result = nin.test(filterValue, "filterValue");
+      boolean result = nin.test(filterValue, "filterValue");
 
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void stringNotIn() {
-            List<?> filterValue = Collections.singletonList("filterValue");
-
-            boolean result = nin.test(filterValue, "dbValue");
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void stringNullIn() {
-            List<?> filterValue = new ArrayList<>();
-            filterValue.add(null);
-            
-            boolean result = nin.test(filterValue, (String) null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void stringNullNotIn() {
-            List<?> filterValue = Collections.singletonList("filterValue");
-
-            boolean result = nin.test(filterValue, (String) null);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanIn() {
-            boolean value = RandomUtils.nextBoolean();
-            List<?> filterValue = Collections.singletonList(value);
-
-            boolean result = nin.test(filterValue, value);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanNotIn() {
-            boolean value = RandomUtils.nextBoolean();
-            List<?> filterValue = Collections.singletonList(value);
-
-            boolean result = nin.test(filterValue, !value);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanNullIn() {
-            List<?> filterValue = new ArrayList<>();
-            filterValue.add(null);
-
-            boolean result = nin.test(filterValue, (Boolean) null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanNullNotIn() {
-            boolean value = RandomUtils.nextBoolean();
-            List<?> filterValue = Collections.singletonList(value);
-
-            boolean result = nin.test(filterValue, (Boolean) null);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numberIn() {
-            List<?> filterValue = Collections.singletonList(22d);
-
-            boolean result = nin.test(filterValue, 22d);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numberNotIn() {
-            List<?> filterValue = Collections.singletonList(22d);
-
-            boolean result = nin.test(filterValue, 23d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numberNullIn() {
-            List<?> filterValue = new ArrayList<>();
-            filterValue.add(null);
-
-            boolean result = nin.test(filterValue, (Double) null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numberNullNotIn() {
-            List<?> filterValue = Collections.singletonList(22d);
-
-            boolean result = nin.test(filterValue, (Double) null);
-
-            assertThat(result).isTrue();
-        }
-
+      assertThat(result).isFalse();
     }
 
-    @Nested
-    class IsMatchAll {
+    @Test
+    public void stringNotIn() {
+      List<?> filterValue = Collections.singletonList("filterValue");
 
-        @Test
-        public void correct() {
-            boolean result = nin.isMatchAll();
+      boolean result = nin.test(filterValue, "dbValue");
 
-            assertThat(result).isTrue();
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class GetDatabasePredicate {
+    @Test
+    public void stringNullIn() {
+      List<?> filterValue = new ArrayList<>();
+      filterValue.add(null);
 
-        @Test
-        public void correct() {
-            Optional<Predicate> result = nin.getDatabasePredicate();
+      boolean result = nin.test(filterValue, (String) null);
 
-            assertThat(result).isEmpty();
-        }
-
+      assertThat(result).isFalse();
     }
 
-    @Nested
-    class GetRawValue {
+    @Test
+    public void stringNullNotIn() {
+      List<?> filterValue = Collections.singletonList("filterValue");
 
-        @Test
-        public void correct() {
-            String result = nin.getRawValue();
+      boolean result = nin.test(filterValue, (String) null);
 
-            assertThat(result).isEqualTo("$nin");
-        }
-
+      assertThat(result).isTrue();
     }
 
+    @Test
+    public void booleanIn() {
+      boolean value = RandomUtils.nextBoolean();
+      List<?> filterValue = Collections.singletonList(value);
+
+      boolean result = nin.test(filterValue, value);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void booleanNotIn() {
+      boolean value = RandomUtils.nextBoolean();
+      List<?> filterValue = Collections.singletonList(value);
+
+      boolean result = nin.test(filterValue, !value);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void booleanNullIn() {
+      List<?> filterValue = new ArrayList<>();
+      filterValue.add(null);
+
+      boolean result = nin.test(filterValue, (Boolean) null);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void booleanNullNotIn() {
+      boolean value = RandomUtils.nextBoolean();
+      List<?> filterValue = Collections.singletonList(value);
+
+      boolean result = nin.test(filterValue, (Boolean) null);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numberIn() {
+      List<?> filterValue = Collections.singletonList(22d);
+
+      boolean result = nin.test(filterValue, 22d);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numberNotIn() {
+      List<?> filterValue = Collections.singletonList(22d);
+
+      boolean result = nin.test(filterValue, 23d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numberNullIn() {
+      List<?> filterValue = new ArrayList<>();
+      filterValue.add(null);
+
+      boolean result = nin.test(filterValue, (Double) null);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numberNullNotIn() {
+      List<?> filterValue = Collections.singletonList(22d);
+
+      boolean result = nin.test(filterValue, (Double) null);
+
+      assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class IsMatchAll {
+
+    @Test
+    public void correct() {
+      boolean result = nin.isMatchAll();
+
+      assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class GetDatabasePredicate {
+
+    @Test
+    public void correct() {
+      Optional<Predicate> result = nin.getDatabasePredicate();
+
+      assertThat(result).isEmpty();
+    }
+  }
+
+  @Nested
+  class GetRawValue {
+
+    @Test
+    public void correct() {
+      String result = nin.getRawValue();
+
+      assertThat(result).isEqualTo("$nin");
+    }
+  }
 }

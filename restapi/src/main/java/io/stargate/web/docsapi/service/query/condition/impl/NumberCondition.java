@@ -21,52 +21,44 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * Condition that accepts number filter values and compare against double database row value.
- */
+/** Condition that accepts number filter values and compare against double database row value. */
 @Value.Immutable
 public abstract class NumberCondition implements BaseCondition {
 
-    /**
-     * @return Filter operation for the condition.
-     */
-    @Value.Parameter
-    public abstract DoubleValueFilterOperation<Number> getFilterOperation();
+  /** @return Filter operation for the condition. */
+  @Value.Parameter
+  public abstract DoubleValueFilterOperation<Number> getFilterOperation();
 
-    /**
-     * @return Filter query value.
-     */
-    @Value.Parameter
-    public abstract Number getQueryValue();
+  /** @return Filter query value. */
+  @Value.Parameter
+  public abstract Number getQueryValue();
 
-    /**
-     * Validates the value against the predicate.
-     */
-    @Value.Check
-    protected void validate() {
-        getFilterOperation().validateDoubleFilterInput(getQueryValue());
-    }
+  /** Validates the value against the predicate. */
+  @Value.Check
+  protected void validate() {
+    getFilterOperation().validateDoubleFilterInput(getQueryValue());
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<BuiltCondition> getBuiltCondition() {
-        return getFilterOperation().getDatabasePredicate()
-                .map(predicate -> BuiltCondition.of(QueryConstants.DOUBLE_VALUE_COLUMN_NAME, predicate, getQueryValue().doubleValue()));
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<BuiltCondition> getBuiltCondition() {
+    return getFilterOperation()
+        .getDatabasePredicate()
+        .map(
+            predicate ->
+                BuiltCondition.of(
+                    QueryConstants.DOUBLE_VALUE_COLUMN_NAME,
+                    predicate,
+                    getQueryValue().doubleValue()));
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Row row) {
-        Double dbValue = getDoubleDatabaseValue(row);
-        return getFilterOperation().test(getQueryValue(), dbValue);
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(Row row) {
+    Double dbValue = getDoubleDatabaseValue(row);
+    return getFilterOperation().test(getQueryValue(), dbValue);
+  }
 }

@@ -16,10 +16,14 @@
 
 package io.stargate.web.docsapi.service.query.condition.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,98 +31,90 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class StringConditionTest {
 
-    @Mock
-    StringValueFilterOperation<String> filterOperation;
+  @Mock StringValueFilterOperation<String> filterOperation;
 
-    @Nested
-    class Constructor {
+  @Nested
+  class Constructor {
 
-        @Test
-        public void predicateValidated() {
-            String value = RandomStringUtils.randomAlphanumeric(16);
+    @Test
+    public void predicateValidated() {
+      String value = RandomStringUtils.randomAlphanumeric(16);
 
-            StringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      StringCondition condition = ImmutableStringCondition.of(filterOperation, value);
 
-            assertThat(condition).isNotNull();
-            verify(filterOperation).validateStringFilterInput(value);
-            verifyNoMoreInteractions(filterOperation);
-        }
-
+      assertThat(condition).isNotNull();
+      verify(filterOperation).validateStringFilterInput(value);
+      verifyNoMoreInteractions(filterOperation);
     }
+  }
 
-    @Nested
-    class GetBuiltCondition {
+  @Nested
+  class GetBuiltCondition {
 
-        @Test
-        public void happyPath() {
-            Predicate eq = Predicate.EQ;
-            String value = RandomStringUtils.randomAlphanumeric(16);
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+    @Test
+    public void happyPath() {
+      Predicate eq = Predicate.EQ;
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
+      ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-            assertThat(result).hasValueSatisfying(builtCondition -> {
+      assertThat(result)
+          .hasValueSatisfying(
+              builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
                 assertThat(builtCondition.value().get()).isEqualTo(value);
                 assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("text_value"));
-            });
-        }
-
-        @Test
-        public void emptyPredicate() {
-            String value = RandomStringUtils.randomAlphanumeric(16);
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
-
-            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
-
-            assertThat(result).isEmpty();
-        }
-
+              });
     }
 
-    @Nested
-    class RowTest {
+    @Test
+    public void emptyPredicate() {
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-        @Mock
-        Row row;
+      ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-        @Test
-        public void nullDatabaseValue() {
-            String filterValue = RandomStringUtils.randomAlphanumeric(16);
-            when(row.isNull("text_value")).thenReturn(true);
-            when(filterOperation.test(filterValue, null)).thenReturn(true);
+      assertThat(result).isEmpty();
+    }
+  }
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, filterValue);
-            boolean result = condition.test(row);
+  @Nested
+  class RowTest {
 
-            assertThat(result).isTrue();
-        }
+    @Mock Row row;
 
-        @Test
-        public void notNullDatabaseValue() {
-            String filterValue = RandomStringUtils.randomAlphanumeric(16);
-            String databaseValue = RandomStringUtils.randomAlphanumeric(16);
-            when(row.isNull("text_value")).thenReturn(false);
-            when(row.getString("text_value")).thenReturn(databaseValue);
-            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+    @Test
+    public void nullDatabaseValue() {
+      String filterValue = RandomStringUtils.randomAlphanumeric(16);
+      when(row.isNull("text_value")).thenReturn(true);
+      when(filterOperation.test(filterValue, null)).thenReturn(true);
 
+      ImmutableStringCondition condition =
+          ImmutableStringCondition.of(filterOperation, filterValue);
+      boolean result = condition.test(row);
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, filterValue);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
+      assertThat(result).isTrue();
     }
 
+    @Test
+    public void notNullDatabaseValue() {
+      String filterValue = RandomStringUtils.randomAlphanumeric(16);
+      String databaseValue = RandomStringUtils.randomAlphanumeric(16);
+      when(row.isNull("text_value")).thenReturn(false);
+      when(row.getString("text_value")).thenReturn(databaseValue);
+      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+
+      ImmutableStringCondition condition =
+          ImmutableStringCondition.of(filterOperation, filterValue);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+  }
 }

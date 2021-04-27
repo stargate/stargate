@@ -23,45 +23,49 @@ import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvide
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
-
 import java.util.Optional;
 
 /**
- * The basic {@link ConditionProvider} that usually handles all standard filter operations that works will String, Boolean and Number filter value.
+ * The basic {@link ConditionProvider} that usually handles all standard filter operations that
+ * works will String, Boolean and Number filter value.
  *
  * @param <V> Type of the filter operation
  */
-public class BasicConditionProvider<V extends StringValueFilterOperation<String> & DoubleValueFilterOperation<Number> & BooleanValueFilterOperation<Boolean>> implements ConditionProvider {
+public class BasicConditionProvider<
+        V extends
+            StringValueFilterOperation<String> & DoubleValueFilterOperation<Number>
+                & BooleanValueFilterOperation<Boolean>>
+    implements ConditionProvider {
 
-    public static <V extends StringValueFilterOperation<String> & DoubleValueFilterOperation<Number> & BooleanValueFilterOperation<Boolean>> BasicConditionProvider<V> of(V predicate) {
-        return new BasicConditionProvider<>(predicate);
+  public static <
+          V extends
+              StringValueFilterOperation<String> & DoubleValueFilterOperation<Number>
+                  & BooleanValueFilterOperation<Boolean>>
+      BasicConditionProvider<V> of(V predicate) {
+    return new BasicConditionProvider<>(predicate);
+  }
+
+  /** Filter operation to use when creating the condition. */
+  private final V filterOperation;
+
+  public BasicConditionProvider(V filterOperation) {
+    this.filterOperation = filterOperation;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
+    if (node.isNumber()) {
+      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, node.numberValue());
+      return Optional.of(condition);
+    } else if (node.isBoolean()) {
+      BooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, node.asBoolean(), numericBooleans);
+      return Optional.of(condition);
+    } else if (node.isTextual()) {
+      StringCondition condition = ImmutableStringCondition.of(filterOperation, node.asText());
+      return Optional.of(condition);
     }
-
-    /**
-     * Filter operation to use when creating the condition.
-     */
-    private final V filterOperation;
-
-    public BasicConditionProvider(V filterOperation) {
-        this.filterOperation = filterOperation;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
-        if (node.isNumber()) {
-            NumberCondition condition = ImmutableNumberCondition.of(filterOperation, node.numberValue());
-            return Optional.of(condition);
-        } else if (node.isBoolean()) {
-            BooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, node.asBoolean(), numericBooleans);
-            return Optional.of(condition);
-        } else if (node.isTextual()) {
-            StringCondition condition = ImmutableStringCondition.of(filterOperation, node.asText());
-            return Optional.of(condition);
-        }
-        return Optional.empty();
-    }
-
+    return Optional.empty();
+  }
 }

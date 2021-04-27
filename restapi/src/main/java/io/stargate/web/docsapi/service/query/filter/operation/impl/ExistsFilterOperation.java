@@ -18,85 +18,64 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * Exists filter operation can resolve if any database value exists.
- */
+/** Exists filter operation can resolve if any database value exists. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class ExistsFilterOperation implements CustomValueFilterOperation<Boolean> {
+public abstract class ExistsFilterOperation implements CombinedFilterOperation<Boolean> {
 
-    public static final String RAW_VALUE = "$exists";
+  public static final String RAW_VALUE = "$exists";
 
-    /**
-     * @return Singleton instance
-     */
-    public static ExistsFilterOperation of() {
-        return ImmutableExistsFilterOperation.of();
+  /** @return Singleton instance */
+  public static ExistsFilterOperation of() {
+    return ImmutableExistsFilterOperation.of();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public String getRawValue() {
+    return RAW_VALUE;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Predicate> getDatabasePredicate() {
+    return Optional.of(Predicate.EQ);
+  }
+
+  /** Only one database value (string, boolean or double) has to match. */
+  @Override
+  public boolean isMatchAll() {
+    return false;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(Boolean filterValue, Boolean dbValue) {
+    return null != dbValue;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(Boolean filterValue, String dbValue) {
+    return null != dbValue;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(Boolean filterValue, Double dbValue) {
+    return null != dbValue;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void validateBooleanFilterInput(Boolean filterValue) {
+    if (!Boolean.TRUE.equals(filterValue)) {
+      String msg = String.format("%s only supports the value `true`", RAW_VALUE);
+      throw new DocumentAPIRequestException("msg");
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getRawValue() {
-        return RAW_VALUE;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Predicate> getDatabasePredicate() {
-        return Optional.of(Predicate.EQ);
-    }
-
-    /**
-     * Only one database value (string, boolean or double) has to match.
-     */
-    @Override
-    public boolean isMatchAll() {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Boolean filterValue, Boolean dbValue) {
-        return null != dbValue;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Boolean filterValue, String dbValue) {
-        return null != dbValue;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Boolean filterValue, Double dbValue) {
-        return null != dbValue;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void validateBooleanFilterInput(Boolean filterValue) {
-        if (!Boolean.TRUE.equals(filterValue)) {
-            String msg = String.format("%s only supports the value `true`", RAW_VALUE);
-            throw new DocumentAPIRequestException("msg");
-        }
-    }
-
-
+  }
 }

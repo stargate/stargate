@@ -17,29 +17,22 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 import io.stargate.db.query.Predicate;
-
 import java.util.Optional;
 
-/**
- * Base predicate that can be used in the filter expression.
- */
+/** Base predicate that can be used in the filter expression. */
 public interface BaseFilterOperation {
 
-    /**
-     * @return Returns raw value of the predicate, as user would specify in the query, f.e. <code>$eq</code>
-     */
-    String getRawValue();
+  /**
+   * @return Returns raw value of the predicate, as user would specify in the query, f.e. <code>$eq
+   *     </code>
+   */
+  String getRawValue();
 
-    /**
-     * @return If this predicate can provide database predicate.
-     */
-    default boolean hasDatabasePredicate() {
-        return getDatabasePredicate().isPresent();
-    }
+  /** @return If this predicate can provide database predicate. */
+  default boolean hasDatabasePredicate() {
+    return getDatabasePredicate().isPresent();
+  }
 
-    /**
-     * @return Mirrored database predicate, if one exists.
-     */
-    Optional<Predicate> getDatabasePredicate();
-
+  /** @return Mirrored database predicate, if one exists. */
+  Optional<Predicate> getDatabasePredicate();
 }

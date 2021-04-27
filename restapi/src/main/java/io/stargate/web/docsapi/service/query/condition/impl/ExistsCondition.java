@@ -18,22 +18,18 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import org.immutables.value.Value;
-
 import java.util.Optional;
+import org.immutables.value.Value;
 
 // TODO is this class needed at all? Can it provide a built in condition?
 //  if yes add test
 @Value.Immutable
-public abstract class ExistsCondition extends AnyValueCondition<Boolean> implements BaseCondition {
+public abstract class ExistsCondition extends CombinedCondition<Boolean> implements BaseCondition {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<BuiltCondition> getBuiltCondition() {
-        // TODO what's real predicate for the exists
-        return Optional.empty();
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public Optional<BuiltCondition> getBuiltCondition() {
+    // TODO what's real predicate for the exists
+    return Optional.empty();
+  }
 }

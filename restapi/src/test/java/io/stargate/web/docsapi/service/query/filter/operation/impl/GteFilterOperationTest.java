@@ -16,133 +16,128 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.stargate.db.query.Predicate;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class GteFilterOperationTest {
 
-    GteFilterOperation gte = GteFilterOperation.of();
+  GteFilterOperation gte = GteFilterOperation.of();
 
-    @Nested
-    class FilterTest {
+  @Nested
+  class FilterTest {
 
-        @Test
-        public void stringEquals() {
-            boolean result = gte.test("filterValue", "filterValue");
+    @Test
+    public void stringEquals() {
+      boolean result = gte.test("filterValue", "filterValue");
 
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void stringGreater() {
-            boolean result = gte.test("filterValue", "aaa");
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void stringLess() {
-            boolean result = gte.test("filterValue", "www");
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void stringNull() {
-            boolean result = gte.test("filterValue", null);
-
-            // nulls last
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanEquals() {
-            boolean value = RandomUtils.nextBoolean();
-
-            boolean result = gte.test(value, value);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanGreater() {
-            boolean result = gte.test(true, false);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanLess() {
-            boolean result = gte.test(false, true);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanNull() {
-            boolean result = gte.test(true, null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numberEquals() {
-            boolean result = gte.test(22d, 22d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numbersGreater() {
-            boolean result = gte.test(22.1d, 22d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numbersLess() {
-            boolean result = gte.test(21.9d, 22d);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numbersNull() {
-            boolean result = gte.test(22, null);
-
-            assertThat(result).isFalse();
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class GetDatabasePredicate {
+    @Test
+    public void stringGreater() {
+      boolean result = gte.test("filterValue", "aaa");
 
-        @Test
-        public void correct() {
-            Optional<Predicate> result = gte.getDatabasePredicate();
-
-            assertThat(result).hasValue(Predicate.GTE);
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class GetRawValue {
+    @Test
+    public void stringLess() {
+      boolean result = gte.test("filterValue", "www");
 
-        @Test
-        public void correct() {
-            String result = gte.getRawValue();
-
-            assertThat(result).isEqualTo("$gte");
-        }
-
+      assertThat(result).isFalse();
     }
 
+    @Test
+    public void stringNull() {
+      boolean result = gte.test("filterValue", null);
+
+      // nulls last
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void booleanEquals() {
+      boolean value = RandomUtils.nextBoolean();
+
+      boolean result = gte.test(value, value);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void booleanGreater() {
+      boolean result = gte.test(true, false);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void booleanLess() {
+      boolean result = gte.test(false, true);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void booleanNull() {
+      boolean result = gte.test(true, null);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numberEquals() {
+      boolean result = gte.test(22d, 22d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numbersGreater() {
+      boolean result = gte.test(22.1d, 22d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numbersLess() {
+      boolean result = gte.test(21.9d, 22d);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numbersNull() {
+      boolean result = gte.test(22, null);
+
+      assertThat(result).isFalse();
+    }
+  }
+
+  @Nested
+  class GetDatabasePredicate {
+
+    @Test
+    public void correct() {
+      Optional<Predicate> result = gte.getDatabasePredicate();
+
+      assertThat(result).hasValue(Predicate.GTE);
+    }
+  }
+
+  @Nested
+  class GetRawValue {
+
+    @Test
+    public void correct() {
+      String result = gte.getRawValue();
+
+      assertThat(result).isEqualTo("$gte");
+    }
+  }
 }

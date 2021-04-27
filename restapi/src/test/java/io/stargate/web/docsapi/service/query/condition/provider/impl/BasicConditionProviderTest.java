@@ -16,6 +16,8 @@
 
 package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
@@ -23,6 +25,7 @@ import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.NotNullValueFilterOperation;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,85 +34,86 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 @ExtendWith(MockitoExtension.class)
 class BasicConditionProviderTest {
 
-    @InjectMocks
-    BasicConditionProvider<?> provider;
+  @InjectMocks BasicConditionProvider<?> provider;
 
-    @Mock
-    NotNullValueFilterOperation filterOperation;
+  @Mock NotNullValueFilterOperation filterOperation;
 
-    @Nested
-    class CreateCondition {
+  @Nested
+  class CreateCondition {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ObjectMapper();
 
-        @Test
-        public void invalidNode() {
-            JsonNode node = objectMapper.createObjectNode();
+    @Test
+    public void invalidNode() {
+      JsonNode node = objectMapper.createObjectNode();
 
-            Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
 
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        public void booleanNode() {
-            boolean numericBooleans = RandomUtils.nextBoolean();
-            JsonNode node = objectMapper.createObjectNode()
-                    .put("some", true)
-                    .get("some");
-
-            Optional<? extends BaseCondition> result = provider.createCondition(node, numericBooleans);
-
-            assertThat(result).hasValueSatisfying(baseCondition -> {
-                assertThat(baseCondition).isInstanceOfSatisfying(BooleanCondition.class, bc -> {
-                    assertThat(bc.getQueryValue()).isEqualTo(true);
-                    assertThat(bc.isNumericBooleans()).isEqualTo(numericBooleans);
-                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
-                });
-            });
-        }
-
-        @Test
-        public void stringNode() {
-            String value = "value";
-            JsonNode node = objectMapper.createObjectNode()
-                    .put("some", value)
-                    .get("some");
-
-            Optional<? extends BaseCondition> result = provider.createCondition(node, false);
-
-            assertThat(result).hasValueSatisfying(baseCondition -> {
-                assertThat(baseCondition).isInstanceOfSatisfying(StringCondition.class, bc -> {
-                    assertThat(bc.getQueryValue()).isEqualTo(value);
-                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
-                });
-            });
-        }
-
-        @Test
-        public void numberNode() {
-            int value = 23;
-            JsonNode node = objectMapper.createObjectNode()
-                    .put("some", value)
-                    .get("some");
-
-            Optional<? extends BaseCondition> result = provider.createCondition(node, false);
-
-            assertThat(result).hasValueSatisfying(baseCondition -> {
-                assertThat(baseCondition).isInstanceOfSatisfying(NumberCondition.class, bc -> {
-                    assertThat(bc.getQueryValue()).isEqualTo(value);
-                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
-                });
-            });
-        }
-
+      assertThat(result).isEmpty();
     }
 
+    @Test
+    public void booleanNode() {
+      boolean numericBooleans = RandomUtils.nextBoolean();
+      JsonNode node = objectMapper.createObjectNode().put("some", true).get("some");
+
+      Optional<? extends BaseCondition> result = provider.createCondition(node, numericBooleans);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              baseCondition -> {
+                assertThat(baseCondition)
+                    .isInstanceOfSatisfying(
+                        BooleanCondition.class,
+                        bc -> {
+                          assertThat(bc.getQueryValue()).isEqualTo(true);
+                          assertThat(bc.isNumericBooleans()).isEqualTo(numericBooleans);
+                          assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                        });
+              });
+    }
+
+    @Test
+    public void stringNode() {
+      String value = "value";
+      JsonNode node = objectMapper.createObjectNode().put("some", value).get("some");
+
+      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              baseCondition -> {
+                assertThat(baseCondition)
+                    .isInstanceOfSatisfying(
+                        StringCondition.class,
+                        bc -> {
+                          assertThat(bc.getQueryValue()).isEqualTo(value);
+                          assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                        });
+              });
+    }
+
+    @Test
+    public void numberNode() {
+      int value = 23;
+      JsonNode node = objectMapper.createObjectNode().put("some", value).get("some");
+
+      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              baseCondition -> {
+                assertThat(baseCondition)
+                    .isInstanceOfSatisfying(
+                        NumberCondition.class,
+                        bc -> {
+                          assertThat(bc.getQueryValue()).isEqualTo(value);
+                          assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                        });
+              });
+    }
+  }
 }

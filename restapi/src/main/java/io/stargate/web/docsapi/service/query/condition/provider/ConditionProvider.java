@@ -18,22 +18,19 @@ package io.stargate.web.docsapi.service.query.condition.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-
 import java.util.Optional;
 
-/**
- * Knows how to provide {@link BaseCondition} from the Json node containing the filter value.
- */
+/** Knows how to provide {@link BaseCondition} from the Json node containing the filter value. */
 public interface ConditionProvider {
 
-    /**
-     * Optionally returns the {@link BaseCondition} for the given value node. Note that this should be a value from
-     * the filter object, f.e. given <code>{ "eq": "Honda" }</code> this should refer to <code>"Honda"</code>
-     *
-     * @param node            Value node from the filter op.
-     * @param numericBooleans If booleans should be considered as numberic values.
-     * @return Optionally {@link BaseCondition}
-     */
-    Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans);
-
+  /**
+   * Optionally returns the {@link BaseCondition} for the given value node. Note that this should be
+   * a value from the filter object, f.e. given <code>{ "eq": "Honda" }</code> this should refer to
+   * <code>"Honda"</code>
+   *
+   * @param node Value node from the filter op.
+   * @param numericBooleans If booleans should be considered as numberic values.
+   * @return Optionally {@link BaseCondition}
+   */
+  Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans);
 }

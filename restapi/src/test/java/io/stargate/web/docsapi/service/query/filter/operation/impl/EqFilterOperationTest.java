@@ -16,129 +16,124 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.stargate.db.query.Predicate;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class EqFilterOperationTest {
 
-    EqFilterOperation eq = EqFilterOperation.of();
+  EqFilterOperation eq = EqFilterOperation.of();
 
-    @Nested
-    class FilterTest {
+  @Nested
+  class FilterTest {
 
-        @Test
-        public void stringEquals() {
-            boolean result = eq.test("filterValue", "filterValue");
+    @Test
+    public void stringEquals() {
+      boolean result = eq.test("filterValue", "filterValue");
 
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void stringNotEquals() {
-            boolean result = eq.test("filterValue", "dbValue");
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void stringNotEqualsNull() {
-            boolean result = eq.test("filterValue", null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanEquals() {
-            boolean value = RandomUtils.nextBoolean();
-
-            boolean result = eq.test(value, value);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanNotEquals() {
-            boolean value = RandomUtils.nextBoolean();
-
-            boolean result = eq.test(value, !value);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanNotEqualsNull() {
-            boolean value = RandomUtils.nextBoolean();
-
-            boolean result = eq.test(value, null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numberEquals() {
-            boolean result = eq.test(22d, 22d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numberEqualsDifferentTypes() {
-            boolean result = eq.test(22, 22d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numbersNotEquals() {
-            boolean result = eq.test(22d, 23d);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numbersNotEqualsDifferentTypes() {
-            boolean result = eq.test(22L, 22.01);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numbersNotEqualsNull() {
-            boolean result = eq.test(22, null);
-
-            assertThat(result).isFalse();
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class GetDatabasePredicate {
+    @Test
+    public void stringNotEquals() {
+      boolean result = eq.test("filterValue", "dbValue");
 
-        @Test
-        public void correct() {
-            Optional<Predicate> result = eq.getDatabasePredicate();
-
-            assertThat(result).hasValue(Predicate.EQ);
-        }
-
+      assertThat(result).isFalse();
     }
 
-    @Nested
-    class GetRawValue {
+    @Test
+    public void stringNotEqualsNull() {
+      boolean result = eq.test("filterValue", null);
 
-        @Test
-        public void correct() {
-            String result = eq.getRawValue();
-
-            assertThat(result).isEqualTo("$eq");
-        }
-
+      assertThat(result).isFalse();
     }
 
+    @Test
+    public void booleanEquals() {
+      boolean value = RandomUtils.nextBoolean();
+
+      boolean result = eq.test(value, value);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void booleanNotEquals() {
+      boolean value = RandomUtils.nextBoolean();
+
+      boolean result = eq.test(value, !value);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void booleanNotEqualsNull() {
+      boolean value = RandomUtils.nextBoolean();
+
+      boolean result = eq.test(value, null);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numberEquals() {
+      boolean result = eq.test(22d, 22d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numberEqualsDifferentTypes() {
+      boolean result = eq.test(22, 22d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numbersNotEquals() {
+      boolean result = eq.test(22d, 23d);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numbersNotEqualsDifferentTypes() {
+      boolean result = eq.test(22L, 22.01);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void numbersNotEqualsNull() {
+      boolean result = eq.test(22, null);
+
+      assertThat(result).isFalse();
+    }
+  }
+
+  @Nested
+  class GetDatabasePredicate {
+
+    @Test
+    public void correct() {
+      Optional<Predicate> result = eq.getDatabasePredicate();
+
+      assertThat(result).hasValue(Predicate.EQ);
+    }
+  }
+
+  @Nested
+  class GetRawValue {
+
+    @Test
+    public void correct() {
+      String result = eq.getRawValue();
+
+      assertThat(result).isEqualTo("$eq");
+    }
+  }
 }

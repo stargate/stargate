@@ -19,59 +19,57 @@ package io.stargate.web.docsapi.service.query.condition;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
-
 import java.util.Optional;
 import java.util.function.Predicate;
 
-/**
- * Interface for the base filtering condition.
- */
+/** Interface for the base filtering condition. */
 public interface BaseCondition extends Predicate<Row> {
 
-    /**
-     * @return Returns database built condition, if this condition supports database querying.
-     */
-    Optional<BuiltCondition> getBuiltCondition();
+  /** @return Returns database built condition, if this condition supports database querying. */
+  Optional<BuiltCondition> getBuiltCondition();
 
-    /**
-     * Resolves {@link String} value from the document {@link Row}.
-     *
-     * @param row Row
-     * @return Returns resolved value or <code>null</code>
-     */
-    default String getStringDatabaseValue(Row row) {
-        return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME) ? null : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+  /**
+   * Resolves {@link String} value from the document {@link Row}.
+   *
+   * @param row Row
+   * @return Returns resolved value or <code>null</code>
+   */
+  default String getStringDatabaseValue(Row row) {
+    return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)
+        ? null
+        : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+  }
+
+  /**
+   * Resolves {@link Double} value from the document {@link Row}.
+   *
+   * @param row Row
+   * @return Returns resolved value or <code>null</code>
+   */
+  default Double getDoubleDatabaseValue(Row row) {
+    return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
+        ? null
+        : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
+  }
+
+  /**
+   * Resolves {@link Boolean} value from the document {@link Row}.
+   *
+   * @param row Row
+   * @param numericBooleans If <code>true</code> assumes booleans are stored as numeric values.
+   * @return Returns resolved value or <code>null</code>
+   */
+  default Boolean getBooleanDatabaseValue(Row row, boolean numericBooleans) {
+    boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+    if (nullValue) {
+      return null;
+    } else {
+      if (numericBooleans) {
+        byte value = row.getByte(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        return value != 0;
+      } else {
+        return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+      }
     }
-
-    /**
-     * Resolves {@link Double} value from the document {@link Row}.
-     *
-     * @param row Row
-     * @return Returns resolved value or <code>null</code>
-     */
-    default Double getDoubleDatabaseValue(Row row) {
-        return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME) ? null : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
-    }
-
-    /**
-     * Resolves {@link Boolean} value from the document {@link Row}.
-     *
-     * @param row Row
-     * @param numericBooleans If <code>true</code> assumes booleans are stored as numeric values.
-     * @return Returns resolved value or <code>null</code>
-     */
-    default Boolean getBooleanDatabaseValue(Row row, boolean numericBooleans) {
-        boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-        if (nullValue) {
-            return null;
-        } else {
-            if (numericBooleans) {
-                byte value = row.getByte(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-                return value != 0;
-            } else {
-                return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-            }
-        }
-    }
-
+  }
 }

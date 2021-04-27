@@ -19,40 +19,31 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.filter.operation.ComparingValueFilterOperation;
 
-/**
- * Shared abstract class for all the filter operation that require non-null filter values.
- */
+/** Shared abstract class for all the filter operation that require non-null filter values. */
 public abstract class NotNullValueFilterOperation implements ComparingValueFilterOperation {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void validateDoubleFilterInput(Number filterValue) {
-        validateFilterInput(filterValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public void validateDoubleFilterInput(Number filterValue) {
+    validateFilterInput(filterValue);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void validateStringFilterInput(String filterValue) {
-        validateFilterInput(filterValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public void validateStringFilterInput(String filterValue) {
+    validateFilterInput(filterValue);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void validateBooleanFilterInput(Boolean filterValue) {
-        validateFilterInput(filterValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public void validateBooleanFilterInput(Boolean filterValue) {
+    validateFilterInput(filterValue);
+  }
 
-    private void validateFilterInput(Object filterInput) {
-        if (null == filterInput) {
-            String msg = String.format("Operation %s was expecting a non-null value", getRawValue());
-            throw new DocumentAPIRequestException(msg);
-        }
+  private void validateFilterInput(Object filterInput) {
+    if (null == filterInput) {
+      String msg = String.format("Operation %s was expecting a non-null value", getRawValue());
+      throw new DocumentAPIRequestException(msg);
     }
-
+  }
 }

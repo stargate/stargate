@@ -16,13 +16,18 @@
 
 package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
+import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,67 +36,60 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-
 @ExtendWith(MockitoExtension.class)
 class ListConditionProviderTest {
 
-    @InjectMocks
-    ListConditionProvider provider;
+  @InjectMocks ListConditionProvider provider;
 
-    @Mock
-    CustomValueFilterOperation<List<?>> filterOperation;
+  @Mock CombinedFilterOperation<List<?>> filterOperation;
 
-    @Nested
-    class CreateCondition {
+  @Nested
+  class CreateCondition {
 
-        ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ObjectMapper();
 
-        @Test
-        public void invalidNode() {
-            JsonNode node = objectMapper.createObjectNode();
+    @Test
+    public void invalidNode() {
+      JsonNode node = objectMapper.createObjectNode();
 
-            Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
 
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        public void invalidArrayContent() {
-            boolean numericBooleans = RandomUtils.nextBoolean();
-            ArrayNode node = objectMapper.createArrayNode();
-            node.add(objectMapper.createObjectNode());
-
-            Throwable throwable = catchThrowable(() -> provider.createCondition(node, numericBooleans));
-
-            assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
-        }
-
-        @Test
-        public void collectAllSupported() {
-            ArrayNode node = objectMapper.createArrayNode()
-                    .add(true)
-                    .add(23)
-                    .add("Jordan")
-                    .add((String) null);
-
-            Optional<? extends BaseCondition> result = provider.createCondition(node, false);
-
-            assertThat(result).hasValueSatisfying(baseCondition -> {
-                assertThat(baseCondition).isInstanceOfSatisfying(AnyValueCondition.class, bc -> {
-                    @SuppressWarnings("unchecked")
-                    List<Object> queryValue = (List<Object>) bc.getQueryValue();
-                    assertThat(queryValue).hasSize(4)
-                            .contains(Boolean.TRUE, 23, "Jordan", null);
-                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
-                });
-            });
-        }
-
+      assertThat(result).isEmpty();
     }
 
+    @Test
+    public void invalidArrayContent() {
+      boolean numericBooleans = RandomUtils.nextBoolean();
+      ArrayNode node = objectMapper.createArrayNode();
+      node.add(objectMapper.createObjectNode());
+
+      Throwable throwable = catchThrowable(() -> provider.createCondition(node, numericBooleans));
+
+      assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
+    }
+
+    @Test
+    public void collectAllSupported() {
+      ArrayNode node =
+          objectMapper.createArrayNode().add(true).add(23).add("Jordan").add((String) null);
+
+      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              baseCondition -> {
+                assertThat(baseCondition)
+                    .isInstanceOfSatisfying(
+                        CombinedCondition.class,
+                        bc -> {
+                          @SuppressWarnings("unchecked")
+                          List<Object> queryValue = (List<Object>) bc.getQueryValue();
+                          assertThat(queryValue)
+                              .hasSize(4)
+                              .contains(Boolean.TRUE, 23, "Jordan", null);
+                          assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                        });
+              });
+    }
+  }
 }

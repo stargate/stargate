@@ -16,100 +16,94 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.stargate.db.query.Predicate;
+import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class ExistsFilterOperationTest {
 
-    ExistsFilterOperation exists = ExistsFilterOperation.of();
+  ExistsFilterOperation exists = ExistsFilterOperation.of();
 
-    @Nested
-    class FilterTest {
+  @Nested
+  class FilterTest {
 
-        @Test
-        public void stringExists() {
-            boolean result = exists.test(true, "dbValue");
+    @Test
+    public void stringExists() {
+      boolean result = exists.test(true, "dbValue");
 
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void stringNotExist() {
-            boolean result = exists.test(true, (String) null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void booleanExists() {
-            boolean result = exists.test(true, false);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void booleanNotExist() {
-            boolean result = exists.test(true, (Boolean) null);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numberExists() {
-            boolean result = exists.test(true, 22d);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numberNotExist() {
-            boolean result = exists.test(true, (Double) null);
-
-            assertThat(result).isFalse();
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class IsMatchAll {
+    @Test
+    public void stringNotExist() {
+      boolean result = exists.test(true, (String) null);
 
-        @Test
-        public void correct() {
-            boolean result = exists.isMatchAll();
-
-            assertThat(result).isFalse();
-        }
-
+      assertThat(result).isFalse();
     }
 
-    @Nested
-    class GetDatabasePredicate {
+    @Test
+    public void booleanExists() {
+      boolean result = exists.test(true, false);
 
-        @Test
-        public void correct() {
-            Optional<Predicate> result = exists.getDatabasePredicate();
-
-            // failing on purpose for now, until resolved
-            assertThat(result).isEmpty();
-        }
-
+      assertThat(result).isTrue();
     }
 
-    @Nested
-    class GetRawValue {
+    @Test
+    public void booleanNotExist() {
+      boolean result = exists.test(true, (Boolean) null);
 
-        @Test
-        public void correct() {
-            String result = exists.getRawValue();
-
-            assertThat(result).isEqualTo("$exists");
-        }
-
+      assertThat(result).isFalse();
     }
 
+    @Test
+    public void numberExists() {
+      boolean result = exists.test(true, 22d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numberNotExist() {
+      boolean result = exists.test(true, (Double) null);
+
+      assertThat(result).isFalse();
+    }
+  }
+
+  @Nested
+  class IsMatchAll {
+
+    @Test
+    public void correct() {
+      boolean result = exists.isMatchAll();
+
+      assertThat(result).isFalse();
+    }
+  }
+
+  @Nested
+  class GetDatabasePredicate {
+
+    @Test
+    public void correct() {
+      Optional<Predicate> result = exists.getDatabasePredicate();
+
+      // failing on purpose for now, until resolved
+      assertThat(result).isEmpty();
+    }
+  }
+
+  @Nested
+  class GetRawValue {
+
+    @Test
+    public void correct() {
+      String result = exists.getRawValue();
+
+      assertThat(result).isEqualTo("$exists");
+    }
+  }
 }

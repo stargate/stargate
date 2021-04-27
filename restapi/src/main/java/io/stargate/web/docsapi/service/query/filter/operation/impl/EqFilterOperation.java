@@ -17,48 +17,36 @@
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * Equality filter operation.
- */
+/** Equality filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class EqFilterOperation extends NotNullValueFilterOperation {
 
-    public static final String RAW_VALUE = "$eq";
+  public static final String RAW_VALUE = "$eq";
 
-    /**
-     * @return Singleton instance
-     */
-    public static EqFilterOperation of() {
-        return ImmutableEqFilterOperation.of();
-    }
+  /** @return Singleton instance */
+  public static EqFilterOperation of() {
+    return ImmutableEqFilterOperation.of();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getRawValue() {
-        return RAW_VALUE;
-    }
+  /** {@inheritDoc} */
+  @Override
+  public String getRawValue() {
+    return RAW_VALUE;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Predicate> getDatabasePredicate() {
-        return Optional.of(Predicate.EQ);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Predicate> getDatabasePredicate() {
+    return Optional.of(Predicate.EQ);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isSatisfied(int compareValue) {
-        return compareValue == 0;
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean isSatisfied(int compareValue) {
+    return compareValue == 0;
+  }
 }

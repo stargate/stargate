@@ -16,15 +16,12 @@
 
 package io.stargate.web.docsapi.service.query;
 
-/**
- * Constants needed in the query.
- */
+/** Constants needed in the query. */
 public interface QueryConstants {
 
-    String STRING_VALUE_COLUMN_NAME = "text_value";
+  String STRING_VALUE_COLUMN_NAME = "text_value";
 
-    String DOUBLE_VALUE_COLUMN_NAME = "dbl_value";
+  String DOUBLE_VALUE_COLUMN_NAME = "dbl_value";
 
-    String BOOLEAN_VALUE_COLUMN_NAME = "bool_value";
-
+  String BOOLEAN_VALUE_COLUMN_NAME = "bool_value";
 }

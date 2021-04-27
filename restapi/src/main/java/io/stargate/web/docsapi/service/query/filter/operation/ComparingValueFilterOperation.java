@@ -21,46 +21,41 @@ import java.util.Comparator;
 /**
  * Helper interface that can be used by any standard predicate that depends on the value comparing.
  */
-public interface ComparingValueFilterOperation extends StringValueFilterOperation<String>, DoubleValueFilterOperation<Number>, BooleanValueFilterOperation<Boolean> {
+public interface ComparingValueFilterOperation
+    extends StringValueFilterOperation<String>,
+        DoubleValueFilterOperation<Number>,
+        BooleanValueFilterOperation<Boolean> {
 
-    // default comparators we are using, nulls last
-    Comparator<String> STRING_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
-    Comparator<Double> DOUBLE_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
-    Comparator<Boolean> BOOLEAN_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+  // default comparators we are using, nulls last
+  Comparator<String> STRING_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+  Comparator<Double> DOUBLE_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
+  Comparator<Boolean> BOOLEAN_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
 
-    /**
-     * Method for the comparing predicates that resolves if predicate test is true or false.
-     * Note that we always compare filter value against the DB value.
-     *
-     * @param compareValue comparison value
-     * @return If this comparison value satisfies the predicate test
-     */
-    boolean isSatisfied(int compareValue);
+  /**
+   * Method for the comparing predicates that resolves if predicate test is true or false. Note that
+   * we always compare filter value against the DB value.
+   *
+   * @param compareValue comparison value
+   * @return If this comparison value satisfies the predicate test
+   */
+  boolean isSatisfied(int compareValue);
 
-    /**
-     * {@inheritDoc}
-     */
-    default boolean test(String filterValue, String dbValue) {
-        int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
-        return isSatisfied(compare);
-    }
+  /** {@inheritDoc} */
+  default boolean test(String filterValue, String dbValue) {
+    int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
+    return isSatisfied(compare);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    default boolean test(Number filterValue, Double dbValue) {
-        // TODO do we wanna have more sophisticated compare for the numbers
-        int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
-        return isSatisfied(compare);
-    }
+  /** {@inheritDoc} */
+  default boolean test(Number filterValue, Double dbValue) {
+    // TODO do we wanna have more sophisticated compare for the numbers
+    int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
+    return isSatisfied(compare);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    default boolean test(Boolean filterValue, Boolean dbValue) {
-        int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
-        return isSatisfied(compare);
-    }
-
+  /** {@inheritDoc} */
+  default boolean test(Boolean filterValue, Boolean dbValue) {
+    int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
+    return isSatisfied(compare);
+  }
 }
-

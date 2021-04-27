@@ -17,73 +17,58 @@
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
-import org.immutables.value.Value;
-
 import java.util.List;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
- * Not in list filter operation. Note that this extends {@link InFilterOperation} and negates the test results.
+ * Not in list filter operation. Note that this extends {@link InFilterOperation} and negates the
+ * test results.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class NotInFilterOperation extends InFilterOperation {
 
-    public static final String RAW_VALUE = "$nin";
+  public static final String RAW_VALUE = "$nin";
 
-    /**
-     * @return Singleton instance
-     */
-    public static NotInFilterOperation of() {
-        return ImmutableNotInFilterOperation.of();
-    }
+  /** @return Singleton instance */
+  public static NotInFilterOperation of() {
+    return ImmutableNotInFilterOperation.of();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getRawValue() {
-        return RAW_VALUE;
-    }
+  /** {@inheritDoc} */
+  @Override
+  public String getRawValue() {
+    return RAW_VALUE;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Predicate> getDatabasePredicate() {
-        return Optional.empty();
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Predicate> getDatabasePredicate() {
+    return Optional.empty();
+  }
 
-    /**
-     * All database values (string, boolean or double) have to match.
-     */
-    @Override
-    public boolean isMatchAll() {
-        return true;
-    }
+  /** All database values (string, boolean or double) have to match. */
+  @Override
+  public boolean isMatchAll() {
+    return true;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(List<?> filterValue, String dbValue) {
-        return !super.test(filterValue, dbValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, String dbValue) {
+    return !super.test(filterValue, dbValue);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(List<?> filterValue, Boolean dbValue) {
-        return !super.test(filterValue, dbValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Boolean dbValue) {
+    return !super.test(filterValue, dbValue);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(List<?> filterValue, Double dbValue) {
-        return !super.test(filterValue, dbValue);
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Double dbValue) {
+    return !super.test(filterValue, dbValue);
+  }
 }

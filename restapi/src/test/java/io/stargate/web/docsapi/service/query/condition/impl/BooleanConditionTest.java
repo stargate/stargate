@@ -16,10 +16,14 @@
 
 package io.stargate.web.docsapi.service.query.condition.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,124 +31,121 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class BooleanConditionTest {
 
-    @Mock
-    BooleanValueFilterOperation<Boolean> filterOperation;
+  @Mock BooleanValueFilterOperation<Boolean> filterOperation;
 
-    @Nested
-    class Constructor {
+  @Nested
+  class Constructor {
 
-        @Test
-        public void predicateValidated() {
+    @Test
+    public void predicateValidated() {
 
-            ImmutableBooleanCondition.of(filterOperation, true, false);
+      BooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, true, false);
 
-            verify(filterOperation).validateBooleanFilterInput(true);
-            verifyNoMoreInteractions(filterOperation);
-        }
-
+      assertThat(condition).isNotNull();
+      verify(filterOperation).validateBooleanFilterInput(true);
+      verifyNoMoreInteractions(filterOperation);
     }
+  }
 
-    @Nested
-    class GetBuiltCondition {
+  @Nested
+  class GetBuiltCondition {
 
-        @Test
-        public void happyPath() {
-            Predicate eq = Predicate.EQ;
-            boolean value = RandomUtils.nextBoolean();
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+    @Test
+    public void happyPath() {
+      Predicate eq = Predicate.EQ;
+      boolean value = RandomUtils.nextBoolean();
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, value, true);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, value, true);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-            assertThat(result).hasValueSatisfying(builtCondition -> {
+      assertThat(result)
+          .hasValueSatisfying(
+              builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
                 assertThat(builtCondition.value().get()).isEqualTo(value);
                 assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
-            });
-        }
-
-        @Test
-        public void emptyPredicate() {
-            boolean value = RandomUtils.nextBoolean();
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, value, true);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
-
-            assertThat(result).isEmpty();
-        }
-
+              });
     }
 
-    @Nested
-    class RowTest {
+    @Test
+    public void emptyPredicate() {
+      boolean value = RandomUtils.nextBoolean();
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-        @Mock
-        Row row;
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, value, true);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-        @Test
-        public void nullDatabaseValue() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(true);
-            when(filterOperation.test(filterValue, null)).thenReturn(true);
+      assertThat(result).isEmpty();
+    }
+  }
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, false);
-            boolean result = condition.test(row);
+  @Nested
+  class RowTest {
 
-            assertThat(result).isTrue();
-        }
+    @Mock Row row;
 
-        @Test
-        public void nonNumericBooleans() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            boolean databaseValue = RandomUtils.nextBoolean();
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getBoolean("bool_value")).thenReturn(databaseValue);
-            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+    @Test
+    public void nullDatabaseValue() {
+      boolean filterValue = RandomUtils.nextBoolean();
+      when(row.isNull("bool_value")).thenReturn(true);
+      when(filterOperation.test(filterValue, null)).thenReturn(true);
 
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, filterValue, false);
+      boolean result = condition.test(row);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, false);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansZero() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 0;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(filterOperation.test(filterValue, false)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, true);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        public void numericBooleansOne() {
-            boolean filterValue = RandomUtils.nextBoolean();
-            byte databaseValue = 1;
-            when(row.isNull("bool_value")).thenReturn(false);
-            when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(filterOperation.test(filterValue, true)).thenReturn(true);
-
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, true);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
+      assertThat(result).isTrue();
     }
 
+    @Test
+    public void nonNumericBooleans() {
+      boolean filterValue = RandomUtils.nextBoolean();
+      boolean databaseValue = RandomUtils.nextBoolean();
+      when(row.isNull("bool_value")).thenReturn(false);
+      when(row.getBoolean("bool_value")).thenReturn(databaseValue);
+      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, filterValue, false);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numericBooleansZero() {
+      boolean filterValue = RandomUtils.nextBoolean();
+      byte databaseValue = 0;
+      when(row.isNull("bool_value")).thenReturn(false);
+      when(row.getByte("bool_value")).thenReturn(databaseValue);
+      when(filterOperation.test(filterValue, false)).thenReturn(true);
+
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, filterValue, true);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numericBooleansOne() {
+      boolean filterValue = RandomUtils.nextBoolean();
+      byte databaseValue = 1;
+      when(row.isNull("bool_value")).thenReturn(false);
+      when(row.getByte("bool_value")).thenReturn(databaseValue);
+      when(filterOperation.test(filterValue, true)).thenReturn(true);
+
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, filterValue, true);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+  }
 }

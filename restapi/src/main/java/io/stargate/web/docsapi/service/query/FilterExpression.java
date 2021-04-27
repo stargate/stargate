@@ -21,75 +21,71 @@ import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import org.immutables.value.Value;
-
 import java.util.*;
 import java.util.function.Function;
+import org.immutables.value.Value;
 
-/**
- * Filter expression that stands as the node in the Expression tree.
- */
+/** Filter expression that stands as the node in the Expression tree. */
 @Value.Immutable
 public abstract class FilterExpression extends Expression<FilterExpression> {
 
-    /**
-     * Type of the expression.
-     */
-    public static final String EXPR_TYPE = "filter";
+  /** Type of the expression. */
+  public static final String EXPR_TYPE = "filter";
 
-    /**
-     * @return {@link FilterPath} for this expression
-     */
-    @Value.Parameter
-    public abstract FilterPath getFilterPath();
+  /** @return {@link FilterPath} for this expression */
+  @Value.Parameter
+  public abstract FilterPath getFilterPath();
 
-    /**
-     * @return {@link BaseCondition} for this expression
-     */
-    @Value.Parameter
-    public abstract BaseCondition getCondition();
+  /** @return {@link BaseCondition} for this expression */
+  @Value.Parameter
+  public abstract BaseCondition getCondition();
 
-    // below is Expression relevant implementation that targets this
+  // below is Expression relevant implementation that targets this
 
-    @Override
-    public Expression<FilterExpression> apply(RuleList<FilterExpression> rules, ExprOptions<FilterExpression> cache) {
-        return this;
+  @Override
+  public Expression<FilterExpression> apply(
+      RuleList<FilterExpression> rules, ExprOptions<FilterExpression> cache) {
+    return this;
+  }
+
+  @Override
+  public List<Expression<FilterExpression>> getChildren() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public Expression<FilterExpression> map(
+      Function<Expression<FilterExpression>, Expression<FilterExpression>> function,
+      ExprFactory<FilterExpression> factory) {
+    return function.apply(this);
+  }
+
+  @Override
+  public String getExprType() {
+    return EXPR_TYPE;
+  }
+
+  @Override
+  public Expression<FilterExpression> sort(Comparator<Expression> comparator) {
+    return this;
+  }
+
+  @Override
+  public void collectK(Set<FilterExpression> set, int limit) {
+    if (set.size() >= limit) {
+      return;
     }
 
-    @Override
-    public List<Expression<FilterExpression>> getChildren() {
-        return Collections.emptyList();
-    }
+    set.add(this);
+  }
 
-    @Override
-    public Expression<FilterExpression> map(Function<Expression<FilterExpression>, Expression<FilterExpression>> function, ExprFactory<FilterExpression> factory) {
-        return function.apply(this);
+  @Override
+  public Expression<FilterExpression> replaceVars(
+      Map<FilterExpression, Expression<FilterExpression>> m,
+      ExprFactory<FilterExpression> exprFactory) {
+    if (m.containsKey(this)) {
+      return m.get(this);
     }
-
-    @Override
-    public String getExprType() {
-        return EXPR_TYPE;
-    }
-
-    @Override
-    public Expression<FilterExpression> sort(Comparator<Expression> comparator) {
-        return this;
-    }
-
-    @Override
-    public void collectK(Set<FilterExpression> set, int limit) {
-        if (set.size() >= limit) {
-            return;
-        }
-
-        set.add(this);
-    }
-
-    @Override
-    public Expression<FilterExpression> replaceVars(Map<FilterExpression, Expression<FilterExpression>> m, ExprFactory<FilterExpression> exprFactory) {
-        if (m.containsKey(this)) {
-            return m.get(this);
-        }
-        return this;
-    }
+    return this;
+  }
 }

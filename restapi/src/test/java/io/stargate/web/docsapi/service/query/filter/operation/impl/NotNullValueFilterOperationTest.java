@@ -16,90 +16,86 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
-import io.stargate.db.query.Predicate;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import io.stargate.db.query.Predicate;
+import java.util.Optional;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 class NotNullValueFilterOperationTest {
 
-    NotNullValueFilterOperation predicate = new NotNullValueFilterOperation() {
+  NotNullValueFilterOperation predicate =
+      new NotNullValueFilterOperation() {
 
         @Override
         public boolean isSatisfied(int compareValue) {
-            return false;
+          return false;
         }
 
         @Override
         public String getRawValue() {
-            return null;
+          return null;
         }
 
         @Override
         public Optional<Predicate> getDatabasePredicate() {
-            return Optional.empty();
+          return Optional.empty();
         }
-    };
+      };
 
-    @Nested
-    class ValidateBooleanFilterInput {
+  @Nested
+  class ValidateBooleanFilterInput {
 
-        @Test
-        public void isNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateBooleanFilterInput(null));
+    @Test
+    public void isNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateBooleanFilterInput(null));
 
-            assertThat(throwable).isNotNull();
-        }
-
-        @Test
-        public void isNotNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateBooleanFilterInput(true));
-
-            assertThat(throwable).isNull();
-        }
-
+      assertThat(throwable).isNotNull();
     }
 
-    @Nested
-    class ValidateStringFilterInput {
+    @Test
+    public void isNotNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateBooleanFilterInput(true));
 
-        @Test
-        public void isNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateStringFilterInput(null));
+      assertThat(throwable).isNull();
+    }
+  }
 
-            assertThat(throwable).isNotNull();
-        }
+  @Nested
+  class ValidateStringFilterInput {
 
-        @Test
-        public void isNotNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateStringFilterInput("Jordan"));
+    @Test
+    public void isNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateStringFilterInput(null));
 
-            assertThat(throwable).isNull();
-        }
-
+      assertThat(throwable).isNotNull();
     }
 
-    @Nested
-    class ValidateDoubleFilterInput {
+    @Test
+    public void isNotNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateStringFilterInput("Jordan"));
 
-        @Test
-        public void isNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(null));
+      assertThat(throwable).isNull();
+    }
+  }
 
-            assertThat(throwable).isNotNull();
-        }
+  @Nested
+  class ValidateDoubleFilterInput {
 
-        @Test
-        public void isNotNull() {
-            Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(23));
+    @Test
+    public void isNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(null));
 
-            assertThat(throwable).isNull();
-        }
-
+      assertThat(throwable).isNotNull();
     }
 
+    @Test
+    public void isNotNull() {
+      Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(23));
+
+      assertThat(throwable).isNull();
+    }
+  }
 }

@@ -21,58 +21,46 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * Condition that accepts boolean filter values and compare against boolean database row value.
- */
+/** Condition that accepts boolean filter values and compare against boolean database row value. */
 @Value.Immutable
 public abstract class BooleanCondition implements BaseCondition {
 
-    /**
-     * @return Filter operation for the condition.
-     */
-    @Value.Parameter
-    public abstract BooleanValueFilterOperation<Boolean> getFilterOperation();
+  /** @return Filter operation for the condition. */
+  @Value.Parameter
+  public abstract BooleanValueFilterOperation<Boolean> getFilterOperation();
 
-    /**
-     * @return Filter query value.
-     */
-    @Value.Parameter
-    public abstract Boolean getQueryValue();
+  /** @return Filter query value. */
+  @Value.Parameter
+  public abstract Boolean getQueryValue();
 
-    /**
-     * @return If booleans should be considered as numeric values.
-     */
-    @Value.Parameter
-    public abstract boolean isNumericBooleans();
+  /** @return If booleans should be considered as numeric values. */
+  @Value.Parameter
+  public abstract boolean isNumericBooleans();
 
-    /**
-     * Validates the value against the predicate.
-     */
-    @Value.Check
-    protected void validate() {
-        getFilterOperation().validateBooleanFilterInput(getQueryValue());
-    }
+  /** Validates the value against the predicate. */
+  @Value.Check
+  protected void validate() {
+    getFilterOperation().validateBooleanFilterInput(getQueryValue());
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<BuiltCondition> getBuiltCondition() {
-        return getFilterOperation().getDatabasePredicate()
-                .map(predicate -> BuiltCondition.of(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, getQueryValue()));
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<BuiltCondition> getBuiltCondition() {
+    return getFilterOperation()
+        .getDatabasePredicate()
+        .map(
+            predicate ->
+                BuiltCondition.of(
+                    QueryConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, getQueryValue()));
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(Row row) {
-        Boolean dbValue = getBooleanDatabaseValue(row, isNumericBooleans());
-        return getFilterOperation().test(getQueryValue(), dbValue);
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(Row row) {
+    Boolean dbValue = getBooleanDatabaseValue(row, isNumericBooleans());
+    return getFilterOperation().test(getQueryValue(), dbValue);
+  }
 }

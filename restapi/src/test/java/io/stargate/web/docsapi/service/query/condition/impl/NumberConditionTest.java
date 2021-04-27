@@ -16,10 +16,14 @@
 
 package io.stargate.web.docsapi.service.query.condition.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,98 +31,90 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class NumberConditionTest {
 
-    @Mock
-    DoubleValueFilterOperation<Number> filterOperation;
+  @Mock DoubleValueFilterOperation<Number> filterOperation;
 
-    @Nested
-    class Constructor {
+  @Nested
+  class Constructor {
 
-        @Test
-        public void predicateValidated() {
-            Number value = RandomUtils.nextLong();
+    @Test
+    public void predicateValidated() {
+      Number value = RandomUtils.nextLong();
 
-            NumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
 
-            assertThat(condition).isNotNull();
-            verify(filterOperation).validateDoubleFilterInput(value);
-            verifyNoMoreInteractions(filterOperation);
-        }
-
+      assertThat(condition).isNotNull();
+      verify(filterOperation).validateDoubleFilterInput(value);
+      verifyNoMoreInteractions(filterOperation);
     }
+  }
 
-    @Nested
-    class GetBuiltCondition {
+  @Nested
+  class GetBuiltCondition {
 
-        @Test
-        public void happyPath() {
-            Predicate eq = Predicate.EQ;
-            Number value = RandomUtils.nextLong();
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+    @Test
+    public void happyPath() {
+      Predicate eq = Predicate.EQ;
+      Number value = RandomUtils.nextLong();
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
+      ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-            assertThat(result).hasValueSatisfying(builtCondition -> {
+      assertThat(result)
+          .hasValueSatisfying(
+              builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
                 assertThat(builtCondition.value().get()).isEqualTo(value.doubleValue());
                 assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("dbl_value"));
-            });
-        }
-
-        @Test
-        public void emptyPredicate() {
-            Number value = RandomUtils.nextLong();
-            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
-
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
-            Optional<BuiltCondition> result = condition.getBuiltCondition();
-
-            assertThat(result).isEmpty();
-        }
-
+              });
     }
 
-    @Nested
-    class RowTest {
+    @Test
+    public void emptyPredicate() {
+      Number value = RandomUtils.nextLong();
+      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-        @Mock
-        Row row;
+      ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
 
-        @Test
-        public void nullDatabaseValue() {
-            Number filterValue = RandomUtils.nextLong();
-            when(row.isNull("dbl_value")).thenReturn(true);
-            when(filterOperation.test(filterValue, null)).thenReturn(true);
+      assertThat(result).isEmpty();
+    }
+  }
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, filterValue);
-            boolean result = condition.test(row);
+  @Nested
+  class RowTest {
 
-            assertThat(result).isTrue();
-        }
+    @Mock Row row;
 
-        @Test
-        public void notNullDatabaseValue() {
-            Number filterValue = RandomUtils.nextLong();
-            Double databaseValue = RandomUtils.nextDouble();
-            when(row.isNull("dbl_value")).thenReturn(false);
-            when(row.getDouble("dbl_value")).thenReturn(databaseValue);
-            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+    @Test
+    public void nullDatabaseValue() {
+      Number filterValue = RandomUtils.nextLong();
+      when(row.isNull("dbl_value")).thenReturn(true);
+      when(filterOperation.test(filterValue, null)).thenReturn(true);
 
+      ImmutableNumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, filterValue);
+      boolean result = condition.test(row);
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, filterValue);
-            boolean result = condition.test(row);
-
-            assertThat(result).isTrue();
-        }
-
+      assertThat(result).isTrue();
     }
 
+    @Test
+    public void notNullDatabaseValue() {
+      Number filterValue = RandomUtils.nextLong();
+      Double databaseValue = RandomUtils.nextDouble();
+      when(row.isNull("dbl_value")).thenReturn(false);
+      when(row.getDouble("dbl_value")).thenReturn(databaseValue);
+      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+
+      ImmutableNumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, filterValue);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+  }
 }
