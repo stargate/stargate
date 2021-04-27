@@ -22,9 +22,7 @@ import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
@@ -36,18 +34,21 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.dao.DocumentSearchPageState;
+import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
+import io.stargate.web.docsapi.service.json.JsonConverter;
 import io.stargate.web.resources.Db;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -57,9 +58,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -70,6 +69,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class DocumentServiceTest {
+  private final DataStore dataStore = Mockito.mock(DataStore.class);
   private DocumentService service;
   private Method convertToBracketedPath;
   private Method leftPadTo6;
@@ -179,8 +179,7 @@ public class DocumentServiceTest {
             List.class,
             Boolean.class,
             String.class,
-            int.class,
-            ByteBuffer.class);
+            Paginator.class);
     searchRows.setAccessible(true);
   }
 
@@ -999,8 +998,7 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void getJsonAtPath()
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+  public void getJsonAtPath() throws UnauthorizedException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
@@ -1020,12 +1018,13 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void getJsonAtPath_withRowsEmptyJson()
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+  public void getJsonAtPath_withRowsEmptyJson() throws UnauthorizedException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
@@ -1039,8 +1038,9 @@ public class DocumentServiceTest {
 
     List<PathSegment> path = smallPath();
 
-    when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(mapper.createObjectNode(), new HashMap<>()));
+    when(jsonConverterServiceMock.convertToJsonDoc(
+            anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(mapper.createObjectNode());
 
     JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
@@ -1048,13 +1048,13 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void getJsonAtPath_withRows()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+  public void getJsonAtPath_withRows() throws JsonProcessingException, UnauthorizedException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
     when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
@@ -1071,47 +1071,13 @@ public class DocumentServiceTest {
     ObjectNode jsonObj = mapper.createObjectNode();
     jsonObj.set("abc", mapper.readTree("[1]"));
 
-    when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(jsonObj, new HashMap<>()));
+    when(jsonConverterServiceMock.convertToJsonDoc(
+            anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(jsonObj);
 
     JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
 
     assertThat(result).isEqualTo(IntNode.valueOf(1));
-  }
-
-  @Test
-  public void getJsonAtPath_withDeadLeaves()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    DocumentService serviceMock = mock(DocumentService.class, CALLS_REAL_METHODS);
-    when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
-        .thenReturn(rsMock);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-
-    List<Row> rows = makeInitialRowData();
-    when(rsMock.rows()).thenReturn(rows);
-
-    List<PathSegment> path = smallPath();
-
-    ObjectNode jsonObj = mapper.createObjectNode();
-    jsonObj.set("abc", mapper.readTree("[1]"));
-
-    Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
-    deadLeaves.put("a", new ArrayList<>());
-    when(serviceMock.convertToJsonDoc(anyListOf(Row.class), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(jsonObj, deadLeaves));
-
-    JsonNode result = serviceMock.getJsonAtPath(dbMock, "ks", "collection", "id", path);
-
-    assertThat(result).isEqualTo(IntNode.valueOf(1));
-    verify(dbMock, times(1)).deleteDeadLeaves("ks", "collection", "id", deadLeaves);
   }
 
   @Test
@@ -1233,21 +1199,24 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
+    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(new ArrayList<>(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new ArrayList<>());
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, 100, null);
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
     assertThat(result).isNull();
   }
 
@@ -1255,49 +1224,58 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_existingResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
+    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
-    Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(makeInitialRowData());
+    Mockito.when(
+            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(mapper.readTree("{\"a\": 1}"));
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, 100, null);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
 
   @Test
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(
-            serviceMock.searchDocumentsV2(
-                any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    JsonConverter jsonConverterServiceMock = Mockito.mock(JsonConverter.class);
+    Mockito.when(jsonConverterServiceMock.getMapper()).thenCallRealMethod();
+    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
-    Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(makeInitialRowData());
+    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
+    Mockito.when(
+            jsonConverterServiceMock.convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(mapper.readTree("{\"a\": 1}"));
     List<FilterCondition> filters =
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    ImmutablePair<JsonNode, ByteBuffer> result =
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    JsonNode result =
         serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, 100, null);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
+            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\":[{\"a\":1},{\"a\":1},{\"a\":1}]}"));
   }
 
   @Test
@@ -1321,30 +1299,30 @@ public class DocumentServiceTest {
     Db dbFactoryMock = Mockito.mock(Db.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(makeInitialRowData(), null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(makeInitialRowData());
     Mockito.when(
             serviceMock.getFullDocuments(
-                any(),
-                anyString(),
-                anyString(),
-                anyListOf(String.class),
-                any(),
-                anyInt(),
-                anyInt()))
+                any(), anyString(), anyString(), anyListOf(String.class), any()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
-    Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
+    Mockito.when(
+            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(mapper.readTree("{\"a\": 1}"));
+    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
-    ImmutablePair<JsonNode, DocumentSearchPageState> result =
+    JsonNode result =
         serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
+            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 
   @Test
@@ -1352,37 +1330,38 @@ public class DocumentServiceTest {
     Db dbFactoryMock = Mockito.mock(Db.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
+    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
     Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
+    Mockito.when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
     Mockito.when(
             serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(ImmutablePair.of(twoDocsRows, null));
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(twoDocsRows);
     Mockito.when(
             serviceMock.getFullDocuments(
-                any(),
-                anyString(),
-                anyString(),
-                anyListOf(String.class),
-                any(),
-                anyInt(),
-                anyInt()))
+                any(), anyString(), anyString(), anyListOf(String.class), any()))
         .thenCallRealMethod();
     Mockito.doCallRealMethod().when(serviceMock).addRowsToMap(anyMap(), anyList());
-    Mockito.when(serviceMock.convertToJsonDoc(any(), anyBoolean(), anyBoolean()))
-        .thenReturn(ImmutablePair.of(mapper.readTree("{\"a\": 1}"), new HashMap<>()));
+    Mockito.when(
+            jsonConverterServiceMock.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+        .thenReturn(mapper.readTree("{\"a\": 1}"));
+    when(serviceMock.getJsonConverterService()).thenReturn(jsonConverterServiceMock);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
-    ImmutablePair<JsonNode, DocumentSearchPageState> result =
+    JsonNode result =
         serviceMock.getFullDocuments(
-            dbMock, "keyspace", "collection", new ArrayList<>(), null, 100, 1);
-    assertThat(result.right.getPageState()).isNull();
-    assertThat(result.left).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
+            dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
 
   @Test
   public void searchRows()
-      throws InvocationTargetException, IllegalAccessException, UnauthorizedException {
+      throws InvocationTargetException, IOException, IllegalAccessException, UnauthorizedException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
 
@@ -1401,8 +1380,12 @@ public class DocumentServiceTest {
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
 
-    ImmutablePair<?, ?> result =
-        (ImmutablePair<?, ?>)
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+
+    List<Row> result =
+        (List<Row>)
             searchRows.invoke(
                 service,
                 "keyspace",
@@ -1414,14 +1397,14 @@ public class DocumentServiceTest {
                 ImmutableList.of("a,b", "*", "c"),
                 false,
                 null,
-                100,
-                null);
+                paginator);
 
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(rows);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(rows);
 
+    paginator = new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
     result =
-        (ImmutablePair<?, ?>)
+        (List<Row>)
             searchRows.invoke(
                 service,
                 "keyspace",
@@ -1433,15 +1416,14 @@ public class DocumentServiceTest {
                 new ArrayList<>(),
                 false,
                 null,
-                100,
-                null);
+                paginator);
 
-    assertThat(result.right).isNull();
-    assertThat(result.left).isEqualTo(rows);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(rows);
   }
 
   @Test
-  public void searchRows_invalid() throws UnauthorizedException {
+  public void searchRows_invalid() throws UnauthorizedException, IOException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
@@ -1456,6 +1438,10 @@ public class DocumentServiceTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     when(rsMock.rows()).thenReturn(rows);
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
+
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", true));
@@ -1474,8 +1460,7 @@ public class DocumentServiceTest {
                     ImmutableList.of("a,b", "*", "c"),
                     null,
                     null,
-                    1,
-                    null));
+                    paginator));
 
     assertThat(thrown.getCause())
         .isInstanceOf(DocumentAPIRequestException.class)
@@ -1734,103 +1719,7 @@ public class DocumentServiceTest {
     assertThat(res).isNull();
   }
 
-  @Test
-  public void convertToJsonDoc_testDeadLeaves() throws JsonProcessingException {
-    List<Row> initial = makeInitialRowData();
-    initial.sort(
-        (row1, row2) ->
-            (Objects.requireNonNull(row1.getString("p0"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p0")))
-                    * 100000
-                + Objects.requireNonNull(row1.getString("p1"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p1")))
-                    * 10000
-                + Objects.requireNonNull(row1.getString("p2"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p2")))
-                    * 1000
-                + Objects.requireNonNull(row1.getString("p3"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p3")))
-                    * 100));
-    ImmutablePair<JsonNode, Map<String, List<JsonNode>>> result =
-        service.convertToJsonDoc(initial, false, false);
-
-    assertThat(result.left.toString())
-        .isEqualTo(
-            mapper
-                .readTree("{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
-                .toString());
-
-    // This state should have no dead leaves, as it's the initial write
-    assertThat(result.right).isEmpty();
-
-    initial.addAll(makeSecondRowData());
-    initial.sort(
-        (row1, row2) ->
-            (Objects.requireNonNull(row1.getString("p0"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p0")))
-                    * 100000
-                + Objects.requireNonNull(row1.getString("p1"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p1")))
-                    * 10000
-                + Objects.requireNonNull(row1.getString("p2"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p2")))
-                    * 1000
-                + Objects.requireNonNull(row1.getString("p3"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p3")))
-                    * 100));
-    result = service.convertToJsonDoc(initial, false, false);
-
-    assertThat(result.left.toString())
-        .isEqualTo(
-            mapper
-                .readTree(
-                    "{\"a\": {\"b\": {\"c\": {\"d\": \"replaced\"}}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
-                .toString());
-
-    // This state should have 1 dead leaf, since $.a.b.c was changed from `true` to an object
-    Map<String, List<JsonNode>> expected = new HashMap<>();
-    List<JsonNode> list = new ArrayList<>();
-    ObjectNode node = mapper.createObjectNode();
-    node.set("", BooleanNode.valueOf(true));
-    list.add(node);
-    expected.put("$.a.b.c", list);
-    assertThat(result.right).isEqualTo(expected);
-
-    initial.addAll(makeThirdRowData());
-    initial.sort(
-        (row1, row2) ->
-            (Objects.requireNonNull(row1.getString("p0"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p0")))
-                    * 100000
-                + Objects.requireNonNull(row1.getString("p1"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p1")))
-                    * 10000
-                + Objects.requireNonNull(row1.getString("p2"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p2")))
-                    * 1000
-                + Objects.requireNonNull(row1.getString("p3"))
-                        .compareTo(Objects.requireNonNull(row2.getString("p3")))
-                    * 100));
-    result = service.convertToJsonDoc(initial, false, false);
-
-    assertThat(result.left.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
-
-    // This state should have 3 dead branches representing keys a, d, and f, since everything was
-    // blown away by the latest change
-    expected = new HashMap<>();
-    list = new ArrayList<>();
-    node = mapper.createObjectNode();
-    node.set("a", NullNode.getInstance());
-    node.set("d", NullNode.getInstance());
-    node.set("f", NullNode.getInstance());
-
-    list.add(node);
-    expected.put("$", list);
-
-    assertThat(result.right).isEqualTo(expected);
-  }
-
-  private List<Row> makeInitialRowData() {
+  public static List<Row> makeInitialRowData() {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
     Map<String, Object> data2 = new HashMap<>();
@@ -1871,7 +1760,7 @@ public class DocumentServiceTest {
     return rows;
   }
 
-  private List<Row> makeSecondRowData() {
+  public static List<Row> makeSecondRowData() {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
     data1.put("key", "1");
@@ -1887,7 +1776,7 @@ public class DocumentServiceTest {
     return rows;
   }
 
-  private List<Row> makeThirdRowData() {
+  public static List<Row> makeThirdRowData() {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
 
@@ -1904,7 +1793,7 @@ public class DocumentServiceTest {
     return rows;
   }
 
-  private List<Row> makeRowDataForSecondDoc() {
+  public List<Row> makeRowDataForSecondDoc() {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
 

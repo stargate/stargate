@@ -13,6 +13,7 @@ import io.stargate.db.Batch;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.EventListener;
+import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
@@ -511,6 +512,11 @@ public class CassandraPersistence
             }
             return new BatchMessage(internalBatchType, queryOrIdList, allValues, options);
           });
+    }
+
+    @Override
+    public ByteBuffer makePagingState(PagingPosition position, Parameters parameters) {
+      return Conversion.toPagingState(position, parameters);
     }
 
     private Object queryOrId(Statement statement) {

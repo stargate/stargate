@@ -1,6 +1,7 @@
 package io.stargate.db.datastore;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
+import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
@@ -103,6 +104,11 @@ class PersistenceBackedResultSet implements ResultSet {
       processed.add(inSchema == null ? c : inSchema);
     }
     return processed;
+  }
+
+  @Override
+  public List<Column> columns() {
+    return columns;
   }
 
   private static @Nullable Column columnInSchema(Schema schema, Column toFind) {
@@ -238,6 +244,11 @@ class PersistenceBackedResultSet implements ResultSet {
   @Override
   public ByteBuffer getPagingState() {
     return nextPagingState;
+  }
+
+  @Override
+  public ByteBuffer makePagingState(PagingPosition position) {
+    return connection.makePagingState(position, parameters);
   }
 
   @Override

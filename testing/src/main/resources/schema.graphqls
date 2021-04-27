@@ -169,6 +169,11 @@ type Mutation {
         ifCondition: ProductsFilterInput
         options: MutationOptions
     ): ProductsMutationResult
+    bulkInsertProducts(
+        values: [ProductsInput!]
+        ifNotExists: Boolean
+        options: MutationOptions
+    ): [ProductsMutationResult]
 }
 
 enum MutationConsistency {

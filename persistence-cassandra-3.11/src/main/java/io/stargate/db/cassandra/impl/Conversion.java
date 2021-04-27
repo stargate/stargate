@@ -19,6 +19,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.db.BatchType;
+import io.stargate.db.PagingPosition;
+import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Flag;
@@ -36,12 +38,17 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.apache.cassandra.config.CFMetaData;
+import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ParsedStatement;
+import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.ListType;
 import org.apache.cassandra.db.marshal.MapType;
@@ -81,6 +88,7 @@ import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.ProtocolVersionLimit;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.NoSpamLogger;
+import org.apache.cassandra.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,6 +164,57 @@ public class Conversion {
               }
             });
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
+  }
+
+  public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
+    Set<Pair<String, String>> tables =
+        pos.currentRow().keySet().stream()
+            .map(c -> Pair.create(c.keyspace(), c.table()))
+            .collect(Collectors.toSet());
+
+    if (tables.isEmpty()) {
+      throw new IllegalArgumentException("Missing table information in custom paging request.");
+    }
+
+    if (tables.size() > 1) {
+      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
+    }
+
+    Pair<String, String> table = tables.iterator().next();
+    CFMetaData cfm = Schema.instance.getCFMetaData(table.left, table.right);
+    if (cfm == null) {
+      throw new IllegalStateException("Table not found: " + table);
+    }
+
+    Object[] pkValues =
+        cfm.partitionKeyColumns().stream()
+            .map(
+                c -> {
+                  ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
+
+                  if (value == null) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Partition key value is not present in current row (table: %s, column: %s)",
+                            table, c.name.toCQLString()));
+                  }
+
+                  return value;
+                })
+            .toArray();
+    Clustering clustering = cfm.getKeyValidatorAsClusteringComparator().make(pkValues);
+
+    if (pos.resumeFrom() != ResumeMode.NEXT_PARTITION) {
+      throw new UnsupportedOperationException("Unsupported paging mode: " + pos.resumeFrom());
+    }
+
+    ByteBuffer serializedKey = CFMetaData.serializePartitionKey(clustering);
+    PagingState pagingState =
+        new PagingState(serializedKey, null, pos.remainingRows(), pos.remainingRowsInPartition());
+
+    org.apache.cassandra.transport.ProtocolVersion protocolVersion =
+        toInternal(parameters.protocolVersion());
+    return pagingState.serialize(protocolVersion);
   }
 
   public static QueryOptions toInternal(

@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.0.22](https://github.com/stargate/stargate/tree/v1.0.22) (2021-04-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.21...v1.0.22)
+
+**Fixed bugs:**
+
+- `fields` parameter with a space in it causes server error in REST API v2 [\#865](https://github.com/stargate/stargate/issues/865)
+
+**Closed issues:**
+
+- Add ability to get all rows in REST v2 [\#728](https://github.com/stargate/stargate/issues/728)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#864](https://github.com/stargate/stargate/pull/864) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added in Paginator object, use it everywhere [\#848](https://github.com/stargate/stargate/pull/848) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fixes \#728 - Add ability to get all rows in REST v2 [\#778](https://github.com/stargate/stargate/pull/778) ([eribeiro](https://github.com/eribeiro))
+
+## [v1.0.21](https://github.com/stargate/stargate/tree/v1.0.21) (2021-04-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.20...v1.0.21)
+
+**Merged pull requests:**
+
+- Use project version for grpc-proto [\#863](https://github.com/stargate/stargate/pull/863) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#860](https://github.com/stargate/stargate/pull/860) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added server http requests micrometer metric with custom tags [\#836](https://github.com/stargate/stargate/pull/836) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.20](https://github.com/stargate/stargate/tree/v1.0.20) (2021-04-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.19...v1.0.20)
