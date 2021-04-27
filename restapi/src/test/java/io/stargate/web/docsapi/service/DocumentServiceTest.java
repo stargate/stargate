@@ -2,7 +2,6 @@ package io.stargate.web.docsapi.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -11,7 +10,6 @@ import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,9 +26,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.DataStore;
@@ -46,7 +42,6 @@ import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.resources.Db;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -64,13 +59,17 @@ import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class DocumentServiceTest {
   private final DataStore dataStore = Mockito.mock(DataStore.class);
   @InjectMocks DocumentService service;
   @Mock JsonConverter jsonConverter;
   @Spy ObjectMapper serviceMapper;
+  @Spy DocsApiConfiguration docsConfig;
 
   private Method convertToBracketedPath;
   private Method leftPadTo6;
@@ -96,8 +95,6 @@ public class DocumentServiceTest {
 
   @BeforeEach
   public void setup() throws NoSuchMethodException {
-    MockitoAnnotations.initMocks(this);
-
     convertToBracketedPath =
         DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);
     convertToBracketedPath.setAccessible(true);
@@ -976,7 +973,6 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
 
     Throwable thrown =
         catchThrowable(
@@ -1001,17 +997,11 @@ public class DocumentServiceTest {
 
   @Test
   public void getJsonAtPath() throws UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
     when(rsMock.rows()).thenReturn(new ArrayList<>());
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<PathSegment> path = smallPath();
     JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
@@ -1021,16 +1011,10 @@ public class DocumentServiceTest {
 
   @Test
   public void getJsonAtPath_withRowsEmptyJson() throws UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1047,16 +1031,10 @@ public class DocumentServiceTest {
 
   @Test
   public void getJsonAtPath_withRows() throws JsonProcessingException, UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<Row> rows = makeInitialRowData();
     when(rsMock.rows()).thenReturn(rows);
@@ -1176,11 +1154,6 @@ public class DocumentServiceTest {
   public void deleteAtPath() throws UnauthorizedException {
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath());
     verify(dbMock, times(1))
@@ -1215,20 +1188,13 @@ public class DocumentServiceTest {
 
   @Test
   public void searchDocumentsV2_existingResult() throws Exception {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
@@ -1245,20 +1211,13 @@ public class DocumentServiceTest {
 
   @Test
   public void searchDocumentsV2_existingResultWithFields() throws Exception {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<FilterCondition> filters =
         ImmutableList.of(
@@ -1291,19 +1250,13 @@ public class DocumentServiceTest {
 
   @Test
   public void getFullDocuments_lessThanLimit() throws Exception {
-    Db dbFactoryMock = Mockito.mock(Db.class);
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
     int pageSizeParam = 0;
     Paginator paginator =
@@ -1324,14 +1277,10 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData();
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
     List<Row> twoDocsRows = makeInitialRowData();
     twoDocsRows.addAll(makeRowDataForSecondDoc());
-    Mockito.when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
+    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
     int pageSizeParam = 0;
     Paginator paginator =
@@ -1345,8 +1294,7 @@ public class DocumentServiceTest {
 
   @Test
   public void searchRows()
-      throws InvocationTargetException, IOException, IllegalAccessException, UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
+      throws InvocationTargetException, IllegalAccessException, UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
@@ -1355,11 +1303,6 @@ public class DocumentServiceTest {
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
 
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
@@ -1407,20 +1350,11 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void searchRows_invalid() throws UnauthorizedException, IOException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
+  public void searchRows_invalid() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
-    when(dbMock.getAuthorizationService()).thenReturn(authorizationService);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    when(rsMock.rows()).thenReturn(rows);
     when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
 
     int pageSizeParam = 0;

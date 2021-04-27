@@ -9,18 +9,21 @@ public class DeadLeafCollectorImpl implements DeadLeafCollector {
     deadPaths = new HashMap<>();
   }
 
+  @Override
   public void addLeaf(String path, DeadLeaf leaf) {
     Set<DeadLeaf> leavesAtPath = deadPaths.getOrDefault(path, new HashSet<>());
     leavesAtPath.add(leaf);
     deadPaths.put(path, leavesAtPath);
   }
 
+  @Override
   public void addArray(String path) {
     Set<DeadLeaf> leavesAtPath = deadPaths.getOrDefault(path, new HashSet<>());
     leavesAtPath.add(DeadLeaf.ARRAYLEAF);
     deadPaths.put(path, leavesAtPath);
   }
 
+  @Override
   public void addAll(String path) {
     Set<DeadLeaf> leavesAtPath = new HashSet<>();
     leavesAtPath.add(DeadLeaf.STARLEAF);
@@ -31,6 +34,7 @@ public class DeadLeafCollectorImpl implements DeadLeafCollector {
     return deadPaths;
   }
 
+  @Override
   public boolean isEmpty() {
     return deadPaths.isEmpty();
   }

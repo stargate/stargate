@@ -21,7 +21,7 @@ public class JsonConverterTest {
 
   @BeforeEach
   public void setup() {
-    service = new JsonConverter(mapper);
+    service = new JsonConverter(mapper, DocsApiConfiguration.DEFAULT);
   }
 
   @Test

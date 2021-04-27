@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
@@ -34,22 +35,22 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class DocumentResourceV2Test {
-  private static final ObjectMapper mapper = new ObjectMapper();
   private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
   @InjectMocks private DocumentResourceV2 documentResourceV2;
   @Mock private DocumentService documentServiceMock;
   @Mock private Db dbFactoryMock;
+  @Spy private ObjectMapper mapper = new ObjectMapper();
+  @Spy private DocsApiConfiguration conf;
   private HttpServletRequest httpServletRequest;
 
   @BeforeEach
   public void setup() {
-    MockitoAnnotations.initMocks(this);
     httpServletRequest = mock(HttpServletRequest.class);
     when(httpServletRequest.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
   }
@@ -630,8 +631,6 @@ public class DocumentResourceV2Test {
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
 
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
     Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
         .thenReturn(ImmutableList.of("field1"));
 

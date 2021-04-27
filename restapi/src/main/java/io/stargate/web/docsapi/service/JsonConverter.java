@@ -7,19 +7,22 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
+import io.stargate.web.docsapi.service.json.DeadLeafCollectorNoOp;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import java.util.*;
 import javax.inject.Inject;
 
 public class JsonConverter {
   private ObjectMapper mapper;
+  private DocsApiConfiguration docsApiConfiguration;
 
   @Inject
-  public JsonConverter(ObjectMapper mapper) {
+  public JsonConverter(ObjectMapper mapper, DocsApiConfiguration docsApiConfiguration) {
     if (mapper == null) {
       throw new IllegalStateException("JsonConverter requires a non-null ObjectMapper");
     }
     this.mapper = mapper;
+    this.docsApiConfiguration = docsApiConfiguration;
   }
 
   // TODO find a place to refactor this to, along with DocumentService#getBooleanFromRow
@@ -30,6 +33,12 @@ public class JsonConverter {
       return value != 0;
     }
     return row.getBoolean(colName);
+  }
+
+  public JsonNode convertToJsonDoc(
+      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
+    return convertToJsonDoc(
+        rows, DeadLeafCollectorNoOp.INSTANCE, writeAllPathsAsObjects, numericBooleans);
   }
 
   public JsonNode convertToJsonDoc(
@@ -57,9 +66,10 @@ public class JsonConverter {
 
       String parentPath = "$";
 
-      for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+      for (int i = 0; i < docsApiConfiguration.getMaxDepth(); i++) {
         String p = row.getString("p" + i);
-        String nextP = i < DocumentDB.MAX_DEPTH - 1 ? row.getString("p" + (i + 1)) : "";
+        String nextP =
+            i < docsApiConfiguration.getMaxDepth() - 1 ? row.getString("p" + (i + 1)) : "";
         boolean endOfPath = nextP.equals("");
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
