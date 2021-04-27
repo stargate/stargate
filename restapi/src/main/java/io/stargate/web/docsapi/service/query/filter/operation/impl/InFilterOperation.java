@@ -14,11 +14,11 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
 import org.immutables.value.Value;
 
 import java.util.List;
@@ -26,19 +26,19 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * In list predicate.
+ * In list filter operation.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class InPredicate implements AnyValuePredicate<List<?>> {
+public abstract class InFilterOperation implements CustomValueFilterOperation<List<?>> {
 
     public static final String RAW_VALUE = "$in";
 
     /**
      * @return Singleton instance
      */
-    public static InPredicate of() {
-        return ImmutableInPredicate.of();
+    public static InFilterOperation of() {
+        return ImmutableInFilterOperation.of();
     }
 
     /**

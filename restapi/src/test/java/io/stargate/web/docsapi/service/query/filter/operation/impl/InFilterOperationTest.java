@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.apache.commons.lang3.RandomUtils;
@@ -29,12 +29,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-class InPredicateTest {
+class InFilterOperationTest {
 
-    InPredicate in = InPredicate.of();
+    InFilterOperation in = InFilterOperation.of();
 
     @Nested
-    class PredicateTest {
+    class FilterTest {
 
         @Test
         public void stringIn() {

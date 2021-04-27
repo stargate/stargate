@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.DoubleFilterPredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 class NumberConditionTest {
 
     @Mock
-    DoubleFilterPredicate<Number> predicate;
+    DoubleValueFilterOperation<Number> filterOperation;
 
     @Nested
     class Constructor {
@@ -45,11 +45,11 @@ class NumberConditionTest {
         public void predicateValidated() {
             Number value = RandomUtils.nextLong();
 
-            NumberCondition condition = ImmutableNumberCondition.of(predicate, value);
+            NumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
 
             assertThat(condition).isNotNull();
-            verify(predicate).validateDoubleFilterInput(value);
-            verifyNoMoreInteractions(predicate);
+            verify(filterOperation).validateDoubleFilterInput(value);
+            verifyNoMoreInteractions(filterOperation);
         }
 
     }
@@ -61,9 +61,9 @@ class NumberConditionTest {
         public void happyPath() {
             Predicate eq = Predicate.EQ;
             Number value = RandomUtils.nextLong();
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.of(eq));
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, value);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).hasValueSatisfying(builtCondition -> {
@@ -76,9 +76,9 @@ class NumberConditionTest {
         @Test
         public void emptyPredicate() {
             Number value = RandomUtils.nextLong();
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.empty());
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, value);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -96,9 +96,9 @@ class NumberConditionTest {
         public void nullDatabaseValue() {
             Number filterValue = RandomUtils.nextLong();
             when(row.isNull("dbl_value")).thenReturn(true);
-            when(predicate.test(filterValue, null)).thenReturn(true);
+            when(filterOperation.test(filterValue, null)).thenReturn(true);
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, filterValue);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -110,10 +110,10 @@ class NumberConditionTest {
             Double databaseValue = RandomUtils.nextDouble();
             when(row.isNull("dbl_value")).thenReturn(false);
             when(row.getDouble("dbl_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, databaseValue)).thenReturn(true);
+            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
 
 
-            ImmutableNumberCondition condition = ImmutableNumberCondition.of(predicate, filterValue);
+            ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

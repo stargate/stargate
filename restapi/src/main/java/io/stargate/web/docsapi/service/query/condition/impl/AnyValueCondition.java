@@ -19,14 +19,13 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
 import org.immutables.value.Value;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Condition that works with the {@link AnyValuePredicate} in order to match a single {@link Row} against
+ * Condition that works with the {@link CustomValueFilterOperation} in order to match a single {@link Row} against
  * multiple database column values.
  * @param <V>
  */
@@ -34,10 +33,10 @@ import java.util.Optional;
 public abstract class AnyValueCondition<V> implements BaseCondition {
 
     /**
-     * @return Predicate for the condition.
+     * @return Filter operation for the condition.
      */
     @Value.Parameter
-    public abstract AnyValuePredicate<V> getFilterPredicate();
+    public abstract CustomValueFilterOperation<V> getFilterOperation();
 
     /**
      * @return Filter query value.
@@ -57,9 +56,9 @@ public abstract class AnyValueCondition<V> implements BaseCondition {
     @Value.Check
     protected void validate() {
         V queryValue = getQueryValue();
-        getFilterPredicate().validateBooleanFilterInput(queryValue);
-        getFilterPredicate().validateStringFilterInput(queryValue);
-        getFilterPredicate().validateDoubleFilterInput(queryValue);
+        getFilterOperation().validateBooleanFilterInput(queryValue);
+        getFilterOperation().validateStringFilterInput(queryValue);
+        getFilterOperation().validateDoubleFilterInput(queryValue);
     }
 
     /**
@@ -79,17 +78,17 @@ public abstract class AnyValueCondition<V> implements BaseCondition {
         Double dbValueDouble = getDoubleDatabaseValue(row);
         String dbValueString = getStringDatabaseValue(row);
 
-        AnyValuePredicate<V> filterPredicate = getFilterPredicate();
+        CustomValueFilterOperation<V> filterOperation = getFilterOperation();
         V queryValue = getQueryValue();
 
-        if (filterPredicate.isMatchAll()) {
-            return filterPredicate.test(queryValue, dbValueBoolean) &&
-                    filterPredicate.test(queryValue, dbValueDouble) &&
-                    filterPredicate.test(queryValue, dbValueString);
+        if (filterOperation.isMatchAll()) {
+            return filterOperation.test(queryValue, dbValueBoolean) &&
+                    filterOperation.test(queryValue, dbValueDouble) &&
+                    filterOperation.test(queryValue, dbValueString);
         } else {
-            return filterPredicate.test(queryValue, dbValueBoolean) ||
-                    filterPredicate.test(queryValue, dbValueDouble) ||
-                    filterPredicate.test(queryValue, dbValueString);
+            return filterOperation.test(queryValue, dbValueBoolean) ||
+                    filterOperation.test(queryValue, dbValueDouble) ||
+                    filterOperation.test(queryValue, dbValueString);
         }
     }
 

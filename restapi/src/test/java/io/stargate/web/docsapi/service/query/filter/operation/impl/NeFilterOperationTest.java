@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.apache.commons.lang3.RandomUtils;
@@ -25,98 +25,94 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class GtPredicateTest {
+class NeFilterOperationTest {
 
-    GtPredicate gt = GtPredicate.of();
+    NeFilterOperation eq = NeFilterOperation.of();
 
     @Nested
-    class PredicateTest {
+    class FilterTest {
 
         @Test
         public void stringEquals() {
-            boolean result = gt.test("filterValue", "filterValue");
+            boolean result = eq.test("filterValue", "filterValue");
 
             assertThat(result).isFalse();
         }
 
         @Test
-        public void stringGreater() {
-            boolean result = gt.test("filterValue", "aaa");
+        public void stringNotEquals() {
+            boolean result = eq.test("filterValue", "dbValue");
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void stringLess() {
-            boolean result = gt.test("filterValue", "www");
+        public void stringNotEqualsNull() {
+            boolean result = eq.test("filterValue", null);
 
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void stringNull() {
-            boolean result = gt.test("filterValue", null);
-
-            // nulls last
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
         @Test
         public void booleanEquals() {
             boolean value = RandomUtils.nextBoolean();
 
-            boolean result = gt.test(value, value);
+            boolean result = eq.test(value, value);
 
             assertThat(result).isFalse();
         }
 
         @Test
-        public void booleanGreater() {
-            boolean result = gt.test(true, false);
+        public void booleanNotEquals() {
+            boolean value = RandomUtils.nextBoolean();
+
+            boolean result = eq.test(value, !value);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void booleanLess() {
-            boolean result = gt.test(false, true);
+        public void booleanNotEqualsNull() {
+            boolean value = RandomUtils.nextBoolean();
 
-            assertThat(result).isFalse();
-        }
+            boolean result = eq.test(value, null);
 
-        @Test
-        public void booleanNull() {
-            boolean result = gt.test(true, null);
-
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
         @Test
         public void numberEquals() {
-            boolean result = gt.test(22d, 22d);
+            boolean result = eq.test(22d, 22d);
 
             assertThat(result).isFalse();
         }
 
         @Test
-        public void numbersGreater() {
-            boolean result = gt.test(22.1d, 22d);
+        public void numberEqualsDifferentTypes() {
+            boolean result = eq.test(22, 22d);
+
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        public void numbersNotEquals() {
+            boolean result = eq.test(22d, 23d);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void numbersLess() {
-            boolean result = gt.test(21.9d, 22d);
+        public void numbersNotEqualsDifferentTypes() {
+            boolean result = eq.test(22L, 22.01);
 
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
         @Test
-        public void numbersNull() {
-            boolean result = gt.test(22, null);
+        public void numbersNotEqualsNull() {
+            boolean result = eq.test(22, null);
 
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
     }
@@ -126,9 +122,9 @@ class GtPredicateTest {
 
         @Test
         public void correct() {
-            Optional<Predicate> result = gt.getDatabasePredicate();
+            Optional<Predicate> result = eq.getDatabasePredicate();
 
-            assertThat(result).hasValue(Predicate.GT);
+            assertThat(result).isEmpty();
         }
 
     }
@@ -138,9 +134,9 @@ class GtPredicateTest {
 
         @Test
         public void correct() {
-            String result = gt.getRawValue();
+            String result = eq.getRawValue();
 
-            assertThat(result).isEqualTo("$gt");
+            assertThat(result).isEqualTo("$ne");
         }
 
     }

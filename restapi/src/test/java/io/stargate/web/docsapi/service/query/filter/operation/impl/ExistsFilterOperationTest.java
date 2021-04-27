@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.junit.jupiter.api.Nested;
@@ -24,12 +24,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ExistsPredicateTest {
+class ExistsFilterOperationTest {
 
-    ExistsPredicate exists = ExistsPredicate.of();
+    ExistsFilterOperation exists = ExistsFilterOperation.of();
 
     @Nested
-    class PredicateTest {
+    class FilterTest {
 
         @Test
         public void stringExists() {

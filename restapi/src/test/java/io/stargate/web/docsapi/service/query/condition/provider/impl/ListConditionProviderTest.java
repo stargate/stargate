@@ -22,11 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
-import io.stargate.web.docsapi.service.query.predicate.impl.NotNullValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +44,7 @@ class ListConditionProviderTest {
     ListConditionProvider provider;
 
     @Mock
-    AnyValuePredicate<List<?>> predicate;
+    CustomValueFilterOperation<List<?>> filterOperation;
 
     @Nested
     class CreateCondition {
@@ -91,6 +87,7 @@ class ListConditionProviderTest {
                     List<Object> queryValue = (List<Object>) bc.getQueryValue();
                     assertThat(queryValue).hasSize(4)
                             .contains(Boolean.TRUE, 23, "Jordan", null);
+                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
                 });
             });
         }

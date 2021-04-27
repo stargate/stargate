@@ -23,7 +23,7 @@ import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableAnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
-import io.stargate.web.docsapi.service.query.predicate.impl.*;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
@@ -75,7 +75,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(EqPredicate.of(), value)
+                    ImmutableStringCondition.of(EqFilterOperation.of(), value)
             );
         }
 
@@ -87,7 +87,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(NePredicate.of(), value)
+                    ImmutableStringCondition.of(NeFilterOperation.of(), value)
             );
         }
 
@@ -99,7 +99,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(GtPredicate.of(), value)
+                    ImmutableStringCondition.of(GtFilterOperation.of(), value)
             );
         }
 
@@ -111,7 +111,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(GtePredicate.of(), value)
+                    ImmutableStringCondition.of(GteFilterOperation.of(), value)
             );
         }
 
@@ -123,7 +123,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(LtPredicate.of(), value)
+                    ImmutableStringCondition.of(LtFilterOperation.of(), value)
             );
         }
 
@@ -135,7 +135,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
 
             assertThat(conditions).containsOnly(
-                    ImmutableStringCondition.of(LtePredicate.of(), value)
+                    ImmutableStringCondition.of(LteFilterOperation.of(), value)
             );
         }
 
@@ -147,7 +147,7 @@ class ConditionProviderServiceTest {
             Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, numericBooleans);
 
             assertThat(conditions).containsOnly(
-                    ImmutableExistsCondition.of(ExistsPredicate.of(), true, numericBooleans)
+                    ImmutableExistsCondition.of(ExistsFilterOperation.of(), true, numericBooleans)
             );
         }
 
@@ -162,7 +162,7 @@ class ConditionProviderServiceTest {
             List<Object> expected = new ArrayList<>();
             expected.add(2);
             assertThat(conditions).containsOnly(
-                    ImmutableAnyValueCondition.of(InPredicate.of(), expected, numericBooleans)
+                    ImmutableAnyValueCondition.of(InFilterOperation.of(), expected, numericBooleans)
             );
         }
 
@@ -177,7 +177,7 @@ class ConditionProviderServiceTest {
             List<Object> expected = new ArrayList<>();
             expected.add(2);
             assertThat(conditions).containsOnly(
-                    ImmutableAnyValueCondition.of(NotInPredicate.of(), expected, numericBooleans)
+                    ImmutableAnyValueCondition.of(NotInFilterOperation.of(), expected, numericBooleans)
             );
         }
 

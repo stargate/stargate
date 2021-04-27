@@ -26,7 +26,7 @@ import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
-import io.stargate.web.docsapi.service.query.predicate.impl.*;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -73,7 +73,7 @@ class ExpressionServiceIntTest {
                         assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                         assertThat(builtCondition.value().get()).isEqualTo("some-value");
                     });
-                    assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                    assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                     assertThat(sc.getQueryValue()).isEqualTo("some-value");
                 });
             });
@@ -111,7 +111,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.LT);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(LtPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(LtFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
@@ -134,7 +134,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.GTE);
                                 assertThat(builtCondition.value().get()).isEqualTo(Boolean.TRUE);
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(GtePredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(GteFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo(true);
                         });
                     });
@@ -157,7 +157,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.LTE);
                                 assertThat(builtCondition.value().get()).isEqualTo(22d);
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(LtePredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(LteFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo(22d);
                         });
                     });
@@ -180,7 +180,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
@@ -203,7 +203,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
@@ -228,7 +228,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     });
@@ -257,7 +257,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     }))
@@ -267,7 +267,7 @@ class ExpressionServiceIntTest {
                         assertThat(c.getCondition()).isInstanceOfSatisfying(AnyValueCondition.class, sc -> {
                             Optional<?> builtCondition = sc.getBuiltCondition();
                             assertThat(builtCondition).isEmpty();
-                            assertThat(sc.getFilterPredicate()).isEqualTo(InPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(InFilterOperation.of());
                             assertThat(sc.getQueryValue()).isInstanceOfSatisfying(List.class, qv -> {
                                 List<?> list = qv;
                                 assertThat(list).hasSize(2);
@@ -295,7 +295,7 @@ class ExpressionServiceIntTest {
                                 assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
                                 assertThat(builtCondition.value().get()).isEqualTo("some-value");
                             });
-                            assertThat(sc.getFilterPredicate()).isEqualTo(EqPredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-value");
                         });
                     }))
@@ -304,7 +304,7 @@ class ExpressionServiceIntTest {
                         assertThat(c.getFilterPath().getPath()).isEmpty();
                         assertThat(c.getCondition()).isInstanceOfSatisfying(StringCondition.class, sc -> {
                             assertThat(sc.getBuiltCondition()).isEmpty();
-                            assertThat(sc.getFilterPredicate()).isEqualTo(NePredicate.of());
+                            assertThat(sc.getFilterOperation()).isEqualTo(NeFilterOperation.of());
                             assertThat(sc.getQueryValue()).isEqualTo("some-small-value");
                         });
                     }));

@@ -20,7 +20,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.predicate.BooleanValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
 import org.immutables.value.Value;
 
 import java.util.Optional;
@@ -32,10 +32,10 @@ import java.util.Optional;
 public abstract class BooleanCondition implements BaseCondition {
 
     /**
-     * @return Predicate for the condition.
+     * @return Filter operation for the condition.
      */
     @Value.Parameter
-    public abstract BooleanValuePredicate<Boolean> getFilterPredicate();
+    public abstract BooleanValueFilterOperation<Boolean> getFilterOperation();
 
     /**
      * @return Filter query value.
@@ -54,7 +54,7 @@ public abstract class BooleanCondition implements BaseCondition {
      */
     @Value.Check
     protected void validate() {
-        getFilterPredicate().validateBooleanFilterInput(getQueryValue());
+        getFilterOperation().validateBooleanFilterInput(getQueryValue());
     }
 
     /**
@@ -62,7 +62,7 @@ public abstract class BooleanCondition implements BaseCondition {
      */
     @Override
     public Optional<BuiltCondition> getBuiltCondition() {
-        return getFilterPredicate().getDatabasePredicate()
+        return getFilterOperation().getDatabasePredicate()
                 .map(predicate -> BuiltCondition.of(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, getQueryValue()));
     }
 
@@ -72,7 +72,7 @@ public abstract class BooleanCondition implements BaseCondition {
     @Override
     public boolean test(Row row) {
         Boolean dbValue = getBooleanDatabaseValue(row, isNumericBooleans());
-        return getFilterPredicate().test(getQueryValue(), dbValue);
+        return getFilterOperation().test(getQueryValue(), dbValue);
     }
 
 }

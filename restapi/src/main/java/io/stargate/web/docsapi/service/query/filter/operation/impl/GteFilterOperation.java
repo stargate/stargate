@@ -14,28 +14,27 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
-import io.stargate.web.docsapi.service.query.predicate.ComparingValuePredicate;
 import org.immutables.value.Value;
 
 import java.util.Optional;
 
 /**
- * Not equal predicate.
+ * Greater than or equal filter operation.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class NePredicate implements ComparingValuePredicate {
+public abstract class GteFilterOperation extends NotNullValueFilterOperation {
 
-    public static final String RAW_VALUE = "$ne";
+    public static final String RAW_VALUE = "$gte";
 
     /**
      * @return Singleton instance
      */
-    public static NePredicate of() {
-        return ImmutableNePredicate.of();
+    public static GteFilterOperation of() {
+        return ImmutableGteFilterOperation.of();
     }
 
     /**
@@ -51,7 +50,7 @@ public abstract class NePredicate implements ComparingValuePredicate {
      */
     @Override
     public Optional<Predicate> getDatabasePredicate() {
-        return Optional.empty();
+        return Optional.of(Predicate.GTE);
     }
 
     /**
@@ -59,7 +58,8 @@ public abstract class NePredicate implements ComparingValuePredicate {
      */
     @Override
     public boolean isSatisfied(int compareValue) {
-        return compareValue != 0;
+        return compareValue >= 0;
     }
 
 }
+

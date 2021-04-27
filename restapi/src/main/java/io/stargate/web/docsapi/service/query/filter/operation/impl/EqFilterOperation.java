@@ -14,28 +14,27 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.immutables.value.Value;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Not in list predicate. Note that this extends {@link InPredicate} and negates the test resulsts.
+ * Equality filter operation.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class NotInPredicate extends InPredicate {
+public abstract class EqFilterOperation extends NotNullValueFilterOperation {
 
-    public static final String RAW_VALUE = "$nin";
+    public static final String RAW_VALUE = "$eq";
 
     /**
      * @return Singleton instance
      */
-    public static NotInPredicate of() {
-        return ImmutableNotInPredicate.of();
+    public static EqFilterOperation of() {
+        return ImmutableEqFilterOperation.of();
     }
 
     /**
@@ -51,39 +50,15 @@ public abstract class NotInPredicate extends InPredicate {
      */
     @Override
     public Optional<Predicate> getDatabasePredicate() {
-        return Optional.empty();
-    }
-
-    /**
-     * All database values (string, boolean or double) have to match.
-     */
-    @Override
-    public boolean isMatchAll() {
-        return true;
+        return Optional.of(Predicate.EQ);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean test(List<?> filterValue, String dbValue) {
-        return !super.test(filterValue, dbValue);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(List<?> filterValue, Boolean dbValue) {
-        return !super.test(filterValue, dbValue);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean test(List<?> filterValue, Double dbValue) {
-        return !super.test(filterValue, dbValue);
+    public boolean isSatisfied(int compareValue) {
+        return compareValue == 0;
     }
 
 }

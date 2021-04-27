@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate;
+package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
  * Special type of predicate that can test a generic value against all database values.
  *
  * @param <V> Type of a value used in the predicate.
  */
-public interface AnyValuePredicate<V> extends StringFilterPredicate<V>, DoubleFilterPredicate<V>, BooleanValuePredicate<V> {
+public interface CustomValueFilterOperation<V> extends StringValueFilterOperation<V>, DoubleValueFilterOperation<V>, BooleanValueFilterOperation<V> {
 
     /**
      * @return Defines if all database values much match the predicate for the predicate to test true.

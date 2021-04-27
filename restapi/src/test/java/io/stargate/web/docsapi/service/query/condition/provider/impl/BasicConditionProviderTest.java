@@ -22,7 +22,7 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
-import io.stargate.web.docsapi.service.query.predicate.impl.NotNullValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NotNullValueFilterOperation;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ class BasicConditionProviderTest {
     BasicConditionProvider<?> provider;
 
     @Mock
-    NotNullValuePredicate predicate;
+    NotNullValueFilterOperation filterOperation;
 
     @Nested
     class CreateCondition {
@@ -71,7 +71,7 @@ class BasicConditionProviderTest {
                 assertThat(baseCondition).isInstanceOfSatisfying(BooleanCondition.class, bc -> {
                     assertThat(bc.getQueryValue()).isEqualTo(true);
                     assertThat(bc.isNumericBooleans()).isEqualTo(numericBooleans);
-                    assertThat(bc.getFilterPredicate()).isEqualTo(predicate);
+                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
                 });
             });
         }
@@ -88,7 +88,7 @@ class BasicConditionProviderTest {
             assertThat(result).hasValueSatisfying(baseCondition -> {
                 assertThat(baseCondition).isInstanceOfSatisfying(StringCondition.class, bc -> {
                     assertThat(bc.getQueryValue()).isEqualTo(value);
-                    assertThat(bc.getFilterPredicate()).isEqualTo(predicate);
+                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
                 });
             });
         }
@@ -105,7 +105,7 @@ class BasicConditionProviderTest {
             assertThat(result).hasValueSatisfying(baseCondition -> {
                 assertThat(baseCondition).isInstanceOfSatisfying(NumberCondition.class, bc -> {
                     assertThat(bc.getQueryValue()).isEqualTo(value);
-                    assertThat(bc.getFilterPredicate()).isEqualTo(predicate);
+                    assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
                 });
             });
         }

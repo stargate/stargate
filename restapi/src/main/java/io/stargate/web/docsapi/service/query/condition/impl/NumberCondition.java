@@ -20,7 +20,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.predicate.DoubleFilterPredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
 import org.immutables.value.Value;
 
 import java.util.Optional;
@@ -32,10 +32,10 @@ import java.util.Optional;
 public abstract class NumberCondition implements BaseCondition {
 
     /**
-     * @return Predicate for the condition.
+     * @return Filter operation for the condition.
      */
     @Value.Parameter
-    public abstract DoubleFilterPredicate<Number> getFilterPredicate();
+    public abstract DoubleValueFilterOperation<Number> getFilterOperation();
 
     /**
      * @return Filter query value.
@@ -48,7 +48,7 @@ public abstract class NumberCondition implements BaseCondition {
      */
     @Value.Check
     protected void validate() {
-        getFilterPredicate().validateDoubleFilterInput(getQueryValue());
+        getFilterOperation().validateDoubleFilterInput(getQueryValue());
     }
 
     /**
@@ -56,7 +56,7 @@ public abstract class NumberCondition implements BaseCondition {
      */
     @Override
     public Optional<BuiltCondition> getBuiltCondition() {
-        return getFilterPredicate().getDatabasePredicate()
+        return getFilterOperation().getDatabasePredicate()
                 .map(predicate -> BuiltCondition.of(QueryConstants.DOUBLE_VALUE_COLUMN_NAME, predicate, getQueryValue().doubleValue()));
     }
 
@@ -66,7 +66,7 @@ public abstract class NumberCondition implements BaseCondition {
     @Override
     public boolean test(Row row) {
         Double dbValue = getDoubleDatabaseValue(row);
-        return getFilterPredicate().test(getQueryValue(), dbValue);
+        return getFilterOperation().test(getQueryValue(), dbValue);
     }
 
 }

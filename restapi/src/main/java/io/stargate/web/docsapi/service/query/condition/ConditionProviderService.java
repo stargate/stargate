@@ -19,8 +19,10 @@ package io.stargate.web.docsapi.service.query.condition;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.condition.provider.impl.*;
-import io.stargate.web.docsapi.service.query.predicate.impl.*;
+import io.stargate.web.docsapi.service.query.condition.provider.impl.BasicConditionProvider;
+import io.stargate.web.docsapi.service.query.condition.provider.impl.ExistsConditionProvider;
+import io.stargate.web.docsapi.service.query.condition.provider.impl.ListConditionProvider;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
 
 import java.util.*;
 
@@ -77,19 +79,19 @@ public class ConditionProviderService {
         Map<String, ConditionProvider> map = new HashMap<>();
 
         // standard ones, $eq, $lt, lte, $gt, $gte, $ne
-        map.put(EqPredicate.RAW_VALUE, BasicConditionProvider.of(EqPredicate.of()));
-        map.put(LtPredicate.RAW_VALUE, BasicConditionProvider.of(LtPredicate.of()));
-        map.put(LtePredicate.RAW_VALUE, BasicConditionProvider.of(LtePredicate.of()));
-        map.put(GtPredicate.RAW_VALUE, BasicConditionProvider.of(GtPredicate.of()));
-        map.put(GtePredicate.RAW_VALUE, BasicConditionProvider.of(GtePredicate.of()));
-        map.put(NePredicate.RAW_VALUE, BasicConditionProvider.of(NePredicate.of()));
+        map.put(EqFilterOperation.RAW_VALUE, BasicConditionProvider.of(EqFilterOperation.of()));
+        map.put(LtFilterOperation.RAW_VALUE, BasicConditionProvider.of(LtFilterOperation.of()));
+        map.put(LteFilterOperation.RAW_VALUE, BasicConditionProvider.of(LteFilterOperation.of()));
+        map.put(GtFilterOperation.RAW_VALUE, BasicConditionProvider.of(GtFilterOperation.of()));
+        map.put(GteFilterOperation.RAW_VALUE, BasicConditionProvider.of(GteFilterOperation.of()));
+        map.put(NeFilterOperation.RAW_VALUE, BasicConditionProvider.of(NeFilterOperation.of()));
 
         // $in
-        map.put(InPredicate.RAW_VALUE, ListConditionProvider.of(InPredicate.of()));
-        map.put(NotInPredicate.RAW_VALUE, ListConditionProvider.of(NotInPredicate.of()));
+        map.put(InFilterOperation.RAW_VALUE, ListConditionProvider.of(InFilterOperation.of()));
+        map.put(NotInFilterOperation.RAW_VALUE, ListConditionProvider.of(NotInFilterOperation.of()));
 
         // $exists
-        map.put(ExistsPredicate.RAW_VALUE, new ExistsConditionProvider());
+        map.put(ExistsFilterOperation.RAW_VALUE, new ExistsConditionProvider());
 
         return Collections.unmodifiableMap(map);
     }

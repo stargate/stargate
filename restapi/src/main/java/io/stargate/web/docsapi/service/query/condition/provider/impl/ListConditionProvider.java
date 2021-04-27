@@ -22,7 +22,7 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.AnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableAnyValueCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -34,17 +34,17 @@ import java.util.Optional;
  */
 public class ListConditionProvider implements ConditionProvider {
 
-    public static ListConditionProvider of(AnyValuePredicate<List<?>> predicate) {
+    public static ListConditionProvider of(CustomValueFilterOperation<List<?>> predicate) {
         return new ListConditionProvider(predicate);
     }
 
     /**
-     * Predicate to use in the condition
+     * Filter operation to use in the condition.
      */
-    private final AnyValuePredicate<List<?>> predicate;
+    private final CustomValueFilterOperation<List<?>> filterOperation;
 
-    public ListConditionProvider(AnyValuePredicate<List<?>> predicate) {
-        this.predicate = predicate;
+    public ListConditionProvider(CustomValueFilterOperation<List<?>> filterOperation) {
+        this.filterOperation = filterOperation;
     }
 
     /**
@@ -55,7 +55,7 @@ public class ListConditionProvider implements ConditionProvider {
         if (node.isArray()) {
             Iterator<JsonNode> iterator = node.iterator();
             List<?> input = getListConditionValues(iterator);
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(predicate, input, numericBooleans);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(filterOperation, input, numericBooleans);
             return Optional.of(condition);
         }
         return Optional.empty();
@@ -75,7 +75,7 @@ public class ListConditionProvider implements ConditionProvider {
                 result.add(null);
             } else {
                 // if we hit anything else throw an exception
-                String msg = String.format("Operation %s was not expecting a list containing a %s node type.", predicate.getRawValue(), node.getNodeType());
+                String msg = String.format("Operation %s was not expecting a list containing a %s node type.", filterOperation.getRawValue(), node.getNodeType());
                 throw new DocumentAPIRequestException(msg);
             }
         });

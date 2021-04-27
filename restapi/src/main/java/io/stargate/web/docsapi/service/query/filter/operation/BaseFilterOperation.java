@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate;
+package io.stargate.web.docsapi.service.query.filter.operation;
 
 import io.stargate.db.query.Predicate;
 
@@ -23,7 +23,7 @@ import java.util.Optional;
 /**
  * Base predicate that can be used in the filter expression.
  */
-public interface BasePredicate {
+public interface BaseFilterOperation {
 
     /**
      * @return Returns raw value of the predicate, as user would specify in the query, f.e. <code>$eq</code>

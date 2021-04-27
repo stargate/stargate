@@ -18,10 +18,10 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
-import io.stargate.web.docsapi.service.query.predicate.impl.ExistsPredicate;
-import io.stargate.web.docsapi.service.query.predicate.impl.InPredicate;
-import io.stargate.web.docsapi.service.query.predicate.impl.NotInPredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.ExistsFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
 class AnyValueConditionTest {
 
     @Mock
-    AnyValuePredicate<Object> predicate;
+    CustomValueFilterOperation<Object> filterOperation;
 
     @Nested
     class Constructor {
@@ -49,12 +49,12 @@ class AnyValueConditionTest {
         public void predicateValidated() {
             Object queryValue = new Object();
 
-            ImmutableAnyValueCondition.of(predicate, queryValue, true);
+            ImmutableAnyValueCondition.of(filterOperation, queryValue, true);
 
-            verify(predicate).validateBooleanFilterInput(queryValue);
-            verify(predicate).validateStringFilterInput(queryValue);
-            verify(predicate).validateDoubleFilterInput(queryValue);
-            verifyNoMoreInteractions(predicate);
+            verify(filterOperation).validateBooleanFilterInput(queryValue);
+            verify(filterOperation).validateStringFilterInput(queryValue);
+            verify(filterOperation).validateDoubleFilterInput(queryValue);
+            verifyNoMoreInteractions(filterOperation);
         }
 
     }
@@ -65,7 +65,7 @@ class AnyValueConditionTest {
         @Test
         public void alwaysEmpty() {
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, new Object(), true);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, new Object(), true);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -82,9 +82,9 @@ class AnyValueConditionTest {
         @Test
         public void allMatchAllFalse() {
             Object filterValue = new Object();
-            when(predicate.isMatchAll()).thenReturn(true);
+            when(filterOperation.isMatchAll()).thenReturn(true);
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, filterValue, false);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -99,12 +99,12 @@ class AnyValueConditionTest {
             when(row.getBoolean("bool_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn("Jordan");
             when(row.getDouble("dbl_value")).thenReturn(23d);
-            when(predicate.isMatchAll()).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq(false))).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq("Jordan"))).thenReturn(false);
-            when(predicate.test(eq(filterValue), eq(23d))).thenReturn(true);
+            when(filterOperation.isMatchAll()).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(false);
+            when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(true);
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, filterValue, false);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -119,12 +119,12 @@ class AnyValueConditionTest {
             when(row.getBoolean("bool_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn("Jordan");
             when(row.getDouble("dbl_value")).thenReturn(23d);
-            when(predicate.isMatchAll()).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq(false))).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq(23d))).thenReturn(true);
+            when(filterOperation.isMatchAll()).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(true);
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, filterValue, false);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -133,9 +133,9 @@ class AnyValueConditionTest {
         @Test
         public void anyMatchAllFalse() {
             Object filterValue = new Object();
-            when(predicate.isMatchAll()).thenReturn(false);
+            when(filterOperation.isMatchAll()).thenReturn(false);
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, filterValue, false);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -150,12 +150,12 @@ class AnyValueConditionTest {
             when(row.getBoolean("bool_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn("Jordan");
             when(row.getDouble("dbl_value")).thenReturn(23d);
-            when(predicate.isMatchAll()).thenReturn(false);
-            when(predicate.test(eq(filterValue), eq(false))).thenReturn(false);
-            when(predicate.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
-            when(predicate.test(eq(filterValue), eq(23d))).thenReturn(false);
+            when(filterOperation.isMatchAll()).thenReturn(false);
+            when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(false);
+            when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
+            when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(false);
 
-            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(predicate, filterValue, false);
+            AnyValueCondition<Object> condition = ImmutableAnyValueCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -180,7 +180,7 @@ class AnyValueConditionTest {
 
         @Test
         public void existsPredicateNotMatched() {
-            AnyValueCondition<Boolean> condition = ImmutableAnyValueCondition.of(ExistsPredicate.of(), true, false);
+            AnyValueCondition<Boolean> condition = ImmutableAnyValueCondition.of(ExistsFilterOperation.of(), true, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -192,7 +192,7 @@ class AnyValueConditionTest {
             when(row.isNull("text_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn(findMe);
 
-            AnyValueCondition<Boolean> condition = ImmutableAnyValueCondition.of(ExistsPredicate.of(), true, false);
+            AnyValueCondition<Boolean> condition = ImmutableAnyValueCondition.of(ExistsFilterOperation.of(), true, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -203,7 +203,7 @@ class AnyValueConditionTest {
             String findMe = "find-me";
             List<?> queryValue = Collections.singletonList(findMe);
 
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(InPredicate.of(), queryValue, false);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(InFilterOperation.of(), queryValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -216,7 +216,7 @@ class AnyValueConditionTest {
             when(row.isNull("text_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn(findMe);
 
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(InPredicate.of(), queryValue, false);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(InFilterOperation.of(), queryValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -227,7 +227,7 @@ class AnyValueConditionTest {
             String findMe = "find-me";
             List<?> queryValue = Collections.singletonList(findMe);
 
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInPredicate.of(), queryValue, false);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInFilterOperation.of(), queryValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -240,7 +240,7 @@ class AnyValueConditionTest {
             when(row.isNull("text_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn(findMe);
 
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInPredicate.of(), queryValue, false);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInFilterOperation.of(), queryValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isFalse();
@@ -253,7 +253,7 @@ class AnyValueConditionTest {
             when(row.isNull("text_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn("something");
 
-            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInPredicate.of(), queryValue, false);
+            AnyValueCondition<List<?>> condition = ImmutableAnyValueCondition.of(NotInFilterOperation.of(), queryValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

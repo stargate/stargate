@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate;
+package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
  * Predicate that can compare values against a {@link Double} database value.
  *
  * @param <I> Type of the filter value to compare to.
  */
-public interface DoubleFilterPredicate<I> extends BasePredicate {
+public interface DoubleValueFilterOperation<I> extends BaseFilterOperation {
 
     /**
      * Tests the filter value and database against this predicate.

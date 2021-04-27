@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.immutables.value.Value;
@@ -22,19 +22,19 @@ import org.immutables.value.Value;
 import java.util.Optional;
 
 /**
- * Greater than or equal predicate.
+ * Less than or equal filter operation.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class GtPredicate extends NotNullValuePredicate {
+public abstract class LteFilterOperation extends NotNullValueFilterOperation {
 
-    public static final String RAW_VALUE = "$gt";
+    public static final String RAW_VALUE = "$lte";
 
     /**
      * @return Singleton instance
      */
-    public static GtPredicate of() {
-        return ImmutableGtPredicate.of();
+    public static LteFilterOperation of() {
+        return ImmutableLteFilterOperation.of();
     }
 
     /**
@@ -50,7 +50,7 @@ public abstract class GtPredicate extends NotNullValuePredicate {
      */
     @Override
     public Optional<Predicate> getDatabasePredicate() {
-        return Optional.of(Predicate.GT);
+        return Optional.of(Predicate.LTE);
     }
 
     /**
@@ -58,7 +58,7 @@ public abstract class GtPredicate extends NotNullValuePredicate {
      */
     @Override
     public boolean isSatisfied(int compareValue) {
-        return compareValue > 0;
+        return compareValue <= 0;
     }
 
 }

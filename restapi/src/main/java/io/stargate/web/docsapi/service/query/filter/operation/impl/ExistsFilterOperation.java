@@ -14,30 +14,29 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.service.query.predicate.AnyValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.CustomValueFilterOperation;
 import org.immutables.value.Value;
 
-import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Exists predicate can resolve if any database value exists.
+ * Exists filter operation can resolve if any database value exists.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class ExistsPredicate implements AnyValuePredicate<Boolean> {
+public abstract class ExistsFilterOperation implements CustomValueFilterOperation<Boolean> {
 
     public static final String RAW_VALUE = "$exists";
 
     /**
      * @return Singleton instance
      */
-    public static ExistsPredicate of() {
-        return ImmutableExistsPredicate.of();
+    public static ExistsFilterOperation of() {
+        return ImmutableExistsFilterOperation.of();
     }
 
     /**

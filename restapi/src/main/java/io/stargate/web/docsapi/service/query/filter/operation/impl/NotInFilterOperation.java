@@ -14,27 +14,28 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.immutables.value.Value;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
- * Less than or equal predicate.
+ * Not in list filter operation. Note that this extends {@link InFilterOperation} and negates the test results.
  */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class LtePredicate extends NotNullValuePredicate {
+public abstract class NotInFilterOperation extends InFilterOperation {
 
-    public static final String RAW_VALUE = "$lte";
+    public static final String RAW_VALUE = "$nin";
 
     /**
      * @return Singleton instance
      */
-    public static LtePredicate of() {
-        return ImmutableLtePredicate.of();
+    public static NotInFilterOperation of() {
+        return ImmutableNotInFilterOperation.of();
     }
 
     /**
@@ -50,16 +51,39 @@ public abstract class LtePredicate extends NotNullValuePredicate {
      */
     @Override
     public Optional<Predicate> getDatabasePredicate() {
-        return Optional.of(Predicate.LTE);
+        return Optional.empty();
+    }
+
+    /**
+     * All database values (string, boolean or double) have to match.
+     */
+    @Override
+    public boolean isMatchAll() {
+        return true;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isSatisfied(int compareValue) {
-        return compareValue <= 0;
+    public boolean test(List<?> filterValue, String dbValue) {
+        return !super.test(filterValue, dbValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean test(List<?> filterValue, Boolean dbValue) {
+        return !super.test(filterValue, dbValue);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean test(List<?> filterValue, Double dbValue) {
+        return !super.test(filterValue, dbValue);
     }
 
 }
-

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.apache.commons.lang3.RandomUtils;
@@ -25,94 +25,98 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class EqPredicateTest {
+class LteFilterOperationTest {
 
-    EqPredicate eq = EqPredicate.of();
+    LteFilterOperation lte = LteFilterOperation.of();
 
     @Nested
-    class PredicateTest {
+    class FilterTest {
 
         @Test
         public void stringEquals() {
-            boolean result = eq.test("filterValue", "filterValue");
+            boolean result = lte.test("filterValue", "filterValue");
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void stringNotEquals() {
-            boolean result = eq.test("filterValue", "dbValue");
+        public void stringGreater() {
+            boolean result = lte.test("filterValue", "aaa");
 
             assertThat(result).isFalse();
         }
 
         @Test
-        public void stringNotEqualsNull() {
-            boolean result = eq.test("filterValue", null);
+        public void stringLess() {
+            boolean result = lte.test("filterValue", "www");
 
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        public void stringNull() {
+            boolean result = lte.test("filterValue", null);
+
+            // nulls last
+            assertThat(result).isTrue();
         }
 
         @Test
         public void booleanEquals() {
             boolean value = RandomUtils.nextBoolean();
 
-            boolean result = eq.test(value, value);
+            boolean result = lte.test(value, value);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void booleanNotEquals() {
-            boolean value = RandomUtils.nextBoolean();
-
-            boolean result = eq.test(value, !value);
+        public void booleanGreater() {
+            boolean result = lte.test(true, false);
 
             assertThat(result).isFalse();
         }
 
         @Test
-        public void booleanNotEqualsNull() {
-            boolean value = RandomUtils.nextBoolean();
+        public void booleanLess() {
+            boolean result = lte.test(false, true);
 
-            boolean result = eq.test(value, null);
+            assertThat(result).isTrue();
+        }
 
-            assertThat(result).isFalse();
+        @Test
+        public void booleanNull() {
+            boolean result = lte.test(true, null);
+
+            assertThat(result).isTrue();
         }
 
         @Test
         public void numberEquals() {
-            boolean result = eq.test(22d, 22d);
+            boolean result = lte.test(22d, 22d);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void numberEqualsDifferentTypes() {
-            boolean result = eq.test(22, 22d);
+        public void numbersGreater() {
+            boolean result = lte.test(22.1d, 22d);
+
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        public void numbersLess() {
+            boolean result = lte.test(21.9d, 22d);
 
             assertThat(result).isTrue();
         }
 
         @Test
-        public void numbersNotEquals() {
-            boolean result = eq.test(22d, 23d);
+        public void numbersNull() {
+            boolean result = lte.test(22, null);
 
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numbersNotEqualsDifferentTypes() {
-            boolean result = eq.test(22L, 22.01);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
-        public void numbersNotEqualsNull() {
-            boolean result = eq.test(22, null);
-
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
     }
@@ -122,9 +126,9 @@ class EqPredicateTest {
 
         @Test
         public void correct() {
-            Optional<Predicate> result = eq.getDatabasePredicate();
+            Optional<Predicate> result = lte.getDatabasePredicate();
 
-            assertThat(result).hasValue(Predicate.EQ);
+            assertThat(result).hasValue(Predicate.LTE);
         }
 
     }
@@ -134,9 +138,9 @@ class EqPredicateTest {
 
         @Test
         public void correct() {
-            String result = eq.getRawValue();
+            String result = lte.getRawValue();
 
-            assertThat(result).isEqualTo("$eq");
+            assertThat(result).isEqualTo("$lte");
         }
 
     }

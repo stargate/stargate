@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.junit.jupiter.api.Nested;
@@ -25,9 +25,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-class NotNullValuePredicateTest {
+class NotNullValueFilterOperationTest {
 
-    NotNullValuePredicate predicate = new NotNullValuePredicate() {
+    NotNullValueFilterOperation predicate = new NotNullValueFilterOperation() {
 
         @Override
         public boolean isSatisfied(int compareValue) {

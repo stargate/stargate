@@ -14,15 +14,15 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.service.query.predicate.ComparingValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.ComparingValueFilterOperation;
 
 /**
- * Shared abstract class for all the predicates that require non-null filter values.
+ * Shared abstract class for all the filter operation that require non-null filter values.
  */
-public abstract class NotNullValuePredicate implements ComparingValuePredicate {
+public abstract class NotNullValueFilterOperation implements ComparingValueFilterOperation {
 
     /**
      * {@inheritDoc}

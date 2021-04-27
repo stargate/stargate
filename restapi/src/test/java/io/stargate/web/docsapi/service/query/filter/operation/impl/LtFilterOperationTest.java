@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate.impl;
+package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import org.apache.commons.lang3.RandomUtils;
@@ -25,37 +25,37 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class LtePredicateTest {
+class LtFilterOperationTest {
 
-    LtePredicate lte = LtePredicate.of();
+    LtFilterOperation lt = LtFilterOperation.of();
 
     @Nested
-    class PredicateTest {
+    class FilterTest {
 
         @Test
         public void stringEquals() {
-            boolean result = lte.test("filterValue", "filterValue");
+            boolean result = lt.test("filterValue", "filterValue");
 
-            assertThat(result).isTrue();
+            assertThat(result).isFalse();
         }
 
         @Test
         public void stringGreater() {
-            boolean result = lte.test("filterValue", "aaa");
+            boolean result = lt.test("filterValue", "aaa");
 
             assertThat(result).isFalse();
         }
 
         @Test
         public void stringLess() {
-            boolean result = lte.test("filterValue", "www");
+            boolean result = lt.test("filterValue", "www");
 
             assertThat(result).isTrue();
         }
 
         @Test
         public void stringNull() {
-            boolean result = lte.test("filterValue", null);
+            boolean result = lt.test("filterValue", null);
 
             // nulls last
             assertThat(result).isTrue();
@@ -65,56 +65,56 @@ class LtePredicateTest {
         public void booleanEquals() {
             boolean value = RandomUtils.nextBoolean();
 
-            boolean result = lte.test(value, value);
+            boolean result = lt.test(value, value);
 
-            assertThat(result).isTrue();
+            assertThat(result).isFalse();
         }
 
         @Test
         public void booleanGreater() {
-            boolean result = lte.test(true, false);
+            boolean result = lt.test(true, false);
 
             assertThat(result).isFalse();
         }
 
         @Test
         public void booleanLess() {
-            boolean result = lte.test(false, true);
+            boolean result = lt.test(false, true);
 
             assertThat(result).isTrue();
         }
 
         @Test
         public void booleanNull() {
-            boolean result = lte.test(true, null);
+            boolean result = lt.test(true, null);
 
             assertThat(result).isTrue();
         }
 
         @Test
         public void numberEquals() {
-            boolean result = lte.test(22d, 22d);
+            boolean result = lt.test(22d, 22d);
 
-            assertThat(result).isTrue();
+            assertThat(result).isFalse();
         }
 
         @Test
         public void numbersGreater() {
-            boolean result = lte.test(22.1d, 22d);
+            boolean result = lt.test(22.1d, 22d);
 
             assertThat(result).isFalse();
         }
 
         @Test
         public void numbersLess() {
-            boolean result = lte.test(21.9d, 22d);
+            boolean result = lt.test(21.9d, 22d);
 
             assertThat(result).isTrue();
         }
 
         @Test
         public void numbersNull() {
-            boolean result = lte.test(22, null);
+            boolean result = lt.test(22, null);
 
             assertThat(result).isTrue();
         }
@@ -126,9 +126,9 @@ class LtePredicateTest {
 
         @Test
         public void correct() {
-            Optional<Predicate> result = lte.getDatabasePredicate();
+            Optional<Predicate> result = lt.getDatabasePredicate();
 
-            assertThat(result).hasValue(Predicate.LTE);
+            assertThat(result).hasValue(Predicate.LT);
         }
 
     }
@@ -138,9 +138,9 @@ class LtePredicateTest {
 
         @Test
         public void correct() {
-            String result = lte.getRawValue();
+            String result = lt.getRawValue();
 
-            assertThat(result).isEqualTo("$lte");
+            assertThat(result).isEqualTo("$lt");
         }
 
     }

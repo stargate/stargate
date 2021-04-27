@@ -20,7 +20,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.predicate.StringFilterPredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
 import org.immutables.value.Value;
 
 import java.util.Optional;
@@ -35,7 +35,7 @@ public abstract class StringCondition implements BaseCondition {
      * @return Predicate for the condition.
      */
     @Value.Parameter
-    public abstract StringFilterPredicate<String> getFilterPredicate();
+    public abstract StringValueFilterOperation<String> getFilterOperation();
 
     /**
      * @return Filter query value.
@@ -48,7 +48,7 @@ public abstract class StringCondition implements BaseCondition {
      */
     @Value.Check
     protected void validate() {
-        getFilterPredicate().validateStringFilterInput(getQueryValue());
+        getFilterOperation().validateStringFilterInput(getQueryValue());
     }
 
     /**
@@ -56,7 +56,7 @@ public abstract class StringCondition implements BaseCondition {
      */
     @Override
     public Optional<BuiltCondition> getBuiltCondition() {
-        return getFilterPredicate().getDatabasePredicate()
+        return getFilterOperation().getDatabasePredicate()
                 .map(predicate -> BuiltCondition.of(QueryConstants.STRING_VALUE_COLUMN_NAME, predicate, getQueryValue()));
     }
 
@@ -66,7 +66,7 @@ public abstract class StringCondition implements BaseCondition {
     @Override
     public boolean test(Row row) {
         String dbValue = getStringDatabaseValue(row);
-        return getFilterPredicate().test(getQueryValue(), dbValue);
+        return getFilterOperation().test(getQueryValue(), dbValue);
     }
 
 }

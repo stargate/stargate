@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.StringFilterPredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 class StringConditionTest {
 
     @Mock
-    StringFilterPredicate<String> predicate;
+    StringValueFilterOperation<String> filterOperation;
 
     @Nested
     class Constructor {
@@ -45,11 +45,11 @@ class StringConditionTest {
         public void predicateValidated() {
             String value = RandomStringUtils.randomAlphanumeric(16);
 
-            StringCondition condition = ImmutableStringCondition.of(predicate, value);
+            StringCondition condition = ImmutableStringCondition.of(filterOperation, value);
 
             assertThat(condition).isNotNull();
-            verify(predicate).validateStringFilterInput(value);
-            verifyNoMoreInteractions(predicate);
+            verify(filterOperation).validateStringFilterInput(value);
+            verifyNoMoreInteractions(filterOperation);
         }
 
     }
@@ -61,9 +61,9 @@ class StringConditionTest {
         public void happyPath() {
             Predicate eq = Predicate.EQ;
             String value = RandomStringUtils.randomAlphanumeric(16);
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.of(eq));
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, value);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).hasValueSatisfying(builtCondition -> {
@@ -76,9 +76,9 @@ class StringConditionTest {
         @Test
         public void emptyPredicate() {
             String value = RandomStringUtils.randomAlphanumeric(16);
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.empty());
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, value);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -96,9 +96,9 @@ class StringConditionTest {
         public void nullDatabaseValue() {
             String filterValue = RandomStringUtils.randomAlphanumeric(16);
             when(row.isNull("text_value")).thenReturn(true);
-            when(predicate.test(filterValue, null)).thenReturn(true);
+            when(filterOperation.test(filterValue, null)).thenReturn(true);
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, filterValue);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -110,10 +110,10 @@ class StringConditionTest {
             String databaseValue = RandomStringUtils.randomAlphanumeric(16);
             when(row.isNull("text_value")).thenReturn(false);
             when(row.getString("text_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, databaseValue)).thenReturn(true);
+            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
 
 
-            ImmutableStringCondition condition = ImmutableStringCondition.of(predicate, filterValue);
+            ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, filterValue);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

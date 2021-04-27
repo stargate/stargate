@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate;
+package io.stargate.web.docsapi.service.query.filter.operation;
 
 import java.util.Comparator;
 
 /**
  * Helper interface that can be used by any standard predicate that depends on the value comparing.
  */
-public interface ComparingValuePredicate extends StringFilterPredicate<String>, DoubleFilterPredicate<Number>, BooleanValuePredicate<Boolean> {
+public interface ComparingValueFilterOperation extends StringValueFilterOperation<String>, DoubleValueFilterOperation<Number>, BooleanValueFilterOperation<Boolean> {
 
     // default comparators we are using, nulls last
     Comparator<String> STRING_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());

@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.predicate.BooleanValuePredicate;
+import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,19 +36,18 @@ import static org.mockito.Mockito.*;
 class BooleanConditionTest {
 
     @Mock
-    BooleanValuePredicate<Boolean> predicate;
+    BooleanValueFilterOperation<Boolean> filterOperation;
 
     @Nested
     class Constructor {
 
         @Test
         public void predicateValidated() {
-            boolean value = true;
 
-            ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableBooleanCondition.of(filterOperation, true, false);
 
-            verify(predicate).validateBooleanFilterInput(true);
-            verifyNoMoreInteractions(predicate);
+            verify(filterOperation).validateBooleanFilterInput(true);
+            verifyNoMoreInteractions(filterOperation);
         }
 
     }
@@ -60,9 +59,9 @@ class BooleanConditionTest {
         public void happyPath() {
             Predicate eq = Predicate.EQ;
             boolean value = RandomUtils.nextBoolean();
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.of(eq));
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, value, true);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).hasValueSatisfying(builtCondition -> {
@@ -75,9 +74,9 @@ class BooleanConditionTest {
         @Test
         public void emptyPredicate() {
             boolean value = RandomUtils.nextBoolean();
-            when(predicate.getDatabasePredicate()).thenReturn(Optional.empty());
+            when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, value, true);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, value, true);
             Optional<BuiltCondition> result = condition.getBuiltCondition();
 
             assertThat(result).isEmpty();
@@ -95,9 +94,9 @@ class BooleanConditionTest {
         public void nullDatabaseValue() {
             boolean filterValue = RandomUtils.nextBoolean();
             when(row.isNull("bool_value")).thenReturn(true);
-            when(predicate.test(filterValue, null)).thenReturn(true);
+            when(filterOperation.test(filterValue, null)).thenReturn(true);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -109,10 +108,10 @@ class BooleanConditionTest {
             boolean databaseValue = RandomUtils.nextBoolean();
             when(row.isNull("bool_value")).thenReturn(false);
             when(row.getBoolean("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, databaseValue)).thenReturn(true);
+            when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
 
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, false);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, false);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -124,9 +123,9 @@ class BooleanConditionTest {
             byte databaseValue = 0;
             when(row.isNull("bool_value")).thenReturn(false);
             when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, false)).thenReturn(true);
+            when(filterOperation.test(filterValue, false)).thenReturn(true);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, true);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();
@@ -138,9 +137,9 @@ class BooleanConditionTest {
             byte databaseValue = 1;
             when(row.isNull("bool_value")).thenReturn(false);
             when(row.getByte("bool_value")).thenReturn(databaseValue);
-            when(predicate.test(filterValue, true)).thenReturn(true);
+            when(filterOperation.test(filterValue, true)).thenReturn(true);
 
-            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(predicate, filterValue, true);
+            ImmutableBooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, filterValue, true);
             boolean result = condition.test(row);
 
             assertThat(result).isTrue();

@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.service.query.predicate;
+package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
- * Predicate that can compare values against a {@link String} database value.
+ * Predicate that can compare values against a {@link Boolean} database value.
  *
  * @param <I> Type of the filter value to compare to.
  */
-public interface StringFilterPredicate<I> extends BasePredicate {
+public interface BooleanValueFilterOperation<I> extends BaseFilterOperation {
 
     /**
      * Tests the filter value and database against this predicate.
@@ -30,7 +30,7 @@ public interface StringFilterPredicate<I> extends BasePredicate {
      * @param dbValue     DB value, can be <code>null</code>
      * @return <code>true</code> if the filter value matches the predicate, otherwise <code>false</code>
      */
-    boolean test(I filterValue, String dbValue);
+    boolean test(I filterValue, Boolean dbValue);
 
     /**
      * Validates if the filter input can be used against this predicate.
@@ -39,8 +39,6 @@ public interface StringFilterPredicate<I> extends BasePredicate {
      *
      * @param filterValue Filter value, can be <code>null</code>
      */
-    default void validateStringFilterInput(I filterValue) {
+    default void validateBooleanFilterInput(I filterValue) {
     };
-
 }
-
