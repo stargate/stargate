@@ -28,7 +28,6 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.web.service.WhereParser;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -315,7 +314,9 @@ public class WhereParserTest {
     List<BuiltCondition> whereExpected =
         singletonList(
             BuiltCondition.of(
-                "created", Predicate.IN, singletonList(Instant.parse("2021-04-23T18:42:22.139Z"))));
+                "created",
+                Predicate.IN,
+                singletonList(Converters.toCqlValue(Type.Timestamp, "2021-04-23T18:42:22.139Z"))));
 
     ImmutableTable table =
         ImmutableTable.builder()
