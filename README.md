@@ -68,3 +68,12 @@ but the short of it is below.
 - If you've found a bug (use the bug label) or want to request a new feature (use the enhancement label), file a GitHub issue
 - If you're not sure about it or want to chat, reach out on our [Discord](https://discord.gg/GravUqY) or [mailing list](https://groups.google.com/a/lists.stargate.io/g/stargate-users)
 - If you want to write some user docs 🎉 head over to the [stargate/docs](https://github.com/stargate/docs) repo, Pull Requests accepted!
+
+## Thanks
+
+![YourKit Logo](https://www.yourkit.com/images/yklogo.png)
+
+This project uses tools provided by YourKit, LLC. YourKit supports open source projects with its full-featured Java
+Profiler. YourKit, LLC is the creator of <a href="https://www.yourkit.com/java/profiler/">YourKit Java Profiler</a> and
+<a href="https://www.yourkit.com/.net/profiler/">YourKit .NET Profiler</a>, innovative and intelligent tools for
+profiling Java and .NET applications.
