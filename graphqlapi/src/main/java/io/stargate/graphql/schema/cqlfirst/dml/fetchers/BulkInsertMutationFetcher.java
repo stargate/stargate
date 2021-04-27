@@ -17,14 +17,8 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.TtlFromOptionsExtractor.getTTL;
 
-import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.SourceAPI;
-import io.stargate.auth.TypedKeyValue;
-import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.*;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
@@ -37,9 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class InsertMutationFetcher extends MutationFetcher {
+public class BulkInsertMutationFetcher extends BulkMutationFetcher {
 
-  public InsertMutationFetcher(
+  public BulkInsertMutationFetcher(
       Table table,
       NameMapping nameMapping,
       AuthorizationService authorizationService,
@@ -48,7 +42,7 @@ public class InsertMutationFetcher extends MutationFetcher {
   }
 
   @Override
-  protected BoundQuery buildQuery(
+  protected List<BoundQuery> buildQueries(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
@@ -58,30 +52,32 @@ public class InsertMutationFetcher extends MutationFetcher {
             && environment.getArgument("ifNotExists") != null
             && (Boolean) environment.getArgument("ifNotExists");
 
-    BoundQuery query =
-        dataStore
-            .queryBuilder()
-            .insertInto(table.keyspace(), table.name())
-            .value(buildInsertValues(environment))
-            .ifNotExists(ifNotExists)
-            .ttl(getTTL(environment))
-            .build()
-            .bind();
+    List<Map<String, Object>> valuesToInsert = environment.getArgument("values");
+    List<BoundQuery> boundQueries = new ArrayList<>(valuesToInsert.size());
+    for (Map<String, Object> value : valuesToInsert) {
+      BoundQuery query =
+          dataStore
+              .queryBuilder()
+              .insertInto(table.keyspace(), table.name())
+              .value(buildInsertValues(value))
+              .ifNotExists(ifNotExists)
+              .ttl(getTTL(environment))
+              .build()
+              .bind();
 
-    authorizationService.authorizeDataWrite(
-        authenticationSubject,
-        table.keyspace(),
-        table.name(),
-        TypedKeyValue.forDML((BoundDMLQuery) query),
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL);
-
-    return query;
+      authorizationService.authorizeDataWrite(
+          authenticationSubject,
+          table.keyspace(),
+          table.name(),
+          TypedKeyValue.forDML((BoundDMLQuery) query),
+          Scope.MODIFY,
+          SourceAPI.GRAPHQL);
+      boundQueries.add(query);
+    }
+    return boundQueries;
   }
 
-  private List<ValueModifier> buildInsertValues(DataFetchingEnvironment environment) {
-    Map<String, Object> value = environment.getArgument("value");
-    Preconditions.checkNotNull(value, "Insert statement must contain at least one field");
+  private List<ValueModifier> buildInsertValues(Map<String, Object> value) {
 
     List<ValueModifier> modifiers = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {

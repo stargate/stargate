@@ -1,11 +1,14 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
@@ -14,10 +17,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
@@ -99,6 +99,54 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       }
       return relations;
     }
+  }
+
+  protected List<Map<String, Object>> toListOfMutationResults(
+      ResultSet resultSet, List<Map<String, Object>> originalValues) {
+    List<Row> rows = resultSet.currentPageRows();
+    List<Map<String, Object>> results = new ArrayList<>();
+    if (rows.isEmpty()) {
+      for (Map<String, Object> originalValue : originalValues) {
+        results.add(toMutationResultWithOriginalValue(originalValue));
+      }
+    } else {
+      for (int i = 0; i <= rows.size(); i++) {
+        Row row = rows.get(i);
+        Map<String, Object> originalValue = originalValues.get(i);
+        results.add(toMutationResultSingleRow(originalValue, row));
+      }
+    }
+    return results;
+  }
+
+  protected Map<String, Object> toMutationResult(ResultSet resultSet, Object originalValue) {
+
+    List<Row> rows = resultSet.currentPageRows();
+
+    if (rows.isEmpty()) {
+      // if we have no rows means that we got no information back from query execution, return
+      // original value to the user and applied true to denote that query was accepted
+      // not matter if the underlying data is not changed
+      return toMutationResultWithOriginalValue(originalValue);
+    } else {
+      // otherwise check what can we get from the results
+      // mutation target only one row
+      Row row = rows.iterator().next();
+      return toMutationResultSingleRow(originalValue, row);
+    }
+  }
+
+  private ImmutableMap<String, Object> toMutationResultWithOriginalValue(Object originalValue) {
+    return ImmutableMap.of("value", originalValue, "applied", true);
+  }
+
+  private ImmutableMap<String, Object> toMutationResultSingleRow(Object originalValue, Row row) {
+    boolean applied = row.getBoolean("[applied]");
+    Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+
+    // if applied we can return the original value, otherwise use database state
+    Object finalValue = applied ? originalValue : value;
+    return ImmutableMap.of("value", finalValue, "applied", applied);
   }
 
   protected String getDBColumnName(Table table, String fieldName) {

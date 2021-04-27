@@ -1,5 +1,7 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.TtlFromOptionsExtractor.getTTL;
+
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;

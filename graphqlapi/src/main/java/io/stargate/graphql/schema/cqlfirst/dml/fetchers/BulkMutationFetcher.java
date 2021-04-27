@@ -16,8 +16,8 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
+import static java.util.stream.Stream.concat;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
@@ -29,11 +29,17 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.web.HttpAwareContext;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<String, Object>>> {
-  protected MutationFetcher(
+public abstract class BulkMutationFetcher
+    extends DmlFetcher<CompletableFuture<List<Map<String, Object>>>> {
+  protected BulkMutationFetcher(
       Table table,
       NameMapping nameMapping,
       AuthorizationService authorizationService,
@@ -42,11 +48,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
   }
 
   @Override
-  protected CompletableFuture<Map<String, Object>> get(
+  protected CompletableFuture<List<Map<String, Object>>> get(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject) {
-    BoundQuery query = null;
+    List<BoundQuery> queries = new ArrayList<>();
     Exception buildException = null;
 
     // Avoid mixing sync and async exceptions
@@ -54,33 +60,43 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      query = buildQuery(environment, dataStore, authenticationSubject);
+      queries = buildQueries(environment, dataStore, authenticationSubject);
     } catch (Exception e) {
       buildException = e;
     }
     OperationDefinition operation = environment.getOperationDefinition();
-
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
         && operation.getSelectionSet().getSelections().size() > 1) {
-      // There are more than one mutation in @atomic operation
-      return executeAsBatch(environment, dataStore, query, buildException);
+      return executeAsBatch(environment, dataStore, queries, buildException);
     }
 
     if (buildException != null) {
-      CompletableFuture<Map<String, Object>> f = new CompletableFuture<>();
+      CompletableFuture<List<Map<String, Object>>> f = new CompletableFuture<>();
       f.completeExceptionally(buildException);
       return f;
     }
-    // Execute as a single statement
-    return dataStore
-        .execute(query)
-        .thenApply(rs -> toMutationResult(rs, environment.getArgument("value")));
+
+    List<Map<String, Object>> values = environment.getArgument("values");
+    if (values.size() != queries.size()) {
+      throw new IllegalStateException("Number of values to insert should match number of queries");
+    }
+
+    List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
+    for (int i = 0; i < queries.size(); i++) {
+      // Execute as a single statement
+      int finalI = i;
+      results.add(
+          dataStore
+              .execute(queries.get(i))
+              .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
+    }
+    return convert(results);
   }
 
-  private CompletableFuture<Map<String, Object>> executeAsBatch(
+  private CompletableFuture<List<Map<String, Object>>> executeAsBatch(
       DataFetchingEnvironment environment,
       DataStore dataStore,
-      BoundQuery query,
+      List<BoundQuery> queries,
       Exception buildException) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     HttpAwareContext context = environment.getContext();
@@ -98,21 +114,30 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
                 "options can only de defined once in an @atomic mutation selection");
       }
     }
+
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
-    } else if (batchContext.add(query) == selections) {
+    } else if (batchContext.add(queries) == selections) {
       // All the statements were added successfully and this is the last selection
       // Use the dataStore containing the options
       DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
       batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
     }
 
-    return batchContext
-        .getExecutionFuture()
-        .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
+    List<Map<String, Object>> values = environment.getArgument("values");
+
+    return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
   }
 
-  protected abstract BoundQuery buildQuery(
+  public static <T> CompletableFuture<List<T>> convert(List<CompletableFuture<T>> futures) {
+    return futures.stream()
+        .map(f -> f.thenApply(Stream::of))
+        .reduce((a, b) -> a.thenCompose(xs -> b.thenApply(ys -> concat(xs, ys))))
+        .map(f -> f.thenApply(s -> s.collect(Collectors.toList())))
+        .orElse(CompletableFuture.completedFuture(Collections.emptyList()));
+  }
+
+  protected abstract List<BoundQuery> buildQueries(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
