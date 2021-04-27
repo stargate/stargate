@@ -63,5 +63,4 @@ class FilterPathTest {
     assertThat(filterPath.getFullFieldPathString()).isBlank();
     assertThat(filterPath.getPathString()).isBlank();
   }
-
 }
