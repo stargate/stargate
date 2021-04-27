@@ -130,7 +130,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
     c.storage_port = listenPort;
     c.listen_address = listenAddress;
     c.broadcast_address = broadcastAddress;
-    c.enable_sasi_indexes = true;
+    c.enable_sasi_indexes = false;
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
