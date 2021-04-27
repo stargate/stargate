@@ -35,6 +35,7 @@
     <mockito.version>3.5.13</mockito.version>
     <jacoco.version>0.8.6</jacoco.version>
     <errorprone.version>2.3.4</errorprone.version>
+    <commons-io.version>2.7</commons-io.version>
   </properties>
   <dependencies>
     <dependency>
@@ -603,6 +604,11 @@
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>4.0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
