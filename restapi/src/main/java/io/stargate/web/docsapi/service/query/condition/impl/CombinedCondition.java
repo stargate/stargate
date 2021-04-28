@@ -48,9 +48,7 @@ public abstract class CombinedCondition<V> implements BaseCondition {
   @Value.Check
   protected void validate() {
     V queryValue = getQueryValue();
-    getFilterOperation().validateBooleanFilterInput(queryValue);
-    getFilterOperation().validateStringFilterInput(queryValue);
-    getFilterOperation().validateDoubleFilterInput(queryValue);
+    getFilterOperation().validateFilterInput(queryValue);
   }
 
   /**
@@ -66,20 +64,11 @@ public abstract class CombinedCondition<V> implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    Boolean dbValueBoolean = getBoolean(row, isNumericBooleans());
-    Double dbValueDouble = getDouble(row);
-    String dbValueString = getString(row);
+    Object dbValue = getValue(row, isNumericBooleans());
 
     CombinedFilterOperation<V> filterOperation = getFilterOperation();
     V queryValue = getQueryValue();
 
-    // compare against the non-null values, fallback to text compare even if null
-    if (null != dbValueBoolean) {
-      return filterOperation.test(queryValue, dbValueBoolean);
-    } else if (null != dbValueDouble) {
-      return filterOperation.test(queryValue, dbValueDouble);
-    } else {
-      return filterOperation.test(queryValue, dbValueString);
-    }
+    return filterOperation.test(queryValue, dbValue);
   }
 }

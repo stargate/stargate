@@ -21,7 +21,10 @@ package io.stargate.web.docsapi.service.query.filter.operation;
  *
  * @param <V> Type of a value used in the predicate.
  */
-public interface CombinedFilterOperation<V>
-    extends StringValueFilterOperation<V>,
-        DoubleValueFilterOperation<V>,
-        BooleanValueFilterOperation<V> {}
+public interface CombinedFilterOperation<V> extends BaseFilterOperation {
+  boolean test(V filterValue, Object dbValue);
+
+  default void validateFilterInput(V filterValue) {
+    // default impl empty
+  };
+}

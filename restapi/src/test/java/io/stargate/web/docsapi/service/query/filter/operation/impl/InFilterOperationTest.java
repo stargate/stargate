@@ -123,6 +123,15 @@ class InFilterOperationTest {
     }
 
     @Test
+    public void numberInNotDouble() {
+      List<?> filterValue = Collections.singletonList(42);
+
+      boolean result = in.test(filterValue, 42d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
     public void numberNotIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
@@ -156,15 +165,14 @@ class InFilterOperationTest {
 
     @Test
     public void isNull() {
-      Throwable throwable = catchThrowable(() -> in.validateBooleanFilterInput(null));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(null));
 
       assertThat(throwable).isNotNull();
     }
 
     @Test
     public void isEmpty() {
-      Throwable throwable =
-          catchThrowable(() -> in.validateBooleanFilterInput(Collections.emptyList()));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(Collections.emptyList()));
 
       assertThat(throwable).isNotNull();
     }
@@ -172,7 +180,7 @@ class InFilterOperationTest {
     @Test
     public void isNotEmpty() {
       Throwable throwable =
-          catchThrowable(() -> in.validateBooleanFilterInput(Collections.singletonList(true)));
+          catchThrowable(() -> in.validateFilterInput(Collections.singletonList(true)));
 
       assertThat(throwable).isNull();
     }
@@ -183,15 +191,14 @@ class InFilterOperationTest {
 
     @Test
     public void isNull() {
-      Throwable throwable = catchThrowable(() -> in.validateStringFilterInput(null));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(null));
 
       assertThat(throwable).isNotNull();
     }
 
     @Test
     public void isEmpty() {
-      Throwable throwable =
-          catchThrowable(() -> in.validateStringFilterInput(Collections.emptyList()));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(Collections.emptyList()));
 
       assertThat(throwable).isNotNull();
     }
@@ -199,7 +206,7 @@ class InFilterOperationTest {
     @Test
     public void isNotEmpty() {
       Throwable throwable =
-          catchThrowable(() -> in.validateStringFilterInput(Collections.singletonList("Jordan")));
+          catchThrowable(() -> in.validateFilterInput(Collections.singletonList("Jordan")));
 
       assertThat(throwable).isNull();
     }
@@ -210,15 +217,14 @@ class InFilterOperationTest {
 
     @Test
     public void isNull() {
-      Throwable throwable = catchThrowable(() -> in.validateDoubleFilterInput(null));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(null));
 
       assertThat(throwable).isNotNull();
     }
 
     @Test
     public void isEmpty() {
-      Throwable throwable =
-          catchThrowable(() -> in.validateDoubleFilterInput(Collections.emptyList()));
+      Throwable throwable = catchThrowable(() -> in.validateFilterInput(Collections.emptyList()));
 
       assertThat(throwable).isNotNull();
     }
@@ -226,7 +232,7 @@ class InFilterOperationTest {
     @Test
     public void isNotEmpty() {
       Throwable throwable =
-          catchThrowable(() -> in.validateDoubleFilterInput(Collections.singletonList(23)));
+          catchThrowable(() -> in.validateFilterInput(Collections.singletonList(23)));
 
       assertThat(throwable).isNull();
     }

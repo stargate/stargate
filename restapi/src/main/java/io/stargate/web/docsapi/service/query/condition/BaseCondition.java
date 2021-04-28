@@ -36,6 +36,16 @@ public interface BaseCondition extends Predicate<Row> {
   /** @return Returns persistence built condition, if this condition supports database querying. */
   Optional<BuiltCondition> getBuiltCondition();
 
+  default Object getValue(Row row, boolean numericBooleans) {
+    if (!row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)) {
+      return row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+    } else if (!row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)) {
+      return row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
+    } else {
+      return getBoolean(row, numericBooleans);
+    }
+  }
+
   /**
    * Resolves {@link String} value from the document {@link Row}.
    *

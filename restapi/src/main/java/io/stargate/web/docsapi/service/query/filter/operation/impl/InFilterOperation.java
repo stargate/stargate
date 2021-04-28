@@ -48,68 +48,27 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
     return Optional.empty();
   }
 
-  /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, String dbValue) {
+  public boolean test(List<?> filterValue, Object dbValue) {
     // if null, check any is null, avoid .contains(null) as some impl could throw NPE
     if (null == dbValue) {
       return filterValue.stream().anyMatch(Objects::isNull);
-    } else {
-      return filterValue.stream()
-          .filter(String.class::isInstance)
-          .anyMatch(value -> value.equals(dbValue));
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean test(List<?> filterValue, Boolean dbValue) {
-    // if null, check any is null, avoid .contains(null) as some impl could throw NPE
-    if (null == dbValue) {
-      return filterValue.stream().anyMatch(Objects::isNull);
-    } else {
-      return filterValue.stream()
-          .filter(Boolean.class::isInstance)
-          .anyMatch(value -> value.equals(dbValue));
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean test(List<?> filterValue, Double dbValue) {
-    // if null, check any is null, avoid .contains(null) as some impl could throw NPE
-    if (null == dbValue) {
-      return filterValue.stream().anyMatch(Objects::isNull);
-    } else {
+    } else if (dbValue instanceof Double) {
       // TODO maybe more correct number matching here as well
-
       return filterValue.stream()
           .filter(Number.class::isInstance)
           .map(Number.class::cast)
           .anyMatch(value -> Double.valueOf(value.doubleValue()).equals(dbValue));
+    } else {
+      Class<?> clazz = dbValue.getClass();
+      return filterValue.stream()
+          .filter(clazz::isInstance)
+          .anyMatch(value -> value.equals(dbValue));
     }
   }
 
-  /** {@inheritDoc} */
   @Override
-  public void validateDoubleFilterInput(List<?> filterValue) {
-    validateNotEmpty(filterValue);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public void validateBooleanFilterInput(List<?> filterValue) {
-    validateNotEmpty(filterValue);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public void validateStringFilterInput(List<?> filterValue) {
-    validateNotEmpty(filterValue);
-  }
-
-  // validates not empty list
-  protected void validateNotEmpty(List<?> filterValue) {
+  public void validateFilterInput(List<?> filterValue) {
     if (null == filterValue || filterValue.isEmpty()) {
       String msg =
           String.format("Operation %s was expecting a non-empty list", getOpCode().getRawValue());
