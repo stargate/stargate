@@ -278,3 +278,22 @@ Finally, before committing your changes you'll want to clean up
 ```sh
 rm foo.txt .fossa.yml
 ```
+
+# MAC Developer Notes
+
+It's critically important to ensure that you have the correct JDK v8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
+
+Download and install Maven from this link: https://maven.apache.org/download.cgi
+
+Download the JDK from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
+
+Install that version of te JDK and then be sure to add it to your path. If you are using a newer version of the Mac OS, then you are likely using Z-Shell by default. So open your ~/.zshrc file and add the path there. Here is an example:
+
+```sh
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+export MAVEN_HOME="/Users/<your user name>/development/apache-maven-3.8.1"
+export PATH="$MAVEN_HOME/bin:$JAVA_HOME/bin:$PATH"
+```
+
+Now you should be able to successfully compile the Stargate project using the command ```./mvnw clean package```
+
