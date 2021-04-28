@@ -16,7 +16,6 @@
 package io.stargate.it.storage;
 
 import static io.stargate.starter.Starter.STARTED_MESSAGE;
-import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
 import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.exec.OutputListener;
@@ -214,11 +213,6 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     throw new IllegalStateException("Unknown parameter: " + pc);
   }
 
-  private static boolean isDebug() {
-    String args = getRuntimeMXBean().getInputArguments().toString();
-    return args.contains("-agentlib:jdwp") || args.contains("-Xrunjdwp");
-  }
-
   protected static class Container extends ExternalResource.Holder
       implements StargateEnvironmentInfo, AutoCloseable {
 
@@ -381,14 +375,6 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
-      }
-
-      if (isDebug()) {
-        int debuggerPort = 5100 + nodeIndex;
-        cmd.addArgument(
-            "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,"
-                + "address=localhost:"
-                + debuggerPort);
       }
 
       for (String arg : args(backend)) {
