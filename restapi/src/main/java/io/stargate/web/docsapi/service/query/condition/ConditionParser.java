@@ -62,7 +62,7 @@ public class ConditionParser {
               // condition empty
               String msg =
                   String.format(
-                      "Operation %s is not supporting the provided value %s.",
+                      "Operation %s does not support the provided value %s.",
                       filterOp, valueNode.toPrettyString());
               throw new DocumentAPIRequestException(msg);
             }
