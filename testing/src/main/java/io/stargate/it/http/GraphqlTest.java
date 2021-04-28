@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import com.example.graphql.client.betterbotz.aggregations.GetOrdersWithCountQuery;
 import com.example.graphql.client.betterbotz.atomic.*;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
@@ -32,6 +33,7 @@ import com.example.graphql.client.betterbotz.collections.InsertCollectionsSimple
 import com.example.graphql.client.betterbotz.collections.UpdateCollectionsSimpleMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
+import com.example.graphql.client.betterbotz.orders.InsertOrdersMutation;
 import com.example.graphql.client.betterbotz.products.*;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Products;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
@@ -2117,6 +2119,50 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
               assertThat(bs.get(0).getI()).hasValue(2);
               assertThat(bs.get(1).getI()).hasValue(3);
             });
+  }
+
+  @Test
+  @DisplayName("Should calculate number of orders using count aggregation")
+  public void insertOrdersAndCount() {
+    OrdersInput order1 =
+            OrdersInput.builder()
+                    .prodName("p1")
+                    .customerName("c1")
+                    .price("3199.99")
+                    .description("d1")
+                    .build();
+    OrdersInput order2 =
+            OrdersInput.builder()
+                    .prodName("p2")
+                    .customerName("c2")
+                    .price("3199.99")
+                    .description("d2")
+                    .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation =
+            InsertOrdersMutation.builder()
+                    .value(order1)
+                    .build();
+
+    InsertOrdersMutation order2Mutation =
+            InsertOrdersMutation.builder()
+                    .value(order2)
+                    .build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    // execute aggregation with count()
+    GetOrdersWithCountQuery countQuery = GetOrdersWithCountQuery
+            .builder()
+            .value(order1)
+            .aggregationField("id")
+            .build();
+
+    GetOrdersWithCountQuery.Data result = getObservable(client.query(countQuery));
+
+    assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo(2);
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
