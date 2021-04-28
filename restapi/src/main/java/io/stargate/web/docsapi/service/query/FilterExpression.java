@@ -21,10 +21,9 @@ import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import org.immutables.value.Value;
-
 import java.util.*;
 import java.util.function.Function;
+import org.immutables.value.Value;
 
 /** Filter expression that stands as the node in the Expression tree. */
 @Value.Immutable

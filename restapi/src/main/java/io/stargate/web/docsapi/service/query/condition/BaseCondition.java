@@ -19,14 +19,16 @@ package io.stargate.web.docsapi.service.query.condition;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
-
 import java.util.Optional;
 import java.util.function.Predicate;
 
 /** Interface for the base filtering condition. */
 public interface BaseCondition extends Predicate<Row> {
 
-  /** @return If this condition can be executed on the persistence level. The default implementation resolves to true if the {@link #getBuiltCondition()} returns non-empty value.*/
+  /**
+   * @return If this condition can be executed on the persistence level. The default implementation
+   *     resolves to true if the {@link #getBuiltCondition()} returns non-empty value.
+   */
   default boolean isPersistenceCondition() {
     return getBuiltCondition().isPresent();
   }

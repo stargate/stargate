@@ -16,6 +16,9 @@
 
 package io.stargate.web.docsapi.service.query.condition;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,17 +27,13 @@ import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCon
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ConditionParserTest {
 
@@ -52,8 +51,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$exgf", value);
 
-      Throwable throwable =
-          catchThrowable(() -> conditionParser.getConditions(node));
+      Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
 
       assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
     }
@@ -64,8 +62,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$in", value);
 
-      Throwable throwable =
-          catchThrowable(() -> conditionParser.getConditions(node));
+      Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
 
       assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
     }
@@ -140,11 +137,9 @@ class ConditionParserTest {
     public void exists() {
       ObjectNode node = objectMapper.createObjectNode().put("$exists", true);
 
-      Collection<BaseCondition> conditions =
-          conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
-      assertThat(conditions)
-          .containsOnly(ImmutableExistsCondition.of(true));
+      assertThat(conditions).containsOnly(ImmutableExistsCondition.of(true));
     }
 
     @Test
@@ -152,8 +147,7 @@ class ConditionParserTest {
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$in", value);
 
-      Collection<BaseCondition> conditions =
-          conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);
@@ -167,8 +161,7 @@ class ConditionParserTest {
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$nin", value);
 
-      Collection<BaseCondition> conditions =
-          conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);

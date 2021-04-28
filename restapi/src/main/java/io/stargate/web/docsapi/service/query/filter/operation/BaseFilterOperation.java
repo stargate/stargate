@@ -17,15 +17,12 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 import io.stargate.db.query.Predicate;
-
 import java.util.Optional;
 
 /** Base predicate that can be used in the filter expression. */
 public interface BaseFilterOperation {
 
-  /**
-   * @return Returns a {@link FilterOperationCode}.
-   */
+  /** @return Returns a {@link FilterOperationCode}. */
   FilterOperationCode getOpCode();
 
   /** @return Mirrored persistence predicate, if one exists. */

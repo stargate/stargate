@@ -21,13 +21,13 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-import java.util.Optional;
-
 /**
- * Exists condition is special type of the condition, as it does not provide {@link io.stargate.db.query.builder.BuiltCondition},
- * but is considered as the persistence condition. Also it has no filter operation and resolves each row test to true.
+ * Exists condition is special type of the condition, as it does not provide {@link
+ * io.stargate.db.query.builder.BuiltCondition}, but is considered as the persistence condition.
+ * Also it has no filter operation and resolves each row test to true.
  */
 @Value.Immutable
 public abstract class ExistsCondition implements BaseCondition {
@@ -41,34 +41,29 @@ public abstract class ExistsCondition implements BaseCondition {
   protected void validate() {
     boolean queryValue = getQueryValue();
     if (!Boolean.TRUE.equals(queryValue)) {
-      String msg = String.format("%s only supports the value `true`", FilterOperationCode.EXISTS.getRawValue());
+      String msg =
+          String.format(
+              "%s only supports the value `true`", FilterOperationCode.EXISTS.getRawValue());
       throw new DocumentAPIRequestException(msg);
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public boolean isPersistenceCondition() {
     return true;
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
     return Optional.empty();
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
     // always test true when row is there :)
     return true;
   }
-
 }

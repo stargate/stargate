@@ -21,7 +21,6 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-
 import java.util.Optional;
 
 /** Special condition provider for the {@link ExistsCondition}. */

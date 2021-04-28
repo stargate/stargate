@@ -21,9 +21,8 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
-import org.immutables.value.Value;
-
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /** Condition that accepts boolean filter values and compare against boolean database row value. */
 @Value.Immutable

@@ -16,6 +16,10 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,19 +31,14 @@ import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import javax.ws.rs.core.PathSegment;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import javax.ws.rs.core.PathSegment;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 // INT test in terms that it works against components and has no mocks
 // TODO ISE: move to the testing when DI allows

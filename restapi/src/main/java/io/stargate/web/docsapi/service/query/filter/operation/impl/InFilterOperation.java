@@ -20,11 +20,10 @@ import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import org.immutables.value.Value;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /** In list filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
@@ -111,7 +110,8 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
   // validates not empty list
   protected void validateNotEmpty(List<?> filterValue) {
     if (null == filterValue || filterValue.isEmpty()) {
-      String msg = String.format("Operation %s was expecting a non-empty list", getOpCode().getRawValue());
+      String msg =
+          String.format("Operation %s was expecting a non-empty list", getOpCode().getRawValue());
       throw new DocumentAPIRequestException(msg);
     }
   }

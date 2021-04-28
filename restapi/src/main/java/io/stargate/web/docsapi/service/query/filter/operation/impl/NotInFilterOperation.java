@@ -18,10 +18,9 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import org.immutables.value.Value;
-
 import java.util.List;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * Not in list filter operation. Note that this extends {@link InFilterOperation} and negates the

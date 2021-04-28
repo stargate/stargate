@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-
 import java.util.*;
 
 /**
@@ -29,53 +28,50 @@ import java.util.*;
  */
 public class ConditionParser {
 
-    /**
-     * If number booleans should be used when creating conditions.
-     */
-    private final boolean numericBooleans;
+  /** If number booleans should be used when creating conditions. */
+  private final boolean numericBooleans;
 
-    public ConditionParser(boolean numericBooleans) {
-        this.numericBooleans = numericBooleans;
-    }
+  public ConditionParser(boolean numericBooleans) {
+    this.numericBooleans = numericBooleans;
+  }
 
-    /**
+  /**
    * Creates the conditions for the node containing the raw filter ops as the keys. For example:
    * <code>{ "$gt: { 5 }, "$lt": { 10 }}</code>.
    *
-   * @param conditionsNode  Node containing the filter ops as keys
+   * @param conditionsNode Node containing the filter ops as keys
    * @return Collection of created conditions.
    * @throws io.stargate.web.docsapi.exception.DocumentAPIRequestException If filter op is not
-   *                                                                       found, condition constructions fails or filter value is not supported by the filter op.
+   *     found, condition constructions fails or filter value is not supported by the filter op.
    */
   public Collection<BaseCondition> getConditions(JsonNode conditionsNode) {
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(
-            field -> {
-              String filterOp = field.getKey();
-              Optional<FilterOperationCode> operationCode = FilterOperationCode.getByRawValue(filterOp);
-              if (operationCode.isPresent()) {
-                JsonNode valueNode = field.getValue();
-                FilterOperationCode code = operationCode.get();
-                Optional<? extends BaseCondition> condition = code.getConditionProvider()
-                        .createCondition(valueNode, numericBooleans);
-                if (condition.isPresent()) {
-                  results.add(condition.get());
-                } else {
-                  // condition empty
-                  String msg =
-                          String.format(
-                                  "Operation %s is not supporting the provided value %s.",
-                                  filterOp, valueNode.toPrettyString());
-                  throw new DocumentAPIRequestException(msg);
-                }
-              } else {
-                // provider can not be found
-                String msg = String.format("Operation %s is not supported.", filterOp);
-                throw new DocumentAPIRequestException(msg);
-              }
-            });
+        field -> {
+          String filterOp = field.getKey();
+          Optional<FilterOperationCode> operationCode = FilterOperationCode.getByRawValue(filterOp);
+          if (operationCode.isPresent()) {
+            JsonNode valueNode = field.getValue();
+            FilterOperationCode code = operationCode.get();
+            Optional<? extends BaseCondition> condition =
+                code.getConditionProvider().createCondition(valueNode, numericBooleans);
+            if (condition.isPresent()) {
+              results.add(condition.get());
+            } else {
+              // condition empty
+              String msg =
+                  String.format(
+                      "Operation %s is not supporting the provided value %s.",
+                      filterOp, valueNode.toPrettyString());
+              throw new DocumentAPIRequestException(msg);
+            }
+          } else {
+            // provider can not be found
+            String msg = String.format("Operation %s is not supported.", filterOp);
+            throw new DocumentAPIRequestException(msg);
+          }
+        });
     return results;
   }
-
 }

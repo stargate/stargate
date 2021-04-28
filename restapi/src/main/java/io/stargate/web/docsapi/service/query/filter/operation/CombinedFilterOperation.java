@@ -24,5 +24,4 @@ package io.stargate.web.docsapi.service.query.filter.operation;
 public interface CombinedFilterOperation<V>
     extends StringValueFilterOperation<V>,
         DoubleValueFilterOperation<V>,
-        BooleanValueFilterOperation<V> {
-}
+        BooleanValueFilterOperation<V> {}

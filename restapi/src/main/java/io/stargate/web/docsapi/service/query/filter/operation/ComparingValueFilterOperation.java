@@ -41,13 +41,15 @@ public interface ComparingValueFilterOperation
   boolean isSatisfied(int compareValue);
 
   /**
-   * Should null database values be compared. Defaults to <code>false</code>, sub-classes can override.
-   * @return if <code>false</code> comparing with null db value will always test false, otherwise it's considering nulls as last in comparison
+   * Should null database values be compared. Defaults to <code>false</code>, sub-classes can
+   * override.
+   *
+   * @return if <code>false</code> comparing with null db value will always test false, otherwise
+   *     it's considering nulls as last in comparison
    */
   default boolean compareNulls() {
     return false;
   }
-
 
   /** {@inheritDoc} */
   default boolean test(String filterValue, String dbValue) {

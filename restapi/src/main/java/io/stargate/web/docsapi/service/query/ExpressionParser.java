@@ -25,12 +25,11 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.ws.rs.core.PathSegment;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.PathSegment;
+import org.apache.commons.lang3.StringUtils;
 
 public class ExpressionParser {
 
@@ -87,8 +86,7 @@ public class ExpressionParser {
       Map.Entry<String, JsonNode> field = fields.next();
       String fieldPath = field.getKey();
       FilterPath filterPath = getFilterPath(prependedPath, fieldPath);
-      Collection<BaseCondition> fieldConditions =
-          conditionProvider.getConditions(field.getValue());
+      Collection<BaseCondition> fieldConditions = conditionProvider.getConditions(field.getValue());
       for (BaseCondition fieldCondition : fieldConditions) {
         ImmutableFilterExpression expression =
             ImmutableFilterExpression.of(filterPath, fieldCondition);

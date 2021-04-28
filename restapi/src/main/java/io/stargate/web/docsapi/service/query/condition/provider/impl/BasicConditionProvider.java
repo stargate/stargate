@@ -23,7 +23,6 @@ import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvide
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
-
 import java.util.Optional;
 
 /**
