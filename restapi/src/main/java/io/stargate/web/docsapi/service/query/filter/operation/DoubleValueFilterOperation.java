@@ -40,5 +40,7 @@ public interface DoubleValueFilterOperation<I> extends BaseFilterOperation {
    *
    * @param filterValue Filter value, can be <code>null</code>
    */
-  default void validateDoubleFilterInput(I filterValue) {};
+  default void validateDoubleFilterInput(I filterValue) {
+    // default impl empty
+  };
 }

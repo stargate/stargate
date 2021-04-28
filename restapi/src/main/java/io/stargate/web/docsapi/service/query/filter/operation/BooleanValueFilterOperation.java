@@ -40,5 +40,7 @@ public interface BooleanValueFilterOperation<I> extends BaseFilterOperation {
    *
    * @param filterValue Filter value, can be <code>null</code>
    */
-  default void validateBooleanFilterInput(I filterValue) {};
+  default void validateBooleanFilterInput(I filterValue) {
+    // default impl empty
+  };
 }

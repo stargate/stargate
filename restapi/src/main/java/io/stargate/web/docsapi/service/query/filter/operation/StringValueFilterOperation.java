@@ -40,5 +40,7 @@ public interface StringValueFilterOperation<I> extends BaseFilterOperation {
    *
    * @param filterValue Filter value, can be <code>null</code>
    */
-  default void validateStringFilterInput(I filterValue) {};
+  default void validateStringFilterInput(I filterValue) {
+    // default impl empty
+  };
 }

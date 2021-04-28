@@ -34,12 +34,12 @@ import java.util.Optional;
  */
 public class ListConditionProvider implements ConditionProvider {
 
+  /** Filter operation to use in the condition. */
+  private final CombinedFilterOperation<List<?>> filterOperation;
+
   public static ListConditionProvider of(CombinedFilterOperation<List<?>> predicate) {
     return new ListConditionProvider(predicate);
   }
-
-  /** Filter operation to use in the condition. */
-  private final CombinedFilterOperation<List<?>> filterOperation;
 
   public ListConditionProvider(CombinedFilterOperation<List<?>> filterOperation) {
     this.filterOperation = filterOperation;

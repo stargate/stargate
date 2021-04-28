@@ -83,9 +83,6 @@ public abstract class FilterExpression extends Expression<FilterExpression> {
   public Expression<FilterExpression> replaceVars(
       Map<FilterExpression, Expression<FilterExpression>> m,
       ExprFactory<FilterExpression> exprFactory) {
-    if (m.containsKey(this)) {
-      return m.get(this);
-    }
-    return this;
+    throw new UnsupportedOperationException("FilterExpression does not work with the vars.");
   }
 }
