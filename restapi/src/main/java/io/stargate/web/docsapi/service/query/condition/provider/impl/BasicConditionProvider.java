@@ -37,6 +37,9 @@ public class BasicConditionProvider<
                 & BooleanValueFilterOperation<Boolean>>
     implements ConditionProvider {
 
+  /** Filter operation to use when creating the condition. */
+  private final V filterOperation;
+
   public static <
           V extends
               StringValueFilterOperation<String> & DoubleValueFilterOperation<Number>
@@ -44,9 +47,6 @@ public class BasicConditionProvider<
       BasicConditionProvider<V> of(V predicate) {
     return new BasicConditionProvider<>(predicate);
   }
-
-  /** Filter operation to use when creating the condition. */
-  private final V filterOperation;
 
   public BasicConditionProvider(V filterOperation) {
     this.filterOperation = filterOperation;
