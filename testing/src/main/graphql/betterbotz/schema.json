@@ -4955,6 +4955,51 @@
           "possibleTypes": null
         },
         {
+          "name": "_int_function",
+          "kind": "OBJECT",
+          "description": "The type used to represent a function that returns Int",
+          "args": [
+            {
+              "name": "name",
+              "description": "Name of the function to invoke",
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "args",
+              "description": "Arguments passed to a function. It can be a list of columns names.",
+              "args": [],
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  }
+                }
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            }
+          ],
+          "isDeprecated": false,
+          "deprecationReason": null,
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
           "kind": "OBJECT",
           "name": "Orders",
           "description": "The type used to represent results of a query for the table 'Orders'.",
@@ -5054,6 +5099,17 @@
               },
               "isDeprecated": false,
               "deprecationReason": null
+            },
+            {
+                "name": "count",
+                "description": "count function invocation",
+                "type": {
+                  "kind": "OBJECT",
+                  "name": "_int_function",
+                  "ofType": null
+                },
+                "isDeprecated": false,
+                "deprecationReason": null
             }
           ],
           "inputFields": null,
@@ -6014,6 +6070,22 @@
                     "ofType": null
                   },
                   "defaultValue": null
+                },
+                {
+                  "name": "aggregationFields",
+                  "description": null,
+                  "type": {
+                    "kind": "INPUT_OBJECT",
+                    "ofType": {
+                      "kind": "LIST",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
                 }
               ],
               "type": {

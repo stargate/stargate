@@ -196,6 +196,7 @@ type Orders {
     price: Decimal
     prodId: Uuid
     sellPrice: Decimal
+    _int_function(name: String, args: [String]): Int
 }
 
 input OrdersFilterInput {
@@ -302,6 +303,7 @@ type Query {
         filter: OrdersFilterInput
         orderBy: [OrdersOrder]
         options: QueryOptions
+        aggregationFields: [String]
     ): OrdersResult
     ordersFilter(
         filter: OrdersFilterInput

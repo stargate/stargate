@@ -1,0 +1,16 @@
+query GetOrdersWithCount($value: OrdersInput, $aggregationFields: [String]) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            _int_function(name: "count", args: $aggregationFields)
+        }
+    }
+}
