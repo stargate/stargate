@@ -49,7 +49,7 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>16.1</version>
+      <version>16.2</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -66,7 +66,11 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-forms</artifactId>
+    </dependency>
+    <dependency>
+    <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
       <version>${dropwizard.metrics.version}</version>
       <scope>provided</scope>
@@ -133,6 +137,11 @@
     <dependency>
       <groupId>com.google.errorprone</groupId>
       <artifactId>error_prone_annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.apollographql.federation</groupId>
+      <artifactId>federation-graphql-java-support</artifactId>
+      <version>0.6.3</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
