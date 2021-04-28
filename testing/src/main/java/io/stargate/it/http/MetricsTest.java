@@ -28,11 +28,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
@@ -73,7 +70,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    List<String> lines = Arrays.stream(result.split(System.getProperty("line.separator")))
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith("http_server_requests"))
             .collect(Collectors.toList());
 
@@ -103,7 +101,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    List<String> lines = Arrays.stream(result.split(System.getProperty("line.separator")))
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith("http_server_requests"))
             .collect(Collectors.toList());
 
@@ -133,7 +132,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    List<String> lines = Arrays.stream(result.split(System.getProperty("line.separator")))
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith("http_server_requests"))
             .collect(Collectors.toList());
 
@@ -156,7 +156,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    List<String> moduleLines = Arrays.stream(result.split(System.getProperty("line.separator")))
+    List<String> moduleLines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith(module))
             .collect(Collectors.toList());
 
@@ -177,7 +178,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    List<String> lines = Arrays.stream(result.split(System.getProperty("line.separator")))
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith(expectedPrefix))
             .collect(Collectors.toList());
 
