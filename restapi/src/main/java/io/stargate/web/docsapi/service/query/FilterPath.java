@@ -26,23 +26,27 @@ public interface FilterPath {
 
   /** @return The complete path to the field, including the field name as the last element. */
   @Value.Parameter
-  List<String> getFullPath();
+  List<String> getPath();
 
-  /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */
-  default String getField() {
-    List<String> path = getFullPath();
-    if (null == path || path.isEmpty()) {
-      return null;
-    } else {
-      int length = path.size();
-      return path.get(length - 1);
+  @Value.Check
+  default void check() {
+    List<String> fullPath = getPath();
+    if (null == fullPath || fullPath.isEmpty()) {
+      throw new IllegalArgumentException("Filter path to a field must not be empty.");
     }
   }
 
-  /** @return The path without the field. Effectively, the last element of {@link #getPath()}. */
-  default List<String> getPath() {
-    List<String> path = getFullPath();
-    if (null != path && path.size() > 1) {
+  /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */
+  default String getField() {
+    List<String> path = getPath();
+    int length = path.size();
+    return path.get(length - 1);
+  }
+
+  /** @return The parent path without the field. */
+  default List<String> getParentPath() {
+    List<String> path = getPath();
+    if (path.size() > 1) {
       int length = path.size();
       return path.subList(0, length - 1);
     } else {
@@ -50,23 +54,13 @@ public interface FilterPath {
     }
   }
 
-  /** @return Joins {@link #getPath()} with dot. Returns empty string if there are no paths. */
-  default String getPathString() {
-    List<String> path = getPath();
-    if (null != path) {
-      return String.join(".", path);
-    } else {
-      return "";
-    }
+  /** @return Joins {@link #getParentPath()} with dot. Returns empty string if there are no paths. */
+  default String getParentPathString() {
+    return String.join(".", getParentPath());
   }
 
   /** @return Returns complete JSON path as String to the field, including the field. */
-  default String getFullFieldPathString() {
-    List<String> path = getFullPath();
-    if (null != path) {
-      return String.join(".", path);
-    } else {
-      return "";
-    }
+  default String getPathString() {
+    return String.join(".", getPath());
   }
 }

@@ -17,6 +17,7 @@
 package io.stargate.web.docsapi.service.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,16 +27,22 @@ import org.junit.jupiter.api.Test;
 class FilterPathTest {
 
   @Test
+  public void emptyPath() {
+    Throwable throwable = catchThrowable(() -> ImmutableFilterPath.of(Collections.emptyList()));
+    assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   public void onlyField() {
     List<String> path = Collections.singletonList("field");
 
     FilterPath filterPath = ImmutableFilterPath.of(path);
 
-    assertThat(filterPath.getFullPath()).isEqualTo(path);
+    assertThat(filterPath.getPath()).isEqualTo(path);
     assertThat(filterPath.getField()).isEqualTo("field");
-    assertThat(filterPath.getPath()).isEmpty();
-    assertThat(filterPath.getFullFieldPathString()).isEqualTo("field");
-    assertThat(filterPath.getPathString()).isEqualTo("");
+    assertThat(filterPath.getParentPath()).isEmpty();
+    assertThat(filterPath.getPathString()).isEqualTo("field");
+    assertThat(filterPath.getParentPathString()).isEqualTo("");
   }
 
   @Test
@@ -44,23 +51,11 @@ class FilterPathTest {
 
     FilterPath filterPath = ImmutableFilterPath.of(path);
 
-    assertThat(filterPath.getFullPath()).isEqualTo(path);
+    assertThat(filterPath.getPath()).isEqualTo(path);
     assertThat(filterPath.getField()).isEqualTo("field");
-    assertThat(filterPath.getPath()).containsExactly("path", "to");
-    assertThat(filterPath.getFullFieldPathString()).isEqualTo("path.to.field");
-    assertThat(filterPath.getPathString()).isEqualTo("path.to");
+    assertThat(filterPath.getParentPath()).containsExactly("path", "to");
+    assertThat(filterPath.getPathString()).isEqualTo("path.to.field");
+    assertThat(filterPath.getParentPathString()).isEqualTo("path.to");
   }
 
-  @Test
-  public void empty() {
-    List<String> path = Collections.emptyList();
-
-    FilterPath filterPath = ImmutableFilterPath.of(path);
-
-    assertThat(filterPath.getFullPath()).isEqualTo(path);
-    assertThat(filterPath.getField()).isNull();
-    assertThat(filterPath.getPath()).isNullOrEmpty();
-    assertThat(filterPath.getFullFieldPathString()).isBlank();
-    assertThat(filterPath.getPathString()).isBlank();
-  }
 }

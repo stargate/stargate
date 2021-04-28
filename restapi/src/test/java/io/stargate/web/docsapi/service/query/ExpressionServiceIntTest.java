@@ -71,7 +71,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                assertThat(c.getFilterPath().getPath()).isEmpty();
+                assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         StringCondition.class,
@@ -121,7 +121,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                assertThat(c.getFilterPath().getPath()).isEmpty();
+                assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         StringCondition.class,
@@ -152,7 +152,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                assertThat(c.getFilterPath().getPath()).isEmpty();
+                assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         BooleanCondition.class,
@@ -183,7 +183,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                assertThat(c.getFilterPath().getPath()).isEmpty();
+                assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         NumberCondition.class,
@@ -215,7 +215,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
-                assertThat(c.getFilterPath().getPath()).containsExactly("my", "filter");
+                assertThat(c.getFilterPath().getParentPath()).containsExactly("my", "filter");
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         StringCondition.class,
@@ -248,7 +248,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
-                assertThat(c.getFilterPath().getPath())
+                assertThat(c.getFilterPath().getParentPath())
                     .containsExactly("my", "filters", "[000002]");
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
@@ -285,7 +285,7 @@ class ExpressionServiceIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
-                assertThat(c.getFilterPath().getPath())
+                assertThat(c.getFilterPath().getParentPath())
                     .containsExactly("first", "second", "my", "*");
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
@@ -325,7 +325,7 @@ class ExpressionServiceIntTest {
                           FilterExpression.class,
                           c -> {
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                            assertThat(c.getFilterPath().getPath()).isEmpty();
+                            assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
                                 .isInstanceOfSatisfying(
                                     StringCondition.class,
@@ -350,7 +350,7 @@ class ExpressionServiceIntTest {
                           FilterExpression.class,
                           c -> {
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                            assertThat(c.getFilterPath().getPath()).isEmpty();
+                            assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
                                 .isInstanceOfSatisfying(
                                     CombinedCondition.class,
@@ -389,7 +389,7 @@ class ExpressionServiceIntTest {
                           FilterExpression.class,
                           c -> {
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
-                            assertThat(c.getFilterPath().getPath()).isEmpty();
+                            assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
                                 .isInstanceOfSatisfying(
                                     StringCondition.class,
@@ -414,7 +414,7 @@ class ExpressionServiceIntTest {
                           FilterExpression.class,
                           c -> {
                             assertThat(c.getFilterPath().getField()).isEqualTo("myOtherField");
-                            assertThat(c.getFilterPath().getPath()).isEmpty();
+                            assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
                                 .isInstanceOfSatisfying(
                                     StringCondition.class,
