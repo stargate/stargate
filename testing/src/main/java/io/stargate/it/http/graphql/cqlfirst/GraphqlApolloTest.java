@@ -65,11 +65,8 @@ import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
 import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.example.graphql.client.schema.AlterTableAddMutation;
 import com.example.graphql.client.schema.AlterTableDropMutation;
-import com.example.graphql.client.schema.CreateKeyspaceMutation;
 import com.example.graphql.client.schema.CreateTableMutation;
 import com.example.graphql.client.schema.DropTableMutation;
-import com.example.graphql.client.schema.GetKeyspaceQuery;
-import com.example.graphql.client.schema.GetKeyspacesQuery;
 import com.example.graphql.client.schema.GetTableQuery;
 import com.example.graphql.client.schema.GetTablesQuery;
 import com.example.graphql.client.schema.type.BasicType;
@@ -239,91 +236,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             BigDecimal.valueOf(900.82),
             "John Doe",
             "123 Main St 67890"));
-  }
-
-  @Test
-  public void getKeyspaces() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql-schema");
-    GetKeyspacesQuery query = GetKeyspacesQuery.builder().build();
-
-    CompletableFuture<GetKeyspacesQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetKeyspacesQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetKeyspacesQuery.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getKeyspaces()).isPresent();
-
-    List<GetKeyspacesQuery.Keyspace> keyspaces = result.getKeyspaces().get();
-    assertThat(keyspaces)
-        .extracting(GetKeyspacesQuery.Keyspace::getName)
-        .anySatisfy(value -> assertThat(value).matches("system"));
-  }
-
-  @Test
-  public void getKeyspace() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql-schema");
-    GetKeyspaceQuery query = GetKeyspaceQuery.builder().name("system").build();
-
-    CompletableFuture<GetKeyspaceQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetKeyspaceQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetKeyspaceQuery.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getKeyspace()).isPresent();
-
-    GetKeyspaceQuery.Keyspace keyspace = result.getKeyspace().get();
-    assertThat(keyspace.getName()).isEqualTo("system");
-    assertThat(keyspace.getTables()).isPresent();
-
-    List<GetKeyspaceQuery.Table> tables = keyspace.getTables().get();
-
-    assertThat(tables)
-        .filteredOn(t -> t.getName().equals("peers"))
-        .flatExtracting(c -> c.getColumns().orElseThrow(RuntimeException::new))
-        .filteredOn(c -> c.getName().equals("schema_version"))
-        .extracting(GetKeyspaceQuery.Column::getType)
-        .anySatisfy(value -> assertThat(value.getBasic()).isEqualTo(BasicType.UUID));
-  }
-
-  @Test
-  public void createKeyspace() throws Exception {
-    String newKeyspaceName = "graphql_create_test";
-
-    assertThat(
-            session
-                .execute(String.format("drop keyspace if exists %s", newKeyspaceName))
-                .wasApplied())
-        .isTrue();
-
-    ApolloClient client = getApolloClient("/graphql-schema");
-    CreateKeyspaceMutation mutation =
-        CreateKeyspaceMutation.builder()
-            .name(newKeyspaceName)
-            .ifNotExists(true)
-            .replicas(1)
-            .build();
-
-    CompletableFuture<CreateKeyspaceMutation.Data> future = new CompletableFuture<>();
-    ApolloMutationCall<Optional<CreateKeyspaceMutation.Data>> observable = client.mutate(mutation);
-    observable.enqueue(queryCallback(future));
-
-    CreateKeyspaceMutation.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getCreateKeyspace()).hasValue(true);
-
-    // Create a table in the new keyspace via CQL to validate that the keyspace is usable
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create table %s.test (id uuid, primary key (id))", newKeyspaceName))
-                .wasApplied())
-        .isTrue();
   }
 
   @Test

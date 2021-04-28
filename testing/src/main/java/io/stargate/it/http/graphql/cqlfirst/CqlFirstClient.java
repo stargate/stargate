@@ -31,15 +31,19 @@ public class CqlFirstClient extends GraphqlClient {
 
   /** Executes a GraphQL query for a keyspace, expecting a successful response. */
   public Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String graphqlQuery) {
-    return getGraphqlData(authToken, buildUrl(keyspaceId), graphqlQuery);
+    return getGraphqlData(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
   public String getGraphqlError(CqlIdentifier keyspaceId, String graphqlQuery) {
-    return getGraphqlError(authToken, buildUrl(keyspaceId), graphqlQuery);
+    return getGraphqlError(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
-  private String buildUrl(CqlIdentifier keyspaceId) {
+  public Map<String, Object> executeDdlQuery(String query) {
+    return getGraphqlData(authToken, String.format("http://%s:8080/graphql-schema", host), query);
+  }
+
+  private String buildKeyspaceUrl(CqlIdentifier keyspaceId) {
     return String.format("http://%s:8080/graphql/%s", host, keyspaceId.asInternal());
   }
 }
