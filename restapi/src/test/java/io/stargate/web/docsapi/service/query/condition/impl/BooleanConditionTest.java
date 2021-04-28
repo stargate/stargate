@@ -57,7 +57,7 @@ class BooleanConditionTest {
     public void happyPath() {
       Predicate eq = Predicate.EQ;
       boolean value = RandomUtils.nextBoolean();
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, value, true);
@@ -75,7 +75,7 @@ class BooleanConditionTest {
     @Test
     public void emptyPredicate() {
       boolean value = RandomUtils.nextBoolean();
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, value, true);

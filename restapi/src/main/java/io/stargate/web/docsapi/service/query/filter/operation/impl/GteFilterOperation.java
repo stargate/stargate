@@ -18,14 +18,14 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
 
 /** Greater than or equal filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class GteFilterOperation extends NotNullValueFilterOperation {
-
-  public static final String RAW_VALUE = "$gte";
 
   /** @return Singleton instance */
   public static GteFilterOperation of() {
@@ -34,13 +34,13 @@ public abstract class GteFilterOperation extends NotNullValueFilterOperation {
 
   /** {@inheritDoc} */
   @Override
-  public String getRawValue() {
-    return RAW_VALUE;
+  public FilterOperationCode getOpCode() {
+    return FilterOperationCode.GTE;
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Predicate> getDatabasePredicate() {
+  public Optional<Predicate> getQueryPredicate() {
     return Optional.of(Predicate.GTE);
   }
 

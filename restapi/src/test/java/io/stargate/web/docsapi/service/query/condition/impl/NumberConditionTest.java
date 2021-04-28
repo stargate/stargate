@@ -58,7 +58,7 @@ class NumberConditionTest {
     public void happyPath() {
       Predicate eq = Predicate.EQ;
       Number value = RandomUtils.nextLong();
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
@@ -75,7 +75,7 @@ class NumberConditionTest {
     @Test
     public void emptyPredicate() {
       Number value = RandomUtils.nextLong();
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
       ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
       Optional<BuiltCondition> result = condition.getBuiltCondition();

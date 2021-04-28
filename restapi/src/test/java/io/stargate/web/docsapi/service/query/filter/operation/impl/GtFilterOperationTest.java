@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.db.query.Predicate;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -124,20 +126,20 @@ class GtFilterOperationTest {
 
     @Test
     public void correct() {
-      Optional<Predicate> result = gt.getDatabasePredicate();
+      Optional<Predicate> result = gt.getQueryPredicate();
 
       assertThat(result).hasValue(Predicate.GT);
     }
   }
 
   @Nested
-  class GetRawValue {
+  class GetOpCode {
 
     @Test
     public void correct() {
-      String result = gt.getRawValue();
+      FilterOperationCode result = gt.getOpCode();
 
-      assertThat(result).isEqualTo("$gt");
+      assertThat(result).isEqualTo(FilterOperationCode.GT);
     }
   }
 }

@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -236,20 +238,20 @@ class InFilterOperationTest {
 
     @Test
     public void correct() {
-      Optional<Predicate> result = in.getDatabasePredicate();
+      Optional<Predicate> result = in.getQueryPredicate();
 
       assertThat(result).isEmpty();
     }
   }
 
   @Nested
-  class GetRawValue {
+  class GetOpCode {
 
     @Test
     public void correct() {
-      String result = in.getRawValue();
+      FilterOperationCode result = in.getOpCode();
 
-      assertThat(result).isEqualTo("$in");
+      assertThat(result).isEqualTo(FilterOperationCode.IN);
     }
   }
 }

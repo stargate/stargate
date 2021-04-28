@@ -23,16 +23,15 @@ import java.util.Optional;
 public interface BaseFilterOperation {
 
   /**
-   * @return Returns raw value of the predicate, as user would specify in the query, f.e. <code>$eq
-   *     </code>
+   * @return Returns a {@link FilterOperationCode}.
    */
-  String getRawValue();
+  FilterOperationCode getOpCode();
 
-  /** @return If this predicate can provide database predicate. */
-  default boolean hasDatabasePredicate() {
-    return getDatabasePredicate().isPresent();
+  /** @return If this filter operation can provide database predicate. */
+  default boolean hasQueryPredicate() {
+    return getQueryPredicate().isPresent();
   }
 
-  /** @return Mirrored database predicate, if one exists. */
-  Optional<Predicate> getDatabasePredicate();
+  /** @return Mirrored persistence predicate, if one exists. */
+  Optional<Predicate> getQueryPredicate();
 }

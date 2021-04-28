@@ -18,14 +18,14 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
 
 /** Less than filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class LtFilterOperation extends NotNullValueFilterOperation {
-
-  public static final String RAW_VALUE = "$lt";
 
   /** @return Singleton instance */
   public static LtFilterOperation of() {
@@ -34,13 +34,13 @@ public abstract class LtFilterOperation extends NotNullValueFilterOperation {
 
   /** {@inheritDoc} */
   @Override
-  public String getRawValue() {
-    return RAW_VALUE;
+  public FilterOperationCode getOpCode() {
+    return FilterOperationCode.LT;
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Predicate> getDatabasePredicate() {
+  public Optional<Predicate> getQueryPredicate() {
     return Optional.of(Predicate.LT);
   }
 

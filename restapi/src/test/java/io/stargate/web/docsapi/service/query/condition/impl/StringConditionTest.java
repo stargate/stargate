@@ -58,7 +58,7 @@ class StringConditionTest {
     public void happyPath() {
       Predicate eq = Predicate.EQ;
       String value = RandomStringUtils.randomAlphanumeric(16);
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.of(eq));
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
@@ -75,7 +75,7 @@ class StringConditionTest {
     @Test
     public void emptyPredicate() {
       String value = RandomStringUtils.randomAlphanumeric(16);
-      when(filterOperation.getDatabasePredicate()).thenReturn(Optional.empty());
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
       ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
       Optional<BuiltCondition> result = condition.getBuiltCondition();

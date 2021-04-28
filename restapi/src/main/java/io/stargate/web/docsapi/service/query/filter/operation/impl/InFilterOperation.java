@@ -22,14 +22,14 @@ import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOper
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
 
 /** In list filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class InFilterOperation implements CombinedFilterOperation<List<?>> {
-
-  public static final String RAW_VALUE = "$in";
 
   /** @return Singleton instance */
   public static InFilterOperation of() {
@@ -38,13 +38,13 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
 
   /** {@inheritDoc} */
   @Override
-  public String getRawValue() {
-    return RAW_VALUE;
+  public FilterOperationCode getOpCode() {
+    return FilterOperationCode.IN;
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Predicate> getDatabasePredicate() {
+  public Optional<Predicate> getQueryPredicate() {
     return Optional.empty();
   }
 
@@ -111,7 +111,7 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
   // validates not empty list
   protected void validateNotEmpty(List<?> filterValue) {
     if (null == filterValue || filterValue.isEmpty()) {
-      String msg = String.format("Operation %s was expecting a non-empty list", getRawValue());
+      String msg = String.format("Operation %s was expecting a non-empty list", getOpCode().getRawValue());
       throw new DocumentAPIRequestException(msg);
     }
   }

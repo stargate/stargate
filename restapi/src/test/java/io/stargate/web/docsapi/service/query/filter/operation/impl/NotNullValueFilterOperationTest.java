@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import io.stargate.db.query.Predicate;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -35,12 +37,12 @@ class NotNullValueFilterOperationTest {
         }
 
         @Override
-        public String getRawValue() {
+        public FilterOperationCode getOpCode() {
           return null;
         }
 
         @Override
-        public Optional<Predicate> getDatabasePredicate() {
+        public Optional<Predicate> getQueryPredicate() {
           return Optional.empty();
         }
       };

@@ -46,7 +46,7 @@ public abstract class NumberCondition implements BaseCondition {
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
     return getFilterOperation()
-        .getDatabasePredicate()
+        .getQueryPredicate()
         .map(
             predicate ->
                 BuiltCondition.of(

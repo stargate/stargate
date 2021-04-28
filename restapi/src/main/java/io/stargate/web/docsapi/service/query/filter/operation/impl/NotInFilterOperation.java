@@ -19,6 +19,8 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 import io.stargate.db.query.Predicate;
 import java.util.List;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
 
 /**
@@ -29,8 +31,6 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class NotInFilterOperation extends InFilterOperation {
 
-  public static final String RAW_VALUE = "$nin";
-
   /** @return Singleton instance */
   public static NotInFilterOperation of() {
     return ImmutableNotInFilterOperation.of();
@@ -38,13 +38,13 @@ public abstract class NotInFilterOperation extends InFilterOperation {
 
   /** {@inheritDoc} */
   @Override
-  public String getRawValue() {
-    return RAW_VALUE;
+  public FilterOperationCode getOpCode() {
+    return FilterOperationCode.NIN;
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Predicate> getDatabasePredicate() {
+  public Optional<Predicate> getQueryPredicate() {
     return Optional.empty();
   }
 

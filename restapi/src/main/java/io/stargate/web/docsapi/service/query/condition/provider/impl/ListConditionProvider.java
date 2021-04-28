@@ -76,7 +76,7 @@ public class ListConditionProvider implements ConditionProvider {
             String msg =
                 String.format(
                     "Operation %s was not expecting a list containing a %s node type.",
-                    filterOperation.getRawValue(), node.getNodeType());
+                    filterOperation.getOpCode(), node.getNodeType());
             throw new DocumentAPIRequestException(msg);
           }
         });

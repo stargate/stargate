@@ -42,7 +42,7 @@ public abstract class NotNullValueFilterOperation implements ComparingValueFilte
 
   private void validateFilterInput(Object filterInput) {
     if (null == filterInput) {
-      String msg = String.format("Operation %s was expecting a non-null value", getRawValue());
+      String msg = String.format("Operation %s was expecting a non-null value", getOpCode().getRawValue());
       throw new DocumentAPIRequestException(msg);
     }
   }

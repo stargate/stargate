@@ -19,14 +19,14 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.ComparingValueFilterOperation;
 import java.util.Optional;
+
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
 
 /** Not equal filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
 public abstract class NeFilterOperation implements ComparingValueFilterOperation {
-
-  public static final String RAW_VALUE = "$ne";
 
   /** @return Singleton instance */
   public static NeFilterOperation of() {
@@ -35,13 +35,13 @@ public abstract class NeFilterOperation implements ComparingValueFilterOperation
 
   /** {@inheritDoc} */
   @Override
-  public String getRawValue() {
-    return RAW_VALUE;
+  public FilterOperationCode getOpCode() {
+    return FilterOperationCode.NE;
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Predicate> getDatabasePredicate() {
+  public Optional<Predicate> getQueryPredicate() {
     return Optional.empty();
   }
 
