@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.ConditionProviderService;
+import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -35,13 +35,10 @@ public class ExpressionService {
 
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
-  private final ConditionProviderService conditionProvider;
+  private final ConditionParser conditionProvider;
 
-  private final boolean numericBooleans;
-
-  public ExpressionService(ConditionProviderService predicateProvider, boolean numericBooleans) {
+  public ExpressionService(ConditionParser predicateProvider) {
     this.conditionProvider = predicateProvider;
-    this.numericBooleans = numericBooleans;
   }
 
   /**
@@ -90,7 +87,7 @@ public class ExpressionService {
       String fieldPath = field.getKey();
       FilterPath filterPath = getFilterPath(prependedPath, fieldPath);
       Collection<BaseCondition> fieldConditions =
-          conditionProvider.getConditions(field.getValue(), numericBooleans);
+          conditionProvider.getConditions(field.getValue());
       for (BaseCondition fieldCondition : fieldConditions) {
         ImmutableFilterExpression expression =
             ImmutableFilterExpression.of(filterPath, fieldCondition);

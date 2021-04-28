@@ -25,7 +25,7 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
-import io.stargate.web.docsapi.service.query.condition.ConditionProviderService;
+import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
@@ -50,7 +50,7 @@ class ExpressionServiceIntTest {
 
   @BeforeEach
   public void init() {
-    service = new ExpressionService(new ConditionProviderService(), false);
+    service = new ExpressionService(new ConditionParser(false));
   }
 
   @Nested

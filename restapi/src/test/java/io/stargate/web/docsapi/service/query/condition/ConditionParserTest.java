@@ -35,9 +35,11 @@ import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class ConditionProviderServiceTest {
+class ConditionParserTest {
 
-  ConditionProviderService conditionProviderService = new ConditionProviderService();
+  private static final boolean NUMERIC_BOOLEANS = RandomUtils.nextBoolean();
+
+  ConditionParser conditionParser = new ConditionParser(NUMERIC_BOOLEANS);
 
   @Nested
   class GetConditions {
@@ -50,7 +52,7 @@ class ConditionProviderServiceTest {
       ObjectNode node = objectMapper.createObjectNode().put("$exgf", value);
 
       Throwable throwable =
-          catchThrowable(() -> conditionProviderService.getConditions(node, false));
+          catchThrowable(() -> conditionParser.getConditions(node));
 
       assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
     }
@@ -62,7 +64,7 @@ class ConditionProviderServiceTest {
       ObjectNode node = objectMapper.createObjectNode().put("$in", value);
 
       Throwable throwable =
-          catchThrowable(() -> conditionProviderService.getConditions(node, false));
+          catchThrowable(() -> conditionParser.getConditions(node));
 
       assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
     }
@@ -72,7 +74,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$eq", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(EqFilterOperation.of(), value));
@@ -83,7 +85,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$ne", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(NeFilterOperation.of(), value));
@@ -94,7 +96,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$gt", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(GtFilterOperation.of(), value));
@@ -105,7 +107,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$gte", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(GteFilterOperation.of(), value));
@@ -116,7 +118,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$lt", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(LtFilterOperation.of(), value));
@@ -127,7 +129,7 @@ class ConditionProviderServiceTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$lte", value);
 
-      Collection<BaseCondition> conditions = conditionProviderService.getConditions(node, false);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(LteFilterOperation.of(), value));
@@ -135,47 +137,44 @@ class ConditionProviderServiceTest {
 
     @Test
     public void exists() {
-      boolean numericBooleans = RandomUtils.nextBoolean();
       ObjectNode node = objectMapper.createObjectNode().put("$exists", true);
 
       Collection<BaseCondition> conditions =
-          conditionProviderService.getConditions(node, numericBooleans);
+          conditionParser.getConditions(node);
 
       assertThat(conditions)
           .containsOnly(
-              ImmutableExistsCondition.of(ExistsFilterOperation.of(), true, numericBooleans));
+              ImmutableExistsCondition.of(ExistsFilterOperation.of(), true, NUMERIC_BOOLEANS));
     }
 
     @Test
     public void in() {
-      boolean numericBooleans = RandomUtils.nextBoolean();
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$in", value);
 
       Collection<BaseCondition> conditions =
-          conditionProviderService.getConditions(node, numericBooleans);
+          conditionParser.getConditions(node);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);
       assertThat(conditions)
           .containsOnly(
-              ImmutableCombinedCondition.of(InFilterOperation.of(), expected, numericBooleans));
+              ImmutableCombinedCondition.of(InFilterOperation.of(), expected, NUMERIC_BOOLEANS));
     }
 
     @Test
     public void nin() {
-      boolean numericBooleans = RandomUtils.nextBoolean();
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$nin", value);
 
       Collection<BaseCondition> conditions =
-          conditionProviderService.getConditions(node, numericBooleans);
+          conditionParser.getConditions(node);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);
       assertThat(conditions)
           .containsOnly(
-              ImmutableCombinedCondition.of(NotInFilterOperation.of(), expected, numericBooleans));
+              ImmutableCombinedCondition.of(NotInFilterOperation.of(), expected, NUMERIC_BOOLEANS));
     }
   }
 }

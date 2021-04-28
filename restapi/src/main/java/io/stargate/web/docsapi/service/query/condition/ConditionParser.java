@@ -19,30 +19,35 @@ package io.stargate.web.docsapi.service.query.condition;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.condition.provider.impl.BasicConditionProvider;
-import io.stargate.web.docsapi.service.query.condition.provider.impl.ExistsConditionProvider;
-import io.stargate.web.docsapi.service.query.condition.provider.impl.ListConditionProvider;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
+
 import java.util.*;
 
 /**
  * Simple service that wraps all available raw filter values and connects them to a {@link
- * ConditionProvider}.
+ * ConditionProvider}, enabling parsing of the filter nodes.
  */
-public class ConditionProviderService {
+public class ConditionParser {
 
-  /**
+    /**
+     * If number booleans should be used when creating conditions.
+     */
+    private final boolean numericBooleans;
+
+    public ConditionParser(boolean numericBooleans) {
+        this.numericBooleans = numericBooleans;
+    }
+
+    /**
    * Creates the conditions for the node containing the raw filter ops as the keys. For example:
    * <code>{ "$gt: { 5 }, "$lt": { 10 }}</code>.
    *
    * @param conditionsNode  Node containing the filter ops as keys
-   * @param numericBooleans If numeric boolean should be applied to the created conditions
    * @return Collection of created conditions.
    * @throws io.stargate.web.docsapi.exception.DocumentAPIRequestException If filter op is not
    *                                                                       found, condition constructions fails or filter value is not supported by the filter op.
    */
-  public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
+  public Collection<BaseCondition> getConditions(JsonNode conditionsNode) {
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(
