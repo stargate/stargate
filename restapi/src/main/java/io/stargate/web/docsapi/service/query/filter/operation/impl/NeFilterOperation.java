@@ -50,4 +50,10 @@ public abstract class NeFilterOperation implements ComparingValueFilterOperation
   public boolean isSatisfied(int compareValue) {
     return compareValue != 0;
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean compareNulls() {
+    return true;
+  }
 }

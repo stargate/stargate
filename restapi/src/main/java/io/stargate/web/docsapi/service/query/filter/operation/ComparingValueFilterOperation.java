@@ -40,14 +40,31 @@ public interface ComparingValueFilterOperation
    */
   boolean isSatisfied(int compareValue);
 
+  /**
+   * Should null database values be compared. Defaults to <code>false</code>, sub-classes can override.
+   * @return if <code>false</code> comparing with null db value will always test false, otherwise it's considering nulls as last in comparison
+   */
+  default boolean compareNulls() {
+    return false;
+  }
+
+
   /** {@inheritDoc} */
   default boolean test(String filterValue, String dbValue) {
+    if (null == dbValue && !compareNulls()) {
+      return false;
+    }
+
     int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
     return isSatisfied(compare);
   }
 
   /** {@inheritDoc} */
   default boolean test(Number filterValue, Double dbValue) {
+    if (null == dbValue && !compareNulls()) {
+      return false;
+    }
+
     // TODO do we wanna have more sophisticated compare for the numbers
     int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
     return isSatisfied(compare);
@@ -55,6 +72,10 @@ public interface ComparingValueFilterOperation
 
   /** {@inheritDoc} */
   default boolean test(Boolean filterValue, Boolean dbValue) {
+    if (null == dbValue && !compareNulls()) {
+      return false;
+    }
+
     int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
     return isSatisfied(compare);
   }

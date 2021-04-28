@@ -49,4 +49,10 @@ public abstract class EqFilterOperation extends NotNullValueFilterOperation {
   public boolean isSatisfied(int compareValue) {
     return compareValue == 0;
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean compareNulls() {
+    return true;
+  }
 }

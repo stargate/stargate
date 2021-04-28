@@ -57,7 +57,7 @@ class LtFilterOperationTest {
       boolean result = lt.test("filterValue", null);
 
       // nulls last
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
@@ -87,7 +87,7 @@ class LtFilterOperationTest {
     public void booleanNull() {
       boolean result = lt.test(true, null);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
@@ -115,7 +115,7 @@ class LtFilterOperationTest {
     public void numbersNull() {
       boolean result = lt.test(22, null);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
   }
 
