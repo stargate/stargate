@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.service.query.condition.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+
 import java.util.Optional;
 
 /** Knows how to provide {@link BaseCondition} from the Json node containing the filter value. */

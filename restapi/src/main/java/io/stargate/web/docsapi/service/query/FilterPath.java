@@ -16,9 +16,10 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import org.immutables.value.Value;
+
 import java.util.Collections;
 import java.util.List;
-import org.immutables.value.Value;
 
 /** Contains path information for a filter operation. */
 @Value.Immutable

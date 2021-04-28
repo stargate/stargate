@@ -16,15 +16,15 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.stargate.db.query.Predicate;
-import java.util.Optional;
-
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class LtFilterOperationTest {
 

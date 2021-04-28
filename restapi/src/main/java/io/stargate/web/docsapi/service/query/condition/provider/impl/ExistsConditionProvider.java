@@ -21,7 +21,7 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.filter.operation.impl.ExistsFilterOperation;
+
 import java.util.Optional;
 
 /** Special condition provider for the {@link ExistsCondition}. */
@@ -31,9 +31,7 @@ public class ExistsConditionProvider implements ConditionProvider {
   @Override
   public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
     if (node.isBoolean()) {
-      ExistsCondition condition =
-          ImmutableExistsCondition.of(
-              ExistsFilterOperation.of(), node.booleanValue(), numericBooleans);
+      ExistsCondition condition = ImmutableExistsCondition.of(node.booleanValue());
       return Optional.of(condition);
     } else {
       return Optional.empty();

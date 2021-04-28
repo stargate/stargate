@@ -16,24 +16,24 @@
 
 package io.stargate.web.docsapi.service.query.condition.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
-import io.stargate.web.docsapi.service.query.filter.operation.impl.ExistsFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CombinedConditionTest {
@@ -170,28 +170,6 @@ class CombinedConditionTest {
       when(row.isNull("bool_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(true);
       when(row.isNull("text_value")).thenReturn(true);
-    }
-
-    @Test
-    public void existsPredicateNotMatched() {
-      CombinedCondition<Boolean> condition =
-          ImmutableCombinedCondition.of(ExistsFilterOperation.of(), true, false);
-      boolean result = condition.test(row);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void existsPredicateMatch() {
-      String findMe = "find-me";
-      when(row.isNull("text_value")).thenReturn(false);
-      when(row.getString("text_value")).thenReturn(findMe);
-
-      CombinedCondition<Boolean> condition =
-          ImmutableCombinedCondition.of(ExistsFilterOperation.of(), true, false);
-      boolean result = condition.test(row);
-
-      assertThat(result).isTrue();
     }
 
     @Test

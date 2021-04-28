@@ -20,8 +20,9 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
-import java.util.Optional;
 import org.immutables.value.Value;
+
+import java.util.Optional;
 
 /**
  * Condition that works with the {@link CombinedFilterOperation} in order to match a single {@link

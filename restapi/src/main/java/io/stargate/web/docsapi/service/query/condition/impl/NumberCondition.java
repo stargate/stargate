@@ -21,8 +21,9 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
-import java.util.Optional;
 import org.immutables.value.Value;
+
+import java.util.Optional;
 
 /** Condition that accepts number filter values and compare against double database row value. */
 @Value.Immutable

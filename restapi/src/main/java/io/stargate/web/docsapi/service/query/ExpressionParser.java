@@ -25,19 +25,20 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import org.apache.commons.lang3.StringUtils;
+
+import javax.ws.rs.core.PathSegment;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.PathSegment;
-import org.apache.commons.lang3.StringUtils;
 
-public class ExpressionService {
+public class ExpressionParser {
 
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
   private final ConditionParser conditionProvider;
 
-  public ExpressionService(ConditionParser predicateProvider) {
+  public ExpressionParser(ConditionParser predicateProvider) {
     this.conditionProvider = predicateProvider;
   }
 

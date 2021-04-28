@@ -16,19 +16,19 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import org.apache.commons.lang3.RandomUtils;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class InFilterOperationTest {
 

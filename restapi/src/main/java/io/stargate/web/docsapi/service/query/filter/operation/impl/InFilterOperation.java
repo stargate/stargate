@@ -19,12 +19,12 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import org.immutables.value.Value;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import org.immutables.value.Value;
 
 /** In list filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)

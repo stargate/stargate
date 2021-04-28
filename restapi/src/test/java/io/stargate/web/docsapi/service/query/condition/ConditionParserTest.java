@@ -16,9 +16,6 @@
 
 package io.stargate.web.docsapi.service.query.condition;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -27,13 +24,17 @@ import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCon
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 class ConditionParserTest {
 
@@ -143,8 +144,7 @@ class ConditionParserTest {
           conditionParser.getConditions(node);
 
       assertThat(conditions)
-          .containsOnly(
-              ImmutableExistsCondition.of(ExistsFilterOperation.of(), true, NUMERIC_BOOLEANS));
+          .containsOnly(ImmutableExistsCondition.of(true));
     }
 
     @Test

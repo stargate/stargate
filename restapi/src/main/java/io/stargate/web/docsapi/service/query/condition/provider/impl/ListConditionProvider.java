@@ -23,6 +23,7 @@ import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

@@ -18,10 +18,10 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.ComparingValueFilterOperation;
-import java.util.Optional;
-
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import org.immutables.value.Value;
+
+import java.util.Optional;
 
 /** Not equal filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
