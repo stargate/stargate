@@ -66,9 +66,9 @@ public abstract class CombinedCondition<V> implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    Boolean dbValueBoolean = getBooleanDatabaseValue(row, isNumericBooleans());
-    Double dbValueDouble = getDoubleDatabaseValue(row);
-    String dbValueString = getStringDatabaseValue(row);
+    Boolean dbValueBoolean = getBoolean(row, isNumericBooleans());
+    Double dbValueDouble = getDouble(row);
+    String dbValueString = getString(row);
 
     CombinedFilterOperation<V> filterOperation = getFilterOperation();
     V queryValue = getQueryValue();

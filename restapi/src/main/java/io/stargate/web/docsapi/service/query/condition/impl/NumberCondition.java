@@ -58,7 +58,7 @@ public abstract class NumberCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    Double dbValue = getDoubleDatabaseValue(row);
+    Double dbValue = getDouble(row);
     return getFilterOperation().test(getQueryValue(), dbValue);
   }
 }

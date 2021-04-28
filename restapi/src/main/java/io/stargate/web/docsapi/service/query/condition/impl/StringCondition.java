@@ -56,7 +56,7 @@ public abstract class StringCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    String dbValue = getStringDatabaseValue(row);
+    String dbValue = getString(row);
     return getFilterOperation().test(getQueryValue(), dbValue);
   }
 }

@@ -34,7 +34,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @param row Row
    * @return Returns resolved value or <code>null</code>
    */
-  default String getStringDatabaseValue(Row row) {
+  default String getString(Row row) {
     return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)
         ? null
         : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
@@ -46,7 +46,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @param row Row
    * @return Returns resolved value or <code>null</code>
    */
-  default Double getDoubleDatabaseValue(Row row) {
+  default Double getDouble(Row row) {
     return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
         ? null
         : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
@@ -59,7 +59,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @param numericBooleans If <code>true</code> assumes booleans are stored as numeric values.
    * @return Returns resolved value or <code>null</code>
    */
-  default Boolean getBooleanDatabaseValue(Row row, boolean numericBooleans) {
+  default Boolean getBoolean(Row row, boolean numericBooleans) {
     boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
     if (nullValue) {
       return null;
