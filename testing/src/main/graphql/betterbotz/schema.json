@@ -4955,51 +4955,6 @@
           "possibleTypes": null
         },
         {
-          "name": "_int_function",
-          "kind": "OBJECT",
-          "description": "The type used to represent a function that returns Int",
-          "args": [
-            {
-              "name": "name",
-              "description": "Name of the function to invoke",
-              "args": [],
-              "type": {
-                "kind": "SCALAR",
-                "name": "String",
-                "ofType": null
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "args",
-              "description": "Arguments passed to a function. It can be a list of columns names.",
-              "args": [],
-              "type": {
-                "kind": "LIST",
-                "name": null,
-                "ofType": {
-                  "kind": "NON_NULL",
-                  "name": null,
-                  "ofType": {
-                    "kind": "SCALAR",
-                    "name": "String",
-                    "ofType": null
-                  }
-                }
-              },
-              "isDeprecated": false,
-              "deprecationReason": null
-            }
-          ],
-          "isDeprecated": false,
-          "deprecationReason": null,
-          "inputFields": null,
-          "interfaces": [],
-          "enumValues": null,
-          "possibleTypes": null
-        },
-        {
           "kind": "OBJECT",
           "name": "Orders",
           "description": "The type used to represent results of a query for the table 'Orders'.",
@@ -5101,15 +5056,46 @@
               "deprecationReason": null
             },
             {
-                "name": "count",
+                "name": "_int_function",
                 "description": "count function invocation",
+                   "args": [
+                 {
+                   "name": "name",
+                   "description": "Name of the function to invoke",
+                   "type": {
+                     "kind": "SCALAR",
+                     "name": "String",
+                     "ofType": null
+                   },
+                   "defaultValue": null
+                 },
+                 {
+                   "name": "args",
+                   "description": "Arguments passed to a function. It can be a list of columns names.",
+                   "type": {
+                     "kind": "LIST",
+                     "name": null,
+                     "ofType": {
+                       "kind": "NON_NULL",
+                       "name": null,
+                       "ofType": {
+                         "kind": "SCALAR",
+                         "name": "String",
+                         "ofType": null
+                       }
+                     }
+                   }
+                 }
+                ],
                 "type": {
-                  "kind": "OBJECT",
-                  "name": "_int_function",
+                  "kind": "SCALAR",
+                  "name": "Int",
                   "ofType": null
                 },
-                "isDeprecated": false,
-                "deprecationReason": null
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
             }
           ],
           "inputFields": null,
@@ -6072,20 +6058,16 @@
                   "defaultValue": null
                 },
                 {
-                  "name": "aggregationFields",
+                  "name": "aggregationField",
                   "description": null,
                   "type": {
                     "kind": "INPUT_OBJECT",
-                    "ofType": {
-                      "kind": "LIST",
-                      "name": null,
                       "ofType": {
                         "kind": "SCALAR",
                         "name": "String",
                         "ofType": null
                       }
                     }
-                  }
                 }
               ],
               "type": {

@@ -1,4 +1,4 @@
-query GetOrdersWithCount($value: OrdersInput, $aggregationFields: [String]) {
+query GetOrdersWithCount($value: OrdersInput, $aggregationField: String!) {
     Orders(value: $value) {
         pageState
         values {
@@ -10,7 +10,7 @@ query GetOrdersWithCount($value: OrdersInput, $aggregationFields: [String]) {
             description
             price
             sellPrice
-            _int_function(name: "count", args: $aggregationFields)
+            count: _int_function(name: "count", args: [$aggregationField])
         }
     }
 }
