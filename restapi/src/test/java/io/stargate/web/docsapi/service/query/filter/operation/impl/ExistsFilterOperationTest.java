@@ -74,17 +74,6 @@ class ExistsFilterOperationTest {
   }
 
   @Nested
-  class IsMatchAll {
-
-    @Test
-    public void correct() {
-      boolean result = exists.isMatchAll();
-
-      assertThat(result).isFalse();
-    }
-  }
-
-  @Nested
   class GetDatabasePredicate {
 
     @Test

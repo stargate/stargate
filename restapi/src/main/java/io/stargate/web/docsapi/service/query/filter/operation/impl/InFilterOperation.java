@@ -48,12 +48,6 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
     return Optional.empty();
   }
 
-  /** Only one database value (string, boolean or double) has to match. */
-  @Override
-  public boolean isMatchAll() {
-    return false;
-  }
-
   /** {@inheritDoc} */
   @Override
   public boolean test(List<?> filterValue, String dbValue) {

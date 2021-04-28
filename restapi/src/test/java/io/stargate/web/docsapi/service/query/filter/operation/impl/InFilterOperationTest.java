@@ -232,17 +232,6 @@ class InFilterOperationTest {
   }
 
   @Nested
-  class IsMatchAll {
-
-    @Test
-    public void correct() {
-      boolean result = in.isMatchAll();
-
-      assertThat(result).isFalse();
-    }
-  }
-
-  @Nested
   class GetDatabasePredicate {
 
     @Test

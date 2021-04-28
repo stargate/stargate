@@ -25,9 +25,4 @@ public interface CombinedFilterOperation<V>
     extends StringValueFilterOperation<V>,
         DoubleValueFilterOperation<V>,
         BooleanValueFilterOperation<V> {
-
-  /**
-   * @return Defines if all database values much match the filter operation for the test to be true.
-   */
-  boolean isMatchAll();
 }

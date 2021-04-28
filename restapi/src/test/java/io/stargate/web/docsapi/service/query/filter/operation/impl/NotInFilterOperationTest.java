@@ -150,17 +150,6 @@ class NotInFilterOperationTest {
   }
 
   @Nested
-  class IsMatchAll {
-
-    @Test
-    public void correct() {
-      boolean result = nin.isMatchAll();
-
-      assertThat(result).isTrue();
-    }
-  }
-
-  @Nested
   class GetDatabasePredicate {
 
     @Test

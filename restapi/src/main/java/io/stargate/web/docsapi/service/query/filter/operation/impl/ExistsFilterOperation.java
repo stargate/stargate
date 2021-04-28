@@ -46,12 +46,6 @@ public abstract class ExistsFilterOperation implements CombinedFilterOperation<B
     return Optional.of(Predicate.EQ);
   }
 
-  /** Only one database value (string, boolean or double) has to match. */
-  @Override
-  public boolean isMatchAll() {
-    return false;
-  }
-
   /** {@inheritDoc} */
   @Override
   public boolean test(Boolean filterValue, Boolean dbValue) {

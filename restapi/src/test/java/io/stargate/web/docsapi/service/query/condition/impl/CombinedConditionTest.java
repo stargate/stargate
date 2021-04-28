@@ -80,51 +80,12 @@ class CombinedConditionTest {
     @Mock Row row;
 
     @Test
-    public void allMatchAllFalse() {
+    public void emptyRow() {
       Object filterValue = new Object();
-      when(filterOperation.isMatchAll()).thenReturn(true);
-
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
-      boolean result = condition.test(row);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void allMatchOneFalse() {
-      Object filterValue = new Object();
-      when(row.isNull("bool_value")).thenReturn(false);
-      when(row.isNull("text_value")).thenReturn(false);
-      when(row.isNull("dbl_value")).thenReturn(false);
-      when(row.getBoolean("bool_value")).thenReturn(false);
-      when(row.getString("text_value")).thenReturn("Jordan");
-      when(row.getDouble("dbl_value")).thenReturn(23d);
-      when(filterOperation.isMatchAll()).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(false);
-      when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(true);
-
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
-      boolean result = condition.test(row);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void allMatchAllTrue() {
-      Object filterValue = new Object();
-      when(row.isNull("bool_value")).thenReturn(false);
-      when(row.isNull("text_value")).thenReturn(false);
-      when(row.isNull("dbl_value")).thenReturn(false);
-      when(row.getBoolean("bool_value")).thenReturn(false);
-      when(row.getString("text_value")).thenReturn("Jordan");
-      when(row.getDouble("dbl_value")).thenReturn(23d);
-      when(filterOperation.isMatchAll()).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(true);
+      when(row.isNull("bool_value")).thenReturn(true);
+      when(row.isNull("text_value")).thenReturn(true);
+      when(row.isNull("dbl_value")).thenReturn(true);
+      when(filterOperation.test(filterValue, (String) null)).thenReturn(true);
 
       CombinedCondition<Object> condition =
           ImmutableCombinedCondition.of(filterOperation, filterValue, false);
@@ -134,30 +95,13 @@ class CombinedConditionTest {
     }
 
     @Test
-    public void anyMatchAllFalse() {
-      Object filterValue = new Object();
-      when(filterOperation.isMatchAll()).thenReturn(false);
-
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
-      boolean result = condition.test(row);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void anyMatchOneTrue() {
+    public void booleanValue() {
       Object filterValue = new Object();
       when(row.isNull("bool_value")).thenReturn(false);
-      when(row.isNull("text_value")).thenReturn(false);
-      when(row.isNull("dbl_value")).thenReturn(false);
+      when(row.isNull("text_value")).thenReturn(true);
+      when(row.isNull("dbl_value")).thenReturn(true);
       when(row.getBoolean("bool_value")).thenReturn(false);
-      when(row.getString("text_value")).thenReturn("Jordan");
-      when(row.getDouble("dbl_value")).thenReturn(23d);
-      when(filterOperation.isMatchAll()).thenReturn(false);
-      when(filterOperation.test(eq(filterValue), eq(false))).thenReturn(false);
-      when(filterOperation.test(eq(filterValue), eq("Jordan"))).thenReturn(true);
-      when(filterOperation.test(eq(filterValue), eq(23d))).thenReturn(false);
+      when(filterOperation.test(filterValue, false)).thenReturn(true);
 
       CombinedCondition<Object> condition =
           ImmutableCombinedCondition.of(filterOperation, filterValue, false);
@@ -165,6 +109,56 @@ class CombinedConditionTest {
 
       assertThat(result).isTrue();
     }
+
+    @Test
+    public void booleanNumericValue() {
+      Object filterValue = new Object();
+      Byte byteValue = 0;
+      when(row.isNull("bool_value")).thenReturn(false);
+      when(row.isNull("text_value")).thenReturn(true);
+      when(row.isNull("dbl_value")).thenReturn(true);
+      when(row.getByte("bool_value")).thenReturn(byteValue);
+      when(filterOperation.test(filterValue, false)).thenReturn(true);
+
+      CombinedCondition<Object> condition =
+              ImmutableCombinedCondition.of(filterOperation, filterValue, true);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void numberValue() {
+      Object filterValue = new Object();
+      when(row.isNull("bool_value")).thenReturn(true);
+      when(row.isNull("text_value")).thenReturn(true);
+      when(row.isNull("dbl_value")).thenReturn(false);
+      when(row.getDouble("dbl_value")).thenReturn(22d);
+      when(filterOperation.test(filterValue, 22d)).thenReturn(true);
+
+      CombinedCondition<Object> condition =
+              ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void stringValue() {
+      Object filterValue = new Object();
+      when(row.isNull("bool_value")).thenReturn(true);
+      when(row.isNull("text_value")).thenReturn(false);
+      when(row.isNull("dbl_value")).thenReturn(true);
+      when(row.getString("text_value")).thenReturn("Jordan");
+      when(filterOperation.test(filterValue, "Jordan")).thenReturn(true);
+
+      CombinedCondition<Object> condition =
+              ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      boolean result = condition.test(row);
+
+      assertThat(result).isTrue();
+    }
+
   }
 
   // set of simple int test in order to confirm with existing predicates

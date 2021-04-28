@@ -48,12 +48,6 @@ public abstract class NotInFilterOperation extends InFilterOperation {
     return Optional.empty();
   }
 
-  /** All database values (string, boolean or double) have to match. */
-  @Override
-  public boolean isMatchAll() {
-    return true;
-  }
-
   /** {@inheritDoc} */
   @Override
   public boolean test(List<?> filterValue, String dbValue) {

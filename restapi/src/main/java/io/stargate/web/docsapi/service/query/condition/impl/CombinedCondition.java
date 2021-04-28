@@ -73,14 +73,13 @@ public abstract class CombinedCondition<V> implements BaseCondition {
     CombinedFilterOperation<V> filterOperation = getFilterOperation();
     V queryValue = getQueryValue();
 
-    if (filterOperation.isMatchAll()) {
-      return filterOperation.test(queryValue, dbValueBoolean)
-          && filterOperation.test(queryValue, dbValueDouble)
-          && filterOperation.test(queryValue, dbValueString);
+    // compare against the non-null values, fallback to text compare even if null
+    if (null != dbValueBoolean) {
+      return filterOperation.test(queryValue, dbValueBoolean);
+    } else if (null != dbValueDouble) {
+      return filterOperation.test(queryValue, dbValueDouble);
     } else {
-      return filterOperation.test(queryValue, dbValueBoolean)
-          || filterOperation.test(queryValue, dbValueDouble)
-          || filterOperation.test(queryValue, dbValueString);
+      return filterOperation.test(queryValue, dbValueString);
     }
   }
 }
