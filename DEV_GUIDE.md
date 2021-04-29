@@ -94,7 +94,13 @@ env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluste
 
 ### Debugging
 
-If you're an IntelliJ user you can use start the project with
+If you're an IntelliJ user you can create the *JAR Application* run configuration, pointing to the `stargate-lib/stargate-starter-[VERSION].jar` and specifying `stargate-lib/` as the working directory.
+
+Then please disable **Instrumenting agent** in `Settings | Build, Execution, Deployment | Debugger | Async Stacktraces`.
+This will allow you to debug directly using the IntelliJ debug run option.
+You can debug any run configuration and tests as well.
+
+#### Remote debugging
 
 ```sh
 java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 -Dstargate.libdir=./stargate-lib stargate-lib/stargate-starter-1.0-SNAPSHOT.jar
