@@ -29,6 +29,7 @@ import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.ColumnOrder;
@@ -77,7 +78,12 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     result.put(
         "values",
         resultSet.currentPageRows().stream()
-            .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
+            .map(
+                row -> {
+                  Map<String, Object> columns =
+                      DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+                  return addAggregationResults(columns, environment, row);
+                })
             .collect(Collectors.toList()));
 
     ByteBuffer pageState = resultSet.getPagingState();
@@ -86,6 +92,31 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     }
 
     return result;
+  }
+
+  private Map<String, Object> addAggregationResults(
+      Map<String, Object> columns, DataFetchingEnvironment environment, Row row) {
+    List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
+    if (valuesFields.isEmpty()) {
+      return columns;
+    }
+    for (SelectedField valuesField : valuesFields) {
+      for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
+        if (selectedField.getName().equals(INT_FUNCTION)) {
+          String alias = selectedField.getAlias();
+          // put the returned value as alias
+          if (alias != null) {
+            columns.put(alias, row.getInt(alias));
+          }
+          //
+          else {
+            // if there is no alias, use the value as is.
+            // Should we require alias for all aggregation function calls?
+          }
+        }
+      }
+    }
+    return columns;
   }
 
   private BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore) {
@@ -118,6 +149,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     if (valuesFields.isEmpty()) {
       return;
     }
+
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
         if (selectedField.getName().equals(INT_FUNCTION)) {
