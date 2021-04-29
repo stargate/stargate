@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
-import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,13 +67,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
 
-    MutableInt status = new MutableInt();
-    try (Response execute = client.newCall(request).execute()) {
-      assertThat(execute.body()).isNotNull();
-      assertThat(execute.code()).isNotZero();
-      status.setValue(execute.code());
-    }
-
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     List<String> lines =
@@ -89,7 +82,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("method=\"GET\"")
                     .contains("module=\"restapi\"")
                     .contains("uri=\"/v1/keyspaces\"")
-                    .contains(String.format("status=\"%d\"", status.intValue()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -105,13 +98,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
 
-    MutableInt status = new MutableInt();
-    try (Response execute = client.newCall(request).execute()) {
-      assertThat(execute.body()).isNotNull();
-      assertThat(execute.code()).isNotZero();
-      status.setValue(execute.code());
-    }
-
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     List<String> lines =
@@ -126,7 +113,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("method=\"GET\"")
                     .contains("module=\"graphqlapi\"")
                     .contains("uri=\"/graphql\"")
-                    .contains(String.format("status=\"%d\"", status.intValue()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -142,13 +129,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
 
-    MutableInt status = new MutableInt();
-    try (Response execute = client.newCall(request).execute()) {
-      assertThat(execute.body()).isNotNull();
-      assertThat(execute.code()).isNotZero();
-      status.setValue(execute.code());
-    }
-
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     List<String> lines =
@@ -163,7 +144,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("method=\"POST\"")
                     .contains("module=\"authapi\"")
                     .contains("uri=\"/v1/auth\"")
-                    .contains(String.format("status=\"%d\"", status.intValue()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -203,5 +184,13 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .collect(Collectors.toList());
 
     assertThat(lines).isNotEmpty();
+  }
+
+  private int execute(OkHttpClient client, Request request) throws IOException {
+    try (Response execute = client.newCall(request).execute()) {
+      assertThat(execute.body()).isNotNull();
+      assertThat(execute.code()).isNotZero();
+      return execute.code();
+    }
   }
 }
