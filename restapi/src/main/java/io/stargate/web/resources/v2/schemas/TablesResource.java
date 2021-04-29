@@ -107,8 +107,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           List<TableResponse> tableResponses =
               authenticatedDB.getTables(keyspaceName).stream()
@@ -162,8 +162,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -209,8 +209,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
@@ -334,8 +334,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -410,8 +410,8 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

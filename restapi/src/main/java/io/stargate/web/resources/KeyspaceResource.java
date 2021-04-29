@@ -26,7 +26,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.List;
-import java.util.Map;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -75,8 +74,8 @@ public class KeyspaceResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           List<String> keyspaceNames = authenticatedDB.getDataStore().schema().keyspaceNames();
           db.getAuthorizationService()
