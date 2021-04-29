@@ -1016,7 +1016,7 @@ public class DocumentServiceTest {
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
 
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(rsMock.rows()).thenReturn(rows);
 
     List<PathSegment> path = smallPath();
@@ -1036,7 +1036,7 @@ public class DocumentServiceTest {
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
 
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(rsMock.rows()).thenReturn(rows);
 
     List<PathSegment> path = smallPath();
@@ -1191,7 +1191,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
@@ -1214,7 +1214,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
@@ -1235,7 +1235,7 @@ public class DocumentServiceTest {
   @Test
   public void addRowsToMap() throws InvocationTargetException, IllegalAccessException {
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     addRowsToMap.invoke(service, rowsByDoc, rows);
     assertThat(rowsByDoc.get("1")).isEqualTo(rows);
   }
@@ -1243,7 +1243,7 @@ public class DocumentServiceTest {
   @Test
   public void updateExistenceForMap() throws InvocationTargetException, IllegalAccessException {
     Set<String> existenceByDoc = new HashSet<>();
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     updateExistenceForMap.invoke(service, existenceByDoc, rows, new ArrayList<>(), false, true);
     assertThat(existenceByDoc.contains("1")).isTrue();
   }
@@ -1253,7 +1253,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
     Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
@@ -1270,16 +1270,14 @@ public class DocumentServiceTest {
 
   @Test
   public void getFullDocuments_greaterThanLimit() throws Exception {
-    Db dbFactoryMock = Mockito.mock(Db.class);
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-    List<Row> twoDocsRows = makeInitialRowData();
-    twoDocsRows.addAll(makeRowDataForSecondDoc());
+    List<Row> twoDocsRows = makeInitialRowData(false);
+    twoDocsRows.addAll(makeRowDataForSecondDoc(false));
     Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
     int pageSizeParam = 0;
@@ -1298,7 +1296,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
@@ -1388,14 +1386,16 @@ public class DocumentServiceTest {
 
   @Test
   public void getParentPathFromRow() throws InvocationTargetException, IllegalAccessException {
-    Row row = makeInitialRowData().get(0);
+    Row row = makeInitialRowData(false).get(1);
     String result = (String) getParentPathFromRow.invoke(service, row);
     assertThat(result).isEqualTo("1/a.b.");
   }
 
   @Test
   public void filterToSelectionSet() throws InvocationTargetException, IllegalAccessException {
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
+    rows = rows.subList(1, rows.size());
+
     List<?> result =
         (List<?>)
             filterToSelectionSet.invoke(
@@ -1416,7 +1416,8 @@ public class DocumentServiceTest {
 
   @Test
   public void applyInMemoryFilters() throws InvocationTargetException, IllegalAccessException {
-    List<Row> rows = makeInitialRowData();
+    List<Row> rows = makeInitialRowData(false);
+    rows = rows.subList(1, rows.size());
     List<FilterCondition> filters =
         ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", true));
     List<?> result =
@@ -1637,18 +1638,27 @@ public class DocumentServiceTest {
     assertThat(res).isNull();
   }
 
-  public static List<Row> makeInitialRowData() {
+  public static List<Row> makeInitialRowData(boolean numericBooleans) {
     List<Row> rows = new ArrayList<>();
+    Map<String, Object> data0 = new HashMap<>();
     Map<String, Object> data1 = new HashMap<>();
     Map<String, Object> data2 = new HashMap<>();
     Map<String, Object> data3 = new HashMap<>();
+    data0.put("key", "1");
     data1.put("key", "1");
     data2.put("key", "1");
     data3.put("key", "1");
 
+    data0.put("writetime(leaf)", 0L);
     data1.put("writetime(leaf)", 0L);
     data2.put("writetime(leaf)", 0L);
     data3.put("writetime(leaf)", 0L);
+
+    data0.put("p0", "");
+    data0.put("p1", "");
+    data0.put("p2", "");
+    data0.put("p3", "");
+    data0.put("leaf", DocumentDB.ROOT_DOC_MARKER);
 
     data1.put("p0", "a");
     data1.put("p1", "b");
@@ -1671,14 +1681,15 @@ public class DocumentServiceTest {
     data3.put("p3", "");
     data3.put("leaf", "f");
 
-    rows.add(makeRow(data1));
-    rows.add(makeRow(data2));
-    rows.add(makeRow(data3));
+    rows.add(makeRow(data0, numericBooleans));
+    rows.add(makeRow(data1, numericBooleans));
+    rows.add(makeRow(data2, numericBooleans));
+    rows.add(makeRow(data3, numericBooleans));
 
     return rows;
   }
 
-  public static List<Row> makeSecondRowData() {
+  public static List<Row> makeSecondRowData(boolean numericBooleans) {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
     data1.put("key", "1");
@@ -1690,11 +1701,23 @@ public class DocumentServiceTest {
     data1.put("text_value", "replaced");
     data1.put("leaf", "d");
     data1.put("p4", "");
-    rows.add(makeRow(data1));
+    rows.add(makeRow(data1, numericBooleans));
+
+    Map<String, Object> data2 = new HashMap<>();
+    data2.put("key", "1");
+    data2.put("writetime(leaf)", 1L);
+    data2.put("p0", "d");
+    data2.put("p1", "e");
+    data2.put("p2", "f");
+    data2.put("p3", "g");
+    data2.put("text_value", "replaced");
+    data2.put("leaf", "g");
+    data2.put("p4", "");
+    rows.add(makeRow(data2, numericBooleans));
     return rows;
   }
 
-  public static List<Row> makeThirdRowData() {
+  public static List<Row> makeThirdRowData(boolean numericBooleans) {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
 
@@ -1706,12 +1729,79 @@ public class DocumentServiceTest {
     data1.put("p2", "");
     data1.put("p3", "");
     data1.put("leaf", "[0]");
+    ;
 
-    rows.add(makeRow(data1));
+    rows.add(makeRow(data1, numericBooleans));
     return rows;
   }
 
-  public List<Row> makeRowDataForSecondDoc() {
+  public static List<Row> makeMultipleReplacements() {
+    List<Row> rows = new ArrayList<>();
+    Map<String, Object> data1 = new HashMap<>();
+
+    data1.put("key", "1");
+    data1.put("writetime(leaf)", 0L);
+    data1.put("p0", "a");
+    data1.put("p1", "[0]");
+    data1.put("p2", "b");
+    data1.put("p3", "c");
+    data1.put("text_value", "initial");
+    data1.put("p4", "");
+    data1.put("leaf", "c");
+
+    Map<String, Object> data2 = new HashMap<>();
+
+    data2.put("key", "1");
+    data2.put("writetime(leaf)", 1L);
+    data2.put("p0", "a");
+    data2.put("p1", "[0]");
+    data2.put("p2", "");
+    data2.put("p3", "");
+    data2.put("text_value", "initial");
+    data2.put("leaf", "a");
+
+    Map<String, Object> data3 = new HashMap<>();
+
+    data3.put("key", "1");
+    data3.put("writetime(leaf)", 2L);
+    data3.put("p0", "a");
+    data3.put("p1", "[0]");
+    data3.put("p2", "[0]");
+    data3.put("dbl_value", 1.23);
+    data3.put("p3", "");
+    data3.put("leaf", "a");
+
+    Map<String, Object> data4 = new HashMap<>();
+
+    data4.put("key", "1");
+    data4.put("writetime(leaf)", 3L);
+    data4.put("p0", "a");
+    data4.put("p1", "[0]");
+    data4.put("p2", "c");
+    data4.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
+    data4.put("p3", "");
+    data4.put("leaf", "c");
+
+    Map<String, Object> data5 = new HashMap<>();
+
+    data5.put("key", "1");
+    data5.put("writetime(leaf)", 4L);
+    data5.put("p0", "a");
+    data5.put("p1", "b");
+    data5.put("p2", "c");
+    data5.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
+    data5.put("p3", "");
+    data5.put("leaf", "c");
+
+    rows.add(makeRow(data1, false));
+    rows.add(makeRow(data2, false));
+    rows.add(makeRow(data3, false));
+    rows.add(makeRow(data4, false));
+    rows.add(makeRow(data5, false));
+    return rows;
+  }
+
+  public List<Row> makeRowDataForSecondDoc(boolean numericBooleans) {
     List<Row> rows = new ArrayList<>();
     Map<String, Object> data1 = new HashMap<>();
 
@@ -1724,7 +1814,7 @@ public class DocumentServiceTest {
     data1.put("p3", "");
     data1.put("leaf", "[0]");
 
-    rows.add(makeRow(data1));
+    rows.add(makeRow(data1, numericBooleans));
     return rows;
   }
 
@@ -1757,13 +1847,26 @@ public class DocumentServiceTest {
     return path;
   }
 
-  private static Row makeRow(Map<String, Object> data) {
+  private static Row makeRow(Map<String, Object> data, boolean numericBooleans) {
     List<Column> columns = new ArrayList<>(DocumentDB.allColumns());
     columns.add(Column.create("writetime(leaf)", Type.Bigint));
     List<ByteBuffer> values = new ArrayList<>(columns.size());
     ProtocolVersion version = ProtocolVersion.DEFAULT;
+    if (numericBooleans) {
+      columns.replaceAll(
+          col -> {
+            if (col.name().equals("bool_value")) {
+              return Column.create("bool_value", Type.Tinyint);
+            }
+            return col;
+          });
+    }
+
     for (Column column : columns) {
       Object v = data.get(column.name());
+      if (column.name().equals("bool_value") && numericBooleans && v != null) {
+        v = ((Boolean) v) ? (byte) 1 : (byte) 0;
+      }
       values.add(v == null ? null : column.type().codec().encode(v, version));
     }
     return new ArrayListBackedRow(columns, values, version);

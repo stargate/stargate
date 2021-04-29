@@ -110,17 +110,6 @@ public class JsonConverter {
         JsonNode childRef;
 
         if (isArray && !writeAllPathsAsObjects) {
-          if (!ref.isArray()) {
-            if (i == 0) {
-              doc = mapper.createArrayNode();
-              ref = doc;
-            } else {
-              markObjectAtPathAsDead(ref, parentPath, collector);
-              ref = changeCurrentNodeToArray(row, parentRef, i);
-            }
-            pathWriteTimes.put(parentPath, rowWriteTime);
-          }
-
           int index = Integer.parseInt(p.substring(1, p.length() - 1));
 
           ArrayNode arrayRef = (ArrayNode) ref;
