@@ -303,7 +303,6 @@ type Query {
         filter: OrdersFilterInput
         orderBy: [OrdersOrder]
         options: QueryOptions
-        aggregationFields: [String]
     ): OrdersResult
     ordersFilter(
         filter: OrdersFilterInput

@@ -15,6 +15,9 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.COUNT;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
+
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
@@ -29,6 +32,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.ColumnOrder;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
@@ -93,16 +97,63 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         limit = (int) limitObj;
       }
     }
-    return dataStore
-        .queryBuilder()
-        .select()
-        .column(buildQueryColumns(environment))
-        .from(table.keyspace(), table.name())
-        .where(buildClause(table, environment))
-        .limit(limit)
-        .orderBy(buildOrderBy(environment))
-        .build()
-        .bind();
+    QueryBuilder.QueryBuilder__41 queryBuilder =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column(buildQueryColumns(environment))
+            .from(table.keyspace(), table.name())
+            .where(buildClause(table, environment))
+            .limit(limit)
+            .orderBy(buildOrderBy(environment));
+
+    addAggregationFunctions(environment, queryBuilder);
+
+    return queryBuilder.build().bind();
+  }
+
+  private void addAggregationFunctions(
+      DataFetchingEnvironment environment, QueryBuilder.QueryBuilder__41 queryBuilder) {
+    List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
+    if (valuesFields.isEmpty()) {
+      return;
+    }
+    for (SelectedField valuesField : valuesFields) {
+      for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
+        if (selectedField.getName().equals(INT_FUNCTION)) {
+          Map<String, Object> arguments = selectedField.getArguments();
+          String functionName = (String) arguments.get("name");
+          if (functionName.equals(COUNT)) {
+            addCount(arguments, queryBuilder, selectedField);
+          }
+        }
+      }
+    }
+  }
+
+  private void addCount(
+      Map<String, Object> arguments,
+      QueryBuilder.QueryBuilder__41 queryBuilder,
+      SelectedField selectedField) {
+    @SuppressWarnings("unchecked")
+    List<String> args = (List<String>) arguments.get("args");
+    if (args.size() != 1) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The %s function takes only one argument, " + "but more arguments: %s were provided.",
+              COUNT, args));
+    }
+    String column = getDBColumnName(table, args.get(0));
+    if (column == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The column name: %s provided for the %s function does not exists.",
+              args.get(0), COUNT));
+    }
+
+    // todo after https://github.com/stargate/stargate/issues/907 is done
+    String countAlias = selectedField.getAlias();
+    // queryBuilder.count(column) as alias ;
   }
 
   private List<ColumnOrder> buildOrderBy(DataFetchingEnvironment environment) {

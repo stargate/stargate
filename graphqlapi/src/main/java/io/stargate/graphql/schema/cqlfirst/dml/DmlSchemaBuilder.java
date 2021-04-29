@@ -15,8 +15,10 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml;
 
+import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
@@ -45,12 +47,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -504,6 +501,7 @@ public class DmlSchemaBuilder {
     return entityResultType;
   }
 
+  // todo here
   public GraphQLObjectType buildType(Table table) {
     GraphQLObjectType.Builder builder =
         GraphQLObjectType.newObject()
@@ -528,7 +526,33 @@ public class DmlSchemaBuilder {
       }
     }
 
+    buildAggregationFunctions(builder);
+
     return builder.build();
+  }
+
+  private void buildAggregationFunctions(GraphQLObjectType.Builder builder) {
+    GraphQLFieldDefinition intFunction = buildIntFunction();
+    builder.field(intFunction);
+  }
+
+  private GraphQLFieldDefinition buildIntFunction() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name(INT_FUNCTION)
+        .description(
+            String.format("Invocation of an aggregate function that returns %s.", GraphQLInt))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("name")
+                .description("Name of the function to invoke")
+                .type(new GraphQLNonNull(GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("args")
+                .description("Arguments passed to a function. It can be a list of column names.")
+                .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
+        .type(GraphQLInt)
+        .build();
   }
 
   private GraphQLFieldDefinition buildWarnings() {

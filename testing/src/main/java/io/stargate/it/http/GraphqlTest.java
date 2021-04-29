@@ -2125,40 +2125,30 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should calculate number of orders using count aggregation")
   public void insertOrdersAndCount() {
     OrdersInput order1 =
-            OrdersInput.builder()
-                    .prodName("p1")
-                    .customerName("c1")
-                    .price("3199.99")
-                    .description("d1")
-                    .build();
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("3199.99")
+            .description("d1")
+            .build();
     OrdersInput order2 =
-            OrdersInput.builder()
-                    .prodName("p2")
-                    .customerName("c2")
-                    .price("3199.99")
-                    .description("d2")
-                    .build();
+        OrdersInput.builder()
+            .prodName("p2")
+            .customerName("c2")
+            .price("3199.99")
+            .description("d2")
+            .build();
 
     ApolloClient client = getApolloClient("/graphql/betterbotz");
-    InsertOrdersMutation order1Mutation =
-            InsertOrdersMutation.builder()
-                    .value(order1)
-                    .build();
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
 
-    InsertOrdersMutation order2Mutation =
-            InsertOrdersMutation.builder()
-                    .value(order2)
-                    .build();
+    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
 
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithCountQuery countQuery = GetOrdersWithCountQuery
-            .builder()
-            .value(order1)
-            .aggregationField("id")
-            .build();
+    GetOrdersWithCountQuery countQuery = GetOrdersWithCountQuery.builder().value(order1).build();
 
     GetOrdersWithCountQuery.Data result = getObservable(client.query(countQuery));
 

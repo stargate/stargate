@@ -6056,18 +6056,6 @@
                     "ofType": null
                   },
                   "defaultValue": null
-                },
-                {
-                  "name": "aggregationField",
-                  "description": null,
-                  "type": {
-                    "kind": "INPUT_OBJECT",
-                      "ofType": {
-                        "kind": "SCALAR",
-                        "name": "String",
-                        "ofType": null
-                      }
-                    }
                 }
               ],
               "type": {
