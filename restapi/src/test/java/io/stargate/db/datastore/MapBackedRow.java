@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A simple DseRow implementation that simply stores data in a {@link Map}. Created via {@link
@@ -48,8 +49,9 @@ public class MapBackedRow implements Row {
 
   @Override
   public List<Column> columns() {
-    throw new UnsupportedOperationException(
-        "Cannot return columns with simple MapBackedRow implementation.");
+    return table.columns().stream()
+        .filter(c -> dataMap.containsKey(c.name()))
+        .collect(Collectors.toList());
   }
 
   @Nullable
@@ -64,6 +66,12 @@ public class MapBackedRow implements Row {
   public String getString(@NonNull String name) {
     assertThat(table.column(name)).isNotNull();
     return (String) dataMap.get(name);
+  }
+
+  @Override
+  public double getDouble(@NonNull String name) {
+    assertThat(table.column(name)).isNotNull();
+    return (double) dataMap.get(name);
   }
 
   @Nullable

@@ -15,35 +15,55 @@
  */
 package io.stargate.web.docsapi.service;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import io.stargate.db.PagingPosition;
-import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.builder.BuiltCondition.LHS;
+import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class QueryExecutor {
   private final Accumulator TERM = new Accumulator();
 
   private final DataStore dataStore;
-  private final Table table;
 
-  public QueryExecutor(DataStore dataStore, Table table) {
+  public QueryExecutor(DataStore dataStore) {
     this.dataStore = dataStore;
-    this.table = table;
   }
 
   public Flowable<RawDocument> queryDocs(
       AbstractBound<?> query, int limit, ByteBuffer pagingState) {
+    return queryDocs(1, query, limit, pagingState);
+  }
+
+  public Flowable<RawDocument> queryDocs(
+      int identityDepth, AbstractBound<?> query, int limit, ByteBuffer pagingState) {
+    BuiltSelect select = (BuiltSelect) query.source().query();
+    if (identityDepth < 1 || identityDepth > select.table().primaryKeyColumns().size()) {
+      throw new IllegalArgumentException("Invalid document identity depth: " + identityDepth);
+    }
+
+    List<Column> idColumns = select.table().primaryKeyColumns().subList(0, identityDepth);
+
+    // All identity columns except the last one must be restricted
+    for (Column c : idColumns.subList(0, idColumns.size() - 1)) {
+      LHS lhs = LHS.column(c.name());
+      if (select.whereClause().stream().noneMatch(r -> r.lhs().equals(lhs))) {
+        throw new IllegalArgumentException("Unrestricted document key column: " + c.name());
+      }
+    }
+
     return execute(query, pagingState)
-        .concatMap(rs -> Flowable.fromIterable(seeds(rs)))
+        .concatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)))
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
         .filter(Accumulator::isComplete)
@@ -73,11 +93,16 @@ public class QueryExecutor {
     }
   }
 
-  private Iterable<Accumulator> seeds(ResultSet rs) {
+  private Iterable<Accumulator> seeds(ResultSet rs, List<Column> keyColumns) {
     List<Row> rows = rs.currentPageRows();
     List<Accumulator> seeds = new ArrayList<>(rows.size());
     for (Row row : rows) {
-      seeds.add(new Accumulator(rs, row));
+      String id = row.getString("key");
+      Builder<String> docKey = ImmutableList.builder();
+      for (Column c : keyColumns) {
+        docKey.add(Objects.requireNonNull(row.getString(c.name())));
+      }
+      seeds.add(new Accumulator(id, docKey.build(), rs, row));
     }
     return seeds;
   }
@@ -85,6 +110,7 @@ public class QueryExecutor {
   public class Accumulator {
 
     private final String id;
+    private final List<String> docKey;
     private final List<Row> rows;
     private final boolean complete;
     private final Accumulator next;
@@ -92,13 +118,15 @@ public class QueryExecutor {
 
     private Accumulator() {
       id = null;
+      docKey = null;
       rows = null;
       next = null;
       complete = false;
     }
 
-    private Accumulator(ResultSet resultSet, Row seedRow) {
-      this.id = seedRow.getString("key");
+    private Accumulator(String id, List<String> docKey, ResultSet resultSet, Row seedRow) {
+      this.id = id;
+      this.docKey = docKey;
       this.rows = new ArrayList<>();
       this.next = null;
       this.complete = false;
@@ -107,8 +135,10 @@ public class QueryExecutor {
       rows.add(seedRow);
     }
 
-    private Accumulator(String id, ResultSet resultSet, List<Row> rows, Accumulator next) {
+    private Accumulator(
+        String id, List<String> docKey, ResultSet resultSet, List<Row> rows, Accumulator next) {
       this.id = id;
+      this.docKey = docKey;
       this.rows = rows;
       this.next = next;
       this.complete = true;
@@ -124,7 +154,7 @@ public class QueryExecutor {
         throw new IllegalStateException("Incomplete document.");
       }
 
-      return new RawDocument(id, lastResultSet, rows);
+      return new RawDocument(id, docKey, lastResultSet, rows);
     }
 
     private Accumulator end() {
@@ -140,7 +170,7 @@ public class QueryExecutor {
         throw new IllegalStateException("Already complete");
       }
 
-      return new Accumulator(id, lastResultSet, rows, null);
+      return new Accumulator(id, docKey, lastResultSet, rows, null);
     }
 
     private void append(Accumulator other) {
@@ -162,49 +192,12 @@ public class QueryExecutor {
         return next.combine(buffer);
       }
 
-      if (id.equals(buffer.id)) {
+      if (docKey.equals(buffer.docKey)) {
         append(buffer);
         return this; // still not complete
       } else {
-        return new Accumulator(id, lastResultSet, rows, buffer);
+        return new Accumulator(id, docKey, lastResultSet, rows, buffer);
       }
-    }
-  }
-
-  public class RawDocument {
-
-    private final String id;
-    private final ResultSet resultSet;
-    private final List<Row> rows;
-
-    public RawDocument(String id, ResultSet resultSet, List<Row> rows) {
-      this.id = id;
-      this.resultSet = resultSet;
-      this.rows = rows;
-    }
-
-    public String id() {
-      return id;
-    }
-
-    public ByteBuffer makePagingState() {
-      if (rows.isEmpty()) {
-        throw new IllegalStateException("Cannot resume paging from an empty document");
-      }
-
-      Row lastRow = rows.get(rows.size() - 1);
-      Column keyColumn = table.column("key");
-      ByteBuffer keyValue = lastRow.getBytesUnsafe("key");
-
-      if (keyValue == null) {
-        throw new IllegalStateException("Missing document key");
-      }
-
-      return resultSet.makePagingState(
-          PagingPosition.builder()
-              .putCurrentRow(keyColumn, keyValue)
-              .resumeFrom(ResumeMode.NEXT_PARTITION)
-              .build());
     }
   }
 }

@@ -98,6 +98,10 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
     return table;
   }
 
+  public List<BuiltCondition> whereClause() {
+    return whereClause;
+  }
+
   public Set<Column> selectedColumns() {
     return selectedColumns;
   }

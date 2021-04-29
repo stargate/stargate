@@ -25,6 +25,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.reactivex.Flowable;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableColumn;
@@ -34,7 +35,6 @@ import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
-import io.stargate.web.docsapi.service.QueryExecutor.RawDocument;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -76,12 +76,16 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @BeforeEach
   public void setup() {
-    executor = new QueryExecutor(datastore(), table);
+    executor = new QueryExecutor(datastore());
     allDocsQuery = datastore().queryBuilder().select().star().from(table).build().bind();
   }
 
   private Map<String, Object> row(String id, String p0, Double value) {
     return ImmutableMap.of("key", id, "p0", p0, "test_value", value);
+  }
+
+  private Map<String, Object> row(String id, String p0, String p1, Double value) {
+    return ImmutableMap.of("key", id, "p0", p0, "p1", p1, "test_value", value);
   }
 
   private <T> List<T> get(Flowable<T> flowable) {
@@ -177,5 +181,49 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .containsExactly("5", "5");
     assertThat(r1.get(2).getPagingState()).isNull();
     assertThat(r1).hasSize(3);
+  }
+
+  @Test
+  void testSubDocuments() {
+    withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
+        .withPageSize(3)
+        .returning(
+            ImmutableList.of(
+                row("a", "x", "2", 1.0d),
+                row("a", "x", "2", 2.0d),
+                row("a", "x", "2", 3.0d),
+                row("a", "x", "2", 4.0d),
+                row("a", "y", "2", 5.0d),
+                row("a", "y", "3", 6.0d),
+                row("a", "y", "3", 7.0d)));
+
+    List<RawDocument> docs =
+        get(
+            executor.queryDocs(
+                3,
+                datastore()
+                    .queryBuilder()
+                    .select()
+                    .star()
+                    .from(table)
+                    .where("key", Predicate.EQ, "a")
+                    .where("p0", Predicate.GT, "x")
+                    .build()
+                    .bind(),
+                100,
+                null));
+
+    assertThat(docs.get(0).rows())
+        .extracting(r -> r.getDouble("test_value"))
+        .containsExactly(1.0d, 2.0d, 3.0d, 4.0d);
+    assertThat(docs.get(0).key()).containsExactly("a", "x", "2");
+
+    assertThat(docs.get(1).rows()).extracting(r -> r.getDouble("test_value")).containsExactly(5.0d);
+    assertThat(docs.get(1).key()).containsExactly("a", "y", "2");
+
+    assertThat(docs.get(2).rows())
+        .extracting(r -> r.getDouble("test_value"))
+        .containsExactly(6.0d, 7.0d);
+    assertThat(docs.get(2).key()).containsExactly("a", "y", "3");
   }
 }
