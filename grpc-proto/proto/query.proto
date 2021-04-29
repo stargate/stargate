@@ -57,22 +57,10 @@ message UdtValue {
   map<string, Value> fields = 1;
 }
 
-message Inet {
-  bytes address = 1;
-}
-
 message Uuid {
   // TODO: Is this going to have endian problems representing it this way?
   fixed64 msb = 1;
   fixed64 lsb = 2;
-}
-
-message Date {
-  uint32 value = 1;
-}
-
-message Time {
-  uint64 value = 1;
 }
 
 message Value {
@@ -86,14 +74,13 @@ message Value {
     double double = 5; // double
     bool boolean = 6; // boolean
     string string = 7; // ascii, varchar, text
-    bytes bytes = 8; // blob, custom
-    Inet inet = 9; // inet
-    Uuid uuid = 10; // uuid, timeuuid
-    Date date = 11; // date
-    Time time = 12; // time
-    Collection collection = 13; // list, set, tuple
-    Map map = 14;
-    UdtValue udt = 15;
+    bytes bytes = 8; // blob, inet, custom
+    Uuid uuid = 9; // uuid, timeuuid
+    uint32 date = 10; // date
+    uint64 time = 11; // time
+    Collection collection = 12; // list, set, tuple
+    Map map = 13;
+    UdtValue udt = 14;
   }
 }
 

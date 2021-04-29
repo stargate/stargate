@@ -15,6 +15,7 @@
  */
 package io.stargate.grpc.codec.cql;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -22,6 +23,8 @@ import java.nio.ByteBuffer;
 
 /** Codec to convert to/from gRPC and CQL native protocol ({@link ByteBuffer}) values. */
 public interface ValueCodec {
+  ProtocolVersion PROTOCOL_VERSION = ProtocolVersion.DEFAULT;
+
   /**
    * Convert a gRPC tagged-union payload value into the internal CQL native protocol representation.
    *

@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.codec.cql;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
@@ -30,18 +29,18 @@ public class IntCodec implements ValueCodec {
     if (value.getInnerCase() != InnerCase.INT) {
       throw new IllegalArgumentException("Expected integer type");
     }
-    try {
-      return TypeCodecs.INT.encodePrimitive(
-          Math.toIntExact(value.getInt()), ProtocolVersion.DEFAULT);
-    } catch (ArithmeticException e) {
-      throw new IllegalArgumentException("Integer overflow", e);
+    int intValue = (int) value.getInt();
+    if (intValue != value.getInt()) {
+      throw new IllegalArgumentException(
+          String.format("Valid range for int is %d to %d", Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
+    return TypeCodecs.INT.encodePrimitive(intValue, PROTOCOL_VERSION);
   }
 
   @Override
   public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes) {
     return Value.newBuilder()
-        .setInt(TypeCodecs.INT.decodePrimitive(bytes, ProtocolVersion.DEFAULT))
+        .setInt(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }
