@@ -27,7 +27,7 @@ import java.util.Optional;
 
 /**
  * The basic {@link ConditionProvider} that usually handles all standard filter operations that
- * works will String, Boolean and Number filter value.
+ * works with String, Boolean and Number filter value.
  *
  * @param <V> Type of the filter operation
  */
