@@ -35,7 +35,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -58,7 +57,10 @@ public class DocumentService {
   private JsonConverter jsonConverterService;
   private ObjectMapper mapper;
 
-  public DocumentService(ObjectMapper mapper, JsonConverter jsonConverterService, DocsApiConfiguration docsApiConfiguration) {
+  public DocumentService(
+      ObjectMapper mapper,
+      JsonConverter jsonConverterService,
+      DocsApiConfiguration docsApiConfiguration) {
     this.mapper = mapper;
     this.jsonConverterService = jsonConverterService;
     this.docsApiConfiguration = docsApiConfiguration;
