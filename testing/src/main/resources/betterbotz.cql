@@ -27,22 +27,6 @@ CREATE TABLE IF NOT EXISTS betterbotz."Orders" (
     PRIMARY KEY (("prodName"), "customerName")
 );
 
-CREATE TABLE IF NOT EXISTS betterbotz."CollectionsSimple" (
-    id uuid PRIMARY KEY,
-    "listValue1" frozen<list<int>>,
-    "listValue2" frozen<list<timeuuid>>,
-    "setValue1" frozen<set<text>>,
-    "mapValue1" frozen<map<int, text>>,
-    "mapValue2" frozen<map<uuid, bigint>>,
-);
-
-CREATE TABLE IF NOT EXISTS betterbotz."CollectionsNested" (
-    id uuid PRIMARY KEY,
-    "listValue1" frozen<list<frozen<map<int, text>>>>,
-    "setValue1" frozen<list<frozen<set<uuid>>>>,
-    "mapValue1" frozen<map<uuid, frozen<map<bigint, text>>>>
-);
-
 CREATE TYPE IF NOT EXISTS betterbotz."B"(i int);
 
 CREATE TYPE IF NOT EXISTS betterbotz."A"(b frozen<"B">);
