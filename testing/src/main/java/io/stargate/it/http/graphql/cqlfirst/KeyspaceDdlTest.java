@@ -44,8 +44,8 @@ public class KeyspaceDdlTest extends BaseOsgiIntegrationTest {
   @Test
   public void getKeyspaces() {
     Map<String, Object> response = CLIENT.executeDdlQuery("{ keyspaces { name } }");
-    List<Map<String, Object>> keyspaces = JsonPath.read(response, "$.keyspaces");
-    assertThat(keyspaces).isNotEmpty().extracting(ks -> ks.get("name")).contains("system");
+    List<String> keyspaceNames = JsonPath.read(response, "$.keyspaces[*].name");
+    assertThat(keyspaceNames).contains("system");
   }
 
   @Test
@@ -58,7 +58,7 @@ public class KeyspaceDdlTest extends BaseOsgiIntegrationTest {
                 + "    dcs { name, replicas }\n"
                 + "    tables {\n"
                 + "      name\n"
-                + "      columns { name, kind, type { basic } }\n"
+                + "      columns { name, type { basic } }\n"
                 + "    }\n"
                 + "  }\n"
                 + "}");
