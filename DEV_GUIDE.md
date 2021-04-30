@@ -206,6 +206,12 @@ It is expected that the user has several java debuggers waiting for connections 
 one for each Stargate node required for the test. Note that most of the tests start only
 one Stargate node.
 
+Check the picture below to understand how to set up the remote listening debug run configuration in IntelliJ.
+That configuration has to be started before running the integration test in the debug mode.
+Note that you will have two or more JVMs in the debug model then, one running the actual integration tests and at least one running the Stargate node. 
+
+![image](assets/remote-debug-listener.png#center)
+
 ### Running / Debugging Integration Tests in an IDE
 
 Integration tests can be started / debugged individually in an IDE.
