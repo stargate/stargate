@@ -154,7 +154,8 @@ public class QueryExecutor {
         throw new IllegalStateException("Incomplete document.");
       }
 
-      return new RawDocument(id, docKey, lastResultSet, rows);
+      boolean hasNext = next != null || lastResultSet.getPagingState() != null;
+      return new RawDocument(id, docKey, lastResultSet, hasNext, rows);
     }
 
     private Accumulator end() {

@@ -159,6 +159,16 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     assertThat(r4).extracting(RawDocument::id).containsExactly("5");
   }
 
+  @ParameterizedTest
+  @CsvSource({"1", "3", "5", "100"})
+  void testFullScanFinalPagingState(int pageSize) {
+    withFiveTestDocs(pageSize);
+
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 100, null));
+    assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
+    assertThat(r1.get(4).makePagingState()).isNull();
+  }
+
   @Test
   void testResultSetPagination() {
     withFiveTestDocs(3);

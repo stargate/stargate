@@ -28,12 +28,15 @@ public class RawDocument {
   private final String id;
   private final List<String> docKey;
   private final ResultSet resultSet;
+  private final boolean hasNext;
   private final List<Row> rows;
 
-  public RawDocument(String id, List<String> docKey, ResultSet resultSet, List<Row> rows) {
+  public RawDocument(
+      String id, List<String> docKey, ResultSet resultSet, boolean hasNext, List<Row> rows) {
     this.id = id;
     this.docKey = docKey;
     this.resultSet = resultSet;
+    this.hasNext = hasNext;
     this.rows = rows;
   }
 
@@ -50,8 +53,10 @@ public class RawDocument {
   }
 
   public ByteBuffer makePagingState() {
-    // TODO: short-circuit paging state to null if this doc is the last one in the ResultSet
-    // and the ResultSet's paging state is null
+    if (!hasNext) {
+      return null;
+    }
+
     if (rows.isEmpty()) {
       throw new IllegalStateException("Cannot resume paging from an empty document");
     }
