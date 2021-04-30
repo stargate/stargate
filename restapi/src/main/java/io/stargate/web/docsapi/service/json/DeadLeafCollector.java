@@ -1,5 +1,8 @@
 package io.stargate.web.docsapi.service.json;
 
+import org.immutables.value.Value;
+
+@Value.Immutable(singleton = true)
 public interface DeadLeafCollector {
   default void addLeaf(String path, DeadLeaf leaf) {}
 

@@ -8,7 +8,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
-import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollectorNoOp;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
 import java.util.*;
 import javax.inject.Inject;
 
@@ -38,7 +38,7 @@ public class JsonConverter {
   public JsonNode convertToJsonDoc(
       List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
     return convertToJsonDoc(
-        rows, ImmutableDeadLeafCollectorNoOp.of(), writeAllPathsAsObjects, numericBooleans);
+        rows, ImmutableDeadLeafCollector.of(), writeAllPathsAsObjects, numericBooleans);
   }
 
   public JsonNode convertToJsonDoc(
