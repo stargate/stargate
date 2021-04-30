@@ -21,6 +21,9 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.ImmutableParameters.Builder;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
@@ -55,6 +58,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
@@ -129,8 +133,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           BoundQuery query =
               authenticatedDB
@@ -213,9 +217,8 @@ public class RowResource {
             pageSize = pageSizeParam;
           }
 
-          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           BoundQuery query =
               authenticatedDB
@@ -226,14 +229,22 @@ public class RowResource {
                   .build()
                   .bind();
 
+          // Using final variables here to satisfy lambda
+          ByteBuffer finalPageState = pageState;
+          int finalPageSize = pageSize;
+          UnaryOperator<Parameters> parametersModifier =
+              p -> {
+                Builder parametersBuilder = ImmutableParameters.builder().pageSize(finalPageSize);
+                if (finalPageState != null) {
+                  parametersBuilder.pagingState(finalPageState);
+                }
+                return parametersBuilder.consistencyLevel(ConsistencyLevel.LOCAL_QUORUM).build();
+              };
+
           final ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () ->
-                          authenticatedDB
-                              .getDataStore()
-                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
-                              .get(),
+                      () -> authenticatedDB.getDataStore().execute(query, parametersModifier).get(),
                       authenticatedDB.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
@@ -297,9 +308,8 @@ public class RowResource {
             pageSize = queryModel.getPageSize();
           }
 
-          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -358,14 +368,22 @@ public class RowResource {
                   .build()
                   .bind();
 
+          // Using final variables here to satisfy lambda
+          ByteBuffer finalPageState = pageState;
+          int finalPageSize = pageSize;
+          UnaryOperator<Parameters> parametersModifier =
+              p -> {
+                Builder parametersBuilder = ImmutableParameters.builder().pageSize(finalPageSize);
+                if (finalPageState != null) {
+                  parametersBuilder.pagingState(finalPageState);
+                }
+                return parametersBuilder.consistencyLevel(ConsistencyLevel.LOCAL_QUORUM).build();
+              };
+
           ResultSet r =
               db.getAuthorizationService()
                   .authorizedDataRead(
-                      () ->
-                          authenticatedDB
-                              .getDataStore()
-                              .execute(query, ConsistencyLevel.LOCAL_QUORUM)
-                              .get(),
+                      () -> authenticatedDB.getDataStore().execute(query, parametersModifier).get(),
                       authenticatedDB.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
@@ -419,8 +437,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           List<ValueModifier> values =
               rowAdd.getColumns().stream()
@@ -490,8 +508,8 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           BoundQuery query =
               authenticatedDB
@@ -558,8 +576,8 @@ public class RowResource {
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 

@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.db.ImmutableParameters;
+import io.stargate.db.ImmutableParameters.Builder;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
@@ -54,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
@@ -164,9 +168,8 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           Object response =
@@ -176,7 +179,9 @@ public class RowsResource {
                   sort,
                   authenticatedDB,
                   tableMetadata,
-                  WhereParser.parseWhere(where, tableMetadata));
+                  WhereParser.parseWhere(where, tableMetadata),
+                  pageState,
+                  pageSize);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -241,9 +246,8 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
@@ -258,7 +262,9 @@ public class RowsResource {
                 .build();
           }
 
-          Object response = getRows(fields, raw, sort, authenticatedDB, tableMetadata, where);
+          Object response =
+              getRows(
+                  fields, raw, sort, authenticatedDB, tableMetadata, where, pageState, pageSize);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -316,13 +322,20 @@ public class RowsResource {
             pageSize = pageSizeParam;
           }
 
-          Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB =
-              db.getDataStoreForToken(token, pageSize, pageState, allHeaders);
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
           Object response =
-              getRows(fields, raw, sort, authenticatedDB, tableMetadata, Collections.emptyList());
+              getRows(
+                  fields,
+                  raw,
+                  sort,
+                  authenticatedDB,
+                  tableMetadata,
+                  Collections.emptyList(),
+                  pageState,
+                  pageSize);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -367,8 +380,8 @@ public class RowsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           @SuppressWarnings("unchecked")
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
@@ -485,8 +498,8 @@ public class RowsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -576,7 +589,7 @@ public class RowsResource {
       String payload,
       Map<String, String> headers)
       throws Exception {
-    AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, headers);
+    AuthenticatedDB authenticatedDB = db.getRestDataStoreForToken(token, headers);
 
     final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -629,7 +642,9 @@ public class RowsResource {
       String sort,
       AuthenticatedDB authenticatedDB,
       Table tableMetadata,
-      List<BuiltCondition> where)
+      List<BuiltCondition> where,
+      ByteBuffer pageState,
+      int pageSize)
       throws Exception {
     List<Column> columns;
     if (Strings.isNullOrEmpty(fields)) {
@@ -655,14 +670,19 @@ public class RowsResource {
             .build()
             .bind();
 
+    UnaryOperator<Parameters> parametersModifier =
+        p -> {
+          Builder parametersBuilder = ImmutableParameters.builder().pageSize(pageSize);
+          if (pageState != null) {
+            parametersBuilder.pagingState(pageState);
+          }
+          return parametersBuilder.consistencyLevel(ConsistencyLevel.LOCAL_QUORUM).build();
+        };
+
     final ResultSet r =
         db.getAuthorizationService()
             .authorizedDataRead(
-                () ->
-                    authenticatedDB
-                        .getDataStore()
-                        .execute(query, ConsistencyLevel.LOCAL_QUORUM)
-                        .get(),
+                () -> authenticatedDB.getDataStore().execute(query, parametersModifier).get(),
                 authenticatedDB.getAuthenticationSubject(),
                 tableMetadata.keyspace(),
                 tableMetadata.name(),
