@@ -52,7 +52,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
-import io.stargate.db.schema.Column;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
@@ -69,7 +68,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +85,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -1235,66 +1232,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             "Validation error"));
   }
 
-  @ParameterizedTest
-  @MethodSource("getScalarValues")
-  public void shouldSupportScalar(Column.Type type, Object value) throws IOException {
-    String column = type.name().toLowerCase() + "value";
-    UUID id = UUID.randomUUID();
-    String mutation = "mutation { updateScalars(value: {id: \"%s\", %s: %s}) { applied } }";
-
-    String graphQLValue = value.toString();
-    if (value instanceof String) {
-      graphQLValue = String.format("\"%s\"", value);
-    }
-
-    assertThat(
-            executePost("/graphql/betterbotz", String.format(mutation, id, column, graphQLValue)))
-        .doesNotContainKey("errors");
-
-    String query = "query { Scalars(value: {id: \"%s\"}) { values { %s } } }";
-    Map<String, Object> result =
-        executePost("/graphql/betterbotz", String.format(query, id, column));
-
-    assertThat(result).doesNotContainKey("errors");
-    assertThat(result)
-        .extractingByKey("data", InstanceOfAssertFactories.MAP)
-        .extractingByKey("Scalars", InstanceOfAssertFactories.MAP)
-        .extractingByKey("values", InstanceOfAssertFactories.LIST)
-        .singleElement()
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .extractingByKey(column)
-        .isEqualTo(value);
-  }
-
-  @SuppressWarnings("unused") // referenced by @MethodSource
-  private static Stream<Arguments> getScalarValues() {
-    return Stream.of(
-        arguments(Column.Type.Ascii, "abc"),
-        arguments(Column.Type.Bigint, "-9223372036854775807"),
-        arguments(Column.Type.Blob, "AQID//7gEiMB"),
-        arguments(Column.Type.Boolean, true),
-        arguments(Column.Type.Boolean, false),
-        arguments(Column.Type.Date, "2005-08-05"),
-        arguments(Column.Type.Decimal, "-0.123456"),
-        arguments(Column.Type.Double, -1D),
-        arguments(Column.Type.Duration, "12h30m"),
-        // Serialized as JSON numbers
-        arguments(Column.Type.Float, 1.1234D),
-        arguments(Column.Type.Inet, "8.8.8.8"),
-        arguments(Column.Type.Int, 1),
-        // Serialized as JSON Number
-        arguments(Column.Type.Smallint, 32_767),
-        arguments(Column.Type.Text, "abc123", "'abc123'"),
-        arguments(Column.Type.Time, "23:59:31.123456789"),
-        arguments(Column.Type.Timestamp, formatInstant(now())),
-        arguments(Column.Type.Tinyint, -128),
-        arguments(Column.Type.Tinyint, 1),
-        arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
-        arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef"),
-        arguments(Column.Type.Varchar, ""),
-        arguments(Column.Type.Varint, "92233720368547758070000"));
-  }
-
   @Test
   public void queryWithPaging() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
@@ -1504,10 +1441,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     } catch (ParseException e) {
       throw new AssertionError("Unexpected error while parsing timestamp in response", e);
     }
-  }
-
-  private static String formatInstant(Instant instant) {
-    return TIMESTAMP_FORMAT.get().format(Date.from(instant));
   }
 
   private static final ThreadLocal<SimpleDateFormat> TIMESTAMP_FORMAT =

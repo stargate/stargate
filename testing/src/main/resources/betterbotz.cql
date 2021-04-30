@@ -26,28 +26,3 @@ CREATE TABLE IF NOT EXISTS betterbotz."Orders" (
     "sellPrice" decimal,
     PRIMARY KEY (("prodName"), "customerName")
 );
-
-
-CREATE TABLE IF NOT EXISTS betterbotz."Scalars" (
-    id uuid PRIMARY KEY,
-    asciivalue ascii,
-    bigintvalue bigint,
-    blobvalue blob,
-    booleanvalue boolean,
-    datevalue date,
-    decimalvalue decimal,
-    doublevalue double,
-    durationvalue duration,
-    floatvalue float,
-    inetvalue inet,
-    intvalue int,
-    smallintvalue smallint,
-    textvalue text,
-    timevalue time,
-    timestampvalue timestamp,
-    timeuuidvalue timeuuid,
-    tinyintvalue tinyint,
-    uuidvalue uuid,
-    varcharvalue varchar,
-    varintvalue varint
-);
