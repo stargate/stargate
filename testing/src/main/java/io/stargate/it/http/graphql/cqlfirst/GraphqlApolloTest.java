@@ -1,6 +1,5 @@
 package io.stargate.it.http.graphql.cqlfirst;
 
-import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
@@ -54,7 +53,6 @@ import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
 import io.stargate.it.storage.StargateConnectionInfo;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
@@ -72,11 +70,9 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.OkHttpClient;
-import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -107,20 +103,15 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(GraphqlApolloTest.class);
-  private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
-      Pattern.compile(
-          "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
 
   private static CqlSession session;
   private static String authToken;
   private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
-  private static String host;
 
   @BeforeAll
   public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
     stargate = stargateInfo;
-    host = "http://" + stargateInfo.seedAddress();
 
     createSessionAndSchema();
     authToken = RestUtils.getAuthToken(stargate.seedAddress());
@@ -1180,37 +1171,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
         .orElse(false)); // Continue if there are still values
 
     assertThat(names).containsExactlyInAnyOrder("a", "b", "c");
-  }
-
-  @Test
-  public void shouldIncrementMetricWhenExecutingGraphQlQuery() throws IOException {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
-
-    String productId = UUID.randomUUID().toString();
-    ProductsInput input =
-        ProductsInput.builder()
-            .id(productId)
-            .name("Shiny Legs")
-            .price("3199.99")
-            .created(now())
-            .description("Normal legs but shiny.")
-            .build();
-
-    insertProduct(client, input);
-
-    GetProductsWithFilterQuery.Value product = getProduct(client, productId);
-    assertThat(product.getId()).hasValue(productId);
-
-    // when
-    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
-
-    // then
-    double numberOfGraphQlOperations = getGraphQlOperations(body);
-    assertThat(numberOfGraphQlOperations).isGreaterThan(0);
-  }
-
-  private double getGraphQlOperations(String body) {
-    return getMetricValue(body, "graphqlapi", GRAPHQL_OPERATIONS_METRIC_REGEXP);
   }
 
   private static Optional<Products> getProducts(
