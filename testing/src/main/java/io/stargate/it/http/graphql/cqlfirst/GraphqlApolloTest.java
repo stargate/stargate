@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.http.graphql.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,13 +29,10 @@ import com.apollographql.apollo.api.Mutation;
 import com.apollographql.apollo.api.Operation;
 import com.apollographql.apollo.api.Response;
 import com.apollographql.apollo.exception.ApolloException;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
-import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
 import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsAndOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersAndBulkInsertProductsWithAtomicMutation;
@@ -46,17 +58,11 @@ import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharStreams;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
 import io.stargate.it.storage.StargateConnectionInfo;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
-import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -91,8 +97,7 @@ import org.slf4j.LoggerFactory;
  *       use the query in `src/main/resources/introspection.graphql` (paste it into the graphql
  *       playground at ${STARGATE_HOST}:8080/playground).
  *   <li>If there are new operations, create corresponding descriptors in
- *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`. For betterbotz, there's a cql
- *       schema file at src/main/resources/betterbotz.cql
+ *       `src/main/graphql/betterbotz` or `src/main/graphql/schema`.
  *   <li>Run the apollo-client-maven-plugin, which reads the descriptors and generates the
  *       corresponding Java types: `mvn generate-sources` (an IDE rebuild should also work). You can
  *       see generated code in `target/generated-sources/graphql-client`.
@@ -101,25 +106,31 @@ import org.slf4j.LoggerFactory;
  * Other GraphQL tests generally use a more lightweight approach based on {@link GraphqlClient}.
  */
 @NotThreadSafe
-public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
+public class GraphqlApolloTest extends BetterbotzTestBase {
+
   private static final Logger logger = LoggerFactory.getLogger(GraphqlApolloTest.class);
 
   private static CqlSession session;
   private static String authToken;
   private static StargateConnectionInfo stargate;
-  private static final String keyspace = "betterbotz";
+  private static String keyspace;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo stargateInfo) throws Exception {
+  public static void setup(
+      StargateConnectionInfo stargateInfo,
+      CqlSession session,
+      @TestKeyspace CqlIdentifier keyspaceId)
+      throws Exception {
     stargate = stargateInfo;
+    GraphqlApolloTest.session = session;
+    keyspace = keyspaceId.asInternal();
 
-    createSessionAndSchema();
     authToken = RestUtils.getAuthToken(stargate.seedAddress());
   }
 
   @AfterEach
   public void cleanUpProducts() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     getProducts(client, 100, Optional.empty())
         .flatMap(Products::getValues)
@@ -128,70 +139,9 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
                 products.forEach(p -> p.getId().ifPresent(id -> cleanupProduct(client, id))));
   }
 
-  private static void createSessionAndSchema() throws Exception {
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(1))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMinutes(3))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT, Duration.ofMinutes(3))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofMinutes(3))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
-            .withLocalDatacenter(stargate.datacenter())
-            .build();
-
-    // Create CQL schema using betterbotz.cql file
-    InputStream inputStream =
-        GraphqlApolloTest.class.getClassLoader().getResourceAsStream("betterbotz.cql");
-    assertThat(inputStream).isNotNull();
-    String queries = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-    assertThat(queries).isNotNull();
-
-    for (String q : Splitter.on(';').split(queries)) {
-      if (q.trim().equals("")) {
-        continue;
-      }
-      session.execute(q);
-    }
-
-    PreparedStatement insert =
-        session.prepare(
-            String.format(
-                "insert into %s.\"Orders\" (id, \"prodId\", \"prodName\", description, price,"
-                    + "\"sellPrice\", \"customerName\", address) values (?, ?, ?, ?, ?, ?, ?, ?)",
-                keyspace));
-
-    session.execute(
-        insert.bind(
-            UUID.fromString("792d0a56-bb46-4bc2-bc41-5f4a94a83da9"),
-            UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb2"),
-            "Medium Lift Arms",
-            "Ordering some more arms for my construction bot.",
-            BigDecimal.valueOf(3199.99),
-            BigDecimal.valueOf(3119.99),
-            "Janice Evernathy",
-            "2101 Everplace Ave 3116"));
-
-    session.execute(
-        insert.bind(
-            UUID.fromString("dd73afe2-9841-4ce1-b841-575b8be405c1"),
-            UUID.fromString("31047029-2175-43ce-9fdd-b3d568b19bb5"),
-            "Basic Task CPU",
-            "Ordering replacement CPUs.",
-            BigDecimal.valueOf(899.99),
-            BigDecimal.valueOf(900.82),
-            "John Doe",
-            "123 Main St 67890"));
-  }
-
   @Test
   public void getOrdersByValue() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     OrdersInput ordersInput = OrdersInput.builder().prodName("Medium Lift Arms").build();
 
@@ -224,7 +174,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getOrdersWithFilter() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder()
@@ -265,7 +215,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getOrdersWithFilterAndLimit() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder()
@@ -306,7 +256,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void insertProducts() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -341,7 +291,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void insertProductsWithIfNotExists() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -371,7 +321,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void insertProductsDuplicateWithIfNotExists() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -444,7 +394,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void bulkInsertProducts() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -506,7 +456,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void bulkInsertProductsWithAtomic() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -579,7 +529,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
@@ -626,7 +576,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
@@ -660,7 +610,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(productsInputs)
@@ -683,7 +633,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
@@ -723,7 +673,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     InsertOrdersAndBulkInsertProductsWithAtomicMutation mutation =
         InsertOrdersAndBulkInsertProductsWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
@@ -752,7 +702,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
@@ -810,7 +760,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void updateProducts() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -861,7 +811,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void updateProductsMissingIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -895,7 +845,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteProducts() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -937,7 +887,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void deleteProductsIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -978,7 +928,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     String price = "123";
     String description = "desc " + id;
 
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -1004,9 +954,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
     assertThat(
             session
-                .execute(
-                    SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Products\" WHERE id = ?", id))
+                .execute(SimpleStatement.newInstance("SELECT * FROM \"Products\" WHERE id = ?", id))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"prodName\""), r -> r.getString("description"))
@@ -1016,7 +964,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
@@ -1031,7 +979,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     String description = "desc " + id;
     String customer = "cust 1";
 
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     InsertOrdersWithAtomicMutation mutation =
         InsertOrdersWithAtomicMutation.builder()
             .value(
@@ -1049,7 +997,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             session
                 .execute(
                     SimpleStatement.newInstance(
-                        "SELECT * FROM betterbotz.\"Orders\" WHERE \"prodName\" = ?", productName))
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
                 .one())
         .isNotNull()
         .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
@@ -1060,7 +1008,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   @DisplayName(
       "When invalid, multiple mutations with atomic directive should return error response")
   public void multipleMutationsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -1091,7 +1039,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   @Test
   @DisplayName("Multiple options with atomic directive should return error response")
   public void multipleOptionsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
@@ -1128,7 +1076,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void invalidTypeMappingReturnsErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
     // Expected UUID format
     GraphQLTestException ex =
         catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
@@ -1138,7 +1086,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void queryWithPaging() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
     for (String name : ImmutableList.of("a", "b", "c")) {
       insertProduct(
