@@ -88,7 +88,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* writeTimeColumn? from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select star? column* writeTimeColumn? count? max? min? sum? avg? from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -165,6 +165,17 @@ public class QueryBuilderImpl {
   private Value<Long> timestamp;
   private String writeTimeColumn;
   private String writeTimeColumnAlias;
+  private String countColumnName;
+  private String countColumnAlias;
+  private String maxColumnName;
+  private String maxColumnAlias;
+  private String minColumnName;
+  private String minColumnAlias;
+  private String sumColumnName;
+  private String sumColumnAlias;
+  private String avgColumnName;
+  private String avgColumnAlias;
+
   private boolean allowFiltering;
 
   public QueryBuilderImpl(Schema schema, Codec valueCodec, @Nullable AsyncQueryExecutor executor) {
@@ -344,6 +355,51 @@ public class QueryBuilderImpl {
   public void writeTimeColumn(String columnName, String alias) {
     this.writeTimeColumn = columnName;
     this.writeTimeColumnAlias = alias;
+  }
+
+  public void count(String countColumnName) {
+    count(countColumnName, null);
+  }
+
+  public void count(String countColumnName, String alias) {
+    this.countColumnName = countColumnName;
+    this.countColumnAlias = alias;
+  }
+
+  public void max(String maxColumnName, String alias) {
+    this.maxColumnName = maxColumnName;
+    this.maxColumnAlias = alias;
+  }
+
+  public void max(String maxColumnName) {
+    max(maxColumnName, null);
+  }
+
+  public void min(String minColumnName, String alias) {
+    this.minColumnName = minColumnName;
+    this.minColumnAlias = alias;
+  }
+
+  public void min(String minColumnName) {
+    min(minColumnName, null);
+  }
+
+  public void sum(String sumColumnName, String alias) {
+    this.sumColumnName = sumColumnName;
+    this.sumColumnAlias = alias;
+  }
+
+  public void sum(String sumColumnName) {
+    sum(sumColumnName, null);
+  }
+
+  public void avg(String avgColumnName, String alias) {
+    this.avgColumnName = avgColumnName;
+    this.avgColumnAlias = alias;
+  }
+
+  public void avg(String avgColumnName) {
+    avg(avgColumnName, null);
   }
 
   public void star() {
@@ -1445,23 +1501,48 @@ public class QueryBuilderImpl {
       wtColumn = table.column(writeTimeColumn);
       allSelected.add(wtColumn);
     }
+    Column countColumn = null;
+    if (countColumnName != null) {
+      countColumn = table.column(countColumnName);
+      allSelected.add(countColumn);
+    }
+    Column maxColumn = null;
+    if (maxColumnName != null) {
+      maxColumn = table.column(maxColumnName);
+      allSelected.add(maxColumn);
+    }
+    Column minColumn = null;
+    if (minColumnName != null) {
+      minColumn = table.column(minColumnName);
+      allSelected.add(minColumn);
+    }
+    Column sumColumn = null;
+    if (sumColumnName != null) {
+      sumColumn = table.column(sumColumnName);
+      allSelected.add(sumColumn);
+    }
+    Column avgColumn = null;
+    if (avgColumnName != null) {
+      avgColumn = table.column(avgColumnName);
+      allSelected.add(avgColumn);
+    }
+
     builder.append("SELECT");
-    if (selectedColumns.isEmpty() && writeTimeColumn == null) {
+    if (selectedColumns.isEmpty() && allFunctionCallColumnsAreNull()) {
       builder.append("*");
     } else {
       builder
           .start()
           .addAll(selectedColumns)
-          .addIfNotNull(
-              wtColumn,
-              c -> {
-                builder.append("WRITETIME(").append(c).append(")");
-                if (writeTimeColumnAlias != null) {
-                  builder.append("AS").append(cqlName(writeTimeColumnAlias));
-                }
-              })
+          .addIfNotNull(wtColumn, c -> addWriteTime(builder, c))
+          .addIfNotNull(countColumn, c -> addCount(builder, c))
+          .addIfNotNull(maxColumn, c -> addMax(builder, c))
+          .addIfNotNull(minColumn, c -> addMin(builder, c))
+          .addIfNotNull(sumColumn, c -> addSum(builder, c))
+          .addIfNotNull(avgColumn, c -> addAvg(builder, c))
           .end();
     }
+
     builder.append("FROM").append(table);
     List<Value<?>> internalWhereValues = new ArrayList<>();
     List<BindMarker> internalBindMarkers = new ArrayList<>();
@@ -1509,5 +1590,47 @@ public class QueryBuilderImpl {
         wheres,
         limit,
         perPartitionLimit);
+  }
+
+  private boolean allFunctionCallColumnsAreNull() {
+    return writeTimeColumn == null
+        && countColumnName == null
+        && maxColumnName == null
+        && minColumnName == null
+        && sumColumnName == null
+        && avgColumnName == null;
+  }
+
+  private void addCount(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "COUNT", c, countColumnAlias);
+  }
+
+  private void addMax(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "MAX", c, maxColumnAlias);
+  }
+
+  private void addMin(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "MIN", c, minColumnAlias);
+  }
+
+  private void addSum(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "SUM", c, sumColumnAlias);
+  }
+
+  private void addAvg(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "AVG", c, avgColumnAlias);
+  }
+
+  private void addWriteTime(QueryStringBuilder builder, Column c) {
+    addFunctionCallWithAliasIfPresent(builder, "WRITETIME", c, writeTimeColumnAlias);
+  }
+
+  private static void addFunctionCallWithAliasIfPresent(
+      QueryStringBuilder builder, String functionName, Column column, String columnAlias) {
+
+    builder.append(functionName + "(").append(column).append(")");
+    if (columnAlias != null) {
+      builder.append("AS").append(cqlName(columnAlias));
+    }
   }
 }
