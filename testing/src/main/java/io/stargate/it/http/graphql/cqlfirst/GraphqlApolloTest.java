@@ -37,13 +37,6 @@ import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery.Value;
 import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
-import com.example.graphql.client.betterbotz.tuples.GetTuplesPkQuery;
-import com.example.graphql.client.betterbotz.tuples.GetTuplesQuery;
-import com.example.graphql.client.betterbotz.tuples.InsertTuplesMutation;
-import com.example.graphql.client.betterbotz.tuples.InsertTuplesPkMutation;
-import com.example.graphql.client.betterbotz.tuples.UpdateTuplesMutation;
-import com.example.graphql.client.betterbotz.type.AUdtInput;
-import com.example.graphql.client.betterbotz.type.BUdtInput;
 import com.example.graphql.client.betterbotz.type.CustomType;
 import com.example.graphql.client.betterbotz.type.MutationConsistency;
 import com.example.graphql.client.betterbotz.type.MutationOptions;
@@ -54,12 +47,7 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
-import com.example.graphql.client.betterbotz.type.TupleIntIntInput;
-import com.example.graphql.client.betterbotz.type.Tuplx65_sPkInput;
-import com.example.graphql.client.betterbotz.type.UdtsInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
-import com.example.graphql.client.betterbotz.udts.GetUdtsQuery;
-import com.example.graphql.client.betterbotz.udts.InsertUdtsMutation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -68,7 +56,6 @@ import io.stargate.db.schema.Column;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
-import io.stargate.it.http.graphql.TupleHelper;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1309,64 +1296,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void shouldInsertAndUpdateTuples() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
-    UUID id = UUID.randomUUID();
-    long tuple1Value = 1L;
-    float[] tuple2 = {1.3f, -90f};
-    Object[] tuple3 = {Uuids.timeBased(), 2, true};
-
-    getObservable(
-        client.mutate(
-            InsertTuplesMutation.builder()
-                .value(TupleHelper.createTupleInput(id, tuple1Value, tuple2, tuple3))
-                .build()));
-
-    TupleHelper.assertTuples(
-        getObservable(client.query(GetTuplesQuery.builder().id(id).build())),
-        tuple1Value,
-        tuple2,
-        tuple3);
-
-    tuple1Value = -1L;
-    tuple2 = new float[] {0, Float.MAX_VALUE};
-    tuple3 = new Object[] {Uuids.timeBased(), 3, false};
-
-    getObservable(
-        client.mutate(
-            UpdateTuplesMutation.builder()
-                .value(TupleHelper.createTupleInput(id, tuple1Value, tuple2, tuple3))
-                .build()));
-
-    TupleHelper.assertTuples(
-        getObservable(client.query(GetTuplesQuery.builder().id(id).build())),
-        tuple1Value,
-        tuple2,
-        tuple3);
-  }
-
-  @Test
-  public void shouldSupportTuplesAsPartitionKey() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
-    Tuplx65_sPkInput input =
-        Tuplx65_sPkInput.builder()
-            .id(TupleIntIntInput.builder().item0(10).item1(20).build())
-            .build();
-    getObservable(client.mutate(InsertTuplesPkMutation.builder().value(input).build()));
-
-    GetTuplesPkQuery.Data result =
-        getObservable(client.query(GetTuplesPkQuery.builder().value(input).build()));
-
-    assertThat(result.getTuplx65_sPk())
-        .isPresent()
-        .get()
-        .extracting(v -> v.getValues(), InstanceOfAssertFactories.OPTIONAL)
-        .isPresent()
-        .get(InstanceOfAssertFactories.LIST)
-        .hasSize(1);
-  }
-
-  @Test
   public void queryWithPaging() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
 
@@ -1460,49 +1389,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             });
 
     return result.getProducts();
-  }
-
-  @Test
-  @DisplayName("Should insert and read back UDTs")
-  public void udtsTest() {
-    ApolloClient client = getApolloClient("/graphql/betterbotz");
-
-    InsertUdtsMutation insert =
-        InsertUdtsMutation.builder()
-            .value(
-                UdtsInput.builder()
-                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
-                    .bs(
-                        ImmutableList.of(
-                            BUdtInput.builder().i(2).build(), BUdtInput.builder().i(3).build()))
-                    .build())
-            .build();
-    mutateAndGet(client, insert);
-
-    GetUdtsQuery select =
-        GetUdtsQuery.builder()
-            .value(
-                UdtsInput.builder()
-                    .a(AUdtInput.builder().b(BUdtInput.builder().i(1).build()).build())
-                    .build())
-            .build();
-    List<GetUdtsQuery.Value> values =
-        getObservable(client.query(select))
-            .getUdts()
-            .flatMap(GetUdtsQuery.Udts::getValues)
-            .orElseThrow(AssertionError::new);
-    assertThat(values).hasSize(1);
-    GetUdtsQuery.Value result = values.get(0);
-    assertThat(result.getA().flatMap(GetUdtsQuery.A::getB))
-        .flatMap(GetUdtsQuery.B::getI)
-        .hasValue(1);
-    assertThat(result.getBs())
-        .hasValueSatisfying(
-            bs -> {
-              assertThat(bs).hasSize(2);
-              assertThat(bs.get(0).getI()).hasValue(2);
-              assertThat(bs.get(1).getI()).hasValue(3);
-            });
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
