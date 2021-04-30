@@ -906,14 +906,6 @@ public class DocumentService {
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    if (rows == null) {
-      BuiltCondition candidatesPredicate =
-          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(candidates));
-      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
-      updateExistenceForMap(
-          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
-    }
-
     Set<String> docNames = candidates;
     if (candidates.size() > paginator.docPageSize) {
       docNames = new HashSet<>();
@@ -926,6 +918,14 @@ public class DocumentService {
       paginator.setDocumentPageState(lastSeenId);
     } else {
       paginator.clearDocumentPageState();
+    }
+
+    if (rows == null) {
+      BuiltCondition candidatesPredicate =
+          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames));
+      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
+      updateExistenceForMap(
+          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
     }
 
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
