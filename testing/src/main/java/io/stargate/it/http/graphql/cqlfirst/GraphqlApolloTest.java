@@ -3,7 +3,6 @@ package io.stargate.it.http.graphql.cqlfirst;
 import static io.stargate.it.MetricsTestsHelper.getMetricValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.apollographql.apollo.ApolloCall;
 import com.apollographql.apollo.ApolloClient;
@@ -48,7 +47,6 @@ import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
@@ -68,9 +66,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -78,21 +74,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
-import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,7 +115,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static StargateConnectionInfo stargate;
   private static final String keyspace = "betterbotz";
-  private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String host;
 
   @BeforeAll
@@ -1155,81 +1143,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
         catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
     assertThat(ex.errors).hasSize(1);
     assertThat(ex.errors.get(0).getMessage()).contains("Invalid UUID string");
-  }
-
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> executePost(String path, String query) throws IOException {
-    OkHttpClient okHttpClient = getHttpClient();
-    String url = String.format("http://%s:8080%s", stargate.seedAddress(), path);
-    Map<String, Object> formData = new HashMap<>();
-    formData.put("query", query);
-
-    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    okhttp3.Response response =
-        okHttpClient
-            .newCall(
-                new Request.Builder()
-                    .post(RequestBody.create(JSON, objectMapper.writeValueAsBytes(formData)))
-                    .url(url)
-                    .build())
-            .execute();
-    assertThat(response.code()).isEqualTo(HttpStatus.SC_OK);
-    Map<String, Object> result = objectMapper.readValue(response.body().string(), Map.class);
-    response.close();
-    return result;
-  }
-
-  @ParameterizedTest
-  @MethodSource("getInvalidQueries")
-  @DisplayName("Invalid GraphQL queries and mutations should return error response")
-  public void invalidGraphQLParametersReturnsErrorResponse(
-      String path, String query, String message1, String message2) throws IOException {
-    Map<String, Object> mapResponse = executePost(path, query);
-    assertThat(mapResponse).containsKey("errors");
-    assertThat(mapResponse.get("errors")).isInstanceOf(List.class);
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) mapResponse.get("errors");
-    assertThat(errors)
-        .hasSize(1)
-        .first()
-        .extracting(i -> i.get("message"))
-        .asString()
-        .contains(message1, message2);
-  }
-
-  public static Stream<Arguments> getInvalidQueries() {
-    String dmlPath = "/graphql/betterbotz";
-    String ddlPath = "/graphql-schema";
-    return Stream.of(
-        arguments(
-            dmlPath,
-            "query { zzz { name } }",
-            "Field 'zzz' in type 'Query' is undefined",
-            "Validation error"),
-        arguments(
-            dmlPath,
-            "invalidWrapper { zzz { name } }",
-            "offending token 'invalidWrapper'",
-            "Invalid Syntax"),
-        arguments(
-            dmlPath,
-            "query { Products(filter: { name: { gt: \"a\"} }) { values { id } }}",
-            "Cannot execute this query",
-            "use ALLOW FILTERING"),
-        arguments(
-            ddlPath,
-            "query { zzz { name } }",
-            "Field 'zzz' in type 'Query' is undefined",
-            "Validation error"),
-        arguments(
-            ddlPath,
-            "query { keyspace (name: 1) { name } }",
-            "WrongType: argument 'name'",
-            "Validation error"),
-        arguments(
-            ddlPath,
-            "query { keyspaces { name, nameInvalid } }",
-            "Field 'nameInvalid' in type 'Keyspace' is undefined",
-            "Validation error"));
   }
 
   @Test

@@ -23,10 +23,12 @@ public class CqlFirstClient extends GraphqlClient {
 
   private final String host;
   private final String authToken;
+  private final String dmlUrl;
 
   public CqlFirstClient(String host, String authToken) {
     this.host = host;
     this.authToken = authToken;
+    this.dmlUrl = String.format("http://%s:8080/graphql-schema", host);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a successful response. */
@@ -40,7 +42,11 @@ public class CqlFirstClient extends GraphqlClient {
   }
 
   public Map<String, Object> executeDdlQuery(String query) {
-    return getGraphqlData(authToken, String.format("http://%s:8080/graphql-schema", host), query);
+    return getGraphqlData(authToken, dmlUrl, query);
+  }
+
+  public String getDdlQueryError(String query) {
+    return getGraphqlError(authToken, dmlUrl, query);
   }
 
   private String buildKeyspaceUrl(CqlIdentifier keyspaceId) {
