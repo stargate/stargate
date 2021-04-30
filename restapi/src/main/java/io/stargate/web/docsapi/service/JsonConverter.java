@@ -1,4 +1,4 @@
-package io.stargate.web.docsapi.service.json;
+package io.stargate.web.docsapi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,13 +6,23 @@ import com.fasterxml.jackson.databind.node.*;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.service.json.DeadLeafCollector;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
 import java.util.*;
+import javax.inject.Inject;
 
 public class JsonConverter {
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private ObjectMapper mapper;
+  private DocsApiConfiguration docsApiConfiguration;
 
-  public ObjectMapper getMapper() {
-    return mapper;
+  @Inject
+  public JsonConverter(ObjectMapper mapper, DocsApiConfiguration docsApiConfiguration) {
+    if (mapper == null) {
+      throw new IllegalStateException("JsonConverter requires a non-null ObjectMapper");
+    }
+    this.mapper = mapper;
+    this.docsApiConfiguration = docsApiConfiguration;
   }
 
   // TODO find a place to refactor this to, along with DocumentService#getBooleanFromRow
@@ -26,13 +36,18 @@ public class JsonConverter {
   }
 
   public JsonNode convertToJsonDoc(
+      List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
+    return convertToJsonDoc(
+        rows, ImmutableDeadLeafCollector.of(), writeAllPathsAsObjects, numericBooleans);
+  }
+
+  public JsonNode convertToJsonDoc(
       List<Row> rows,
       DeadLeafCollector collector,
       boolean writeAllPathsAsObjects,
       boolean numericBooleans) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
-    Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
     if (rows.isEmpty()) {
       return doc;
     }
@@ -51,9 +66,10 @@ public class JsonConverter {
 
       String parentPath = "$";
 
-      for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+      for (int i = 0; i < docsApiConfiguration.getMaxDepth(); i++) {
         String p = row.getString("p" + i);
-        String nextP = i < DocumentDB.MAX_DEPTH - 1 ? row.getString("p" + (i + 1)) : "";
+        String nextP =
+            i < docsApiConfiguration.getMaxDepth() - 1 ? row.getString("p" + (i + 1)) : "";
         boolean endOfPath = nextP.equals("");
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
@@ -94,18 +110,6 @@ public class JsonConverter {
         JsonNode childRef;
 
         if (isArray && !writeAllPathsAsObjects) {
-          if (!ref.isArray()) {
-            if (i == 0) {
-              doc = mapper.createArrayNode();
-              ref = doc;
-              pathWriteTimes.put(parentPath, rowWriteTime);
-            } else {
-              markObjectAtPathAsDead(ref, parentPath, collector);
-              ref = changeCurrentNodeToArray(row, parentRef, i);
-              pathWriteTimes.put(parentPath, rowWriteTime);
-            }
-          }
-
           int index = Integer.parseInt(p.substring(1, p.length() - 1));
 
           ArrayNode arrayRef = (ArrayNode) ref;
@@ -126,8 +130,6 @@ public class JsonConverter {
 
             arrayRef.set(index, childRef);
           }
-          parentRef = ref;
-          ref = childRef;
         } else {
           childRef = ref.get(p);
           if (childRef == null) {
@@ -144,9 +146,9 @@ public class JsonConverter {
 
             ((ObjectNode) ref).set(p, childRef);
           }
-          parentRef = ref;
-          ref = childRef;
         }
+        parentRef = ref;
+        ref = childRef;
         parentPath += "." + p;
       }
 
