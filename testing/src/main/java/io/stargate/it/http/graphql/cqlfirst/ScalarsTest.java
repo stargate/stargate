@@ -92,7 +92,7 @@ public class ScalarsTest extends BaseOsgiIntegrationTest {
 
     // When writing a value of this type:
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             KEYSPACE_ID,
             String.format(
                 "mutation { updateScalars(value: {id: \"%s\", %s: %s}) { applied } }",
@@ -101,7 +101,7 @@ public class ScalarsTest extends BaseOsgiIntegrationTest {
 
     // Should read back the same value:
     response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             KEYSPACE_ID,
             String.format("{ Scalars(value: {id: \"%s\"}) { values { %s } } }", id, fieldName));
     String fieldPath = String.format("$.Scalars.values[0].%s", fieldName);

@@ -61,7 +61,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
   public void shouldInsertAndUpdateSimpleListSetsAndMaps(@TestKeyspace CqlIdentifier keyspaceId) {
     // When inserting a new row:
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertCollectionsSimple(value: {\n"
@@ -81,7 +81,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
             + "  CollectionsSimple(value: {id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"}) {\n"
             + "    values { listValue1, setValue1, mapValue1 { key, value } }\n"
             + "  }}";
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     List<Integer> listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
     assertThat(listValue1).containsExactly(1, 2, 3);
     List<String> setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");
@@ -94,7 +94,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
 
     // When updating the row:
     response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  updateCollectionsSimple(\n"
@@ -107,7 +107,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
     assertThat(JsonPath.<Boolean>read(response, "$.updateCollectionsSimple.applied")).isTrue();
 
     // Then the changes are reflected:
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
     assertThat(listValue1).containsExactly(4, 5);
     setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");
@@ -121,7 +121,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
   public void shouldInsertAndUpdateNestedListSetsAndMaps(@TestKeyspace CqlIdentifier keyspaceId) {
     // When inserting a new row:
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertCollectionsNested(value: {\n"
@@ -146,7 +146,7 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
             + "      setValue1\n"
             + "      mapValue1 { key, value { key, value } } }\n"
             + "  }}";
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     List<List<Map<String, Object>>> listValue1 =
         JsonPath.read(response, "$.CollectionsNested.values[0].listValue1");
     assertThat(listValue1).hasSize(1);

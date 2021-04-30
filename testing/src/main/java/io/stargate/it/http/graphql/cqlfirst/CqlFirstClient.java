@@ -32,19 +32,23 @@ public class CqlFirstClient extends GraphqlClient {
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a successful response. */
-  public Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String graphqlQuery) {
+  public Map<String, Object> executeDmlQuery(CqlIdentifier keyspaceId, String graphqlQuery) {
     return getGraphqlData(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
-  public String getGraphqlError(CqlIdentifier keyspaceId, String graphqlQuery) {
+  public String getDmlQueryError(CqlIdentifier keyspaceId, String graphqlQuery) {
     return getGraphqlError(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
+  /** Executes a GraphQL query in {@code graphql-schema}, expecting a successful response. */
   public Map<String, Object> executeDdlQuery(String query) {
     return getGraphqlData(authToken, dmlUrl, query);
   }
 
+  /**
+   * Executes a GraphQL query in {@code graphql-schema}, expecting a <b>single</b> GraphQL error.
+   */
   public String getDdlQueryError(String query) {
     return getGraphqlError(authToken, dmlUrl, query);
   }

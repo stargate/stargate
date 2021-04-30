@@ -64,7 +64,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should execute GraphQL mutation when authorized")
   public void mutationTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        client.getGraphqlData(
+        client.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -78,7 +78,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should execute batch of GraphQL mutations when authorized")
   public void batchTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        client.getGraphqlData(
+        client.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  moby: insertBooks(value: {title:\"Moby Dick\", author:\"Herman Melville\"}) {\n"
@@ -96,7 +96,7 @@ public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should fail to execute GraphQL when not authorized")
   public void unauthorizedTest(@TestKeyspace CqlIdentifier keyspaceId) {
     String error =
-        client.getGraphqlError(
+        client.getDmlQueryError(
             keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
     // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
     assertThat(error).contains("UnauthorizedException");

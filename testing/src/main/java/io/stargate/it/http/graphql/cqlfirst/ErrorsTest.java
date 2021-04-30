@@ -50,7 +50,7 @@ public class ErrorsTest extends BaseOsgiIntegrationTest {
   @MethodSource("dmlErrors")
   @DisplayName("Should return expected error for bad DML query")
   public void ddlQuery(String query, String expectedError) {
-    assertThat(CLIENT.getGraphqlError(KEYSPACE_ID, query)).contains(expectedError);
+    assertThat(CLIENT.getDmlQueryError(KEYSPACE_ID, query)).contains(expectedError);
   }
 
   @SuppressWarnings("unused") // referenced by @MethodSource

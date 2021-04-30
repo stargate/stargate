@@ -55,7 +55,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
   public void shouldInsertAndUpdateTuples(@TestKeyspace CqlIdentifier keyspaceId) {
     // When inserting a new row:
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertTuples: insertTuplx65_s(value: {\n"
@@ -82,7 +82,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     assertThat(JsonPath.<String>read(response, "$.Tuples.values[0].tuple1.item0")).isEqualTo("1");
 
     assertThat(JsonPath.<Double>read(response, "$.Tuples.values[0].tuple2.item0")).isEqualTo(1.3);
@@ -95,7 +95,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
 
     // When updating the row:
     response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  updateTuples: updateTuplx65_s(\n"
@@ -110,7 +110,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
     assertThat(JsonPath.<Boolean>read(response, "$.updateTuples.applied")).isTrue();
 
     // Then the changes are reflected:
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     assertThat(JsonPath.<String>read(response, "$.Tuples.values[0].tuple1.item0")).isEqualTo("-1");
 
     assertThat(JsonPath.<Double>read(response, "$.Tuples.values[0].tuple2.item0")).isEqualTo(0);
@@ -127,7 +127,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
   public void shouldSupportTuplesAsPartitionKey(@TestKeyspace CqlIdentifier keyspaceId) {
     // When inserting a new row:
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertTuplesPk: insertTuplx65_sPk(value: {\n"
@@ -147,7 +147,7 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
-    response = CLIENT.getGraphqlData(keyspaceId, getQuery);
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item0")).isEqualTo(0);
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item1")).isEqualTo(1);
   }

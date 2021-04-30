@@ -15,7 +15,6 @@
  */
 package io.stargate.it.http.graphql.cqlfirst;
 
-import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -53,7 +52,7 @@ public class UdtsTest extends BaseOsgiIntegrationTest {
   @DisplayName("Should insert and read back UDTs")
   public void udtsTest(@TestKeyspace CqlIdentifier keyspaceId) {
     Map<String, Object> response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "mutation {\n"
                 + "  insertUdts(value: {\n"
@@ -66,7 +65,7 @@ public class UdtsTest extends BaseOsgiIntegrationTest {
     assertThat(JsonPath.<Boolean>read(response, "$.insertUdts.applied")).isTrue();
 
     response =
-        CLIENT.getGraphqlData(
+        CLIENT.executeDmlQuery(
             keyspaceId,
             "{\n"
                 + "    Udts(value: { a: { b: {i:1} } }) {\n"
