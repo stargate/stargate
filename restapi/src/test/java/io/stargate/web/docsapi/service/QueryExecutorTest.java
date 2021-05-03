@@ -27,6 +27,7 @@ import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableKeyspace;
@@ -68,6 +69,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   private QueryExecutor executor;
   private AbstractBound<?> allDocsQuery;
+  private BuiltQuery<?> allRowsForDocQuery;
 
   @Override
   protected Schema schema() {
@@ -78,6 +80,8 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   public void setup() {
     executor = new QueryExecutor(datastore());
     allDocsQuery = datastore().queryBuilder().select().star().from(table).build().bind();
+    allRowsForDocQuery =
+        datastore().queryBuilder().select().star().from(table).where("key", Predicate.EQ).build();
   }
 
   private Map<String, Object> row(String id, String p0, Double value) {
@@ -138,6 +142,18 @@ class QueryExecutorTest extends AbstractDataStoreTest {
                 row("5", "x", 3.0d)));
   }
 
+  private void withFiveTestDocIds(int pageSize) {
+    withQuery(table, "SELECT * FROM %s")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("1", "x", 1.0d),
+                row("2", "x", 3.0d),
+                row("3", "x", 1.0d),
+                row("4", "y", 2.0d),
+                row("5", "x", 3.0d)));
+  }
+
   @ParameterizedTest
   @CsvSource({"1", "3", "5", "100"})
   void testFullScanPaged(int pageSize) {
@@ -167,6 +183,51 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 100, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
     assertThat(r1.get(4).makePagingState()).isNull();
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1", "3", "5", "100"})
+  void testPopulate(int pageSize) {
+    withFiveTestDocIds(pageSize);
+    withQuery(table, "SELECT * FROM %s WHERE key = ?", "2")
+        .withPageSize(pageSize)
+        .returning(ImmutableList.of(row("2", "x", 3.0d), row("2", "y", 1.0d)));
+    withQuery(table, "SELECT * FROM %s WHERE key = ?", "5")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("5", "x", 3.0d),
+                row("5", "z", 2.0d),
+                row("5", "y", 1.0d),
+                row("6", "x", 1.0d))); // the last row should be ignored
+
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 100, null));
+    assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
+
+    RawDocument doc2a = r1.get(1);
+    assertThat(doc2a.rows()).hasSize(1);
+    assertThat(doc2a.id()).isEqualTo("2");
+
+    RawDocument doc2b =
+        doc2a
+            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("2"), 100, null))
+            .blockingGet();
+    assertThat(doc2b.id()).isEqualTo("2");
+    assertThat(doc2b.rows()).hasSize(2);
+    assertThat(doc2b.makePagingState()).isEqualTo(doc2a.makePagingState());
+
+    RawDocument doc5a = r1.get(4);
+    assertThat(doc5a.id()).isEqualTo("5");
+    assertThat(doc5a.rows()).hasSize(1);
+    assertThat(doc5a.makePagingState()).isNull();
+
+    RawDocument doc5b =
+        doc5a
+            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("5"), 100, null))
+            .blockingGet();
+    assertThat(doc5b.id()).isEqualTo("5");
+    assertThat(doc5b.rows()).hasSize(3);
+    assertThat(doc5b.makePagingState()).isNull();
   }
 
   @Test

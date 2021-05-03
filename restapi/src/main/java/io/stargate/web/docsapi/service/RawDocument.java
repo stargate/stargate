@@ -15,6 +15,8 @@
  */
 package io.stargate.web.docsapi.service;
 
+import io.reactivex.Flowable;
+import io.reactivex.Single;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.ResultSet;
@@ -50,6 +52,20 @@ public class RawDocument {
 
   public List<Row> rows() {
     return rows;
+  }
+
+  public Single<RawDocument> populateFrom(Flowable<RawDocument> docs) {
+    return docs.limit(1).map(this::populateFrom).singleElement().toSingle();
+  }
+
+  public RawDocument populateFrom(RawDocument doc) {
+    if (!id.equals(doc.id)) {
+      throw new IllegalStateException(
+          String.format("Document ID mismatch. Expecting %s, got %s", id, doc.id));
+    }
+
+    // Use query state of current doc, but rows from the other doc
+    return new RawDocument(id, docKey, resultSet, hasNext, doc.rows);
   }
 
   public ByteBuffer makePagingState() {
