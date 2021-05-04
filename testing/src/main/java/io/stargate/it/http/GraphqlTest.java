@@ -24,8 +24,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
-import com.example.graphql.client.betterbotz.aggregations.GetOrdersWithAvgQuery;
-import com.example.graphql.client.betterbotz.aggregations.GetOrdersWithCountQuery;
+import com.example.graphql.client.betterbotz.aggregations.*;
 import com.example.graphql.client.betterbotz.atomic.*;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
@@ -2149,15 +2148,15 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithCountQuery countQuery = GetOrdersWithCountQuery.builder().value(order1).build();
+    GetOrdersWithCountQuery query = GetOrdersWithCountQuery.builder().value(order1).build();
 
-    GetOrdersWithCountQuery.Data result = getObservable(client.query(countQuery));
+    GetOrdersWithCountQuery.Data result = getObservable(client.query(query));
 
     assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo(2);
   }
 
   @Test
-  @DisplayName("Should calculate number of orders using avg aggregation")
+  @DisplayName("Should calculate average of orders' price using avg aggregation")
   public void insertOrdersAndAvgUsingFloatFunctionWithoutAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
@@ -2183,13 +2182,115 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithAvgQuery countQuery = GetOrdersWithAvgQuery.builder().value(order1).build();
+    GetOrdersWithAvgQuery query = GetOrdersWithAvgQuery.builder().value(order1).build();
 
-    GetOrdersWithAvgQuery.Data result = getObservable(client.query(countQuery));
+    GetOrdersWithAvgQuery.Data result = getObservable(client.query(query));
 
     // avg price is 5 + 7 / 2 = 8.5
     assertThat(result.getOrders().get().getValues().get().get(0).get_float_function().get())
         .isEqualTo(8.5);
+  }
+
+  @Test
+  @DisplayName("Should get the highest order using max aggregation")
+  public void insertOrdersAndMaxUsingIntFunctionWithAlias() {
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("3000")
+            .description("d1")
+            .build();
+    OrdersInput order2 =
+        OrdersInput.builder()
+            .prodName("p2")
+            .customerName("c2")
+            .price("2500")
+            .description("d2")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    // execute aggregation with count()
+    GetOrdersWithMaxQuery query = GetOrdersWithMaxQuery.builder().value(order1).build();
+
+    GetOrdersWithMaxQuery.Data result = getObservable(client.query(query));
+
+    assertThat(result.getOrders().get().getValues().get().get(0).getMax().get()).isEqualTo(3000);
+  }
+
+  @Test
+  @DisplayName("Should get the lowest order using min aggregation")
+  public void insertOrdersAndMinUsingIntFunctionWithAlias() {
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("3000")
+            .description("d1")
+            .build();
+    OrdersInput order2 =
+        OrdersInput.builder()
+            .prodName("p2")
+            .customerName("c2")
+            .price("2500")
+            .description("d2")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    // execute aggregation with count()
+    GetOrdersWithMinQuery query = GetOrdersWithMinQuery.builder().value(order1).build();
+
+    GetOrdersWithMinQuery.Data result = getObservable(client.query(query));
+
+    assertThat(result.getOrders().get().getValues().get().get(0).getMin().get()).isEqualTo(2500);
+  }
+
+  @Test
+  @DisplayName("Should sum all orders' price using sum aggregation")
+  public void insertOrdersAndSumUsingIntFunctionWithAlias() {
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("3000")
+            .description("d1")
+            .build();
+    OrdersInput order2 =
+        OrdersInput.builder()
+            .prodName("p2")
+            .customerName("c2")
+            .price("2500")
+            .description("d2")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    // execute aggregation with count()
+    GetOrdersWithSumQuery query = GetOrdersWithSumQuery.builder().value(order1).build();
+
+    GetOrdersWithSumQuery.Data result = getObservable(client.query(query));
+
+    assertThat(result.getOrders().get().getValues().get().get(0).getSum().get()).isEqualTo(5500);
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {

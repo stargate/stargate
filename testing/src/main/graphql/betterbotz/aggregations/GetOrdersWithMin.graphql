@@ -1,0 +1,16 @@
+query GetOrdersWithMin($value: OrdersInput) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            min: _int_function(name: "min", args: ["price"])
+        }
+    }
+}

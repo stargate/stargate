@@ -1,0 +1,16 @@
+query GetOrdersWithMax($value: OrdersInput) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            max: _int_function(name: "max", args: ["price"])
+        }
+    }
+}

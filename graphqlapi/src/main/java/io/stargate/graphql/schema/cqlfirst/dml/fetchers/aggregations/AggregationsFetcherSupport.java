@@ -19,6 +19,9 @@ import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.Supp
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.COUNT;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.MAX;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.MIN;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.SUM;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
@@ -53,10 +56,22 @@ public class AggregationsFetcherSupport {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
         Map<String, Object> arguments = selectedField.getArguments();
         String functionName = getNameArgument(arguments);
-        if (functionName.equals(COUNT)) {
-          addCount(arguments, queryBuilder, selectedField);
-        } else if (functionName.equals(AVG)) {
-          addAvg(arguments, queryBuilder, selectedField);
+        switch (functionName) {
+          case COUNT:
+            addCount(arguments, queryBuilder, selectedField);
+            break;
+          case AVG:
+            addAvg(arguments, queryBuilder, selectedField);
+            break;
+          case MIN:
+            addMin(arguments, queryBuilder, selectedField);
+            break;
+          case MAX:
+            addMax(arguments, queryBuilder, selectedField);
+            break;
+          case SUM:
+            addSum(arguments, queryBuilder, selectedField);
+            break;
         }
       }
     }
@@ -137,6 +152,54 @@ public class AggregationsFetcherSupport {
       // queryBuilder.avg(column, alias);
     } else {
       // queryBuilder.avg(column);
+    }
+  }
+
+  private void addMin(
+      Map<String, Object> arguments,
+      QueryBuilder.QueryBuilder__41 queryBuilder,
+      SelectedField selectedField) {
+    List<String> args = getAndValidateArgs(arguments, MIN);
+    String column = getAndValidateColumn(args);
+
+    // todo after https://github.com/stargate/stargate/issues/907 is done
+    String alias = selectedField.getAlias();
+    if (alias != null) {
+      // queryBuilder.min(column, alias);
+    } else {
+      // queryBuilder.min(column);
+    }
+  }
+
+  private void addMax(
+      Map<String, Object> arguments,
+      QueryBuilder.QueryBuilder__41 queryBuilder,
+      SelectedField selectedField) {
+    List<String> args = getAndValidateArgs(arguments, MAX);
+    String column = getAndValidateColumn(args);
+
+    // todo after https://github.com/stargate/stargate/issues/907 is done
+    String alias = selectedField.getAlias();
+    if (alias != null) {
+      // queryBuilder.max(column, alias);
+    } else {
+      // queryBuilder.max(column);
+    }
+  }
+
+  private void addSum(
+      Map<String, Object> arguments,
+      QueryBuilder.QueryBuilder__41 queryBuilder,
+      SelectedField selectedField) {
+    List<String> args = getAndValidateArgs(arguments, SUM);
+    String column = getAndValidateColumn(args);
+
+    // todo after https://github.com/stargate/stargate/issues/907 is done
+    String alias = selectedField.getAlias();
+    if (alias != null) {
+      // queryBuilder.sum(column, alias);
+    } else {
+      // queryBuilder.sum(column);
     }
   }
 

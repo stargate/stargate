@@ -1,0 +1,16 @@
+query GetOrdersWithSum($value: OrdersInput) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            sum: _int_function(name: "sum", args: ["price"])
+        }
+    }
+}
