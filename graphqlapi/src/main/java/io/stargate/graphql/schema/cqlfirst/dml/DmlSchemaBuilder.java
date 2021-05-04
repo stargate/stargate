@@ -19,28 +19,14 @@ import static graphql.Scalars.GraphQLFloat;
 import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
-import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLDirective;
-import graphql.schema.GraphQLEnumType;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLInputObjectField;
-import graphql.schema.GraphQLInputObjectType;
-import graphql.schema.GraphQLInputType;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNonNull;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLSchema;
-import graphql.schema.GraphQLType;
-import graphql.schema.GraphQLTypeReference;
+import graphql.schema.*;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
@@ -49,6 +35,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
+import io.stargate.graphql.schema.cqlfirst.dml.types.scalars.CustomScalars;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -538,15 +525,23 @@ public class DmlSchemaBuilder {
   }
 
   private void buildAggregationFunctions(GraphQLObjectType.Builder builder) {
-    builder.field(buildIntFunction());
-    builder.field(buildFloatFunction());
+    builder.field(buildFunctionField(INT_FUNCTION, GraphQLInt));
+    // The GraphQLFloat corresponds to CQL double
+    builder.field(buildFunctionField(DOUBLE_FUNCTION, GraphQLFloat));
+    builder.field(buildFunctionField(BIGINT_FUNCTION, CustomScalars.BIGINT));
+    builder.field(buildFunctionField(DECIMAL_FUNCTION, CustomScalars.DECIMAL));
+    builder.field(buildFunctionField(VARINT_FUNCTION, CustomScalars.VARINT));
+    builder.field(buildFunctionField(FLOAT_FUNCTION, CustomScalars.FLOAT));
+    builder.field(buildFunctionField(SMALLINT_FUNCTION, CustomScalars.SMALLINT));
+    builder.field(buildFunctionField(TINYINT_FUNCTION, CustomScalars.TINYINT));
   }
 
-  private GraphQLFieldDefinition buildIntFunction() {
+  private GraphQLFieldDefinition buildFunctionField(
+      String functionName, GraphQLScalarType returnType) {
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name(INT_FUNCTION)
+        .name(functionName)
         .description(
-            String.format("Invocation of an aggregate function that returns %s.", GraphQLInt))
+            String.format("Invocation of an aggregate function that returns %s.", returnType))
         .argument(
             GraphQLArgument.newArgument()
                 .name("name")
@@ -557,26 +552,7 @@ public class DmlSchemaBuilder {
                 .name("args")
                 .description("Arguments passed to a function. It can be a list of column names.")
                 .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
-        .type(GraphQLInt)
-        .build();
-  }
-
-  private GraphQLFieldDefinition buildFloatFunction() {
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name(FLOAT_FUNCTION)
-        .description(
-            String.format("Invocation of an aggregate function that returns %s.", GraphQLFloat))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("name")
-                .description("Name of the function to invoke")
-                .type(new GraphQLNonNull(GraphQLString)))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("args")
-                .description("Arguments passed to a function. It can be a list of column names.")
-                .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
-        .type(GraphQLFloat)
+        .type(returnType)
         .build();
   }
 

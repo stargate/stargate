@@ -15,13 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.AVG;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.COUNT;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.MAX;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.MIN;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.SUM;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
@@ -85,11 +79,31 @@ public class AggregationsFetcherSupport {
     }
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        if (selectedField.getName().equals(INT_FUNCTION)) {
-          putResultValue(columns, row, selectedField, Row::getInt);
-        }
-        if (selectedField.getName().equals(FLOAT_FUNCTION)) {
-          putResultValue(columns, row, selectedField, Row::getFloat);
+        switch (selectedField.getName()) {
+          case INT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getInt);
+            break;
+          case DOUBLE_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getDouble);
+            break;
+          case BIGINT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getLong);
+            break;
+          case DECIMAL_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getBigDecimal);
+            break;
+          case VARINT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getBigInteger);
+            break;
+          case FLOAT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getFloat);
+            break;
+          case SMALLINT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getShort);
+            break;
+          case TINYINT_FUNCTION:
+            putResultValue(columns, row, selectedField, Row::getByte);
+            break;
         }
       }
     }
