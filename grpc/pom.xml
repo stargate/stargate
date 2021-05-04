@@ -112,6 +112,7 @@
                             com.codahale.metrics,
                             com.datastax.oss.driver.api.core,
                             com.datastax.oss.driver.api.core.*,
+                            com.datastax.oss.driver.shaded.guava.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
