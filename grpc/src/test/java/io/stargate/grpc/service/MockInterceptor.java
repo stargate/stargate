@@ -35,8 +35,6 @@ public class MockInterceptor implements ServerInterceptor {
       ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
     AuthenticationSubject subject = mock(AuthenticationSubject.class);
     AuthenticatedUser user = mock(AuthenticatedUser.class);
-    when(user.name()).thenReturn("user1");
-    when(user.token()).thenReturn("token1");
     when(user.isFromExternalAuth()).thenReturn(true);
     when(subject.asUser()).thenReturn(user);
     Context context = Context.current();
