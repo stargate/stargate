@@ -79,7 +79,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select column* star? ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select star? column* ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
