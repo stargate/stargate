@@ -24,6 +24,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final Table table;
   protected final NameMapping nameMapping;
+  private final DbColumnGetter dbColumnGetter;
 
   protected DmlFetcher(
       Table table,
@@ -33,6 +34,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authorizationService, dataStoreFactory);
     this.table = table;
     this.nameMapping = nameMapping;
+    this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
   @Override
@@ -150,16 +152,11 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected String getDBColumnName(Table table, String fieldName) {
-    Column column = getColumn(table, fieldName);
-    if (column == null) {
-      return null;
-    }
-    return column.name();
+    return dbColumnGetter.getDBColumnName(table, fieldName);
   }
 
   protected Column getColumn(Table table, String fieldName) {
-    String columnName = nameMapping.getCqlName(table, fieldName);
-    return table.column(columnName);
+    return dbColumnGetter.getColumn(table, fieldName);
   }
 
   protected Object toDBValue(Column column, Object value) {

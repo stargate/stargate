@@ -15,9 +15,9 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml;
 
-import static graphql.Scalars.GraphQLInt;
-import static graphql.Scalars.GraphQLString;
+import static graphql.Scalars.*;
 import static graphql.schema.GraphQLList.list;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
 
 import com.google.common.collect.ImmutableList;
@@ -532,8 +532,8 @@ public class DmlSchemaBuilder {
   }
 
   private void buildAggregationFunctions(GraphQLObjectType.Builder builder) {
-    GraphQLFieldDefinition intFunction = buildIntFunction();
-    builder.field(intFunction);
+    builder.field(buildIntFunction());
+    builder.field(buildFloatFunction());
   }
 
   private GraphQLFieldDefinition buildIntFunction() {
@@ -552,6 +552,25 @@ public class DmlSchemaBuilder {
                 .description("Arguments passed to a function. It can be a list of column names.")
                 .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
         .type(GraphQLInt)
+        .build();
+  }
+
+  private GraphQLFieldDefinition buildFloatFunction() {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name(FLOAT_FUNCTION)
+        .description(
+            String.format("Invocation of an aggregate function that returns %s.", GraphQLFloat))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("name")
+                .description("Name of the function to invoke")
+                .type(new GraphQLNonNull(GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("args")
+                .description("Arguments passed to a function. It can be a list of column names.")
+                .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
+        .type(GraphQLFloat)
         .build();
   }
 

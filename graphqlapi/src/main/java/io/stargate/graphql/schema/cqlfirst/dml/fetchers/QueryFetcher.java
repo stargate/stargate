@@ -15,8 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.COUNT;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
 
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
@@ -29,7 +28,6 @@ import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.ColumnOrder;
@@ -38,6 +36,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.AggregationsFetcherSupport;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,12 +48,15 @@ import java.util.stream.Collectors;
 
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
+  private final AggregationsFetcherSupport aggregationsFetcherSupport;
+
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     super(table, nameMapping, authorizationService, dataStoreFactory);
+    this.aggregationsFetcherSupport = new AggregationsFetcherSupport(nameMapping, table);
   }
 
   @Override
@@ -82,7 +84,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
                 row -> {
                   Map<String, Object> columns =
                       DataTypeMapping.toGraphQLValue(nameMapping, table, row);
-                  return addAggregationResults(columns, environment, row);
+                  return aggregationsFetcherSupport.addAggregationResults(
+                      columns, environment, row);
                 })
             .collect(Collectors.toList()));
 
@@ -92,31 +95,6 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     }
 
     return result;
-  }
-
-  private Map<String, Object> addAggregationResults(
-      Map<String, Object> columns, DataFetchingEnvironment environment, Row row) {
-    List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
-    if (valuesFields.isEmpty()) {
-      return columns;
-    }
-    for (SelectedField valuesField : valuesFields) {
-      for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
-        if (selectedField.getName().equals(INT_FUNCTION)) {
-          String alias = selectedField.getAlias();
-          // put the returned value as alias
-          if (alias != null) {
-            columns.put(alias, row.getInt(alias));
-          }
-          //
-          else {
-            // if there is no alias, use the value as is.
-            // Should we require alias for all aggregation function calls?
-          }
-        }
-      }
-    }
-    return columns;
   }
 
   private BoundQuery buildQuery(DataFetchingEnvironment environment, DataStore dataStore) {
@@ -138,54 +116,9 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
             .limit(limit)
             .orderBy(buildOrderBy(environment));
 
-    addAggregationFunctions(environment, queryBuilder);
+    aggregationsFetcherSupport.addAggregationFunctions(environment, queryBuilder);
 
     return queryBuilder.build().bind();
-  }
-
-  private void addAggregationFunctions(
-      DataFetchingEnvironment environment, QueryBuilder.QueryBuilder__41 queryBuilder) {
-    List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
-    if (valuesFields.isEmpty()) {
-      return;
-    }
-
-    for (SelectedField valuesField : valuesFields) {
-      for (SelectedField selectedField : valuesField.getSelectionSet().getFields()) {
-        if (selectedField.getName().equals(INT_FUNCTION)) {
-          Map<String, Object> arguments = selectedField.getArguments();
-          String functionName = (String) arguments.get("name");
-          if (functionName.equals(COUNT)) {
-            addCount(arguments, queryBuilder, selectedField);
-          }
-        }
-      }
-    }
-  }
-
-  private void addCount(
-      Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
-      SelectedField selectedField) {
-    @SuppressWarnings("unchecked")
-    List<String> args = (List<String>) arguments.get("args");
-    if (args.size() != 1) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The %s function takes only one argument, " + "but more arguments: %s were provided.",
-              COUNT, args));
-    }
-    String column = getDBColumnName(table, args.get(0));
-    if (column == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The column name: %s provided for the %s function does not exists.",
-              args.get(0), COUNT));
-    }
-
-    // todo after https://github.com/stargate/stargate/issues/907 is done
-    String countAlias = selectedField.getAlias();
-    // queryBuilder.count(column) as alias ;
   }
 
   private List<ColumnOrder> buildOrderBy(DataFetchingEnvironment environment) {

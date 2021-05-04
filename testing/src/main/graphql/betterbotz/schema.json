@@ -5057,7 +5057,7 @@
             },
             {
                 "name": "_int_function",
-                "description": "count function invocation",
+                "description": "int function invocation",
                    "args": [
                  {
                    "name": "name",
@@ -5092,6 +5092,48 @@
                   "name": "Int",
                   "ofType": null
                 },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_float_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              },
               "fields": null,
               "inputFields": null,
               "isDeprecated": false,

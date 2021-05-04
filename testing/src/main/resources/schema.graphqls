@@ -197,6 +197,7 @@ type Orders {
     prodId: Uuid
     sellPrice: Decimal
     _int_function(name: String, args: [String]): Int
+    _float_function(name: String, args: [String]): Float
 }
 
 input OrdersFilterInput {

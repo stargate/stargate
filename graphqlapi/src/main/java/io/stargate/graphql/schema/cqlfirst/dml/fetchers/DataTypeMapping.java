@@ -120,7 +120,6 @@ class DataTypeMapping {
 
   /** Converts result Row into a map suitable to serve it via GraphQL. */
   static Map<String, Object> toGraphQLValue(NameMapping nameMapping, Table table, Row row) {
-    // todo handle new column returned by aggregation
     List<Column> columns = row.columns();
     Map<String, Object> map = new HashMap<>(columns.size());
     for (Column column : columns) {

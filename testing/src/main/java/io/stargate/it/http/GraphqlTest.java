@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import com.example.graphql.client.betterbotz.aggregations.GetOrdersWithAvgQuery;
 import com.example.graphql.client.betterbotz.aggregations.GetOrdersWithCountQuery;
 import com.example.graphql.client.betterbotz.atomic.*;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
@@ -2123,19 +2124,19 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should calculate number of orders using count aggregation")
-  public void insertOrdersAndCount() {
+  public void insertOrdersAndCountUsingIntFunctionWithAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")
             .customerName("c1")
-            .price("3199.99")
+            .price("3000")
             .description("d1")
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
             .prodName("p2")
             .customerName("c2")
-            .price("3199.99")
+            .price("2500")
             .description("d2")
             .build();
 
@@ -2153,6 +2154,42 @@ public class GraphqlTest extends BaseOsgiIntegrationTest {
     GetOrdersWithCountQuery.Data result = getObservable(client.query(countQuery));
 
     assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Should calculate number of orders using avg aggregation")
+  public void insertOrdersAndAvgUsingFloatFunctionWithoutAlias() {
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("5")
+            .description("d1")
+            .build();
+    OrdersInput order2 =
+        OrdersInput.builder()
+            .prodName("p2")
+            .customerName("c2")
+            .price("7")
+            .description("d2")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    // execute aggregation with count()
+    GetOrdersWithAvgQuery countQuery = GetOrdersWithAvgQuery.builder().value(order1).build();
+
+    GetOrdersWithAvgQuery.Data result = getObservable(client.query(countQuery));
+
+    // avg price is 5 + 7 / 2 = 8.5
+    assertThat(result.getOrders().get().getValues().get().get(0).get_float_function().get())
+        .isEqualTo(8.5);
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {

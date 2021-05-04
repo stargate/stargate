@@ -1,0 +1,16 @@
+query GetOrdersWithAvg($value: OrdersInput) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            _float_function(name: "avg", args: ["price"])
+        }
+    }
+}
