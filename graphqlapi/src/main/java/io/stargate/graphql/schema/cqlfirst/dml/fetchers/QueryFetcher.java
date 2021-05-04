@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
-
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;

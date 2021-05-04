@@ -15,7 +15,9 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml;
 
-import static graphql.Scalars.*;
+import static graphql.Scalars.GraphQLFloat;
+import static graphql.Scalars.GraphQLInt;
+import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
@@ -47,7 +49,12 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -501,7 +508,6 @@ public class DmlSchemaBuilder {
     return entityResultType;
   }
 
-  // todo here
   public GraphQLObjectType buildType(Table table) {
     GraphQLObjectType.Builder builder =
         GraphQLObjectType.newObject()

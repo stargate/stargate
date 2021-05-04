@@ -15,7 +15,10 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.AVG;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.COUNT;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.FLOAT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.INT_FUNCTION;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
