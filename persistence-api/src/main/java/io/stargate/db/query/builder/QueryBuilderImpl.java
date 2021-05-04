@@ -33,19 +33,9 @@ import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue.Codec;
-import io.stargate.db.schema.AbstractTable;
-import io.stargate.db.schema.CollectionIndexingType;
-import io.stargate.db.schema.Column;
+import io.stargate.db.schema.*;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.db.schema.ColumnUtils;
-import io.stargate.db.schema.ImmutableColumn;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Schema;
-import io.stargate.db.schema.SchemaEntity;
-import io.stargate.db.schema.SecondaryIndex;
-import io.stargate.db.schema.Table;
-import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import jdk.nashorn.internal.ir.FunctionCall;
 import org.javatuples.Pair;
 
 /** Convenience builder for creating queries. */
@@ -88,7 +79,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* writeTimeColumn? count? max? min? sum? avg? from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select column* star? ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -141,6 +132,8 @@ public class QueryBuilderImpl {
   /** Column names for a SELECT or DELETE. */
   private final List<String> selection = new ArrayList<>();
 
+  private final List<FunctionCall> functionCalls = new ArrayList<>();
+
   /** The where conditions for a SELECT or UPDATE. */
   private final List<BuiltCondition> wheres = new ArrayList<>();
 
@@ -163,19 +156,6 @@ public class QueryBuilderImpl {
   private UserDefinedType type;
   private Value<Integer> ttl;
   private Value<Long> timestamp;
-  private String writeTimeColumn;
-  private String writeTimeColumnAlias;
-  private String countColumnName;
-  private String countColumnAlias;
-  private String maxColumnName;
-  private String maxColumnAlias;
-  private String minColumnName;
-  private String minColumnAlias;
-  private String sumColumnName;
-  private String sumColumnAlias;
-  private String avgColumnName;
-  private String avgColumnAlias;
-
   private boolean allowFiltering;
 
   public QueryBuilderImpl(Schema schema, Codec valueCodec, @Nullable AsyncQueryExecutor executor) {
@@ -348,58 +328,38 @@ public class QueryBuilderImpl {
     column(column, type, Column.Kind.Regular);
   }
 
+  public void as(String alias) {
+    if (functionCalls.isEmpty()) {
+      throw new IllegalStateException(
+          "The as() method cannot be called without a preceding function call.");
+    }
+    // the alias is set for the last function call
+    FunctionCall functionCall = functionCalls.get(functionCalls.size() - 1);
+    functionCall.setAlias(alias);
+  }
+
   public void writeTimeColumn(String columnName) {
-    writeTimeColumn(columnName, null);
+    functionCalls.add(FunctionCall.function(columnName, "WRITETIME"));
   }
 
-  public void writeTimeColumn(String columnName, String alias) {
-    this.writeTimeColumn = columnName;
-    this.writeTimeColumnAlias = alias;
-  }
-
-  public void count(String countColumnName) {
-    count(countColumnName, null);
-  }
-
-  public void count(String countColumnName, String alias) {
-    this.countColumnName = countColumnName;
-    this.countColumnAlias = alias;
-  }
-
-  public void max(String maxColumnName, String alias) {
-    this.maxColumnName = maxColumnName;
-    this.maxColumnAlias = alias;
+  public void count(String columnName) {
+    functionCalls.add(FunctionCall.function(columnName, "COUNT"));
   }
 
   public void max(String maxColumnName) {
-    max(maxColumnName, null);
-  }
-
-  public void min(String minColumnName, String alias) {
-    this.minColumnName = minColumnName;
-    this.minColumnAlias = alias;
+    functionCalls.add(FunctionCall.function(maxColumnName, "MAX"));
   }
 
   public void min(String minColumnName) {
-    min(minColumnName, null);
-  }
-
-  public void sum(String sumColumnName, String alias) {
-    this.sumColumnName = sumColumnName;
-    this.sumColumnAlias = alias;
+    functionCalls.add(FunctionCall.function(minColumnName, "MIN"));
   }
 
   public void sum(String sumColumnName) {
-    sum(sumColumnName, null);
-  }
-
-  public void avg(String avgColumnName, String alias) {
-    this.avgColumnName = avgColumnName;
-    this.avgColumnAlias = alias;
+    functionCalls.add(FunctionCall.function(sumColumnName, "SUM"));
   }
 
   public void avg(String avgColumnName) {
-    avg(avgColumnName, null);
+    functionCalls.add(FunctionCall.function(avgColumnName, "AVG"));
   }
 
   public void star() {
@@ -1496,51 +1456,22 @@ public class QueryBuilderImpl {
     // Using a linked set for the minor convenience of get back the columns in the order they were
     // passed to the builder "in general".
     Set<Column> allSelected = new LinkedHashSet<>(selectedColumns);
-    Column wtColumn = null;
-    if (writeTimeColumn != null) {
-      wtColumn = table.column(writeTimeColumn);
-      allSelected.add(wtColumn);
-    }
-    Column countColumn = null;
-    if (countColumnName != null) {
-      countColumn = table.column(countColumnName);
-      allSelected.add(countColumn);
-    }
-    Column maxColumn = null;
-    if (maxColumnName != null) {
-      maxColumn = table.column(maxColumnName);
-      allSelected.add(maxColumn);
-    }
-    Column minColumn = null;
-    if (minColumnName != null) {
-      minColumn = table.column(minColumnName);
-      allSelected.add(minColumn);
-    }
-    Column sumColumn = null;
-    if (sumColumnName != null) {
-      sumColumn = table.column(sumColumnName);
-      allSelected.add(sumColumn);
-    }
-    Column avgColumn = null;
-    if (avgColumnName != null) {
-      avgColumn = table.column(avgColumnName);
-      allSelected.add(avgColumn);
+    // add all columns used in function calls to allSelected
+    for (FunctionCall functionCall : functionCalls) {
+      allSelected.add(table.column(functionCall.columnName));
     }
 
     builder.append("SELECT");
-    if (selectedColumns.isEmpty() && allFunctionCallColumnsAreNull()) {
+    if (selectedColumns.isEmpty() && functionCalls.isEmpty()) {
       builder.append("*");
     } else {
-      builder
-          .start()
-          .addAll(selectedColumns)
-          .addIfNotNull(wtColumn, c -> addWriteTime(builder, c))
-          .addIfNotNull(countColumn, c -> addCount(builder, c))
-          .addIfNotNull(maxColumn, c -> addMax(builder, c))
-          .addIfNotNull(minColumn, c -> addMin(builder, c))
-          .addIfNotNull(sumColumn, c -> addSum(builder, c))
-          .addIfNotNull(avgColumn, c -> addAvg(builder, c))
-          .end();
+      QueryStringBuilder.ListBuilder listBuilder = builder.start().addAll(selectedColumns);
+
+      for (FunctionCall functionCall : functionCalls) {
+        listBuilder.addIfNotNull(
+            functionCall.getColumnName(),
+            __ -> addFunctionCallWithAliasIfPresent(builder, functionCall));
+      }
     }
 
     builder.append("FROM").append(table);
@@ -1592,45 +1523,52 @@ public class QueryBuilderImpl {
         perPartitionLimit);
   }
 
-  private boolean allFunctionCallColumnsAreNull() {
-    return writeTimeColumn == null
-        && countColumnName == null
-        && maxColumnName == null
-        && minColumnName == null
-        && sumColumnName == null
-        && avgColumnName == null;
-  }
-
-  private void addCount(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "COUNT", c, countColumnAlias);
-  }
-
-  private void addMax(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "MAX", c, maxColumnAlias);
-  }
-
-  private void addMin(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "MIN", c, minColumnAlias);
-  }
-
-  private void addSum(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "SUM", c, sumColumnAlias);
-  }
-
-  private void addAvg(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "AVG", c, avgColumnAlias);
-  }
-
-  private void addWriteTime(QueryStringBuilder builder, Column c) {
-    addFunctionCallWithAliasIfPresent(builder, "WRITETIME", c, writeTimeColumnAlias);
-  }
-
   private static void addFunctionCallWithAliasIfPresent(
-      QueryStringBuilder builder, String functionName, Column column, String columnAlias) {
+      QueryStringBuilder builder, FunctionCall functionCall) {
 
-    builder.append(functionName + "(").append(column).append(")");
-    if (columnAlias != null) {
-      builder.append("AS").append(cqlName(columnAlias));
+    builder
+        .append(functionCall.getFunctionName() + "(")
+        .append(functionCall.getColumnName())
+        .append(")");
+    if (functionCall.getAlias() != null) {
+      builder.append("AS").append(cqlName(functionCall.getAlias()));
+    }
+  }
+
+  private static class FunctionCall {
+    final String columnName;
+    @Nullable String alias;
+    final String functionName;
+
+    private FunctionCall(String columnName, String alias, String functionName) {
+      this.columnName = columnName;
+      this.alias = alias;
+      this.functionName = functionName;
+    }
+
+    public static FunctionCall function(String name, String alias, String functionName) {
+      return new FunctionCall(name, alias, functionName);
+    }
+
+    public static FunctionCall function(String name, String functionName) {
+      return new FunctionCall(name, null, functionName);
+    }
+
+    public void setAlias(String alias) {
+      this.alias = alias;
+    }
+
+    public String getColumnName() {
+      return columnName;
+    }
+
+    public String getFunctionName() {
+      return functionName;
+    }
+
+    @Nullable
+    public String getAlias() {
+      return alias;
     }
   }
 }

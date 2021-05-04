@@ -81,40 +81,40 @@ class BuiltSelectTest extends BuiltQueryTest {
   }
 
   public static Stream<Arguments> functionsToTest() {
-    Supplier<QueryBuilder.QueryBuilder__20> base = () -> newBuilder().select().column("k2", "v1");
+    Supplier<QueryBuilder.QueryBuilder__5> base = () -> newBuilder().select().column("k2", "v1");
 
     return Stream.of(
         arguments(
             base.get().writeTimeColumn("v2").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, WRITETIME(v2) FROM ks.t1"),
         arguments(
-            base.get().writeTimeColumn("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().writeTimeColumn("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, WRITETIME(v2) AS column_alias FROM ks.t1"),
         arguments(
             base.get().count("v2").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, COUNT(v2) FROM ks.t1"),
         arguments(
-            base.get().count("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().count("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, COUNT(v2) AS column_alias FROM ks.t1"),
         arguments(
             base.get().max("v2").from(KS_NAME, "t1").build(), "SELECT k2, v1, MAX(v2) FROM ks.t1"),
         arguments(
-            base.get().max("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().max("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, MAX(v2) AS column_alias FROM ks.t1"),
         arguments(
             base.get().min("v2").from(KS_NAME, "t1").build(), "SELECT k2, v1, MIN(v2) FROM ks.t1"),
         arguments(
-            base.get().min("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().min("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, MIN(v2) AS column_alias FROM ks.t1"),
         arguments(
             base.get().sum("v2").from(KS_NAME, "t1").build(), "SELECT k2, v1, SUM(v2) FROM ks.t1"),
         arguments(
-            base.get().sum("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().sum("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, SUM(v2) AS column_alias FROM ks.t1"),
         arguments(
             base.get().avg("v2").from(KS_NAME, "t1").build(), "SELECT k2, v1, AVG(v2) FROM ks.t1"),
         arguments(
-            base.get().avg("v2", "column_alias").from(KS_NAME, "t1").build(),
+            base.get().avg("v2").as("column_alias").from(KS_NAME, "t1").build(),
             "SELECT k2, v1, AVG(v2) AS column_alias FROM ks.t1"));
   }
 
@@ -124,11 +124,16 @@ class BuiltSelectTest extends BuiltQueryTest {
         newBuilder()
             .select()
             .column("k2", "v1")
-            .count("v1", "count")
-            .max("v1", "max")
-            .min("v1", "min")
-            .sum("v1", "sum")
-            .avg("v1", "avg")
+            .count("v1")
+            .as("count")
+            .max("v1")
+            .as("max")
+            .min("v1")
+            .as("min")
+            .sum("v1")
+            .as("sum")
+            .avg("v1")
+            .as("avg")
             .from(KS_NAME, "t1")
             .build();
 
@@ -142,6 +147,33 @@ class BuiltSelectTest extends BuiltQueryTest {
     assertBoundQuery(
         select,
         "SELECT k2, v1, COUNT(v1) AS count, MAX(v1) AS max, MIN(v1) AS min, SUM(v1) AS sum, AVG(v1) AS avg FROM ks.t1");
+
+    assertThat(select.isStarSelect()).isFalse();
+    assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
+  }
+
+  @Test
+  public void shouldCreateOneQueryWithNSameAggregations() {
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .count("v1")
+            .as("count")
+            .count("k2")
+            .as("second_count")
+            .from(KS_NAME, "t1")
+            .build();
+
+    assertBuiltQuery(
+        query,
+        "SELECT k2, v1, COUNT(v1) AS count, COUNT(k2) AS second_count FROM ks.t1",
+        emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(
+        select, "SELECT k2, v1, COUNT(v1) AS count, COUNT(k2) AS second_count FROM ks.t1");
 
     assertThat(select.isStarSelect()).isFalse();
     assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
