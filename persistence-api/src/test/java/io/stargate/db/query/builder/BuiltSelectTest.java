@@ -153,6 +153,41 @@ class BuiltSelectTest extends BuiltQueryTest {
   }
 
   @Test
+  public void shouldCreateOneQueryWithAllAggregationsUsingColumnAPI() {
+    Column column = Column.create("v1", Column.Kind.Regular);
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .count(column)
+            .as("count")
+            .max(column)
+            .as("max")
+            .min(column)
+            .as("min")
+            .sum(column)
+            .as("sum")
+            .avg(column)
+            .as("avg")
+            .from(KS_NAME, "t1")
+            .build();
+
+    assertBuiltQuery(
+        query,
+        "SELECT k2, v1, COUNT(v1) AS count, MAX(v1) AS max, MIN(v1) AS min, SUM(v1) AS sum, AVG(v1) AS avg FROM ks.t1",
+        emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(
+        select,
+        "SELECT k2, v1, COUNT(v1) AS count, MAX(v1) AS max, MIN(v1) AS min, SUM(v1) AS sum, AVG(v1) AS avg FROM ks.t1");
+
+    assertThat(select.isStarSelect()).isFalse();
+    assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
+  }
+
+  @Test
   public void shouldCreateOneQueryWithNSameAggregations() {
     BuiltQuery<?> query =
         newBuilder()

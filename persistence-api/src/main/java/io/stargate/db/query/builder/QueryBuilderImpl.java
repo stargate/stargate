@@ -342,24 +342,48 @@ public class QueryBuilderImpl {
     functionCalls.add(FunctionCall.function(columnName, "WRITETIME"));
   }
 
+  public void writeTimeColumn(Column columnName) {
+    writeTimeColumn(columnName.name());
+  }
+
   public void count(String columnName) {
     functionCalls.add(FunctionCall.function(columnName, "COUNT"));
+  }
+
+  public void count(Column columnName) {
+    count(columnName.name());
   }
 
   public void max(String maxColumnName) {
     functionCalls.add(FunctionCall.function(maxColumnName, "MAX"));
   }
 
+  public void max(Column maxColumnName) {
+    max(maxColumnName.name());
+  }
+
   public void min(String minColumnName) {
     functionCalls.add(FunctionCall.function(minColumnName, "MIN"));
+  }
+
+  public void min(Column minColumnName) {
+    min(minColumnName.name());
   }
 
   public void sum(String sumColumnName) {
     functionCalls.add(FunctionCall.function(sumColumnName, "SUM"));
   }
 
+  public void sum(Column sumColumnName) {
+    sum(sumColumnName.name());
+  }
+
   public void avg(String avgColumnName) {
     functionCalls.add(FunctionCall.function(avgColumnName, "AVG"));
+  }
+
+  public void avg(Column avgColumnName) {
+    avg(avgColumnName.name());
   }
 
   public void star() {
