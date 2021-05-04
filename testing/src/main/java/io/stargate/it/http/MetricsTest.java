@@ -25,6 +25,9 @@ import io.stargate.it.storage.StargateSpec;
 import io.stargate.testing.TestingServicesActivator;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
@@ -63,20 +66,23 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .get()
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
-    Response execute = client.newCall(request).execute();
 
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    String[] lines = result.split(System.getProperty("line.separator"));
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith("http_server_requests"))
+            .collect(Collectors.toList());
+
     assertThat(lines)
         .anySatisfy(
             metric ->
                 assertThat(metric)
-                    .startsWith("http_server_requests")
                     .contains("method=\"GET\"")
                     .contains("module=\"restapi\"")
                     .contains("uri=\"/v1/keyspaces\"")
-                    .contains(String.format("status=\"%d\"", execute.code()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -91,20 +97,23 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .get()
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
-    Response execute = client.newCall(request).execute();
 
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    String[] lines = result.split(System.getProperty("line.separator"));
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith("http_server_requests"))
+            .collect(Collectors.toList());
+
     assertThat(lines)
         .anySatisfy(
             metric ->
                 assertThat(metric)
-                    .startsWith("http_server_requests")
                     .contains("method=\"GET\"")
                     .contains("module=\"graphqlapi\"")
                     .contains("uri=\"/graphql\"")
-                    .contains(String.format("status=\"%d\"", execute.code()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -119,20 +128,23 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
             .post(RequestBody.create("{}", MediaType.parse("application/json")))
             .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
             .build();
-    Response execute = client.newCall(request).execute();
 
+    int status = execute(client, request);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    String[] lines = result.split(System.getProperty("line.separator"));
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith("http_server_requests"))
+            .collect(Collectors.toList());
+
     assertThat(lines)
         .anySatisfy(
             metric ->
                 assertThat(metric)
-                    .startsWith("http_server_requests")
                     .contains("method=\"POST\"")
                     .contains("module=\"authapi\"")
                     .contains("uri=\"/v1/auth\"")
-                    .contains(String.format("status=\"%d\"", execute.code()))
+                    .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
   }
 
@@ -144,10 +156,13 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    String[] lines = result.split(System.getProperty("line.separator"));
+    List<String> moduleLines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith(module))
+            .collect(Collectors.toList());
 
     for (String metricGroup : expectedMetricGroups) {
-      assertThat(lines).anyMatch(line -> line.startsWith(module + "_" + metricGroup));
+      assertThat(moduleLines).anyMatch(line -> line.contains(metricGroup));
     }
   }
 
@@ -163,7 +178,19 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-    String[] lines = result.split(System.getProperty("line.separator"));
-    assertThat(lines).anyMatch(line -> line.startsWith(expectedPrefix));
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith(expectedPrefix))
+            .collect(Collectors.toList());
+
+    assertThat(lines).isNotEmpty();
+  }
+
+  private int execute(OkHttpClient client, Request request) throws IOException {
+    try (Response execute = client.newCall(request).execute()) {
+      assertThat(execute.body()).isNotNull();
+      assertThat(execute.code()).isNotZero();
+      return execute.code();
+    }
   }
 }

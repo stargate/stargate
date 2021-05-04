@@ -21,16 +21,13 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -45,6 +42,13 @@ public class Db {
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getDocDataStoreForTokenInternal);
+
+  private final LoadingCache<TokenAndHeaders, AuthenticatedDB> restTokensToDataStore =
+      Caffeine.newBuilder()
+          .maximumSize(10_000)
+          .expireAfterWrite(Duration.ofMinutes(1))
+          .build(this::getRestDataStoreForTokenInternal);
+
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
@@ -81,39 +85,6 @@ public class Db {
     return new AuthenticatedDB(dataStore, authenticationSubject);
   }
 
-  public AuthenticatedDB getDataStoreForToken(
-      String token, int pageSize, ByteBuffer pagingState, Map<String, String> headers)
-      throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(token, headers);
-    if (authenticationSubject == null) {
-      throw new UnauthorizedException("Missing authenticationSubject");
-    }
-    return new AuthenticatedDB(
-        getDataStoreInternal(authenticationSubject, pageSize, pagingState, headers),
-        authenticationSubject);
-  }
-
-  private DataStore getDataStoreInternal(
-      AuthenticationSubject authenticationSubject,
-      int pageSize,
-      ByteBuffer pagingState,
-      Map<String, String> headers) {
-    Parameters parameters =
-        Parameters.builder()
-            .pageSize(pageSize)
-            .pagingState(Optional.ofNullable(pagingState))
-            .build();
-
-    DataStoreOptions options =
-        DataStoreOptions.builder()
-            .defaultParameters(parameters)
-            .alwaysPrepareQueries(true)
-            .putAllCustomProperties(headers)
-            .build();
-    return dataStoreFactory.create(authenticationSubject.asUser(), options);
-  }
-
   private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticatedDB authenticatedDB =
@@ -124,9 +95,35 @@ public class Db {
         getAuthorizationService());
   }
 
-  public AuthenticationSubject getAuthenticationSubjectForToken(TokenAndHeaders tokenAndHeaders)
+  private AuthenticatedDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
-    return authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
+
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
+    DataStore dataStore =
+        dataStoreFactory.create(
+            authenticationSubject.asUser(),
+            DataStoreOptions.builder()
+                .alwaysPrepareQueries(true)
+                .putAllCustomProperties(tokenAndHeaders.headers)
+                .build());
+    return new AuthenticatedDB(dataStore, authenticationSubject);
+  }
+
+  public AuthenticatedDB getRestDataStoreForToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
+
+    try {
+      return restTokensToDataStore.get(TokenAndHeaders.create(token, headers));
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
   }
 
   public DocumentDB getDocDataStoreForToken(String token, Map<String, String> headers)

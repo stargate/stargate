@@ -2118,11 +2118,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}",
+                + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}",
             200);
     JsonNode responseBody1 = objectMapper.readTree(r);
 
-    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(100);
+    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(20);
     String pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
@@ -2131,13 +2131,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?page-size=100&where={\"*.value\": {\"$gt\": 0}}&page-state="
+                + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     JsonNode responseBody2 = objectMapper.readTree(r);
 
-    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(5);
-    assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
+    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(20);
 
     JsonNode data = responseBody2.requiredAt("/data");
     Iterator<JsonNode> iter = data.iterator();
@@ -2156,11 +2155,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50",
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10",
             200);
     responseBody1 = objectMapper.readTree(r);
 
-    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(50);
+    assertThat(responseBody1.requiredAt("/data").size()).isEqualTo(10);
     pageState = responseBody1.requiredAt("/pageState").requireNonNull().asText();
 
     r =
@@ -2169,13 +2168,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=50&page-state="
+                + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     responseBody2 = objectMapper.readTree(r);
 
-    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(34);
-    assertThat(responseBody2.at("/pageState").isMissingNode()).isTrue();
+    assertThat(responseBody2.requiredAt("/data").size()).isEqualTo(10);
 
     data = responseBody2.requiredAt("/data");
     iter = data.iterator();
@@ -2585,6 +2583,35 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // Make sure we've seen every key
     assertThat(docsSeen.size()).isEqualTo(3);
+  }
+
+  @Test
+  public void testSearchFullDocWithNestedFields() throws IOException {
+    JsonNode doc1 =
+        objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
+
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        doc1.toString(),
+        200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?fields=[\"a.value\",\"b.value\",\"bb.value\"]",
+            200);
+    JsonNode resp = objectMapper.readTree(r);
+    JsonNode data = resp.requiredAt("/data");
+    assertThat(data.size()).isEqualTo(1);
+
+    assertThat(data.requiredAt("/1"))
+        .isEqualTo(
+            objectMapper.readTree(
+                "{\"a\": {\"value\": 1},\"b\": {\"value\": 2}, \"bb\": {\"value\": 4}}"));
   }
 
   @Test

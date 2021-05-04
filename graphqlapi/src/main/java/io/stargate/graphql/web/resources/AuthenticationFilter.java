@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
@@ -55,7 +56,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     } catch (UnauthorizedException e) {
       context.abortWith(
           Response.status(Response.Status.UNAUTHORIZED)
-              .entity(ImmutableMap.of("errors", ImmutableList.of("Authentication required")))
+              .entity(buildError("Authentication required", context.getMediaType()))
               .build());
     }
   }
@@ -67,5 +68,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
       map.put(key, multimap.getFirst(key));
     }
     return map;
+  }
+
+  private static Object buildError(String message, MediaType mediaType) {
+    return mediaType != null
+            && ("json".equals(mediaType.getSubtype()) || "graphql".equals(mediaType.getSubtype()))
+        ? ImmutableMap.of("errors", ImmutableList.of(message))
+        : message;
   }
 }

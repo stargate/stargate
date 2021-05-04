@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableTable;
 import io.stargate.web.service.WhereParser;
@@ -44,6 +45,24 @@ public class WhereParserTest {
             .name("table")
             .keyspace("keyspace")
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
+            .build();
+
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
+
+    assertThat(where).isEqualTo(whereExpected);
+  }
+
+  @Test
+  public void testParseUppercaseColumn() throws IOException {
+    String whereParam = "{ \"Name\": {\"$eq\": \"Cliff\"} }";
+    List<BuiltCondition> whereExpected =
+        singletonList(BuiltCondition.of("Name", Predicate.EQ, "Cliff"));
+
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(ImmutableColumn.create("Name", Column.Type.Text))
             .build();
 
     List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
@@ -282,6 +301,28 @@ public class WhereParserTest {
             .name("table")
             .keyspace("keyspace")
             .addColumns(ImmutableColumn.create("name", Column.Type.Text))
+            .build();
+
+    List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);
+
+    assertThat(where).isEqualTo(whereExpected);
+  }
+
+  @Test
+  public void testInWithTimestampOperation() throws IOException {
+    String whereParam = "{\"created\":{\"$in\":[\"2021-04-23T18:42:22.139Z\"]}}";
+    List<BuiltCondition> whereExpected =
+        singletonList(
+            BuiltCondition.of(
+                "created",
+                Predicate.IN,
+                singletonList(Converters.toCqlValue(Type.Timestamp, "2021-04-23T18:42:22.139Z"))));
+
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(ImmutableColumn.create("created", Type.Timestamp))
             .build();
 
     List<BuiltCondition> where = WhereParser.parseWhere(whereParam, table);

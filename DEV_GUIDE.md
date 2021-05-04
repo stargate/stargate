@@ -7,7 +7,7 @@ Both are integrated with Maven: the build will fail if some files are not format
 
 To fix formatting issues from the command line, run the following:
 
-```
+```sh
 mvn xml-format:xml-format fmt:format
 ```
 
@@ -28,6 +28,7 @@ You can also build a single module with
 ```
 
 * If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` exception, upgrade your local `wget`
+
 ## Running Locally
 
 ### Prerequisite
@@ -63,14 +64,14 @@ sudo ifconfig lo0 alias 127.0.0.2
 
 Start Stargate from the command line with
 
-```
+```sh
 ./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
 
 # See all cli options with -h
 ```
 
 Or use a pre-built docker image
-Docker Hub: https://hub.docker.com/r/stargateio/
+Docker Hub: <https://hub.docker.com/r/stargateio/>
 
 ```sh
 docker pull stargateio/stargate-3_11:v0.0.2
@@ -87,13 +88,19 @@ passed to the JVM. This is required to break the single value of `JAVA_OPTS` int
 This kind of processing is not required for ordinary command line arguments, therefore they do not need any extra
 quoting.
 
-```shell script
+```sh script
 env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluster' ...
 ```
 
 ### Debugging
 
-If you're an IntelliJ user you can use start the project with
+If you're an IntelliJ user you can create the *JAR Application* run configuration, pointing to the `stargate-lib/stargate-starter-[VERSION].jar` and specifying `stargate-lib/` as the working directory.
+
+Then please disable **Instrumenting agent** in `Settings | Build, Execution, Deployment | Debugger | Async Stacktraces`.
+This will allow you to debug directly using the IntelliJ debug run option.
+You can debug any run configuration and tests as well.
+
+#### Remote debugging
 
 ```sh
 java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 -Dstargate.libdir=./stargate-lib stargate-lib/stargate-starter-1.0-SNAPSHOT.jar
@@ -101,7 +108,7 @@ java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 
 
 Alternatively, use the `JAVA_OPTS` environment variable to pass debugging options to the JVM
 
-```shell script
+```sh script
 env JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005' ./starctl --cluster-name stargate ...
 ```
 
@@ -156,7 +163,7 @@ transient storage process needs to be stopped manually (e.g. by using the `kill`
 
 To run integration tests in the default configuration, run:
 
-```shell
+```sh
 ./mvnw verify
 ```
 
@@ -166,13 +173,13 @@ On a reasonably powerful laptop it takes about 40 minutes.
 Note: Support for DSE is not turned on by default.
 To build and test Stargate with the DSE 6.8 persistence module, run:
 
-```shell
+```sh
 ./mvnw verify -P dse -P it-dse-6.8
 ```
 
 To run integration tests with all Cassandra and DSE persistence modules, run:
 
-```shell
+```sh
 ./mvnw verify -P it-cassandra-3.11 -P it-cassandra-4.0 -P dse -P it-dse-6.8
 ```
 
@@ -190,13 +197,20 @@ is managed manually, use the following options to convey connection information 
 
 When integration tests run with debugging options, the related Stargate nodes will also be
 started with debugging options (using consecutive ports starting with 5100), for example:
-```
+
+```sh
 -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=localhost:5100
 ```
 
 It is expected that the user has several java debuggers waiting for connections on ports `510N` -
 one for each Stargate node required for the test. Note that most of the tests start only
 one Stargate node.
+
+Check the picture below to understand how to set up the remote listening debug run configuration in IntelliJ.
+That configuration has to be started before running the integration test in the debug mode.
+Note that you will have two or more JVMs in the debug model then, one running the actual integration tests and at least one running the Stargate node. 
+
+![image](assets/remote-debug-listener.png#center)
 
 ### Running / Debugging Integration Tests in an IDE
 
@@ -255,3 +269,24 @@ context.
 Parameter injection works with any method where JUnit 5 supports parameter injection
 (e.g. constructors, `@Test` methods, `@Before*` methods) if the corresponding storage / Stargate
 nodes are available.
+
+
+## Updating Licenses Report
+
+To update the licenses-report.txt you'll need to install [fossa-cli](https://github.com/fossas/fossa-cli). Once
+you have that installed locally run the following from the root of stargate/stargate.
+
+
+```sh
+FOSSA_API_KEY=<TOKEN> fossa
+FOSSA_API_KEY=<TOKEN> fossa report licenses > foo.txt
+```
+
+It's best to write the report to a temporary file and use your diff
+tool of choice to merge the two together since fossa-cli generates a ton of duplicates.
+
+Finally, before committing your changes you'll want to clean up
+
+```sh
+rm foo.txt .fossa.yml
+```

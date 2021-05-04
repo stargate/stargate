@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.21-SNAPSHOT</version>
+    <version>1.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.graphql</groupId>
   <artifactId>graphqlapi</artifactId>
@@ -39,7 +39,7 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-servlet</artifactId>
-      <version>4.1.9</version>
+      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -49,7 +49,7 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>16.1</version>
+      <version>16.2</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -66,9 +66,13 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-forms</artifactId>
+    </dependency>
+    <dependency>
+    <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
-      <version>4.1.11</version>
+      <version>${dropwizard.metrics.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -133,6 +137,11 @@
     <dependency>
       <groupId>com.google.errorprone</groupId>
       <artifactId>error_prone_annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.apollographql.federation</groupId>
+      <artifactId>federation-graphql-java-support</artifactId>
+      <version>0.6.3</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

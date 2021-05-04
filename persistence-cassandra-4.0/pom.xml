@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.21-SNAPSHOT</version>
+    <version>1.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
@@ -54,13 +54,8 @@
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-ganglia</artifactId>
-      <version>3.2.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-graphite</artifactId>
-      <version>4.1.2</version>
+      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auto.factory</groupId>
@@ -119,7 +114,6 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.6</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -58,7 +58,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     } catch (Exception e) {
       buildException = e;
     }
-
     OperationDefinition operation = environment.getOperationDefinition();
 
     if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
@@ -72,11 +71,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       f.completeExceptionally(buildException);
       return f;
     }
-
     // Execute as a single statement
     return dataStore
         .execute(query)
-        .thenApply(rs -> ImmutableMap.of("value", environment.getArgument("value")));
+        .thenApply(rs -> toMutationResult(rs, environment.getArgument("value")));
   }
 
   private CompletableFuture<Map<String, Object>> executeAsBatch(
@@ -100,11 +98,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
                 "options can only de defined once in an @atomic mutation selection");
       }
     }
-
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
     } else if (batchContext.add(query) == selections) {
-      // All the statements were added successfully
+      // All the statements were added successfully and this is the last selection
       // Use the dataStore containing the options
       DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
       batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
@@ -120,15 +117,4 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       DataStore dataStore,
       AuthenticationSubject authenticationSubject)
       throws Exception;
-
-  protected Integer getTTL(DataFetchingEnvironment environment) {
-    Integer ttl = null;
-    if (environment.containsArgument("options") && environment.getArgument("options") != null) {
-      Map<String, Object> options = environment.getArgument("options");
-      if (options.containsKey("ttl") && options.get("ttl") != null) {
-        ttl = (Integer) options.get("ttl");
-      }
-    }
-    return ttl;
-  }
 }

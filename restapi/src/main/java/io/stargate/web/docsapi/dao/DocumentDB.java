@@ -1,7 +1,6 @@
 package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -25,6 +24,7 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -44,6 +44,7 @@ public class DocumentDB {
   private static final List<Column.ColumnType> allColumnTypes;
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
+  public static final int MAX_PAGE_SIZE = 20;
   public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
   private Boolean useLoggedBatches;
   public static final Integer SEARCH_PAGE_SIZE =
@@ -697,7 +698,7 @@ public class DocumentDB {
   }
 
   public void deleteDeadLeaves(
-      String keyspaceName, String tableName, String key, Map<String, List<JsonNode>> deadLeaves)
+      String keyspaceName, String tableName, String key, Map<String, Set<DeadLeaf>> deadLeaves)
       throws UnauthorizedException {
     long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
     deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
@@ -709,7 +710,7 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, List<JsonNode>> deadLeaves)
+      Map<String, Set<DeadLeaf>> deadLeaves)
       throws UnauthorizedException {
 
     getAuthorizationService()
@@ -717,22 +718,22 @@ public class DocumentDB {
             getAuthenticationSubject(), keyspaceName, tableName, Scope.DELETE, SourceAPI.REST);
 
     List<BoundQuery> queries = new ArrayList<>();
-    for (Map.Entry<String, List<JsonNode>> entry : deadLeaves.entrySet()) {
+    for (Map.Entry<String, Set<DeadLeaf>> entry : deadLeaves.entrySet()) {
       String path = entry.getKey();
-      List<JsonNode> deadNodes = entry.getValue();
+      Set<DeadLeaf> leaves = entry.getValue();
       List<String> pathParts = PATH_SPLITTER.splitToList(path);
       List<String> pathToDelete = pathParts.subList(1, pathParts.size());
 
       boolean deleteArray = false;
+      boolean deleteAll = false;
       List<String> keysToDelete = new ArrayList<>();
-      for (JsonNode deadNode : deadNodes) {
-        if (deadNode.isArray()) {
+      for (DeadLeaf deadLeaf : leaves) {
+        if (deadLeaf.getName().equals(DeadLeaf.STAR)) {
+          deleteAll = true;
+        } else if (deadLeaf.getName().equals(DeadLeaf.ARRAY)) {
           deleteArray = true;
         } else {
-          Iterator<String> it = deadNode.fieldNames();
-          while (it.hasNext()) {
-            keysToDelete.add(it.next());
-          }
+          keysToDelete.add(deadLeaf.getName());
         }
       }
 
@@ -742,7 +743,10 @@ public class DocumentDB {
                 keyspaceName, tableName, key, microsTimestamp, pathToDelete, keysToDelete));
       }
 
-      if (deleteArray) {
+      if (deleteAll) {
+        queries.add(
+            getPrefixDeleteStatement(keyspaceName, tableName, key, microsTimestamp, pathToDelete));
+      } else if (deleteArray) {
         queries.add(
             getSubpathArrayDeleteStatement(
                 keyspaceName, tableName, key, microsTimestamp, pathToDelete));

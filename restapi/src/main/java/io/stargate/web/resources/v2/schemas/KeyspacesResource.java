@@ -92,8 +92,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           List<Keyspace> keyspaces =
               authenticatedDB.getKeyspaces().stream()
@@ -145,8 +145,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
@@ -217,8 +217,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
 
@@ -289,8 +289,8 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

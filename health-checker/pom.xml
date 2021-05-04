@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.21-SNAPSHOT</version>
+    <version>1.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
@@ -50,7 +50,7 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
-      <version>4.1.11</version>
+      <version>${dropwizard.metrics.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

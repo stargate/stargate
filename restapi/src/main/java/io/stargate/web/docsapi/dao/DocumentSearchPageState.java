@@ -17,8 +17,6 @@ public class DocumentSearchPageState {
 
   @JsonIgnore boolean idFound;
 
-  @JsonIgnore boolean doneSkipping;
-
   @JsonCreator
   public DocumentSearchPageState(
       @JsonProperty("documentId") final String documentId,
@@ -26,7 +24,6 @@ public class DocumentSearchPageState {
     this.documentId = documentId;
     this.internalPageState = internalPageState;
     this.idFound = false;
-    this.doneSkipping = false;
     if (internalPageState == null) {
       throw new IllegalStateException("Malformed page state: parsed cassandra page state was null");
     }
@@ -44,7 +41,6 @@ public class DocumentSearchPageState {
             : Base64.getEncoder().encodeToString(internalPageStateBuf.array());
     this.internalPageStateBuf = internalPageStateBuf;
     this.idFound = false;
-    this.doneSkipping = false;
   }
 
   @JsonIgnore
@@ -58,18 +54,8 @@ public class DocumentSearchPageState {
   }
 
   @JsonIgnore
-  public boolean isDoneSkipping() {
-    return doneSkipping;
-  }
-
-  @JsonIgnore
   public void setIdFound(boolean val) {
     this.idFound = val;
-  }
-
-  @JsonIgnore
-  public void setDoneSkipping(boolean val) {
-    this.doneSkipping = val;
   }
 
   @JsonIgnore

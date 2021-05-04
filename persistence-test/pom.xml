@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.21-SNAPSHOT</version>
+    <version>1.0.24-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-test</artifactId>
@@ -49,7 +49,6 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.6</version>
       <scope>compile</scope>
     </dependency>
     <dependency>

@@ -1,5 +1,72 @@
 # Changelog
 
+## [v1.0.23](https://github.com/stargate/stargate/tree/v1.0.23) (2021-04-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.22...v1.0.23)
+
+**Fixed bugs:**
+
+- Inserting row with data not matching schema returns 500 [\#718](https://github.com/stargate/stargate/issues/718)
+
+**Closed issues:**
+
+- Logging every REST API call [\#896](https://github.com/stargate/stargate/issues/896)
+- Unable to use "$in" with timestamp field [\#887](https://github.com/stargate/stargate/issues/887)
+- trying to add Stargate Auth in aspdot net core api [\#880](https://github.com/stargate/stargate/issues/880)
+- Update row using GQL with `ifExists: true` response needs updates when the row doesn't actually get inserted/upserted [\#843](https://github.com/stargate/stargate/issues/843)
+- Add a way to insert multiple objects at once [\#743](https://github.com/stargate/stargate/issues/743)
+- Operation failed - received 0 responses and 1 failures: READ\_TOO\_MANY\_TOMBSTONES when using where= [\#711](https://github.com/stargate/stargate/issues/711)
+- Searching over collection does not support getting a nested field, while searching within a document does [\#571](https://github.com/stargate/stargate/issues/571)
+- Graphql schema first workflow [\#123](https://github.com/stargate/stargate/issues/123)
+
+**Merged pull requests:**
+
+- resolve possible request not flushed in metrics tests [\#909](https://github.com/stargate/stargate/pull/909) ([ivansenic](https://github.com/ivansenic))
+- small updates for the metrics test [\#902](https://github.com/stargate/stargate/pull/902) ([ivansenic](https://github.com/ivansenic))
+- Update readme with thanks [\#900](https://github.com/stargate/stargate/pull/900) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bring commons-io version into main pom.xml [\#898](https://github.com/stargate/stargate/pull/898) ([mpenick](https://github.com/mpenick))
+- Handle where with  using types other than text fixes \#887 [\#888](https://github.com/stargate/stargate/pull/888) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Regenerate licenses-report.txt [\#882](https://github.com/stargate/stargate/pull/882) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Refactor JSON construction/conversion into its own service, with tests [\#879](https://github.com/stargate/stargate/pull/879) ([EricBorczuk](https://github.com/EricBorczuk))
+- Upgrade jetty version because of vulnerability [\#876](https://github.com/stargate/stargate/pull/876) ([mpenick](https://github.com/mpenick))
+- Fix silent deploy failures [\#875](https://github.com/stargate/stargate/pull/875) ([mpenick](https://github.com/mpenick))
+- Add a way to insert multiple objects at once  [\#874](https://github.com/stargate/stargate/pull/874) ([tomekl007](https://github.com/tomekl007))
+- Add support for nested fields in document search [\#873](https://github.com/stargate/stargate/pull/873) ([EricBorczuk](https://github.com/EricBorczuk))
+- Use custom paging positions in Docs API [\#872](https://github.com/stargate/stargate/pull/872) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#871](https://github.com/stargate/stargate/pull/871) ([github-actions[bot]](https://github.com/apps/github-actions))
+- fixes \#843: better responses for the mutation queries [\#857](https://github.com/stargate/stargate/pull/857) ([ivansenic](https://github.com/ivansenic))
+- Support custom paging positions [\#855](https://github.com/stargate/stargate/pull/855) ([dimas-b](https://github.com/dimas-b))
+- gRPC basic value handling [\#852](https://github.com/stargate/stargate/pull/852) ([mpenick](https://github.com/mpenick))
+- Add GraphQL schema-first API \(fixes \#123\) [\#634](https://github.com/stargate/stargate/pull/634) ([olim7t](https://github.com/olim7t))
+
+## [v1.0.22](https://github.com/stargate/stargate/tree/v1.0.22) (2021-04-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.21...v1.0.22)
+
+**Fixed bugs:**
+
+- `fields` parameter with a space in it causes server error in REST API v2 [\#865](https://github.com/stargate/stargate/issues/865)
+
+**Closed issues:**
+
+- Add ability to get all rows in REST v2 [\#728](https://github.com/stargate/stargate/issues/728)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#864](https://github.com/stargate/stargate/pull/864) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added in Paginator object, use it everywhere [\#848](https://github.com/stargate/stargate/pull/848) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fixes \#728 - Add ability to get all rows in REST v2 [\#778](https://github.com/stargate/stargate/pull/778) ([eribeiro](https://github.com/eribeiro))
+
+## [v1.0.21](https://github.com/stargate/stargate/tree/v1.0.21) (2021-04-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.20...v1.0.21)
+
+**Merged pull requests:**
+
+- Use project version for grpc-proto [\#863](https://github.com/stargate/stargate/pull/863) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#860](https://github.com/stargate/stargate/pull/860) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added server http requests micrometer metric with custom tags [\#836](https://github.com/stargate/stargate/pull/836) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.20](https://github.com/stargate/stargate/tree/v1.0.20) (2021-04-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.19...v1.0.20)

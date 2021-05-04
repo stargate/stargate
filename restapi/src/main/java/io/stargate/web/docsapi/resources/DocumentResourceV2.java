@@ -5,16 +5,16 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.dao.DocumentSearchPageState;
+import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.exception.ResourceNotFoundException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.Error;
@@ -27,7 +27,6 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -50,7 +49,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,19 +62,9 @@ import org.slf4j.LoggerFactory;
 public class DocumentResourceV2 {
   @Inject private Db dbFactory;
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
-  private static final ObjectMapper mapper = new ObjectMapper();
-  private final DocumentService documentService;
-  private final int DEFAULT_PAGE_SIZE = DocumentDB.SEARCH_PAGE_SIZE;
-
-  public DocumentResourceV2() {
-    documentService = new DocumentService();
-  }
-
-  @VisibleForTesting
-  DocumentResourceV2(Db dbFactory, DocumentService documentService) {
-    this.dbFactory = dbFactory;
-    this.documentService = documentService;
-  }
+  @Inject private ObjectMapper mapper;
+  @Inject private DocumentService documentService;
+  @Inject private DocsApiConfiguration docsApiConfiguration;
 
   @POST
   @ManagedAsync
@@ -672,16 +660,16 @@ public class DocumentResourceV2 {
             logger.debug(json);
             return Response.ok(json).build();
           } else {
-            ByteBuffer pageState = null;
-            if (pageStateParam != null) {
-              byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-              pageState = ByteBuffer.wrap(decodedBytes);
-            }
+            final Paginator paginator =
+                new Paginator(
+                    dbFactory.getDataStore(),
+                    pageStateParam,
+                    pageSizeParam,
+                    pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-            int pageSize = pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE;
-            ImmutablePair<JsonNode, ByteBuffer> result =
+            JsonNode result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id, pageSize, pageState);
+                    db, namespace, collection, filters, selectionList, id, paginator);
 
             if (result == null) {
               return Response.noContent().build();
@@ -690,15 +678,12 @@ public class DocumentResourceV2 {
             String json;
 
             if (raw == null || !raw) {
-              String pagingStateStr =
-                  result.right != null
-                      ? Base64.getEncoder().encodeToString(result.right.array())
-                      : null;
+              String pagingStateStr = paginator.makeExternalPagingState();
               json =
                   mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(id, pagingStateStr, result.left));
+                      new DocumentResponseWrapper<>(id, pagingStateStr, result));
             } else {
-              json = mapper.writeValueAsString(result.left);
+              json = mapper.writeValueAsString(result);
             }
 
             logger.debug(json);
@@ -775,17 +760,16 @@ public class DocumentResourceV2 {
             selectionList = documentService.convertToSelectionList(fieldsJson);
           }
 
-          DocumentSearchPageState pageState = null;
-          if (pageStateParam != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = mapper.readValue(decodedBytes, DocumentSearchPageState.class);
-          }
-
-          int pageSize = DEFAULT_PAGE_SIZE;
-
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
-          ImmutablePair<JsonNode, DocumentSearchPageState> results;
+          final Paginator paginator =
+              new Paginator(
+                  dbFactory.getDataStore(),
+                  pageStateParam,
+                  pageSizeParam,
+                  docsApiConfiguration.getSearchPageSize());
+
+          JsonNode results;
 
           if (pageSizeParam > 20) {
             throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
@@ -793,44 +777,25 @@ public class DocumentResourceV2 {
           if (filters.isEmpty()) {
             results =
                 documentService.getFullDocuments(
-                    db,
-                    namespace,
-                    collection,
-                    selectionList,
-                    pageState,
-                    pageSize,
-                    Math.max(1, pageSizeParam));
+                    db, namespace, collection, selectionList, paginator);
           } else {
             results =
                 documentService.getFullDocumentsFiltered(
-                    db,
-                    namespace,
-                    collection,
-                    filters,
-                    selectionList,
-                    pageState,
-                    pageSize,
-                    Math.max(1, pageSizeParam));
+                    db, namespace, collection, filters, selectionList, paginator);
           }
 
           if (results == null) {
             return Response.noContent().build();
           }
 
-          JsonNode docsResult = results.left;
-          String pagingStateStr = null;
-          if (results.right != null) {
-            byte[] pagingJson = mapper.writeValueAsBytes(results.right);
-            pagingStateStr = Base64.getEncoder().encodeToString(pagingJson);
-          }
-
           String json;
           if (raw == null || !raw) {
             json =
                 mapper.writeValueAsString(
-                    new DocumentResponseWrapper<>(null, pagingStateStr, docsResult));
+                    new DocumentResponseWrapper<>(
+                        null, paginator.makeExternalPagingState(), results));
           } else {
-            json = mapper.writeValueAsString(docsResult);
+            json = mapper.writeValueAsString(results);
           }
 
           logger.debug(json);

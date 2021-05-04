@@ -12,11 +12,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -32,12 +28,9 @@ import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.SchemaBuilder.SchemaBuilder__5;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.stargate.web.docsapi.service.json.DeadLeaf;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
@@ -318,16 +311,12 @@ public class DocumentDBTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
 
-    Map<String, List<JsonNode>> deadLeaves = new HashMap<>();
-    deadLeaves.put("$.a", new ArrayList<>());
-    ObjectNode objectNode = mapper.createObjectNode();
-    objectNode.set("b", TextNode.valueOf("b"));
-    deadLeaves.get("$.a").add(objectNode);
+    Map<String, Set<DeadLeaf>> deadLeaves = new LinkedHashMap<>();
+    deadLeaves.put("$.a.b", new HashSet<>());
+    deadLeaves.get("$.a.b").add(ImmutableDeadLeaf.builder().name("").build());
 
-    ArrayNode arrayNode = mapper.createArrayNode();
-    arrayNode.add(TextNode.valueOf("c"));
-    deadLeaves.put("$.b", new ArrayList<>());
-    deadLeaves.get("$.b").add(arrayNode);
+    deadLeaves.put("$.b", new HashSet<>());
+    deadLeaves.get("$.b").add(DeadLeaf.ARRAYLEAF);
 
     documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves);
 
@@ -336,9 +325,9 @@ public class DocumentDBTest {
 
     assertThat(generatedQueries.get(0).queryString())
         .isEqualTo(
-            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 IN ?");
+            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 IN ?");
     assertThat(javaValues(generatedQueries.get(0).values()))
-        .isEqualTo(asList(1L, "key", "a", singletonList("b")));
+        .isEqualTo(asList(1L, "key", "a", "b", singletonList("")));
 
     assertThat(generatedQueries.get(1).queryString())
         .isEqualTo(
