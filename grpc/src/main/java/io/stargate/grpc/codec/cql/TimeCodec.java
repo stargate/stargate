@@ -15,7 +15,7 @@ public class TimeCodec implements ValueCodec {
       throw new IllegalArgumentException("Expected time type");
     }
     long time = value.getTime();
-    if (time < 0 || time > 86399999999999l) {
+    if (time < 0 || time > 86399999999999L) {
       throw new IllegalArgumentException("Valid range for time is 0 to 86399999999999 nanoseconds");
     }
     return TypeCodecs.BIGINT.encodePrimitive(time, PROTOCOL_VERSION);
