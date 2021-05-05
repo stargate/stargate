@@ -46,7 +46,7 @@ public class UserDefinedTypeField {
   @ApiModelProperty(
       example = "text",
       required = true,
-      value = "The type of data allowed in the type.")
+      value = "A valid type of data (e.g, text, int, etc) allowed in the type.")
   public String getTypeDefinition() {
     return typeDefinition;
   }

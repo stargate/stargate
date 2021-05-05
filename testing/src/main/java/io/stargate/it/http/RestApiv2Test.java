@@ -2391,11 +2391,45 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testInvalidUdtType() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"typeDefinition\":\"text\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void dropUdt() throws IOException {
     createKeyspace(keyspaceName);
 
     String udtString =
-        "{\"name\": \"test_udt\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"int\"}]}";
+        "{\"name\": \"test_udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2405,14 +2439,38 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
         HttpStatus.SC_NO_CONTENT);
 
     // delete a non existent UDT
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt"),
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
         HttpStatus.SC_BAD_REQUEST);
+
+    // delete an UDT in use
+    udtString =
+        "{\"name\": \"fullname\", \"fieldDefinitions\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "name fullname"),
+        Collections.singletonList("id"),
+        null);
+
+    String res =
+        RestUtils.delete(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "fullname"),
+            HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test

@@ -37,7 +37,6 @@ import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
-import io.stargate.web.models.UserDefinedTypeResponse;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;

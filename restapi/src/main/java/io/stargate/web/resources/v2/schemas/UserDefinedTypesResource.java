@@ -113,7 +113,8 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
 
           if (keyspace == null) {
@@ -177,7 +178,8 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -242,7 +244,8 @@ public class UserDefinedTypesResource {
 
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
 
           if (keyspace == null) {
@@ -287,6 +290,15 @@ public class UserDefinedTypesResource {
                     fieldName,
                     Kind.Regular,
                     Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition())));
+          }
+
+          if (columns.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "There should be at least one field defined",
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
           }
 
           UserDefinedType udt =
@@ -341,7 +353,8 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, getAllHeaders(request));
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
           Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -370,6 +383,7 @@ public class UserDefinedTypesResource {
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
+
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
