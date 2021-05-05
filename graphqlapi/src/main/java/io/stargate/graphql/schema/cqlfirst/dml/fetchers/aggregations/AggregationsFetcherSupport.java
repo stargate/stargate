@@ -26,6 +26,7 @@ import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.DbColumnGetter;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,7 @@ public class AggregationsFetcherSupport {
   }
 
   public void addAggregationFunctions(
-      DataFetchingEnvironment environment, QueryBuilder.QueryBuilder__41 queryBuilder) {
+      DataFetchingEnvironment environment, QueryBuilder.QueryBuilder__20 queryBuilder) {
     List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
     if (valuesFields.isEmpty()) {
       return;
@@ -139,81 +140,75 @@ public class AggregationsFetcherSupport {
 
   private void addAvg(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
+      QueryBuilder.QueryBuilder__20 queryBuilder,
       SelectedField selectedField) {
     List<String> args = getAndValidateArgs(arguments, AVG);
     String column = getAndValidateColumn(args);
 
-    // todo after https://github.com/stargate/stargate/issues/907 is done
     String alias = selectedField.getAlias();
     if (alias != null) {
-      // queryBuilder.avg(column, alias);
+      queryBuilder.avg(column).as(alias);
     } else {
-      // queryBuilder.avg(column);
+      queryBuilder.avg(column);
     }
   }
 
   private void addCount(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
+      QueryBuilder.QueryBuilder__20 queryBuilder,
       SelectedField selectedField) {
     List<String> args = getAndValidateArgs(arguments, COUNT);
     String column = getAndValidateColumn(args);
 
-    // todo after https://github.com/stargate/stargate/issues/907 is done
     String alias = selectedField.getAlias();
     if (alias != null) {
-      // queryBuilder.avg(column, alias);
+      queryBuilder.count(column).as(alias);
     } else {
-      // queryBuilder.avg(column);
+      queryBuilder.count(column);
     }
   }
 
   private void addMin(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
+      QueryBuilder.QueryBuilder__20 queryBuilder,
       SelectedField selectedField) {
     List<String> args = getAndValidateArgs(arguments, MIN);
     String column = getAndValidateColumn(args);
 
-    // todo after https://github.com/stargate/stargate/issues/907 is done
     String alias = selectedField.getAlias();
     if (alias != null) {
-      // queryBuilder.min(column, alias);
+      queryBuilder.min(column).as(alias);
     } else {
-      // queryBuilder.min(column);
+      queryBuilder.min(column);
     }
   }
 
   private void addMax(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
+      QueryBuilder.QueryBuilder__20 queryBuilder,
       SelectedField selectedField) {
     List<String> args = getAndValidateArgs(arguments, MAX);
     String column = getAndValidateColumn(args);
-
-    // todo after https://github.com/stargate/stargate/issues/907 is done
     String alias = selectedField.getAlias();
     if (alias != null) {
-      // queryBuilder.max(column, alias);
+      queryBuilder.max(column).as(alias);
     } else {
-      // queryBuilder.max(column);
+      queryBuilder.max(column);
     }
   }
 
   private void addSum(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__41 queryBuilder,
+      QueryBuilder.QueryBuilder__20 queryBuilder,
       SelectedField selectedField) {
     List<String> args = getAndValidateArgs(arguments, SUM);
     String column = getAndValidateColumn(args);
 
-    // todo after https://github.com/stargate/stargate/issues/907 is done
     String alias = selectedField.getAlias();
     if (alias != null) {
-      // queryBuilder.sum(column, alias);
+      queryBuilder.sum(column).as(alias);
     } else {
-      // queryBuilder.sum(column);
+      queryBuilder.sum(column);
     }
   }
 
@@ -244,7 +239,7 @@ public class AggregationsFetcherSupport {
     return (String) arguments.get("name");
   }
 
-  private List<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {
+  private Set<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {
     // all aggregation functions MUST have the 'name' argument
     return valuesField.getSelectionSet().getFields().stream()
         .filter(
@@ -253,6 +248,6 @@ public class AggregationsFetcherSupport {
               // the 'name' value must be a non-null String
               return name instanceof String;
             })
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 }

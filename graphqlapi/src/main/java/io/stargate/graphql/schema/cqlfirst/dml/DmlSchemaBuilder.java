@@ -35,7 +35,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
-import io.stargate.graphql.schema.cqlfirst.dml.types.scalars.CustomScalars;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -528,12 +528,12 @@ public class DmlSchemaBuilder {
     builder.field(buildFunctionField(INT_FUNCTION, GraphQLInt));
     // The GraphQLFloat corresponds to CQL double
     builder.field(buildFunctionField(DOUBLE_FUNCTION, GraphQLFloat));
-    builder.field(buildFunctionField(BIGINT_FUNCTION, CustomScalars.BIGINT));
-    builder.field(buildFunctionField(DECIMAL_FUNCTION, CustomScalars.DECIMAL));
-    builder.field(buildFunctionField(VARINT_FUNCTION, CustomScalars.VARINT));
-    builder.field(buildFunctionField(FLOAT_FUNCTION, CustomScalars.FLOAT));
-    builder.field(buildFunctionField(SMALLINT_FUNCTION, CustomScalars.SMALLINT));
-    builder.field(buildFunctionField(TINYINT_FUNCTION, CustomScalars.TINYINT));
+    builder.field(buildFunctionField(BIGINT_FUNCTION, CqlScalar.BIGINT.getGraphqlType()));
+    builder.field(buildFunctionField(DECIMAL_FUNCTION, CqlScalar.DECIMAL.getGraphqlType()));
+    builder.field(buildFunctionField(VARINT_FUNCTION, CqlScalar.VARINT.getGraphqlType()));
+    builder.field(buildFunctionField(FLOAT_FUNCTION, CqlScalar.FLOAT.getGraphqlType()));
+    builder.field(buildFunctionField(SMALLINT_FUNCTION, CqlScalar.SMALLINT.getGraphqlType()));
+    builder.field(buildFunctionField(TINYINT_FUNCTION, CqlScalar.TINYINT.getGraphqlType()));
   }
 
   private GraphQLFieldDefinition buildFunctionField(
