@@ -18,9 +18,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -53,14 +51,18 @@ import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.NoSpamLogger;
-import org.apache.cassandra.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Conversion {
+
   private static final Logger logger = LoggerFactory.getLogger(Conversion.class);
   private static final NoSpamLogger noSpamLogger =
       NoSpamLogger.getLogger(logger, 5L, TimeUnit.MINUTES);
+
+  // This LivenessInfo is used only for constructing intermediate `Row` objects so as to build
+  // a `PagingState`, but it does not actually go into the `PagingState` object
+  private static final LivenessInfo DUMMY_LIVENESS_INFO = LivenessInfo.create(0, 0);
 
   private static final Map<Class<? extends AbstractType>, Column.Type> TYPE_MAPPINGS;
 
@@ -83,39 +85,13 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
-  private static ByteBuffer getKeyValue(
-      PagingPosition pos, TableMetadata table, ColumnSpecification c) {
-    ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
-
-    if (value == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Key value is not present in current row (table: %s, column: %s)",
-              table.name, c.name.toCQLString()));
-    }
-
-    return value;
-  }
-
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    Set<Pair<String, String>> tables =
-        pos.currentRow().keySet().stream()
-            .map(c -> Pair.create(c.keyspace(), c.table()))
-            .collect(Collectors.toSet());
-
-    if (tables.isEmpty()) {
-      throw new IllegalArgumentException("Missing table information in custom paging request.");
-    }
-
-    if (tables.size() > 1) {
-      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
-    }
-
-    Pair<String, String> tableName = tables.iterator().next();
-    TableMetadata table = Schema.instance.validateTable(tableName.left, tableName.right);
+    TableMetadata table = Schema.instance.validateTable(pos.table().keyspace(), pos.table().name());
 
     Object[] pkValues =
-        table.partitionKeyColumns().stream().map(c -> getKeyValue(pos, table, c)).toArray();
+        table.partitionKeyColumns().stream()
+            .map(c -> pos.requiredValue(c.name.toCQLString()))
+            .toArray();
     Clustering<?> clustering = table.partitionKeyAsClusteringComparator().make(pkValues);
     ByteBuffer serializedKey = clustering.serializeAsPartitionKey();
 
@@ -131,11 +107,11 @@ public class Conversion {
       case NEXT_ROW:
         ByteBuffer[] ccValues =
             table.clusteringColumns().stream()
-                .map(c -> getKeyValue(pos, table, c))
+                .map(c -> pos.requiredValue(c.name.toCQLString()))
                 .toArray(ByteBuffer[]::new);
 
         Clustering<?> rowClustering = Clustering.make(ccValues);
-        BTreeRow row = BTreeRow.noCellLiveRow(rowClustering, LivenessInfo.create(0, 0));
+        BTreeRow row = BTreeRow.noCellLiveRow(rowClustering, DUMMY_LIVENESS_INFO);
         rowMark = RowMark.create(table, row, protocolVersion);
         break;
 

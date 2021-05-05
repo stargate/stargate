@@ -37,9 +37,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.ColumnSpecification;
@@ -90,7 +88,6 @@ import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.ProtocolVersionLimit;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.NoSpamLogger;
-import org.apache.cassandra.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,6 +95,10 @@ public class Conversion {
   private static final Logger LOG = LoggerFactory.getLogger(Conversion.class);
   private static final NoSpamLogger noSpamLogger =
       NoSpamLogger.getLogger(LOG, 5L, TimeUnit.MINUTES);
+
+  // This LivenessInfo is used only for constructing intermediate `Row` objects so as to build
+  // a `PagingState`, but it does not actually go into the `PagingState` object
+  private static final LivenessInfo DUMMY_LIVENESS_INFO = LivenessInfo.create(0, 0);
 
   // A number of constructors for classes related to QueryOptions but that are not accessible in C*
   // at the moment and need to be accessed through reflection.
@@ -168,41 +169,16 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
-  private static ByteBuffer getKeyValue(PagingPosition pos, CFMetaData cfm, ColumnSpecification c) {
-    ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
-
-    if (value == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Key value is not present in current row (table: %s, column: %s)",
-              cfm.cfName, c.name.toCQLString()));
-    }
-
-    return value;
-  }
-
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    Set<Pair<String, String>> tables =
-        pos.currentRow().keySet().stream()
-            .map(c -> Pair.create(c.keyspace(), c.table()))
-            .collect(Collectors.toSet());
-
-    if (tables.isEmpty()) {
-      throw new IllegalArgumentException("Missing table information in custom paging request.");
-    }
-
-    if (tables.size() > 1) {
-      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
-    }
-
-    Pair<String, String> table = tables.iterator().next();
-    CFMetaData cfm = Schema.instance.getCFMetaData(table.left, table.right);
+    CFMetaData cfm = Schema.instance.getCFMetaData(pos.table().keyspace(), pos.table().name());
     if (cfm == null) {
-      throw new IllegalStateException("Table not found: " + table);
+      throw new IllegalStateException("Table not found: " + pos.table().name());
     }
 
     Object[] pkValues =
-        cfm.partitionKeyColumns().stream().map(c -> getKeyValue(pos, cfm, c)).toArray();
+        cfm.partitionKeyColumns().stream()
+            .map(c -> pos.requiredValue(c.name.toCQLString()))
+            .toArray();
     Clustering partitionKey = cfm.getKeyValidatorAsClusteringComparator().make(pkValues);
     ByteBuffer serializedKey = CFMetaData.serializePartitionKey(partitionKey);
 
@@ -218,11 +194,11 @@ public class Conversion {
       case NEXT_ROW:
         ByteBuffer[] ccValues =
             cfm.clusteringColumns().stream()
-                .map(c -> getKeyValue(pos, cfm, c))
+                .map(c -> pos.requiredValue(c.name.toCQLString()))
                 .toArray(ByteBuffer[]::new);
 
         Clustering rowClustering = Clustering.make(ccValues);
-        BTreeRow row = BTreeRow.noCellLiveRow(rowClustering, LivenessInfo.create(0, 0));
+        BTreeRow row = BTreeRow.noCellLiveRow(rowClustering, DUMMY_LIVENESS_INFO);
         rowMark = RowMark.create(cfm, row, protocolVersion);
         break;
 
