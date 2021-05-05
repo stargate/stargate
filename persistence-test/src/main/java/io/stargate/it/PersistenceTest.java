@@ -1748,7 +1748,7 @@ public abstract class PersistenceTest {
             .build()
             .bind();
 
-    java.util.List<Row> allRows = dataStore.execute(selectAll).get().rows();
+    List<Row> allRows = dataStore.execute(selectAll).get().rows();
     List<Integer> keys = allRows.stream().map(r -> r.getInt(0)).collect(Collectors.toList());
     List<Integer> values = allRows.stream().map(r -> r.getInt(1)).collect(Collectors.toList());
     int key2 = keys.get(1);
@@ -1774,7 +1774,7 @@ public abstract class PersistenceTest {
             .bind();
 
     ResultSet rs = dataStore.execute(select, p -> p.toBuilder().pageSize(5).build()).get();
-    java.util.List<Row> rows = rs.currentPageRows();
+    List<Row> rows = rs.currentPageRows();
     assertThat(rows).hasSize(5); // full page
     Row row2 = rows.get(1);
     assertThat(row2.getInt(0)).isEqualTo(key2);
