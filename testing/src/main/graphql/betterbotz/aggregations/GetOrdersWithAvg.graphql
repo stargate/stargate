@@ -1,5 +1,5 @@
-query GetOrdersWithAvg($value: OrdersInput) {
-    Orders(value: $value) {
+query GetOrdersWithAvg($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
         pageState
         values {
             id
@@ -10,7 +10,7 @@ query GetOrdersWithAvg($value: OrdersInput) {
             description
             price
             sellPrice
-            _float_function(name: "avg", args: ["price"])
+            _decimal_function(name: "avg", args: ["price"])
         }
     }
 }

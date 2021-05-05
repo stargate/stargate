@@ -1,16 +1,8 @@
-query GetOrdersWithCount($value: OrdersInput) {
-    Orders(value: $value) {
+query GetOrdersWithCount($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
         pageState
         values {
-            id
-            prodId
-            prodName
-            customerName
-            address
-            description
-            price
-            sellPrice
-            count: _int_function(name: "count", args: ["id"])
+            count: _bigint_function(name: "count", args: ["id"])
         }
     }
 }

@@ -5138,6 +5138,90 @@
               "inputFields": null,
               "isDeprecated": false,
               "deprecationReason": null
+            },
+            {
+              "name": "_bigint_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "BigInt",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_decimal_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Decimal",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
             }
           ],
           "inputFields": null,

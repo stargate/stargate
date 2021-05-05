@@ -1,5 +1,5 @@
-query GetOrdersWithMax($value: OrdersInput) {
-    Orders(value: $value) {
+query GetOrdersWithMax($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
         pageState
         values {
             id
@@ -10,7 +10,7 @@ query GetOrdersWithMax($value: OrdersInput) {
             description
             price
             sellPrice
-            max: _int_function(name: "max", args: ["price"])
+            max: _decimal_function(name: "max", args: ["price"])
         }
     }
 }

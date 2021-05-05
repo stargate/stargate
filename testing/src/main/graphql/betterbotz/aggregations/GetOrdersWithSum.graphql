@@ -1,5 +1,5 @@
-query GetOrdersWithSum($value: OrdersInput) {
-    Orders(value: $value) {
+query GetOrdersWithSum($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
         pageState
         values {
             id
@@ -10,7 +10,7 @@ query GetOrdersWithSum($value: OrdersInput) {
             description
             price
             sellPrice
-            sum: _int_function(name: "sum", args: ["price"])
+            sum: _decimal_function(name: "sum", args: ["price"])
         }
     }
 }

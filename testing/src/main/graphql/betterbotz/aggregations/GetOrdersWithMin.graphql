@@ -1,5 +1,5 @@
-query GetOrdersWithMin($value: OrdersInput) {
-    Orders(value: $value) {
+query GetOrdersWithMin($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
         pageState
         values {
             id
@@ -10,7 +10,7 @@ query GetOrdersWithMin($value: OrdersInput) {
             description
             price
             sellPrice
-            min: _int_function(name: "min", args: ["price"])
+            min: _decimal_function(name: "min", args: ["price"])
         }
     }
 }

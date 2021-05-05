@@ -138,7 +138,7 @@ public class AggregationsFetcherSupport {
     // generate aggregation column name and get the value
     else {
       String columnName = generateAggregationColumnName(selectedField);
-      columns.put(columnName, rowValueExtractor.apply(row, columnName));
+      columns.put(selectedField.getName(), rowValueExtractor.apply(row, columnName));
     }
   }
 

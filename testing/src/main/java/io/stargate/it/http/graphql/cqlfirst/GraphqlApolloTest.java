@@ -2104,7 +2104,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should calculate number of orders using count aggregation")
-  public void insertOrdersAndCountUsingIntFunctionWithAlias() {
+  public void insertOrdersAndCountUsingBigIntFunctionWithAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")
@@ -2114,7 +2114,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
-            .prodName("p2")
+            .prodName("p1")
             .customerName("c2")
             .price("2500")
             .description("d2")
@@ -2129,7 +2129,10 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithCountQuery query = GetOrdersWithCountQuery.builder().value(order1).build();
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+
+    GetOrdersWithCountQuery query = GetOrdersWithCountQuery.builder().filter(filterInput).build();
 
     GetOrdersWithCountQuery.Data result = getObservable(client.query(query));
 
@@ -2138,19 +2141,19 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should calculate average of orders' price using avg aggregation")
-  public void insertOrdersAndAvgUsingFloatFunctionWithoutAlias() {
+  public void insertOrdersAndAvgUsingDecimalFunctionWithoutAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")
             .customerName("c1")
-            .price("5")
+            .price("4")
             .description("d1")
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
-            .prodName("p2")
+            .prodName("p1")
             .customerName("c2")
-            .price("7")
+            .price("10")
             .description("d2")
             .build();
 
@@ -2163,13 +2166,16 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithAvgQuery query = GetOrdersWithAvgQuery.builder().value(order1).build();
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+
+    GetOrdersWithAvgQuery query = GetOrdersWithAvgQuery.builder().filter(filterInput).build();
 
     GetOrdersWithAvgQuery.Data result = getObservable(client.query(query));
 
-    // avg price is 5 + 7 / 2 = 8.5
-    assertThat(result.getOrders().get().getValues().get().get(0).get_float_function().get())
-        .isEqualTo(8.5);
+    // avg price is (4 + 10) / 2 = 7
+    assertThat(result.getOrders().get().getValues().get().get(0).get_decimal_function().get())
+        .isEqualTo("7");
   }
 
   @Test
@@ -2184,7 +2190,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
-            .prodName("p2")
+            .prodName("p1")
             .customerName("c2")
             .price("2500")
             .description("d2")
@@ -2199,11 +2205,14 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithMaxQuery query = GetOrdersWithMaxQuery.builder().value(order1).build();
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+
+    GetOrdersWithMaxQuery query = GetOrdersWithMaxQuery.builder().filter(filterInput).build();
 
     GetOrdersWithMaxQuery.Data result = getObservable(client.query(query));
 
-    assertThat(result.getOrders().get().getValues().get().get(0).getMax().get()).isEqualTo(3000);
+    assertThat(result.getOrders().get().getValues().get().get(0).getMax().get()).isEqualTo("3000");
   }
 
   @Test
@@ -2218,7 +2227,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
-            .prodName("p2")
+            .prodName("p1")
             .customerName("c2")
             .price("2500")
             .description("d2")
@@ -2233,11 +2242,13 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithMinQuery query = GetOrdersWithMinQuery.builder().value(order1).build();
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+    GetOrdersWithMinQuery query = GetOrdersWithMinQuery.builder().filter(filterInput).build();
 
     GetOrdersWithMinQuery.Data result = getObservable(client.query(query));
 
-    assertThat(result.getOrders().get().getValues().get().get(0).getMin().get()).isEqualTo(2500);
+    assertThat(result.getOrders().get().getValues().get().get(0).getMin().get()).isEqualTo("2500");
   }
 
   @Test
@@ -2252,7 +2263,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .build();
     OrdersInput order2 =
         OrdersInput.builder()
-            .prodName("p2")
+            .prodName("p1")
             .customerName("c2")
             .price("2500")
             .description("d2")
@@ -2267,11 +2278,13 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
     // execute aggregation with count()
-    GetOrdersWithSumQuery query = GetOrdersWithSumQuery.builder().value(order1).build();
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+    GetOrdersWithSumQuery query = GetOrdersWithSumQuery.builder().filter(filterInput).build();
 
     GetOrdersWithSumQuery.Data result = getObservable(client.query(query));
 
-    assertThat(result.getOrders().get().getValues().get().get(0).getSum().get()).isEqualTo(5500);
+    assertThat(result.getOrders().get().getValues().get().get(0).getSum().get()).isEqualTo("5500");
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
