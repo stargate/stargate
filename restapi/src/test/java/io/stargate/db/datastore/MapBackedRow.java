@@ -78,8 +78,8 @@ public class MapBackedRow implements Row {
   @Override
   public ByteBuffer getBytesUnsafe(@NonNull String name) {
     // Should only be used for building paging name, not for actual values.
-    // Assume String keys for now.
-    String value = (String) dataMap.get(name);
+    // Assume that relevant values are Strings.
+    String value = dataMap.get(name).toString();
     return ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8));
   }
 

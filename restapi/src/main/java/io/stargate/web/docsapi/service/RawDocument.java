@@ -21,7 +21,6 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -77,27 +76,14 @@ public class RawDocument {
       throw new IllegalStateException("Cannot resume paging from an empty document");
     }
 
+    ResumeMode resumeMode = ResumeMode.NEXT_PARTITION;
     if (docKey.size() > 1) {
-      throw new IllegalStateException("Resuming paging from a sub-document is not supported.");
+      resumeMode = ResumeMode.NEXT_ROW;
     }
 
     Row lastRow = rows.get(rows.size() - 1);
-    Column keyColumn =
-        lastRow.columns().stream()
-            .filter(c -> "key".equals(c.name()))
-            .findFirst()
-            .orElseThrow(
-                () -> new IllegalStateException("Column 'key' not found in document table"));
-    ByteBuffer keyValue = lastRow.getBytesUnsafe("key");
-
-    if (keyValue == null) {
-      throw new IllegalStateException("Missing document key");
-    }
 
     return resultSet.makePagingState(
-        PagingPosition.builder()
-            .putCurrentRow(keyColumn, keyValue)
-            .resumeFrom(ResumeMode.NEXT_PARTITION)
-            .build());
+        PagingPosition.ofCurrentRow(lastRow).resumeFrom(resumeMode).build());
   }
 }

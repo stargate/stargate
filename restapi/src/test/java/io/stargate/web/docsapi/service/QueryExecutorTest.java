@@ -97,6 +97,11 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .collect(Collectors.toList());
   }
 
+  private <T> List<T> get(Flowable<T> flowable, int limit) {
+    return StreamSupport.stream(flowable.limit(limit).blockingIterable().spliterator(), false)
+        .collect(Collectors.toList());
+  }
+
   @Test
   void testFullScan() {
     withQuery(table, "SELECT * FROM %s")
@@ -296,5 +301,59 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .extracting(r -> r.getDouble("test_value"))
         .containsExactly(6.0d, 7.0d);
     assertThat(docs.get(2).key()).containsExactly("a", "y", "3");
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1", "3", "5", "100"})
+  void testSubDocumentsPaged(int pageSize) {
+    withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x", "2", 1.0d),
+                row("a", "x", "2", 2.0d),
+                row("a", "x", "2", 3.0d),
+                row("a", "x", "2", 4.0d),
+                row("a", "y", "2", 5.0d),
+                row("a", "y", "2", 6.0d),
+                row("a", "y", "3", 8.0d),
+                row("a", "y", "3", 9.0d),
+                row("a", "y", "4", 10.0d)));
+
+    AbstractBound<?> query =
+        datastore()
+            .queryBuilder()
+            .select()
+            .star()
+            .from(table)
+            .where("key", Predicate.EQ, "a")
+            .where("p0", Predicate.GT, "x")
+            .build()
+            .bind();
+
+    List<RawDocument> docs = get(executor.queryDocs(3, query, 100, null), 2);
+
+    assertThat(docs).hasSize(2);
+    assertThat(docs.get(0).key()).containsExactly("a", "x", "2");
+
+    assertThat(docs.get(1).key()).containsExactly("a", "y", "2");
+
+    ByteBuffer ps2 = docs.get(1).makePagingState();
+    assertThat(ps2).isNotNull();
+
+    docs = get(executor.queryDocs(3, query, 100, ps2));
+
+    assertThat(docs).hasSize(2);
+    assertThat(docs.get(0).key()).containsExactly("a", "y", "3");
+    assertThat(docs.get(0).rows())
+        .extracting(r -> r.getDouble("test_value"))
+        .containsExactly(8.0d, 9.0d);
+    assertThat(docs.get(1).key()).containsExactly("a", "y", "4");
+    assertThat(docs.get(1).rows())
+        .extracting(r -> r.getDouble("test_value"))
+        .containsExactly(10.0d);
+
+    assertThat(docs.get(0).makePagingState()).isNotNull();
+    assertThat(docs.get(1).makePagingState()).isNull();
   }
 }

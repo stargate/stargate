@@ -15,10 +15,13 @@
  */
 package io.stargate.db.datastore;
 
+import static io.stargate.db.PagingPosition.ResumeMode.NEXT_PARTITION;
+import static io.stargate.db.PagingPosition.ResumeMode.NEXT_ROW;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.db.PagingPosition;
-import io.stargate.db.PagingPosition.ResumeMode;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.Kind;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -84,14 +87,26 @@ public class ValidatingPaginator {
   }
 
   public ByteBuffer pagingState(PagingPosition position, List<Row> rows) {
-    assertThat(position.resumeFrom()).isEqualTo(ResumeMode.NEXT_PARTITION);
-    Map<String, ByteBuffer> values = position.currentRowValuesByColumnName();
+    assertThat(position.resumeFrom()).matches(m -> m == NEXT_PARTITION || m == NEXT_ROW);
+    Map<Column, ByteBuffer> values = position.currentRow();
     int resumeIdx = -1;
     int nextIdx = 1;
     for (Row row : rows) {
       boolean found = true;
-      for (Entry<String, ByteBuffer> e : values.entrySet()) {
-        ByteBuffer value = row.getBytesUnsafe(e.getKey());
+      for (Entry<Column, ByteBuffer> e : values.entrySet()) {
+        Column column = e.getKey();
+        Kind kind = column.kind();
+        assertThat(kind).isNotNull();
+
+        if (!kind.isPrimaryKeyKind()) {
+          continue;
+        }
+
+        if (position.resumeFrom() == NEXT_PARTITION && !(kind == Kind.PartitionKey)) {
+          continue; // ignore clustering columns for ResumeMode.NEXT_PARTITION
+        }
+
+        ByteBuffer value = row.getBytesUnsafe(column.name());
         assertThat(value).isNotNull();
 
         if (!value.equals(e.getValue())) {
