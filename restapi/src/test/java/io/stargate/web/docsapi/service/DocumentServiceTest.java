@@ -77,7 +77,6 @@ public class DocumentServiceTest {
   private Method isEmptyArray;
   private Method shredPayload;
   private Method validateOpAndValue;
-  private Method addRowsToMap;
   private Method updateExistenceForMap;
   private Method getParentPathFromRow;
   private Method filterToSelectionSet;
@@ -87,7 +86,6 @@ public class DocumentServiceTest {
   private Method checkInOp;
   private Method checkGtOp;
   private Method checkLtOp;
-  private Method searchRows;
 
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
@@ -120,8 +118,6 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "validateOpAndValue", String.class, JsonNode.class, String.class);
     validateOpAndValue.setAccessible(true);
-    addRowsToMap = DocumentService.class.getDeclaredMethod("addRowsToMap", Map.class, List.class);
-    addRowsToMap.setAccessible(true);
     updateExistenceForMap =
         DocumentService.class.getDeclaredMethod(
             "updateExistenceForMap",
@@ -294,7 +290,7 @@ public class DocumentServiceTest {
 
     List<String> path = new ArrayList<>();
     String key = "eric";
-    String payload = "{\"cool\": {\"document\": true}}";
+    String payload = "{\"cool\": {\"document\": [true]}}";
     ImmutablePair<?, ?> shredResult =
         (ImmutablePair<?, ?>)
             shredPayload.invoke(
@@ -308,6 +304,7 @@ public class DocumentServiceTest {
       "eric",
       "cool",
       "document",
+      "[000000]",
       "",
       "",
       "",
@@ -369,11 +366,106 @@ public class DocumentServiceTest {
       "",
       "",
       "",
-      "",
-      "document",
+      "[000000]",
       null,
       null,
       true,
+    };
+    for (int i = 0; i < vars.length; i++) {
+      assertThat(vars[i]).isEqualTo(expected[i]);
+    }
+
+    assertThat(topLevelKeys.size()).isEqualTo(1);
+    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
+  }
+
+  @Test
+  public void shredPayload_withForm() throws InvocationTargetException, IllegalAccessException {
+    DocumentDB dbMock = mock(DocumentDB.class);
+    when(dbMock.newBindMap(any())).thenCallRealMethod();
+
+    List<String> path = new ArrayList<>();
+    String key = "eric";
+    String payload = "cool=document";
+    ImmutablePair<?, ?> shredResult =
+        (ImmutablePair<?, ?>)
+            shredPayload.invoke(
+                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, false);
+    List<?> bindVariables = (List<?>) shredResult.left;
+    List<?> topLevelKeys = (List<?>) shredResult.right;
+    assertThat(bindVariables.size()).isEqualTo(1);
+    Object[] vars = (Object[]) bindVariables.get(0);
+    assertThat(vars.length).isEqualTo(69);
+    Object[] expected = {
+      "eric",
+      "cool",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "cool",
+      "document",
+      null,
+      null,
     };
     for (int i = 0; i < vars.length; i++) {
       assertThat(vars[i]).isEqualTo(expected[i]);
@@ -1187,13 +1279,18 @@ public class DocumentServiceTest {
             dbMock, "keyspace", "collection", "1", filters, new ArrayList<>(), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result.isMissingNode()).isFalse();
+    result =
+        service.searchWithinDocument(
+            dbMock, "keyspace", "collection", "1", filters, ImmutableList.of("f"), paginator);
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result.isMissingNode()).isFalse();
   }
 
   @Test
-  public void addRowsToMap() throws InvocationTargetException, IllegalAccessException {
+  public void groupRowsByKey() {
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
     List<Row> rows = makeInitialRowData(false);
-    addRowsToMap.invoke(service, rowsByDoc, rows);
+    service.groupRowsByKey(rowsByDoc, rows);
     assertThat(rowsByDoc.get("1")).isEqualTo(rows);
   }
 
@@ -1220,7 +1317,8 @@ public class DocumentServiceTest {
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
     JsonNode result =
-        service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
+        service.getFullDocuments(
+            dbMock, "keyspace", "collection", ImmutableList.of("a"), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
   }
@@ -1245,6 +1343,84 @@ public class DocumentServiceTest {
         service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
+  }
+
+  @Test
+  public void getFullDocumentsFiltered_inCassandraFilter() throws UnauthorizedException {
+    DocumentDB dbMock = mock(DocumentDB.class);
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData(false);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    List<FilterCondition> filters =
+        Collections.singletonList(
+            new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
+    service.getFullDocumentsFiltered(
+        dbMock, "keyspace", "collection", filters, Collections.emptyList(), paginator);
+  }
+
+  @Test
+  public void getFullDocumentsFiltered_manyInCassandraFilter() throws UnauthorizedException {
+    DocumentDB dbMock = mock(DocumentDB.class);
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData(false);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    List<FilterCondition> filters =
+        ImmutableList.of(
+            new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true),
+            new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", false));
+    service.getFullDocumentsFiltered(
+        dbMock, "keyspace", "collection", filters, Collections.emptyList(), paginator);
+  }
+
+  @Test
+  public void getFullDocumentsFiltered_mixedFilters() throws UnauthorizedException {
+    DocumentDB dbMock = mock(DocumentDB.class);
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData(false);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList(), anyBoolean(), anyInt(), any()))
+        .thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    List<FilterCondition> filters =
+        ImmutableList.of(
+            new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true),
+            new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", false));
+    service.getFullDocumentsFiltered(
+        dbMock, "keyspace", "collection", filters, Collections.emptyList(), paginator);
+  }
+
+  @Test
+  public void getFullDocumentsFiltered_inMemoryFilter() throws UnauthorizedException {
+    DocumentDB dbMock = mock(DocumentDB.class);
+    ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData(false);
+    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.executeSelect(anyString(), anyString(), anyList())).thenReturn(rsMock);
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    int pageSizeParam = 0;
+    Paginator paginator =
+        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    List<FilterCondition> filters =
+        Collections.singletonList(
+            new ListFilterCondition(
+                ImmutableList.of("a,b", "*", "c"), "$in", ImmutableList.of(true)));
+    service.getFullDocumentsFiltered(
+        dbMock, "keyspace", "collection", filters, Collections.emptyList(), paginator);
   }
 
   @Test

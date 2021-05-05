@@ -706,13 +706,26 @@ public class DocumentService {
   }
 
   @VisibleForTesting
-  void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
+  void groupRowsByKey(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
     for (Row row : rows) {
       String key = row.getString("key");
       List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
       rowsAtKey.add(row);
       rowsByDoc.put(key, rowsAtKey);
     }
+  }
+
+  private LinkedHashMap<String, List<Row>> groupByKey(
+      LinkedHashMap<String, List<Row>> documentChunks, List<Row> rows) {
+    for (int i = 0; i < rows.size(); i++) {
+      Row row = rows.get(i);
+      String key = row.getString("key");
+      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
+      chunk.add(row);
+      documentChunks.put(key, chunk);
+    }
+
+    return documentChunks;
   }
 
   private List<Row> updateExistenceForMap(
@@ -722,13 +735,7 @@ public class DocumentService {
       boolean booleansStoredAsTinyint,
       boolean endOfResults) {
     LinkedHashMap<String, List<Row>> documentChunks = new LinkedHashMap<>();
-    for (int i = 0; i < rows.size(); i++) {
-      Row row = rows.get(i);
-      String key = row.getString("key");
-      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
-      chunk.add(row);
-      documentChunks.put(key, chunk);
-    }
+    documentChunks = groupByKey(documentChunks, rows);
 
     List<List<Row>> chunksList = new ArrayList<>(documentChunks.values());
 
@@ -766,9 +773,8 @@ public class DocumentService {
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
     do {
-
       List<Row> rows = getUnfilteredRows(keyspace, collection, db, paginator);
-      addRowsToMap(rowsByDoc, rows);
+      groupRowsByKey(rowsByDoc, rows);
     } while (rowsByDoc.keySet().size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
@@ -1085,8 +1091,6 @@ public class DocumentService {
           "Filters supplied to getRowsForDocument that are unsupported by C*");
     }
     List<BuiltCondition> predicates = new ArrayList<>();
-
-    predicates.add(BuiltCondition.of("key", Predicate.EQ, documentId));
 
     addLeafPredicate(predicates, inCassandraFilters);
     convertPathIntoPredicates(predicates, path, inCassandraFilters, !inCassandraFilters.isEmpty());
