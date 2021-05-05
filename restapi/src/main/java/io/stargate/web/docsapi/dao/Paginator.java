@@ -1,6 +1,5 @@
 package io.stargate.web.docsapi.dao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.DataStore;
@@ -31,7 +30,8 @@ public class Paginator {
     this.dataStore = dataStore;
     docPageSize = Math.max(1, pageSize);
     if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
-      throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
+      throw new DocumentAPIRequestException(
+          String.format("The parameter `page-size` is limited to %d.", DocumentDB.MAX_PAGE_SIZE));
     }
 
     this.dbPageSize = dbPageSize;
@@ -47,7 +47,7 @@ public class Paginator {
     this.currentDbPageState = resultSet.getPagingState();
   }
 
-  public String makeExternalPagingState() throws JsonProcessingException {
+  public String makeExternalPagingState() {
     ByteBuffer pagingState;
 
     if (lastDocumentId != null && resultSet != null) {
