@@ -15,7 +15,12 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.AVG;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.COUNT;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.MAX;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.MIN;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.SUM;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunctions.*;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
@@ -50,22 +55,31 @@ public class AggregationsFetcherSupport {
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
         Map<String, Object> arguments = selectedField.getArguments();
-        String functionName = getNameArgument(arguments);
+        SupportedAggregationFunction functionName = getNameArgument(arguments);
         switch (functionName) {
           case COUNT:
-            addCount(arguments, queryBuilder, selectedField);
+            addAggregation(
+                arguments,
+                queryBuilder,
+                QueryBuilder.QueryBuilder__20::count,
+                selectedField,
+                COUNT);
             break;
           case AVG:
-            addAvg(arguments, queryBuilder, selectedField);
+            addAggregation(
+                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::avg, selectedField, AVG);
             break;
           case MIN:
-            addMin(arguments, queryBuilder, selectedField);
+            addAggregation(
+                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::min, selectedField, MIN);
             break;
           case MAX:
-            addMax(arguments, queryBuilder, selectedField);
+            addAggregation(
+                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::max, selectedField, MAX);
             break;
           case SUM:
-            addSum(arguments, queryBuilder, selectedField);
+            addAggregation(
+                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::sum, selectedField, SUM);
             break;
         }
       }
@@ -133,82 +147,25 @@ public class AggregationsFetcherSupport {
   // it will return: 'system.count(a)'
   private String generateAggregationColumnName(SelectedField selectedField) {
     Map<String, Object> arguments = selectedField.getArguments();
-    String functionName = getNameArgument(arguments);
+    SupportedAggregationFunction functionName = getNameArgument(arguments);
     List<String> args = getAndValidateArgs(arguments, functionName);
-    return String.format("system.%s(%s)", functionName, args.get(0));
+    return String.format("system.%s(%s)", functionName.getName(), args.get(0));
   }
 
-  private void addAvg(
+  private void addAggregation(
       Map<String, Object> arguments,
       QueryBuilder.QueryBuilder__20 queryBuilder,
-      SelectedField selectedField) {
-    List<String> args = getAndValidateArgs(arguments, AVG);
+      BiFunction<QueryBuilder.QueryBuilder__20, String, QueryBuilder.QueryBuilder__19>
+          addAggregation,
+      SelectedField selectedField,
+      SupportedAggregationFunction supportedAggregationFunction) {
+    List<String> args = getAndValidateArgs(arguments, supportedAggregationFunction);
     String column = getAndValidateColumn(args);
 
     String alias = selectedField.getAlias();
+    QueryBuilder.QueryBuilder__19 withAggregation = addAggregation.apply(queryBuilder, column);
     if (alias != null) {
-      queryBuilder.avg(column).as(alias);
-    } else {
-      queryBuilder.avg(column);
-    }
-  }
-
-  private void addCount(
-      Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__20 queryBuilder,
-      SelectedField selectedField) {
-    List<String> args = getAndValidateArgs(arguments, COUNT);
-    String column = getAndValidateColumn(args);
-
-    String alias = selectedField.getAlias();
-    if (alias != null) {
-      queryBuilder.count(column).as(alias);
-    } else {
-      queryBuilder.count(column);
-    }
-  }
-
-  private void addMin(
-      Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__20 queryBuilder,
-      SelectedField selectedField) {
-    List<String> args = getAndValidateArgs(arguments, MIN);
-    String column = getAndValidateColumn(args);
-
-    String alias = selectedField.getAlias();
-    if (alias != null) {
-      queryBuilder.min(column).as(alias);
-    } else {
-      queryBuilder.min(column);
-    }
-  }
-
-  private void addMax(
-      Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__20 queryBuilder,
-      SelectedField selectedField) {
-    List<String> args = getAndValidateArgs(arguments, MAX);
-    String column = getAndValidateColumn(args);
-    String alias = selectedField.getAlias();
-    if (alias != null) {
-      queryBuilder.max(column).as(alias);
-    } else {
-      queryBuilder.max(column);
-    }
-  }
-
-  private void addSum(
-      Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__20 queryBuilder,
-      SelectedField selectedField) {
-    List<String> args = getAndValidateArgs(arguments, SUM);
-    String column = getAndValidateColumn(args);
-
-    String alias = selectedField.getAlias();
-    if (alias != null) {
-      queryBuilder.sum(column).as(alias);
-    } else {
-      queryBuilder.sum(column);
+      withAggregation.as(alias);
     }
   }
 
@@ -223,20 +180,21 @@ public class AggregationsFetcherSupport {
     return column;
   }
 
-  private List<String> getAndValidateArgs(Map<String, Object> arguments, String functionName) {
+  private List<String> getAndValidateArgs(
+      Map<String, Object> arguments, SupportedAggregationFunction supportedAggregationFunction) {
     @SuppressWarnings("unchecked")
     List<String> args = (List<String>) arguments.get("args");
     if (args.size() != 1) {
       throw new IllegalArgumentException(
           String.format(
               "The %s function takes only one argument, " + "but more arguments: %s were provided.",
-              functionName, args));
+              supportedAggregationFunction.getName(), args));
     }
     return args;
   }
 
-  private String getNameArgument(Map<String, Object> arguments) {
-    return (String) arguments.get("name");
+  private SupportedAggregationFunction getNameArgument(Map<String, Object> arguments) {
+    return SupportedAggregationFunction.valueOfIgnoreCase((String) arguments.get("name"));
   }
 
   private Set<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {

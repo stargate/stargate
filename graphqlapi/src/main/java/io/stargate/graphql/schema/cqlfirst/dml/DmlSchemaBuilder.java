@@ -19,7 +19,7 @@ import static graphql.Scalars.GraphQLFloat;
 import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunctions.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunctions.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
