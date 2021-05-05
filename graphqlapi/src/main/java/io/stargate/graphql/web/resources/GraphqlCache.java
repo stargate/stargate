@@ -168,7 +168,8 @@ public class GraphqlCache implements KeyspaceChangeListener {
               .queryBuilder()
               .select()
               .column("keyspace_name")
-              .writeTimeColumn("durable_writes", "wt")
+              .writeTimeColumn("durable_writes")
+              .as("wt")
               .from("system_schema", "keyspaces")
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM);
