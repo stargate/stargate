@@ -229,10 +229,10 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort + "/v2/namespaces/unknown_keyspace_1337/collections/collection/1",
             data,
-            400);
+            404);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Bad request: Unknown namespace unknown_keyspace_1337, you must create it first.\",\"code\":400}");
+            "{\"description\":\"Unknown namespace unknown_keyspace_1337, you must create it first.\",\"code\":404}");
 
     resp =
         RestUtils.put(
@@ -252,7 +252,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken, hostWithPort + "/v2/namespaces/unknown/collections/collection/1", 404);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Not found: Namespace unknown does not exist.\",\"code\":404}");
+            "{\"description\":\"Namespace unknown does not exist.\",\"code\":404}");
   }
 
   @Test
@@ -262,7 +262,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/unknown/1", 404);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Not found: Collection unknown does not exist.\",\"code\":404}");
+            "{\"description\":\"Collection unknown does not exist.\",\"code\":404}");
   }
 
   @Test
@@ -2750,7 +2750,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Bad request: The parameter `page-size` is limited to 20.\",\"code\":400}");
+            "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
   }
 
   @Test
