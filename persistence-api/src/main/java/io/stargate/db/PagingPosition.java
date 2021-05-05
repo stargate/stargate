@@ -96,5 +96,8 @@ public interface PagingPosition {
      * #currentRow() reference row}.
      */
     NEXT_PARTITION,
+
+    /** Paging is resumed from the row following the {@link #currentRow() reference row}. */
+    NEXT_ROW,
   }
 }

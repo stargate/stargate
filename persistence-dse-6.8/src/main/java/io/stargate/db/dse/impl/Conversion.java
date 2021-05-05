@@ -5,7 +5,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.db.BatchType;
 import io.stargate.db.PagingPosition;
-import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.datastore.common.util.ColumnUtils;
@@ -34,6 +33,7 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Clustering;
+import org.apache.cassandra.db.LivenessInfo;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.LineStringType;
 import org.apache.cassandra.db.marshal.ListType;
@@ -44,10 +44,12 @@ import org.apache.cassandra.db.marshal.ReversedType;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.db.marshal.UserType;
+import org.apache.cassandra.db.rows.ArrayBackedRow;
 import org.apache.cassandra.exceptions.CassandraException;
 import org.apache.cassandra.schema.SchemaManager;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.pager.PagingState;
+import org.apache.cassandra.service.pager.PagingState.RowMark;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
@@ -162,6 +164,20 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
+  private static ByteBuffer getKeyValue(
+      PagingPosition pos, TableMetadata table, ColumnSpecification c) {
+    ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
+
+    if (value == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Key value is not present in current row (table: %s, column: %s)",
+              table.name, c.name.toCQLString()));
+    }
+
+    return value;
+  }
+
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
     Set<Pair<String, String>> tables =
         pos.currentRow().keySet().stream()
@@ -180,34 +196,38 @@ public class Conversion {
     TableMetadata table = SchemaManager.instance.validateTable(tableName.left, tableName.right);
 
     Object[] pkValues =
-        table.partitionKeyColumns().stream()
-            .map(
-                c -> {
-                  ByteBuffer value = pos.currentRowValuesByColumnName().get(c.name.toCQLString());
-
-                  if (value == null) {
-                    throw new IllegalArgumentException(
-                        String.format(
-                            "Partition key value is not present in current row (table: %s, column: %s)",
-                            table, c.name.toCQLString()));
-                  }
-
-                  return value;
-                })
-            .toArray();
+        table.partitionKeyColumns().stream().map(c -> getKeyValue(pos, table, c)).toArray();
     Clustering clustering = table.partitionKeyAsClusteringComparator().make(pkValues);
-
-    if (pos.resumeFrom() != ResumeMode.NEXT_PARTITION) {
-      throw new UnsupportedOperationException("Unsupported paging mode: " + pos.resumeFrom());
-    }
-
     ByteBuffer serializedKey = clustering.serializeAsPartitionKey();
-    PagingState pagingState =
-        new PagingState(
-            serializedKey, null, pos.remainingRows(), pos.remainingRowsInPartition(), false);
 
     org.apache.cassandra.transport.ProtocolVersion protocolVersion =
         toInternal(parameters.protocolVersion());
+
+    RowMark rowMark;
+    switch (pos.resumeFrom()) {
+      case NEXT_PARTITION:
+        rowMark = null;
+        break;
+
+      case NEXT_ROW:
+        ByteBuffer[] ccValues =
+            table.clusteringColumns().stream()
+                .map(c -> getKeyValue(pos, table, c))
+                .toArray(ByteBuffer[]::new);
+
+        Clustering rowClustering = Clustering.make(ccValues);
+        ArrayBackedRow row = ArrayBackedRow.noCellLiveRow(rowClustering, LivenessInfo.create(0, 0));
+        rowMark = RowMark.create(table, row, protocolVersion);
+        break;
+
+      default:
+        throw new UnsupportedOperationException("Unsupported paging mode: " + pos.resumeFrom());
+    }
+
+    PagingState pagingState =
+        new PagingState(
+            serializedKey, rowMark, pos.remainingRows(), pos.remainingRowsInPartition(), false);
+
     return pagingState.serialize(protocolVersion);
   }
 

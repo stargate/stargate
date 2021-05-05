@@ -1611,8 +1611,7 @@ public abstract class PersistenceTest {
     assertThat(persistence().isSchemaAgreementAchievable()).isTrue();
   }
 
-  @Test
-  public void testPagingStateForNextPartition() throws ExecutionException, InterruptedException {
+  private void setupCustomPagingData() {
     createKeyspace();
     dataStore
         .queryBuilder()
@@ -1655,6 +1654,11 @@ public abstract class PersistenceTest {
     insert.bind(40, 14, 14).execute().join();
     insert.bind(40, 15, 15).execute().join();
     insert.bind(40, 16, 16).execute().join();
+  }
+
+  @Test
+  public void testPagingStateForNextPartition() throws ExecutionException, InterruptedException {
+    setupCustomPagingData();
 
     // Obtain partition keys in "ring" order
     AbstractBound<?> selectAll =
@@ -1723,6 +1727,86 @@ public abstract class PersistenceTest {
     Row row10 = rows.get(4);
     assertThat(row10.getInt(0)).isEqualTo(key10);
     assertThat(row10.getInt(1)).isEqualTo(val10);
+
+    // With the limit of 7 rows in the second execution and 5 rows read in the second page,
+    // 2 rows remain
+    assertThat(rs.rows()).hasSize(2);
+  }
+
+  @Test
+  public void testPagingStateForNextRow() throws ExecutionException, InterruptedException {
+    setupCustomPagingData();
+
+    // Obtain partition keys in "ring" order
+    AbstractBound<?> selectAll =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .build()
+            .bind();
+
+    java.util.List<Row> allRows = dataStore.execute(selectAll).get().rows();
+    List<Integer> keys = allRows.stream().map(r -> r.getInt(0)).collect(Collectors.toList());
+    List<Integer> values = allRows.stream().map(r -> r.getInt(1)).collect(Collectors.toList());
+    int key2 = keys.get(1);
+    int val2 = values.get(1);
+    int key3 = keys.get(2);
+    int val3 = values.get(2);
+    int key6 = keys.get(5);
+    int val6 = values.get(5);
+    int key8 = keys.get(8);
+    int val8 = values.get(8);
+
+    AbstractBound<?> select =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("cc")
+            .column("val")
+            .from(keyspace, table)
+            .perPartitionLimit(3)
+            .limit(10)
+            .build()
+            .bind();
+
+    ResultSet rs = dataStore.execute(select, p -> p.toBuilder().pageSize(5).build()).get();
+    java.util.List<Row> rows = rs.currentPageRows();
+    assertThat(rows).hasSize(5); // full page
+    Row row2 = rows.get(1);
+    assertThat(row2.getInt(0)).isEqualTo(key2);
+    assertThat(row2.getInt(1)).isEqualTo(val2);
+    // with 3 row per partition, the last row in page 1 is the second row of the second partition
+    Row row6 = rows.get(4);
+    assertThat(row6.getInt(0)).isEqualTo(key6);
+    assertThat(row6.getInt(1)).isEqualTo(val6);
+
+    ByteBuffer pagingState =
+        rs.makePagingState(
+            PagingPosition.ofCurrentRow(row2)
+                .resumeFrom(ResumeMode.NEXT_ROW)
+                .remainingRows(7) // not inherited from the query
+                .remainingRowsInPartition(1) // not inherited from the query
+                .build());
+
+    rs =
+        dataStore
+            .execute(select, p -> p.toBuilder().pageSize(5).pagingState(pagingState).build())
+            .get();
+    rows = rs.currentPageRows();
+    assertThat(rows).hasSize(5); // full page
+
+    Row row3 = rows.get(0);
+    assertThat(row3.getInt(0)).isEqualTo(key3);
+    assertThat(row3.getInt(1)).isEqualTo(val3);
+    // with 1 row remaining in first partition, the last row in page 1 is the third row of the
+    // second partition
+    Row row8 = rows.get(4);
+    assertThat(row8.getInt(0)).isEqualTo(key8);
+    assertThat(row8.getInt(1)).isEqualTo(val8);
 
     // With the limit of 7 rows in the second execution and 5 rows read in the second page,
     // 2 rows remain
