@@ -307,13 +307,13 @@ public class DocumentResourceV2Test {
     mockedReturn.set("someData", BooleanNode.valueOf(true));
 
     Mockito.when(
-            documentServiceMock.searchDocumentsV2(
+            documentServiceMock.searchWithinDocument(
                 anyObject(),
                 anyString(),
                 anyString(),
-                anyList(),
-                anyList(),
                 anyString(),
+                anyList(),
+                anyList(),
                 anyObject()))
         .thenReturn(mockedReturn);
 

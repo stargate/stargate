@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
@@ -166,20 +165,6 @@ public class DocumentServiceTest {
         DocumentService.class.getDeclaredMethod(
             "checkLtOp", SingleFilterCondition.class, String.class, Boolean.class, Double.class);
     checkLtOp.setAccessible(true);
-    searchRows =
-        DocumentService.class.getDeclaredMethod(
-            "searchRows",
-            String.class,
-            String.class,
-            DocumentDB.class,
-            List.class,
-            List.class,
-            List.class,
-            List.class,
-            Boolean.class,
-            String.class,
-            Paginator.class);
-    searchRows.setAccessible(true);
   }
 
   @Test
@@ -1160,18 +1145,13 @@ public class DocumentServiceTest {
         .delete(anyString(), anyString(), anyString(), anyListOf(String.class), anyLong());
   }
 
-  // searchDocuments unit tests excluded here, it is in deprecated v1
-
   @Test
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.searchWithinDocument(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+    Mockito.when(serviceMock.getRowsForDocument(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     int pageSizeParam = 0;
     Paginator paginator =
@@ -1181,8 +1161,8 @@ public class DocumentServiceTest {
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
     JsonNode result =
-        serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
+        serviceMock.searchWithinDocument(
+            dbMock, "keyspace", "collection", "1", filters, new ArrayList<>(), paginator);
     assertThat(result).isNull();
   }
 
@@ -1203,33 +1183,10 @@ public class DocumentServiceTest {
         ImmutableList.of(
             new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
     JsonNode result =
-        service.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
+        service.searchWithinDocument(
+            dbMock, "keyspace", "collection", "1", filters, new ArrayList<>(), paginator);
     assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result.at("/1").isMissingNode()).isFalse();
-  }
-
-  @Test
-  public void searchDocumentsV2_existingResultWithFields() throws Exception {
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-    JsonNode result =
-        service.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isNull();
+    assertThat(result.isMissingNode()).isFalse();
   }
 
   @Test
@@ -1291,97 +1248,50 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void searchRows()
-      throws InvocationTargetException, IllegalAccessException, UnauthorizedException {
+  public void getUnfilteredRows() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
 
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
     when(rsMock.currentPageRows()).thenReturn(rows);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
 
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
 
-    List<Row> result =
-        (List<Row>)
-            searchRows.invoke(
-                service,
-                "keyspace",
-                "collection",
-                dbMock,
-                new ArrayList<>(),
-                filters,
-                new ArrayList<>(),
-                ImmutableList.of("a,b", "*", "c"),
-                false,
-                null,
-                paginator);
-
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(rows);
-
-    paginator = new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-    result =
-        (List<Row>)
-            searchRows.invoke(
-                service,
-                "keyspace",
-                "collection",
-                dbMock,
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new ArrayList<>(),
-                false,
-                null,
-                paginator);
+    List<Row> result = service.getUnfilteredRows("keyspace", "collection", dbMock, paginator);
 
     assertThat(paginator.getCurrentDbPageState()).isNull();
     assertThat(result).isEqualTo(rows);
   }
 
   @Test
-  public void searchRows_invalid() throws UnauthorizedException {
+  public void getRowsForDocument() throws UnauthorizedException {
     DocumentDB dbMock = mock(DocumentDB.class);
+
     ResultSet rsMock = mock(ResultSet.class);
+    List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
-    when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
-
+    when(rsMock.currentPageRows()).thenReturn(rows);
+    List<FilterCondition> filters =
+        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
     int pageSizeParam = 0;
     Paginator paginator =
         new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
+    List<Row> result =
+        service.getRowsForDocument(
+            "keyspace",
+            "collection",
+            "docId",
+            dbMock,
+            filters,
+            ImmutableList.of("a", "b", "c"),
+            paginator);
 
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", true));
-
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                searchRows.invoke(
-                    service,
-                    "keyspace",
-                    "collection",
-                    dbMock,
-                    new ArrayList<>(),
-                    filters,
-                    new ArrayList<>(),
-                    ImmutableList.of("a,b", "*", "c"),
-                    null,
-                    null,
-                    paginator));
-
-    assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessage(
-            "The results as requested must fit in one page, try increasing the `page-size` parameter.");
+    assertThat(paginator.getCurrentDbPageState()).isNull();
+    assertThat(result).isEqualTo(Collections.emptyList());
   }
 
   @Test
