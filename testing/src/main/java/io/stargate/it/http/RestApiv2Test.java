@@ -904,6 +904,70 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowsWithInQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName John"),
+            Arrays.asList("id 1", "firstName Sarah"),
+            Arrays.asList("id 2", "firstName Jane")));
+
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"firstName\":{\"$in\":[\"Sarah\"]}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
+                host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+
+    List<Map<String, Object>> data =
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.get(0).get("id")).isEqualTo("1");
+    assertThat(data.get(0).get("firstName")).isEqualTo("Sarah");
+  }
+
+  @Test
+  public void getRowsWithTimestampQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "created timestamp"),
+        Collections.singletonList("id"),
+        Collections.singletonList("created"));
+
+    String timestamp = "2021-04-23T18:42:22.139Z";
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName John", "created " + timestamp),
+            Arrays.asList("id 1", "firstName Sarah", "created 2021-04-20T18:42:22.139Z"),
+            Arrays.asList("id 2", "firstName Jane", "created 2021-04-22T18:42:22.139Z")));
+
+    String whereClause =
+        String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
+                host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+
+    List<Map<String, Object>> data =
+        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.get(0).get("id")).isEqualTo("1");
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+  }
+
+  @Test
   public void getAllRowsWithPaging() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(

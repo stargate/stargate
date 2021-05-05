@@ -5,7 +5,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -15,6 +14,7 @@ import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.exception.ResourceNotFoundException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.Error;
@@ -62,19 +62,9 @@ import org.slf4j.LoggerFactory;
 public class DocumentResourceV2 {
   @Inject private Db dbFactory;
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
-  private static final ObjectMapper mapper = new ObjectMapper();
-  private final DocumentService documentService;
-  private final int DEFAULT_PAGE_SIZE = DocumentDB.SEARCH_PAGE_SIZE;
-
-  public DocumentResourceV2() {
-    documentService = new DocumentService();
-  }
-
-  @VisibleForTesting
-  DocumentResourceV2(Db dbFactory, DocumentService documentService) {
-    this.dbFactory = dbFactory;
-    this.documentService = documentService;
-  }
+  @Inject private ObjectMapper mapper;
+  @Inject private DocumentService documentService;
+  @Inject private DocsApiConfiguration docsApiConfiguration;
 
   @POST
   @ManagedAsync
@@ -675,7 +665,7 @@ public class DocumentResourceV2 {
                     dbFactory.getDataStore(),
                     pageStateParam,
                     pageSizeParam,
-                    pageSizeParam > 0 ? pageSizeParam : DEFAULT_PAGE_SIZE);
+                    pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
@@ -774,7 +764,10 @@ public class DocumentResourceV2 {
 
           final Paginator paginator =
               new Paginator(
-                  dbFactory.getDataStore(), pageStateParam, pageSizeParam, DEFAULT_PAGE_SIZE);
+                  dbFactory.getDataStore(),
+                  pageStateParam,
+                  pageSizeParam,
+                  docsApiConfiguration.getSearchPageSize());
 
           JsonNode results;
 

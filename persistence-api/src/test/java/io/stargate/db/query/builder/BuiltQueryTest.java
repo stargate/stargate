@@ -51,7 +51,7 @@ public abstract class BuiltQueryTest {
     return valueCodec;
   }
 
-  protected QueryBuilder newBuilder() {
+  protected static QueryBuilder newBuilder() {
     return new QueryBuilder(schema, valueCodec, null);
   }
 

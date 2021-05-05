@@ -42,7 +42,7 @@ class ColumnResourceTest {
     List<Column> columns = ImmutableList.of(column1, column2);
 
     AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
-    when(db.getDataStoreForToken("token", Collections.emptyMap())).thenReturn(authenticatedDB);
+    when(db.getRestDataStoreForToken("token", Collections.emptyMap())).thenReturn(authenticatedDB);
     when(db.getAuthorizationService()).thenReturn(authorizationService);
     when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);

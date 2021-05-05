@@ -108,8 +108,8 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeDataRead(
@@ -194,8 +194,8 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -317,8 +317,8 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(

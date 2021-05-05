@@ -11,7 +11,7 @@ public class AuthenticationTest extends GrpcIntegrationTest {
   public void emptyCredentials() {
     assertThatThrownBy(
             () -> {
-              stub.execute(Query.newBuilder().setCql("SELECT * FROM system.local").build());
+              stub.executeQuery(Query.newBuilder().setCql("SELECT * FROM system.local").build());
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("UNAUTHENTICATED")
@@ -23,7 +23,7 @@ public class AuthenticationTest extends GrpcIntegrationTest {
     assertThatThrownBy(
             () -> {
               stub.withCallCredentials(new StargateBearerToken("not-a-token-that-exists"))
-                  .execute(Query.newBuilder().setCql("SELECT * FROM system.local").build());
+                  .executeQuery(Query.newBuilder().setCql("SELECT * FROM system.local").build());
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("UNAUTHENTICATED")

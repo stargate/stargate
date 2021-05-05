@@ -1,6 +1,22 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 syntax = "proto3";
 
 import "google/protobuf/any.proto";
+import "google/protobuf/wrappers.proto";
 
 option java_package = "io.stargate.proto";
 option go_package = "stargate/proto";
@@ -19,6 +35,10 @@ enum Consistency {
   CONSISTENCY_SERIAL = 0x08;
   CONSISTENCY_LOCAL_SERIAL = 0x09;
   CONSISTENCY_LOCAL_ONE = 0x0A;
+}
+
+message ConsistencyValue {
+  Consistency value = 1;
 }
 
 message Collection {
@@ -42,8 +62,9 @@ message Inet {
 }
 
 message Uuid {
-  fixed64 low = 1;
-  fixed64 high = 2;
+  // TODO: Is this going to have endian problems representing it this way?
+  fixed64 msb = 1;
+  fixed64 lsb = 2;
 }
 
 message Date {
@@ -88,7 +109,7 @@ message Values {
 
 message Payload {
   Type type = 1;
-  enum Type {// Do we need an enum here or can we detect the type from Any?
+  enum Type { // Do we need an enum here or can we detect the type from Any?
     TYPE_CQL = 0;
     // TYPE_JSON = 1;
     // TYPE_AVRO = 2;
@@ -98,17 +119,17 @@ message Payload {
 }
 
 message QueryParameters {
-  string keyspace = 1;
+  google.protobuf.StringValue keyspace = 1;
   // TODO: Output payload type? Or is it the same as the input and CQL by default?
   Payload payload = 2;
-  Consistency consistency = 3;
-  int32 page_size = 4;
-  bytes paging_state = 5;
+  ConsistencyValue consistency = 3;
+  google.protobuf.Int32Value page_size = 4;
+  google.protobuf.BytesValue paging_state = 5;
   bool tracing = 6;
   bool skip_metadata = 7;
-  int64 timestamp = 8;
-  Consistency serial_consistency = 9;
-  int32 now_in_seconds = 10;
+  google.protobuf.Int64Value timestamp = 8;
+  ConsistencyValue serial_consistency = 9;
+  google.protobuf.Int32Value now_in_seconds = 10;
 }
 
 message TypeSpec {
@@ -142,17 +163,24 @@ message TypeSpec {
   Type type = 1;
   oneof complex {
     MapSpec map = 2;
-    TypeSpec list = 3;
-    TypeSpec set = 4;
+    ListSpec list = 3;
+    SetSpec set = 4;
     UdtSpec udt = 5;
     TupleSpec tuple = 6;
   };
 }
 
-
 message MapSpec {
   TypeSpec key = 1;
   TypeSpec value = 2;
+}
+
+message ListSpec {
+  TypeSpec element = 1;
+}
+
+message SetSpec {
+  TypeSpec element = 1;
 }
 
 message UdtSpec {
@@ -169,16 +197,10 @@ message ColumnSpec {
 }
 
 message Result {
-  Error error = 1;
-  oneof results {
-    Empty empty = 2;
-    Payload payload = 3;
-  }
-  bytes tracing_id = 4;
-  repeated string warnings = 5;
+  Payload payload = 1;
+  bytes tracing_id = 2;
+  repeated string warnings = 3;
 }
-
-message Empty {}
 
 message Unavailable {
   Consistency consistency = 1;
@@ -227,11 +249,6 @@ message AlreadyExists {
   string table = 2;
 }
 
-message Error {
-  string message = 1;
-  repeated google.protobuf.Any details = 2;
-}
-
 message Row {
   repeated Value values = 1;
 }
@@ -239,6 +256,8 @@ message Row {
 message ResultSet {
   repeated ColumnSpec columns = 1;
   repeated Row rows = 2;
+  google.protobuf.Int32Value page_size = 3;
+  google.protobuf.BytesValue paging_state = 4;
 }
 
 message BatchQuery {

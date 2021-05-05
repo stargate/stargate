@@ -14,7 +14,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
   protected final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
+  protected final DataStoreFactory dataStoreFactory;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;

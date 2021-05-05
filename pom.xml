@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>1.0.23-SNAPSHOT</version>
+  <version>1.0.24-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -35,6 +35,7 @@
     <mockito.version>3.5.13</mockito.version>
     <jacoco.version>0.8.6</jacoco.version>
     <errorprone.version>2.3.4</errorprone.version>
+    <commons-io.version>2.7</commons-io.version>
   </properties>
   <dependencies>
     <dependency>
@@ -470,6 +471,11 @@
       </dependency>
       <dependency>
         <groupId>io.dropwizard</groupId>
+        <artifactId>dropwizard-forms</artifactId>
+        <version>${dropwizard.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard</groupId>
         <artifactId>dropwizard-jersey</artifactId>
         <version>${dropwizard.version}</version>
       </dependency>
@@ -604,6 +610,21 @@
         <artifactId>awaitility</artifactId>
         <version>4.0.3</version>
       </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${commons-io.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+  <repositories>
+    <repository>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>central</id>
+      <name>bintray</name>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+  </repositories>
 </project>

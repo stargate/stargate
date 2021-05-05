@@ -28,8 +28,6 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
-import io.stargate.web.docsapi.service.json.DeadLeafCollectorNoOp;
-import io.stargate.web.docsapi.service.json.JsonConverter;
 import io.stargate.web.resources.Db;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -55,12 +53,17 @@ public class DocumentService {
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
   private static final Splitter PATH_SPLITTER = Splitter.on('/');
+  private DocsApiConfiguration docsApiConfiguration;
+  private JsonConverter jsonConverterService;
+  private ObjectMapper mapper;
 
-  private final JsonConverter jsonConverterService = new JsonConverter();
-
-  @VisibleForTesting
-  JsonConverter getJsonConverterService() {
-    return jsonConverterService;
+  public DocumentService(
+      ObjectMapper mapper,
+      JsonConverter jsonConverterService,
+      DocsApiConfiguration docsApiConfiguration) {
+    this.mapper = mapper;
+    this.jsonConverterService = jsonConverterService;
+    this.docsApiConfiguration = docsApiConfiguration;
   }
 
   /*
@@ -97,9 +100,10 @@ public class DocumentService {
     if (path.startsWith("[") && path.endsWith("]")) {
       String innerPath = path.substring(1, path.length() - 1);
       int idx = Integer.parseInt(innerPath);
-      if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
+      if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
         throw new DocumentAPIRequestException(
-            String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
+            String.format(
+                "Max array length of %s exceeded.", docsApiConfiguration.getMaxArrayLength()));
       }
       return "[" + leftPadTo6(innerPath) + "]";
     }
@@ -187,9 +191,10 @@ public class DocumentService {
                 Iterator<PathOperator> it = p.iterator();
                 String leaf = null;
                 while (it.hasNext()) {
-                  if (i >= DocumentDB.MAX_DEPTH) {
+                  if (i >= docsApiConfiguration.getMaxDepth()) {
                     throw new DocumentAPIRequestException(
-                        String.format("Max depth of %s exceeded", DocumentDB.MAX_DEPTH));
+                        String.format(
+                            "Max depth of %s exceeded", docsApiConfiguration.getMaxDepth()));
                   }
 
                   PathOperator op = it.next();
@@ -207,10 +212,11 @@ public class DocumentService {
                     }
 
                     int idx = Integer.parseInt(innerPath);
-                    if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
+                    if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
                       throw new DocumentAPIRequestException(
                           String.format(
-                              "Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
+                              "Max array length of %s exceeded.",
+                              docsApiConfiguration.getMaxArrayLength()));
                     }
 
                     // left-pad the array element to 6 characters
@@ -297,9 +303,9 @@ public class DocumentService {
       }
       String[] fieldNames = PERIOD_PATTERN.split(fullyQualifiedField);
 
-      if (path.size() + fieldNames.length > DocumentDB.MAX_DEPTH) {
+      if (path.size() + fieldNames.length > docsApiConfiguration.getMaxDepth()) {
         throw new DocumentAPIRequestException(
-            String.format("Max depth of %s exceeded", DocumentDB.MAX_DEPTH));
+            String.format("Max depth of %s exceeded", docsApiConfiguration.getMaxDepth()));
       }
 
       Map<String, Object> bindMap = db.newBindMap(path);
@@ -331,9 +337,10 @@ public class DocumentService {
           } catch (NumberFormatException e) {
             // do nothing
           }
-          if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
+          if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
             throw new DocumentAPIRequestException(
-                String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH));
+                String.format(
+                    "Max array length of %s exceeded.", docsApiConfiguration.getMaxArrayLength()));
           }
 
           // left-pad the array element to 6 characters
@@ -465,8 +472,7 @@ public class DocumentService {
     }
     DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
     JsonNode result =
-        getJsonConverterService()
-            .convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
+        jsonConverterService.convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
     if (!collector.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", collector.getLeaves().size()));
       db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves());
@@ -633,7 +639,6 @@ public class DocumentService {
       throws UnauthorizedException {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
-    ObjectMapper mapper = getJsonConverterService().getMapper();
 
     List<Row> rows =
         searchRows(
@@ -673,12 +678,8 @@ public class DocumentService {
         List<Row> docRows = entry.getValue();
         for (Row row : docRows) {
           JsonNode jsonDoc =
-              getJsonConverterService()
-                  .convertToJsonDoc(
-                      Collections.singletonList(row),
-                      new DeadLeafCollectorNoOp(),
-                      true,
-                      db.treatBooleansAsNumeric());
+              jsonConverterService.convertToJsonDoc(
+                  Collections.singletonList(row), true, db.treatBooleansAsNumeric());
           ref.add(jsonDoc);
         }
       }
@@ -694,9 +695,7 @@ public class DocumentService {
 
         List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
         JsonNode jsonDoc =
-            getJsonConverterService()
-                .convertToJsonDoc(
-                    nonNull, new DeadLeafCollectorNoOp(), true, db.treatBooleansAsNumeric());
+            jsonConverterService.convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric());
 
         if (documentId == null) {
           ((ArrayNode) docsResult.get(key)).add(jsonDoc);
@@ -771,7 +770,6 @@ public class DocumentService {
   public JsonNode getFullDocuments(
       DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
-    ObjectMapper mapper = getJsonConverterService().getMapper();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
     do {
@@ -815,9 +813,8 @@ public class DocumentService {
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(),
-                    getJsonConverterService()
-                        .convertToJsonDoc(
-                            rows, new DeadLeafCollectorNoOp(), false, db.treatBooleansAsNumeric()));
+                    jsonConverterService.convertToJsonDoc(
+                        rows, false, db.treatBooleansAsNumeric()));
               });
 
       paginator.setDocumentPageState(lastIdSeen.getValue());
@@ -835,9 +832,8 @@ public class DocumentService {
                         .collect(Collectors.toList());
                 docsResult.set(
                     e.getKey(),
-                    getJsonConverterService()
-                        .convertToJsonDoc(
-                            rows, new DeadLeafCollectorNoOp(), false, db.treatBooleansAsNumeric()));
+                    jsonConverterService.convertToJsonDoc(
+                        rows, false, db.treatBooleansAsNumeric()));
               });
       paginator.clearDocumentPageState();
     }
@@ -884,7 +880,6 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
-    ObjectMapper mapper = getJsonConverterService().getMapper();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> candidates = new LinkedHashSet<>();
     List<Row> rows = null;
@@ -906,14 +901,6 @@ public class DocumentService {
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
     // in memory to build the final result.
-    if (rows == null) {
-      BuiltCondition candidatesPredicate =
-          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(candidates));
-      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
-      updateExistenceForMap(
-          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
-    }
-
     Set<String> docNames = candidates;
     if (candidates.size() > paginator.docPageSize) {
       docNames = new HashSet<>();
@@ -926,6 +913,14 @@ public class DocumentService {
       paginator.setDocumentPageState(lastSeenId);
     } else {
       paginator.clearDocumentPageState();
+    }
+
+    if (rows == null) {
+      BuiltCondition candidatesPredicate =
+          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames));
+      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
+      updateExistenceForMap(
+          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
     }
 
     Map<String, List<Row>> rowsByDoc = new HashMap<>();
@@ -944,12 +939,8 @@ public class DocumentService {
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       docsResult.set(
           entry.getKey(),
-          getJsonConverterService()
-              .convertToJsonDoc(
-                  entry.getValue(),
-                  new DeadLeafCollectorNoOp(),
-                  false,
-                  db.treatBooleansAsNumeric()));
+          jsonConverterService.convertToJsonDoc(
+              entry.getValue(), false, db.treatBooleansAsNumeric()));
     }
 
     return docsResult;
@@ -1022,7 +1013,6 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
-    ObjectMapper mapper = getJsonConverterService().getMapper();
     List<Row> leftoverRows = Collections.emptyList();
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
@@ -1043,13 +1033,10 @@ public class DocumentService {
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       rowsResult.addAll(page);
+      boolean endOfResult = !paginator.hasDbPageState();
       leftoverRows =
           updateExistenceForMap(
-              existsByDoc,
-              rowsResult,
-              inMemoryFilters,
-              db.treatBooleansAsNumeric(),
-              paginator.hasDbPageState());
+              existsByDoc, rowsResult, inMemoryFilters, db.treatBooleansAsNumeric(), endOfResult);
     } while (existsByDoc.size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows
@@ -1085,12 +1072,8 @@ public class DocumentService {
     for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
       docsResult.set(
           entry.getKey(),
-          getJsonConverterService()
-              .convertToJsonDoc(
-                  entry.getValue(),
-                  new DeadLeafCollectorNoOp(),
-                  false,
-                  db.treatBooleansAsNumeric()));
+          jsonConverterService.convertToJsonDoc(
+              entry.getValue(), false, db.treatBooleansAsNumeric()));
     }
 
     return docsResult;
@@ -1252,9 +1235,10 @@ public class DocumentService {
     StringBuilder s = new StringBuilder();
     boolean end = false;
     s.append(row.getString("key")).append("/");
-    while (i < DocumentDB.MAX_DEPTH && !end) {
+    while (i < docsApiConfiguration.getMaxDepth() && !end) {
       String pathSegment = row.getString("p" + i);
-      String nextPathSegment = i + 1 < DocumentDB.MAX_DEPTH ? row.getString("p" + (i + 1)) : null;
+      String nextPathSegment =
+          i + 1 < docsApiConfiguration.getMaxDepth() ? row.getString("p" + (i + 1)) : null;
       end = (nextPathSegment == null || nextPathSegment.equals(""));
       if (!end) {
         s.append(pathSegment).append(".");
@@ -1266,7 +1250,7 @@ public class DocumentService {
 
   private String getFieldPathFromRow(Row row) {
     List<String> path = new ArrayList<>();
-    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+    for (int i = 0; i < docsApiConfiguration.getMaxDepth(); i++) {
       String value = row.getString("p" + i);
       if (value.isEmpty()) {
         break;

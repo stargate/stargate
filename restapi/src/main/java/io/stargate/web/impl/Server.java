@@ -36,6 +36,7 @@ import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.NamespacesResource;
+import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
@@ -121,6 +122,15 @@ public class Server extends Application<ApplicationConfiguration> {
                 bind(db).to(Db.class);
               }
             });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(environment.getObjectMapper()).to(ObjectMapper.class);
+              }
+            });
     environment.jersey().register(KeyspaceResource.class);
     environment.jersey().register(TableResource.class);
     environment.jersey().register(RowResource.class);
@@ -133,7 +143,9 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(IndexesResource.class);
 
     // Documents API
+    environment.jersey().register(new DocsApiComponentsBinder(environment));
     environment.jersey().register(DocumentResourceV2.class);
+
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
 

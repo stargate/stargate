@@ -33,19 +33,9 @@ import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue.Codec;
-import io.stargate.db.schema.AbstractTable;
-import io.stargate.db.schema.CollectionIndexingType;
-import io.stargate.db.schema.Column;
+import io.stargate.db.schema.*;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.db.schema.ColumnUtils;
-import io.stargate.db.schema.ImmutableColumn;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Schema;
-import io.stargate.db.schema.SchemaEntity;
-import io.stargate.db.schema.SecondaryIndex;
-import io.stargate.db.schema.Table;
-import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,14 +68,17 @@ import org.javatuples.Pair;
           name = "table",
           definedAs =
               "(create table ifNotExists? column+ withComment? withDefaultTTL?) | (alter table (((addColumn+)? | (dropColumn+)? | (renameColumn+)?) | (withComment? withDefaultTTL?))) | (drop table ifExists?) | (truncate table)"),
-      @SubExpr(name = "type", definedAs = "(create type ifNotExists?)|(drop type ifExists?)"),
+      @SubExpr(
+          name = "type",
+          definedAs =
+              "(create type ifNotExists?) | (drop type ifExists?) | (alter type addColumn+)"),
       @SubExpr(name = "insert", definedAs = "insertInto value+ ifNotExists? ttl? timestamp?"),
       @SubExpr(name = "update", definedAs = "update ttl? timestamp? value+ where+ ifs* ifExists?"),
       @SubExpr(name = "delete", definedAs = "delete column* from timestamp? where+ ifs* ifExists?"),
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* writeTimeColumn? from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select star? column* ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -138,6 +131,8 @@ public class QueryBuilderImpl {
   /** Column names for a SELECT or DELETE. */
   private final List<String> selection = new ArrayList<>();
 
+  private final List<FunctionCall> functionCalls = new ArrayList<>();
+
   /** The where conditions for a SELECT or UPDATE. */
   private final List<BuiltCondition> wheres = new ArrayList<>();
 
@@ -160,8 +155,6 @@ public class QueryBuilderImpl {
   private UserDefinedType type;
   private Value<Integer> ttl;
   private Value<Long> timestamp;
-  private String writeTimeColumn;
-  private String writeTimeColumnAlias;
   private boolean allowFiltering;
 
   public QueryBuilderImpl(Schema schema, Codec valueCodec, @Nullable AsyncQueryExecutor executor) {
@@ -334,13 +327,62 @@ public class QueryBuilderImpl {
     column(column, type, Column.Kind.Regular);
   }
 
-  public void writeTimeColumn(String columnName) {
-    writeTimeColumn(columnName, null);
+  public void as(String alias) {
+    if (functionCalls.isEmpty()) {
+      throw new IllegalStateException(
+          "The as() method cannot be called without a preceding function call.");
+    }
+    // the alias is set for the last function call
+    FunctionCall functionCall = functionCalls.get(functionCalls.size() - 1);
+    functionCall.setAlias(alias);
   }
 
-  public void writeTimeColumn(String columnName, String alias) {
-    this.writeTimeColumn = columnName;
-    this.writeTimeColumnAlias = alias;
+  public void writeTimeColumn(String columnName) {
+    functionCalls.add(FunctionCall.function(columnName, "WRITETIME"));
+  }
+
+  public void writeTimeColumn(Column columnName) {
+    writeTimeColumn(columnName.name());
+  }
+
+  public void count(String columnName) {
+    functionCalls.add(FunctionCall.function(columnName, "COUNT"));
+  }
+
+  public void count(Column columnName) {
+    count(columnName.name());
+  }
+
+  public void max(String maxColumnName) {
+    functionCalls.add(FunctionCall.function(maxColumnName, "MAX"));
+  }
+
+  public void max(Column maxColumnName) {
+    max(maxColumnName.name());
+  }
+
+  public void min(String minColumnName) {
+    functionCalls.add(FunctionCall.function(minColumnName, "MIN"));
+  }
+
+  public void min(Column minColumnName) {
+    min(minColumnName.name());
+  }
+
+  public void sum(String sumColumnName) {
+    functionCalls.add(FunctionCall.function(sumColumnName, "SUM"));
+  }
+
+  public void sum(Column sumColumnName) {
+    sum(sumColumnName.name());
+  }
+
+  public void avg(String avgColumnName) {
+    functionCalls.add(FunctionCall.function(avgColumnName, "AVG"));
+  }
+
+  public void avg(Column avgColumnName) {
+    avg(avgColumnName.name());
   }
 
   public void star() {
@@ -782,6 +824,9 @@ public class QueryBuilderImpl {
     if (isType && isDrop) {
       return dropType();
     }
+    if (isType && isAlter) {
+      return alterType();
+    }
 
     if (isInsert) {
       return insertQuery();
@@ -849,8 +894,6 @@ public class QueryBuilderImpl {
     String ksName = cqlName(keyspaceName);
     if (ifNotExists) {
       query.append("IF NOT EXISTS ");
-    } else if (schema.keyspace(keyspaceName) != null) {
-      throw invalid("A keyspace named %s already exists", ksName);
     }
     query.append(ksName);
 
@@ -1234,6 +1277,21 @@ public class QueryBuilderImpl {
     return new BuiltOther(valueCodec, executor, query.toString());
   }
 
+  private BuiltQuery<?> alterType() {
+    StringBuilder query = new StringBuilder();
+    Keyspace keyspace = schemaKeyspace();
+    query.append("ALTER TYPE ");
+    query.append(keyspace.cqlName()).append('.').append(type.cqlName());
+    assert !addColumns.isEmpty();
+    query.append(" ADD (");
+    query.append(
+        addColumns.stream()
+            .map(c -> c.cqlName() + " " + c.type().cqlDefinition())
+            .collect(Collectors.joining(", ")));
+    query.append(")");
+    return new BuiltOther(valueCodec, executor, query.toString());
+  }
+
   private BuiltInsert insertQuery() {
     Table table = schemaTable();
     QueryStringBuilder builder = new QueryStringBuilder(markerIndex);
@@ -1421,28 +1479,24 @@ public class QueryBuilderImpl {
     // Using a linked set for the minor convenience of get back the columns in the order they were
     // passed to the builder "in general".
     Set<Column> allSelected = new LinkedHashSet<>(selectedColumns);
-    Column wtColumn = null;
-    if (writeTimeColumn != null) {
-      wtColumn = table.column(writeTimeColumn);
-      allSelected.add(wtColumn);
+    // add all columns used in function calls to allSelected
+    for (FunctionCall functionCall : functionCalls) {
+      allSelected.add(table.column(functionCall.columnName));
     }
+
     builder.append("SELECT");
-    if (selectedColumns.isEmpty() && writeTimeColumn == null) {
+    if (selectedColumns.isEmpty() && functionCalls.isEmpty()) {
       builder.append("*");
     } else {
-      builder
-          .start()
-          .addAll(selectedColumns)
-          .addIfNotNull(
-              wtColumn,
-              c -> {
-                builder.append("WRITETIME(").append(c).append(")");
-                if (writeTimeColumnAlias != null) {
-                  builder.append("AS").append(cqlName(writeTimeColumnAlias));
-                }
-              })
-          .end();
+      QueryStringBuilder.ListBuilder listBuilder = builder.start().addAll(selectedColumns);
+
+      for (FunctionCall functionCall : functionCalls) {
+        listBuilder.addIfNotNull(
+            functionCall.getColumnName(),
+            __ -> addFunctionCallWithAliasIfPresent(builder, functionCall));
+      }
     }
+
     builder.append("FROM").append(table);
     List<Value<?>> internalWhereValues = new ArrayList<>();
     List<BindMarker> internalBindMarkers = new ArrayList<>();
@@ -1490,5 +1544,54 @@ public class QueryBuilderImpl {
         wheres,
         limit,
         perPartitionLimit);
+  }
+
+  private static void addFunctionCallWithAliasIfPresent(
+      QueryStringBuilder builder, FunctionCall functionCall) {
+
+    builder
+        .append(functionCall.getFunctionName() + "(")
+        .append(functionCall.getColumnName())
+        .append(")");
+    if (functionCall.getAlias() != null) {
+      builder.append("AS").append(cqlName(functionCall.getAlias()));
+    }
+  }
+
+  private static class FunctionCall {
+    final String columnName;
+    @Nullable String alias;
+    final String functionName;
+
+    private FunctionCall(String columnName, String alias, String functionName) {
+      this.columnName = columnName;
+      this.alias = alias;
+      this.functionName = functionName;
+    }
+
+    public static FunctionCall function(String name, String alias, String functionName) {
+      return new FunctionCall(name, alias, functionName);
+    }
+
+    public static FunctionCall function(String name, String functionName) {
+      return new FunctionCall(name, null, functionName);
+    }
+
+    public void setAlias(String alias) {
+      this.alias = alias;
+    }
+
+    public String getColumnName() {
+      return columnName;
+    }
+
+    public String getFunctionName() {
+      return functionName;
+    }
+
+    @Nullable
+    public String getAlias() {
+      return alias;
+    }
   }
 }
