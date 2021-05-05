@@ -1283,12 +1283,11 @@ public class QueryBuilderImpl {
     query.append("ALTER TYPE ");
     query.append(keyspace.cqlName()).append('.').append(type.cqlName());
     assert !addColumns.isEmpty();
-    query.append(" ADD (");
+    query.append(" ADD ");
     query.append(
         addColumns.stream()
             .map(c -> c.cqlName() + " " + c.type().cqlDefinition())
             .collect(Collectors.joining(", ")));
-    query.append(")");
     return new BuiltOther(valueCodec, executor, query.toString());
   }
 

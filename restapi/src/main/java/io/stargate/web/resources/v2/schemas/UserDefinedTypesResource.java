@@ -57,6 +57,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -64,6 +65,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 
 /**
  * Exposes REST Endpoint to work with Cassandra User Defined Types
@@ -147,7 +149,7 @@ public class UserDefinedTypesResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Get a user defined type (UDT) from its identifier",
+      value = "Get an user defined type (UDT) from its identifier",
       notes = "Retrieve data for a single table in a specific keyspace.",
       response = ResponseWrapper.class)
   @ApiResponses(
@@ -208,8 +210,8 @@ public class UserDefinedTypesResource {
   @Timed
   @POST
   @ApiOperation(
-      value = "Create a user defined type (UDT)",
-      notes = "Add a user defined type (udt) in a specific keyspace.",
+      value = "Create an user defined type (UDT)",
+      notes = "Add an user defined type (udt) in a specific keyspace.",
       response = Map.class,
       code = 201)
   @ApiResponses(
@@ -273,31 +275,12 @@ public class UserDefinedTypesResource {
                   SourceAPI.REST,
                   ResourceKind.TYPE);
 
-          List<Column> columns = new ArrayList<>();
-          for (UserDefinedTypeField colDef : udtAdd.getFieldDefinitions()) {
-            String fieldName = colDef.getName();
-            String typeDef = colDef.getTypeDefinition();
-            if (Strings.isNullOrEmpty(fieldName) || Strings.isNullOrEmpty(typeDef)) {
-              return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(
-                      new Error(
-                          "Type name and definition must be provided.",
-                          Response.Status.BAD_REQUEST.getStatusCode()))
-                  .build();
-            }
-            columns.add(
-                Column.create(
-                    fieldName,
-                    Kind.Regular,
-                    Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition())));
-          }
-
-          if (columns.isEmpty()) {
+          List<Column> columns;
+          try {
+            columns = getUdtColumns(keyspace, udtAdd);
+          } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "There should be at least one field defined",
-                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -326,7 +309,7 @@ public class UserDefinedTypesResource {
   @Timed
   @DELETE
   @ApiOperation(
-      value = "Delete a User Defined type (UDT)",
+      value = "Delete an User Defined type (UDT)",
       notes = "Delete a single user defined type (UDT) in the specified keyspace.")
   @ApiResponses(
       value = {
@@ -386,6 +369,108 @@ public class UserDefinedTypesResource {
 
           return Response.status(Response.Status.NO_CONTENT).build();
         });
+  }
+
+  @Timed
+  @PUT
+  @ApiOperation(
+      value = "Update an User Defined type (UDT)",
+      notes = "Update an user defined type (UDT) adding or renaming fields.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+      })
+  public Response update(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam(HEADER_TOKEN_AUTHENTICATION)
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "", required = true) @NotNull final UserDefinedTypeAdd udtAdd,
+      @Context HttpServletRequest request) {
+    return RequestHandler.handle(
+        () -> {
+          AuthenticatedDB authenticatedDB =
+              db.getRestDataStoreForToken(token, getAllHeaders(request));
+
+          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          if (keyspace == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          String typeName = udtAdd.getName();
+          if (Strings.isNullOrEmpty(typeName)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "Type name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          db.getAuthorizationService()
+              .authorizeSchemaWrite(
+                  authenticatedDB.getAuthenticationSubject(),
+                  keyspaceName,
+                  null,
+                  Scope.ALTER,
+                  SourceAPI.REST,
+                  ResourceKind.TYPE);
+
+          UserDefinedType udt =
+              ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();
+
+          List<Column> columns;
+          try {
+            columns = getUdtColumns(keyspace, udtAdd);
+          } catch (IllegalArgumentException | InvalidRequestException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          authenticatedDB
+              .getDataStore()
+              .queryBuilder()
+              .alter()
+              .type(keyspaceName, udt)
+              .addColumn(columns)
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
+
+          return Response.status(Response.Status.OK).build();
+        });
+  }
+
+  private List<Column> getUdtColumns(Keyspace keyspace, UserDefinedTypeAdd udtAdd) {
+    List<Column> columns = new ArrayList<>();
+    for (UserDefinedTypeField colDef : udtAdd.getFieldDefinitions()) {
+      String fieldName = colDef.getName();
+      String typeDef = colDef.getTypeDefinition();
+      if (Strings.isNullOrEmpty(fieldName) || Strings.isNullOrEmpty(typeDef)) {
+        throw new IllegalArgumentException("Type name and definition must be provided.");
+      }
+      columns.add(
+          Column.create(
+              fieldName,
+              Kind.Regular,
+              Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition())));
+    }
+
+    if (columns.isEmpty()) {
+      throw new IllegalArgumentException("There should be at least one field defined");
+    }
+    return columns;
   }
 
   private UserDefinedTypeResponse mapUdtAsResponse(UserDefinedType udt) {

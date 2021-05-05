@@ -2391,6 +2391,73 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void updateInvalidUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // add existing field
+    udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void updateUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"varchar\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    udtString =
+        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    Map<String, Object> response = (Map<String, Object>) getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("udt1");
+    List<Map<String, String>> fieldDefinitions =
+        (List<Map<String, String>>) response.get("fieldDefinitions");
+    assertThat(fieldDefinitions.size()).isEqualTo(2);
+    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("varchar");
+    assertThat(fieldDefinitions.get(1).get("name")).isEqualTo("lastname");
+    assertThat(fieldDefinitions.get(1).get("typeDefinition")).isEqualTo("varchar");
+  }
+
+  @Test
   public void testInvalidUdtType() throws IOException {
     createKeyspace(keyspaceName);
 

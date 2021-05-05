@@ -179,7 +179,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     private final AtomicBoolean removed = new AtomicBoolean();
 
     public CcmCluster(ClusterSpec spec, ExtensionContext context) {
-      this(spec, ImmutableMap.of("enable_sasi_indexes", true), Collections.emptyMap(), context);
+      this(spec, Collections.emptyMap(), Collections.emptyMap(), context);
     }
 
     public CcmCluster(
