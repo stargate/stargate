@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import jdk.nashorn.internal.ir.FunctionCall;
 import org.javatuples.Pair;
 
 /** Convenience builder for creating queries. */
