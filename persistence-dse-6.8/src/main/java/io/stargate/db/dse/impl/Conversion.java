@@ -44,7 +44,6 @@ import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.db.rows.ArrayBackedRow;
 import org.apache.cassandra.exceptions.CassandraException;
-import org.apache.cassandra.schema.SchemaManager;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.service.pager.PagingState.RowMark;
@@ -165,10 +164,8 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
-  public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    TableMetadata table =
-        SchemaManager.instance.validateTable(pos.table().keyspace(), pos.table().name());
-
+  public static ByteBuffer toPagingState(
+      TableMetadata table, PagingPosition pos, Parameters parameters) {
     Object[] pkValues =
         table.partitionKeyColumns().stream()
             .map(c -> pos.requiredValue(c.name.toCQLString()))

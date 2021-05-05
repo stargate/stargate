@@ -625,8 +625,10 @@ public class DsePersistence
     }
 
     @Override
-    public ByteBuffer makePagingState(PagingPosition position, Parameters parameters) {
-      return Conversion.toPagingState(position, parameters);
+    public ByteBuffer makePagingState(PagingPosition pos, Parameters parameters) {
+      TableMetadata table =
+          SchemaManager.instance.validateTable(pos.table().keyspace(), pos.table().name());
+      return Conversion.toPagingState(table, pos, parameters);
     }
 
     private Object queryOrId(Statement statement) {
