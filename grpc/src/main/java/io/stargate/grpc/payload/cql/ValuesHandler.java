@@ -171,11 +171,14 @@ public class ValuesHandler implements PayloadHandler {
       resultSetBuilder.addRows(rowBuilder);
     }
 
-    resultSetBuilder.setPagingState(
-        BytesValue.newBuilder()
-            .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
-            .build());
-    resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
+    if (rows.resultMetadata.pagingState != null) {
+      resultSetBuilder.setPagingState(
+          BytesValue.newBuilder()
+              .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
+              .build());
+      resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
+    }
+    
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
   }
 
