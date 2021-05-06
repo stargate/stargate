@@ -1,6 +1,5 @@
 package io.stargate.web.docsapi.dao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.DataStore;
@@ -54,7 +53,7 @@ public class Paginator {
     this.currentDbPageState = resultSet.getPagingState();
   }
 
-  public String makeExternalPagingState() throws JsonProcessingException {
+  public String makeExternalPagingState() {
     ByteBuffer pagingState;
 
     if (lastDocumentId != null && resultSet != null) {

@@ -1346,43 +1346,6 @@ public class DocumentServiceTest {
   }
 
   @Test
-  public void searchRows_invalid() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
-
-    int pageSizeParam = 1;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", true));
-
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                searchRows.invoke(
-                    service,
-                    "keyspace",
-                    "collection",
-                    dbMock,
-                    new ArrayList<>(),
-                    filters,
-                    new ArrayList<>(),
-                    ImmutableList.of("a,b", "*", "c"),
-                    null,
-                    null,
-                    paginator));
-
-    assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessage(
-            "The results as requested must fit in one page, try increasing the `page-size` parameter.");
-  }
-
-  @Test
   public void getParentPathFromRow() throws InvocationTargetException, IllegalAccessException {
     Row row = makeInitialRowData(false).get(1);
     String result = (String) getParentPathFromRow.invoke(service, row);

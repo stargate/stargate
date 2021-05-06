@@ -1375,7 +1375,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&page-size=2",
             200);
 
     String searchResultStr =
@@ -1412,7 +1412,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&page-size=2",
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&page-size=20",
             200);
 
     searchResultStr =
@@ -1483,7 +1483,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&page-size=20&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
             200);
 
     String searchResultStr =
@@ -1583,7 +1583,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}&page-size=20",
             200);
 
     String searchResultStr =
@@ -1716,7 +1716,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}&page-size=2",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}&page-size=20",
             200);
 
     String searchResultStr =
@@ -1786,7 +1786,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}&page-size=2",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}&page-size=20",
             200);
 
     String searchResultStr =
@@ -1856,7 +1856,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}&page-size=20",
             200);
 
     String searchResultStr =
@@ -2751,29 +2751,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Bad request: The parameter `page-size` is limited to 20.\",\"code\":400}");
-  }
-
-  @Test
-  public void testPaginationDisallowedLimitedSupport() throws IOException {
-    JsonNode doc1 =
-        objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    RestUtils.put(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
-        doc1.toString(),
-        200);
-
-    String r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5",
-            400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Bad request: The results as requested must fit in one page, try increasing the `page-size` parameter.\",\"code\":400}");
   }
 
   // Below are "namespace" tests that should match the REST Api's keyspace tests

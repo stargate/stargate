@@ -1084,10 +1084,6 @@ public class DocumentService {
    * Cassandra for any data that matches `path` and then does matching of the selection set and
    * filtering in memory.
    *
-   * <p>A major restriction: if `fields` is non-empty or `filters` includes a filter that has
-   * "limited support" ($nin, $in, $ne), then the result set MUST fit in a single page. A requester
-   * could alter `page-size` up to a limit of 1000 to attempt to achieve this.
-   *
    * @param keyspace the keyspace (document namespace) where the table lives
    * @param collection the table (document collection)
    * @param db the DB utility
@@ -1215,11 +1211,6 @@ public class DocumentService {
           rows.stream()
               .filter(row -> row.getString("key").equals(documentKey))
               .collect(Collectors.toList());
-    }
-
-    if (!inMemoryFilters.isEmpty() && paginator.hasDbPageState()) {
-      throw new DocumentAPIRequestException(
-          "The results as requested must fit in one page, try increasing the `page-size` parameter.");
     }
 
     rows = filterToSelectionSet(rows, fields, path);
