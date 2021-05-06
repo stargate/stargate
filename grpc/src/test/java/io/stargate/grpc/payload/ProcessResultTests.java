@@ -15,9 +15,9 @@
  */
 package io.stargate.grpc.payload;
 
-import static io.stargate.grpc.Utils.int_;
-import static io.stargate.grpc.Utils.string;
-import static io.stargate.grpc.Utils.uuid;
+import static io.stargate.grpc.Utils.intValue;
+import static io.stargate.grpc.Utils.stringValue;
+import static io.stargate.grpc.Utils.uuidValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -79,9 +79,13 @@ public class ProcessResultTests {
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
             .addExpectedRow(
-                int_(1), string("a"), uuid(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
+                intValue(1),
+                stringValue("a"),
+                uuidValue(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
             .addExpectedRow(
-                int_(2), string("b"), uuid(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
+                intValue(2),
+                stringValue("b"),
+                uuidValue(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
             .build(false),
         resultSet()
             .addActualColumn(Column.create("c1", Column.Type.Int))
@@ -90,9 +94,13 @@ public class ProcessResultTests {
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
             .addExpectedRow(
-                int_(1), string("a"), uuid(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
+                intValue(1),
+                stringValue("a"),
+                uuidValue(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
             .addExpectedRow(
-                int_(2), string("b"), uuid(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
+                intValue(2),
+                stringValue("b"),
+                uuidValue(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
             .build(true));
   }
 

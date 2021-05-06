@@ -66,53 +66,53 @@ public class Utils {
         Utils.makePreparedMetadata(bindColumns));
   }
 
-  public static Value null_() {
+  public static Value nullValue() {
     return NULL_VALUE;
   }
 
-  public static Value unset() {
+  public static Value unsetValue() {
     return UNSET_VALUE;
   }
 
-  public static Value boolean_(boolean value) {
+  public static Value booleanValue(boolean value) {
     return Value.newBuilder().setBoolean(value).build();
   }
 
-  public static Value date(LocalDate value) {
+  public static Value dateValue(LocalDate value) {
     long days = ChronoUnit.DAYS.between(EPOCH, value);
     int unsigned = (int) days - Integer.MIN_VALUE;
     return Value.newBuilder().setDate(unsigned).build();
   }
 
-  public static Value float_(float value) {
+  public static Value floatValue(float value) {
     return Value.newBuilder().setFloat(value).build();
   }
 
-  public static Value double_(double value) {
+  public static Value doubleValue(double value) {
     return Value.newBuilder().setDouble(value).build();
   }
 
-  public static Value bytes(byte[] value) {
+  public static Value bytesValue(byte[] value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
-  public static Value inet(InetAddress value) {
-    return bytes(value.getAddress());
+  public static Value inetValue(InetAddress value) {
+    return bytesValue(value.getAddress());
   }
 
-  public static Value int_(long value) {
+  public static Value intValue(long value) {
     return Value.newBuilder().setInt(value).build();
   }
 
-  public static Value string(String value) {
+  public static Value stringValue(String value) {
     return Value.newBuilder().setString(value).build();
   }
 
-  public static Value time(LocalTime value) {
+  public static Value timeValue(LocalTime value) {
     return Value.newBuilder().setTime(value.toNanoOfDay()).build();
   }
 
-  public static Value uuid(UUID value) {
+  public static Value uuidValue(UUID value) {
     return Value.newBuilder()
         .setUuid(
             Uuid.newBuilder()
