@@ -133,7 +133,7 @@ public class AggregationsFetcherSupport {
     String alias = selectedField.getAlias();
     // put the returned value as alias
     if (alias != null) {
-      columns.put(alias, rowValueExtractor.apply(row, alias));
+      columns.put(selectedField.getName(), rowValueExtractor.apply(row, alias));
     }
     // generate aggregation column name and get the value
     else {

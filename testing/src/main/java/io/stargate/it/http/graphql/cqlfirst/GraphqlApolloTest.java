@@ -2180,7 +2180,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should get the highest order using max aggregation")
-  public void insertOrdersAndMaxUsingIntFunctionWithAlias() {
+  public void insertOrdersAndMaxUsingDecimalFunctionWithAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")
@@ -2217,7 +2217,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should get the lowest order using min aggregation")
-  public void insertOrdersAndMinUsingIntFunctionWithAlias() {
+  public void insertOrdersAndMinUsingDecimalFunctionWithAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")
@@ -2253,7 +2253,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
   @Test
   @DisplayName("Should sum all orders' price using sum aggregation")
-  public void insertOrdersAndSumUsingIntFunctionWithAlias() {
+  public void insertOrdersAndSumUsingDecimalFunctionWithAlias() {
     OrdersInput order1 =
         OrdersInput.builder()
             .prodName("p1")

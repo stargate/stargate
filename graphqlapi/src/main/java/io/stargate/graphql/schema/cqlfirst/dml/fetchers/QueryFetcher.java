@@ -93,6 +93,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       result.put("pageState", ByteBufferUtils.toBase64(pageState));
     }
 
+    System.out.println("result -> " + result);
     return result;
   }
 
