@@ -136,8 +136,8 @@ jobs:
         run: |
           mvn versions:set -DremoveSnapshot versions:commit && \
           mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \
-          mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
-          mvn xml-format:xml-format fmt:format
+          mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse,grpc && \
+          mvn xml-format:xml-format fmt:format -Pdse,grpc
       - name: Rev Version
         if: success()
         uses: peter-evans/create-pull-request@v3
