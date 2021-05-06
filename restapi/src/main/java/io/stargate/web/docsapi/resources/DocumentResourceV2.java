@@ -506,7 +506,7 @@ public class DocumentResourceV2 {
           String fields,
       @ApiParam(
               value = "the max number of results to return, if `where` is defined.",
-              defaultValue = "100")
+              defaultValue = "1")
           @QueryParam("page-size")
           int pageSizeParam,
       @ApiParam(
@@ -584,7 +584,7 @@ public class DocumentResourceV2 {
           String fields,
       @ApiParam(
               value = "the max number of results to return, if `where` is defined",
-              defaultValue = "100")
+              defaultValue = "1")
           @QueryParam("page-size")
           int pageSizeParam,
       @ApiParam(
@@ -662,11 +662,7 @@ public class DocumentResourceV2 {
           } else {
             int pageSize = Math.max(1, pageSizeParam);
             final Paginator paginator =
-                new Paginator(
-                    dbFactory.getDataStore(),
-                    pageStateParam,
-                    pageSize,
-                    pageSize);
+                new Paginator(dbFactory.getDataStore(), pageStateParam, pageSize, pageSize);
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
