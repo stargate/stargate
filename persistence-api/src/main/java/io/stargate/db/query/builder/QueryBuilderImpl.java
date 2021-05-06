@@ -71,7 +71,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "type",
           definedAs =
-              "(create type ifNotExists?) | (drop type ifExists?) | (alter type addColumn+)"),
+              "(create type ifNotExists?) | (drop type ifExists?) | (alter type (addColumn+ | renameColumn+))"),
       @SubExpr(name = "insert", definedAs = "insertInto value+ ifNotExists? ttl? timestamp?"),
       @SubExpr(name = "update", definedAs = "update ttl? timestamp? value+ where+ ifs* ifExists?"),
       @SubExpr(name = "delete", definedAs = "delete column* from timestamp? where+ ifs* ifExists?"),
@@ -444,6 +444,10 @@ public class QueryBuilderImpl {
   @DSLAction
   public void renameColumn(String from, String to) {
     columnRenames.add(Pair.with(from, to));
+  }
+
+  public void renameColumn(List<Pair<String, String>> columnRenames) {
+    this.columnRenames.addAll(columnRenames);
   }
 
   @DSLAction
@@ -825,6 +829,9 @@ public class QueryBuilderImpl {
       return dropType();
     }
     if (isType && isAlter) {
+      if (!columnRenames.isEmpty()) {
+        return renameTypeColumns();
+      }
       return alterType();
     }
 
@@ -1261,6 +1268,20 @@ public class QueryBuilderImpl {
         type.columns().stream()
             .map(c -> c.cqlName() + " " + c.type().cqlDefinition())
             .collect(Collectors.joining(", ", " (", ")")));
+    return new BuiltOther(valueCodec, executor, query.toString());
+  }
+
+  private BuiltQuery<?> renameTypeColumns() {
+    StringBuilder query = new StringBuilder();
+    Keyspace keyspace = schemaKeyspace();
+    query.append("ALTER TYPE ");
+    query.append(keyspace.cqlName()).append('.').append(type.cqlName()).append(" ");
+    query.append("RENAME ");
+
+    query.append(
+        columnRenames.stream()
+            .map(n -> n.getValue0() + " TO " + n.getValue1())
+            .collect(Collectors.joining(" AND ")));
     return new BuiltOther(valueCodec, executor, query.toString());
   }
 

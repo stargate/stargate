@@ -2428,7 +2428,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_CREATED);
 
     udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+        "{\"name\": \"udt1\", \"add-type\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    udtString =
+        "{\"name\": \"udt1\",\"rename-type\":[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2451,9 +2460,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     List<Map<String, String>> fieldDefinitions =
         (List<Map<String, String>>) response.get("fieldDefinitions");
     assertThat(fieldDefinitions.size()).isEqualTo(2);
-    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("name1");
     assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("varchar");
-    assertThat(fieldDefinitions.get(1).get("name")).isEqualTo("lastname");
+    assertThat(fieldDefinitions.get(1).get("name")).isEqualTo("name2");
     assertThat(fieldDefinitions.get(1).get("typeDefinition")).isEqualTo("varchar");
   }
 

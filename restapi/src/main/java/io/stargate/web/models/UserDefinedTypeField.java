@@ -18,6 +18,7 @@ package io.stargate.web.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.MoreObjects;
 import io.swagger.annotations.ApiModelProperty;
 
 /** Represents a column in a User Defined type like {@link UserDefinedTypeAdd} */
@@ -49,5 +50,14 @@ public class UserDefinedTypeField {
       value = "A valid type of data (e.g, text, int, etc) allowed in the type.")
   public String getTypeDefinition() {
     return typeDefinition;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("fields", typeDefinition)
+        .omitNullValues()
+        .toString();
   }
 }

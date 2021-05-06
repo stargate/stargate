@@ -35,6 +35,7 @@ import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.models.UserDefinedTypeAdd;
 import io.stargate.web.models.UserDefinedTypeField;
 import io.stargate.web.models.UserDefinedTypeResponse;
+import io.stargate.web.models.UserDefinedTypeUpdate;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
@@ -66,11 +67,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
+import org.javatuples.Pair;
 
 /**
  * Exposes REST Endpoint to work with Cassandra User Defined Types
  *
- * @see https://cassandra.apache.org/doc/latest/cql/types.html
+ * @see "https://cassandra.apache.org/doc/latest/cql/types.html"
  */
 @Api(
     produces = APPLICATION_JSON,
@@ -277,7 +279,7 @@ public class UserDefinedTypesResource {
 
           List<Column> columns;
           try {
-            columns = getUdtColumns(keyspace, udtAdd);
+            columns = getUdtColumns(keyspace, udtAdd.getFieldDefinitions());
           } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
@@ -300,6 +302,7 @@ public class UserDefinedTypesResource {
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
+
           return Response.status(Response.Status.CREATED)
               .entity(Converters.writeResponse(Collections.singletonMap("name", typeName)))
               .build();
@@ -392,7 +395,7 @@ public class UserDefinedTypesResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "", required = true) @NotNull final UserDefinedTypeAdd udtAdd,
+      @ApiParam(value = "", required = true) @NotNull final UserDefinedTypeUpdate udtUpdate,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -404,16 +407,16 @@ public class UserDefinedTypesResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+                        "keyspace does not exists.", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
-          String typeName = udtAdd.getName();
+          String typeName = udtUpdate.getName();
           if (Strings.isNullOrEmpty(typeName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        "Type name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
+                        "Type name must be provided.", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -429,32 +432,48 @@ public class UserDefinedTypesResource {
           UserDefinedType udt =
               ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();
 
-          List<Column> columns;
-          try {
-            columns = getUdtColumns(keyspace, udtAdd);
-          } catch (IllegalArgumentException | InvalidRequestException ex) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
+          List<UserDefinedTypeField> fields = udtUpdate.getFieldDefinitions();
+          if (fields != null && !fields.isEmpty()) {
+            try {
+              List<Column> columns = getUdtColumns(keyspace, fields);
+              authenticatedDB
+                  .getDataStore()
+                  .queryBuilder()
+                  .alter()
+                  .type(keyspaceName, udt)
+                  .addColumn(columns)
+                  .build()
+                  .execute(ConsistencyLevel.LOCAL_QUORUM)
+                  .get();
+            } catch (IllegalArgumentException | InvalidRequestException ex) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                  .build();
+            }
+          } else if (udtUpdate.getRenameColumns() != null
+              && !udtUpdate.getRenameColumns().isEmpty()) {
+            List<Pair<String, String>> columns =
+                udtUpdate.getRenameColumns().stream()
+                    .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
+                    .collect(Collectors.toList());
+            authenticatedDB
+                .getDataStore()
+                .queryBuilder()
+                .alter()
+                .type(keyspaceName, udt)
+                .renameColumn(columns)
+                .build()
+                .execute(ConsistencyLevel.LOCAL_QUORUM)
+                .get();
           }
-
-          authenticatedDB
-              .getDataStore()
-              .queryBuilder()
-              .alter()
-              .type(keyspaceName, udt)
-              .addColumn(columns)
-              .build()
-              .execute(ConsistencyLevel.LOCAL_QUORUM)
-              .get();
 
           return Response.status(Response.Status.OK).build();
         });
   }
 
-  private List<Column> getUdtColumns(Keyspace keyspace, UserDefinedTypeAdd udtAdd) {
+  private List<Column> getUdtColumns(Keyspace keyspace, List<UserDefinedTypeField> fields) {
     List<Column> columns = new ArrayList<>();
-    for (UserDefinedTypeField colDef : udtAdd.getFieldDefinitions()) {
+    for (UserDefinedTypeField colDef : fields) {
       String fieldName = colDef.getName();
       String typeDef = colDef.getTypeDefinition();
       if (Strings.isNullOrEmpty(fieldName) || Strings.isNullOrEmpty(typeDef)) {
