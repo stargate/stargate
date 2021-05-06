@@ -29,12 +29,19 @@ public class Paginator {
 
   public Paginator(DataStore dataStore, String pageState, int pageSize, int dbPageSize) {
     this.dataStore = dataStore;
-    docPageSize = Math.max(1, pageSize);
+    docPageSize = pageSize;
+    if (docPageSize < 1) {
+      throw new IllegalStateException("Document page size cannot be less than 1.");
+    }
+
     if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
       throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
     }
 
     this.dbPageSize = dbPageSize;
+    if (this.dbPageSize < 1) {
+      throw new IllegalStateException("Database page size cannot be less than 1.");
+    }
 
     if (pageState != null) {
       byte[] decodedBytes = Base64.getDecoder().decode(pageState);

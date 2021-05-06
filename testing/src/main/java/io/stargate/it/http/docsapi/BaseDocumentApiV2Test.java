@@ -1398,7 +1398,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&page-size=2&raw=true",
             200);
 
     searchResultStr =
@@ -1412,7 +1412,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}",
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&page-size=2",
             200);
 
     searchResultStr =
@@ -1440,7 +1440,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&page-size=2&raw=true",
             200);
 
     searchResultStr =
@@ -1454,7 +1454,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&page-size=4&raw=true",
             200);
     searchResultStr =
         "["
@@ -1498,7 +1498,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&page-size=2&raw=true",
             200);
 
     searchResultStr =
@@ -1512,7 +1512,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]",
+                + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&page-size=2&fields=[\"price\", \"sku\"]",
             200);
 
     searchResultStr =
@@ -1540,7 +1540,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&page-size=2&fields=[\"price\"]&raw=true",
             200);
 
     searchResultStr =
@@ -1554,7 +1554,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&page-size=4&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
             200);
     searchResultStr =
         "["
@@ -1716,7 +1716,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}&page-size=2",
             200);
 
     String searchResultStr =
@@ -1731,7 +1731,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}&page-size=2",
             200);
 
     searchResultStr =
@@ -1746,7 +1746,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}&page-size=2",
             200);
 
     searchResultStr =
@@ -1786,7 +1786,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}",
+                + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}&page-size=2",
             200);
 
     String searchResultStr =
@@ -1801,7 +1801,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}&page-size=2",
             200);
 
     searchResultStr =
@@ -1816,7 +1816,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}",
+                + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}&page-size=2",
             200);
 
     searchResultStr =
@@ -2077,7 +2077,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true",
+                + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&page-size=2&raw=true",
             200);
     searchResultStr =
         "["

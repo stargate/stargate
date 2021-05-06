@@ -660,12 +660,13 @@ public class DocumentResourceV2 {
             logger.debug(json);
             return Response.ok(json).build();
           } else {
+            int pageSize = Math.max(1, pageSizeParam);
             final Paginator paginator =
                 new Paginator(
                     dbFactory.getDataStore(),
                     pageStateParam,
-                    pageSizeParam,
-                    pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
+                    pageSize,
+                    pageSize);
             DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
@@ -766,14 +767,11 @@ public class DocumentResourceV2 {
               new Paginator(
                   dbFactory.getDataStore(),
                   pageStateParam,
-                  pageSizeParam,
+                  Math.max(1, pageSizeParam),
                   docsApiConfiguration.getSearchPageSize());
 
           JsonNode results;
 
-          if (pageSizeParam > 20) {
-            throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
-          }
           if (filters.isEmpty()) {
             results =
                 documentService.getFullDocuments(
