@@ -41,12 +41,12 @@ public class QueryExecutor {
   }
 
   public Flowable<RawDocument> queryDocs(
-      AbstractBound<?> query, int limit, ByteBuffer pagingState) {
-    return queryDocs(1, query, limit, pagingState);
+      AbstractBound<?> query, ByteBuffer pagingState) {
+    return queryDocs(1, query, pagingState);
   }
 
   public Flowable<RawDocument> queryDocs(
-      int identityDepth, AbstractBound<?> query, int limit, ByteBuffer pagingState) {
+      int identityDepth, AbstractBound<?> query, ByteBuffer pagingState) {
     BuiltSelect select = (BuiltSelect) query.source().query();
     if (identityDepth < 1 || identityDepth > select.table().primaryKeyColumns().size()) {
       throw new IllegalArgumentException("Invalid document identity depth: " + identityDepth);
@@ -67,7 +67,6 @@ public class QueryExecutor {
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
         .filter(Accumulator::isComplete)
-        .limit(limit)
         .map(Accumulator::toDoc);
   }
 
