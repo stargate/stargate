@@ -2136,7 +2136,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
 
     GetOrdersWithCountQuery.Data result = getObservable(client.query(query));
 
-    assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo(2);
+    assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo("2");
   }
 
   @Test
