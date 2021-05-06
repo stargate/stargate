@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import io.stargate.db.ImmutableParameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -41,12 +42,12 @@ public class QueryExecutor {
   }
 
   public Flowable<RawDocument> queryDocs(
-      AbstractBound<?> query, ByteBuffer pagingState) {
-    return queryDocs(1, query, pagingState);
+      AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+    return queryDocs(1, query, pageSize, pagingState);
   }
 
   public Flowable<RawDocument> queryDocs(
-      int identityDepth, AbstractBound<?> query, ByteBuffer pagingState) {
+      int identityDepth, AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
     BuiltSelect select = (BuiltSelect) query.source().query();
     if (identityDepth < 1 || identityDepth > select.table().primaryKeyColumns().size()) {
       throw new IllegalArgumentException("Invalid document identity depth: " + identityDepth);
@@ -62,7 +63,7 @@ public class QueryExecutor {
       }
     }
 
-    return execute(query, pagingState)
+    return execute(query, pageSize, pagingState)
         .concatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)))
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
@@ -70,17 +71,28 @@ public class QueryExecutor {
         .map(Accumulator::toDoc);
   }
 
-  public Flowable<ResultSet> execute(AbstractBound<?> query, ByteBuffer pagingState) {
-    return executeSingle(query, pagingState).concatMap(rs -> fetchNext(rs, query));
+  public Flowable<ResultSet> execute(AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+    return executeSingle(query, pageSize, pagingState)
+        .concatMap(rs -> fetchNext(rs, pageSize, query));
   }
 
-  private Flowable<ResultSet> executeSingle(AbstractBound<?> query, ByteBuffer pagingState) {
+  private Flowable<ResultSet> executeSingle(
+      AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
     return RxUtils.toSingle(
-            dataStore.execute(query, p -> pagingState == null ? p : p.withPagingState(pagingState)))
+            dataStore.execute(
+                query,
+                p -> {
+                  ImmutableParameters.Builder builder = p.toBuilder();
+                  builder.pageSize(pageSize);
+                  if (pagingState != null) {
+                    builder.pagingState(pagingState);
+                  }
+                  return builder.build();
+                }))
         .toFlowable();
   }
 
-  private Flowable<ResultSet> fetchNext(ResultSet rs, AbstractBound<?> query) {
+  private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, AbstractBound<?> query) {
     ByteBuffer nextPagingState = rs.getPagingState();
     if (nextPagingState == null) {
       return Flowable.just(rs);
@@ -88,7 +100,10 @@ public class QueryExecutor {
       return Flowable.just(rs)
           .concatWith(
               Flowable.just(nextPagingState)
-                  .concatMap(ps -> executeSingle(query, ps).concatMap(r -> fetchNext(r, query))));
+                  .concatMap(
+                      ps ->
+                          executeSingle(query, pageSize, ps)
+                              .concatMap(r -> fetchNext(r, pageSize, query))));
     }
   }
 

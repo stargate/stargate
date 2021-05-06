@@ -107,7 +107,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     withQuery(table, "SELECT * FROM %s")
         .returning(ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d)));
 
-    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, null));
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 100, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2");
   }
 
@@ -143,22 +143,22 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   void testFullScanPaged(int pageSize) {
     withFiveTestDocs(pageSize);
 
-    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, null));
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, pageSize, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
 
     assertThat(r1.get(0).hasPagingState()).isTrue();
     ByteBuffer ps1 = r1.get(0).makePagingState();
-    List<RawDocument> r2 = get(executor.queryDocs(allDocsQuery, ps1));
+    List<RawDocument> r2 = get(executor.queryDocs(allDocsQuery, pageSize, ps1));
     assertThat(r2).extracting(RawDocument::id).containsExactly("2", "3", "4", "5");
 
     assertThat(r1.get(1).hasPagingState()).isTrue();
     ByteBuffer ps2 = r1.get(1).makePagingState();
-    List<RawDocument> r3 = get(executor.queryDocs(allDocsQuery, ps2));
+    List<RawDocument> r3 = get(executor.queryDocs(allDocsQuery, pageSize, ps2));
     assertThat(r3).extracting(RawDocument::id).containsExactly("3", "4", "5");
 
     assertThat(r1.get(3).hasPagingState()).isTrue();
     ByteBuffer ps4 = r1.get(3).makePagingState();
-    List<RawDocument> r4 = get(executor.queryDocs(allDocsQuery, ps4));
+    List<RawDocument> r4 = get(executor.queryDocs(allDocsQuery, pageSize, ps4));
     assertThat(r4).extracting(RawDocument::id).containsExactly("5");
   }
 
@@ -167,7 +167,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   void testFullScanFinalPagingState(int pageSize) {
     withFiveTestDocs(pageSize);
 
-    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, null));
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, pageSize, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
     assertThat(r1.get(4).makePagingState()).isNull();
     assertThat(r1.get(4).hasPagingState()).isFalse();
@@ -189,7 +189,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
                 row("5", "y", 1.0d),
                 row("6", "x", 1.0d))); // the last row should be ignored
 
-    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, null));
+    List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, pageSize, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
 
     RawDocument doc2a = r1.get(1);
@@ -198,7 +198,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     RawDocument doc2b =
         doc2a
-            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("2"), null))
+            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("2"), pageSize, null))
             .blockingGet();
     assertThat(doc2b.id()).isEqualTo("2");
     assertThat(doc2b.rows()).hasSize(2);
@@ -213,7 +213,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     RawDocument doc5b =
         doc5a
-            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("5"), null))
+            .populateFrom(executor.queryDocs(allRowsForDocQuery.bind("5"), pageSize, null))
             .blockingGet();
     assertThat(doc5b.id()).isEqualTo("5");
     assertThat(doc5b.rows()).hasSize(3);
@@ -228,7 +228,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     List<ResultSet> r1 =
         get(
             executor.execute(
-                datastore().queryBuilder().select().star().from(table).build().bind(), null));
+                datastore().queryBuilder().select().star().from(table).build().bind(), 3, null));
 
     assertThat(r1.get(0).currentPageRows())
         .extracting(r -> r.getString("key"))
@@ -272,6 +272,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
                     .where("p0", Predicate.GT, "x")
                     .build()
                     .bind(),
+                3,
                 null));
 
     assertThat(docs.get(0).rows())
@@ -316,7 +317,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
             .build()
             .bind();
 
-    List<RawDocument> docs = get(executor.queryDocs(3, query, null), 2);
+    List<RawDocument> docs = get(executor.queryDocs(3, query, pageSize, null), 2);
 
     assertThat(docs).hasSize(2);
     assertThat(docs.get(0).key()).containsExactly("a", "x", "2");
@@ -327,7 +328,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     ByteBuffer ps2 = docs.get(1).makePagingState();
     assertThat(ps2).isNotNull();
 
-    docs = get(executor.queryDocs(3, query, ps2));
+    docs = get(executor.queryDocs(3, query, pageSize, ps2));
 
     assertThat(docs).hasSize(2);
     assertThat(docs.get(0).key()).containsExactly("a", "y", "3");

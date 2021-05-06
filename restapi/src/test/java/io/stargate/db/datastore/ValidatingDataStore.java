@@ -15,6 +15,8 @@
  */
 package io.stargate.db.datastore;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
 import io.stargate.db.query.BindMarker;
@@ -294,6 +296,10 @@ public class ValidatingDataStore implements DataStore {
       executed = true;
 
       Optional<ByteBuffer> pagingState = parameters.pagingState();
+      if (expectation.pageSize < Integer.MAX_VALUE) {
+        assertThat(parameters.pageSize()).hasValue(expectation.pageSize);
+      }
+
       ValidatingPaginator paginator = ValidatingPaginator.of(expectation.pageSize, pagingState);
 
       return CompletableFuture.supplyAsync(
