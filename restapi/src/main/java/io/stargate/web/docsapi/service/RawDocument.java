@@ -67,6 +67,10 @@ public class RawDocument {
     return new RawDocument(id, docKey, resultSet, hasNext, doc.rows);
   }
 
+  public boolean hasPagingState() {
+    return hasNext && !rows.isEmpty();
+  }
+
   public ByteBuffer makePagingState() {
     if (!hasNext) {
       return null;

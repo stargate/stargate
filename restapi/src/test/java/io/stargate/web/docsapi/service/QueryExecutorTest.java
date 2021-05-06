@@ -167,14 +167,17 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 4, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4");
 
+    assertThat(r1.get(0).hasPagingState()).isTrue();
     ByteBuffer ps1 = r1.get(0).makePagingState();
     List<RawDocument> r2 = get(executor.queryDocs(allDocsQuery, 2, ps1));
     assertThat(r2).extracting(RawDocument::id).containsExactly("2", "3");
 
+    assertThat(r1.get(1).hasPagingState()).isTrue();
     ByteBuffer ps2 = r1.get(1).makePagingState();
     List<RawDocument> r3 = get(executor.queryDocs(allDocsQuery, 3, ps2));
     assertThat(r3).extracting(RawDocument::id).containsExactly("3", "4", "5");
 
+    assertThat(r1.get(3).hasPagingState()).isTrue();
     ByteBuffer ps4 = r1.get(3).makePagingState();
     List<RawDocument> r4 = get(executor.queryDocs(allDocsQuery, 100, ps4));
     assertThat(r4).extracting(RawDocument::id).containsExactly("5");
@@ -188,6 +191,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     List<RawDocument> r1 = get(executor.queryDocs(allDocsQuery, 100, null));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
     assertThat(r1.get(4).makePagingState()).isNull();
+    assertThat(r1.get(4).hasPagingState()).isFalse();
   }
 
   @ParameterizedTest
@@ -219,12 +223,14 @@ class QueryExecutorTest extends AbstractDataStoreTest {
             .blockingGet();
     assertThat(doc2b.id()).isEqualTo("2");
     assertThat(doc2b.rows()).hasSize(2);
+    assertThat(doc2b.hasPagingState()).isTrue();
     assertThat(doc2b.makePagingState()).isEqualTo(doc2a.makePagingState());
 
     RawDocument doc5a = r1.get(4);
     assertThat(doc5a.id()).isEqualTo("5");
     assertThat(doc5a.rows()).hasSize(1);
     assertThat(doc5a.makePagingState()).isNull();
+    assertThat(doc5a.hasPagingState()).isFalse();
 
     RawDocument doc5b =
         doc5a
@@ -233,6 +239,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     assertThat(doc5b.id()).isEqualTo("5");
     assertThat(doc5b.rows()).hasSize(3);
     assertThat(doc5b.makePagingState()).isNull();
+    assertThat(doc5b.hasPagingState()).isFalse();
   }
 
   @Test
@@ -338,6 +345,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     assertThat(docs.get(1).key()).containsExactly("a", "y", "2");
 
+    assertThat(docs.get(1).hasPagingState()).isTrue();
     ByteBuffer ps2 = docs.get(1).makePagingState();
     assertThat(ps2).isNotNull();
 
@@ -353,7 +361,9 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .extracting(r -> r.getDouble("test_value"))
         .containsExactly(10.0d);
 
+    assertThat(docs.get(0).hasPagingState()).isTrue();
     assertThat(docs.get(0).makePagingState()).isNotNull();
+    assertThat(docs.get(1).hasPagingState()).isFalse();
     assertThat(docs.get(1).makePagingState()).isNull();
   }
 }
