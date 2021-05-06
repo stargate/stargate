@@ -25,12 +25,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import org.apache.cassandra.config.Config;
 import org.jetbrains.annotations.Nullable;
 
 public class CqlActivator extends BaseActivator {
   private CqlImpl cql;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<ClientInfoMetricsTagProvider> clientInfoTagProvider = ServicePointer.create(ClientInfoMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
           AuthenticationService.class,
@@ -70,9 +73,9 @@ public class CqlActivator extends BaseActivator {
   @Override
   protected List<ServicePointer<?>> dependencies() {
     if (USE_AUTH_SERVICE) {
-      return Arrays.asList(metrics, persistence, authentication);
+      return Arrays.asList(metrics, clientInfoTagProvider, persistence, authentication);
     } else {
-      return Arrays.asList(metrics, persistence);
+      return Arrays.asList(metrics, clientInfoTagProvider, persistence);
     }
   }
 

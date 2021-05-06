@@ -4,6 +4,8 @@ import io.stargate.core.activator.BaseActivator;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.PersistenceDataStoreFactory;
 import io.stargate.db.limiter.RateLimitingManager;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -29,8 +31,12 @@ public class DbActivator extends BaseActivator {
 
   private static final String DB_PERSISTENCE_IDENTIFIER =
       System.getProperty("stargate.persistence_id", "CassandraPersistence");
+
   private static final String RATE_LIMITING_IDENTIFIER =
       System.getProperty(RATE_LIMITING_ID_PROPERTY, "<none>");
+
+  private static final String CLIENT_INFO_TAG_PROVIDER_ID =
+          System.getProperty("stargate.metrics.client_info_tag_provider.id");
 
   private final ServicePointer<Persistence> dbPersistence =
       BaseActivator.ServicePointer.create(
@@ -59,10 +65,17 @@ public class DbActivator extends BaseActivator {
       }
       persistence = new RateLimitingPersistence(persistence, rateLimiter);
     }
-    return Arrays.asList(
-        new ServiceAndProperties(persistence, Persistence.class, stargatePersistenceProperties()),
-        new ServiceAndProperties(
-            new PersistenceDataStoreFactory(persistence), DataStoreFactory.class));
+
+    List<ServiceAndProperties> services = new ArrayList<>();
+    services.add(new ServiceAndProperties(persistence, Persistence.class, stargatePersistenceProperties()));
+    services.add(new ServiceAndProperties(new PersistenceDataStoreFactory(persistence), DataStoreFactory.class));
+
+    // if no specific client info tag provider, add default
+    if (null == CLIENT_INFO_TAG_PROVIDER_ID) {
+      services.add(new ServiceAndProperties(ClientInfoMetricsTagProvider.DEFAULT, ClientInfoMetricsTagProvider.class));
+    }
+
+    return services;
   }
 
   private static Hashtable<String, String> stargatePersistenceProperties() {
