@@ -28,7 +28,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
-import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.ColumnOrder;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -93,7 +92,6 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       result.put("pageState", ByteBufferUtils.toBase64(pageState));
     }
 
-    System.out.println("result -> " + result);
     return result;
   }
 
@@ -112,17 +110,13 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
     aggregationsFetcherSupport.addAggregationFunctions(environment, queryBuilder);
 
-    AbstractBound<?> bind =
-        queryBuilder
-            .from(table.keyspace(), table.name())
-            .where(buildClause(table, environment))
-            .limit(limit)
-            .orderBy(buildOrderBy(environment))
-            .build()
-            .bind();
-
-    System.out.println("constructed query:" + bind.queryString());
-    return bind;
+    return queryBuilder
+        .from(table.keyspace(), table.name())
+        .where(buildClause(table, environment))
+        .limit(limit)
+        .orderBy(buildOrderBy(environment))
+        .build()
+        .bind();
   }
 
   private List<ColumnOrder> buildOrderBy(DataFetchingEnvironment environment) {

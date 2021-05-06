@@ -2328,6 +2328,41 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(res.get_tinyint_function().get()).isEqualTo(BigDecimal.valueOf(value.byteValue()));
   }
 
+  @Test
+  @DisplayName("Should error when trying to use an unknown aggregation function")
+  public void shouldErrorWhenTryingToUseAnUnknownAggregationFunction() {
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price("3000")
+            .description("d1")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+
+    GetOrdersWithUnknownFunctionQuery query =
+        GetOrdersWithUnknownFunctionQuery.builder().filter(filterInput).build();
+
+    GraphQLTestException ex =
+        catchThrowableOfType(() -> getObservable(client.query(query)), GraphQLTestException.class);
+
+    assertThat(ex).isNotNull();
+    assertThat(ex.errors)
+        // One error per query
+        .hasSize(1)
+        .first()
+        .extracting(Error::getMessage)
+        .asString()
+        .contains("The aggregation function: some_unknown_function is not supported");
+  }
+
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {
     DeleteProductsMutation mutation =
         DeleteProductsMutation.builder()

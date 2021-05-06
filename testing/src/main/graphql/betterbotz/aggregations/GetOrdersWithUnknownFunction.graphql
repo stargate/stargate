@@ -1,0 +1,16 @@
+query GetOrdersWithUnknownFunction($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            sum: _decimal_function(name: "some_unknown_function", args: ["price"])
+        }
+    }
+}
