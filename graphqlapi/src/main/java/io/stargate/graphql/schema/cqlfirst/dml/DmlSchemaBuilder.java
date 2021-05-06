@@ -19,7 +19,7 @@ import static graphql.Scalars.GraphQLFloat;
 import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunctions.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
@@ -35,6 +35,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -537,9 +538,9 @@ public class DmlSchemaBuilder {
   }
 
   private GraphQLFieldDefinition buildFunctionField(
-      String functionName, GraphQLScalarType returnType) {
+      SupportedGraphqlFunction graphqlFunction, GraphQLScalarType returnType) {
     return GraphQLFieldDefinition.newFieldDefinition()
-        .name(functionName)
+        .name(graphqlFunction.getName())
         .description(
             String.format("Invocation of an aggregate function that returns %s.", returnType))
         .argument(

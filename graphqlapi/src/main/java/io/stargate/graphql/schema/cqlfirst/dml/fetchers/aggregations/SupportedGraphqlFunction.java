@@ -15,16 +15,19 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
-public enum SupportedAggregationFunction {
-  COUNT("count"),
-  AVG("avg"),
-  MIN("min"),
-  MAX("max"),
-  SUM("sum");
+public enum SupportedGraphqlFunction {
+  INT_FUNCTION("_int_function"),
+  DOUBLE_FUNCTION("_double_function"), // corresponds to GraphQLFloat
+  BIGINT_FUNCTION("_bigint_function"),
+  DECIMAL_FUNCTION("_decimal_function"),
+  VARINT_FUNCTION("_varint_function"),
+  FLOAT_FUNCTION("_float_function"),
+  SMALLINT_FUNCTION("_smallint_function"),
+  TINYINT_FUNCTION("_tinyint_function");
 
   private final String name;
 
-  SupportedAggregationFunction(String name) {
+  SupportedGraphqlFunction(String name) {
     this.name = name;
   }
 
@@ -32,13 +35,13 @@ public enum SupportedAggregationFunction {
     return name;
   }
 
-  public static SupportedAggregationFunction valueOfIgnoreCase(String functionName) {
-    for (SupportedAggregationFunction f : values()) {
+  public static SupportedGraphqlFunction valueOfIgnoreCase(String functionName) {
+    for (SupportedGraphqlFunction f : values()) {
       if (f.name.equalsIgnoreCase(functionName)) {
         return f;
       }
     }
     throw new UnsupportedOperationException(
-        String.format("The aggregation function: %s is not supported.", functionName));
+        String.format("The graphQL aggregation function: %s is not supported.", functionName));
   }
 }

@@ -20,7 +20,6 @@ import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.Supp
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.MAX;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.MIN;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedAggregationFunction.SUM;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunctions.*;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
@@ -94,7 +93,7 @@ public class AggregationsFetcherSupport {
     }
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        switch (selectedField.getName()) {
+        switch (SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName())) {
           case INT_FUNCTION:
             putResultValue(columns, row, selectedField, Row::getInt);
             break;
