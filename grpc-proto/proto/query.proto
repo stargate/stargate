@@ -57,22 +57,10 @@ message UdtValue {
   map<string, Value> fields = 1;
 }
 
-message Inet {
-  bytes address = 1;
-}
-
 message Uuid {
   // TODO: Is this going to have endian problems representing it this way?
   fixed64 msb = 1;
   fixed64 lsb = 2;
-}
-
-message Date {
-  uint32 value = 1;
-}
-
-message Time {
-  uint64 value = 1;
 }
 
 message Value {
@@ -81,19 +69,49 @@ message Value {
   oneof inner {
     Null null = 1;
     Unset unset = 2;
-    sint64 int = 3; // tinyint, smallint, int, bigint, counter, timestamp
-    float float = 4; // float
-    double double = 5; // double
-    bool boolean = 6; // boolean
-    string string = 7; // ascii, varchar, text
-    bytes bytes = 8; // blob, custom
-    Inet inet = 9; // inet
-    Uuid uuid = 10; // uuid, timeuuid
-    Date date = 11; // date
-    Time time = 12; // time
-    Collection collection = 13; // list, set, tuple
-    Map map = 14;
-    UdtValue udt = 15;
+
+    // CQL types: tinyint, smallint, int, bigint, counter, timestamp
+    sint64 int = 3;
+
+    // CQL types: float
+    float float = 4;
+
+    // CQL types: double
+    double double = 5;
+
+    // CQL types: boolean
+    bool boolean = 6;
+
+    // CQL types: ascii, varchar, text
+    string string = 7;
+
+    // CQL types: blob, inet, custom
+    bytes bytes = 8;
+
+    // CQL types: uuid, timeuuid
+    Uuid uuid = 9;
+
+    // CQL types: date
+    // An unsigned integer representing days with Unix epoch (January, 1 1970) at 2^31.
+    // Examples:
+    // 0:    -5877641-06-23
+    // 2^31: 1970-1-1
+    // 2^32: 5881580-07-11
+    uint32 date = 10;
+
+    // CQL types: time
+    // An unsigned integer representing the number of nanoseconds since midnight. Valid values are
+    // in the range 0 to 86399999999999 (inclusive).
+    uint64 time = 11;
+
+    // CQL types: list, set, tuple
+    Collection collection = 12;
+
+    // CQL types: map
+    Map map = 13;
+
+    // CQL types: user defined types
+    UdtValue udt = 14;
   }
 }
 
