@@ -280,15 +280,15 @@ public abstract class BaseActivator implements BundleActivator {
 
     private final Hashtable<String, String> properties;
 
-    public <T, E extends T> ServiceAndProperties(
-        E service, Class<T> targetServiceClass, Hashtable<String, String> properties) {
+    public <T> ServiceAndProperties(
+        T service, Class<? super T> targetServiceClass, Hashtable<String, String> properties) {
       this.service = service;
       this.targetServiceClass = targetServiceClass;
       this.properties = properties;
     }
 
     @SuppressWarnings("JdkObsolete")
-    public <T, E extends T> ServiceAndProperties(E service, Class<T> targetServiceClass) {
+    public <T> ServiceAndProperties(T service, Class<? super T> targetServiceClass) {
       this(service, targetServiceClass, new Hashtable<>());
     }
   }
