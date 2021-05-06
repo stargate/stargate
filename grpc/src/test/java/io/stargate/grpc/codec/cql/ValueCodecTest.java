@@ -23,7 +23,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -126,10 +125,10 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> dateValues() {
     return Stream.of(
-        arguments(Type.Date, Utils.dateValue(LocalDate.of(2021, 2, 28))),
-        arguments(Type.Date, Utils.dateValue(LocalDate.ofEpochDay(0))),
-        arguments(Type.Date, Utils.dateValue(LocalDate.MAX)),
-        arguments(Type.Date, Utils.dateValue(LocalDate.MIN)));
+        arguments(Type.Date, dateValue(LocalDate.of(2021, 2, 28))),
+        arguments(Type.Date, dateValue(LocalDate.ofEpochDay(0))),
+        arguments(Type.Date, dateValue(LocalDate.MAX)),
+        arguments(Type.Date, dateValue(LocalDate.MIN)));
   }
 
   public static Stream<Arguments> invalidDateValues() {
@@ -155,11 +154,11 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> floatValues() {
     return Stream.of(
-        arguments(Type.Float, Utils.floatValue(3.14159f)),
-        arguments(Type.Float, Utils.floatValue(0)),
-        arguments(Type.Float, Utils.floatValue(Float.NaN)),
-        arguments(Type.Float, Utils.floatValue(Float.MAX_VALUE)),
-        arguments(Type.Float, Utils.floatValue(Float.MIN_VALUE)));
+        arguments(Type.Float, floatValue(3.14159f)),
+        arguments(Type.Float, floatValue(0)),
+        arguments(Type.Float, floatValue(Float.NaN)),
+        arguments(Type.Float, floatValue(Float.MAX_VALUE)),
+        arguments(Type.Float, floatValue(Float.MIN_VALUE)));
   }
 
   public static Stream<Arguments> invalidFloatValues() {
