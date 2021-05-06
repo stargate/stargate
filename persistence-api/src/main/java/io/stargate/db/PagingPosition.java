@@ -63,14 +63,14 @@ public interface PagingPosition {
   }
 
   @Value.Lazy
-  default TableName table() {
+  default TableName tableName() {
     Set<TableName> tables =
         currentRow().keySet().stream()
             .map(
-                c ->
+                column ->
                     ImmutableTableName.builder()
-                        .keyspace(Objects.requireNonNull(c.keyspace()))
-                        .name(Objects.requireNonNull(c.table()))
+                        .keyspace(Objects.requireNonNull(column.keyspace()))
+                        .name(Objects.requireNonNull(column.table()))
                         .build())
             .collect(Collectors.toSet());
 
@@ -86,7 +86,7 @@ public interface PagingPosition {
   }
 
   default ByteBuffer requiredValue(String columnName) {
-    TableName table = table(); // indirectly validates that there's only one table referenced
+    TableName table = tableName(); // indirectly validates that there's only one table referenced
 
     ByteBuffer value = currentRowValuesByColumnName().get(columnName);
 

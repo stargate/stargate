@@ -170,9 +170,10 @@ public class Conversion {
   }
 
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    CFMetaData cfm = Schema.instance.getCFMetaData(pos.table().keyspace(), pos.table().name());
+    CFMetaData cfm =
+        Schema.instance.getCFMetaData(pos.tableName().keyspace(), pos.tableName().name());
     if (cfm == null) {
-      throw new IllegalStateException("Table not found: " + pos.table().name());
+      throw new IllegalStateException("Table not found: " + pos.tableName().name());
     }
 
     Object[] pkValues =

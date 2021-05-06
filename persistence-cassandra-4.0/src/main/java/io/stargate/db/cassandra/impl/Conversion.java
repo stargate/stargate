@@ -86,7 +86,8 @@ public class Conversion {
   }
 
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    TableMetadata table = Schema.instance.validateTable(pos.table().keyspace(), pos.table().name());
+    TableMetadata table =
+        Schema.instance.validateTable(pos.tableName().keyspace(), pos.tableName().name());
 
     Object[] pkValues =
         table.partitionKeyColumns().stream()
