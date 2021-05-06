@@ -2128,7 +2128,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
-    // execute aggregation with count()
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
 
@@ -2165,7 +2164,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
-    // execute aggregation with count()
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
 
@@ -2204,7 +2202,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
-    // execute aggregation with count()
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
 
@@ -2241,7 +2238,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
-    // execute aggregation with count()
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
     GetOrdersWithMinQuery query = GetOrdersWithMinQuery.builder().filter(filterInput).build();
@@ -2277,7 +2273,6 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
     assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
 
-    // execute aggregation with count()
     OrdersFilterInput filterInput =
         OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
     GetOrdersWithSumQuery query = GetOrdersWithSumQuery.builder().filter(filterInput).build();
@@ -2285,6 +2280,52 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     GetOrdersWithSumQuery.Data result = getObservable(client.query(query));
 
     assertThat(result.getOrders().get().getValues().get().get(0).getSum().get()).isEqualTo("5500");
+  }
+
+  @Test
+  @DisplayName("Should test all available function types")
+  public void testAllGraphqlFunctionTypes() {
+
+    Number value = 100;
+    OrdersInput order1 =
+        OrdersInput.builder()
+            .prodName("p1")
+            .customerName("c1")
+            .price(value.toString())
+            .value_int(value.intValue())
+            .value_double(value.doubleValue())
+            .value_bigint(value.toString())
+            .value_varint(value.toString())
+            .value_float(value.doubleValue())
+            .value_smallint(value.shortValue())
+            .value_tinyint(value.byteValue())
+            .description("d1")
+            .build();
+
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+
+    InsertOrdersMutation.Data result = getObservable(client.mutate(order1Mutation));
+    assertThat(result.getInsertOrders().isPresent()).isTrue();
+
+    OrdersFilterInput filterInput =
+        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+
+    GetOrdersAllFunctionsQuery query =
+        GetOrdersAllFunctionsQuery.builder().filter(filterInput).build();
+
+    GetOrdersAllFunctionsQuery.Data functionsResult = getObservable(client.query(query));
+
+    GetOrdersAllFunctionsQuery.Value res =
+        functionsResult.getOrders().get().getValues().get().get(0);
+    assertThat(res.get_int_function().get()).isEqualTo(value.intValue());
+    assertThat(res.get_double_function().get()).isEqualTo(value.doubleValue());
+    assertThat(res.get_bigint_function().get()).isEqualTo(value.toString());
+    assertThat(res.get_decimal_function().get()).isEqualTo(value.toString());
+    assertThat(res.get_varint_function().get()).isEqualTo(value.toString());
+    assertThat(res.get_float_function().get()).isEqualTo(value.doubleValue());
+    assertThat(res.get_smallint_function().get()).isEqualTo(BigDecimal.valueOf(value.shortValue()));
+    assertThat(res.get_tinyint_function().get()).isEqualTo(BigDecimal.valueOf(value.byteValue()));
   }
 
   private DeleteProductsMutation.Data cleanupProduct(ApolloClient client, Object productId) {

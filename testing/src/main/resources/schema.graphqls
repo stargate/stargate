@@ -220,6 +220,13 @@ input OrdersInput {
     price: Decimal
     prodId: Uuid
     sellPrice: Decimal
+    value_int: Int,
+    value_double: Float,
+    value_bigint: BigInt,
+    value_varint: Varint,
+    value_float: Float,
+    value_smallint: SmallInt,
+    value_tinyint: TinyInt
 }
 
 type OrdersMutationResult {

@@ -1,0 +1,23 @@
+query GetOrdersAllFunctions($filter: OrdersFilterInput) {
+    Orders(filter: $filter) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+            _int_function(name: "max", args: ["value_int"])
+            _double_function(name: "max", args: ["value_double"])
+            _bigint_function(name: "max", args: ["value_bigint"])
+            _decimal_function(name: "max", args: ["price"])
+            _varint_function(name: "max", args: ["value_varint"])
+            _float_function(name: "max", args: ["value_float"])
+            _smallint_function(name: "max", args: ["value_smallint"])
+            _tinyint_function(name: "max", args: ["value_tinyint"])
+        }
+    }
+}

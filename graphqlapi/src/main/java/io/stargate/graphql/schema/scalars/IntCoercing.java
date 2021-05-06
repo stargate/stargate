@@ -74,7 +74,7 @@ abstract class IntCoercing<DriverTypeT> implements Coercing<DriverTypeT, Long> {
 
   protected void checkRange(Number n, long min, long max) {
     long l = n.longValue();
-    if (l < Byte.MIN_VALUE || l > Byte.MAX_VALUE) {
+    if (l < min || l > max) {
       throw new CoercingParseLiteralException("Out of range");
     }
   }
