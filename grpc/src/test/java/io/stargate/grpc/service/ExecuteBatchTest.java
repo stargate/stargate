@@ -168,7 +168,7 @@ public class ExecuteBatchTest extends BaseServiceTest {
         .hasMessageContaining(expectedMessage);
   }
 
-  private static Stream<Arguments> invalidValues() {
+  public static Stream<Arguments> invalidValues() {
     return Stream.of(
         // Invalid arity
         arguments(

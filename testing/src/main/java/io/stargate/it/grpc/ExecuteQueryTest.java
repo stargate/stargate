@@ -8,8 +8,6 @@ import com.google.protobuf.StringValue;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.Result;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
@@ -23,27 +21,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
-public class BatchTest extends GrpcIntegrationTest {
+public class ExecuteQueryTest extends GrpcIntegrationTest {
 
   @Test
-  public void simpleBatch(@TestKeyspace CqlIdentifier keyspace)
+  public void simpleQuery(@TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
     StargateBlockingStub stub = this.stub.withCallCredentials(new StargateBearerToken(authToken));
 
     StringValue keyspaceValue = StringValue.of(keyspace.toString());
 
     Result result =
-        stub.executeBatch(
-            Batch.newBuilder()
-                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
-                .addQueries(
-                    cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", stringValue("b"), intValue(2)))
-                .addQueries(
-                    cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", stringValue("c"), intValue(3)))
-                .setParameters(BatchParameters.newBuilder().setKeyspace(keyspaceValue).build())
-                .build());
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES ('a', 1)",
+                cqlQueryParameters().setKeyspace(keyspaceValue)));
+    assertThat(result).isNotNull();
+    result =
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES (?, ?)",
+                cqlQueryParameters(stringValue("b"), intValue(2)).setKeyspace(keyspaceValue)));
     assertThat(result).isNotNull();
 
     result =
@@ -55,8 +52,6 @@ public class BatchTest extends GrpcIntegrationTest {
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(stringValue("a"), intValue(1)),
-                    cqlRow(stringValue("b"), intValue(2)),
-                    cqlRow(stringValue("c"), intValue(3)))));
+                    cqlRow(stringValue("a"), intValue(1)), cqlRow(stringValue("b"), intValue(2)))));
   }
 }
