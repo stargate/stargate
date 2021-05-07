@@ -1,5 +1,7 @@
 package io.stargate.web.docsapi.service;
 
+import static io.stargate.web.docsapi.dao.DocumentDB.MAX_DEPTH;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,10 +16,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import io.reactivex.Flowable;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -37,7 +41,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
@@ -464,15 +467,17 @@ public class DocumentService {
       }
     }
 
-    ResultSet r = db.executeSelect(keyspace, collection, predicates);
-    List<Row> rows = r.rows();
+    List<RawDocument> docs =
+        db.executeSelect(keyspace, collection, predicates, 0, null).limit(1).toList().blockingGet();
 
-    if (rows.isEmpty()) {
+    if (docs.isEmpty()) {
       return null;
     }
+    RawDocument rawDoc = docs.get(0);
     DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
     JsonNode result =
-        jsonConverterService.convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
+        jsonConverterService.convertToJsonDoc(
+            rawDoc.rows(), collector, false, db.treatBooleansAsNumeric());
     if (!collector.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", collector.getLeaves().size()));
       db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves());
@@ -640,73 +645,84 @@ public class DocumentService {
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
-    List<Row> rows =
-        searchRows(
-            keyspace,
-            collection,
-            db,
-            Collections.emptyList(),
-            filters,
-            fields,
-            path,
-            false,
-            documentId,
-            paginator);
-    if (rows.isEmpty()) {
-      return null;
-    }
+    int keyDepth = first.getPath().size() + 1; // +1 for the partition key
+    List<BuiltCondition> conditions = new ArrayList<>();
+    conditions.add(BuiltCondition.of("key", Predicate.EQ, documentId));
 
-    JsonNode docsResult = mapper.createObjectNode();
-
+    List<FilterCondition> inMemoryFilters;
     if (fields.isEmpty()) {
-      Map<String, List<Row>> rowsByDoc = new HashMap<>();
+      conditions.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
 
-      for (Row row : rows) {
-        String key = row.getString("key");
-        List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-        rowsAtKey.add(row);
-        rowsByDoc.put(key, rowsAtKey);
+      // Assume all filters apply to the same row - this is expected to be enforced by callers
+      List<FilterCondition> inCassandraFilters =
+          filters.stream()
+              .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+              .collect(Collectors.toList());
+      inMemoryFilters =
+          filters.stream()
+              .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
+              .collect(Collectors.toList());
+
+      collectNestedElementConditions(conditions, first.getPath());
+
+      if (!inCassandraFilters.isEmpty()) {
+        collectFieldConditions(conditions, inCassandraFilters.get(0));
       }
 
-      for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
-        ArrayNode ref = mapper.createArrayNode();
-        if (documentId == null) {
-          ((ObjectNode) docsResult).set(entry.getKey(), ref);
-        } else {
-          docsResult = ref;
-        }
-        List<Row> docRows = entry.getValue();
-        for (Row row : docRows) {
-          JsonNode jsonDoc =
-              jsonConverterService.convertToJsonDoc(
-                  Collections.singletonList(row), true, db.treatBooleansAsNumeric());
-          ref.add(jsonDoc);
-        }
+      for (FilterCondition filter : inCassandraFilters) {
+        collectValueConditions(conditions, filter, db.treatBooleansAsNumeric());
       }
     } else {
-      if (documentId != null) {
-        docsResult = mapper.createArrayNode();
-      }
-      for (List<Row> chunk : Lists.partition(rows, fields.size())) {
-        String key = chunk.get(0).getString("key");
-        if (!docsResult.has(key) && documentId == null) {
-          ((ObjectNode) docsResult).set(key, mapper.createArrayNode());
-        }
+      inMemoryFilters = filters;
 
-        List<Row> nonNull = chunk.stream().filter(x -> x != null).collect(Collectors.toList());
-        JsonNode jsonDoc =
-            jsonConverterService.convertToJsonDoc(nonNull, true, db.treatBooleansAsNumeric());
-
-        if (documentId == null) {
-          ((ArrayNode) docsResult.get(key)).add(jsonDoc);
-        } else {
-          ((ArrayNode) docsResult).add(jsonDoc);
-        }
-      }
+      collectNestedElementConditions(conditions, path);
     }
 
-    if (docsResult.isMissingNode() || (docsResult.isObject() && docsResult.isEmpty())) {
+    AbstractBound<?> mainQuery =
+        db.builder()
+            .select()
+            .column(DocumentDB.allColumns())
+            .writeTimeColumn("leaf")
+            .from(keyspace, collection)
+            .where(conditions)
+            .allowFiltering()
+            .build()
+            .bind();
+
+    Set<String> filterFieldPaths =
+        inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
+
+    List<RawDocument> docs =
+        db.executeSelect(
+                keyDepth, mainQuery, paginator.dbPageSize, paginator.getCurrentDbPageState())
+            .filter(
+                d -> {
+                  if (inMemoryFilters.isEmpty()) {
+                    return true;
+                  }
+
+                  return matchesFilters(
+                      inMemoryFilters, db.treatBooleansAsNumeric(), filterFieldPaths, d.rows());
+                })
+            .limit(paginator.docPageSize)
+            .toList()
+            .blockingGet();
+
+    if (docs.isEmpty()) {
       return null;
+    }
+
+    paginator.setDocumentPageState(docs);
+
+    ArrayNode docsResult = mapper.createArrayNode();
+
+    for (RawDocument doc : docs) {
+      List<Row> rows = filterToSelectionSet(doc.rows(), fields, path);
+      rows = rows.stream().filter(Objects::nonNull).collect(Collectors.toList());
+      JsonNode jsonDoc =
+          jsonConverterService.convertToJsonDoc(rows, true, db.treatBooleansAsNumeric());
+
+      docsResult.add(jsonDoc);
     }
 
     return docsResult;
@@ -720,39 +736,6 @@ public class DocumentService {
       rowsAtKey.add(row);
       rowsByDoc.put(key, rowsAtKey);
     }
-  }
-
-  private List<Row> updateExistenceForMap(
-      Set<String> existsByDoc,
-      List<Row> rows,
-      List<FilterCondition> filters,
-      boolean booleansStoredAsTinyint,
-      boolean endOfResults) {
-    LinkedHashMap<String, List<Row>> documentChunks = new LinkedHashMap<>();
-    for (int i = 0; i < rows.size(); i++) {
-      Row row = rows.get(i);
-      String key = row.getString("key");
-      List<Row> chunk = documentChunks.getOrDefault(key, new ArrayList<>());
-      chunk.add(row);
-      documentChunks.put(key, chunk);
-    }
-
-    List<List<Row>> chunksList = new ArrayList<>(documentChunks.values());
-
-    for (int i = 0; i < chunksList.size() - (endOfResults ? 0 : 1); i++) {
-      List<Row> chunk = chunksList.get(i);
-      String key = chunk.get(0).getString("key");
-      List<Row> filteredRows =
-          applyInMemoryFilters(chunk, filters, chunk.size(), booleansStoredAsTinyint);
-      if (!filteredRows.isEmpty()) {
-        existsByDoc.add(key);
-      }
-    }
-
-    if (!chunksList.isEmpty() && !endOfResults) {
-      return chunksList.get(chunksList.size() - 1);
-    }
-    return Collections.emptyList();
   }
 
   private boolean fieldMatchesRowPath(Row row, String field) {
@@ -771,72 +754,33 @@ public class DocumentService {
       DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
-    do {
 
+    List<RawDocument> docs =
+        db.executeSelect(
+                keyspace,
+                collection,
+                ImmutableList.of(),
+                paginator.dbPageSize,
+                paginator.getCurrentDbPageState())
+            .limit(paginator.docPageSize)
+            .toList()
+            .blockingGet();
+
+    paginator.setDocumentPageState(docs);
+
+    for (RawDocument doc : docs) {
       List<Row> rows =
-          searchRows(
-              keyspace,
-              collection,
-              db,
-              new ArrayList<>(),
-              new ArrayList<>(),
-              new ArrayList<>(),
-              new ArrayList<>(),
-              false,
-              null,
-              paginator);
-      addRowsToMap(rowsByDoc, rows);
-    } while (rowsByDoc.keySet().size() <= paginator.docPageSize && paginator.hasDbPageState());
-
-    // Either we've reached the end of all rows in the collection, or we have enough rows
-    // in memory to build the final result.
-    if (rowsByDoc.keySet().size() > paginator.docPageSize) {
-      MutableObject<String> lastIdSeen = new MutableObject<>();
-      rowsByDoc.entrySet().stream()
-          .limit(paginator.docPageSize)
-          .forEach(
-              e -> {
-                List<Row> rows =
-                    e.getValue().stream()
-                        .map(
-                            row -> {
-                              lastIdSeen.setValue(row.getString("key"));
-                              return row;
-                            })
-                        .filter(
-                            row ->
-                                fields.isEmpty()
-                                    || fields.stream()
-                                        .anyMatch(
-                                            field -> getFieldPathFromRow(row).startsWith(field)))
-                        .collect(Collectors.toList());
-                docsResult.set(
-                    e.getKey(),
-                    jsonConverterService.convertToJsonDoc(
-                        rows, false, db.treatBooleansAsNumeric()));
-              });
-
-      paginator.setDocumentPageState(lastIdSeen.getValue());
-    } else {
-      rowsByDoc.entrySet().stream()
-          .forEach(
-              e -> {
-                List<Row> rows =
-                    e.getValue().stream()
-                        .filter(
-                            row ->
-                                fields.isEmpty()
-                                    || fields.stream()
-                                        .anyMatch(field -> fieldMatchesRowPath(row, field)))
-                        .collect(Collectors.toList());
-                docsResult.set(
-                    e.getKey(),
-                    jsonConverterService.convertToJsonDoc(
-                        rows, false, db.treatBooleansAsNumeric()));
-              });
-      paginator.clearDocumentPageState();
+          doc.rows().stream()
+              .filter(
+                  row ->
+                      fields.isEmpty()
+                          || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field)))
+              .collect(Collectors.toList());
+      docsResult.set(
+          doc.id(),
+          jsonConverterService.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()));
     }
+
     return docsResult;
   }
 
@@ -881,128 +825,103 @@ public class DocumentService {
       Paginator paginator)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashSet<String> candidates = new LinkedHashSet<>();
-    List<Row> rows = null;
 
-    do {
-      LinkedHashSet<String> candidateResult =
-          getCandidatesForPage(db, keyspace, collection, inCassandraFilters, candidates, paginator);
-      candidates = candidateResult;
+    Set<String> filterFieldPaths =
+        inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
 
-      // Do an in-memory filter if there are non-cassandra filters
-      if (!inMemoryFilters.isEmpty()) {
-        BuiltCondition candidatesPredicate =
-            BuiltCondition.of("key", Predicate.IN, new ArrayList<>(candidates));
-        rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
-        candidates.clear();
-        updateExistenceForMap(candidates, rows, inMemoryFilters, db.treatBooleansAsNumeric(), true);
-      }
-    } while (candidates.size() <= paginator.docPageSize && paginator.hasDbPageState());
+    List<RawDocument> docs =
+        getCandidatesForPage(db, keyspace, collection, inCassandraFilters, paginator)
+            .concatMapSingle(
+                d -> {
+                  // TODO: revisit fetching doc rows in batches using IN on `key`
+                  BuiltCondition keyPredicate = BuiltCondition.of("key", Predicate.EQ, d.id());
+                  return d.populateFrom(
+                      db.executeSelect(
+                          keyspace, collection, ImmutableList.of(keyPredicate), 0, null));
+                })
+            .filter(
+                d -> {
+                  if (inMemoryFilters.isEmpty()) {
+                    return true;
+                  }
 
-    // Either we've reached the end of all rows in the collection, or we have enough rows
-    // in memory to build the final result.
-    Set<String> docNames = candidates;
-    if (candidates.size() > paginator.docPageSize) {
-      docNames = new HashSet<>();
-      Iterator<String> iter = candidates.iterator();
-      String lastSeenId = null;
-      for (int i = 0; i < paginator.docPageSize; i++) {
-        lastSeenId = iter.next();
-        docNames.add(lastSeenId);
-      }
-      paginator.setDocumentPageState(lastSeenId);
-    } else {
-      paginator.clearDocumentPageState();
-    }
+                  return matchesFilters(
+                      inMemoryFilters, db.treatBooleansAsNumeric(), filterFieldPaths, d.rows());
+                })
+            .limit(paginator.docPageSize) // TODO:
+            .toList()
+            .blockingGet();
 
-    if (rows == null) {
-      BuiltCondition candidatesPredicate =
-          BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames));
-      rows = db.executeSelect(keyspace, collection, ImmutableList.of(candidatesPredicate)).rows();
-      updateExistenceForMap(
-          new HashSet<>(), rows, Collections.emptyList(), db.treatBooleansAsNumeric(), true);
-    }
+    paginator.setDocumentPageState(docs);
 
-    Map<String, List<Row>> rowsByDoc = new HashMap<>();
-    for (Row row : rows) {
-      String key = row.getString("key");
-      if (docNames.contains(key)) {
-        List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-        if (fields.isEmpty()
-            || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field))) {
-          rowsAtKey.add(row);
-        }
-        rowsByDoc.put(key, rowsAtKey);
-      }
-    }
-
-    for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
+    for (RawDocument doc : docs) {
+      List<Row> rows =
+          doc.rows().stream()
+              .filter(
+                  row ->
+                      fields.isEmpty()
+                          || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field)))
+              .collect(Collectors.toList());
       docsResult.set(
-          entry.getKey(),
-          jsonConverterService.convertToJsonDoc(
-              entry.getValue(), false, db.treatBooleansAsNumeric()));
+          doc.id(),
+          jsonConverterService.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()));
     }
 
     return docsResult;
   }
 
-  private LinkedHashSet<String> getCandidatesForPage(
+  private Flowable<RawDocument> getCandidatesForPage(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> inCassandraFilters,
-      LinkedHashSet currentCandidateKeys,
       Paginator paginator)
       throws UnauthorizedException {
-    LinkedHashSet<String> candidatesThisPage = new LinkedHashSet<>();
-    List<Row> page;
-    for (int i = 0; i < inCassandraFilters.size(); i++) {
-      FilterCondition condition = inCassandraFilters.get(i);
-      List<String> path = condition.getPath();
+    Iterator<FilterCondition> it = inCassandraFilters.iterator();
+    FilterCondition pagingCondition = it.next(); // assume at least one condition
 
-      if (i == 0) {
-        page =
-            searchRows(
-                keyspace,
-                collection,
-                db,
-                Collections.emptyList(),
-                ImmutableList.of(condition),
-                Collections.emptyList(),
-                path,
-                false,
-                null,
-                paginator);
-        candidatesThisPage = new LinkedHashSet<>();
-        for (Row row : page) {
-          candidatesThisPage.add(row.getString("key"));
-        }
-      } else {
-        LinkedHashSet<String> tempCandidates = new LinkedHashSet<>();
-        for (String candidate : candidatesThisPage) {
-          BuiltCondition candidateCondition = BuiltCondition.of("key", Predicate.EQ, candidate);
-          page =
-              searchRows(
-                  keyspace,
-                  collection,
-                  db,
-                  ImmutableList.of(candidateCondition),
-                  ImmutableList.of(condition),
-                  Collections.emptyList(),
-                  path,
-                  false,
-                  null,
-                  paginator);
-          if (!page.isEmpty()) {
-            tempCandidates.add(candidate);
-          }
-        }
-        candidatesThisPage = tempCandidates;
-      }
+    AbstractBound<?> mainQuery =
+        db.builder()
+            .select()
+            .column("key")
+            .column("leaf")
+            .from(keyspace, collection)
+            .where(buildConditions(pagingCondition, db.treatBooleansAsNumeric()))
+            .allowFiltering()
+            .build()
+            .bind();
+
+    Flowable<RawDocument> docs =
+        db.executeSelect(mainQuery, paginator.dbPageSize, paginator.getCurrentDbPageState());
+
+    while (it.hasNext()) {
+      FilterCondition nestedCondition = it.next();
+
+      // chain the other filters as nested queries
+      docs =
+          docs.concatMap(
+              d -> {
+                BuiltCondition keyCondition = BuiltCondition.of("key", Predicate.EQ, d.id());
+
+                AbstractBound<?> nestedQuery =
+                    db.builder()
+                        .select()
+                        .column("key")
+                        .column("leaf")
+                        .from(keyspace, collection)
+                        .where(keyCondition)
+                        .where(buildConditions(nestedCondition, db.treatBooleansAsNumeric()))
+                        .allowFiltering()
+                        .build()
+                        .bind();
+
+                // If the nested query finds any docs, return the input doc to preserve
+                // the paging order of the main query
+                return db.executeSelect(nestedQuery, 1, null).limit(1).map(nested -> d);
+              });
     }
 
-    currentCandidateKeys.addAll(candidatesThisPage);
-    return currentCandidateKeys;
+    return docs;
   }
 
   private JsonNode searchWithOnlyInMemoryFilters(
@@ -1013,70 +932,107 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
-    List<Row> leftoverRows = Collections.emptyList();
     ObjectNode docsResult = mapper.createObjectNode();
-    LinkedHashSet<String> existsByDoc = new LinkedHashSet<>();
 
-    do {
-      List<Row> page =
-          searchRows(
-              keyspace,
-              collection,
-              db,
-              Collections.emptyList(),
-              new ArrayList<>(),
-              Collections.emptyList(),
-              Collections.emptyList(),
-              false,
-              null,
-              paginator);
-      ArrayList<Row> rowsResult = new ArrayList<>();
-      rowsResult.addAll(leftoverRows);
-      rowsResult.addAll(page);
-      boolean endOfResult = !paginator.hasDbPageState();
-      leftoverRows =
-          updateExistenceForMap(
-              existsByDoc, rowsResult, inMemoryFilters, db.treatBooleansAsNumeric(), endOfResult);
-    } while (existsByDoc.size() <= paginator.docPageSize && paginator.hasDbPageState());
+    Set<String> filterFieldPaths =
+        inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
 
-    // Either we've reached the end of all rows in the collection, or we have enough rows
-    // in memory to build the final result.
-    Set<String> docNames = existsByDoc;
-    if (existsByDoc.size() > paginator.docPageSize) {
-      docNames = new HashSet<>();
-      Iterator<String> iter = existsByDoc.iterator();
-      String lastSeenId = null;
-      for (int i = 0; i < paginator.docPageSize; i++) {
-        lastSeenId = iter.next();
-        docNames.add(lastSeenId);
-      }
-      paginator.setDocumentPageState(lastSeenId);
-    } else {
-      paginator.clearDocumentPageState();
-    }
+    List<RawDocument> docs =
+        db.executeSelect(
+                keyspace,
+                collection,
+                ImmutableList.of(),
+                paginator.dbPageSize,
+                paginator.getCurrentDbPageState())
+            .filter(
+                d -> {
+                  if (inMemoryFilters.isEmpty()) {
+                    return true;
+                  }
 
-    List<BuiltCondition> predicate =
-        ImmutableList.of(BuiltCondition.of("key", Predicate.IN, new ArrayList<>(docNames)));
+                  return matchesFilters(
+                      inMemoryFilters, db.treatBooleansAsNumeric(), filterFieldPaths, d.rows());
+                })
+            .limit(paginator.docPageSize)
+            .toList()
+            .blockingGet();
 
-    List<Row> rows = db.executeSelect(keyspace, collection, predicate).rows();
-    Map<String, List<Row>> rowsByDoc = new HashMap<>();
-    for (Row row : rows) {
-      String key = row.getString("key");
-      List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      if (fields.isEmpty() || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field))) {
-        rowsAtKey.add(row);
-      }
-      rowsByDoc.put(key, rowsAtKey);
-    }
+    paginator.setDocumentPageState(docs);
 
-    for (Map.Entry<String, List<Row>> entry : rowsByDoc.entrySet()) {
+    for (RawDocument doc : docs) {
+      List<Row> rows =
+          doc.rows().stream()
+              .filter(
+                  row ->
+                      fields.isEmpty()
+                          || fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field)))
+              .collect(Collectors.toList());
       docsResult.set(
-          entry.getKey(),
-          jsonConverterService.convertToJsonDoc(
-              entry.getValue(), false, db.treatBooleansAsNumeric()));
+          doc.id(),
+          jsonConverterService.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()));
     }
 
     return docsResult;
+  }
+
+  private void collectNestedElementConditions(List<BuiltCondition> predicates, List<String> path) {
+    int i;
+    for (i = 0; i < path.size(); i++) {
+      String[] pathSegmentSplit = path.get(i).split(",");
+      if (pathSegmentSplit.length == 1) {
+        String pathSegment = pathSegmentSplit[0];
+        if (pathSegment.equals(DocumentDB.GLOB_VALUE)) {
+          predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
+        } else {
+          String convertedPath = convertArrayPath(pathSegment);
+          predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
+        }
+      } else {
+        List<String> segmentsList = Arrays.asList(pathSegmentSplit);
+        // left pad any array segments to 6 places
+        segmentsList =
+            segmentsList.stream().map(this::convertArrayPath).collect(Collectors.toList());
+
+        predicates.add(BuiltCondition.of("p" + i, Predicate.IN, segmentsList));
+      }
+    }
+  }
+
+  private List<BuiltCondition> buildConditions(
+      FilterCondition condition, boolean booleanAsNumeric) {
+    List<BuiltCondition> predicates = new ArrayList<>();
+    collectNestedElementConditions(predicates, condition.getPath());
+    collectFieldConditions(predicates, condition);
+
+    // The rest of the paths must match empty-string
+    for (int i = condition.getPath().size() + 1; i < MAX_DEPTH; i++) {
+      predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
+    }
+
+    collectValueConditions(predicates, condition, booleanAsNumeric);
+    return predicates;
+  }
+
+  private void collectFieldConditions(List<BuiltCondition> predicates, FilterCondition condition) {
+    predicates.add(
+        BuiltCondition.of("p" + condition.getPath().size(), Predicate.EQ, condition.getField()));
+  }
+
+  private void collectValueConditions(
+      List<BuiltCondition> predicates, FilterCondition condition, boolean booleanAsNumeric) {
+    if (condition.getFilterOp() == FilterOp.EXISTS) {
+      // conditions on the clustering key columns are sufficient for `EXISTS` as the storage leyer
+      return;
+    }
+
+    // Only SingleFilterCondition is currently supported at persistence level
+    SingleFilterCondition singleFilter = (SingleFilterCondition) condition;
+    FilterOp queryOp = singleFilter.getFilterOp();
+    String queryValueField = singleFilter.getValueColumnName();
+    Object queryValue = singleFilter.getValue(booleanAsNumeric);
+    BuiltCondition filterCondition =
+        BuiltCondition.of(queryValueField, queryOp.predicate, queryValue);
+    predicates.add(filterCondition);
   }
 
   /**
@@ -1164,16 +1120,14 @@ public class DocumentService {
               .collect(Collectors.toList());
     }
 
-    if ((recurse == null || !recurse)
-        && path.size() < db.MAX_DEPTH
-        && !inCassandraFilters.isEmpty()) {
+    if ((recurse == null || !recurse) && path.size() < MAX_DEPTH && !inCassandraFilters.isEmpty()) {
       predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, filters.get(0).getField()));
     } else if (!path.isEmpty()) {
       predicates.add(BuiltCondition.of("p" + i++, Predicate.GT, ""));
     }
 
     // The rest of the paths must match empty-string
-    while (i < db.MAX_DEPTH && !path.isEmpty()) {
+    while (i < MAX_DEPTH && !path.isEmpty()) {
       predicates.add(BuiltCondition.of("p" + i++, Predicate.EQ, ""));
     }
 
@@ -1208,7 +1162,7 @@ public class DocumentService {
 
     List<Row> rows = r.currentPageRows();
 
-    paginator.useResultSet(r);
+    // TODO: remove this method
 
     if (documentKey != null) {
       rows =
@@ -1338,47 +1292,53 @@ public class DocumentService {
         inMemoryFilters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
     return Lists.partition(rows, fieldsPerDoc).stream()
         .filter(
-            docChunk -> {
-              List<Row> fieldRows =
-                  docChunk.stream()
-                      .filter(
-                          r -> {
-                            if (r == null || r.getString("leaf") == null) {
-                              return false;
-                            }
-                            List<String> parentPath =
-                                PATH_SPLITTER.splitToList(getParentPathFromRow(r));
-                            String rowPath = "";
-                            if (parentPath.size() == 2) {
-                              rowPath = parentPath.get(1);
-                            }
-                            String fullRowPath = rowPath + r.getString("leaf");
-                            List<FilterCondition> matchingFilters =
-                                inMemoryFilters.stream()
-                                    .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
-                                    .collect(Collectors.toList());
-                            if (matchingFilters.isEmpty()) {
-                              return false;
-                            }
-                            return allFiltersMatch(r, matchingFilters, numericBooleans);
-                          })
-                      .collect(Collectors.toList());
-              // This ensures that wildcard paths are properly counted with non-wildcard paths,
-              // by making sure that for every filter above, at least one matches a valid row.
-              return filterFieldPaths.stream()
-                  .allMatch(
-                      fieldPath ->
-                          fieldRows.stream()
-                              .anyMatch(
-                                  row -> {
-                                    List<String> segments =
-                                        PATH_SPLITTER.splitToList(getParentPathFromRow(row));
-                                    String path = segments.get(segments.size() - 1);
-                                    return pathsMatch(path + row.getString("leaf"), fieldPath);
-                                  }));
-            })
+            docChunk ->
+                matchesFilters(inMemoryFilters, numericBooleans, filterFieldPaths, docChunk))
         .flatMap(x -> x.stream())
         .collect(Collectors.toList());
+  }
+
+  private boolean matchesFilters(
+      List<FilterCondition> inMemoryFilters,
+      boolean numericBooleans,
+      Set<String> filterFieldPaths,
+      List<Row> docChunk) {
+    List<Row> fieldRows =
+        docChunk.stream()
+            .filter(
+                r -> {
+                  if (r == null || r.getString("leaf") == null) {
+                    return false;
+                  }
+                  List<String> parentPath = PATH_SPLITTER.splitToList(getParentPathFromRow(r));
+                  String rowPath = "";
+                  if (parentPath.size() == 2) {
+                    rowPath = parentPath.get(1);
+                  }
+                  String fullRowPath = rowPath + r.getString("leaf");
+                  List<FilterCondition> matchingFilters =
+                      inMemoryFilters.stream()
+                          .filter(f -> pathsMatch(fullRowPath, f.getFullFieldPath()))
+                          .collect(Collectors.toList());
+                  if (matchingFilters.isEmpty()) {
+                    return false;
+                  }
+                  return allFiltersMatch(r, matchingFilters, numericBooleans);
+                })
+            .collect(Collectors.toList());
+    // This ensures that wildcard paths are properly counted with non-wildcard paths,
+    // by making sure that for every filter above, at least one matches a valid row.
+    return filterFieldPaths.stream()
+        .allMatch(
+            fieldPath ->
+                fieldRows.stream()
+                    .anyMatch(
+                        row -> {
+                          List<String> segments =
+                              PATH_SPLITTER.splitToList(getParentPathFromRow(row));
+                          String path = segments.get(segments.size() - 1);
+                          return pathsMatch(path + row.getString("leaf"), fieldPath);
+                        }));
   }
 
   private Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {

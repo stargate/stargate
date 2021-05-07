@@ -662,7 +662,6 @@ public class DocumentResourceV2 {
           } else {
             final Paginator paginator =
                 new Paginator(
-                    dbFactory.getDataStore(),
                     pageStateParam,
                     pageSizeParam,
                     pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
@@ -764,10 +763,7 @@ public class DocumentResourceV2 {
 
           final Paginator paginator =
               new Paginator(
-                  dbFactory.getDataStore(),
-                  pageStateParam,
-                  pageSizeParam,
-                  docsApiConfiguration.getSearchPageSize());
+                  pageStateParam, pageSizeParam, docsApiConfiguration.getSearchPageSize());
 
           JsonNode results;
 

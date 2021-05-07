@@ -82,6 +82,10 @@ public class QueryExecutor {
             dataStore.execute(
                 query,
                 p -> {
+                  if (pageSize <= 0) {
+                    return p; // if page size is not set pagingState is ignored by C*
+                  }
+
                   ImmutableParameters.Builder builder = p.toBuilder();
                   builder.pageSize(pageSize);
                   if (pagingState != null) {
