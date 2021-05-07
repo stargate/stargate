@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
@@ -926,6 +925,7 @@ public class DocumentServiceTest {
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     when(dbMock.newBindMap(any())).thenCallRealMethod();
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
 
     service.putAtPath(
         "authToken",
@@ -952,6 +952,7 @@ public class DocumentServiceTest {
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
     when(dbMock.newBindMap(any())).thenCallRealMethod();
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
 
     service.putAtPath(
         "authToken",
@@ -977,6 +978,7 @@ public class DocumentServiceTest {
     DocumentDB dbMock = mock(DocumentDB.class);
     Db dbFactoryMock = mock(Db.class);
     when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
 
     Throwable thrown =
         catchThrowable(
@@ -1006,6 +1008,7 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     when(rsMock.rows()).thenReturn(new ArrayList<>());
 
     List<PathSegment> path = smallPath();
@@ -1020,6 +1023,7 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
 
     List<Row> rows = makeInitialRowData(false);
     when(rsMock.rows()).thenReturn(rows);
@@ -1040,6 +1044,7 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
         .thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
 
     List<Row> rows = makeInitialRowData(false);
     when(rsMock.rows()).thenReturn(rows);
@@ -1181,7 +1186,7 @@ public class DocumentServiceTest {
   public void searchDocumentsV2_emptyResult() throws Exception {
     DocumentDB dbMock = Mockito.mock(DocumentDB.class);
     DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    JsonConverter jsonConverterServiceMock = mock(JsonConverter.class, CALLS_REAL_METHODS);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
         .thenCallRealMethod();
     Mockito.when(
@@ -1209,6 +1214,7 @@ public class DocumentServiceTest {
     List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     when(rsMock.currentPageRows()).thenReturn(rows);
     int pageSizeParam = 0;
     Paginator paginator =
@@ -1232,6 +1238,7 @@ public class DocumentServiceTest {
     List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
         .thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     when(rsMock.currentPageRows()).thenReturn(rows);
 
     List<FilterCondition> filters =
@@ -1270,6 +1277,7 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     when(rsMock.currentPageRows()).thenReturn(rows);
     Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
         .thenReturn(mapper.readTree("{\"a\": 1}"));
@@ -1290,6 +1298,7 @@ public class DocumentServiceTest {
     ResultSet rsMock = mock(ResultSet.class);
     List<Row> rows = makeInitialRowData(false);
     when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
+    when(dbMock.isDocumentsTable(anyString(), anyString())).thenReturn(true);
     when(rsMock.currentPageRows()).thenReturn(rows);
     List<Row> twoDocsRows = makeInitialRowData(false);
     twoDocsRows.addAll(makeRowDataForSecondDoc(false));
