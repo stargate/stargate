@@ -198,7 +198,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testAccessArbitraryTableDisallowed() throws IOException {
     assertThat(
             session
-                .execute(String.format("create table not_docs(x text primary key, y text)"))
+                .execute(
+                    String.format("create table %s.not_docs(x text primary key, y text)", keyspace))
                 .wasApplied())
         .isTrue();
 
