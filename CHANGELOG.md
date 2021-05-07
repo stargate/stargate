@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.0.24](https://github.com/stargate/stargate/tree/v1.0.24) (2021-05-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.23...v1.0.24)
+
+**Closed issues:**
+
+- Add possibility to invoke C\* aggregation functions on `DataStore.queryBuilder\(\)` [\#907](https://github.com/stargate/stargate/issues/907)
+- Operation timed out when using where on a set of 100.000 documents [\#905](https://github.com/stargate/stargate/issues/905)
+- Question -  Stargate Support with WCF Or .Net Api [\#841](https://github.com/stargate/stargate/issues/841)
+- Use the auth caching in docsapi in the remainder of restapi [\#551](https://github.com/stargate/stargate/issues/551)
+
+**Merged pull requests:**
+
+- Support custom paging positions within a partition [\#919](https://github.com/stargate/stargate/pull/919) ([dimas-b](https://github.com/dimas-b))
+- Fix issue with last document not being registered in pagination [\#917](https://github.com/stargate/stargate/pull/917) ([EricBorczuk](https://github.com/EricBorczuk))
+- gRPC: Add remaining primitive codecs [\#916](https://github.com/stargate/stargate/pull/916) ([mpenick](https://github.com/mpenick))
+- Don't get all the candidates if you're only returning a few of them [\#914](https://github.com/stargate/stargate/pull/914) ([EricBorczuk](https://github.com/EricBorczuk))
+- Add possibility to invoke C\* aggregation functions on DataStore.queryBuilder\(\) [\#913](https://github.com/stargate/stargate/pull/913) ([tomekl007](https://github.com/tomekl007))
+- Bumping version for next release [\#912](https://github.com/stargate/stargate/pull/912) ([github-actions[bot]](https://github.com/apps/github-actions))
+- explained more about debug running of the int tests [\#908](https://github.com/stargate/stargate/pull/908) ([ivansenic](https://github.com/ivansenic))
+- Json Conversion Refactor: Part 2 [\#890](https://github.com/stargate/stargate/pull/890) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.23](https://github.com/stargate/stargate/tree/v1.0.23) (2021-04-29)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.22...v1.0.23)
