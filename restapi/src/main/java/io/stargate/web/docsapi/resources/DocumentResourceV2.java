@@ -759,12 +759,17 @@ public class DocumentResourceV2 {
 
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
 
+          int docPageSize = Math.max(1, pageSizeParam);
           final Paginator paginator =
               new Paginator(
                   dbFactory.getDataStore(),
                   pageStateParam,
-                  Math.max(1, pageSizeParam),
+                  docPageSize,
                   docsApiConfiguration.getSearchPageSize());
+
+          if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
+            throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
+          }
 
           JsonNode results;
 
