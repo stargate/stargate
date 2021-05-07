@@ -64,8 +64,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
 
-  private static final int MAX_PREPARES_FOR_BATCH =
-      Integer.getInteger("stargate.grpc.max_prepares_for_batch", 2);
+  /** The maximum number of batch queries to prepare simultaneously. */
+  private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
+      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 2), 1);
 
   // TODO: Add a maximum size and add tuning options
   private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();
@@ -113,6 +114,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     try {
       AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
       Connection connection = newConnection(authenticationSubject.asUser());
+
+      if (batch.getQueriesCount() == 0) {
+        responseObserver.onError(
+            Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException());
+        return;
+      }
+
+      // TODO: Add a limit for the maximum number of queries in a batch? The setting
+      // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
 
       new BatchPreparer(connection, batch)
           .prepare()
@@ -369,9 +379,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return connection;
   }
 
+  /**
+   * Concurrently prepares queries in a batch. It'll prepare up to {@link
+   * Service#MAX_CONCURRENT_PREPARES_FOR_BATCH} queries simultaneously.
+   */
   private class BatchPreparer {
 
-    private final AtomicInteger index = new AtomicInteger();
+    private final AtomicInteger queryIndex = new AtomicInteger();
     private final Connection connection;
     private final Batch batch;
     private final List<Statement> statements;
@@ -384,26 +398,33 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       future = new CompletableFuture<>();
     }
 
+    /**
+     * Initiates the initial prepares. When these prepares finish they'll pull the next available
+     * query in the batch and prepare it.
+     *
+     * @return An future which completes with an internal batch statement with all queries prepared.
+     */
     public CompletableFuture<io.stargate.db.Batch> prepare() {
-      int numToPrepare = Math.min(batch.getQueriesCount(), MAX_PREPARES_FOR_BATCH);
-      if (numToPrepare == 0) {
-        future.completeExceptionally(new IllegalStateException("No queries in batch"));
-      }
+      int numToPrepare = Math.min(batch.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
+      assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
         next();
       }
       return future;
     }
 
+    /** Asynchronously prepares the next query in the batch. */
     private void next() {
-      int next = index.getAndIncrement();
-      if (next >= batch.getQueriesCount()) {
+      int index = this.queryIndex.getAndIncrement();
+      // When there are no more queries to prepare then construct the batch with the prepared
+      // statements and complete the future.
+      if (index >= batch.getQueriesCount()) {
         future.complete(
             new io.stargate.db.Batch(BatchType.fromId(batch.getTypeValue()), statements));
         return;
       }
 
-      BatchQuery query = batch.getQueries(next);
+      BatchQuery query = batch.getQueries(index);
 
       prepareQuery(
               connection,
@@ -419,7 +440,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     PayloadHandler handler =
                         PayloadHandlers.HANDLERS.get(query.getPayload().getType());
                     statements.add(bindValues(handler, prepared, query.getPayload()));
-                    next();
+                    next(); // Prepare the next query in the batch
                   } catch (Exception e) {
                     future.completeExceptionally(e);
                   }
