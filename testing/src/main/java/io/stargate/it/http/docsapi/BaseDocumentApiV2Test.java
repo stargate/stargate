@@ -195,6 +195,71 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testAccessArbitraryTableDisallowed() throws IOException {
+    assertThat(
+            session
+                .execute(String.format("create table not_docs(x text primary key, y text)"))
+                .wasApplied())
+        .isTrue();
+
+    String errorMessage =
+        String.format(
+            "{\"description\":\"Bad request: The Cassandra table %s.not_docs is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.\",\"code\":400}",
+            keyspace);
+
+    String resp =
+        RestUtils.post(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/not_docs",
+            "{\"a\": \"b\"}",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+
+    resp =
+        RestUtils.patch(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/not_docs/1",
+            "{\"a\": \"b\"}",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+
+    resp =
+        RestUtils.put(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/not_docs/1",
+            "{\"a\": \"b\"}",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/not_docs/1",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/not_docs/1?where={\"a\":{\"$eq\":1}}",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+
+    resp =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/not_docs?where={\"a\":{\"$eq\":1}}",
+            400);
+    assertThat(resp).isEqualTo(errorMessage);
+  }
+
+  @Test
   public void testDocGetOnNotExistingNamespace() throws IOException {
     String resp =
         RestUtils.get(

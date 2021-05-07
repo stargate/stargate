@@ -274,6 +274,20 @@ public class DocumentDB {
     }
   }
 
+  /**
+   * Checks that a table in a particular keyspace has the schema of a Documents collection. This is
+   * done by checking that the table has all of the columns required.
+   *
+   * <p>Does not check that the table and keyspace exist.
+   *
+   * @param keyspaceName The name of the keyspace.
+   * @param tableName The name of the table.
+   */
+  public boolean isDocumentsTable(String keyspaceName, String tableName) {
+    List<Column> columns = dataStore.schema().keyspace(keyspaceName).table(tableName).columns();
+    return columns.stream().allMatch(column -> allColumnNames.contains(column.name()));
+  }
+
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : VALUE_COLUMN_NAMES) {

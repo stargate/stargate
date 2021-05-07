@@ -97,6 +97,16 @@ public class DocumentService {
     return StringUtils.leftPad(value, 6, '0');
   }
 
+  private void checkTableIsDocsCollection(DocumentDB db, String keyspace, String collection) {
+    if (!db.isDocumentsTable(keyspace, collection)) {
+      throw new DocumentAPIRequestException(
+          String.format(
+              "The Cassandra table %s.%s is not a Documents collection. "
+                  + "Accessing arbitrary tables via the Documents API is not permitted.",
+              keyspace, collection));
+    }
+  }
+
   private String convertArrayPath(String path) {
     if (path.startsWith("[") && path.endsWith("]")) {
       String innerPath = path.substring(1, path.length() - 1);
@@ -406,6 +416,8 @@ public class DocumentService {
       db.maybeCreateTableIndexes(keyspace, collection);
     }
 
+    checkTableIsDocsCollection(db, keyspace, collection);
+
     // Left-pad the path segments that represent arrays
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
@@ -441,6 +453,8 @@ public class DocumentService {
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws UnauthorizedException {
+    checkTableIsDocsCollection(db, keyspace, collection);
+
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
@@ -634,6 +648,7 @@ public class DocumentService {
       String documentId,
       Paginator paginator)
       throws UnauthorizedException {
+    checkTableIsDocsCollection(db, keyspace, collection);
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -767,6 +782,7 @@ public class DocumentService {
   public JsonNode getFullDocuments(
       DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
+    checkTableIsDocsCollection(db, keyspace, collection);
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
     do {
@@ -851,6 +867,7 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
+    checkTableIsDocsCollection(db, keyspace, collection);
     List<FilterCondition> inCassandraFilters =
         filters.stream()
             .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
