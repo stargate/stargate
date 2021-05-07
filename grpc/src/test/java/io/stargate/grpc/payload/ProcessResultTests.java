@@ -15,9 +15,9 @@
  */
 package io.stargate.grpc.payload;
 
-import static io.stargate.grpc.Utils.intValue;
-import static io.stargate.grpc.Utils.stringValue;
-import static io.stargate.grpc.Utils.uuidValue;
+import static io.stargate.grpc.Values.intValue;
+import static io.stargate.grpc.Values.stringValue;
+import static io.stargate.grpc.Values.uuidValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -51,9 +51,7 @@ public class ProcessResultTests {
       Payload.Type type, Rows rows, QueryParameters queryParameters, Payload expected)
       throws Exception {
 
-    PayloadHandler handler = PayloadHandlers.HANDLERS.get(type);
-    assertThat(handler).isNotNull();
-
+    PayloadHandler handler = PayloadHandlers.get(type);
     Payload actual = handler.processResult(rows, queryParameters);
     assertThat(actual).isEqualTo(expected);
   }

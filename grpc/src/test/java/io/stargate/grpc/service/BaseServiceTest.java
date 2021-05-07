@@ -126,7 +126,8 @@ public class BaseServiceTest {
     for (int i = 0; i < values.length; ++i) {
       Column column = prepared.metadata.columns.get(i);
       assertThat(column.type().rawType()).isNotNull();
-      Value actual = ValueCodecs.CODECS.get(column.type().rawType()).decode(boundValues.get(i));
+      Value actual =
+          ValueCodecs.get(column.type().rawType()).decode(boundValues.get(i), column.type());
       assertThat(values[i]).isEqualTo(actual);
     }
   }

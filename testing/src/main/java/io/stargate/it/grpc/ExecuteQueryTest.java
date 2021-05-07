@@ -31,7 +31,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void simpleQuery(@TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
-    StargateBlockingStub stub = this.stub.withCallCredentials(new StargateBearerToken(authToken));
+    StargateBlockingStub stub = stubWithCallCredentials();
 
     StringValue keyspaceValue = StringValue.of(keyspace.toString());
 

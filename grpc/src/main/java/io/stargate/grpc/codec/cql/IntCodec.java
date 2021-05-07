@@ -18,6 +18,7 @@ package io.stargate.grpc.codec.cql;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
@@ -38,7 +39,7 @@ public class IntCodec implements ValueCodec {
   }
 
   @Override
-  public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes) {
+  public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
         .setInt(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();

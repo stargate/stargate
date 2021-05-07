@@ -15,8 +15,8 @@
  */
 package io.stargate.grpc.service;
 
-import static io.stargate.grpc.Utils.intValue;
-import static io.stargate.grpc.Utils.stringValue;
+import static io.stargate.grpc.Values.intValue;
+import static io.stargate.grpc.Values.stringValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

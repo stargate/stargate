@@ -23,7 +23,7 @@ public class TinyintCodec implements ValueCodec {
   }
 
   @Override
-  public Value decode(@NonNull ByteBuffer bytes) {
+  public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
         .setInt(TypeCodecs.TINYINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();

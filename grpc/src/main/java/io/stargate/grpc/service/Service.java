@@ -198,12 +198,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       QueryParameters parameters = query.getParameters();
       Payload payload = parameters.getPayload();
 
-      PayloadHandler handler = PayloadHandlers.HANDLERS.get(payload.getType());
-      if (handler == null) {
-        responseObserver.onError(
-            Status.UNIMPLEMENTED.withDescription("Unsupported payload type").asException());
-        return;
-      }
+      PayloadHandler handler = PayloadHandlers.get(payload.getType());
 
       connection
           .execute(
@@ -446,8 +441,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   future.completeExceptionally(t);
                 } else {
                   try {
-                    PayloadHandler handler =
-                        PayloadHandlers.HANDLERS.get(query.getPayload().getType());
+                    PayloadHandler handler = PayloadHandlers.get(query.getPayload().getType());
                     statements.add(bindValues(handler, prepared, query.getPayload()));
                     next(); // Prepare the next query in the batch
                   } catch (Exception e) {

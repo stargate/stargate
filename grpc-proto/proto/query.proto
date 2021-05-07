@@ -45,14 +45,6 @@ message Collection {
   repeated Value elements = 1;
 }
 
-message Map {
-  message Pair {
-    Value key = 1;
-    Value value = 2;
-  }
-  Pair pairs = 1;
-}
-
 message UdtValue {
   map<string, Value> fields = 1;
 }
@@ -104,14 +96,11 @@ message Value {
     // in the range 0 to 86399999999999 (inclusive).
     uint64 time = 11;
 
-    // CQL types: list, set, tuple
+    // CQL types: list, set, map, tuple
     Collection collection = 12;
 
-    // CQL types: map
-    Map map = 13;
-
     // CQL types: user defined types
-    UdtValue udt = 14;
+    UdtValue udt = 13;
   }
 }
 

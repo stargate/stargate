@@ -26,6 +26,8 @@ import java.nio.ByteBuffer;
 public interface ValueCodec {
   ProtocolVersion PROTOCOL_VERSION = defaultProtocolVersion();
 
+  Value NULL_VALUE = Value.newBuilder().setNull(Value.Null.newBuilder().build()).build();
+
   /**
    * Convert a gRPC tagged-union payload value into the internal CQL native protocol representation.
    *
@@ -40,9 +42,27 @@ public interface ValueCodec {
    * Convert a CQL native protocol represented value into a gRPC tagged-union value.
    *
    * @param bytes The bytes for the CQL native protocol value.
+   * @param type The type value being converted. This is for determining sub-types for composites
+   *     like lists, sets, maps, tuples and UDTs.
    * @return A gRPC tagged-union payload value.
    */
-  Value decode(@NonNull ByteBuffer bytes);
+  Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type);
+
+  static ByteBuffer encodeValue(ValueCodec codec, Value value, ColumnType columnType) {
+    if (value.hasNull()) {
+      return null;
+    } else {
+      return codec.encode(value, columnType);
+    }
+  }
+
+  static Value decodeValue(ValueCodec codec, ByteBuffer bytes, ColumnType columnType) {
+    if (bytes == null) {
+      return NULL_VALUE;
+    } else {
+      return codec.decode(bytes, columnType);
+    }
+  }
 
   /**
    * Calculates the driver's default protocol version using Stargate's {@link ProtocolVersion} type.

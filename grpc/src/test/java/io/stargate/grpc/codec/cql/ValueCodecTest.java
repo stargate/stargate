@@ -15,7 +15,7 @@
  */
 package io.stargate.grpc.codec.cql;
 
-import static io.stargate.grpc.Utils.*;
+import static io.stargate.grpc.Values.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -52,13 +52,17 @@ public class ValueCodecTest {
     "stringValues",
     "timeValues",
     "tinyintValues",
-    "uuidValues"
+    "uuidValues",
+    "listValues",
+    "setValues",
+    "mapValues",
+    "tupleValues"
   })
   public void validValues(ColumnType type, Value expectedValue) {
-    ValueCodec codec = ValueCodecs.CODECS.get(type);
+    ValueCodec codec = ValueCodecs.get(type.rawType());
     assertThat(codec).isNotNull();
     ByteBuffer bytes = codec.encode(expectedValue, type);
-    Value actualValue = codec.decode(bytes);
+    Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
   }
 
@@ -76,11 +80,14 @@ public class ValueCodecTest {
     "invalidStringValues",
     "invalidTimeValues",
     "invalidTinyintValues",
-    "invalidUuidValues"
+    "invalidUuidValues",
+    "invalidListValues",
+    "invalidSetValues",
+    "invalidMapValues",
+    "invalidTupleValues"
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
-    ValueCodec codec = ValueCodecs.CODECS.get(type);
-    assertThat(codec).isNotNull();
+    ValueCodec codec = ValueCodecs.get(type.rawType());
     assertThatThrownBy(() -> codec.encode(value, type))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(expectedMessage);
@@ -307,5 +314,150 @@ public class ValueCodecTest {
         arguments(Type.Timeuuid, unsetValue(), "Expected UUID type"),
         arguments(
             Type.Timeuuid, uuidValue(UUID.randomUUID()), "is not a Type 1 (time-based) UUID"));
+  }
+
+  public static Stream<Arguments> listValues() {
+    return Stream.of(
+        arguments(Type.List.of(Type.Varchar), collection()),
+        arguments(
+            Type.List.of(Type.Varchar),
+            collection(stringValue("a"), stringValue("b"), stringValue("c"))),
+        arguments(Type.List.of(Type.Int), collection(intValue(1), intValue(2), intValue(3))));
+  }
+
+  public static Stream<Arguments> invalidListValues() {
+    return Stream.of(
+        arguments(
+            Type.List.of(Type.Varchar),
+            collection(stringValue("a"), intValue(1)),
+            "Expected string type"),
+        arguments(Type.List.of(Type.Varchar), collection(unsetValue()), "Expected string type"),
+        arguments(Type.List.of(Type.Int), nullValue(), "Expected collection type"),
+        arguments(Type.List.of(Type.Int), unsetValue(), "Expected collection type"),
+        arguments(
+            Type.List.of(Type.Varchar),
+            collection(nullValue()),
+            "null is not supported inside lists"),
+        arguments(
+            Type.List.of(Type.Int), collection(nullValue()), "null is not supported inside lists"));
+  }
+
+  public static Stream<Arguments> setValues() {
+    return Stream.of(
+        arguments(Type.Set.of(Type.Varchar), collection()),
+        arguments(
+            Type.Set.of(Type.Varchar),
+            collection(stringValue("a"), stringValue("b"), stringValue("c"))));
+  }
+
+  public static Stream<Arguments> invalidSetValues() {
+    return Stream.of(
+        arguments(
+            Type.Set.of(Type.Varchar),
+            collection(nullValue()),
+            "null is not supported inside sets"),
+        arguments(
+            Type.Set.of(Type.Int), collection(nullValue()), "null is not supported inside sets"));
+  }
+
+  public static Stream<Arguments> mapValues() {
+    return Stream.of(
+        arguments(Type.Map.of(Type.Varchar, Type.Int), collection()),
+        arguments(
+            Type.Map.of(Type.Varchar, Type.Int),
+            collection(
+                stringValue("a"), intValue(1),
+                stringValue("b"), intValue(2),
+                stringValue("c"), intValue(3))),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            collection(
+                uuidValue(Uuids.random()), stringValue("a"),
+                uuidValue(Uuids.random()), stringValue("b"),
+                uuidValue(Uuids.random()), stringValue("c"))));
+  }
+
+  public static Stream<Arguments> invalidMapValues() {
+    return Stream.of(
+        arguments(
+            Type.Map.of(Type.Varchar, Type.Int),
+            collection(
+                stringValue("a"), intValue(1),
+                stringValue("b"), intValue(2),
+                stringValue("c"), uuidValue(Uuids.random())),
+            "Expected integer type"),
+        arguments(
+            Type.Map.of(Type.Varchar, Type.Int),
+            collection(
+                stringValue("a"), intValue(1),
+                stringValue("b"), intValue(2),
+                stringValue("c"), unsetValue()),
+            "Expected integer type"),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            collection(
+                uuidValue(Uuids.random()), stringValue("a"),
+                uuidValue(Uuids.random()), stringValue("b"),
+                intValue(1), stringValue("c")),
+            "Expected UUID type"),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            collection(
+                uuidValue(Uuids.random()), stringValue("a"),
+                uuidValue(Uuids.random()), stringValue("b"),
+                unsetValue(), stringValue("c")),
+            "Expected UUID type"),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            collection(uuidValue(Uuids.random())),
+            "Missing pair value (expected an even number of elements)"),
+        arguments(Type.Map.of(Type.Uuid, Type.Varchar), nullValue(), "Expected collection type"),
+        arguments(Type.Map.of(Type.Uuid, Type.Varchar), unsetValue(), "Expected collection type"),
+        arguments(
+            Type.Map.of(Type.Varchar, Type.Int),
+            collection(stringValue("a"), nullValue()),
+            "null is not supported inside maps"),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            collection(nullValue(), stringValue("a")),
+            "null is not supported inside maps"));
+  }
+
+  public static Stream<Arguments> tupleValues() {
+    return Stream.of(
+        arguments(Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid), collection(stringValue("a"))),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            collection(stringValue("a"), intValue(1))),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            collection(stringValue("a"), intValue(1), uuidValue(Uuids.random()))),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            collection(nullValue(), nullValue(), nullValue())));
+  }
+
+  public static Stream<Arguments> invalidTupleValues() {
+    return Stream.of(
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            collection(stringValue("a"), intValue(1), stringValue("wrong")),
+            "Expected UUID type"),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            collection(stringValue("a"), intValue(1), unsetValue()),
+            "Expected UUID type"),
+        arguments(
+            Type.Tuple.of(Type.Varchar),
+            collection(stringValue("a"), intValue(1)),
+            "Too many tuple fields. Expected 1, but received 2"),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            nullValue(),
+            "Expected collection type"),
+        arguments(
+            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            unsetValue(),
+            "Expected collection type"));
   }
 }

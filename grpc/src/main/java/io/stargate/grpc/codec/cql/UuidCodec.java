@@ -18,6 +18,7 @@ package io.stargate.grpc.codec.cql;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -42,7 +43,7 @@ public class UuidCodec implements ValueCodec {
   }
 
   @Override
-  public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes) {
+  public QueryOuterClass.Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     UUID uuid = innerCodec.decode(bytes, PROTOCOL_VERSION);
     assert uuid != null;
     return Value.newBuilder()

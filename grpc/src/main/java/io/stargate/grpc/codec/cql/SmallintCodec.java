@@ -23,7 +23,7 @@ public class SmallintCodec implements ValueCodec {
   }
 
   @Override
-  public Value decode(@NonNull ByteBuffer bytes) {
+  public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
         .setInt(TypeCodecs.SMALLINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
