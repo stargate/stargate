@@ -396,7 +396,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
 
     private void next() {
-      int next = index.addAndGet(1) - 1;
+      int next = index.getAndIncrement();
       if (next >= batch.getQueriesCount()) {
         future.complete(
             new io.stargate.db.Batch(BatchType.fromId(batch.getTypeValue()), statements));
