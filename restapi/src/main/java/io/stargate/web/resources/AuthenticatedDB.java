@@ -109,7 +109,8 @@ public class AuthenticatedDB {
 
     UserDefinedType typeMetadata = keyspace.userDefinedType(typeName);
     if (typeMetadata == null) {
-      throw new NotFoundException(String.format("table '%s' not found", typeName));
+      throw new NotFoundException(
+          String.format("type '%s' not found in the keyspace '%s'", typeName, keyspaceName));
     }
     return typeMetadata;
   }
