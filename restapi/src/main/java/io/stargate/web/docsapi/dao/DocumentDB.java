@@ -4,6 +4,7 @@ import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import io.reactivex.Flowable;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -16,6 +17,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.ValueModifier;
@@ -27,6 +29,8 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.QueryExecutor;
+import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -70,6 +74,7 @@ public class DocumentDB {
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
   private final AuthenticationSubject authenticationSubject;
+  private final QueryExecutor executor;
 
   static {
     allColumns = new ArrayList<>();
@@ -123,6 +128,8 @@ public class DocumentDB {
     if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
       throw new IllegalStateException("Backend does not support any known index types.");
     }
+
+    executor = new QueryExecutor(dataStore);
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -373,63 +380,42 @@ public class DocumentDB {
     }
   }
 
-  public ResultSet executeSelect(
-      String keyspace, String collection, List<BuiltCondition> predicates)
-      throws UnauthorizedException {
+  public void authorizeSelect(String keyspace, String collection) throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
         .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .build()
-        .execute()
-        .join();
   }
 
-  public ResultSet executeSelect(
+  public Flowable<RawDocument> executeSelect(
       String keyspace,
       String collection,
       List<BuiltCondition> predicates,
       int pageSize,
-      ByteBuffer pageState)
+      ByteBuffer pagingState)
       throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
         .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    UnaryOperator<Parameters> parametersModifier =
-        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .build()
-        .execute(parametersModifier)
-        .join();
+    AbstractBound<?> query =
+        this.builder()
+            .select()
+            .column(DocumentDB.allColumns())
+            .writeTimeColumn("leaf")
+            .from(keyspace, collection)
+            .where(predicates)
+            .build()
+            .bind();
+    return executor.queryDocs(query, pageSize, pagingState);
   }
 
-  public ResultSet executeSelect(
-      String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+  public Flowable<RawDocument> executeSelect(
+      AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+    return executor.queryDocs(query, pageSize, pagingState);
+  }
 
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .allowFiltering(allowFiltering)
-        .build()
-        .execute()
-        .join();
+  public Flowable<RawDocument> executeSelect(
+      int keyDepth, AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+    return executor.queryDocs(keyDepth, query, pageSize, pagingState);
   }
 
   public ResultSet executeSelect(
@@ -460,22 +446,6 @@ public class DocumentDB {
         .allowFiltering(allowFiltering)
         .build()
         .execute(parametersModifier)
-        .join();
-  }
-
-  public ResultSet executeSelectAll(String keyspace, String collection)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .build()
-        .execute()
         .join();
   }
 

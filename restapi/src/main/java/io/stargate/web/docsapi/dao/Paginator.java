@@ -1,16 +1,9 @@
 package io.stargate.web.docsapi.dao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.stargate.db.PagingPosition;
-import io.stargate.db.PagingPosition.ResumeMode;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Column.Type;
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.RawDocument;
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * This class is in charge of keeping the data of the Docs API pagination process. It's not only a
@@ -20,74 +13,51 @@ import java.util.Base64;
  */
 public class Paginator {
 
-  private final DataStore dataStore;
-  public final int dbPageSize;
   public final int docPageSize;
+  private ByteBuffer currentPageState; // keeps track of the DB page state while querying the DB
 
-  private ByteBuffer currentDbPageState; // keeps track of the DB page state while querying the DB
-  private String lastDocumentId;
-  private ResultSet resultSet;
-
-  public Paginator(DataStore dataStore, String pageState, int pageSize, int dbPageSize) {
-    this.dataStore = dataStore;
-    docPageSize = Math.max(1, pageSize);
-    if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
-      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
+  public Paginator(String pageState, int pageSize) {
+    if (pageSize <= 0) {
+      throw new IllegalArgumentException("Invalid page size: " + pageSize);
     }
 
-    this.dbPageSize = dbPageSize;
+    docPageSize = pageSize;
 
     if (pageState != null) {
       byte[] decodedBytes = Base64.getDecoder().decode(pageState);
-      this.currentDbPageState = ByteBuffer.wrap(decodedBytes);
+      this.currentPageState = ByteBuffer.wrap(decodedBytes);
     }
   }
 
-  public void useResultSet(ResultSet resultSet) {
-    this.resultSet = resultSet;
-    this.currentDbPageState = resultSet.getPagingState();
-  }
-
-  public String makeExternalPagingState() throws JsonProcessingException {
-    ByteBuffer pagingState;
-
-    if (lastDocumentId != null && resultSet != null) {
-      ByteBuffer keyValue = dataStore.valueCodec().encode(Type.Text, lastDocumentId);
-      Column keyColumn =
-          resultSet.columns().stream()
-              .filter(c -> c.name().equals("key"))
-              .findFirst()
-              .orElseThrow(() -> new IllegalStateException("key column not selected"));
-      PagingPosition position =
-          PagingPosition.builder()
-              .putCurrentRow(keyColumn, keyValue)
-              .resumeFrom(ResumeMode.NEXT_PARTITION)
-              .build();
-      pagingState = resultSet.makePagingState(position);
-    } else {
-      pagingState = currentDbPageState;
-    }
-
-    if (pagingState == null) {
+  public String makeExternalPagingState() {
+    if (currentPageState == null) {
       return null;
     }
 
-    return Base64.getEncoder().encodeToString(pagingState.array());
+    return Base64.getEncoder().encodeToString(currentPageState.array());
   }
 
   public void clearDocumentPageState() {
-    this.lastDocumentId = null;
+    this.currentPageState = null;
   }
 
-  public boolean hasDbPageState() {
-    return currentDbPageState != null;
+  public void setDocumentPageState(RawDocument document) {
+    this.currentPageState = document.makePagingState();
   }
 
-  public void setDocumentPageState(String lastIdSeen) {
-    this.lastDocumentId = lastIdSeen;
+  public void setDocumentPageState(List<RawDocument> docs) {
+    if (docs.size() < docPageSize) {
+      // If we have less docs than the page requires, this means there's no point requesting the
+      // next page. Note that in this case the last doc in the list _may_ have an internal paging
+      // state. This may happen if some docs are filtered in memory after fetching from persistence.
+      clearDocumentPageState();
+    } else {
+      RawDocument lastDoc = docs.get(docs.size() - 1);
+      setDocumentPageState(lastDoc);
+    }
   }
 
   public ByteBuffer getCurrentDbPageState() {
-    return currentDbPageState;
+    return currentPageState;
   }
 }

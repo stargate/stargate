@@ -5,6 +5,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -25,7 +26,11 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -64,6 +69,24 @@ public class DocumentResourceV2 {
   @Inject private DocumentService documentService;
   @Inject private DocsApiConfiguration docsApiConfiguration;
   @Inject private DocsSchemaChecker schemaChecker;
+
+  public DocumentResourceV2() {
+    // default constructor for injection-based call paths
+  }
+
+  @VisibleForTesting
+  public DocumentResourceV2(
+      Db dbFactory,
+      ObjectMapper mapper,
+      DocumentService documentService,
+      DocsApiConfiguration docsApiConfiguration,
+      DocsSchemaChecker schemaChecker) {
+    this.dbFactory = dbFactory;
+    this.mapper = mapper;
+    this.documentService = documentService;
+    this.docsApiConfiguration = docsApiConfiguration;
+    this.schemaChecker = schemaChecker;
+  }
 
   @POST
   @ManagedAsync
@@ -515,6 +538,10 @@ public class DocumentResourceV2 {
           String pageStateParam,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
+    if (pageSizeParam <= 0) {
+      pageSizeParam = 100; // enforce the declared parameter default
+    }
+
     return getDocPath(
         headers,
         ui,
@@ -593,6 +620,12 @@ public class DocumentResourceV2 {
           String pageStateParam,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
+    if (pageSizeParam <= 0) {
+      pageSizeParam = 100; // enforce the declared parameter default
+    }
+
+    int finalPageSizeParam = pageSizeParam;
+
     return handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
@@ -649,12 +682,7 @@ public class DocumentResourceV2 {
             logger.debug(json);
             return Response.ok(json).build();
           } else {
-            final Paginator paginator =
-                new Paginator(
-                    dbFactory.getDataStore(),
-                    pageStateParam,
-                    pageSizeParam,
-                    pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
+            final Paginator paginator = new Paginator(pageStateParam, finalPageSizeParam);
             JsonNode result =
                 documentService.searchDocumentsV2(
                     db, namespace, collection, filters, selectionList, id, paginator);
@@ -722,7 +750,9 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("fields")
           String fields,
-      @ApiParam(value = "the max number of documents to return, max 20", defaultValue = "1")
+      @ApiParam(
+              value = "the max number of documents to return, max " + DocumentDB.MAX_PAGE_SIZE,
+              defaultValue = "1")
           @QueryParam("page-size")
           int pageSizeParam,
       @ApiParam(
@@ -736,6 +766,14 @@ public class DocumentResourceV2 {
       @Context HttpServletRequest request) {
     return handle(
         () -> {
+          if (pageSizeParam > DocumentDB.MAX_PAGE_SIZE) {
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
+          }
+
+          // enforce the declared parameter default
+          int effectivePageSize = pageSizeParam <= 0 ? 1 : pageSizeParam;
+          final Paginator paginator = new Paginator(pageStateParam, effectivePageSize);
+
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
           if (where != null) {
@@ -751,18 +789,8 @@ public class DocumentResourceV2 {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
           schemaChecker.checkValidity(namespace, collection, db);
 
-          final Paginator paginator =
-              new Paginator(
-                  dbFactory.getDataStore(),
-                  pageStateParam,
-                  pageSizeParam,
-                  docsApiConfiguration.getSearchPageSize());
-
           JsonNode results;
 
-          if (pageSizeParam > 20) {
-            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
-          }
           if (filters.isEmpty()) {
             results =
                 documentService.getFullDocuments(

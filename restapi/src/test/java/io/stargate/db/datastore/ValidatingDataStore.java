@@ -121,7 +121,13 @@ public class ValidatingDataStore implements DataStore {
       Collection<BoundQuery> queries,
       BatchType batchType,
       UnaryOperator<Parameters> parametersModifier) {
-    throw new UnsupportedOperationException();
+    CompletableFuture<ResultSet> last = null;
+    for (BoundQuery query : queries) {
+      last = execute(query);
+    }
+
+    assertThat(last).isNotNull();
+    return last;
   }
 
   @Override

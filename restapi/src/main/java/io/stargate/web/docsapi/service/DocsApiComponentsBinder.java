@@ -17,7 +17,8 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bind(conf).to(DocsApiConfiguration.class);
     bind(jsonConverter).to(JsonConverter.class);
     bind(schemaChecker).to(DocsSchemaChecker.class);
-    bind(new DocumentService(environment.getObjectMapper(), jsonConverter, conf, schemaChecker))
+    bind(new DocumentService(
+            TimeSource.SYSTEM, environment.getObjectMapper(), jsonConverter, conf, schemaChecker))
         .to(DocumentService.class);
   }
 }
