@@ -74,6 +74,22 @@ public class MapBackedRow implements Row {
     return (double) dataMap.get(name);
   }
 
+  @Override
+  public long getLong(@NonNull String name) {
+    return ((Number) dataMap.get(name)).longValue();
+  }
+
+  @Override
+  public boolean getBoolean(@NonNull String name) {
+    assertThat(table.column(name)).isNotNull();
+    return (boolean) dataMap.get(name);
+  }
+
+  @Override
+  public boolean isNull(@NonNull String name) {
+    return !dataMap.containsKey(name);
+  }
+
   @Nullable
   @Override
   public ByteBuffer getBytesUnsafe(@NonNull String name) {

@@ -37,8 +37,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class DocumentResourceV2Test {
   private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
   @InjectMocks private DocumentResourceV2 documentResourceV2;
@@ -624,12 +627,6 @@ public class DocumentResourceV2Test {
     List<FilterCondition> conditions = new ArrayList<>();
     conditions.add(
         new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
-        .thenReturn(ImmutableList.of("field1"));
 
     Response r =
         documentResourceV2.searchDoc(

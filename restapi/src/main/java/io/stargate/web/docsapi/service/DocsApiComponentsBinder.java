@@ -13,6 +13,7 @@ public class DocsApiComponentsBinder extends AbstractBinder {
   protected void configure() {
     DocsApiConfiguration conf = DocsApiConfiguration.DEFAULT;
     bind(conf).to(DocsApiConfiguration.class);
+    bind(TimeSource.SYSTEM).to(TimeSource.class);
 
     bindAsContract(JsonConverter.class);
     bindAsContract(DocsSchemaChecker.class);
