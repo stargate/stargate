@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE KEYSPACE IF NOT EXISTS stargate_graphql WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
       "GRANT SELECT ON KEYSPACE stargate_graphql TO web_user",
     })
-public class GraphqlJWTAuthTest extends BaseOsgiIntegrationTest {
+public class JwtAuthTest extends BaseOsgiIntegrationTest {
 
   private static KeycloakContainer keycloakContainer;
 
