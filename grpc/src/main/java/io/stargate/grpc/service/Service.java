@@ -66,7 +66,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
-      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 2), 1);
+      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
   // TODO: Add a maximum size and add tuning options
   private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();

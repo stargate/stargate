@@ -25,6 +25,7 @@ import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.assertj.core.util.Arrays;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,6 +33,12 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class ExecuteBatchTest extends BaseServiceTest {
+
+  @BeforeAll
+  public static void setup() {
+    // To verify that concurrent prepares of batches works
+    System.setProperty("stargate.grpc.max_concurrent_prepares_for_batch", "2");
+  }
 
   @Test
   public void simpleBatch() {
