@@ -126,12 +126,9 @@ public class DmlSchemaBuilder {
       mutationFields.addAll(tableMutationFields);
     }
 
-    builder.additionalDirective(
-        GraphQLDirective.newDirective()
-            .validLocation(Introspection.DirectiveLocation.MUTATION)
-            .name(SchemaConstants.ATOMIC_DIRECTIVE)
-            .description("Instructs the server to apply the mutations in a LOGGED batch")
-            .build());
+    addAtomicDirective(builder);
+
+    addAsyncDirective(builder);
 
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =
@@ -161,6 +158,26 @@ public class DmlSchemaBuilder {
     builder.query(buildQueries(queryFields));
     builder.mutation(buildMutationRoot(mutationFields));
     return builder.build();
+  }
+
+  private void addAsyncDirective(GraphQLSchema.Builder builder) {
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ATOMIC_DIRECTIVE)
+            .description("Instructs the server to apply the mutations in a LOGGED batch")
+            .build());
+  }
+
+  private void addAtomicDirective(GraphQLSchema.Builder builder) {
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ASYNC_DIRECTIVE)
+            .description(
+                "Instructs the server to apply the mutations in an Async way. "
+                    + "It will work in a fire-and-forget fashion.")
+            .build());
   }
 
   private GraphQLObjectType buildMutationRoot(List<GraphQLFieldDefinition> mutationFields) {

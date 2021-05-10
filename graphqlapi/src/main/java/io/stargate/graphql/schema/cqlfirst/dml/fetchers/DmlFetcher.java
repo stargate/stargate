@@ -1,14 +1,19 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
+import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Column;
@@ -18,10 +23,13 @@ import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
-
+  private static final Logger log = LoggerFactory.getLogger(DmlFetcher.class);
   protected final Table table;
   protected final NameMapping nameMapping;
 
@@ -107,7 +115,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     List<Map<String, Object>> results = new ArrayList<>();
     if (rows.isEmpty()) {
       for (Map<String, Object> originalValue : originalValues) {
-        results.add(toMutationResultWithOriginalValue(originalValue));
+        results.add(toAppliedMutationResultWithOriginalValue(originalValue));
       }
     } else {
       for (int i = 0; i <= rows.size(); i++) {
@@ -127,7 +135,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       // if we have no rows means that we got no information back from query execution, return
       // original value to the user and applied true to denote that query was accepted
       // not matter if the underlying data is not changed
-      return toMutationResultWithOriginalValue(originalValue);
+      return toAppliedMutationResultWithOriginalValue(originalValue);
     } else {
       // otherwise check what can we get from the results
       // mutation target only one row
@@ -136,7 +144,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
   }
 
-  private ImmutableMap<String, Object> toMutationResultWithOriginalValue(Object originalValue) {
+  private ImmutableMap<String, Object> toAppliedMutationResultWithOriginalValue(
+      Object originalValue) {
     return ImmutableMap.of("value", originalValue, "applied", true);
   }
 
@@ -147,6 +156,33 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     // if applied we can return the original value, otherwise use database state
     Object finalValue = applied ? originalValue : value;
     return ImmutableMap.of("value", finalValue, "applied", applied);
+  }
+
+  protected boolean containsDirective(OperationDefinition operation, String atomicDirective) {
+    return operation.getDirectives().stream().anyMatch(d -> d.getName().equals(atomicDirective));
+  }
+
+  /**
+   * Executes the query in an async way in a fire and forget fashion. Completes immediately with
+   * applied=true without waiting for the result.
+   */
+  protected CompletableFuture<Map<String, Object>> executeAsyncWithoutResult(
+      DataStore dataStore, BoundQuery query, Object originalValue) {
+    dataStore
+        .execute(query)
+        .whenComplete(
+            (r, throwable) -> {
+              if (throwable != null) {
+                log.warn(
+                    String.format(
+                        "The query %s executed within the %s directive failed.",
+                        query, ASYNC_DIRECTIVE),
+                    throwable);
+              }
+            });
+    // complete immediately with applied=true without waiting for the result
+    return CompletableFuture.completedFuture(
+        toAppliedMutationResultWithOriginalValue(originalValue));
   }
 
   protected String getDBColumnName(Table table, String fieldName) {

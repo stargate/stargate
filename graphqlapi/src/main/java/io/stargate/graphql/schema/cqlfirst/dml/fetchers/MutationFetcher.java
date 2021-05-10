@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 
 import com.google.common.collect.ImmutableMap;
@@ -60,7 +61,14 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     }
     OperationDefinition operation = environment.getOperationDefinition();
 
-    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
+    // if the caller expects the atomic mutations,
+    // he should not use fire-and-forget behavior provided by the async directive
+    if (containsDirective(operation, ATOMIC_DIRECTIVE)
+        && containsDirective(operation, ASYNC_DIRECTIVE)) {
+      throw new IllegalArgumentException("You cannot provide both atomic and async directives.");
+    }
+
+    if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
       // There are more than one mutation in @atomic operation
       return executeAsBatch(environment, dataStore, query, buildException);
@@ -71,6 +79,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       f.completeExceptionally(buildException);
       return f;
     }
+
+    if (containsDirective(operation, ASYNC_DIRECTIVE)) {
+      return executeAsyncWithoutResult(dataStore, query, environment.getArgument("value"));
+    }
+
     // Execute as a single statement
     return dataStore
         .execute(query)

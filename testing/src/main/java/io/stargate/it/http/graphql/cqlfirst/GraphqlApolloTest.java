@@ -24,6 +24,9 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
+import com.example.graphql.client.betterbotz.async.BulkInsertProductsWithAsyncMutation;
+import com.example.graphql.client.betterbotz.async.InsertOrdersWithAsyncAndAtomicMutation;
+import com.example.graphql.client.betterbotz.async.InsertOrdersWithAsyncMutation;
 import com.example.graphql.client.betterbotz.atomic.*;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsNestedQuery;
 import com.example.graphql.client.betterbotz.collections.GetCollectionsSimpleQuery;
@@ -1969,6 +1972,75 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     // then
     double numberOfGraphQlOperations = getGraphQlOperations(body);
     assertThat(numberOfGraphQlOperations).isGreaterThan(0);
+  }
+
+  @Test
+  @DisplayName("Should return error when trying to use both atomic and async directives")
+  public void shouldReturnErrorWhenTryingToUseBothAtomicAndASyncDirectives() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersWithAsyncAndAtomicMutation mutation =
+        InsertOrdersWithAsyncAndAtomicMutation.builder()
+            .value(OrdersInput.builder().prodName("a").customerName("b").description("c").build())
+            .build();
+
+    GraphQLTestException ex =
+        catchThrowableOfType(
+            () -> getObservable(client.mutate(mutation)), GraphQLTestException.class);
+
+    assertThat(ex).isNotNull();
+    assertThat(ex.errors)
+        // One error per query
+        .hasSize(1)
+        .first()
+        .extracting(Error::getMessage)
+        .asString()
+        .contains("You cannot provide both atomic and async directives");
+  }
+
+  @Test
+  @DisplayName("Should insert orders using async directive")
+  public void shouldInsertOrdersUsingAsyncDirective() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    InsertOrdersWithAsyncMutation mutation =
+        InsertOrdersWithAsyncMutation.builder()
+            .value(OrdersInput.builder().prodName("a").customerName("b").description("c").build())
+            .build();
+
+    InsertOrdersWithAsyncMutation.InsertOrders result =
+        getObservable(client.mutate(mutation)).getInsertOrders().get();
+
+    assertThat(result.getApplied()).hasValue(true);
+  }
+
+  @Test
+  @DisplayName("Should bulk insert products using async directive")
+  public void shouldBulkInsertProductsUsingAsyncDirective() {
+    ApolloClient client = getApolloClient("/graphql/betterbotz");
+    BulkInsertProductsWithAsyncMutation mutation =
+        BulkInsertProductsWithAsyncMutation.builder()
+            .values(
+                Arrays.asList(
+                    ProductsInput.builder()
+                        .id(UUID.randomUUID().toString())
+                        .name("Shiny Legs")
+                        .price("3199.99")
+                        .created(now())
+                        .description("Normal legs but shiny.")
+                        .build(),
+                    ProductsInput.builder()
+                        .id(UUID.randomUUID().toString())
+                        .name("other")
+                        .price("3000.99")
+                        .created(now())
+                        .description("Normal legs but shiny.")
+                        .build()))
+            .build();
+
+    List<BulkInsertProductsWithAsyncMutation.BulkInsertProduct> result =
+        getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
+
+    assertThat(result.get(0).getApplied()).hasValue(true);
+    assertThat(result.get(1).getApplied()).hasValue(true);
   }
 
   private double getGraphQlOperations(String body) {

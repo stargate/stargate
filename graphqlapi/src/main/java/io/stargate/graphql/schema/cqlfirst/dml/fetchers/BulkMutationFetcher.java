@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 import static java.util.stream.Stream.concat;
 
@@ -65,7 +66,15 @@ public abstract class BulkMutationFetcher
       buildException = e;
     }
     OperationDefinition operation = environment.getOperationDefinition();
-    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
+
+    // if the caller expects the atomic mutations,
+    // he should not use fire-and-forget behavior provided by the async directive
+    if (containsDirective(operation, ATOMIC_DIRECTIVE)
+        && containsDirective(operation, ASYNC_DIRECTIVE)) {
+      throw new IllegalArgumentException("You cannot provide both atomic and async directives.");
+    }
+
+    if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
       return executeAsBatch(environment, dataStore, queries, buildException);
     }
@@ -83,12 +92,16 @@ public abstract class BulkMutationFetcher
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
     for (int i = 0; i < queries.size(); i++) {
-      // Execute as a single statement
       int finalI = i;
-      results.add(
-          dataStore
-              .execute(queries.get(i))
-              .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
+      // Execute as a single statement
+      if (containsDirective(operation, ASYNC_DIRECTIVE)) {
+        results.add(executeAsyncWithoutResult(dataStore, queries.get(i), values.get(finalI)));
+      } else {
+        results.add(
+            dataStore
+                .execute(queries.get(i))
+                .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
+      }
     }
     return convert(results);
   }
