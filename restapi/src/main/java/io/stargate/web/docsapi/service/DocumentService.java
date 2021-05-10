@@ -1033,13 +1033,10 @@ public class DocumentService {
       ArrayList<Row> rowsResult = new ArrayList<>();
       rowsResult.addAll(leftoverRows);
       rowsResult.addAll(page);
+      boolean endOfResult = !paginator.hasDbPageState();
       leftoverRows =
           updateExistenceForMap(
-              existsByDoc,
-              rowsResult,
-              inMemoryFilters,
-              db.treatBooleansAsNumeric(),
-              paginator.hasDbPageState());
+              existsByDoc, rowsResult, inMemoryFilters, db.treatBooleansAsNumeric(), endOfResult);
     } while (existsByDoc.size() <= paginator.docPageSize && paginator.hasDbPageState());
 
     // Either we've reached the end of all rows in the collection, or we have enough rows

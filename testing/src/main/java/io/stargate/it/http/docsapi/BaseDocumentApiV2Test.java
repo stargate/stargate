@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
@@ -2188,12 +2187,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testGetFullDocMultiFilter() throws IOException {
-    JsonNode doc = objectMapper.readTree("{\"a\": \"b\", \"c\": 2}");
+    JsonNode doc =
+        objectMapper.readTree(
+            "{\"a\": \"b\", \"c\": 2, \"quiz\": {\"sport\": {\"q1\": {\"question\": \"Which one is correct team name in NBA?\"}}}}");
+    JsonNode doc2 =
+        objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
 
     RestUtils.put(
         authToken,
         hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
         doc.toString(),
+        200);
+    RestUtils.put(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        doc2.toString(),
         200);
 
     String r =
@@ -2207,11 +2215,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     JsonNode resp = objectMapper.readTree(r);
     JsonNode data = resp.requiredAt("/data");
-
-    ObjectNode expected = objectMapper.createObjectNode();
-    expected.set("a", new TextNode("b"));
-    expected.set("c", new IntNode(2));
-    assertThat(data.requiredAt("/1")).isEqualTo(expected);
+    assertThat(data.requiredAt("/1")).isEqualTo(doc);
 
     r =
         RestUtils.get(
@@ -2226,8 +2230,22 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp = objectMapper.readTree(r);
     data = resp.requiredAt("/data");
 
-    expected = objectMapper.createObjectNode();
+    JsonNode expected = objectMapper.createObjectNode();
     assertThat(data).isEqualTo(expected);
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"quiz.sport.q1.question\":{\"$in\": [\"Which one is correct team name in NBA?\"]}}",
+            200);
+
+    resp = objectMapper.readTree(r);
+    data = resp.requiredAt("/data");
+    assertThat(data.requiredAt("/1")).isEqualTo(doc);
+    assertThat(data.requiredAt("/2")).isEqualTo(doc2);
   }
 
   @Test

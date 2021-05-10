@@ -28,12 +28,23 @@ public class ValueCodecs {
           new EnumMap<Type, ValueCodec>(Column.Type.class) {
             {
               put(Type.Ascii, new StringCodec(TypeCodecs.ASCII));
-              put(Type.Text, new StringCodec(TypeCodecs.TEXT));
-              put(Type.Varchar, new StringCodec(TypeCodecs.TEXT));
-              put(Type.Int, new IntCodec());
-              put(Type.Uuid, new UuidCodec(TypeCodecs.UUID));
-              put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID));
+              put(Type.Bigint, new BigintCodec());
               put(Type.Blob, new BytesCodec());
+              put(Type.Boolean, new BooleanCodec());
+              put(Type.Counter, new BigintCodec());
+              put(Type.Date, new DateCodec());
+              put(Type.Double, new DoubleCodec());
+              put(Type.Float, new FloatCodec());
+              put(Type.Int, new IntCodec());
+              put(Type.Inet, new InetCodec());
+              put(Type.Smallint, new SmallintCodec());
+              put(Type.Text, new StringCodec(TypeCodecs.TEXT));
+              put(Type.Time, new TimeCodec());
+              put(Type.Timestamp, new BigintCodec());
+              put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID));
+              put(Type.Tinyint, new TinyintCodec());
+              put(Type.Uuid, new UuidCodec(TypeCodecs.UUID));
+              put(Type.Varchar, new StringCodec(TypeCodecs.TEXT));
             }
           });
 }
