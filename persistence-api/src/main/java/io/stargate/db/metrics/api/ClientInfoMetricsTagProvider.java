@@ -28,19 +28,18 @@ import io.stargate.db.ClientInfo;
  */
 public interface ClientInfoMetricsTagProvider {
 
-    /** Returns default interface implementation, which returns empty tags for all methods. */
-    ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
+  /** Returns default interface implementation, which returns empty tags for all methods. */
+  ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
 
-    /**
-     * Returns tags for a {@link ClientInfo}.
-     *
-     * <p>Note that the implementation must return constant amount of tags for any input.
-     *
-     * @param clientInfo {@link ClientInfo}
-     * @return Tags
-     */
-    default Tags getClientInfoTags(ClientInfo clientInfo) {
-        return Tags.empty();
-    }
-
+  /**
+   * Returns tags for a {@link ClientInfo}.
+   *
+   * <p>Note that the implementation must return constant amount of tags for any input.
+   *
+   * @param clientInfo {@link ClientInfo}
+   * @return Tags
+   */
+  default Tags getClientInfoTags(ClientInfo clientInfo) {
+    return Tags.empty();
+  }
 }

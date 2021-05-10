@@ -87,7 +87,7 @@ public class AuthResponse extends Message.Request {
                         .setAuthenticatedUser(authenticatedUser);
                   }
 
-                  ClientMetrics.instance.markAuthSuccess();
+                  ClientMetrics.instance.markAuthSuccess(((ServerConnection) connection).clientInfo());
                   // authentication is complete, send a ready message to the client
 
                   future.complete(new AuthSuccess(challenge));
@@ -95,10 +95,10 @@ public class AuthResponse extends Message.Request {
                   future.complete(new AuthChallenge(challenge));
                 }
               } catch (AuthenticationException ae) {
-                ClientMetrics.instance.markAuthFailure();
+                ClientMetrics.instance.markAuthFailure(((ServerConnection) connection).clientInfo());
                 future.complete(ErrorMessage.fromException(ae));
               } catch (Exception e) {
-                ClientMetrics.instance.markAuthError();
+                ClientMetrics.instance.markAuthError(((ServerConnection) connection).clientInfo());
                 future.completeExceptionally(e);
               }
             });

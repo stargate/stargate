@@ -24,7 +24,11 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.netty.buffer.ByteBufAllocatorMetricProvider;
+import io.stargate.db.ClientInfo;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +52,8 @@ public final class ClientMetrics {
   private volatile boolean initialized = false;
   private Collection<Server> servers = Collections.emptyList();
   private MetricRegistry metricRegistry;
+  private MeterRegistry meterRegistry;
+  private ClientInfoMetricsTagProvider clientTagProvider;
 
   private Meter authSuccess;
   private Meter authFailure;
@@ -64,20 +70,24 @@ public final class ClientMetrics {
 
   private ClientMetrics() {}
 
-  public void markRequestProcessed() {
-    requestsProcessed.mark();
+  public void markRequestProcessed(ClientInfo clientInfo) {
+    Tags tags = clientTagProvider.getClientInfoTags(clientInfo);
+    meterRegistry.counter(metric("RequestsProcessed"), tags).increment();
   }
 
-  public void markAuthSuccess() {
-    authSuccess.mark();
+  public void markAuthSuccess(ClientInfo clientInfo) {
+    Tags tags = clientTagProvider.getClientInfoTags(clientInfo);
+    meterRegistry.counter(metric("AuthSuccess"), tags).increment();
   }
 
-  public void markAuthFailure() {
-    authFailure.mark();
+  public void markAuthFailure(ClientInfo clientInfo) {
+    Tags tags = clientTagProvider.getClientInfoTags(clientInfo);
+    meterRegistry.counter(metric("AuthFailure"), tags).increment();
   }
 
-  public void markAuthError() {
-    authError.mark();
+  public void markAuthError(ClientInfo clientInfo) {
+    Tags tags = clientTagProvider.getClientInfoTags(clientInfo);
+    meterRegistry.counter(metric("AuthError"), tags).increment();
   }
 
   public void pauseConnection() {
@@ -217,5 +227,10 @@ public final class ClientMetrics {
 
   private Meter registerMeter(String name) {
     return metricRegistry.meter(factory.createMetricName(name).getMetricName());
+  }
+
+  private String metric(String name) {
+    String metricName = factory.createMetricName(name).getMetricName();
+    return "cql." + metricName;
   }
 }

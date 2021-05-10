@@ -21,19 +21,19 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
-
-import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import org.apache.cassandra.config.Config;
 import org.jetbrains.annotations.Nullable;
 
 public class CqlActivator extends BaseActivator {
   private CqlImpl cql;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private final ServicePointer<ClientInfoMetricsTagProvider> clientInfoTagProvider = ServicePointer.create(ClientInfoMetricsTagProvider.class);
+  private final ServicePointer<ClientInfoMetricsTagProvider> clientInfoTagProvider =
+      ServicePointer.create(ClientInfoMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
           AuthenticationService.class,

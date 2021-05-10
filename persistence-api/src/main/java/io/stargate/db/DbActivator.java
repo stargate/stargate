@@ -5,9 +5,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.PersistenceDataStoreFactory;
 import io.stargate.db.limiter.RateLimitingManager;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -36,7 +34,7 @@ public class DbActivator extends BaseActivator {
       System.getProperty(RATE_LIMITING_ID_PROPERTY, "<none>");
 
   private static final String CLIENT_INFO_TAG_PROVIDER_ID =
-          System.getProperty("stargate.metrics.client_info_tag_provider.id");
+      System.getProperty("stargate.metrics.client_info_tag_provider.id");
 
   private final ServicePointer<Persistence> dbPersistence =
       BaseActivator.ServicePointer.create(
@@ -67,12 +65,17 @@ public class DbActivator extends BaseActivator {
     }
 
     List<ServiceAndProperties> services = new ArrayList<>();
-    services.add(new ServiceAndProperties(persistence, Persistence.class, stargatePersistenceProperties()));
-    services.add(new ServiceAndProperties(new PersistenceDataStoreFactory(persistence), DataStoreFactory.class));
+    services.add(
+        new ServiceAndProperties(persistence, Persistence.class, stargatePersistenceProperties()));
+    services.add(
+        new ServiceAndProperties(
+            new PersistenceDataStoreFactory(persistence), DataStoreFactory.class));
 
     // if no specific client info tag provider, add default
     if (null == CLIENT_INFO_TAG_PROVIDER_ID) {
-      services.add(new ServiceAndProperties(ClientInfoMetricsTagProvider.DEFAULT, ClientInfoMetricsTagProvider.class));
+      services.add(
+          new ServiceAndProperties(
+              ClientInfoMetricsTagProvider.DEFAULT, ClientInfoMetricsTagProvider.class));
     }
 
     return services;
