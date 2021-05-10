@@ -55,7 +55,13 @@ public class CqlActivator extends BaseActivator {
     if (cql != null) { // Already started
       return null;
     }
-    cql = new CqlImpl(makeConfig(), persistence.get(), metrics.get(), authentication.get());
+    cql =
+        new CqlImpl(
+            makeConfig(),
+            persistence.get(),
+            metrics.get(),
+            authentication.get(),
+            clientInfoTagProvider.get());
     cql.start();
 
     return null;

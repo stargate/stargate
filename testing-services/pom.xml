@@ -33,6 +33,12 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -51,7 +57,9 @@
               org.osgi.framework,
               io.stargate.auth.*,
               io.stargate.core.*,
-              io.micrometer.core.*
+              io.stargate.db,
+              io.stargate.db.*,
+              io.micrometer.core.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

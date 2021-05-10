@@ -26,6 +26,10 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.storage.StargateParameters;
+import io.stargate.it.storage.StargateSpec;
+import io.stargate.testing.TestingServicesActivator;
+import io.stargate.testing.metrics.FixedClientInfoTagProvider;
 import java.io.IOException;
 import java.util.regex.Pattern;
 import org.apache.http.HttpStatus;
@@ -36,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k))"})
+@StargateSpec(parametersCustomizer = "buildParameters")
 public class ClientMetricsTest extends BaseOsgiIntegrationTest {
   private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
       Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");
@@ -46,6 +51,13 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
   private static final String KEY = "test";
 
   private static String host;
+
+  @SuppressWarnings("unused") // referenced in @StargateSpec
+  public static void buildParameters(StargateParameters.Builder builder) {
+    builder.putSystemProperties(
+        TestingServicesActivator.CLIENT_INFO_TAG_PROVIDER_PROPERTY,
+        TestingServicesActivator.FIXED_TAG_PROVIDER);
+  }
 
   @BeforeAll
   public static void setup(StargateConnectionInfo cluster) {
@@ -75,11 +87,39 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
     assertThat(nonHeapMemoryUsed).isGreaterThan(0);
   }
 
+  @Test
+  public void metricsWithClientInfoTags(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    String requestProcessedTotal =
+        String.format(
+            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",}",
+            FixedClientInfoTagProvider.TAG_KEY, FixedClientInfoTagProvider.TAG_VALUE);
+    double requestsProcessed = getCqlMetric(body, requestProcessedTotal);
+    assertThat(requestsProcessed).isGreaterThan(0d);
+  }
+
   private double getOnHeapMemoryUsed(String body) {
     return getMetricValue(body, "jvm_memory_heap_used", MEMORY_HEAP_USAGE_REGEXP);
   }
 
   private double getNonHeapMemoryUsed(String body) {
     return getMetricValue(body, "jvm_memory_non_heap_used", MEMORY_NON_HEAP_USAGE_REGEXP);
+  }
+
+  private double getCqlMetric(String body, String metric) {
+    String regex =
+        String.format("(%s\\s*)(\\d+.\\d+)", metric)
+            .replace(",", "\\,")
+            .replace("{", "\\{")
+            .replace("}", "\\}");
+    return getMetricValue(body, metric, Pattern.compile(regex));
   }
 }

@@ -618,9 +618,10 @@ public abstract class Message {
       // check for overloaded state by trying to allocate framesize to inflight payload trackers
       if (endpointAndGlobalPayloadsInFlight.tryAllocate(frameSize)
           != ResourceLimits.Outcome.SUCCESS) {
-        if (request.connection.isThrowOnOverload()) {
+        Connection connection = request.connection;
+        if (connection.isThrowOnOverload()) {
           // discard the request and throw an exception
-          ClientMetrics.instance.markRequestDiscarded();
+          ClientMetrics.instance.markRequestDiscarded(((ServerConnection) connection).clientInfo());
           logger.trace(
               "Discarded request of size: {}. InflightChannelRequestPayload: {}, InflightEndpointRequestPayload: {}, InflightOverallRequestPayload: {}, Request: {}",
               frameSize,

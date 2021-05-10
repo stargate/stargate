@@ -44,10 +44,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
-import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.EventListener;
-import io.stargate.db.EventListenerWithChannelFilter;
-import io.stargate.db.Persistence;
+import io.stargate.db.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -180,6 +177,10 @@ public class Server implements CassandraDaemon.Server {
 
   public Map<String, Integer> countConnectedClientsByUser() {
     return connectionTracker.countConnectedClientsByUser();
+  }
+
+  public Map<ClientInfo, Integer> countConnectedClientsByClientInfo() {
+    return connectionTracker.countConnectedClientsByClientInfo();
   }
 
   public List<ConnectedClient> getConnectedClients() {
@@ -323,6 +324,19 @@ public class Server implements CassandraDaemon.Server {
           Optional<AuthenticatedUser> user = conn.persistenceConnection().loggedUser();
           String name = user.map(AuthenticatedUser::name).orElse(null);
           result.put(name, result.getOrDefault(name, 0) + 1);
+        }
+      }
+      return result;
+    }
+
+    Map<ClientInfo, Integer> countConnectedClientsByClientInfo() {
+      Map<ClientInfo, Integer> result = new HashMap<>();
+      for (Channel c : allChannels) {
+        Connection connection = c.attr(Connection.attributeKey).get();
+        if (connection instanceof ServerConnection) {
+          ServerConnection conn = (ServerConnection) connection;
+          ClientInfo clientInfo = conn.clientInfo();
+          result.compute(clientInfo, (ci, v) -> v == null ? 1 : v + 1);
         }
       }
       return result;

@@ -207,8 +207,8 @@ public class Frame {
 
       if (buffer.readableBytes() < frameLength) return null;
 
-      ClientMetrics.instance.getTotalBytesRead().inc(frameLength);
-      ClientMetrics.instance.getBytesReceivedPerFrame().update(frameLength);
+      ClientMetrics.instance.incrementTotalBytesRead(frameLength);
+      ClientMetrics.instance.recordBytesReceivedPerFrame(frameLength);
 
       // extract body
       ByteBuf body = buffer.slice(idx, bodyLength);
@@ -287,8 +287,8 @@ public class Frame {
       header.writeInt(frame.body.readableBytes());
 
       int messageSize = header.readableBytes() + frame.body.readableBytes();
-      ClientMetrics.instance.getTotalBytesWritten().inc(messageSize);
-      ClientMetrics.instance.getBytesTransmittedPerFrame().update(messageSize);
+      ClientMetrics.instance.incrementTotalBytesWritten(messageSize);
+      ClientMetrics.instance.recordBytesTransmittedPerFrame(messageSize);
 
       results.add(header);
       results.add(frame.body);

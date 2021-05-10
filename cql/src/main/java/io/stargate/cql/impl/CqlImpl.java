@@ -22,6 +22,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,17 +44,20 @@ public class CqlImpl {
   private final Persistence persistence;
   private final Metrics metrics;
   private final AuthenticationService authentication;
+  private final ClientInfoMetricsTagProvider clientInfoTagProvider;
 
   public CqlImpl(
       Config config,
       Persistence persistence,
       Metrics metrics,
-      AuthenticationService authentication) {
+      AuthenticationService authentication,
+      ClientInfoMetricsTagProvider clientInfoTagProvider) {
     TransportDescriptor.daemonInitialization(config);
 
     this.persistence = persistence;
     this.metrics = metrics;
     this.authentication = authentication;
+    this.clientInfoTagProvider = clientInfoTagProvider;
 
     if (useEpoll()) {
       workerGroup = new EpollEventLoopGroup();
@@ -91,7 +95,8 @@ public class CqlImpl {
       }
     }
 
-    ClientMetrics.instance.init(servers, metrics.getRegistry("cql"));
+    ClientMetrics.instance.init(
+        servers, metrics.getRegistry("cql"), metrics.getMeterRegistry(), clientInfoTagProvider);
     servers.forEach(Server::start);
     persistence.setRpcReady(true);
   }

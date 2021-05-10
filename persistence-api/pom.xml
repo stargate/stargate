@@ -117,7 +117,8 @@
             <Bundle-Activator>io.stargate.db.DbActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
-              io.stargate.core.*
+              io.stargate.core.*,
+              io.micrometer.core.*
             ]]></Import-Package>
             <Export-Package><![CDATA[
               io.stargate.db,
