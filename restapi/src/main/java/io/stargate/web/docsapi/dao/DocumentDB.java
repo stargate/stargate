@@ -284,8 +284,13 @@ public class DocumentDB {
    * @param tableName The name of the table.
    */
   public boolean isDocumentsTable(String keyspaceName, String tableName) {
-    List<Column> columns = dataStore.schema().keyspace(keyspaceName).table(tableName).columns();
-    return columns.stream().allMatch(column -> allColumnNames.contains(column.name()));
+    List<String> columnNames =
+        dataStore.schema().keyspace(keyspaceName).table(tableName).columns().stream()
+            .map(Column::name)
+            .collect(Collectors.toList());
+    if (columnNames.size() != allColumnNames.size()) return false;
+    columnNames.removeAll(allColumnNames);
+    return columnNames.isEmpty();
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
