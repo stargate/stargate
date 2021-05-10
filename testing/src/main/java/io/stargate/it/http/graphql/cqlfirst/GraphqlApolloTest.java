@@ -39,7 +39,6 @@ import com.example.graphql.client.betterbotz.atomic.InsertOrdersAndBulkInsertPro
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
-import com.example.graphql.client.betterbotz.orders.GetOrdersWithFilterQuery;
 import com.example.graphql.client.betterbotz.products.BulkInsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
@@ -50,13 +49,11 @@ import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.type.CustomType;
 import com.example.graphql.client.betterbotz.type.MutationConsistency;
 import com.example.graphql.client.betterbotz.type.MutationOptions;
-import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsFilterInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
-import com.example.graphql.client.betterbotz.type.StringFilterInput;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import com.google.common.collect.ImmutableList;
 import io.stargate.it.driver.TestKeyspace;
@@ -173,88 +170,6 @@ public class GraphqlApolloTest extends BetterbotzTestBase {
   }
 
   @Test
-  public void getOrdersWithFilter() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder()
-            .prodName(StringFilterInput.builder().eq("Basic Task CPU").build())
-            .customerName(StringFilterInput.builder().eq("John Doe").build())
-            .build();
-
-    QueryOptions options =
-        QueryOptions.builder().consistency(QueryConsistency.LOCAL_QUORUM).build();
-
-    GetOrdersWithFilterQuery query =
-        GetOrdersWithFilterQuery.builder().filter(filterInput).options(options).build();
-
-    CompletableFuture<GetOrdersWithFilterQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetOrdersWithFilterQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetOrdersWithFilterQuery.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getOrders()).isPresent();
-
-    GetOrdersWithFilterQuery.Orders orders = result.getOrders().get();
-
-    assertThat(orders.getValues()).isPresent();
-    List<GetOrdersWithFilterQuery.Value> valuesList = orders.getValues().get();
-
-    GetOrdersWithFilterQuery.Value value = valuesList.get(0);
-    assertThat(value.getId()).hasValue("dd73afe2-9841-4ce1-b841-575b8be405c1");
-    assertThat(value.getProdId()).hasValue("31047029-2175-43ce-9fdd-b3d568b19bb5");
-    assertThat(value.getProdName()).hasValue("Basic Task CPU");
-    assertThat(value.getCustomerName()).hasValue("John Doe");
-    assertThat(value.getAddress()).hasValue("123 Main St 67890");
-    assertThat(value.getDescription()).hasValue("Ordering replacement CPUs.");
-    assertThat(value.getPrice()).hasValue("899.99");
-    assertThat(value.getSellPrice()).hasValue("900.82");
-  }
-
-  @Test
-  public void getOrdersWithFilterAndLimit() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder()
-            .prodName(StringFilterInput.builder().eq("Basic Task CPU").build())
-            .customerName(StringFilterInput.builder().eq("John Doe").build())
-            .build();
-
-    QueryOptions options =
-        QueryOptions.builder().consistency(QueryConsistency.LOCAL_QUORUM).limit(1).build();
-
-    GetOrdersWithFilterQuery query =
-        GetOrdersWithFilterQuery.builder().filter(filterInput).options(options).build();
-
-    CompletableFuture<GetOrdersWithFilterQuery.Data> future = new CompletableFuture<>();
-    ApolloQueryCall<Optional<GetOrdersWithFilterQuery.Data>> observable = client.query(query);
-    observable.enqueue(queryCallback(future));
-
-    GetOrdersWithFilterQuery.Data result = future.get();
-    observable.cancel();
-
-    assertThat(result.getOrders()).isPresent();
-
-    GetOrdersWithFilterQuery.Orders orders = result.getOrders().get();
-
-    assertThat(orders.getValues()).isPresent();
-    List<GetOrdersWithFilterQuery.Value> valuesList = orders.getValues().get();
-
-    GetOrdersWithFilterQuery.Value value = valuesList.get(0);
-    assertThat(value.getId()).hasValue("dd73afe2-9841-4ce1-b841-575b8be405c1");
-    assertThat(value.getProdId()).hasValue("31047029-2175-43ce-9fdd-b3d568b19bb5");
-    assertThat(value.getProdName()).hasValue("Basic Task CPU");
-    assertThat(value.getCustomerName()).hasValue("John Doe");
-    assertThat(value.getAddress()).hasValue("123 Main St 67890");
-    assertThat(value.getDescription()).hasValue("Ordering replacement CPUs.");
-    assertThat(value.getPrice()).hasValue("899.99");
-    assertThat(value.getSellPrice()).hasValue("900.82");
-  }
-
-  @Test
   public void insertProducts() {
     ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
@@ -289,93 +204,12 @@ public class GraphqlApolloTest extends BetterbotzTestBase {
     assertThat(product.getDescription()).hasValue(input.description());
   }
 
-  @Test
-  public void insertProductsWithIfNotExists() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-
-    String productId = UUID.randomUUID().toString();
-    ProductsInput input =
-        ProductsInput.builder()
-            .id(productId)
-            .name("Shiny Legs")
-            .price("3199.99")
-            .created(now())
-            .description("Normal legs but shiny.")
-            .build();
-
-    InsertProductsMutation mutation =
-        InsertProductsMutation.builder().value(input).ifNotExists(true).build();
-    InsertProductsMutation.Data result = getObservable(client.mutate(mutation));
-
-    assertThat(result.getInsertProducts())
-        .hasValueSatisfying(
-            insertProducts -> {
-              assertThat(insertProducts.getApplied()).hasValue(true);
-              assertThat(insertProducts.getValue())
-                  .hasValueSatisfying(
-                      value -> {
-                        assertThat(value.getId()).hasValue(productId);
-                      });
-            });
-  }
-
-  @Test
-  public void insertProductsDuplicateWithIfNotExists() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-
-    String productId = UUID.randomUUID().toString();
-    ProductsInput input =
-        ProductsInput.builder()
-            .id(productId)
-            .name("Shiny Legs")
-            .price("3199.99")
-            .created(now())
-            .description("Normal legs but shiny.")
-            .build();
-
-    InsertProductsMutation mutation =
-        InsertProductsMutation.builder().value(input).ifNotExists(true).build();
-    InsertProductsMutation.Data insertResult = getObservable(client.mutate(mutation));
-
-    assertThat(insertResult.getInsertProducts())
-        .hasValueSatisfying(
-            insertProducts -> {
-              assertThat(insertProducts.getApplied()).hasValue(true);
-            });
-
-    // then duplicate (change desc)
-    ProductsInput duplicate =
-        ProductsInput.builder()
-            .id(productId)
-            .name(input.name())
-            .price(input.price())
-            .created(input.created())
-            .description("Normal legs but super shiny.")
-            .build();
-
-    InsertProductsMutation duplicateMutation =
-        InsertProductsMutation.builder().value(duplicate).ifNotExists(true).build();
-    InsertProductsMutation.Data duplicateResult = getObservable(client.mutate(duplicateMutation));
-
-    assertThat(duplicateResult.getInsertProducts())
-        .hasValueSatisfying(
-            insertProducts -> {
-              assertThat(insertProducts.getApplied()).hasValue(false);
-              assertThat(insertProducts.getValue())
-                  .hasValueSatisfying(
-                      value -> {
-                        assertThat(value.getDescription())
-                            .hasValue(input.description()); // existing value returned
-                      });
-            });
-  }
-
-  public GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
+  private GetProductsWithFilterQuery.Value getProduct(ApolloClient client, String productId) {
     List<GetProductsWithFilterQuery.Value> valuesList = getProductValues(client, productId);
     return valuesList.get(0);
   }
 
-  public List<Value> getProductValues(ApolloClient client, String productId) {
+  private List<Value> getProductValues(ApolloClient client, String productId) {
     ProductsFilterInput filterInput =
         ProductsFilterInput.builder().id(UuidFilterInput.builder().eq(productId).build()).build();
 

@@ -15,9 +15,15 @@
  */
 package io.stargate.it.http.graphql.cqlfirst;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /** Base class for GraphQL CQL-first tests that share the data model below. */
@@ -68,4 +74,51 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "'John Doe',"
           + "'123 Main St 67890')",
     })
-abstract class BetterbotzTestBase extends BaseOsgiIntegrationTest {}
+abstract class BetterbotzTestBase extends BaseOsgiIntegrationTest {
+
+  private static final DateTimeFormatter INSTANT_PARSER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+
+  /** Asserts that a JSON snippet represents an order with the given data. */
+  protected void assertIsOrder(
+      Map<String, Object> json,
+      String expectedId,
+      String expectedProdId,
+      String expectedProdName,
+      String expectedCustomerName,
+      String expectedAddress,
+      String expectedDescription,
+      String expectedPrice,
+      String expectedSellPrice) {
+
+    assertThat(JsonPath.<String>read(json, "id")).isEqualTo(expectedId);
+    assertThat(JsonPath.<String>read(json, "prodId")).isEqualTo(expectedProdId);
+    assertThat(JsonPath.<String>read(json, "prodName")).isEqualTo(expectedProdName);
+    assertThat(JsonPath.<String>read(json, "customerName")).isEqualTo(expectedCustomerName);
+    assertThat(JsonPath.<String>read(json, "address")).isEqualTo(expectedAddress);
+    assertThat(JsonPath.<String>read(json, "description")).isEqualTo(expectedDescription);
+    assertThat(JsonPath.<String>read(json, "price")).isEqualTo(expectedPrice);
+    assertThat(JsonPath.<String>read(json, "sellPrice")).isEqualTo(expectedSellPrice);
+  }
+
+  /** Asserts that a JSON snippet represents a product with the given data. */
+  protected void assertIsProduct(
+      Map<String, Object> json,
+      String expectedId,
+      String expectedName,
+      String expectedPrice,
+      String expectedCreated,
+      String expectedDescription) {
+
+    assertThat(JsonPath.<String>read(json, "id")).isEqualTo(expectedId);
+    assertThat(JsonPath.<String>read(json, "name")).isEqualTo(expectedName);
+    assertThat(JsonPath.<String>read(json, "price")).isEqualTo(expectedPrice);
+    assertThat(parseInstant(JsonPath.read(json, "created")))
+        .isEqualTo(parseInstant(expectedCreated));
+    assertThat(JsonPath.<String>read(json, "description")).isEqualTo(expectedDescription);
+  }
+
+  private Instant parseInstant(String spec) {
+    return Instant.from(INSTANT_PARSER.parse(spec));
+  }
+}
