@@ -182,8 +182,15 @@ public class AggregationsFetcherSupport {
 
   private List<String> getAndValidateArgs(
       Map<String, Object> arguments, SupportedAggregationFunction supportedAggregationFunction) {
+    Object argsToValidate = arguments.get("args");
+    if (argsToValidate == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The args provided for a function: %s are null, but it is not allowed.",
+              supportedAggregationFunction.getName()));
+    }
     @SuppressWarnings("unchecked")
-    List<String> args = (List<String>) arguments.get("args");
+    List<String> args = (List<String>) argsToValidate;
     if (args.size() != 1) {
       throw new IllegalArgumentException(
           String.format(
@@ -194,7 +201,11 @@ public class AggregationsFetcherSupport {
   }
 
   private SupportedAggregationFunction getNameArgument(Map<String, Object> arguments) {
-    return SupportedAggregationFunction.valueOfIgnoreCase((String) arguments.get("name"));
+    Object nameArgument = arguments.get("name");
+    if (nameArgument == null) {
+      throw new IllegalArgumentException("The function name cannot be null.");
+    }
+    return SupportedAggregationFunction.valueOfIgnoreCase((String) nameArgument);
   }
 
   private Set<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {
