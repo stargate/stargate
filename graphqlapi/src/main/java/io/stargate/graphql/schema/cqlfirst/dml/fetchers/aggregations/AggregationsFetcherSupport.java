@@ -159,7 +159,7 @@ public class AggregationsFetcherSupport {
       SelectedField selectedField,
       SupportedAggregationFunction supportedAggregationFunction) {
     List<String> args = getAndValidateArgs(arguments, supportedAggregationFunction);
-    String column = getAndValidateColumn(args);
+    String column = getAndValidateColumn(args, supportedAggregationFunction);
 
     String alias = selectedField.getAlias();
     QueryBuilder.QueryBuilder__19 withAggregation = addAggregation.apply(queryBuilder, column);
@@ -168,13 +168,14 @@ public class AggregationsFetcherSupport {
     }
   }
 
-  private String getAndValidateColumn(List<String> args) {
+  private String getAndValidateColumn(
+      List<String> args, SupportedAggregationFunction supportedAggregationFunction) {
     String column = dbColumnGetter.getDBColumnName(table, args.get(0));
     if (column == null) {
       throw new IllegalArgumentException(
           String.format(
               "The column name: %s provided for the %s function does not exists.",
-              args.get(0), COUNT));
+              args.get(0), supportedAggregationFunction.getName()));
     }
     return column;
   }
