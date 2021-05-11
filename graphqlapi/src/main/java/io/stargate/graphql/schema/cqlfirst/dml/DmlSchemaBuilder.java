@@ -161,7 +161,7 @@ public class DmlSchemaBuilder {
     return builder.build();
   }
 
-  private void addAsyncDirective(GraphQLSchema.Builder builder) {
+  private void addAtomicDirective(GraphQLSchema.Builder builder) {
     builder.additionalDirective(
         GraphQLDirective.newDirective()
             .validLocation(Introspection.DirectiveLocation.MUTATION)
@@ -170,7 +170,7 @@ public class DmlSchemaBuilder {
             .build());
   }
 
-  private void addAtomicDirective(GraphQLSchema.Builder builder) {
+  private void addAsyncDirective(GraphQLSchema.Builder builder) {
     builder.additionalDirective(
         GraphQLDirective.newDirective()
             .validLocation(Introspection.DirectiveLocation.MUTATION)

@@ -163,8 +163,8 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return ImmutableMap.of("value", finalValue, "applied", applied);
   }
 
-  protected boolean containsDirective(OperationDefinition operation, String atomicDirective) {
-    return operation.getDirectives().stream().anyMatch(d -> d.getName().equals(atomicDirective));
+  protected boolean containsDirective(OperationDefinition operation, String directive) {
+    return operation.getDirectives().stream().anyMatch(d -> d.getName().equals(directive));
   }
 
   /**
