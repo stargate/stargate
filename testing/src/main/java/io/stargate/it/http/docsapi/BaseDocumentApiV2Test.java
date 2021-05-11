@@ -251,8 +251,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken, hostWithPort + "/v2/namespaces/unknown/collections/collection/1", 404);
     assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"Namespace unknown does not exist.\",\"code\":404}");
+        .isEqualTo("{\"description\":\"Namespace unknown does not exist.\",\"code\":404}");
   }
 
   @Test
@@ -261,8 +260,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/unknown/1", 404);
     assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"Collection unknown does not exist.\",\"code\":404}");
+        .isEqualTo("{\"description\":\"Collection unknown does not exist.\",\"code\":404}");
   }
 
   @Test

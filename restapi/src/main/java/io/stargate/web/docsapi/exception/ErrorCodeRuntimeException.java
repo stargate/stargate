@@ -16,7 +16,6 @@
 
 package io.stargate.web.docsapi.exception;
 
-import java.util.Objects;
 import javax.ws.rs.core.Response;
 
 /** {@link RuntimeException} that carries an {@link ErrorCode}. */
@@ -27,7 +26,7 @@ public class ErrorCodeRuntimeException extends RuntimeException {
 
   /** ErrorCode only constructor. */
   public ErrorCodeRuntimeException(ErrorCode errorCode) {
-    this.errorCode = errorCode;
+    this(errorCode, errorCode.getDefaultMessage());
   }
 
   /** @see Exception#Exception(String) */
@@ -44,28 +43,15 @@ public class ErrorCodeRuntimeException extends RuntimeException {
 
   /** Pipe to {@link ErrorCode#toResponse()} with the exception message. */
   public Response getResponse() {
-    return errorCode.toResponse(getLocalizedMessage());
+    return errorCode.toResponse(getMessage());
   }
 
   /** Pipe to {@link ErrorCode#toResponseBuilder(String)} with the exception message. */
   public Response.ResponseBuilder getResponseBuilder() {
-    return errorCode.toResponseBuilder(getLocalizedMessage());
+    return errorCode.toResponseBuilder(getMessage());
   }
 
   public ErrorCode getErrorCode() {
     return errorCode;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    ErrorCodeRuntimeException that = (ErrorCodeRuntimeException) o;
-    return errorCode == that.errorCode;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(errorCode);
   }
 }

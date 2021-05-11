@@ -17,7 +17,7 @@
 package io.stargate.web.docsapi.exception;
 
 import io.stargate.web.models.Error;
-import java.util.Optional;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /** Simple enumeration for the error code that can provide back the correct response to the user. */
@@ -50,7 +50,7 @@ public enum ErrorCode {
 
   /** @return Returns {@link Response} using the ErrorCode default message. */
   public Response toResponse() {
-    return toResponse(null);
+    return toResponse(defaultMessage);
   }
 
   /**
@@ -67,9 +67,13 @@ public enum ErrorCode {
    *     the user
    */
   public Response.ResponseBuilder toResponseBuilder(String message) {
-    String msg = Optional.ofNullable(message).orElse(defaultMessage);
-    Error error = new Error(msg, responseStatus.getStatusCode());
+    Error error = new Error(message, responseStatus.getStatusCode());
 
-    return Response.status(responseStatus).entity(error);
+    // declare as MediaType.APPLICATION_JSON_TYPE as we have non-string entity here
+    return Response.status(responseStatus).type(MediaType.APPLICATION_JSON_TYPE).entity(error);
+  }
+
+  public String getDefaultMessage() {
+    return defaultMessage;
   }
 }
