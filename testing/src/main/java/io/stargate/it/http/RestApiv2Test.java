@@ -2405,6 +2405,16 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // add existing field
     udtString =
+        "{\"name\": \"udt1\", \"add-type\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    // missing add-type and rename-type
+    udtString =
         "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.put(

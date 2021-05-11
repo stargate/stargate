@@ -465,6 +465,13 @@ public class UserDefinedTypesResource {
                 .build()
                 .execute(ConsistencyLevel.LOCAL_QUORUM)
                 .get();
+          } else {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "It must be informed either an add-type or rename-type.",
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
           }
 
           return Response.status(Response.Status.OK).build();
