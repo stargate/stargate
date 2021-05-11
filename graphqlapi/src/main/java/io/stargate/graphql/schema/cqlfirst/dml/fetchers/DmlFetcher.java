@@ -127,6 +127,15 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return results;
   }
 
+  protected CompletableFuture<List<Map<String, Object>>> toListOfMutationResultsAccepted(
+      List<Map<String, Object>> originalValues) {
+    List<Map<String, Object>> results = new ArrayList<>();
+    for (Map<String, Object> originalValue : originalValues) {
+      results.add(toAcceptedMutationResultWithOriginalValue(originalValue));
+    }
+    return CompletableFuture.completedFuture(results);
+  }
+
   protected Map<String, Object> toMutationResult(ResultSet resultSet, Object originalValue) {
 
     List<Row> rows = resultSet.currentPageRows();
@@ -149,7 +158,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return ImmutableMap.of("value", originalValue, "applied", true);
   }
 
-  private ImmutableMap<String, Object> toAcceptedMutationResultWithOriginalValue(
+  protected ImmutableMap<String, Object> toAcceptedMutationResultWithOriginalValue(
       Object originalValue) {
     return ImmutableMap.of("value", originalValue, "accepted", true);
   }
@@ -171,7 +180,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * Executes the query in an async way in a fire and forget fashion. Completes immediately with
    * applied=true without waiting for the result.
    */
-  protected CompletableFuture<Map<String, Object>> executeAsyncWithoutResult(
+  protected CompletableFuture<Map<String, Object>> executeAsyncAccepted(
       DataStore dataStore, BoundQuery query, Object originalValue) {
     dataStore
         .execute(query)
@@ -185,7 +194,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
                     throwable);
               }
             });
-    // complete immediately with applied=true without waiting for the result
+    // complete immediately with accepted=true without waiting for the result
     return CompletableFuture.completedFuture(
         toAcceptedMutationResultWithOriginalValue(originalValue));
   }

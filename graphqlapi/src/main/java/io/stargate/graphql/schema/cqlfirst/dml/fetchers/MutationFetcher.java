@@ -61,17 +61,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     }
     OperationDefinition operation = environment.getOperationDefinition();
 
-    // if the caller expects the atomic mutations,
-    // he should not use fire-and-forget behavior provided by the async directive
-    if (containsDirective(operation, ATOMIC_DIRECTIVE)
-        && containsDirective(operation, ASYNC_DIRECTIVE)) {
-      throw new IllegalArgumentException("You cannot provide both atomic and async directives.");
-    }
-
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
       // There are more than one mutation in @atomic operation
-      return executeAsBatch(environment, dataStore, query, buildException);
+      return executeAsBatch(environment, dataStore, query, buildException, operation);
     }
 
     if (buildException != null) {
@@ -81,7 +74,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     }
 
     if (containsDirective(operation, ASYNC_DIRECTIVE)) {
-      return executeAsyncWithoutResult(dataStore, query, environment.getArgument("value"));
+      return executeAsyncAccepted(dataStore, query, environment.getArgument("value"));
     }
 
     // Execute as a single statement
@@ -94,7 +87,8 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       DataFetchingEnvironment environment,
       DataStore dataStore,
       BoundQuery query,
-      Exception buildException) {
+      Exception buildException,
+      OperationDefinition operation) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
@@ -120,9 +114,16 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
     }
 
-    return batchContext
-        .getExecutionFuture()
-        .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
+    if (containsDirective(operation, ASYNC_DIRECTIVE)) {
+      // does not wait for the batch execution result, return the accepted response for the value
+      // immediately
+      return CompletableFuture.completedFuture(
+          toAcceptedMutationResultWithOriginalValue(environment.getArgument("value")));
+    } else {
+      return batchContext
+          .getExecutionFuture()
+          .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
+    }
   }
 
   protected abstract BoundQuery buildQuery(

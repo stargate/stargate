@@ -1,0 +1,9 @@
+mutation BulkInsertProductsWithAsyncAndAtomic(
+    $values: [ProductsInput!]
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) @async @atomic {
+    bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
+        accepted
+    }
+}
