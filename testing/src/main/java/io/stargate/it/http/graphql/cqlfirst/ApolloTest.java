@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>Please do not add new test methods here. We are trying to limit usage of apollo-runtime to
  * only a few tests because it requires too much boilerplate. Instead, create new test classes and
- * use {@link CqlFirstClient} (see {@link QueryTest}, {@link InsertTest}, etc).
+ * use {@link CqlFirstClient} (see {@link SelectTest}, {@link InsertTest}, etc).
  *
  * <p>To update the existing methods here:
  *

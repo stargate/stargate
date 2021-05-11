@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
  * Base class for GraphQL tests that use the apollo-runtime client library.
  *
  * <p>Note that we are trying to limit usage of that library in our tests. Do not subclass this in
- * new tests; instead, use {@link CqlFirstClient} (see {@link QueryTest}, {@link InsertTest}, etc).
+ * new tests; instead, use {@link CqlFirstClient} (see {@link SelectTest}, {@link InsertTest}, etc).
  *
  * <p>Eventually, {@link ApolloTest} should be the only subclass, and we might merge this into it.
  */

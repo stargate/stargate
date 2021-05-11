@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)"})
-public class ErrorsTest extends BaseOsgiIntegrationTest {
+public class InvalidQueriesTest extends BaseOsgiIntegrationTest {
 
   private static CqlFirstClient CLIENT;
   private static CqlIdentifier KEYSPACE_ID;
