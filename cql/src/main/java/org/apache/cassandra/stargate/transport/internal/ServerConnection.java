@@ -27,7 +27,6 @@ import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
-
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -52,7 +51,11 @@ public class ServerConnection extends Connection {
       Connection.Tracker tracker,
       Persistence persistence,
       AuthenticationService authentication) {
-    super(channel, version, tracker, ClientMetrics.instance.connectionMetrics(getClientInfo(channel, proxyInfo)));
+    super(
+        channel,
+        version,
+        tracker,
+        ClientMetrics.instance.connectionMetrics(getClientInfo(channel, proxyInfo)));
     this.clientInfo = getClientInfo(channel, proxyInfo);
     this.persistenceConnection = persistence.newConnection(clientInfo);
 
@@ -65,10 +68,8 @@ public class ServerConnection extends Connection {
   @NotNull
   private static ClientInfo getClientInfo(Channel channel, ProxyInfo proxyInfo) {
     return new ClientInfo(
-            proxyInfo != null
-                    ? proxyInfo.sourceAddress
-                    : (InetSocketAddress) channel.remoteAddress(),
-            proxyInfo != null ? proxyInfo.publicAddress : null);
+        proxyInfo != null ? proxyInfo.sourceAddress : (InetSocketAddress) channel.remoteAddress(),
+        proxyInfo != null ? proxyInfo.publicAddress : null);
   }
 
   public ClientInfo clientInfo() {

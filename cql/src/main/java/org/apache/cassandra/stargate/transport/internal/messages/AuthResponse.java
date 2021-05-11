@@ -23,7 +23,6 @@ import io.stargate.db.Authenticator;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
@@ -95,10 +94,11 @@ public class AuthResponse extends Message.Request {
                   future.complete(new AuthChallenge(challenge));
                 }
               } catch (AuthenticationException ae) {
-                  connection.getConnectionMetrics().markAuthFailure();;
+                connection.getConnectionMetrics().markAuthFailure();
+                ;
                 future.complete(ErrorMessage.fromException(ae));
               } catch (Exception e) {
-                  connection.getConnectionMetrics().markAuthError();
+                connection.getConnectionMetrics().markAuthError();
                 future.completeExceptionally(e);
               }
             });

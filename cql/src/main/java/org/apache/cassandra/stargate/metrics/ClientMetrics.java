@@ -21,12 +21,24 @@ package org.apache.cassandra.stargate.metrics;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.MultiGauge;
+import io.micrometer.core.instrument.Tags;
 import io.netty.buffer.ByteBufAllocatorMetricProvider;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Server;
@@ -194,6 +206,7 @@ public final class ClientMetrics {
     // ensure overwrite is called to re-write existing values to new ones
     connectedNativeClients.register(rows, true);
   }
+
   private Map<String, Integer> countConnectedClientsByUser() {
     Map<String, Integer> counts = new HashMap<>();
 
@@ -233,7 +246,8 @@ public final class ClientMetrics {
     private final AtomicInteger connectedClients;
 
     public ConnectionMetricsImpl(ClientInfo clientInfo) {
-      Tags tags = Optional.ofNullable(clientInfo)
+      Tags tags =
+          Optional.ofNullable(clientInfo)
               .map(clientInfoTagProvider::getClientInfoTags)
               .orElse(Tags.empty());
 
@@ -242,7 +256,8 @@ public final class ClientMetrics {
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
       authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
-      connectedClients = meterRegistry.gauge(CONNECTED_NATIVE_CLIENTS_METRIC, tags, new AtomicInteger(0));
+      connectedClients =
+          meterRegistry.gauge(CONNECTED_NATIVE_CLIENTS_METRIC, tags, new AtomicInteger(0));
     }
 
     @Override
@@ -279,7 +294,5 @@ public final class ClientMetrics {
     public void decreaseConnectedNativeClients() {
       connectedClients.decrementAndGet();
     }
-
   }
-
 }

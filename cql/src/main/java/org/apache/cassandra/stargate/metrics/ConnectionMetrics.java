@@ -19,18 +19,17 @@ package org.apache.cassandra.stargate.metrics;
 
 public interface ConnectionMetrics {
 
-    void markRequestProcessed();
+  void markRequestProcessed();
 
-    void markRequestDiscarded();
+  void markRequestDiscarded();
 
-    void markAuthSuccess();
+  void markAuthSuccess();
 
-    void markAuthFailure();
+  void markAuthFailure();
 
-    void markAuthError();
+  void markAuthError();
 
-    void increaseConnectedNativeClients();
+  void increaseConnectedNativeClients();
 
-    void decreaseConnectedNativeClients();
-
+  void decreaseConnectedNativeClients();
 }
