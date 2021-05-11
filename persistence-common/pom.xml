@@ -9,7 +9,7 @@
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-common</artifactId>
   <properties>
-    <cassandra.version>3.11.6</cassandra.version>
+    <cassandra.version>3.11.8</cassandra.version>
   </properties>
   <dependencies>
     <dependency>
