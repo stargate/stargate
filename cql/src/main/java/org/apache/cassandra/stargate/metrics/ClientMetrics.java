@@ -26,13 +26,9 @@ import io.netty.buffer.ByteBufAllocatorMetricProvider;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.util.*;
-import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
-import org.apache.cassandra.stargate.transport.internal.ClientStat;
-import org.apache.cassandra.stargate.transport.internal.ConnectedClient;
 import org.apache.cassandra.stargate.transport.internal.Server;
 
 public final class ClientMetrics {
@@ -143,10 +139,7 @@ public final class ClientMetrics {
         },
         10000L,
         10000L);
-
     registerGauge("connectedNativeClientsByUser", this::countConnectedClientsByUser);
-    registerGauge("connections", this::connectedClients);
-    registerGauge("clientsByProtocolVersion", this::recentClientStats);
 
     pausedConnections =
         meterRegistry.gauge(metric("PausedConnections"), Tags.empty(), new AtomicInteger(0));
@@ -201,7 +194,6 @@ public final class ClientMetrics {
     // ensure overwrite is called to re-write existing values to new ones
     connectedNativeClients.register(rows, true);
   }
-
   private Map<String, Integer> countConnectedClientsByUser() {
     Map<String, Integer> counts = new HashMap<>();
 
@@ -213,26 +205,6 @@ public final class ClientMetrics {
     }
 
     return counts;
-  }
-
-  private List<Map<String, String>> connectedClients() {
-    List<Map<String, String>> clients = new ArrayList<>();
-
-    for (Server server : servers)
-      for (ConnectedClient client : server.getConnectedClients()) clients.add(client.asMap());
-
-    return clients;
-  }
-
-  private List<Map<String, String>> recentClientStats() {
-    List<Map<String, String>> stats = new ArrayList<>();
-
-    for (Server server : servers)
-      for (ClientStat stat : server.recentClientStats()) stats.add(stat.asMap());
-
-    stats.sort(Comparator.comparing(map -> map.get(ClientStat.PROTOCOL_VERSION)));
-
-    return stats;
   }
 
   private <T> Gauge<T> registerGauge(String name, Gauge<T> gauge) {
