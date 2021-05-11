@@ -609,23 +609,19 @@ public class DocumentResourceV2 {
               selectionList = documentService.convertToSelectionList(fieldsJson);
             }
           } else if (fields != null) {
-            throw new DocumentAPIRequestException(
-                "Selecting fields is not allowed without `where`");
+              throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_FIELDS_WITHOUT_WHERE);
           }
 
           if (!filters.isEmpty()) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-              throw new DocumentAPIRequestException(
-                  String.format(
-                      "Conditions across multiple fields are not yet supported (found: %s)",
-                      distinctFields));
+                String msg = String.format("Conditions across multiple fields are not yet supported. Found: %s.", distinctFields);
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
             }
             String fieldName = filters.get(0).getField();
             if (!selectionList.isEmpty() && !selectionList.contains(fieldName)) {
-              throw new DocumentAPIRequestException(
-                  "When selecting `fields`, the field referenced by `where` must be in the selection.");
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
             }
           }
 

@@ -16,6 +16,8 @@
 
 package io.stargate.web.docsapi.exception;
 
+import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.models.Error;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -31,8 +33,25 @@ public enum ErrorCode {
       "The table name contains invalid characters. Valid characters are alphanumeric and underscores."),
 
   /** Document API. */
+  DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED(Response.Status.BAD_REQUEST, String.format("Max array length of %s exceeded.", DocsApiConfiguration.DEFAULT.getMaxArrayLength())),
+  DOCS_API_GENERAL_DEPTH_EXCEEDED(Response.Status.BAD_REQUEST, String.format("Max depth of %s exceeded.", DocsApiConfiguration.DEFAULT.getMaxDepth())),
+  DOCS_API_GENERAL_FIELDS_INVALID(Response.Status.BAD_REQUEST, "The `fields` must be a JSON array and each field must be a non-empty string."),
+  DOCS_API_GENERAL_INVALID_FIELD_NAME(Response.Status.BAD_REQUEST, String.format("The characters %s are not permitted in JSON field names.", DocumentDB.getForbiddenCharactersMessage())),
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
-      Response.Status.BAD_REQUEST, "The parameter `page-size` is limited to 20.");
+          Response.Status.BAD_REQUEST, String.format("The parameter `page-size` is limited to %d.", DocsApiConfiguration.DEFAULT.getMaxPageSize())),
+
+  DOCS_API_GET_FIELDS_WITHOUT_WHERE(Response.Status.BAD_REQUEST, "Selecting fields is not allowed without `where`."),
+  DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS(Response.Status.BAD_REQUEST, "Conditions across multiple fields are not yet supported."),
+  DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED(Response.Status.BAD_REQUEST, "When selecting `fields`, the field referenced by `where` must be in the selection."),
+
+  DOCS_API_PATCH_ARRAY_NOT_ACCEPTED(Response.Status.BAD_REQUEST,"A patch operation must be done with a JSON object, not an array."),
+
+  DOCS_API_PUT_PAYLOAD_INVALID(Response.Status.BAD_REQUEST,"A put operation failed due to the invalid payload."),
+
+  DOCS_API_SEARCH_FILTER_INVALID(Response.Status.BAD_REQUEST, "A filter operation and value resolved as invalid."),
+  DOCS_API_SEARCH_OBJECT_REQUIRED(Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
+  DOCS_API_SEARCH_RESULTS_NOT_FITTING(Response.Status.BAD_REQUEST, "The results as requested must fit in one page, try increasing the `page-size` parameter.")
+  ;
 
   /** Status of the response. */
   private final Response.Status responseStatus;

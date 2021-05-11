@@ -1,6 +1,9 @@
 package io.stargate.web.docsapi.service.filter;
 
 import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+
 import java.util.List;
 
 /** Represents a filter condition where the value is a List of elements. e.g. the `in` operator. */
@@ -16,9 +19,8 @@ public class ListFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new DocumentAPIRequestException(
-          String.format(
-              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
+      String msg = String.format("Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
     this.listValue = listValue;
   }
