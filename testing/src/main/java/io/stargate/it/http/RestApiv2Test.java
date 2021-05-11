@@ -2354,8 +2354,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   public void createUdt() throws IOException {
     createKeyspace(keyspaceName);
 
+    // create UDT
     String udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}, {\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
+        "{\"name\": \"udt1\", \"fields\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2382,7 +2385,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // don't create and don't throw exception because ifNotExists = true
     udtString =
-        "{\"name\": \"udt1\", \"ifNotExists\": true, \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"udt1\", \"ifNotExists\": true,"
+            + "\"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
     RestUtils.post(
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
@@ -2394,8 +2398,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   public void updateInvalidUdt() throws IOException {
     createKeyspace(keyspaceName);
 
+    // create UDT
     String udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2405,7 +2410,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // add existing field
     udtString =
-        "{\"name\": \"udt1\", \"add-type\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2415,7 +2420,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // missing add-type and rename-type
     udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2428,8 +2433,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   public void updateUdt() throws IOException {
     createKeyspace(keyspaceName);
 
+    // create UDT
     String udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"varchar\"}]}";
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"varchar\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2437,8 +2443,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         udtString,
         HttpStatus.SC_CREATED);
 
+    // update UDT: add new field
     udtString =
-        "{\"name\": \"udt1\", \"add-type\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2446,8 +2453,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         udtString,
         HttpStatus.SC_OK);
 
+    // udpate UDT: rename fields
     udtString =
-        "{\"name\": \"udt1\",\"rename-type\":[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
+        "{\"name\": \"udt1\",\"renameFields\":"
+            + "[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2455,6 +2464,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         udtString,
         HttpStatus.SC_OK);
 
+    // retrieve UDT
     String body =
         RestUtils.get(
             authToken,
@@ -2467,13 +2477,33 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     assertThat(response.size()).isEqualTo(3);
     assertThat(response.get("name")).isEqualTo("udt1");
-    List<Map<String, String>> fieldDefinitions =
-        (List<Map<String, String>>) response.get("fieldDefinitions");
-    assertThat(fieldDefinitions.size()).isEqualTo(2);
-    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("name1");
-    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("varchar");
-    assertThat(fieldDefinitions.get(1).get("name")).isEqualTo("name2");
-    assertThat(fieldDefinitions.get(1).get("typeDefinition")).isEqualTo("varchar");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(2);
+    assertThat(fields.get(0).get("name")).isEqualTo("name1");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
+    assertThat(fields.get(1).get("name")).isEqualTo("name2");
+    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("varchar");
+
+    // create UDT
+    udtString = "{\"name\": \"udt2\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // update UDT: add and rename field
+    udtString =
+        "{\"name\": \"udt2\","
+            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"varchar\"}]},"
+            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
   }
 
   @Test
@@ -2481,28 +2511,28 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
 
     String udtString =
-        "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
     RestUtils.post(
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
-    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[]}";
+    udtString = "{\"name\": \"udt1\", \"fields\":[]}";
     RestUtils.post(
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
-    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\"}}]}";
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\"}}]}";
     RestUtils.post(
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
-    udtString = "{\"name\": \"udt1\", \"fieldDefinitions\":[{\"typeDefinition\":\"text\"}}]}";
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}}]}";
     RestUtils.post(
         authToken,
         String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
@@ -2515,7 +2545,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
 
     String udtString =
-        "{\"name\": \"test_udt1\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2536,7 +2566,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // delete an UDT in use
     udtString =
-        "{\"name\": \"fullname\", \"fieldDefinitions\":"
+        "{\"name\": \"fullname\", \"fields\":"
             + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
             + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
     RestUtils.post(
@@ -2564,7 +2594,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
 
     String udtString =
-        "{\"name\": \"test_udt1\", \"fieldDefinitions\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
+        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2585,11 +2615,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     assertThat(response.size()).isEqualTo(3);
     assertThat(response.get("name")).isEqualTo("test_udt1");
-    List<Map<String, String>> fieldDefinitions =
-        (List<Map<String, String>>) response.get("fieldDefinitions");
-    assertThat(fieldDefinitions.size()).isEqualTo(1);
-    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("arrival");
-    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("timestamp");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.get(0).get("name")).isEqualTo("arrival");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
 
     // get non existent UDT
     RestUtils.get(
@@ -2618,7 +2647,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     // creates 10 UDTs
     String udtString =
-        "{\"name\": \"%s\", \"fieldDefinitions\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+        "{\"name\": \"%s\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
     for (int i = 0; i < 10; i++) {
       RestUtils.post(
           authToken,
@@ -2639,11 +2668,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
     assertThat(response.size()).isEqualTo(10);
 
-    List<Map<String, String>> fieldDefinitions =
-        (List<Map<String, String>>) response.get(0).get("fieldDefinitions");
-    assertThat(fieldDefinitions.size()).isEqualTo(1);
-    assertThat(fieldDefinitions.get(0).get("name")).isEqualTo("firstname");
-    assertThat(fieldDefinitions.get(0).get("typeDefinition")).isEqualTo("varchar");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
+    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {

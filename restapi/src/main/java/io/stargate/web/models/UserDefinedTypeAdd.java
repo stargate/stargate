@@ -16,6 +16,7 @@
 package io.stargate.web.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
@@ -29,7 +30,9 @@ public class UserDefinedTypeAdd implements Serializable {
 
   private boolean ifNotExists = false;
 
-  @NotNull private List<UserDefinedTypeField> fieldDefinitions;
+  @JsonProperty("fields")
+  @NotNull
+  private List<UserDefinedTypeField> fields;
 
   @ApiModelProperty(required = true, value = "User Defined Type name")
   public String getName() {
@@ -52,19 +55,19 @@ public class UserDefinedTypeAdd implements Serializable {
   }
 
   @ApiModelProperty(required = true, value = "User Defined Type fields")
-  public List<UserDefinedTypeField> getFieldDefinitions() {
-    return fieldDefinitions;
+  public List<UserDefinedTypeField> getFields() {
+    return fields;
   }
 
-  public void setFieldDefinitions(List<UserDefinedTypeField> fieldDefinitions) {
-    this.fieldDefinitions = fieldDefinitions;
+  public void setFields(List<UserDefinedTypeField> fields) {
+    this.fields = fields;
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
-        .add("fields", fieldDefinitions)
+        .add("fields", fields)
         .add("ifNotExists", ifNotExists)
         .omitNullValues()
         .toString();

@@ -27,11 +27,11 @@ public class UserDefinedTypeUpdate {
 
   @NotNull private String name;
 
-  @JsonProperty("add-type")
-  private List<UserDefinedTypeField> fieldDefinitions;
+  @JsonProperty("addFields")
+  private List<UserDefinedTypeField> addFields;
 
-  @JsonProperty("rename-type")
-  private List<RenameUdtField> renameColumns;
+  @JsonProperty("renameFields")
+  private List<RenameUdtField> renameFields;
 
   @ApiModelProperty(required = true, value = "User Defined Type name")
   public String getName() {
@@ -43,29 +43,29 @@ public class UserDefinedTypeUpdate {
   }
 
   @ApiModelProperty(value = "User Defined Type fields to add")
-  public List<UserDefinedTypeField> getFieldDefinitions() {
-    return fieldDefinitions;
+  public List<UserDefinedTypeField> getAddFields() {
+    return addFields;
   }
 
-  public void setFieldDefinitions(List<UserDefinedTypeField> fieldDefinitions) {
-    this.fieldDefinitions = fieldDefinitions;
+  public void setAddFields(List<UserDefinedTypeField> addFields) {
+    this.addFields = addFields;
   }
 
-  @ApiModelProperty(value = "User Defined Type columns to rename")
-  public List<RenameUdtField> getRenameColumns() {
-    return renameColumns;
+  @ApiModelProperty(value = "User Defined Type fields to rename")
+  public List<RenameUdtField> getRenameFields() {
+    return renameFields;
   }
 
-  public void setRenameColumns(List<RenameUdtField> renameColumns) {
-    this.renameColumns = renameColumns;
+  public void setRenameFields(List<RenameUdtField> renameFields) {
+    this.renameFields = renameFields;
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
-        .add("add-type", fieldDefinitions)
-        .add("rename-type", renameColumns)
+        .add("addFields", addFields)
+        .add("renameFields", renameFields)
         .omitNullValues()
         .toString();
   }
@@ -76,7 +76,7 @@ public class UserDefinedTypeUpdate {
     private String from;
     private String to;
 
-    @ApiModelProperty(value = "User Defined Type old column name")
+    @ApiModelProperty(value = "User Defined Type's old field name")
     public String getFrom() {
       return from;
     }
@@ -85,7 +85,7 @@ public class UserDefinedTypeUpdate {
       this.from = from;
     }
 
-    @ApiModelProperty(value = "User Defined Type new column name")
+    @ApiModelProperty(value = "User Defined Type's new field name")
     public String getTo() {
       return to;
     }

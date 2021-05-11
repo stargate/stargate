@@ -29,16 +29,16 @@ public class UserDefinedTypeResponse {
 
   private final String keyspace;
 
-  private final List<UserDefinedTypeField> fieldDefinitions;
+  private final List<UserDefinedTypeField> fields;
 
   @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
   public UserDefinedTypeResponse(
       @JsonProperty("name") final String name,
       @JsonProperty("keyspace") final String keyspace,
-      @JsonProperty("fieldDefinitions") final List<UserDefinedTypeField> fieldDefinitions) {
+      @JsonProperty("fields") final List<UserDefinedTypeField> fields) {
     this.name = name;
     this.keyspace = keyspace;
-    this.fieldDefinitions = fieldDefinitions;
+    this.fields = fields;
   }
 
   @ApiModelProperty(value = "The name of the user defined type.")
@@ -52,7 +52,7 @@ public class UserDefinedTypeResponse {
   }
 
   @ApiModelProperty(value = "Definition of columns within the user defined type.")
-  public List<UserDefinedTypeField> getFieldDefinitions() {
-    return fieldDefinitions;
+  public List<UserDefinedTypeField> getFields() {
+    return fields;
   }
 }

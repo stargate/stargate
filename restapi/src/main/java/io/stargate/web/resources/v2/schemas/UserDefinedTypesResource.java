@@ -268,6 +268,14 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
+          if (udtAdd.getFields() == null || udtAdd.getFields().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "Fields must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
           db.getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
@@ -279,7 +287,7 @@ public class UserDefinedTypesResource {
 
           List<Column> columns;
           try {
-            columns = getUdtColumns(keyspace, udtAdd.getFieldDefinitions());
+            columns = getUdtColumns(keyspace, udtAdd.getFields());
           } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
@@ -432,10 +440,22 @@ public class UserDefinedTypesResource {
           UserDefinedType udt =
               ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();
 
-          List<UserDefinedTypeField> fields = udtUpdate.getFieldDefinitions();
-          if (fields != null && !fields.isEmpty()) {
+          List<UserDefinedTypeField> addFields = udtUpdate.getAddFields();
+          List<UserDefinedTypeUpdate.RenameUdtField> renameFields = udtUpdate.getRenameFields();
+
+          if ((addFields == null || addFields.isEmpty())
+              && (renameFields == null || renameFields.isEmpty())) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(
+                    new Error(
+                        "addFields and/or renameFields is required to update an UDT.",
+                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .build();
+          }
+
+          if (addFields != null && !addFields.isEmpty()) {
             try {
-              List<Column> columns = getUdtColumns(keyspace, fields);
+              List<Column> columns = getUdtColumns(keyspace, addFields);
               authenticatedDB
                   .getDataStore()
                   .queryBuilder()
@@ -450,28 +470,28 @@ public class UserDefinedTypesResource {
                   .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
             }
-          } else if (udtUpdate.getRenameColumns() != null
-              && !udtUpdate.getRenameColumns().isEmpty()) {
-            List<Pair<String, String>> columns =
-                udtUpdate.getRenameColumns().stream()
-                    .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
-                    .collect(Collectors.toList());
-            authenticatedDB
-                .getDataStore()
-                .queryBuilder()
-                .alter()
-                .type(keyspaceName, udt)
-                .renameColumn(columns)
-                .build()
-                .execute(ConsistencyLevel.LOCAL_QUORUM)
-                .get();
-          } else {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "It must be informed either an add-type or rename-type.",
-                        Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
+          }
+
+          if (renameFields != null && !renameFields.isEmpty()) {
+            try {
+                List<Pair<String, String>> columns =
+                        renameFields.stream()
+                                .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
+                                .collect(Collectors.toList());
+                authenticatedDB
+                  .getDataStore()
+                  .queryBuilder()
+                  .alter()
+                  .type(keyspaceName, udt)
+                  .renameColumn(columns)
+                  .build()
+                  .execute(ConsistencyLevel.LOCAL_QUORUM)
+                  .get();
+            } catch (IllegalArgumentException | InvalidRequestException ex) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                  .build();
+            }
           }
 
           return Response.status(Response.Status.OK).build();
