@@ -4,16 +4,6 @@ mutation InsertOrdersWithAsyncAndAtomic(
     $options: MutationOptions
 ) @async @atomic {
     insertOrders(value: $value, ifNotExists: $ifNotExists, options: $options) {
-        applied
-        value {
-            id
-            prodId
-            prodName
-            customerName
-            address
-            description
-            price
-            sellPrice
-        }
+        accepted
     }
 }

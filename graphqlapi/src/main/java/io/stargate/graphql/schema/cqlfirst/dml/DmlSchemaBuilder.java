@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.cqlfirst.dml;
 
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
+import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
@@ -173,7 +174,7 @@ public class DmlSchemaBuilder {
     builder.additionalDirective(
         GraphQLDirective.newDirective()
             .validLocation(Introspection.DirectiveLocation.MUTATION)
-            .name(SchemaConstants.ASYNC_DIRECTIVE)
+            .name(ASYNC_DIRECTIVE)
             .description(
                 "Instructs the server to apply the mutations in an Async way. "
                     + "It will work in a fire-and-forget fashion.")
@@ -408,6 +409,14 @@ public class DmlSchemaBuilder {
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
                 .name("applied")
+                .type(Scalars.GraphQLBoolean))
+        .field(
+            GraphQLFieldDefinition.newFieldDefinition()
+                .name("accepted")
+                .description(
+                    String.format(
+                        "This field is relevant and fulfilled with data, only when used with the @%s directive",
+                        ASYNC_DIRECTIVE))
                 .type(Scalars.GraphQLBoolean))
         .field(
             GraphQLFieldDefinition.newFieldDefinition()

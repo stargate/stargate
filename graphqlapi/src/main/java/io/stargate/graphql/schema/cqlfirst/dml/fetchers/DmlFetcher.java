@@ -149,6 +149,11 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return ImmutableMap.of("value", originalValue, "applied", true);
   }
 
+  private ImmutableMap<String, Object> toAcceptedMutationResultWithOriginalValue(
+      Object originalValue) {
+    return ImmutableMap.of("value", originalValue, "accepted", true);
+  }
+
   private ImmutableMap<String, Object> toMutationResultSingleRow(Object originalValue, Row row) {
     boolean applied = row.getBoolean("[applied]");
     Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
@@ -182,7 +187,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
             });
     // complete immediately with applied=true without waiting for the result
     return CompletableFuture.completedFuture(
-        toAppliedMutationResultWithOriginalValue(originalValue));
+        toAcceptedMutationResultWithOriginalValue(originalValue));
   }
 
   protected String getDBColumnName(Table table, String fieldName) {

@@ -2009,7 +2009,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     InsertOrdersWithAsyncMutation.InsertOrders result =
         getObservable(client.mutate(mutation)).getInsertOrders().get();
 
-    assertThat(result.getApplied()).hasValue(true);
+    assertThat(result.getAccepted()).hasValue(true);
   }
 
   @Test
@@ -2039,8 +2039,8 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
     List<BulkInsertProductsWithAsyncMutation.BulkInsertProduct> result =
         getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
 
-    assertThat(result.get(0).getApplied()).hasValue(true);
-    assertThat(result.get(1).getApplied()).hasValue(true);
+    assertThat(result.get(0).getAccepted()).hasValue(true);
+    assertThat(result.get(1).getAccepted()).hasValue(true);
   }
 
   private double getGraphQlOperations(String body) {
