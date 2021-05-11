@@ -19,6 +19,8 @@ package org.apache.cassandra.stargate.transport.internal;
 
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
+import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.frame.FrameBodyTransformer;
 
@@ -28,16 +30,20 @@ public class Connection {
   private final Channel channel;
   private final ProtocolVersion version;
   private final Tracker tracker;
+  private final ConnectionMetrics connectionMetrics;
 
   private volatile FrameBodyTransformer transformer;
   private boolean throwOnOverload;
 
-  public Connection(Channel channel, ProtocolVersion version, Tracker tracker) {
+  public Connection(Channel channel, ProtocolVersion version, Tracker tracker, ConnectionMetrics connectionMetrics) {
     this.channel = channel;
     this.version = version;
     this.tracker = tracker;
+    this.connectionMetrics = connectionMetrics;
 
     tracker.addConnection(channel, this);
+    //TODO decrease where
+    connectionMetrics.increaseConnectedNativeClients();
   }
 
   public void setTransformer(FrameBodyTransformer transformer) {
@@ -58,6 +64,10 @@ public class Connection {
 
   public Tracker getTracker() {
     return tracker;
+  }
+
+  public ConnectionMetrics getConnectionMetrics() {
+    return connectionMetrics;
   }
 
   public ProtocolVersion getVersion() {

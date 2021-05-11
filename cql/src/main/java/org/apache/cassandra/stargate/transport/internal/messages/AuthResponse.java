@@ -87,20 +87,18 @@ public class AuthResponse extends Message.Request {
                         .setAuthenticatedUser(authenticatedUser);
                   }
 
-                  ClientMetrics.instance.markAuthSuccess(
-                      ((ServerConnection) connection).clientInfo());
-                  // authentication is complete, send a ready message to the client
+                  connection.getConnectionMetrics().markAuthSuccess();
 
+                  // authentication is complete, send a ready message to the client
                   future.complete(new AuthSuccess(challenge));
                 } else {
                   future.complete(new AuthChallenge(challenge));
                 }
               } catch (AuthenticationException ae) {
-                ClientMetrics.instance.markAuthFailure(
-                    ((ServerConnection) connection).clientInfo());
+                  connection.getConnectionMetrics().markAuthFailure();;
                 future.complete(ErrorMessage.fromException(ae));
               } catch (Exception e) {
-                ClientMetrics.instance.markAuthError(((ServerConnection) connection).clientInfo());
+                  connection.getConnectionMetrics().markAuthError();
                 future.completeExceptionally(e);
               }
             });

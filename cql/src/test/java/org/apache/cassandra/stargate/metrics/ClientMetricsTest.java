@@ -71,9 +71,9 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      clientMetrics.markRequestProcessed(clientInfo1);
-      clientMetrics.markRequestProcessed(clientInfo1);
-      clientMetrics.markRequestProcessed(clientInfo2);
+      clientMetrics.connectionMetrics(clientInfo1).markRequestProcessed();
+      clientMetrics.connectionMetrics(clientInfo1).markRequestProcessed();
+      clientMetrics.connectionMetrics(clientInfo2).markRequestProcessed();
 
       Counter c1 =
           meterRegistry
@@ -98,9 +98,9 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      clientMetrics.markRequestDiscarded(clientInfo1);
-      clientMetrics.markRequestDiscarded(clientInfo1);
-      clientMetrics.markRequestDiscarded(clientInfo2);
+      clientMetrics.connectionMetrics(clientInfo1).markRequestDiscarded();
+      clientMetrics.connectionMetrics(clientInfo1).markRequestDiscarded();
+      clientMetrics.connectionMetrics(clientInfo2).markRequestDiscarded();
 
       Counter c1 =
           meterRegistry
@@ -125,9 +125,9 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      clientMetrics.markAuthSuccess(clientInfo1);
-      clientMetrics.markAuthSuccess(clientInfo1);
-      clientMetrics.markAuthSuccess(clientInfo2);
+      clientMetrics.connectionMetrics(clientInfo1).markAuthSuccess();
+      clientMetrics.connectionMetrics(clientInfo1).markAuthSuccess();
+      clientMetrics.connectionMetrics(clientInfo2).markAuthSuccess();
 
       Counter c1 =
           meterRegistry
@@ -152,9 +152,9 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      clientMetrics.markAuthFailure(clientInfo1);
-      clientMetrics.markAuthFailure(clientInfo1);
-      clientMetrics.markAuthFailure(clientInfo2);
+      clientMetrics.connectionMetrics(clientInfo1).markAuthFailure();
+      clientMetrics.connectionMetrics(clientInfo1).markAuthFailure();
+      clientMetrics.connectionMetrics(clientInfo2).markAuthFailure();
 
       Counter c1 =
           meterRegistry
@@ -179,9 +179,9 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      clientMetrics.markAuthError(clientInfo1);
-      clientMetrics.markAuthError(clientInfo1);
-      clientMetrics.markAuthError(clientInfo2);
+      clientMetrics.connectionMetrics(clientInfo1).markAuthError();
+      clientMetrics.connectionMetrics(clientInfo1).markAuthError();
+      clientMetrics.connectionMetrics(clientInfo2).markAuthError();
 
       Counter c1 =
           meterRegistry

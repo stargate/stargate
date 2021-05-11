@@ -621,7 +621,7 @@ public abstract class Message {
         Connection connection = request.connection;
         if (connection.isThrowOnOverload()) {
           // discard the request and throw an exception
-          ClientMetrics.instance.markRequestDiscarded(((ServerConnection) connection).clientInfo());
+          connection.getConnectionMetrics().markRequestDiscarded();
           logger.trace(
               "Discarded request of size: {}. InflightChannelRequestPayload: {}, InflightEndpointRequestPayload: {}, InflightOverallRequestPayload: {}, Request: {}",
               frameSize,
@@ -689,7 +689,7 @@ public abstract class Message {
         logger.trace("Received: {}, v={}", request, connection.getVersion());
         connection.requests.inc();
 
-        ClientMetrics.instance.markRequestProcessed(connection.clientInfo());
+        connection.getConnectionMetrics().markRequestProcessed();
 
         CompletableFuture<? extends Response> req = request.execute(queryStartNanoTime);
 

@@ -49,6 +49,7 @@ public final class ClientMetrics {
   private static final String AUTH_SUCCESS_METRIC;
   private static final String AUTH_FAILURE_METRIC;
   private static final String AUTH_ERROR_METRIC;
+  private static final String CONNECTED_NATIVE_CLIENTS_METRIC;
 
   // init to avoid re-computing on each record
   static {
@@ -57,6 +58,7 @@ public final class ClientMetrics {
     AUTH_SUCCESS_METRIC = metric("AuthSuccess");
     AUTH_FAILURE_METRIC = metric("AuthFailure");
     AUTH_ERROR_METRIC = metric("AuthError");
+    CONNECTED_NATIVE_CLIENTS_METRIC = metric("connectedNativeClients");
   }
 
   private volatile boolean initialized = false;
@@ -67,7 +69,6 @@ public final class ClientMetrics {
   private ClientInfoMetricsTagProvider clientInfoTagProvider;
 
   private AtomicInteger pausedConnections;
-
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
   private DistributionSummary bytesReceivedPerFrame;
@@ -75,31 +76,6 @@ public final class ClientMetrics {
   private MultiGauge connectedNativeClients;
 
   private ClientMetrics() {}
-
-  public void markRequestProcessed(ClientInfo clientInfo) {
-    Tags tags = clientInfoTagProvider.getClientInfoTags(clientInfo);
-    meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tags).increment();
-  }
-
-  public void markRequestDiscarded(ClientInfo clientInfo) {
-    Tags tags = clientInfoTagProvider.getClientInfoTags(clientInfo);
-    meterRegistry.counter(REQUESTS_DISCARDED_METRIC, tags).increment();
-  }
-
-  public void markAuthSuccess(ClientInfo clientInfo) {
-    Tags tags = clientInfoTagProvider.getClientInfoTags(clientInfo);
-    meterRegistry.counter(AUTH_SUCCESS_METRIC, tags).increment();
-  }
-
-  public void markAuthFailure(ClientInfo clientInfo) {
-    Tags tags = clientInfoTagProvider.getClientInfoTags(clientInfo);
-    meterRegistry.counter(AUTH_FAILURE_METRIC, tags).increment();
-  }
-
-  public void markAuthError(ClientInfo clientInfo) {
-    Tags tags = clientInfoTagProvider.getClientInfoTags(clientInfo);
-    meterRegistry.counter(AUTH_ERROR_METRIC, tags).increment();
-  }
 
   public void pauseConnection() {
     pausedConnections.incrementAndGet();
@@ -123,6 +99,14 @@ public final class ClientMetrics {
 
   public void recordBytesTransmittedPerFrame(double value) {
     bytesTransmittedPerFrame.record(value);
+  }
+
+  public ConnectionMetrics connectionMetrics(ClientInfo clientInfo) {
+    if (!initialized) {
+      throw new IllegalStateException("Client metrics not initialized yet.");
+    }
+
+    return new ConnectionMetricsImpl(clientInfo);
   }
 
   public synchronized void init(
@@ -266,4 +250,64 @@ public final class ClientMetrics {
     String metricName = factory.createMetricName(name).getMetricName();
     return "cql." + metricName;
   }
+
+  private class ConnectionMetricsImpl implements ConnectionMetrics {
+
+    private final Counter requestsProcessed;
+    private final Counter requestsDiscarded;
+    private final Counter authSuccess;
+    private final Counter authFailure;
+    private final Counter authError;
+    private final AtomicInteger connectedClients;
+
+    public ConnectionMetricsImpl(ClientInfo clientInfo) {
+      Tags tags = Optional.ofNullable(clientInfo)
+              .map(clientInfoTagProvider::getClientInfoTags)
+              .orElse(Tags.empty());
+
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tags);
+      requestsDiscarded = meterRegistry.counter(REQUESTS_DISCARDED_METRIC, tags);
+      authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
+      authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
+      authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
+      connectedClients = meterRegistry.gauge(CONNECTED_NATIVE_CLIENTS_METRIC, tags, new AtomicInteger(0));
+    }
+
+    @Override
+    public void markRequestProcessed() {
+      requestsProcessed.increment();
+    }
+
+    @Override
+    public void markRequestDiscarded() {
+      requestsDiscarded.increment();
+    }
+
+    @Override
+    public void markAuthSuccess() {
+      authSuccess.increment();
+    }
+
+    @Override
+    public void markAuthFailure() {
+      authFailure.increment();
+    }
+
+    @Override
+    public void markAuthError() {
+      authError.increment();
+    }
+
+    @Override
+    public void increaseConnectedNativeClients() {
+      connectedClients.incrementAndGet();
+    }
+
+    @Override
+    public void decreaseConnectedNativeClients() {
+      connectedClients.decrementAndGet();
+    }
+
+  }
+
 }

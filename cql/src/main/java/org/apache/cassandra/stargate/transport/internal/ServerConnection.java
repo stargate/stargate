@@ -27,8 +27,11 @@ import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
+
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,19 +52,23 @@ public class ServerConnection extends Connection {
       Connection.Tracker tracker,
       Persistence persistence,
       AuthenticationService authentication) {
-    super(channel, version, tracker);
-    this.clientInfo =
-        new ClientInfo(
-            proxyInfo != null
-                ? proxyInfo.sourceAddress
-                : (InetSocketAddress) channel.remoteAddress(),
-            proxyInfo != null ? proxyInfo.publicAddress : null);
+    super(channel, version, tracker, ClientMetrics.instance.connectionMetrics(getClientInfo(channel, proxyInfo)));
+    this.clientInfo = getClientInfo(channel, proxyInfo);
     this.persistenceConnection = persistence.newConnection(clientInfo);
 
     if (proxyInfo != null) this.persistenceConnection.setCustomProperties(proxyInfo.toHeaders());
 
     this.authentication = authentication;
     this.stage = ConnectionStage.ESTABLISHED;
+  }
+
+  @NotNull
+  private static ClientInfo getClientInfo(Channel channel, ProxyInfo proxyInfo) {
+    return new ClientInfo(
+            proxyInfo != null
+                    ? proxyInfo.sourceAddress
+                    : (InetSocketAddress) channel.remoteAddress(),
+            proxyInfo != null ? proxyInfo.publicAddress : null);
   }
 
   public ClientInfo clientInfo() {
