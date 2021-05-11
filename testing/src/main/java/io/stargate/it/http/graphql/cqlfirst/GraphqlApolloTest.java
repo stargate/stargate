@@ -1985,7 +1985,7 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
             .build();
 
     InsertOrdersWithAsyncAndAtomicMutation.InsertOrders result =
-            getObservable(client.mutate(mutation)).getInsertOrders().get();
+        getObservable(client.mutate(mutation)).getInsertOrders().get();
 
     assertThat(result.getAccepted()).hasValue(true);
   }
@@ -1995,27 +1995,27 @@ public class GraphqlApolloTest extends BaseOsgiIntegrationTest {
   public void shouldBulkInsertWhenUsingBothAsyncAndAtomicDirectives() {
     ApolloClient client = getApolloClient("/graphql/betterbotz");
     BulkInsertProductsWithAsyncAndAtomicMutation mutation =
-            BulkInsertProductsWithAsyncAndAtomicMutation.builder()
-                    .values(
-                            Arrays.asList(
-                                    ProductsInput.builder()
-                                            .id(UUID.randomUUID().toString())
-                                            .name("Shiny Legs")
-                                            .price("3199.99")
-                                            .created(now())
-                                            .description("Normal legs but shiny.")
-                                            .build(),
-                                    ProductsInput.builder()
-                                            .id(UUID.randomUUID().toString())
-                                            .name("other")
-                                            .price("3000.99")
-                                            .created(now())
-                                            .description("Normal legs but shiny.")
-                                            .build()))
-                    .build();
+        BulkInsertProductsWithAsyncAndAtomicMutation.builder()
+            .values(
+                Arrays.asList(
+                    ProductsInput.builder()
+                        .id(UUID.randomUUID().toString())
+                        .name("Shiny Legs")
+                        .price("3199.99")
+                        .created(now())
+                        .description("Normal legs but shiny.")
+                        .build(),
+                    ProductsInput.builder()
+                        .id(UUID.randomUUID().toString())
+                        .name("other")
+                        .price("3000.99")
+                        .created(now())
+                        .description("Normal legs but shiny.")
+                        .build()))
+            .build();
 
     List<BulkInsertProductsWithAsyncAndAtomicMutation.BulkInsertProduct> result =
-            getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
+        getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
 
     assertThat(result.get(0).getAccepted()).hasValue(true);
     assertThat(result.get(1).getAccepted()).hasValue(true);

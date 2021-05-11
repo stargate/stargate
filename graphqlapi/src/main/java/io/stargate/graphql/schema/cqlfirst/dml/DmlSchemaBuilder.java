@@ -176,8 +176,7 @@ public class DmlSchemaBuilder {
             .validLocation(Introspection.DirectiveLocation.MUTATION)
             .name(ASYNC_DIRECTIVE)
             .description(
-                "Instructs the server to apply the mutations in an Async way. "
-                    + "It will work in a fire-and-forget fashion.")
+                "Instructs the server to apply the mutations asynchronously without waiting for the result.")
             .build());
   }
 
