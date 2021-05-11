@@ -95,7 +95,6 @@ public class AuthResponse extends Message.Request {
                 }
               } catch (AuthenticationException ae) {
                 connection.getConnectionMetrics().markAuthFailure();
-                ;
                 future.complete(ErrorMessage.fromException(ae));
               } catch (Exception e) {
                 connection.getConnectionMetrics().markAuthError();
