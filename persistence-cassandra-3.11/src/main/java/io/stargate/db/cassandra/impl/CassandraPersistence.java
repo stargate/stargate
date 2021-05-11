@@ -108,6 +108,7 @@ public class CassandraPersistence
         UserType,
         IndexMetadata,
         ViewDefinition> {
+
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
 
   private static final boolean USE_TRANSITIONAL_AUTH =
@@ -266,7 +267,9 @@ public class CassandraPersistence
     CompletableFuture<T> future = new CompletableFuture<>();
     executor.submit(
         () -> {
-          if (captureWarnings) ClientWarn.instance.captureWarnings();
+          if (captureWarnings) {
+            ClientWarn.instance.captureWarnings();
+          }
           try {
             @SuppressWarnings("unchecked")
             T resultWithWarnings =
@@ -447,7 +450,12 @@ public class CassandraPersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
       return runOnExecutor(
           () -> {
-            QueryState queryState = new QueryState(clientState);
+            QueryState queryState =
+                new QueryState(
+                    parameters
+                        .defaultKeyspace()
+                        .map(k -> cloneWithKeyspace(clientState, k))
+                        .orElse(clientState));
             Request request = requestSupplier.get();
             if (parameters.tracingRequested()) {
               request.setTracingRequested();
@@ -472,6 +480,21 @@ public class CassandraPersistence
             return result;
           },
           parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4));
+    }
+
+    private ClientState cloneWithKeyspace(ClientState original, String keyspace) {
+      ClientState clone =
+          original.isInternal
+              ? ClientState.forInternalCalls()
+              : ClientState.forExternalCalls(original.getRemoteAddress());
+      clone.login(clone.getUser());
+      if (original.isNoCompactMode()) {
+        clone.setNoCompactMode();
+      }
+      if (keyspace != null) {
+        clone.setKeyspace(keyspace);
+      }
+      return clone;
     }
 
     @Override

@@ -284,11 +284,12 @@ message BatchQuery {
 }
 
 message BatchParameters {
-  string keyspace = 1;
-  Consistency consistency = 2;
-  int64 timestamp = 9;
-  Consistency serial_consistency = 10;
-  int32 now_in_seconds = 11;
+  google.protobuf.StringValue keyspace = 1;
+  ConsistencyValue consistency = 2;
+  bool tracing = 3;
+  google.protobuf.Int64Value timestamp = 4;
+  ConsistencyValue serial_consistency = 5;
+  google.protobuf.Int32Value now_in_seconds = 6;
 }
 
 message Batch {

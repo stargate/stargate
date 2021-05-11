@@ -45,13 +45,13 @@ Docker: Start a Cassandra 3.11 instance
 docker run --name local-cassandra \
 --net=host \
 -e CASSANDRA_CLUSTER_NAME=stargate \
--d cassandra:3.11.6
+-d cassandra:3.11.8
 ```
 
 Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
 
 ```sh
-ccm create stargate -v 3.11.6 -n 1 -s -b
+ccm create stargate -v 3.11.8 -n 1 -s -b
 ```
 
 ### Start commands
@@ -124,7 +124,7 @@ Connect to CQL as normal on port 9042
 ```sh
 $ cqlsh 127.0.0.2 9042
 Connected to stargate at 127.0.0.2:9042.
-[cqlsh 5.0.1 | Cassandra 3.11.6 | CQL spec 3.4.4 | Native protocol v4]
+[cqlsh 5.0.1 | Cassandra 3.11.8 | CQL spec 3.4.4 | Native protocol v4]
 Use HELP for help.
 ```
 
