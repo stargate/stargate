@@ -248,6 +248,26 @@ class BuiltSelectTest extends BuiltQueryTest {
   }
 
   @Test
+  public void shouldWorkForACaseSensitiveColumnName() {
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .count("caseSensitiveCol")
+            .from(KS_NAME, "t1")
+            .build();
+
+    assertBuiltQuery(query, "SELECT k2, v1, COUNT(\"caseSensitiveCol\") FROM ks.t1", emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(select, "SELECT k2, v1, COUNT(\"caseSensitiveCol\") FROM ks.t1");
+
+    assertThat(select.isStarSelect()).isFalse();
+    assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1", "caseSensitiveCol"));
+  }
+
+  @Test
   public void shouldCreateOneQueryWithNSameAggregations() {
     BuiltQuery<?> query =
         newBuilder()

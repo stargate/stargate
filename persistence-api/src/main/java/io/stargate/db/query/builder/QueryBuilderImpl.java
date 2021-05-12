@@ -1556,7 +1556,7 @@ public class QueryBuilderImpl {
 
     builder
         .append(functionCall.getFunctionName() + "(")
-        .append(functionCall.getColumnName())
+        .append(cqlName(functionCall.getColumnName()))
         .append(")");
     if (functionCall.getAlias() != null) {
       builder.append("AS").append(cqlName(functionCall.getAlias()));

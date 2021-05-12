@@ -132,6 +132,16 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
     assertThat(result).contains("The aggregation function: some_unknown_function is not supported");
   }
 
+  @Test
+  @DisplayName("Should calculate the sum of orders sellPrices using sum on a case sensitive column")
+  public void insertOrdersAndSumOnCaseSensitiveColumn() {
+    insertOrder("p1", "c1", "3000", "d1");
+    insertOrder("p1", "c2", "2500", "d1");
+
+    Map<String, Object> result = getOrderWithSumCaseSensitive("p1");
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0].sum")).isEqualTo("5500");
+  }
+
   private Map<String, Object> insertOrder(
       String prodName, String customerName, String description, Number value) {
     Map<String, Object> response =
@@ -186,6 +196,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
                     + "      prodName: \"%s\"\n"
                     + "      customerName: \"%s\"\n"
                     + "      price: \"%s\"\n"
+                    + "      sellPrice: \"%s\"\n"
                     + "      description: \"%s\"\n"
                     + "    }\n,"
                     + "    ifNotExists: true"
@@ -194,7 +205,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
                     + "    value { id, prodId, prodName, customerName, address, description, price, sellPrice }"
                     + "  }\n"
                     + "}",
-                prodName, customerName, price, description));
+                prodName, customerName, price, price, description));
     assertThat(JsonPath.<Boolean>read(response, "$.insertOrders.applied")).isTrue();
     return response;
   }
@@ -226,6 +237,11 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
   private Map<String, Object> getOrderWithSum(String prodName) {
     return getOrderWithFunction(
         prodName, "sum: _decimal_function(name: \"sum\", args: [\"price\"])");
+  }
+
+  private Map<String, Object> getOrderWithSumCaseSensitive(String prodName) {
+    return getOrderWithFunction(
+        prodName, "sum: _decimal_function(name: \"sum\", args: [\"sellPrice\"])");
   }
 
   private Map<String, Object> getOrderWithAllFunctions(String prodName) {
