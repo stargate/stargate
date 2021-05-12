@@ -3,8 +3,6 @@ package io.stargate.it.http.docsapi;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,13 +13,14 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.HashSet;
@@ -34,11 +33,15 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
+@ExtendWith(CqlSessionExtension.class)
+@CqlSessionSpec(
+    initQueries =
+        "create keyspace if not exists ks_docs_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 }")
 public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
-  private String keyspace;
-  private CqlSession session;
+  private static final String KEYSPACE = "ks_docs_test";
   private static String authToken;
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final OkHttpClient client =
@@ -52,43 +55,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     host = "http://" + cluster.seedAddress();
     hostWithPort = host + ":8082";
 
-    keyspace = "ks_docs_" + System.currentTimeMillis();
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(cluster.seedAddress(), 9043))
-            .withLocalDatacenter(cluster.datacenter())
-            .build();
-
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
-
-    initAuth();
+    if (null == authToken) {
+      initAuth();
+    }
   }
 
   @AfterEach
-  public void teardown() {
-    session.execute(String.format("drop keyspace %s", keyspace));
-    session.close();
+  public void truncateAllTables(CqlSession session) {
+    session.execute(String.format("TRUNCATE TABLE %s.%s", KEYSPACE, "collection"));
   }
 
   private void initAuth() throws IOException {
@@ -122,21 +96,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     String resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/maths",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths"), "1", null));
@@ -146,7 +120,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"products.electronics.Pixel_3a.price\":{\"$lt\": 800}}",
             200);
     ObjectNode expected = objectMapper.createObjectNode();
@@ -163,54 +137,54 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     // Missing token header
     RestUtils.post(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", data, 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection", data, 401);
     RestUtils.put(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", data, 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", data, 401);
     RestUtils.patch(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", data, 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", data, 401);
     RestUtils.delete(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 401);
     RestUtils.get(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 401);
     RestUtils.get(
-        null, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", 401);
+        null, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection", 401);
 
     // Bad token header
     RestUtils.post(
         "garbage",
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection",
         data,
         401);
     RestUtils.put(
         "garbage",
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         data,
         401);
     RestUtils.patch(
         "garbage",
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         data,
         401);
     RestUtils.delete(
-        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+        "garbage", hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 401);
     RestUtils.get(
-        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 401);
+        "garbage", hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 401);
     RestUtils.get(
-        "garbage", hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection", 401);
+        "garbage", hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection", 401);
   }
 
   @Test
   public void testBasicForms() throws IOException {
     RestUtils.putForm(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         "a=b&b=null&c.b=3.3&d.[0].[2]=true",
         200);
 
     String resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     JsonNode expected =
         objectMapper.readTree(
@@ -237,7 +211,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/invalid-character/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/invalid-character/1",
             data,
             400);
     assertThat(resp)
@@ -258,7 +232,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testDocGetOnNotExistingCollection() throws IOException {
     String resp =
         RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/unknown/1", 404);
+            authToken, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/unknown/1", 404);
     assertThat(resp)
         .isEqualTo("{\"description\":\"Collection unknown does not exist.\",\"code\":404}");
   }
@@ -270,7 +244,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp)
@@ -281,7 +255,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp)
@@ -292,7 +266,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp)
@@ -303,7 +277,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp)
@@ -314,7 +288,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp)
@@ -327,105 +301,105 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj = objectMapper.readTree("{ \"$\": \"weird but allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     String resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"$30\": \"not as weird\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"@\": \"weird but allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"meet me @ the place\": \"not as weird\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"?\": \"weird but allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"spac es\": \"weird but allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{ \"3\": [\"totally allowed\"] }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path/3/[0]",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path/3/[0]",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
@@ -433,21 +407,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{ \"-1\": \"totally allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path/-1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path/-1",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.readTree("\"totally allowed\""), "1", null));
@@ -455,14 +429,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{ \"Eric says \\\"hello\\\"\": \"totally allowed\" }");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/path",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/path",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
   }
@@ -474,7 +448,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(resp).isEqualTo("{\"description\":\"Max depth of 64 exceeded.\",\"code\":400}");
@@ -483,7 +457,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/[1000000]",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/[1000000]",
             obj.toString(),
             400);
     assertThat(resp)
@@ -497,7 +471,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             200);
     assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
@@ -507,7 +481,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1/quiz/maths/q1/options/[0]",
             200);
     assertThat(objectMapper.readTree(resp))
@@ -518,7 +492,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1/quiz/maths/q1/options/[0]?raw=true",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(obj.requiredAt("/quiz/maths/q1/options/0"));
@@ -528,7 +502,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1/quiz/nests/q1/options/[3]/this",
             200);
     assertThat(objectMapper.readTree(resp))
@@ -542,21 +516,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             200);
     assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
     RestUtils.get(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/nonexistent/path",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/nonexistent/path",
         204);
 
     RestUtils.get(
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/nonexistent/path/[1]",
         204);
 
@@ -564,7 +538,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/quiz/maths/q1/options/[9999]",
         204); // out of bounds
   }
@@ -574,42 +548,42 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     String resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"abc\": {}}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "2", null));
 
     obj = objectMapper.readTree("{\"abc\": []}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/3",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/3",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "3", null));
 
@@ -618,21 +592,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             "{\"abc\": [], \"bcd\": {}, \"cde\": null, \"abcd\": { \"nest1\": [], \"nest2\": {}}}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/4",
         obj.toString(),
         200);
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/4",
             200);
     assertThat(objectMapper.readTree(resp)).isEqualTo(wrapResponse(obj, "4", null));
 
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/abc",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/4/abc",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
@@ -640,7 +614,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/bcd",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/4/bcd",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createObjectNode(), "4", null));
@@ -648,7 +622,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     resp =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/4/abcd/nest1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/4/abcd/nest1",
             200);
     assertThat(objectMapper.readTree(resp))
         .isEqualTo(wrapResponse(objectMapper.createArrayNode(), "4", null));
@@ -661,7 +635,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -669,7 +643,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
@@ -677,21 +651,21 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"q5000\": \"hello?\"}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/sport",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/sport",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
 
     ObjectNode sportNode = objectMapper.createObjectNode();
@@ -709,7 +683,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -717,7 +691,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
@@ -727,7 +701,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/quiz/nests/q1/options/[0]",
         obj.toString(),
         200);
@@ -737,7 +711,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1/quiz/nests/q1/options/[0]",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
@@ -745,7 +719,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
 
     ObjectNode optionNode = objectMapper.createObjectNode();
@@ -763,7 +737,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -771,42 +745,42 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj = objectMapper.readTree("[{\"array\": \"at\"}, \"sub\", \"doc\"]");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("[0, \"a\", \"2\", true]");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/nests/q1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/nests/q1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/nests/q1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     ObjectNode nestsNode =
         (ObjectNode) objectMapper.readTree("{\"nests\":{\"q1\":[0,\"a\",\"2\",true]}}");
@@ -817,28 +791,28 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("[{\"array\": \"at\"}, \"\", \"doc\"]");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"we\": {\"are\": \"done\"}}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
   }
@@ -850,7 +824,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -858,7 +832,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
@@ -867,7 +841,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(r)
@@ -878,7 +852,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             obj.toString(),
             400);
     assertThat(r)
@@ -889,7 +863,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             obj.toString(),
             400);
     assertThat(r)
@@ -900,7 +874,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/sport",
             obj.toString(),
             400);
     assertThat(r)
@@ -915,7 +889,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -923,7 +897,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
@@ -931,7 +905,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/quiz/sport/q1/question",
         204);
 
@@ -939,25 +913,25 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/quiz/sport/q1/question",
         204);
 
     RestUtils.delete(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/maths",
         204);
 
     RestUtils.get(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/maths",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/maths",
         204);
 
     RestUtils.delete(
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/1/quiz/nests/q1/options/[0]",
         204);
 
@@ -966,7 +940,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1/quiz/nests/q1/options",
             200);
     assertThat(objectMapper.readTree(r))
@@ -978,10 +952,10 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     RestUtils.delete(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 204);
+        authToken, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 204);
 
     RestUtils.get(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1", 204);
+        authToken, hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1", 204);
   }
 
   @Test
@@ -991,7 +965,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     Response resp =
         RestUtils.postRaw(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection",
             fullObj.toString(),
             201);
     String newLocation = resp.header("location");
@@ -1008,28 +982,28 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj = objectMapper.readTree("{\"abc\": 1}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": true}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(wrapResponse(objectMapper.readTree("{ \"abc\": 1, \"bcd\": true }"), "1", null));
@@ -1037,14 +1011,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": 0 }}}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1054,14 +1028,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [1,2,3,4]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1070,14 +1044,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [5,{\"a\": 23},7,8]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1087,14 +1061,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1107,14 +1081,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": {\"replace\": \"array\"}}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1126,14 +1100,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"done\": \"done\"}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1149,28 +1123,28 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj = objectMapper.readTree("{\"abc\": null}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = objectMapper.readTree("{\"bcd\": null}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1179,14 +1153,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": {\"a\": {\"b\": null }}}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1198,14 +1172,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [null,2,null,4]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1215,14 +1189,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [1,{\"a\": null},3,4]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1234,14 +1208,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"bcd\": [null]}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1250,14 +1224,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     obj = objectMapper.readTree("{\"null\": null}");
     RestUtils.patch(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         obj.toString(),
         200);
 
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r))
         .isEqualTo(
@@ -1274,7 +1248,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.put(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             fullObj.toString(),
             200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
@@ -1282,7 +1256,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             200);
     assertThat(objectMapper.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
@@ -1291,7 +1265,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(r)
@@ -1302,7 +1276,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport/q1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/sport/q1",
             obj.toString(),
             400);
     assertThat(r)
@@ -1313,7 +1287,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
             obj.toString(),
             400);
     assertThat(r)
@@ -1324,7 +1298,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             obj.toString(),
             400);
     assertThat(r)
@@ -1335,7 +1309,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz",
             obj.toString(),
             400);
     assertThat(r)
@@ -1346,7 +1320,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.patch(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1/quiz/sport",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1/quiz/sport",
             obj.toString(),
             400);
     assertThat(r)
@@ -1360,7 +1334,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1370,7 +1344,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
             200);
 
@@ -1383,7 +1357,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true",
         204);
 
@@ -1393,7 +1367,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true",
             200);
 
@@ -1407,7 +1381,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}",
             200);
 
@@ -1422,7 +1396,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true",
             200);
 
@@ -1435,7 +1409,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true",
             200);
 
@@ -1449,7 +1423,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true",
             200);
     searchResultStr =
@@ -1468,7 +1442,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1478,7 +1452,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
             200);
 
@@ -1493,7 +1467,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true",
             200);
 
@@ -1507,7 +1481,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]",
             200);
 
@@ -1522,7 +1496,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true",
             200);
 
@@ -1535,7 +1509,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true",
             200);
 
@@ -1549,7 +1523,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
             200);
     searchResultStr =
@@ -1568,7 +1542,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1578,7 +1552,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}",
             200);
 
@@ -1593,7 +1567,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}",
             200);
 
@@ -1608,7 +1582,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.answer\": {\"$ne\": 12}}",
             200);
 
@@ -1621,7 +1595,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
         204);
 
@@ -1631,7 +1605,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}",
             200);
 
@@ -1647,12 +1621,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj2 = objectMapper.readTree("{\"value\": \"a\"}");
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj1.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id-2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id-2",
         fullObj2.toString(),
         200);
 
@@ -1663,7 +1637,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
@@ -1675,7 +1649,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
@@ -1687,7 +1661,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
             200);
 
@@ -1701,7 +1675,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1711,7 +1685,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}",
             200);
 
@@ -1726,7 +1700,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}",
             200);
 
@@ -1741,7 +1715,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}",
             200);
 
@@ -1756,7 +1730,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$in\": [null]}}",
             200);
 
@@ -1771,7 +1745,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1781,7 +1755,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}",
             200);
 
@@ -1796,7 +1770,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}",
             200);
 
@@ -1811,7 +1785,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}",
             200);
 
@@ -1826,7 +1800,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.*.*.sku\": {\"$nin\": [null]}}",
             200);
 
@@ -1841,7 +1815,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -1851,7 +1825,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}",
             200);
 
@@ -1866,7 +1840,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}",
             200);
 
@@ -1881,7 +1855,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         hostWithPort
             + "/v2/namespaces/"
-            + keyspace
+            + KEYSPACE
             + "/collections/collection/cool-search-id?where=hello",
         500);
 
@@ -1890,7 +1864,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where=[\"a\"]}",
             400);
     assertThat(r)
@@ -1902,7 +1876,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": true}}",
             400);
     assertThat(r)
@@ -1914,7 +1888,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$exists\": false}}}",
             400);
     assertThat(r)
@@ -1926,7 +1900,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"exists\": true}}}",
             400);
     assertThat(r).startsWith("{\"description\":\"Invalid operator: exists, valid operators are:");
@@ -1936,7 +1910,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": null}}}",
             400);
     assertThat(r)
@@ -1948,7 +1922,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": {}}}}",
             400);
     assertThat(r)
@@ -1960,7 +1934,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": []}}}",
             400);
     assertThat(r)
@@ -1972,7 +1946,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": 2}}}",
             400);
     assertThat(r)
@@ -1984,7 +1958,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}",
             400);
     assertThat(r)
@@ -1995,7 +1969,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"a\": {\"$in\": [1]}}&fields=[\"b\"]",
             400);
     assertThat(r)
@@ -2007,7 +1981,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?fields=[\"b\"]",
             400);
     assertThat(r)
@@ -2021,7 +1995,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -2031,7 +2005,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true",
             200);
 
@@ -2045,7 +2019,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true",
             200);
     searchResultStr = "[{\"quiz\":{\"maths\":{\"q1\":{\"options\":{\"[0]\":10.2}}}}}]";
@@ -2056,7 +2030,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
@@ -2069,7 +2043,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true",
             200);
     searchResultStr =
@@ -2085,7 +2059,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
@@ -2099,7 +2073,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/cool-search-id",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/cool-search-id",
         fullObj.toString(),
         200);
 
@@ -2109,7 +2083,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}",
             200);
     JsonNode responseBody1 = objectMapper.readTree(r);
@@ -2122,7 +2096,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2146,7 +2120,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10",
             200);
     responseBody1 = objectMapper.readTree(r);
@@ -2159,7 +2133,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2188,12 +2162,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
         doc2.toString(),
         200);
 
@@ -2202,7 +2176,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}",
             200);
 
@@ -2215,7 +2189,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}",
             200);
 
@@ -2231,7 +2205,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-size=3&where={\"quiz.sport.q1.question\":{\"$in\": [\"Which one is correct team name in NBA?\"]}}",
             200);
 
@@ -2258,17 +2232,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc1.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
         doc2.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/3",
         doc3.toString(),
         200);
 
@@ -2276,7 +2250,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection",
             200);
     JsonNode resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2292,7 +2266,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2310,7 +2284,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2331,7 +2305,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=2",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection?page-size=2",
             200);
     resp = objectMapper.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2351,7 +2325,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?page-size=2&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2373,7 +2347,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=4",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection?page-size=4",
             200);
     resp = objectMapper.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
@@ -2408,17 +2382,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc1.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
         doc2.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/3",
         doc3.toString(),
         200);
 
@@ -2426,7 +2400,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?fields=[\"a\"]",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection?fields=[\"a\"]",
             200);
     JsonNode resp = objectMapper.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2450,7 +2424,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2475,7 +2449,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2505,7 +2479,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a\"]&page-size=2",
             200);
     resp = objectMapper.readTree(r);
@@ -2540,7 +2514,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a\"]&page-size=2&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2571,7 +2545,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a\"]&page-size=4",
             200);
     resp = objectMapper.readTree(r);
@@ -2603,7 +2577,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc1.toString(),
         200);
 
@@ -2612,7 +2586,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?fields=[\"a.value\",\"b.value\",\"bb.value\"]",
             200);
     JsonNode resp = objectMapper.readTree(r);
@@ -2644,17 +2618,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc1.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/2",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/2",
         doc2.toString(),
         200);
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/3",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/3",
         doc3.toString(),
         200);
 
@@ -2664,7 +2638,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"b.value\": {\"$eq\": 2}}&fields=[\"a\"]",
             200);
     JsonNode resp = objectMapper.readTree(r);
@@ -2684,7 +2658,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
             200);
     resp = objectMapper.readTree(r);
@@ -2710,7 +2684,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
@@ -2739,7 +2713,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String r =
         RestUtils.get(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection?page-size=21",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection?page-size=21",
             400);
     assertThat(r)
         .isEqualTo(
@@ -2752,7 +2726,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         objectMapper.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
     RestUtils.put(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/collection/1",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections/collection/1",
         doc1.toString(),
         200);
 
@@ -2761,7 +2735,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             hostWithPort
                 + "/v2/namespaces/"
-                + keyspace
+                + KEYSPACE
                 + "/collections/collection/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5",
             400);
     assertThat(r)
@@ -2891,7 +2865,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections",
         "{\"name\" : \"" + tableName + "\"}",
         201);
   }
@@ -2903,14 +2877,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections",
         "{\"name\" : \"" + tableName + "\"}",
         201);
 
     String response =
         RestUtils.post(
             authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+            hostWithPort + "/v2/namespaces/" + KEYSPACE + "/collections",
             "{\"name\" : \"" + tableName + "\"}",
             409);
 
