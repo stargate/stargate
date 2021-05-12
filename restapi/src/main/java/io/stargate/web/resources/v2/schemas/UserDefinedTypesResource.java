@@ -19,9 +19,11 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Strings;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
@@ -49,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -115,37 +118,7 @@ public class UserDefinedTypesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    return RequestHandler.handle(
-        () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
-
-          if (keyspace == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
-          }
-          db.getAuthorizationService()
-              .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  null,
-                  SourceAPI.REST,
-                  ResourceKind.TYPE);
-
-          List<UserDefinedTypeResponse> udtResponses =
-              authenticatedDB.getTypes(keyspaceName).stream()
-                  .map(this::mapUdtAsResponse)
-                  .collect(Collectors.toList());
-
-          Object response = raw ? udtResponses : new ResponseWrapper<>(udtResponses);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
-        });
+    return RequestHandler.handle(() -> retrieveUdt(keyspaceName, null, raw, token, request));
   }
 
   @Timed
@@ -180,33 +153,45 @@ public class UserDefinedTypesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    return RequestHandler.handle(
-        () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
-          if (keyspace == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
-          }
+    return RequestHandler.handle(() -> retrieveUdt(keyspaceName, typeName, raw, token, request));
+  }
 
-          db.getAuthorizationService()
-              .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  null,
-                  SourceAPI.REST,
-                  ResourceKind.TYPE);
+  private Response retrieveUdt(
+      String keyspaceName, String typeName, boolean raw, String token, HttpServletRequest request)
+      throws UnauthorizedException, JsonProcessingException {
+    AuthenticatedDB authenticatedDB = db.getRestDataStoreForToken(token, getAllHeaders(request));
+    Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+    if (keyspace == null) {
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(
+              new Error("keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
+    }
 
-          UserDefinedTypeResponse udtResponse =
-              mapUdtAsResponse(authenticatedDB.getType(keyspaceName, typeName));
-          return Response.ok(
-                  Converters.writeResponse(raw ? udtResponse : new ResponseWrapper<>(udtResponse)))
-              .build();
-        });
+    db.getAuthorizationService()
+        .authorizeSchemaRead(
+            authenticatedDB.getAuthenticationSubject(),
+            Collections.singletonList(keyspaceName),
+            null,
+            SourceAPI.REST,
+            ResourceKind.TYPE);
+
+    // find by id
+    if (typeName != null) {
+      UserDefinedTypeResponse udtResponse =
+          mapUdtAsResponse(authenticatedDB.getType(keyspaceName, typeName));
+      return Response.ok(
+              Converters.writeResponse(raw ? udtResponse : new ResponseWrapper<>(udtResponse)))
+          .build();
+    } else { // retrieve all
+      List<UserDefinedTypeResponse> udtResponses =
+          authenticatedDB.getTypes(keyspaceName).stream()
+              .map(this::mapUdtAsResponse)
+              .collect(Collectors.toList());
+
+      Object response = raw ? udtResponses : new ResponseWrapper<>(udtResponses);
+      return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
+    }
   }
 
   @Timed
@@ -439,63 +424,61 @@ public class UserDefinedTypesResource {
 
           UserDefinedType udt =
               ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();
-
-          List<UserDefinedTypeField> addFields = udtUpdate.getAddFields();
-          List<UserDefinedTypeUpdate.RenameUdtField> renameFields = udtUpdate.getRenameFields();
-
-          if ((addFields == null || addFields.isEmpty())
-              && (renameFields == null || renameFields.isEmpty())) {
+          try {
+            updateUdt(authenticatedDB, keyspace, udtUpdate, udt);
+          } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(
-                    new Error(
-                        "addFields and/or renameFields is required to update an UDT.",
-                        Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
-          }
-
-          if (addFields != null && !addFields.isEmpty()) {
-            try {
-              List<Column> columns = getUdtColumns(keyspace, addFields);
-              authenticatedDB
-                  .getDataStore()
-                  .queryBuilder()
-                  .alter()
-                  .type(keyspaceName, udt)
-                  .addColumn(columns)
-                  .build()
-                  .execute(ConsistencyLevel.LOCAL_QUORUM)
-                  .get();
-            } catch (IllegalArgumentException | InvalidRequestException ex) {
-              return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
-                  .build();
-            }
-          }
-
-          if (renameFields != null && !renameFields.isEmpty()) {
-            try {
-              List<Pair<String, String>> columns =
-                  renameFields.stream()
-                      .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
-                      .collect(Collectors.toList());
-              authenticatedDB
-                  .getDataStore()
-                  .queryBuilder()
-                  .alter()
-                  .type(keyspaceName, udt)
-                  .renameColumn(columns)
-                  .build()
-                  .execute(ConsistencyLevel.LOCAL_QUORUM)
-                  .get();
-            } catch (IllegalArgumentException | InvalidRequestException ex) {
-              return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
-                  .build();
-            }
           }
 
           return Response.status(Response.Status.OK).build();
         });
+  }
+
+  private void updateUdt(
+      AuthenticatedDB authenticatedDB,
+      Keyspace keyspace,
+      UserDefinedTypeUpdate udtUpdate,
+      UserDefinedType udt)
+      throws ExecutionException, InterruptedException {
+    List<UserDefinedTypeField> addFields = udtUpdate.getAddFields();
+    List<UserDefinedTypeUpdate.RenameUdtField> renameFields = udtUpdate.getRenameFields();
+
+    if ((addFields == null || addFields.isEmpty())
+        && (renameFields == null || renameFields.isEmpty())) {
+      throw new IllegalArgumentException(
+          "addFields and/or renameFields is required to update an UDT.");
+    }
+
+    if (addFields != null && !addFields.isEmpty()) {
+      List<Column> columns = getUdtColumns(keyspace, addFields);
+      authenticatedDB
+          .getDataStore()
+          .queryBuilder()
+          .alter()
+          .type(keyspace.name(), udt)
+          .addColumn(columns)
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
+          .get();
+    }
+
+    if (renameFields != null && !renameFields.isEmpty()) {
+      List<Pair<String, String>> columns =
+          renameFields.stream()
+              .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
+              .collect(Collectors.toList());
+      authenticatedDB
+          .getDataStore()
+          .queryBuilder()
+          .alter()
+          .type(keyspace.name(), udt)
+          .renameColumn(columns)
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM)
+          .get();
+    }
   }
 
   private List<Column> getUdtColumns(Keyspace keyspace, List<UserDefinedTypeField> fields) {
