@@ -11,7 +11,6 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
@@ -609,19 +608,24 @@ public class DocumentResourceV2 {
               selectionList = documentService.convertToSelectionList(fieldsJson);
             }
           } else if (fields != null) {
-              throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_FIELDS_WITHOUT_WHERE);
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_FIELDS_WITHOUT_WHERE);
           }
 
           if (!filters.isEmpty()) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-                String msg = String.format("Conditions across multiple fields are not yet supported. Found: %s.", distinctFields);
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
+              String msg =
+                  String.format(
+                      "Conditions across multiple fields are not yet supported. Found: %s.",
+                      distinctFields);
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
             }
             String fieldName = filters.get(0).getField();
             if (!selectionList.isEmpty() && !selectionList.contains(fieldName)) {
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
             }
           }
 
@@ -812,13 +816,6 @@ public class DocumentResourceV2 {
               new Error(
                   "Role unauthorized for operation: " + ue.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
-          .build();
-    } catch (DocumentAPIRequestException sre) {
-      return Response.status(Response.Status.BAD_REQUEST)
-          .entity(
-              new Error(
-                  "Bad request: " + sre.getLocalizedMessage(),
-                  Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)

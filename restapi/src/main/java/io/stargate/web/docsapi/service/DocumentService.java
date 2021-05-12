@@ -21,10 +21,9 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.exception.DocumentAPIErrorHandlingStrategy;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
@@ -171,10 +170,12 @@ public class DocumentService {
             (v, parsingContext) -> {
               String fieldName = parsingContext.getCurrentFieldName();
               if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
-                String msg = String.format(
+                String msg =
+                    String.format(
                         "The characters %s are not permitted in JSON field names, invalid field %s.",
                         DocumentDB.getForbiddenCharactersMessage(), fieldName);
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
               }
 
               if (v instanceof JsonPrimitive
@@ -205,12 +206,14 @@ public class DocumentService {
                   boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
                   if (isArrayElement) {
                     if (i == path.size() && patching) {
-                      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+                      throw new ErrorCodeRuntimeException(
+                          ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
                     }
 
                     int idx = Integer.parseInt(innerPath);
                     if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
-                      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
+                      throw new ErrorCodeRuntimeException(
+                          ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
                     }
 
                     // left-pad the array element to 6 characters
@@ -265,7 +268,7 @@ public class DocumentService {
                 bindVariableList.add(bindMap.values().toArray());
               }
             })
-        .withErrorStrategy(new DocumentAPIErrorHandlingStrategy())
+        .withErrorStrategy(new RuntimeExceptionPassHandlingStrategy())
         .buildAndSurf(jsonPayload);
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
@@ -417,7 +420,8 @@ public class DocumentService {
     List<String> firstLevelKeys = shreddingResults.right;
 
     if (bindVariableList.isEmpty() && isJson) {
-      String msg = "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
+      String msg =
+          "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
               + payload
               + ". Hint: update the parent path with a defined object instead.";
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID, msg);
@@ -483,7 +487,10 @@ public class DocumentService {
 
     if (filterOp == FilterOp.NE) {
       if (value.isArray() || value.isObject()) {
-        String msg = String.format("Value entry for field %s, operation %s was expecting a value or `null`", fieldName, op);
+        String msg =
+            String.format(
+                "Value entry for field %s, operation %s was expecting a value or `null`",
+                fieldName, op);
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
       }
     } else if (filterOp == FilterOp.EXISTS) {
@@ -497,12 +504,17 @@ public class DocumentService {
         || filterOp == FilterOp.LTE
         || filterOp == FilterOp.EQ) {
       if (value.isArray() || value.isObject() || value.isNull()) {
-        String msg = String.format("Value entry for field %s, operation %s was expecting a non-null value", fieldName, op);
+        String msg =
+            String.format(
+                "Value entry for field %s, operation %s was expecting a non-null value",
+                fieldName, op);
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
       }
     } else if (filterOp == FilterOp.IN || filterOp == FilterOp.NIN) {
       if (!value.isArray()) {
-        String msg = String.format("Value entry for field %s, operation %s was expecting an array", fieldName, op);
+        String msg =
+            String.format(
+                "Value entry for field %s, operation %s was expecting an array", fieldName, op);
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
       }
     } else {
@@ -562,7 +574,9 @@ public class DocumentService {
       }
       JsonNode fieldConditions = input.get(fieldName);
       if (!fieldConditions.isObject()) {
-        String msg = String.format("Search entry for field %s was expecting a JSON object as input.", fieldName);
+        String msg =
+            String.format(
+                "Search entry for field %s was expecting a JSON object as input.", fieldName);
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED, msg);
       }
 
