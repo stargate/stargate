@@ -1,278 +1,267 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.http.graphql.cqlfirst;
 
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
-import com.apollographql.apollo.ApolloClient;
-import com.apollographql.apollo.api.Error;
-import com.example.graphql.client.betterbotz.aggregations.*;
-import com.example.graphql.client.betterbotz.orders.InsertOrdersMutation;
-import com.example.graphql.client.betterbotz.type.OrdersFilterInput;
-import com.example.graphql.client.betterbotz.type.OrdersInput;
-import com.example.graphql.client.betterbotz.type.StringFilterInput;
-import java.math.BigDecimal;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.jayway.jsonpath.JsonPath;
+import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class AggregationFunctionsTest extends ApolloTestBase {
+public class AggregationFunctionsTest extends BetterbotzTestBase {
+  private static CqlFirstClient CLIENT;
+  private static CqlIdentifier KEYSPACE_ID;
+
+  @BeforeAll
+  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
+    String host = cluster.seedAddress();
+    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+    KEYSPACE_ID = keyspaceId;
+  }
+
+  @AfterEach
+  public void cleanup(CqlSession session) {
+    session.execute("TRUNCATE TABLE \"Orders\"");
+  }
+
   @Test
   @DisplayName("Should calculate number of orders using count aggregation")
   public void insertOrdersAndCountUsingBigIntFunctionWithAlias() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("3000")
-            .description("d1")
-            .build();
-    OrdersInput order2 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c2")
-            .price("2500")
-            .description("d2")
-            .build();
+    insertOrder("p1", "c1", "3000", "d1");
+    insertOrder("p1", "c2", "2500", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
-
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
-    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-
-    GetOrdersWithCountQuery query = GetOrdersWithCountQuery.builder().filter(filterInput).build();
-
-    GetOrdersWithCountQuery.Data result = getObservable(client.query(query));
-
-    assertThat(result.getOrders().get().getValues().get().get(0).getCount().get()).isEqualTo("2");
+    Map<String, Object> result = getOrderWithCount("p1");
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0].count")).isEqualTo("2");
   }
 
   @Test
   @DisplayName("Should calculate average of orders' price using avg aggregation")
   public void insertOrdersAndAvgUsingDecimalFunctionWithoutAlias() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("4")
-            .description("d1")
-            .build();
-    OrdersInput order2 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c2")
-            .price("10")
-            .description("d2")
-            .build();
+    insertOrder("p1", "c1", "4", "d1");
+    insertOrder("p1", "c2", "10", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
-
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
-    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-
-    GetOrdersWithAvgQuery query = GetOrdersWithAvgQuery.builder().filter(filterInput).build();
-
-    GetOrdersWithAvgQuery.Data result = getObservable(client.query(query));
-
+    Map<String, Object> result = getOrderWithAvg("p1");
     // avg price is (4 + 10) / 2 = 7
-    assertThat(result.getOrders().get().getValues().get().get(0).get_decimal_function().get())
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0]._decimal_function"))
         .isEqualTo("7");
   }
 
   @Test
   @DisplayName("Should get the highest order using max aggregation")
   public void insertOrdersAndMaxUsingDecimalFunctionWithAlias() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("3000")
-            .description("d1")
-            .build();
-    OrdersInput order2 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c2")
-            .price("2500")
-            .description("d2")
-            .build();
+    insertOrder("p1", "c1", "2500", "d1");
+    insertOrder("p1", "c2", "3000", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
-
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
-    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-
-    GetOrdersWithMaxQuery query = GetOrdersWithMaxQuery.builder().filter(filterInput).build();
-
-    GetOrdersWithMaxQuery.Data result = getObservable(client.query(query));
-
-    assertThat(result.getOrders().get().getValues().get().get(0).getMax().get()).isEqualTo("3000");
+    Map<String, Object> result = getOrderWithMax("p1");
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0].max")).isEqualTo("3000");
   }
 
   @Test
   @DisplayName("Should get the lowest order using min aggregation")
   public void insertOrdersAndMinUsingDecimalFunctionWithAlias() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("3000")
-            .description("d1")
-            .build();
-    OrdersInput order2 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c2")
-            .price("2500")
-            .description("d2")
-            .build();
+    insertOrder("p1", "c1", "2500", "d1");
+    insertOrder("p1", "c2", "3000", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
-
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
-    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-    GetOrdersWithMinQuery query = GetOrdersWithMinQuery.builder().filter(filterInput).build();
-
-    GetOrdersWithMinQuery.Data result = getObservable(client.query(query));
-
-    assertThat(result.getOrders().get().getValues().get().get(0).getMin().get()).isEqualTo("2500");
+    Map<String, Object> result = getOrderWithMin("p1");
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0].min")).isEqualTo("2500");
   }
 
   @Test
   @DisplayName("Should sum all orders' price using sum aggregation")
   public void insertOrdersAndSumUsingDecimalFunctionWithAlias() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("3000")
-            .description("d1")
-            .build();
-    OrdersInput order2 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c2")
-            .price("2500")
-            .description("d2")
-            .build();
+    insertOrder("p1", "c1", "2500", "d1");
+    insertOrder("p1", "c2", "3000", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation order2Mutation = InsertOrdersMutation.builder().value(order2).build();
-
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
-    assertThat(getObservable(client.mutate(order2Mutation)).getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-    GetOrdersWithSumQuery query = GetOrdersWithSumQuery.builder().filter(filterInput).build();
-
-    GetOrdersWithSumQuery.Data result = getObservable(client.query(query));
-
-    assertThat(result.getOrders().get().getValues().get().get(0).getSum().get()).isEqualTo("5500");
+    Map<String, Object> result = getOrderWithSum("p1");
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0].sum")).isEqualTo("5500");
   }
 
   @Test
   @DisplayName("Should test all available function types")
   public void testAllGraphqlFunctionTypes() {
-
     Number value = 100;
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price(value.toString())
-            .value_int(value.intValue())
-            .value_double(value.doubleValue())
-            .value_bigint(value.toString())
-            .value_varint(value.toString())
-            .value_float(value.doubleValue())
-            .value_smallint(value.shortValue())
-            .value_tinyint(value.byteValue())
-            .description("d1")
-            .build();
+    insertOrder("p1", "c1", "d1", value);
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
-
-    InsertOrdersMutation.Data result = getObservable(client.mutate(order1Mutation));
-    assertThat(result.getInsertOrders().isPresent()).isTrue();
-
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
-
-    GetOrdersAllFunctionsQuery query =
-        GetOrdersAllFunctionsQuery.builder().filter(filterInput).build();
-
-    GetOrdersAllFunctionsQuery.Data functionsResult = getObservable(client.query(query));
-
-    GetOrdersAllFunctionsQuery.Value res =
-        functionsResult.getOrders().get().getValues().get().get(0);
-    assertThat(res.get_int_function().get()).isEqualTo(value.intValue());
-    assertThat(res.get_double_function().get()).isEqualTo(value.doubleValue());
-    assertThat(res.get_bigint_function().get()).isEqualTo(value.toString());
-    assertThat(res.get_decimal_function().get()).isEqualTo(value.toString());
-    assertThat(res.get_varint_function().get()).isEqualTo(value.toString());
-    assertThat(res.get_float_function().get()).isEqualTo(value.doubleValue());
-    assertThat(res.get_smallint_function().get()).isEqualTo(BigDecimal.valueOf(value.shortValue()));
-    assertThat(res.get_tinyint_function().get()).isEqualTo(BigDecimal.valueOf(value.byteValue()));
+    Map<String, Object> result = getOrderWithAllFunctions("p1");
+    assertThat(JsonPath.<Integer>read(result, "$.Orders.values[0]._int_function"))
+        .isEqualTo(value.intValue());
+    assertThat(JsonPath.<Double>read(result, "$.Orders.values[0]._double_function"))
+        .isEqualTo(value.doubleValue());
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0]._bigint_function"))
+        .isEqualTo(value.toString());
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0]._decimal_function"))
+        .isEqualTo(value.toString());
+    assertThat(JsonPath.<String>read(result, "$.Orders.values[0]._varint_function"))
+        .isEqualTo(value.toString());
+    assertThat(JsonPath.<Double>read(result, "$.Orders.values[0]._float_function"))
+        .isEqualTo(value.doubleValue());
+    assertThat(JsonPath.<Integer>read(result, "$.Orders.values[0]._smallint_function"))
+        .isEqualTo(value.shortValue());
+    assertThat(JsonPath.<Integer>read(result, "$.Orders.values[0]._tinyint_function"))
+        .isEqualTo(value.byteValue());
   }
 
   @Test
   @DisplayName("Should error when trying to use an unknown aggregation function")
   public void shouldErrorWhenTryingToUseAnUnknownAggregationFunction() {
-    OrdersInput order1 =
-        OrdersInput.builder()
-            .prodName("p1")
-            .customerName("c1")
-            .price("3000")
-            .description("d1")
-            .build();
+    insertOrder("p1", "c1", "2500", "d1");
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersMutation order1Mutation = InsertOrdersMutation.builder().value(order1).build();
+    String result = getOrderWithUnknownFunction("p1");
 
-    assertThat(getObservable(client.mutate(order1Mutation)).getInsertOrders().isPresent()).isTrue();
+    assertThat(result).contains("The aggregation function: some_unknown_function is not supported");
+  }
 
-    OrdersFilterInput filterInput =
-        OrdersFilterInput.builder().prodName(StringFilterInput.builder().eq("p1").build()).build();
+  private Map<String, Object> insertOrder(
+      String prodName, String customerName, String description, Number value) {
+    Map<String, Object> response =
+        CLIENT.executeDmlQuery(
+            KEYSPACE_ID,
+            String.format(
+                "mutation {\n"
+                    + "  insertOrders(\n"
+                    + "    value: {\n"
+                    + "      prodName: \"%s\"\n"
+                    + "      customerName: \"%s\"\n"
+                    + "      price: \"%s\"\n"
+                    + "      value_int: %s\n"
+                    + "      value_double: %s\n"
+                    + "      value_bigint: \"%s\"\n"
+                    + "      value_varint: \"%s\"\n"
+                    + "      value_float: %s\n"
+                    + "      value_smallint: %s\n"
+                    + "      value_tinyint: %s\n"
+                    + "      description: \"%s\"\n"
+                    + "    }\n,"
+                    + "    ifNotExists: true"
+                    + "  ) {\n"
+                    + "    applied\n"
+                    + "    value { id, prodId, prodName, customerName, address, description, price, sellPrice }"
+                    + "  }\n"
+                    + "}",
+                prodName,
+                customerName,
+                value.toString(),
+                value.intValue(),
+                value.doubleValue(),
+                value.toString(),
+                value.toString(),
+                value.doubleValue(),
+                value.shortValue(),
+                value.byteValue(),
+                description));
+    assertThat(JsonPath.<Boolean>read(response, "$.insertOrders.applied")).isTrue();
+    return response;
+  }
 
-    GetOrdersWithUnknownFunctionQuery query =
-        GetOrdersWithUnknownFunctionQuery.builder().filter(filterInput).build();
+  private Map<String, Object> insertOrder(
+      String prodName, String customerName, String price, String description) {
+    Map<String, Object> response =
+        CLIENT.executeDmlQuery(
+            KEYSPACE_ID,
+            String.format(
+                "mutation {\n"
+                    + "  insertOrders(\n"
+                    + "    value: {\n"
+                    + "      prodName: \"%s\"\n"
+                    + "      customerName: \"%s\"\n"
+                    + "      price: \"%s\"\n"
+                    + "      description: \"%s\"\n"
+                    + "    }\n,"
+                    + "    ifNotExists: true"
+                    + "  ) {\n"
+                    + "    applied\n"
+                    + "    value { id, prodId, prodName, customerName, address, description, price, sellPrice }"
+                    + "  }\n"
+                    + "}",
+                prodName, customerName, price, description));
+    assertThat(JsonPath.<Boolean>read(response, "$.insertOrders.applied")).isTrue();
+    return response;
+  }
 
-    GraphQLTestException ex =
-        catchThrowableOfType(() -> getObservable(client.query(query)), GraphQLTestException.class);
+  private Map<String, Object> getOrderWithCount(String prodName) {
+    return getOrderWithFunction(
+        prodName, "count: _bigint_function(name: \"count\", args: [\"description\"])");
+  }
 
-    assertThat(ex).isNotNull();
-    assertThat(ex.errors)
-        // One error per query
-        .hasSize(1)
-        .first()
-        .extracting(Error::getMessage)
-        .asString()
-        .contains("The aggregation function: some_unknown_function is not supported");
+  private Map<String, Object> getOrderWithMax(String prodName) {
+    return getOrderWithFunction(
+        prodName, "max: _decimal_function(name: \"max\", args: [\"price\"])");
+  }
+
+  private String getOrderWithUnknownFunction(String prodName) {
+    return getOrderWithFunctionError(
+        prodName, "sum: _decimal_function(name: \"some_unknown_function\", args: [\"price\"])");
+  }
+
+  private Map<String, Object> getOrderWithMin(String prodName) {
+    return getOrderWithFunction(
+        prodName, "min: _decimal_function(name: \"min\", args: [\"price\"])");
+  }
+
+  private Map<String, Object> getOrderWithAvg(String prodName) {
+    return getOrderWithFunction(prodName, "_decimal_function(name: \"avg\", args: [\"price\"])");
+  }
+
+  private Map<String, Object> getOrderWithSum(String prodName) {
+    return getOrderWithFunction(
+        prodName, "sum: _decimal_function(name: \"sum\", args: [\"price\"])");
+  }
+
+  private Map<String, Object> getOrderWithAllFunctions(String prodName) {
+    return getOrderWithFunction(
+        prodName,
+        "_int_function(name: \"max\", args: [\"value_int\"])\n"
+            + "            _double_function(name: \"max\", args: [\"value_double\"])\n"
+            + "            _bigint_function(name: \"max\", args: [\"value_bigint\"])\n"
+            + "            _decimal_function(name: \"max\", args: [\"price\"])\n"
+            + "            _varint_function(name: \"max\", args: [\"value_varint\"])\n"
+            + "            _float_function(name: \"max\", args: [\"value_float\"])\n"
+            + "            _smallint_function(name: \"max\", args: [\"value_smallint\"])\n"
+            + "            _tinyint_function(name: \"max\", args: [\"value_tinyint\"])");
+  }
+
+  private Map<String, Object> getOrderWithFunction(String prodName, String function) {
+    return CLIENT.executeDmlQuery(KEYSPACE_ID, createQueryWithFunction(prodName, function));
+  }
+
+  private String getOrderWithFunctionError(String prodName, String function) {
+    return CLIENT.getDmlQueryError(KEYSPACE_ID, createQueryWithFunction(prodName, function));
+  }
+
+  private String createQueryWithFunction(String prodName, String function) {
+    return String.format(
+        "{\n"
+            + "  Orders(\n"
+            + "    filter: {\n"
+            + "      prodName: { eq: \"%s\" }\n"
+            + "    }\n"
+            + "  ) {\n"
+            + "    values {\n"
+            + "       %s\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        prodName, function);
   }
 }
