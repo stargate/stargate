@@ -474,11 +474,11 @@ public class UserDefinedTypesResource {
 
           if (renameFields != null && !renameFields.isEmpty()) {
             try {
-                List<Pair<String, String>> columns =
-                        renameFields.stream()
-                                .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
-                                .collect(Collectors.toList());
-                authenticatedDB
+              List<Pair<String, String>> columns =
+                  renameFields.stream()
+                      .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
+                      .collect(Collectors.toList());
+              authenticatedDB
                   .getDataStore()
                   .queryBuilder()
                   .alter()

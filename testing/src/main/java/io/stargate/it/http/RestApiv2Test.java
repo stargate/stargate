@@ -49,9 +49,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
@@ -2479,10 +2481,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(response.get("name")).isEqualTo("udt1");
     List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
     assertThat(fields.size()).isEqualTo(2);
-    assertThat(fields.get(0).get("name")).isEqualTo("name1");
-    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
-    assertThat(fields.get(1).get("name")).isEqualTo("name2");
-    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("varchar");
+
+    Set<String> fieldNames = new HashSet<>();
+    fieldNames.add(fields.get(0).get("name"));
+    fieldNames.add(fields.get(1).get("name"));
+
+    assertThat(fieldNames.contains("name1")).isTrue();
+    assertThat(fieldNames.contains("name2")).isTrue();
 
     // create UDT
     udtString = "{\"name\": \"udt2\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
