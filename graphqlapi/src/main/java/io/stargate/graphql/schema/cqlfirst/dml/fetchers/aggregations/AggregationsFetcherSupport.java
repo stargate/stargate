@@ -54,8 +54,8 @@ public class AggregationsFetcherSupport {
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
         Map<String, Object> arguments = selectedField.getArguments();
-        SupportedAggregationFunction functionName = getNameArgument(arguments);
-        switch (functionName) {
+        SupportedAggregationFunction supportedFunction = getSupportedFunction(arguments);
+        switch (supportedFunction) {
           case COUNT:
             addAggregation(
                 arguments,
@@ -93,32 +93,9 @@ public class AggregationsFetcherSupport {
     }
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        switch (SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName())) {
-          case INT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getInt);
-            break;
-          case DOUBLE_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getDouble);
-            break;
-          case BIGINT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getLong);
-            break;
-          case DECIMAL_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getBigDecimal);
-            break;
-          case VARINT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getBigInteger);
-            break;
-          case FLOAT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getFloat);
-            break;
-          case SMALLINT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getShort);
-            break;
-          case TINYINT_FUNCTION:
-            putResultValue(columns, row, selectedField, Row::getByte);
-            break;
-        }
+        SupportedGraphqlFunction function =
+            SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName());
+        putResultValue(columns, row, selectedField, function.getRowValueExtractor());
       }
     }
     return columns;
@@ -146,7 +123,7 @@ public class AggregationsFetcherSupport {
   // it will return: 'system.count(a)'
   private String generateAggregationColumnName(SelectedField selectedField) {
     Map<String, Object> arguments = selectedField.getArguments();
-    SupportedAggregationFunction functionName = getNameArgument(arguments);
+    SupportedAggregationFunction functionName = getSupportedFunction(arguments);
     List<String> args = getAndValidateArgs(arguments, functionName);
     return String.format("system.%s(%s)", functionName.getName(), args.get(0));
   }
@@ -200,12 +177,8 @@ public class AggregationsFetcherSupport {
     return args;
   }
 
-  private SupportedAggregationFunction getNameArgument(Map<String, Object> arguments) {
-    Object nameArgument = arguments.get("name");
-    if (nameArgument == null) {
-      throw new IllegalArgumentException("The function name cannot be null.");
-    }
-    return SupportedAggregationFunction.valueOfIgnoreCase((String) nameArgument);
+  private SupportedAggregationFunction getSupportedFunction(Map<String, Object> arguments) {
+    return SupportedAggregationFunction.valueOfIgnoreCase((String) arguments.get("name"));
   }
 
   private Set<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {

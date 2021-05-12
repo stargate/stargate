@@ -15,24 +15,33 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
+import io.stargate.db.datastore.Row;
+import java.util.function.BiFunction;
+
 public enum SupportedGraphqlFunction {
-  INT_FUNCTION("_int_function"),
-  DOUBLE_FUNCTION("_double_function"), // corresponds to GraphQLFloat
-  BIGINT_FUNCTION("_bigint_function"),
-  DECIMAL_FUNCTION("_decimal_function"),
-  VARINT_FUNCTION("_varint_function"),
-  FLOAT_FUNCTION("_float_function"),
-  SMALLINT_FUNCTION("_smallint_function"),
-  TINYINT_FUNCTION("_tinyint_function");
+  INT_FUNCTION("_int_function", Row::getInt),
+  DOUBLE_FUNCTION("_double_function", Row::getDouble), // corresponds to GraphQLFloat
+  BIGINT_FUNCTION("_bigint_function", Row::getLong),
+  DECIMAL_FUNCTION("_decimal_function", Row::getBigDecimal),
+  VARINT_FUNCTION("_varint_function", Row::getBigInteger),
+  FLOAT_FUNCTION("_float_function", Row::getFloat),
+  SMALLINT_FUNCTION("_smallint_function", Row::getShort),
+  TINYINT_FUNCTION("_tinyint_function", Row::getByte);
 
   private final String name;
+  private final BiFunction<Row, String, Object> rowValueExtractor;
 
-  SupportedGraphqlFunction(String name) {
+  SupportedGraphqlFunction(String name, BiFunction<Row, String, Object> rowValueExtractor) {
     this.name = name;
+    this.rowValueExtractor = rowValueExtractor;
   }
 
   public String getName() {
     return name;
+  }
+
+  public BiFunction<Row, String, Object> getRowValueExtractor() {
+    return rowValueExtractor;
   }
 
   public static SupportedGraphqlFunction valueOfIgnoreCase(String functionName) {
