@@ -19,14 +19,13 @@ import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.nio.ByteBuffer;
 
 /** Codec to convert to/from gRPC and CQL native protocol ({@link ByteBuffer}) values. */
 public interface ValueCodec {
   ProtocolVersion PROTOCOL_VERSION = defaultProtocolVersion();
-
-  Value NULL_VALUE = Value.newBuilder().setNull(Value.Null.newBuilder().build()).build();
 
   /**
    * Convert a gRPC tagged-union payload value into the internal CQL native protocol representation.
@@ -58,7 +57,7 @@ public interface ValueCodec {
 
   static Value decodeValue(ValueCodec codec, ByteBuffer bytes, ColumnType columnType) {
     if (bytes == null) {
-      return NULL_VALUE;
+      return Values.NULL;
     } else {
       return codec.decode(bytes, columnType);
     }

@@ -1,6 +1,7 @@
 package io.stargate.grpc.codec.cql;
 
 import io.stargate.db.schema.Column;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.nio.ByteBuffer;
 
@@ -10,7 +11,7 @@ public abstract class CompositeCodec implements ValueCodec {
     Value element;
     int elementSize = bytes.getInt();
     if (elementSize < 0) {
-      element = NULL_VALUE;
+      element = Values.NULL;
     } else {
       ByteBuffer encodedElement = bytes.slice();
       encodedElement.limit(elementSize);
