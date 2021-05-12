@@ -19,8 +19,6 @@
 
 package org.apache.cassandra.stargate.metrics;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -34,16 +32,24 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Server;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ClientMetrics {
+
+  private static final Logger logger = LoggerFactory.getLogger(ClientMetrics.class);
 
   /** Singleton instance to use. */
   public static final ClientMetrics instance = new ClientMetrics();
@@ -57,7 +63,6 @@ public final class ClientMetrics {
   private static final String AUTH_SUCCESS_METRIC;
   private static final String AUTH_FAILURE_METRIC;
   private static final String AUTH_ERROR_METRIC;
-  private static final String CONNECTED_NATIVE_CLIENTS_METRIC;
 
   // init to avoid re-computing on each record
   static {
@@ -66,22 +71,26 @@ public final class ClientMetrics {
     AUTH_SUCCESS_METRIC = metric("AuthSuccess");
     AUTH_FAILURE_METRIC = metric("AuthFailure");
     AUTH_ERROR_METRIC = metric("AuthError");
-    CONNECTED_NATIVE_CLIENTS_METRIC = metric("connectedNativeClients");
   }
 
+  // initialized state
   private volatile boolean initialized = false;
+  // internal executor
+  private ScheduledExecutorService executorService;
 
+  // dependencies
   private Collection<Server> servers = Collections.emptyList();
-  private MetricRegistry metricRegistry;
   private MeterRegistry meterRegistry;
   private ClientInfoMetricsTagProvider clientInfoTagProvider;
 
+  // internal initialized meters
   private AtomicInteger pausedConnections;
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
   private DistributionSummary bytesReceivedPerFrame;
   private DistributionSummary bytesTransmittedPerFrame;
   private MultiGauge connectedNativeClients;
+  private MultiGauge connectedNativeClientsByUser;
 
   private ClientMetrics() {}
 
@@ -117,16 +126,24 @@ public final class ClientMetrics {
     return new ConnectionMetricsImpl(clientInfo);
   }
 
+  /**
+   * Initializes the {@link ClientMetrics} instance.
+   *
+   * @param servers List of servers to get metrics for
+   * @param meterRegistry Micrometer MeterRegistry to report to
+   * @param clientInfoTagProvider Tag provider for the connection
+   * @param updateRateMillis Number of milliseconds to schedule the internal metric update task. If
+   *     zero or less task will not be scheduled.
+   */
   public synchronized void init(
       Collection<Server> servers,
-      MetricRegistry metricRegistry,
       MeterRegistry meterRegistry,
-      ClientInfoMetricsTagProvider clientInfoTagProvider) {
+      ClientInfoMetricsTagProvider clientInfoTagProvider,
+      int updateRateMillis) {
 
     if (initialized) return;
 
     this.servers = servers;
-    this.metricRegistry = metricRegistry;
     this.meterRegistry = meterRegistry;
     this.clientInfoTagProvider = clientInfoTagProvider;
 
@@ -139,19 +156,8 @@ public final class ClientMetrics {
     // connected native clients with the client info tags must be a multi gauge
     connectedNativeClients =
         MultiGauge.builder(metric("connectedNativeClients")).register(meterRegistry);
-
-    // TODO can we avoid using the timer, but get notified from somebody on the changes?
-    Timer connectedNativeClientsTimer = new Timer();
-    connectedNativeClientsTimer.schedule(
-        new TimerTask() {
-          @Override
-          public void run() {
-            updateConnectedClients();
-          }
-        },
-        10000L,
-        10000L);
-    registerGauge("connectedNativeClientsByUser", this::countConnectedClientsByUser);
+    connectedNativeClientsByUser =
+        MultiGauge.builder(metric("connectedNativeClientsByUser")).register(meterRegistry);
 
     pausedConnections =
         meterRegistry.gauge(metric("PausedConnections"), Tags.empty(), new AtomicInteger(0));
@@ -163,6 +169,47 @@ public final class ClientMetrics {
     bytesTransmittedPerFrame = meterRegistry.summary(metric("BytesTransmittedPerFrame"));
 
     initialized = true;
+
+    // if we have the update rate, init the executor service and submit the update task
+    if (updateRateMillis > 0) {
+      executorService =
+          Executors.newSingleThreadScheduledExecutor(
+              new BasicThreadFactory.Builder()
+                  .daemon(true)
+                  .priority(1)
+                  .namingPattern("cql-metrics-updater")
+                  .build());
+      executorService.scheduleAtFixedRate(
+          () -> {
+            try {
+              updateConnectedClients();
+              updateConnectedClientsByUser();
+            } catch (Exception e) {
+              logger.warn("Error updating the connected client metrics.");
+            }
+          },
+          0,
+          updateRateMillis,
+          TimeUnit.MILLISECONDS);
+    }
+  }
+
+  /** Shuts down the #executor service and marks instance as not initialized. */
+  public synchronized void shutdown() {
+    if (!initialized) return;
+
+    if (null != executorService && !executorService.isShutdown()) {
+      executorService.shutdown();
+      try {
+        if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+          executorService.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        executorService.shutdownNow();
+      }
+    }
+
+    initialized = false;
   }
 
   private long nettyDirectMemory() {
@@ -180,34 +227,19 @@ public final class ClientMetrics {
   }
 
   void updateConnectedClients() {
-    // first collect all the total count from all servers
-    Map<ClientInfo, Integer> total =
-        servers.stream()
-            .map(Server::countConnectedClientsByClientInfo)
-            .reduce(
-                new HashMap<>(),
-                (combined, single) -> {
-                  single.forEach(
-                      (clientInfo, count) ->
-                          combined.compute(clientInfo, (ci, v) -> v == null ? count : v + count));
-                  return combined;
-                });
+    Map<ConnectionMetrics, Integer> total = new HashMap<>();
 
-    // then map to multi gauge rows
-    List<MultiGauge.Row<?>> rows =
-        total.entrySet().stream()
-            .map(
-                entry -> {
-                  Tags clientInfoTags = clientInfoTagProvider.getClientInfoTags(entry.getKey());
-                  return MultiGauge.Row.of(clientInfoTags, entry.getValue());
-                })
-            .collect(Collectors.toList());
+    for (Server server : servers) {
+      server
+          .countConnectedClientsByConnectionMetrics()
+          .forEach(
+              (metrics, count) -> total.compute(metrics, (ci, v) -> v == null ? count : v + count));
+    }
 
-    // ensure overwrite is called to re-write existing values to new ones
-    connectedNativeClients.register(rows, true);
+    recordMapToMultiGauge(connectedNativeClients, total, ConnectionMetrics::getTags);
   }
 
-  private Map<String, Integer> countConnectedClientsByUser() {
+  void updateConnectedClientsByUser() {
     Map<String, Integer> counts = new HashMap<>();
 
     for (Server server : servers) {
@@ -217,11 +249,18 @@ public final class ClientMetrics {
               (username, count) -> counts.put(username, counts.getOrDefault(username, 0) + count));
     }
 
-    return counts;
+    recordMapToMultiGauge(
+        connectedNativeClientsByUser, counts, username -> Tags.of("username", username));
   }
 
-  private <T> Gauge<T> registerGauge(String name, Gauge<T> gauge) {
-    return metricRegistry.register(factory.createMetricName(name).getMetricName(), gauge);
+  private <T> void recordMapToMultiGauge(
+      MultiGauge gauge, Map<T, ? extends Number> source, Function<T, Tags> tagsFunction) {
+    List<MultiGauge.Row<?>> rows =
+        source.entrySet().stream()
+            .map(entry -> MultiGauge.Row.of(tagsFunction.apply(entry.getKey()), entry.getValue()))
+            .collect(Collectors.toList());
+
+    gauge.register(rows, true);
   }
 
   /**
@@ -238,15 +277,15 @@ public final class ClientMetrics {
 
   private class ConnectionMetricsImpl implements ConnectionMetrics {
 
+    private final Tags tags;
     private final Counter requestsProcessed;
     private final Counter requestsDiscarded;
     private final Counter authSuccess;
     private final Counter authFailure;
     private final Counter authError;
-    private final AtomicInteger connectedClients;
 
     public ConnectionMetricsImpl(ClientInfo clientInfo) {
-      Tags tags =
+      tags =
           Optional.ofNullable(clientInfo)
               .map(clientInfoTagProvider::getClientInfoTags)
               .orElse(Tags.empty());
@@ -256,8 +295,6 @@ public final class ClientMetrics {
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
       authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
-      connectedClients =
-          meterRegistry.gauge(CONNECTED_NATIVE_CLIENTS_METRIC, tags, new AtomicInteger(0));
     }
 
     @Override
@@ -286,13 +323,21 @@ public final class ClientMetrics {
     }
 
     @Override
-    public void increaseConnectedNativeClients() {
-      connectedClients.incrementAndGet();
+    public Tags getTags() {
+      return tags;
     }
 
     @Override
-    public void decreaseConnectedNativeClients() {
-      connectedClients.decrementAndGet();
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      ConnectionMetricsImpl that = (ConnectionMetricsImpl) o;
+      return tags.equals(that.tags);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(tags);
     }
   }
 }

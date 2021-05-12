@@ -17,19 +17,26 @@
 
 package org.apache.cassandra.stargate.metrics;
 
+import io.micrometer.core.instrument.Tags;
+
+/** Interface that each connection can use to report metric or determine it Tags. */
 public interface ConnectionMetrics {
 
+  /** @return Returns micrometer tags associated with the connection. */
+  Tags getTags();
+
+  /** Marks request processed (increases the count). */
   void markRequestProcessed();
 
+  /** Marks request discarded (increases the count). */
   void markRequestDiscarded();
 
+  /** Marks auth success (increases the count). */
   void markAuthSuccess();
 
+  /** Marks auth failure (increases the count). */
   void markAuthFailure();
 
+  /** Marks auth error (increases the count). */
   void markAuthError();
-
-  void increaseConnectedNativeClients();
-
-  void decreaseConnectedNativeClients();
 }

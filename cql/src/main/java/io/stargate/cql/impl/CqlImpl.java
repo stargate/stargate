@@ -95,8 +95,10 @@ public class CqlImpl {
       }
     }
 
+    int metricUpdateRate =
+        Integer.parseInt(System.getProperty("stargate.cql.metrics.updateRate", "10000"));
     ClientMetrics.instance.init(
-        servers, metrics.getRegistry("cql"), metrics.getMeterRegistry(), clientInfoTagProvider);
+        servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricUpdateRate);
     servers.forEach(Server::start);
     persistence.setRpcReady(true);
   }
@@ -104,6 +106,7 @@ public class CqlImpl {
   public void stop() {
     persistence.setRpcReady(false);
     servers.forEach(Server::stop);
+    ClientMetrics.instance.shutdown();
   }
 
   public static boolean useEpoll() {

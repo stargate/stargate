@@ -66,6 +66,7 @@ import org.apache.cassandra.net.ResourceLimits;
 import org.apache.cassandra.security.SSLFactory;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
+import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
 import org.apache.cassandra.utils.FBUtilities;
@@ -179,8 +180,8 @@ public class Server implements CassandraDaemon.Server {
     return connectionTracker.countConnectedClientsByUser();
   }
 
-  public Map<ClientInfo, Integer> countConnectedClientsByClientInfo() {
-    return connectionTracker.countConnectedClientsByClientInfo();
+  public Map<ConnectionMetrics, Integer> countConnectedClientsByConnectionMetrics() {
+    return connectionTracker.countConnectedClientsByConnectionMetrics();
   }
 
   public List<ConnectedClient> getConnectedClients() {
@@ -322,21 +323,21 @@ public class Server implements CassandraDaemon.Server {
         if (connection instanceof ServerConnection) {
           ServerConnection conn = (ServerConnection) connection;
           Optional<AuthenticatedUser> user = conn.persistenceConnection().loggedUser();
-          String name = user.map(AuthenticatedUser::name).orElse(null);
+          String name = user.map(AuthenticatedUser::name).orElse("unknown");
           result.put(name, result.getOrDefault(name, 0) + 1);
         }
       }
       return result;
     }
 
-    Map<ClientInfo, Integer> countConnectedClientsByClientInfo() {
-      Map<ClientInfo, Integer> result = new HashMap<>();
+    Map<ConnectionMetrics, Integer> countConnectedClientsByConnectionMetrics() {
+      Map<ConnectionMetrics, Integer> result = new HashMap<>();
       for (Channel c : allChannels) {
         Connection connection = c.attr(Connection.attributeKey).get();
         if (connection instanceof ServerConnection) {
           ServerConnection conn = (ServerConnection) connection;
-          ClientInfo clientInfo = conn.clientInfo();
-          result.compute(clientInfo, (ci, v) -> v == null ? 1 : v + 1);
+          ConnectionMetrics connectionMetrics = conn.getConnectionMetrics();
+          result.compute(connectionMetrics, (ci, v) -> v == null ? 1 : v + 1);
         }
       }
       return result;

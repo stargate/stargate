@@ -22,13 +22,20 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.codahale.metrics.MetricRegistry;
-import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.search.MeterNotFoundException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.cassandra.stargate.transport.internal.Server;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -43,7 +50,6 @@ class ClientMetricsTest {
   MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
   // manual mocks, init before all
-  MetricRegistry metricRegistry; // TODO Remove when possible
   ClientInfoMetricsTagProvider clientTagProvider;
   Server server1;
   Server server2;
@@ -52,7 +58,6 @@ class ClientMetricsTest {
 
   @BeforeAll
   public void initMocks() {
-    metricRegistry = mock(MetricRegistry.class);
     clientTagProvider = mock(ClientInfoMetricsTagProvider.class);
     server1 = mock(Server.class);
     server2 = mock(Server.class);
@@ -63,7 +68,7 @@ class ClientMetricsTest {
     when(clientTagProvider.getClientInfoTags(clientInfo2)).thenReturn(Tags.of("client", "two"));
 
     List<Server> servers = Arrays.asList(server1, server2);
-    clientMetrics.init(servers, metricRegistry, meterRegistry, clientTagProvider);
+    clientMetrics.init(servers, meterRegistry, clientTagProvider, 0);
   }
 
   @Nested
@@ -294,18 +299,23 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      Map<ClientInfo, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(clientInfo1, 10);
-      clientInfoConnectionMap.put(clientInfo2, 20);
-      when(server1.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
+      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
+      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
+      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
+      clientInfoConnectionMap.put(connectionMetrics1, 10);
+      clientInfoConnectionMap.put(connectionMetrics2, 20);
+
+      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
+      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
+      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
 
       clientMetrics.updateConnectedClients();
 
       Gauge g1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClients")
-              .tag("client", "one")
+              .tag("cm", "one")
               .gauge();
 
       assertThat(g1.value()).isEqualTo(20);
@@ -313,7 +323,7 @@ class ClientMetricsTest {
       Gauge g2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClients")
-              .tag("client", "two")
+              .tag("cm", "two")
               .gauge();
 
       assertThat(g2.value()).isEqualTo(40);
@@ -321,23 +331,28 @@ class ClientMetricsTest {
 
     @Test
     public void removedConnections() {
-      Map<ClientInfo, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(clientInfo1, 10);
-      clientInfoConnectionMap.put(clientInfo2, 20);
-      when(server1.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
+      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
+      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
+      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
+      clientInfoConnectionMap.put(connectionMetrics1, 10);
+      clientInfoConnectionMap.put(connectionMetrics2, 20);
+
+      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
+      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
+      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
 
       clientMetrics.updateConnectedClients();
 
-      when(server1.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByClientInfo()).thenReturn(Collections.emptyMap());
+      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
 
       clientMetrics.updateConnectedClients();
 
       Gauge g1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClients")
-              .tag("client", "one")
+              .tag("cm", "one")
               .gauge();
 
       assertThat(g1.value()).isEqualTo(10);
@@ -345,7 +360,7 @@ class ClientMetricsTest {
       Gauge g2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClients")
-              .tag("client", "two")
+              .tag("cm", "two")
               .gauge();
 
       assertThat(g2.value()).isEqualTo(20);
@@ -353,16 +368,21 @@ class ClientMetricsTest {
 
     @Test
     public void noConnections() {
-      Map<ClientInfo, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(clientInfo1, 10);
-      clientInfoConnectionMap.put(clientInfo2, 20);
-      when(server1.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByClientInfo()).thenReturn(clientInfoConnectionMap);
+      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
+      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
+      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
+      clientInfoConnectionMap.put(connectionMetrics1, 10);
+      clientInfoConnectionMap.put(connectionMetrics2, 20);
+
+      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
+      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
+      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
 
       clientMetrics.updateConnectedClients();
 
-      when(server1.countConnectedClientsByClientInfo()).thenReturn(Collections.emptyMap());
-      when(server2.countConnectedClientsByClientInfo()).thenReturn(Collections.emptyMap());
+      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
+      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
 
       clientMetrics.updateConnectedClients();
 
@@ -372,6 +392,73 @@ class ClientMetricsTest {
                   meterRegistry
                       .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClients")
                       .gauges());
+
+      assertThat(throwable).isInstanceOf(MeterNotFoundException.class);
+    }
+  }
+
+  @Nested
+  class UpdateConnectedClientsByUsers {
+
+    @Test
+    public void happyPath() {
+      Map<String, Integer> userConnectionMap = new HashMap<>();
+      userConnectionMap.put("user1", 10);
+      userConnectionMap.put("user2", 20);
+
+      when(server1.countConnectedClientsByUser()).thenReturn(userConnectionMap);
+      when(server2.countConnectedClientsByUser()).thenReturn(userConnectionMap);
+
+      clientMetrics.updateConnectedClientsByUser();
+
+      Gauge g1 =
+          meterRegistry
+              .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClientsByUser")
+              .tag("username", "user1")
+              .gauge();
+
+      assertThat(g1.value()).isEqualTo(20);
+
+      Gauge g2 =
+          meterRegistry
+              .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClientsByUser")
+              .tag("username", "user2")
+              .gauge();
+
+      assertThat(g2.value()).isEqualTo(40);
+    }
+
+    @Test
+    public void updatedUsers() {
+      Map<String, Integer> userConnectionMap = new HashMap<>();
+      userConnectionMap.put("user1", 10);
+      userConnectionMap.put("user2", 10);
+
+      when(server1.countConnectedClientsByUser()).thenReturn(userConnectionMap);
+      when(server2.countConnectedClientsByUser()).thenReturn(userConnectionMap);
+
+      clientMetrics.updateConnectedClientsByUser();
+
+      userConnectionMap.put("user1", 20);
+      userConnectionMap.remove("user2");
+
+      clientMetrics.updateConnectedClientsByUser();
+
+      Gauge g1 =
+          meterRegistry
+              .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClientsByUser")
+              .tag("username", "user1")
+              .gauge();
+
+      assertThat(g1.value()).isEqualTo(40);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  meterRegistry
+                      .get("cql.org.apache.cassandra.metrics.Client.connectedNativeClientsByUser")
+                      .tag("username", "user2")
+                      .gauge());
 
       assertThat(throwable).isInstanceOf(MeterNotFoundException.class);
     }

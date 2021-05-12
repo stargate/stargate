@@ -16,6 +16,7 @@
 package io.stargate.it.cql;
 
 import static io.stargate.it.MetricsTestsHelper.getMetricValue;
+import static io.stargate.it.MetricsTestsHelper.getMetricValueOptional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -31,8 +32,11 @@ import io.stargate.it.storage.StargateSpec;
 import io.stargate.testing.TestingServicesActivator;
 import io.stargate.testing.metrics.FixedClientInfoTagProvider;
 import java.io.IOException;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,7 +92,7 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void metricsWithClientInfoTags(CqlSession session) throws IOException {
+  public void requestProcessedTotalWithClientInfoTags(CqlSession session) throws IOException {
     // given
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
@@ -102,8 +106,37 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
         String.format(
             "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",}",
             FixedClientInfoTagProvider.TAG_KEY, FixedClientInfoTagProvider.TAG_VALUE);
-    double requestsProcessed = getCqlMetric(body, requestProcessedTotal);
-    assertThat(requestsProcessed).isGreaterThan(0d);
+    Optional<Double> requestsProcessed = getCqlMetric(body, requestProcessedTotal);
+    assertThat(requestsProcessed).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+  }
+
+  @Test
+  public void connectedNativeClientsWithClientInfoTags(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // connected native clients are not available immediately, but when updated
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollInterval(Duration.ofSeconds(1))
+        .untilAsserted(
+            () -> {
+
+              // when
+              String body =
+                  RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+              String connectedNativeClientsTotal =
+                  String.format(
+                      "cql_org_apache_cassandra_metrics_Client_connectedNativeClients{%s=\"%s\",}",
+                      FixedClientInfoTagProvider.TAG_KEY, FixedClientInfoTagProvider.TAG_VALUE);
+              Optional<Double> connectedNativeClients =
+                  getCqlMetric(body, connectedNativeClientsTotal);
+              assertThat(connectedNativeClients)
+                  .hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+            });
   }
 
   private double getOnHeapMemoryUsed(String body) {
@@ -114,12 +147,12 @@ public class ClientMetricsTest extends BaseOsgiIntegrationTest {
     return getMetricValue(body, "jvm_memory_non_heap_used", MEMORY_NON_HEAP_USAGE_REGEXP);
   }
 
-  private double getCqlMetric(String body, String metric) {
+  private Optional<Double> getCqlMetric(String body, String metric) {
     String regex =
         String.format("(%s\\s*)(\\d+.\\d+)", metric)
             .replace(",", "\\,")
             .replace("{", "\\{")
             .replace("}", "\\}");
-    return getMetricValue(body, metric, Pattern.compile(regex));
+    return getMetricValueOptional(body, metric, Pattern.compile(regex));
   }
 }

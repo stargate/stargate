@@ -45,8 +45,6 @@ public class Connection {
     this.connectionMetrics = connectionMetrics;
 
     tracker.addConnection(channel, this);
-    // TODO decrease where
-    connectionMetrics.increaseConnectedNativeClients();
   }
 
   public void setTransformer(FrameBodyTransformer transformer) {
