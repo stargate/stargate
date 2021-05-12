@@ -152,10 +152,10 @@ public class ExecuteQueryTest extends BaseServiceTest {
     StargateBlockingStub stub = makeBlockingStub();
 
     assertThatThrownBy(
-        () -> {
-          QueryOuterClass.Result result = executeQuery(stub, "DOES NOT MATTER", values);
-          assertThat(result).isNotNull(); // Never going to happen
-        })
+            () -> {
+              QueryOuterClass.Result result = executeQuery(stub, "DOES NOT MATTER", values);
+              assertThat(result).isNotNull(); // Never going to happen
+            })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining(expectedMessage);
   }
