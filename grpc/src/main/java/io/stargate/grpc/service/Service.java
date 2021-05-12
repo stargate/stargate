@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.protobuf.StringValue;
 import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -94,7 +93,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       prepareQuery(
               connection,
               query.getCql(),
-              queryParameters.getKeyspace(),
+              queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null,
               queryParameters.getTracing())
           .whenComplete(
               (prepared, t) -> {
@@ -153,12 +152,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   private CompletableFuture<Prepared> prepareQuery(
-      Connection connection, String cql, StringValue keyspace, boolean tracing) {
+      Connection connection, String cql, String keyspace, boolean tracing) {
     CompletableFuture<Prepared> future = new CompletableFuture<>();
     final StringBuilder keyBuilder = new StringBuilder();
     connection.loggedUser().ifPresent(user -> keyBuilder.append(user.name()));
-    if (keyspace.isInitialized()) {
-      keyBuilder.append(keyspace.getValue());
+    if (keyspace != null) {
+      keyBuilder.append(keyspace);
     }
     keyBuilder.append(cql);
     final String key = keyBuilder.toString();
@@ -169,8 +168,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } else {
       ImmutableParameters.Builder parameterBuilder =
           ImmutableParameters.builder().tracingRequested(tracing);
-      if (keyspace.isInitialized()) {
-        parameterBuilder.defaultKeyspace(keyspace.getValue());
+      if (keyspace != null) {
+        parameterBuilder.defaultKeyspace(keyspace);
       }
       connection
           .prepare(cql, parameterBuilder.build())
@@ -429,12 +428,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       }
 
       BatchQuery query = batch.getQueries(index);
+      BatchParameters batchParameters = batch.getParameters();
 
       prepareQuery(
               connection,
               query.getCql(),
-              batch.getParameters().getKeyspace(),
-              batch.getParameters().getTracing())
+              batchParameters.hasKeyspace() ? batchParameters.getKeyspace().getValue() : null,
+              batchParameters.getTracing())
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
