@@ -22,6 +22,7 @@ import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.assertj.core.util.Arrays;
@@ -187,5 +188,33 @@ public class ExecuteBatchTest extends BaseServiceTest {
             Arrays.array(Column.create("k", Type.Varchar)),
             Arrays.array(intValue(1)),
             "Invalid argument at position 1"));
+  }
+
+  @Test
+  public void warnings() {
+    Prepared prepared = Utils.makePrepared();
+
+    List<String> expectedWarnings = java.util.Arrays.asList("warning 1", "warning 2");
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.batch(any(Batch.class), any(Parameters.class), anyLong()))
+        .thenReturn(
+            CompletableFuture.completedFuture(new Result.Void().setWarnings(expectedWarnings)));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    QueryOuterClass.Result result =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                .build());
+
+    assertThat(result.getWarningsList()).containsAll(expectedWarnings);
   }
 }

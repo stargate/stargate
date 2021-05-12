@@ -174,4 +174,36 @@ public class ExecuteQueryTest extends BaseServiceTest {
             org.assertj.core.util.Arrays.array(intValue(1)),
             "Invalid argument at position 1"));
   }
+
+  @Test
+  public void warnings() {
+    ResultMetadata resultMetadata = Utils.makeResultMetadata();
+    Prepared prepared = Utils.makePrepared();
+
+    List<String> expectedWarnings = Arrays.asList("warning 1", "warning 2");
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new Result.Rows(Collections.emptyList(), resultMetadata)
+                    .setWarnings(expectedWarnings)));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    QueryOuterClass.Result result =
+        stub.executeQuery(
+            Query.newBuilder()
+                .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                .setParameters(QueryParameters.newBuilder().build()) // No payload
+                .build());
+
+    assertThat(result.getWarningsList()).containsAll(expectedWarnings);
+  }
 }

@@ -216,7 +216,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   handleError(t, responseObserver);
                 } else {
                   try {
-                    Result.Builder resultBuilder = Result.newBuilder();
+                    Result.Builder resultBuilder = makeResultBuilder(result);
                     switch (result.kind) {
                       case Void:
                         break;
@@ -275,7 +275,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   handleError(t, responseObserver);
                 } else {
                   try {
-                    Result.Builder resultBuilder = Result.newBuilder();
+                    Result.Builder resultBuilder = makeResultBuilder(result);
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }
@@ -377,6 +377,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
     connection.login(user);
     return connection;
+  }
+
+  private Result.Builder makeResultBuilder(io.stargate.db.Result result) {
+    Result.Builder resultBuilder = Result.newBuilder();
+    List<String> warnings = result.getWarnings();
+    if (warnings != null) {
+      resultBuilder.addAllWarnings(warnings);
+    }
+    return resultBuilder;
   }
 
   /**
