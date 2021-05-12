@@ -3,7 +3,6 @@ package io.stargate.grpc.codec.cql;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Collection;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.nio.ByteBuffer;
@@ -11,7 +10,7 @@ import java.nio.ByteBuffer;
 public class CollectionCodec extends CompositeCodec {
 
   @Override
-  public ByteBuffer encode(@NonNull QueryOuterClass.Value value, @NonNull Column.ColumnType type) {
+  public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
     if (!value.hasCollection()) {
       throw new IllegalArgumentException("Expected collection type");
     }
