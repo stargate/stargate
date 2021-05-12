@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.codec.cql;
 
-import static io.stargate.grpc.Values.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -304,16 +303,17 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> uuidValues() {
     return Stream.of(
-        arguments(Type.Uuid, of(Uuids.random())),
-        arguments(Type.Uuid, of(UUID.nameUUIDFromBytes("abc".getBytes()))),
-        arguments(Type.Timeuuid, of(Uuids.timeBased())));
+        arguments(Type.Uuid, Values.of(Uuids.random())),
+        arguments(Type.Uuid, Values.of(UUID.nameUUIDFromBytes("abc".getBytes()))),
+        arguments(Type.Timeuuid, Values.of(Uuids.timeBased())));
   }
 
   public static Stream<Arguments> invalidUuidValues() {
     return Stream.of(
         arguments(Type.Uuid, Values.NULL, "Expected UUID type"),
         arguments(Type.Timeuuid, Values.UNSET, "Expected UUID type"),
-        arguments(Type.Timeuuid, of(UUID.randomUUID()), "is not a Type 1 (time-based) UUID"));
+        arguments(
+            Type.Timeuuid, Values.of(UUID.randomUUID()), "is not a Type 1 (time-based) UUID"));
   }
 
   public static Stream<Arguments> listValues() {
@@ -368,9 +368,9 @@ public class ValueCodecTest {
         arguments(
             Type.Map.of(Type.Uuid, Type.Varchar),
             Values.of(
-                of(Uuids.random()), Values.of("a"),
-                of(Uuids.random()), Values.of("b"),
-                of(Uuids.random()), Values.of("c"))));
+                Values.of(Uuids.random()), Values.of("a"),
+                Values.of(Uuids.random()), Values.of("b"),
+                Values.of(Uuids.random()), Values.of("c"))));
   }
 
   public static Stream<Arguments> invalidMapValues() {
@@ -380,7 +380,7 @@ public class ValueCodecTest {
             Values.of(
                 Values.of("a"), Values.of(1),
                 Values.of("b"), Values.of(2),
-                Values.of("c"), of(Uuids.random())),
+                Values.of("c"), Values.of(Uuids.random())),
             "Expected integer type"),
         arguments(
             Type.Map.of(Type.Varchar, Type.Int),
@@ -392,23 +392,23 @@ public class ValueCodecTest {
         arguments(
             Type.Map.of(Type.Uuid, Type.Varchar),
             Values.of(
-                of(Uuids.random()), Values.of("a"),
-                of(Uuids.random()), Values.of("b"),
+                Values.of(Uuids.random()), Values.of("a"),
+                Values.of(Uuids.random()), Values.of("b"),
                 Values.of(1), Values.of("c")),
             "Expected UUID type"),
         arguments(
             Type.Map.of(Type.Uuid, Type.Varchar),
             Values.of(
-                of(Uuids.random()),
+                Values.of(Uuids.random()),
                 Values.of("a"),
-                of(Uuids.random()),
+                Values.of(Uuids.random()),
                 Values.of("b"),
                 Values.UNSET,
                 Values.of("c")),
             "Expected UUID type"),
         arguments(
             Type.Map.of(Type.Uuid, Type.Varchar),
-            Values.of(of(Uuids.random())),
+            Values.of(Values.of(Uuids.random())),
             "Missing pair value (expected an even number of elements)"),
         arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.NULL, "Expected collection type"),
         arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.UNSET, "Expected collection type"),
@@ -430,7 +430,7 @@ public class ValueCodecTest {
             Values.of(Values.of("a"), Values.of(1))),
         arguments(
             Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
-            Values.of(Values.of("a"), Values.of(1), of(Uuids.random()))),
+            Values.of(Values.of("a"), Values.of(1), Values.of(Uuids.random()))),
         arguments(
             Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
             Values.of(Values.NULL, Values.NULL, Values.NULL)));
