@@ -29,7 +29,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.ColumnOrder;
-import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
@@ -105,12 +104,11 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
       }
     }
 
-    QueryBuilder.QueryBuilder__20 queryBuilder =
-        dataStore.queryBuilder().select().column(buildQueryColumns(environment));
-
-    aggregationsFetcherSupport.addAggregationFunctions(environment, queryBuilder);
-
-    return queryBuilder
+    return dataStore
+        .queryBuilder()
+        .select()
+        .column(buildQueryColumns(environment))
+        .function(aggregationsFetcherSupport.buildAggregatedFunctions(environment))
         .from(table.keyspace(), table.name())
         .where(buildClause(table, environment))
         .limit(limit)

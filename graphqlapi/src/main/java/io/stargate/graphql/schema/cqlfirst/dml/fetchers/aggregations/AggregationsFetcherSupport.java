@@ -24,13 +24,11 @@ import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.Supp
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.DbColumnGetter;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -44,45 +42,48 @@ public class AggregationsFetcherSupport {
     this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
-  public void addAggregationFunctions(
-      DataFetchingEnvironment environment, QueryBuilder.QueryBuilder__20 queryBuilder) {
+  public List<QueryBuilderImpl.FunctionCall> buildAggregatedFunctions(
+      DataFetchingEnvironment environment) {
     List<SelectedField> valuesFields = environment.getSelectionSet().getFields("values");
     if (valuesFields.isEmpty()) {
-      return;
+      return Collections.emptyList();
     }
 
+    List<QueryBuilderImpl.FunctionCall> functionCalls = new ArrayList<>();
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
         Map<String, Object> arguments = selectedField.getArguments();
         SupportedAggregationFunction supportedFunction = getSupportedFunction(arguments);
         switch (supportedFunction) {
           case COUNT:
-            addAggregation(
-                arguments,
-                queryBuilder,
-                QueryBuilder.QueryBuilder__20::count,
-                selectedField,
-                COUNT);
+            functionCalls.add(
+                createAggregationFunctionCall(
+                    arguments, QueryBuilderImpl.FunctionCall::count, selectedField, COUNT));
             break;
           case AVG:
-            addAggregation(
-                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::avg, selectedField, AVG);
+            functionCalls.add(
+                createAggregationFunctionCall(
+                    arguments, QueryBuilderImpl.FunctionCall::avg, selectedField, AVG));
             break;
           case MIN:
-            addAggregation(
-                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::min, selectedField, MIN);
+            functionCalls.add(
+                createAggregationFunctionCall(
+                    arguments, QueryBuilderImpl.FunctionCall::min, selectedField, MIN));
             break;
           case MAX:
-            addAggregation(
-                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::max, selectedField, MAX);
+            functionCalls.add(
+                createAggregationFunctionCall(
+                    arguments, QueryBuilderImpl.FunctionCall::max, selectedField, MAX));
             break;
           case SUM:
-            addAggregation(
-                arguments, queryBuilder, QueryBuilder.QueryBuilder__20::sum, selectedField, SUM);
+            functionCalls.add(
+                createAggregationFunctionCall(
+                    arguments, QueryBuilderImpl.FunctionCall::sum, selectedField, SUM));
             break;
         }
       }
     }
+    return functionCalls;
   }
 
   public Map<String, Object> addAggregationResults(
@@ -128,21 +129,15 @@ public class AggregationsFetcherSupport {
     return String.format("system.%s(%s)", functionName.getName(), args.get(0));
   }
 
-  private void addAggregation(
+  private QueryBuilderImpl.FunctionCall createAggregationFunctionCall(
       Map<String, Object> arguments,
-      QueryBuilder.QueryBuilder__20 queryBuilder,
-      BiFunction<QueryBuilder.QueryBuilder__20, String, QueryBuilder.QueryBuilder__19>
-          addAggregation,
+      BiFunction<String, String, QueryBuilderImpl.FunctionCall> addAggregation,
       SelectedField selectedField,
       SupportedAggregationFunction supportedAggregationFunction) {
     List<String> args = getAndValidateArgs(arguments, supportedAggregationFunction);
     String column = getAndValidateColumn(args, supportedAggregationFunction);
-
     String alias = selectedField.getAlias();
-    QueryBuilder.QueryBuilder__19 withAggregation = addAggregation.apply(queryBuilder, column);
-    if (alias != null) {
-      withAggregation.as(alias);
-    }
+    return addAggregation.apply(column, alias);
   }
 
   private String getAndValidateColumn(
