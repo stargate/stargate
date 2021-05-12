@@ -178,7 +178,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   /**
    * Executes the query in an async way in a fire and forget fashion. Completes immediately with
-   * applied=true without waiting for the result.
+   * accepted=true without waiting for the result.
    */
   protected CompletableFuture<Map<String, Object>> executeAsyncAccepted(
       DataStore dataStore, BoundQuery query, Object originalValue) {
