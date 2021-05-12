@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
+import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 import static java.util.stream.Stream.concat;
 
@@ -65,9 +66,10 @@ public abstract class BulkMutationFetcher
       buildException = e;
     }
     OperationDefinition operation = environment.getOperationDefinition();
-    if (operation.getDirectives().stream().anyMatch(d -> d.getName().equals(ATOMIC_DIRECTIVE))
+
+    if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
-      return executeAsBatch(environment, dataStore, queries, buildException);
+      return executeAsBatch(environment, dataStore, queries, buildException, operation);
     }
 
     if (buildException != null) {
@@ -83,12 +85,16 @@ public abstract class BulkMutationFetcher
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
     for (int i = 0; i < queries.size(); i++) {
-      // Execute as a single statement
       int finalI = i;
-      results.add(
-          dataStore
-              .execute(queries.get(i))
-              .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
+      // Execute as a single statement
+      if (containsDirective(operation, ASYNC_DIRECTIVE)) {
+        results.add(executeAsyncAccepted(dataStore, queries.get(i), values.get(finalI)));
+      } else {
+        results.add(
+            dataStore
+                .execute(queries.get(i))
+                .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
+      }
     }
     return convert(results);
   }
@@ -97,7 +103,8 @@ public abstract class BulkMutationFetcher
       DataFetchingEnvironment environment,
       DataStore dataStore,
       List<BoundQuery> queries,
-      Exception buildException) {
+      Exception buildException,
+      OperationDefinition operation) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     HttpAwareContext context = environment.getContext();
     HttpAwareContext.BatchContext batchContext = context.getBatchContext();
@@ -126,7 +133,13 @@ public abstract class BulkMutationFetcher
 
     List<Map<String, Object>> values = environment.getArgument("values");
 
-    return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
+    if (containsDirective(operation, ASYNC_DIRECTIVE)) {
+      // does not wait for the batch execution result, return the accepted response for all values
+      // immediately
+      return toListOfMutationResultsAccepted(values);
+    } else {
+      return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
+    }
   }
 
   public static <T> CompletableFuture<List<T>> convert(List<CompletableFuture<T>> futures) {

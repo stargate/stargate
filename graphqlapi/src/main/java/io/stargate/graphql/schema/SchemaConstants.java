@@ -17,4 +17,5 @@ package io.stargate.graphql.schema;
 
 public final class SchemaConstants {
   public static final String ATOMIC_DIRECTIVE = "atomic";
+  public static final String ASYNC_DIRECTIVE = "async";
 }

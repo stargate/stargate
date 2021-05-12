@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.24-SNAPSHOT</version>
+    <version>1.0.25-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -209,16 +209,6 @@
         <artifactId>apollo-client-maven-plugin</artifactId>
         <version>3.2.2</version>
         <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <rootPackageName>com.example.graphql.client.schema</rootPackageName>
-              <introspectionFile>${project.basedir}/src/main/graphql/schema/schema.json</introspectionFile>
-              <sourceDirName>${project.basedir}/src/main/graphql/schema</sourceDirName>
-            </configuration>
-          </execution>
           <execution>
             <id>betterbotz</id>
             <goals>

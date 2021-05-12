@@ -118,12 +118,9 @@ public class DmlSchemaBuilder {
       mutationFields.addAll(tableMutationFields);
     }
 
-    builder.additionalDirective(
-        GraphQLDirective.newDirective()
-            .validLocation(Introspection.DirectiveLocation.MUTATION)
-            .name(SchemaConstants.ATOMIC_DIRECTIVE)
-            .description("Instructs the server to apply the mutations in a LOGGED batch")
-            .build());
+    addAtomicDirective(builder);
+
+    addAsyncDirective(builder);
 
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =
@@ -153,6 +150,25 @@ public class DmlSchemaBuilder {
     builder.query(buildQueries(queryFields));
     builder.mutation(buildMutationRoot(mutationFields));
     return builder.build();
+  }
+
+  private void addAtomicDirective(GraphQLSchema.Builder builder) {
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ATOMIC_DIRECTIVE)
+            .description("Instructs the server to apply the mutations in a LOGGED batch")
+            .build());
+  }
+
+  private void addAsyncDirective(GraphQLSchema.Builder builder) {
+    builder.additionalDirective(
+        GraphQLDirective.newDirective()
+            .validLocation(Introspection.DirectiveLocation.MUTATION)
+            .name(SchemaConstants.ASYNC_DIRECTIVE)
+            .description(
+                "Instructs the server to apply the mutations asynchronously without waiting for the result.")
+            .build());
   }
 
   private GraphQLObjectType buildMutationRoot(List<GraphQLFieldDefinition> mutationFields) {
@@ -383,6 +399,14 @@ public class DmlSchemaBuilder {
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
                 .name("applied")
+                .type(Scalars.GraphQLBoolean))
+        .field(
+            GraphQLFieldDefinition.newFieldDefinition()
+                .name("accepted")
+                .description(
+                    String.format(
+                        "This field is relevant and fulfilled with data, only when used with the @%s directive",
+                        SchemaConstants.ASYNC_DIRECTIVE))
                 .type(Scalars.GraphQLBoolean))
         .field(
             GraphQLFieldDefinition.newFieldDefinition()

@@ -5667,6 +5667,18 @@
               "deprecationReason": null
             },
             {
+              "name": "accepted",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "value",
               "description": null,
               "args": [],
@@ -6098,6 +6110,18 @@
           "fields": [
             {
               "name": "applied",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "accepted",
               "description": null,
               "args": [],
               "type": {

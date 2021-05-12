@@ -1,7 +1,0 @@
-query GetTuplesPk($value: Tuplx65_sPkInput!) {
-    Tuplx65_sPk(value: $value) {
-        values {
-            id { item0, item1 }
-        }
-    }
-}

@@ -84,10 +84,10 @@ public class IndexesResource {
       value = "Get all indexes for a given table",
       notes = "Get all indexes for a given table",
       response = SuccessResponse.class,
-      code = 201)
+      code = 200)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = SuccessResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)

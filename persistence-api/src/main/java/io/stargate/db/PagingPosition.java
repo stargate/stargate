@@ -20,9 +20,12 @@ import io.stargate.db.ImmutablePagingPosition.Builder;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.QualifiedSchemaEntity;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -57,6 +60,44 @@ public interface PagingPosition {
   default Map<String, ByteBuffer> currentRowValuesByColumnName() {
     return currentRow().entrySet().stream()
         .collect(Collectors.toMap(e -> e.getKey().name(), Entry::getValue));
+  }
+
+  @Value.Lazy
+  default TableName tableName() {
+    Set<TableName> tables =
+        currentRow().keySet().stream()
+            .map(
+                column ->
+                    ImmutableTableName.builder()
+                        .keyspace(Objects.requireNonNull(column.keyspace()))
+                        .name(Objects.requireNonNull(column.table()))
+                        .build())
+            .collect(Collectors.toSet());
+
+    if (tables.isEmpty()) {
+      throw new IllegalArgumentException("Missing table information in custom paging request.");
+    }
+
+    if (tables.size() > 1) {
+      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
+    }
+
+    return tables.iterator().next();
+  }
+
+  default ByteBuffer requiredValue(String columnName) {
+    TableName table = tableName(); // indirectly validates that there's only one table referenced
+
+    ByteBuffer value = currentRowValuesByColumnName().get(columnName);
+
+    if (value == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Required value is not present in current row (table: %s, column: %s)",
+              table.name(), columnName));
+    }
+
+    return value;
   }
 
   /** Defines how to resume paging relative to the {@link #currentRow() reference row}. */
@@ -96,5 +137,11 @@ public interface PagingPosition {
      * #currentRow() reference row}.
      */
     NEXT_PARTITION,
+
+    /** Paging is resumed from the row following the {@link #currentRow() reference row}. */
+    NEXT_ROW,
   }
+
+  @Value.Immutable
+  interface TableName extends QualifiedSchemaEntity {}
 }

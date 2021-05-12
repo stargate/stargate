@@ -20,7 +20,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.ByteString;
@@ -29,13 +28,12 @@ import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
-import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Statement;
 import io.stargate.grpc.Utils;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Consistency;
 import io.stargate.proto.QueryOuterClass.ConsistencyValue;
 import io.stargate.proto.QueryOuterClass.Query;
@@ -54,9 +52,6 @@ public class QueryParametersTest extends BaseServiceTest {
   @ParameterizedTest
   @MethodSource({"queryParameterValues"})
   public void queryParameters(QueryParameters actual, Parameters expected) {
-    Persistence persistence = mock(Persistence.class);
-    Connection connection = mock(Connection.class);
-
     ResultMetadata resultMetadata = Utils.makeResultMetadata();
     Prepared prepared = Utils.makePrepared();
 
@@ -78,8 +73,10 @@ public class QueryParametersTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    stub.executeQuery(
-        Query.newBuilder().setCql("SELECT * FROM test").setParameters(actual).build());
+    QueryOuterClass.Result result =
+        stub.executeQuery(
+            Query.newBuilder().setCql("SELECT * FROM test").setParameters(actual).build());
+    assertThat(result).isNotNull();
   }
 
   public static Stream<Arguments> queryParameterValues() {

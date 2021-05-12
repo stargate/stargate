@@ -231,6 +231,7 @@ input OrdersInput {
 
 type OrdersMutationResult {
     applied: Boolean
+    accepted: Boolean
     value: Orders
 }
 
@@ -284,6 +285,7 @@ input ProductsInput {
 
 type ProductsMutationResult {
     applied: Boolean
+    accepted: Boolean
     value: Products
 }
 

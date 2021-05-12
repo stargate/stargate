@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.protobuf.StringValue;
 import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -25,16 +26,22 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.BatchType;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
+import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
+import io.stargate.proto.QueryOuterClass.Batch;
+import io.stargate.proto.QueryOuterClass.BatchParameters;
+import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -42,16 +49,24 @@ import io.stargate.proto.QueryOuterClass.Result;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.function.BiConsumer;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
+
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
+
+  /** The maximum number of batch queries to prepare simultaneously. */
+  private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
+      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
   // TODO: Add a maximum size and add tuning options
   private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();
@@ -74,17 +89,52 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     try {
       AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
       Connection connection = newConnection(authenticationSubject.asUser());
+      QueryParameters queryParameters = query.getParameters();
 
-      prepare(
-          connection,
-          query,
-          (prepared, t) -> {
-            if (t != null) {
-              handleError(t, responseObserver);
-            } else {
-              executePrepared(connection, prepared, query, responseObserver);
-            }
-          });
+      prepareQuery(
+              connection,
+              query.getCql(),
+              queryParameters.getKeyspace(),
+              queryParameters.getTracing())
+          .whenComplete(
+              (prepared, t) -> {
+                if (t != null) {
+                  handleError(t, responseObserver);
+                } else {
+                  executePrepared(connection, prepared, query, responseObserver);
+                }
+              });
+    } catch (Exception e) {
+      handleError(e, responseObserver);
+    }
+  }
+
+  @Override
+  public void executeBatch(Batch batch, StreamObserver<Result> responseObserver) {
+    try {
+      AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
+      Connection connection = newConnection(authenticationSubject.asUser());
+
+      if (batch.getQueriesCount() == 0) {
+        responseObserver.onError(
+            Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException());
+        return;
+      }
+
+      // TODO: Add a limit for the maximum number of queries in a batch? The setting
+      // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
+
+      new BatchPreparer(connection, batch)
+          .prepare()
+          .whenComplete(
+              (preparedBatch, t) -> {
+                if (t != null) {
+                  handleError(t, responseObserver);
+                } else {
+                  executeBatch(connection, preparedBatch, batch.getParameters(), responseObserver);
+                }
+              });
+
     } catch (Exception e) {
       handleError(e, responseObserver);
     }
@@ -94,38 +144,47 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     if (throwable instanceof StatusException || throwable instanceof StatusRuntimeException) {
       responseObserver.onError(throwable);
     } else {
-      responseObserver.onError(Status.UNKNOWN.withCause(throwable).asRuntimeException());
+      responseObserver.onError(
+          Status.UNKNOWN
+              .withDescription(throwable.getMessage())
+              .withCause(throwable)
+              .asRuntimeException());
     }
   }
 
-  private void prepare(
-      Connection connection, Query query, BiConsumer<Prepared, ? super Throwable> afterPrepare) {
-    final StringBuilder keyBuilder = new StringBuilder(query.getCql());
+  private CompletableFuture<Prepared> prepareQuery(
+      Connection connection, String cql, StringValue keyspace, boolean tracing) {
+    CompletableFuture<Prepared> future = new CompletableFuture<>();
+    final StringBuilder keyBuilder = new StringBuilder();
     connection.loggedUser().ifPresent(user -> keyBuilder.append(user.name()));
-    QueryParameters queryParameters = query.getParameters();
-    if (queryParameters.getKeyspace().isInitialized()) {
-      keyBuilder.append(queryParameters.getKeyspace().getValue());
+    if (keyspace.isInitialized()) {
+      keyBuilder.append(keyspace.getValue());
     }
+    keyBuilder.append(cql);
     final String key = keyBuilder.toString();
     // Caching here to avoid round trip to the persistence backend thread.
     Prepared prepared = preparedCache.getIfPresent(key);
     if (prepared != null) {
-      afterPrepare.accept(prepared, null);
+      future.complete(prepared);
     } else {
+      ImmutableParameters.Builder parameterBuilder =
+          ImmutableParameters.builder().tracingRequested(tracing);
+      if (keyspace.isInitialized()) {
+        parameterBuilder.defaultKeyspace(keyspace.getValue());
+      }
       connection
-          .prepare(
-              query.getCql(),
-              ImmutableParameters.builder()
-                  .tracingRequested(query.getParameters().getTracing())
-                  .build())
+          .prepare(cql, parameterBuilder.build())
           .whenComplete(
               (p, t) -> {
-                if (t == null) {
+                if (t != null) {
+                  future.completeExceptionally(t);
+                } else {
                   preparedCache.put(key, p);
+                  future.complete(p);
                 }
-                afterPrepare.accept(p, t);
               });
     }
+    return future;
   }
 
   private void executePrepared(
@@ -157,7 +216,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   handleError(t, responseObserver);
                 } else {
                   try {
-                    Result.Builder resultBuilder = Result.newBuilder();
+                    Result.Builder resultBuilder = makeResultBuilder(result);
                     switch (result.kind) {
                       case Void:
                         break;
@@ -187,6 +246,38 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                         throw Status.INTERNAL
                             .withDescription("Unhandled result kind")
                             .asException();
+                    }
+                    responseObserver.onNext(resultBuilder.build());
+                    responseObserver.onCompleted();
+                  } catch (Exception e) {
+                    handleError(e, responseObserver);
+                  }
+                }
+              });
+    } catch (Exception e) {
+      handleError(e, responseObserver);
+    }
+  }
+
+  private void executeBatch(
+      Connection connection,
+      io.stargate.db.Batch preparedBatch,
+      BatchParameters parameters,
+      StreamObserver<Result> responseObserver) {
+    try {
+      long queryStartNanoTime = System.nanoTime();
+
+      connection
+          .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
+          .whenComplete(
+              (result, t) -> {
+                if (t != null) {
+                  handleError(t, responseObserver);
+                } else {
+                  try {
+                    Result.Builder resultBuilder = makeResultBuilder(result);
+                    if (result.kind != Kind.Void) {
+                      throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }
                     responseObserver.onNext(resultBuilder.build());
                     responseObserver.onCompleted();
@@ -244,6 +335,34 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return builder.tracingRequested(parameters.getTracing()).build();
   }
 
+  private Parameters makeParameters(BatchParameters parameters) {
+    ImmutableParameters.Builder builder = ImmutableParameters.builder();
+
+    if (parameters.hasConsistency()) {
+      builder.consistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
+    }
+
+    if (parameters.hasKeyspace()) {
+      builder.defaultKeyspace(parameters.getKeyspace().getValue());
+    }
+
+    if (parameters.hasSerialConsistency()) {
+      builder.serialConsistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
+    }
+
+    if (parameters.hasTimestamp()) {
+      builder.defaultTimestamp(parameters.getTimestamp().getValue());
+    }
+
+    if (parameters.hasNowInSeconds()) {
+      builder.nowInSeconds(parameters.getNowInSeconds().getValue());
+    }
+
+    return builder.tracingRequested(parameters.getTracing()).build();
+  }
+
   private Connection newConnection(AuthenticatedUser user) {
     Connection connection;
     if (!user.isFromExternalAuth()) {
@@ -258,5 +377,84 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
     connection.login(user);
     return connection;
+  }
+
+  private Result.Builder makeResultBuilder(io.stargate.db.Result result) {
+    Result.Builder resultBuilder = Result.newBuilder();
+    List<String> warnings = result.getWarnings();
+    if (warnings != null) {
+      resultBuilder.addAllWarnings(warnings);
+    }
+    return resultBuilder;
+  }
+
+  /**
+   * Concurrently prepares queries in a batch. It'll prepare up to {@link
+   * Service#MAX_CONCURRENT_PREPARES_FOR_BATCH} queries simultaneously.
+   */
+  private class BatchPreparer {
+
+    private final AtomicInteger queryIndex = new AtomicInteger();
+    private final Connection connection;
+    private final Batch batch;
+    private final List<Statement> statements;
+    private final CompletableFuture<io.stargate.db.Batch> future;
+
+    public BatchPreparer(Connection connection, Batch batch) {
+      this.connection = connection;
+      this.batch = batch;
+      statements = Collections.synchronizedList(new ArrayList<>(batch.getQueriesCount()));
+      future = new CompletableFuture<>();
+    }
+
+    /**
+     * Initiates the initial prepares. When these prepares finish they'll pull the next available
+     * query in the batch and prepare it.
+     *
+     * @return An future which completes with an internal batch statement with all queries prepared.
+     */
+    public CompletableFuture<io.stargate.db.Batch> prepare() {
+      int numToPrepare = Math.min(batch.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
+      assert numToPrepare != 0;
+      for (int i = 0; i < numToPrepare; ++i) {
+        next();
+      }
+      return future;
+    }
+
+    /** Asynchronously prepares the next query in the batch. */
+    private void next() {
+      int index = this.queryIndex.getAndIncrement();
+      // When there are no more queries to prepare then construct the batch with the prepared
+      // statements and complete the future.
+      if (index >= batch.getQueriesCount()) {
+        future.complete(
+            new io.stargate.db.Batch(BatchType.fromId(batch.getTypeValue()), statements));
+        return;
+      }
+
+      BatchQuery query = batch.getQueries(index);
+
+      prepareQuery(
+              connection,
+              query.getCql(),
+              batch.getParameters().getKeyspace(),
+              batch.getParameters().getTracing())
+          .whenComplete(
+              (prepared, t) -> {
+                if (t != null) {
+                  future.completeExceptionally(t);
+                } else {
+                  try {
+                    PayloadHandler handler =
+                        PayloadHandlers.HANDLERS.get(query.getPayload().getType());
+                    statements.add(bindValues(handler, prepared, query.getPayload()));
+                    next(); // Prepare the next query in the batch
+                  } catch (Exception e) {
+                    future.completeExceptionally(e);
+                  }
+                }
+              });
+    }
   }
 }
