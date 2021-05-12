@@ -1,9 +1,0 @@
-mutation InsertOrdersWithAsyncAndAtomic(
-    $value: OrdersInput!
-    $ifNotExists: Boolean
-    $options: MutationOptions
-) @async @atomic {
-    insertOrders(value: $value, ifNotExists: $ifNotExists, options: $options) {
-        accepted
-    }
-}

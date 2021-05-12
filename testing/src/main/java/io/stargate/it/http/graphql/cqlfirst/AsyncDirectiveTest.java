@@ -1,111 +1,168 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.http.graphql.cqlfirst;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
-import com.apollographql.apollo.ApolloClient;
-import com.example.graphql.client.betterbotz.async.BulkInsertProductsWithAsyncAndAtomicMutation;
-import com.example.graphql.client.betterbotz.async.BulkInsertProductsWithAsyncMutation;
-import com.example.graphql.client.betterbotz.async.InsertOrdersWithAsyncAndAtomicMutation;
-import com.example.graphql.client.betterbotz.async.InsertOrdersWithAsyncMutation;
-import com.example.graphql.client.betterbotz.type.OrdersInput;
-import com.example.graphql.client.betterbotz.type.ProductsInput;
-import java.util.Arrays;
-import java.util.List;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.jayway.jsonpath.JsonPath;
+import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class AsyncDirectiveTest extends ApolloTestBase {
+public class AsyncDirectiveTest extends BetterbotzTestBase {
+
+  private static final String FIRST_PRODUCT_ID = UUID.randomUUID().toString();
+  private static final String SECOND_PRODUCT_ID = UUID.randomUUID().toString();
+  private static CqlFirstClient CLIENT;
+  private static CqlIdentifier KEYSPACE_ID;
+
+  @BeforeAll
+  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
+    String host = cluster.seedAddress();
+    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+    KEYSPACE_ID = keyspaceId;
+  }
+
+  @AfterEach
+  public void cleanup(CqlSession session) {
+    session.execute(String.format("DELETE FROM \"Products\" WHERE id = %s", FIRST_PRODUCT_ID));
+    session.execute(String.format("DELETE FROM \"Products\" WHERE id = %s", SECOND_PRODUCT_ID));
+  }
 
   @Test
-  @DisplayName("Should insert using both atomic and async directives")
+  @DisplayName("Should insert using async directive")
+  public void shouldInsertWhenUsingAsyncDirective() {
+    Map<String, Object> response = insertProductWithAsyncDirective(FIRST_PRODUCT_ID);
+    assertThat(JsonPath.<Boolean>read(response, "$.insertProducts.accepted")).isTrue();
+  }
+
+  @Test
+  @DisplayName("Should insert using both async and atomic directives")
   public void shouldInsertWhenUsingBothAsyncAndAtomicDirectives() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersWithAsyncAndAtomicMutation mutation =
-        InsertOrdersWithAsyncAndAtomicMutation.builder()
-            .value(OrdersInput.builder().prodName("a").customerName("b").description("c").build())
-            .build();
-
-    InsertOrdersWithAsyncAndAtomicMutation.InsertOrders result =
-        getObservable(client.mutate(mutation)).getInsertOrders().get();
-
-    assertThat(result.getAccepted()).hasValue(true);
+    Map<String, Object> response = insertProductWithAsyncAndAtomicDirectives(FIRST_PRODUCT_ID);
+    assertThat(JsonPath.<Boolean>read(response, "$.insertProducts.accepted")).isTrue();
   }
 
   @Test
-  @DisplayName("Should bulk insert using both atomic and async directives")
-  public void shouldBulkInsertWhenUsingBothAsyncAndAtomicDirectives() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    BulkInsertProductsWithAsyncAndAtomicMutation mutation =
-        BulkInsertProductsWithAsyncAndAtomicMutation.builder()
-            .values(
-                Arrays.asList(
-                    ProductsInput.builder()
-                        .id(UUID.randomUUID().toString())
-                        .name("Shiny Legs")
-                        .price("3199.99")
-                        .created(now())
-                        .description("Normal legs but shiny.")
-                        .build(),
-                    ProductsInput.builder()
-                        .id(UUID.randomUUID().toString())
-                        .name("other")
-                        .price("3000.99")
-                        .created(now())
-                        .description("Normal legs but shiny.")
-                        .build()))
-            .build();
-
-    List<BulkInsertProductsWithAsyncAndAtomicMutation.BulkInsertProduct> result =
-        getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
-
-    assertThat(result.get(0).getAccepted()).hasValue(true);
-    assertThat(result.get(1).getAccepted()).hasValue(true);
+  @DisplayName("Should bulk insert using async directive")
+  public void shouldBulkInsertWhenUsingAsyncDirective() {
+    Map<String, Object> response =
+        bulkInsertProductsWithAsyncDirective(FIRST_PRODUCT_ID, SECOND_PRODUCT_ID);
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertProducts[0].accepted")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertProducts[1].accepted")).isTrue();
   }
 
   @Test
-  @DisplayName("Should insert orders using async directive")
-  public void shouldInsertOrdersUsingAsyncDirective() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    InsertOrdersWithAsyncMutation mutation =
-        InsertOrdersWithAsyncMutation.builder()
-            .value(OrdersInput.builder().prodName("a").customerName("b").description("c").build())
-            .build();
-
-    InsertOrdersWithAsyncMutation.InsertOrders result =
-        getObservable(client.mutate(mutation)).getInsertOrders().get();
-
-    assertThat(result.getAccepted()).hasValue(true);
+  @DisplayName("Should bulk insert using both async and atomic directives")
+  public void shouldBulkInsertWhenUsingBothAsyncAndAtomicDirective() {
+    Map<String, Object> response =
+        bulkInsertProductsWithAsyncAndAtomicDirectives(FIRST_PRODUCT_ID, SECOND_PRODUCT_ID);
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertProducts[0].accepted")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertProducts[1].accepted")).isTrue();
   }
 
-  @Test
-  @DisplayName("Should bulk insert products using async directive")
-  public void shouldBulkInsertProductsUsingAsyncDirective() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspace);
-    BulkInsertProductsWithAsyncMutation mutation =
-        BulkInsertProductsWithAsyncMutation.builder()
-            .values(
-                Arrays.asList(
-                    ProductsInput.builder()
-                        .id(UUID.randomUUID().toString())
-                        .name("Shiny Legs")
-                        .price("3199.99")
-                        .created(now())
-                        .description("Normal legs but shiny.")
-                        .build(),
-                    ProductsInput.builder()
-                        .id(UUID.randomUUID().toString())
-                        .name("other")
-                        .price("3000.99")
-                        .created(now())
-                        .description("Normal legs but shiny.")
-                        .build()))
-            .build();
+  private Map<String, Object> bulkInsertProductsWithAsyncAndAtomicDirectives(
+      String firstProductId, String secondProductId) {
+    return bulkInsertProductWithDirectives(firstProductId, secondProductId, "@async @atomic");
+  }
 
-    List<BulkInsertProductsWithAsyncMutation.BulkInsertProduct> result =
-        getObservable(client.mutate(mutation)).getBulkInsertProducts().get();
+  private Map<String, Object> bulkInsertProductsWithAsyncDirective(
+      String firstProductId, String secondProductId) {
+    return bulkInsertProductWithDirectives(firstProductId, secondProductId, "@async");
+  }
 
-    assertThat(result.get(0).getAccepted()).hasValue(true);
-    assertThat(result.get(1).getAccepted()).hasValue(true);
+  private Map<String, Object> insertProductWithAsyncDirective(String productId) {
+    return insertProductWithDirectives(productId, "@async");
+  }
+
+  private Map<String, Object> insertProductWithAsyncAndAtomicDirectives(String productId) {
+    return insertProductWithDirectives(productId, "@async @atomic");
+  }
+
+  private Map<String, Object> insertProductWithDirectives(String id, String directives) {
+    return CLIENT.executeDmlQuery(
+        KEYSPACE_ID,
+        String.format(
+            "mutation %s {\n"
+                + "  insertProducts(\n"
+                + "    value: {\n"
+                + "      id: \"%s\"\n"
+                + "      name: \"%s\"\n"
+                + "      price: \"%s\"\n"
+                + "      created: \"%s\"\n"
+                + "      description: \"%s\"\n"
+                + "    }\n,"
+                + "    ifNotExists: true"
+                + "  ) {\n"
+                + "    accepted\n"
+                + "  }\n"
+                + "}",
+            directives,
+            id,
+            "Shiny Legs",
+            "3199.99",
+            "2011-02-02T20:05:00.000-08:00",
+            "Normal legs but shiny."));
+  }
+
+  private Map<String, Object> bulkInsertProductWithDirectives(
+      String firstProductId, String secondProductId, String directives) {
+    return CLIENT.executeDmlQuery(
+        KEYSPACE_ID,
+        String.format(
+            "mutation %s {\n"
+                + "  bulkInsertProducts(\n"
+                + "    values: [{\n"
+                + "      id: \"%s\"\n"
+                + "      name: \"%s\"\n"
+                + "      price: \"%s\"\n"
+                + "      created: \"%s\"\n"
+                + "      description: \"%s\"\n"
+                + "    }, \n"
+                + "    {\n"
+                + "      id: \"%s\"\n"
+                + "      name: \"%s\"\n"
+                + "      price: \"%s\"\n"
+                + "      created: \"%s\"\n"
+                + "      description: \"%s\"\n"
+                + "    }\n,"
+                + "]\n,"
+                + "    ifNotExists: true"
+                + "  ) {\n"
+                + "    accepted\n"
+                + "  }\n"
+                + "}",
+            directives,
+            firstProductId,
+            "Shiny Legs",
+            "3199.99",
+            "2011-02-02T20:05:00.000-08:00",
+            "Normal legs but shiny.",
+            secondProductId,
+            "Other product",
+            "3000.99",
+            "2012-02-02T20:05:00.000-08:00",
+            "Other legs."));
   }
 }

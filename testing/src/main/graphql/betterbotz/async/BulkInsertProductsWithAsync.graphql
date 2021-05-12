@@ -1,9 +1,0 @@
-mutation BulkInsertProductsWithAsync(
-    $values: [ProductsInput!]
-    $ifNotExists: Boolean
-    $options: MutationOptions
-) @async {
-    bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
-        accepted
-    }
-}
