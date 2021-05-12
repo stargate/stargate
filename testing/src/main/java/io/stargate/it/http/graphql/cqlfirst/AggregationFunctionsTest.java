@@ -47,7 +47,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should calculate number of orders using count aggregation")
-  public void insertOrdersAndCountUsingBigIntFunctionWithAlias() {
+  public void countUsingBigIntFunctionWithAlias() {
     insertOrder("p1", "c1", "3000", "d1");
     insertOrder("p1", "c2", "2500", "d1");
 
@@ -57,7 +57,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should calculate average of orders' price using avg aggregation")
-  public void insertOrdersAndAvgUsingDecimalFunctionWithoutAlias() {
+  public void avgUsingDecimalFunctionWithoutAlias() {
     insertOrder("p1", "c1", "4", "d1");
     insertOrder("p1", "c2", "10", "d1");
 
@@ -69,7 +69,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should get the highest order using max aggregation")
-  public void insertOrdersAndMaxUsingDecimalFunctionWithAlias() {
+  public void maxUsingDecimalFunctionWithAlias() {
     insertOrder("p1", "c1", "2500", "d1");
     insertOrder("p1", "c2", "3000", "d1");
 
@@ -79,7 +79,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should get the lowest order using min aggregation")
-  public void insertOrdersAndMinUsingDecimalFunctionWithAlias() {
+  public void minUsingDecimalFunctionWithAlias() {
     insertOrder("p1", "c1", "2500", "d1");
     insertOrder("p1", "c2", "3000", "d1");
 
@@ -89,7 +89,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should sum all orders' price using sum aggregation")
-  public void insertOrdersAndSumUsingDecimalFunctionWithAlias() {
+  public void sumUsingDecimalFunctionWithAlias() {
     insertOrder("p1", "c1", "2500", "d1");
     insertOrder("p1", "c2", "3000", "d1");
 
@@ -134,7 +134,7 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   @Test
   @DisplayName("Should calculate the sum of orders sellPrices using sum on a case sensitive column")
-  public void insertOrdersAndSumOnCaseSensitiveColumn() {
+  public void sumOnCaseSensitiveColumn() {
     insertOrder("p1", "c1", "3000", "d1");
     insertOrder("p1", "c2", "2500", "d1");
 
