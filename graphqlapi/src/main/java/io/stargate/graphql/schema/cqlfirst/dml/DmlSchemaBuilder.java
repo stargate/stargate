@@ -552,7 +552,7 @@ public class DmlSchemaBuilder {
             GraphQLArgument.newArgument()
                 .name("args")
                 .description("Arguments passed to a function. It can be a list of column names.")
-                .type(new GraphQLList(new GraphQLNonNull(GraphQLString))))
+                .type(new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(GraphQLString)))))
         .type(returnType)
         .build();
   }

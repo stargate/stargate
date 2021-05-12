@@ -159,19 +159,12 @@ public class AggregationsFetcherSupport {
 
   private List<String> getAndValidateArgs(
       Map<String, Object> arguments, SupportedAggregationFunction supportedAggregationFunction) {
-    Object argsToValidate = arguments.get("args");
-    if (argsToValidate == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "The args provided for a function: %s are null, but it is not allowed.",
-              supportedAggregationFunction.getName()));
-    }
     @SuppressWarnings("unchecked")
-    List<String> args = (List<String>) argsToValidate;
+    List<String> args = (List<String>) arguments.get("args");
     if (args.size() != 1) {
       throw new IllegalArgumentException(
           String.format(
-              "The %s function takes only one argument, " + "but more arguments: %s were provided.",
+              "The %s function takes only one argument, but more arguments: %s were provided.",
               supportedAggregationFunction.getName(), args));
     }
     return args;

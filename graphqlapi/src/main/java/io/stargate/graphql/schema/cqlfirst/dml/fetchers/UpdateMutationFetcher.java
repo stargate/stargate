@@ -72,7 +72,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
     List<BuiltCondition> relations = new ArrayList<>();
 
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      Column column = getColumn(table, entry.getKey());
+      Column column = dbColumnGetter.getColumn(table, entry.getKey());
       if (table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column)) {
         relations.add(
@@ -86,7 +86,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
     Map<String, Object> value = environment.getArgument("value");
     List<ValueModifier> assignments = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      Column column = getColumn(table, entry.getKey());
+      Column column = dbColumnGetter.getColumn(table, entry.getKey());
       if (!(table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column))) {
         assignments.add(ValueModifier.set(column.name(), toDBValue(column, entry.getValue())));

@@ -127,7 +127,9 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         int split = order.lastIndexOf("_");
         String column = order.substring(0, split);
         boolean desc = order.substring(split + 1).equals("DESC");
-        orderBy.add(ColumnOrder.of(getDBColumnName(table, column), desc ? Order.DESC : Order.ASC));
+        orderBy.add(
+            ColumnOrder.of(
+                dbColumnGetter.getDBColumnName(table, column), desc ? Order.DESC : Order.ASC));
       }
       return orderBy;
     }
@@ -154,7 +156,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
           continue;
         }
 
-        String column = getDBColumnName(table, selectedField.getName());
+        String column = dbColumnGetter.getDBColumnName(table, selectedField.getName());
         if (column != null) {
           queryColumns.add(Column.reference(column));
         }
