@@ -59,6 +59,10 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
   IndexModel build() {
     Optional<String> indexClass =
         DirectiveHelper.getStringArgument(cqlIndexDirective, "class", context);
+    // Some persistence backends default to SAI when no class is specified:
+    if (!indexClass.isPresent() && !context.defaultsToRegularIndexes()) {
+      indexClass = Optional.of("org.apache.cassandra.index.sai.StorageAttachedIndex");
+    }
 
     String indexName =
         DirectiveHelper.getStringArgument(cqlIndexDirective, "name", context)

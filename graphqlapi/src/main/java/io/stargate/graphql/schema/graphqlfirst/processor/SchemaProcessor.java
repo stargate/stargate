@@ -80,19 +80,24 @@ public class SchemaProcessor {
 
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
+  private final boolean defaultsToRegularIndexes;
   private final boolean isPersisted;
 
   /**
+   * @param defaultsToRegularIndexes whether the underlying persistence implementation defaults to
+   *     regular secondary indexes when no index class is specified. Otherwise we will assume that
+   *     it defaults to SAI.
    * @param isPersisted whether we are processing a schema already stored in the database, or a
    *     schema that a user is attempting to deploy. This is just used to customize a couple of
-   *     error messages.
    */
   public SchemaProcessor(
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
+      boolean defaultsToRegularIndexes,
       boolean isPersisted) {
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
+    this.defaultsToRegularIndexes = defaultsToRegularIndexes;
     this.isPersisted = isPersisted;
   }
 
@@ -109,7 +114,8 @@ public class SchemaProcessor {
    */
   public ProcessedSchema process(String source, Keyspace keyspace) {
     TypeDefinitionRegistry registry = parse(source);
-    ProcessingContext context = new ProcessingContext(registry, keyspace, isPersisted);
+    ProcessingContext context =
+        new ProcessingContext(registry, keyspace, defaultsToRegularIndexes, isPersisted);
     MappingModel mappingModel = MappingModel.build(registry, context);
 
     addGeneratedTypes(mappingModel, registry);

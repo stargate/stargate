@@ -16,6 +16,7 @@
 package io.stargate.graphql.web;
 
 import io.stargate.auth.AuthenticationSubject;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -32,6 +33,7 @@ public class HttpAwareContext {
 
   private final HttpServletRequest request;
   private final AuthenticationSubject subject;
+  private final Persistence persistence;
 
   // We need to manually maintain state between multiple selections in a single mutation
   // operation to execute them as a batch.
@@ -41,9 +43,10 @@ public class HttpAwareContext {
   // For more information.
   private final BatchContext batchContext = new BatchContext();
 
-  public HttpAwareContext(HttpServletRequest request) {
+  public HttpAwareContext(HttpServletRequest request, Persistence persistence) {
     this.request = request;
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
+    this.persistence = persistence;
     if (this.subject == null) {
       // This happens if a GraphQL resource is not annotated with @Authenticated
       throw new AssertionError("Missing authentication subject in the request");
@@ -60,6 +63,10 @@ public class HttpAwareContext {
 
   public BatchContext getBatchContext() {
     return batchContext;
+  }
+
+  public Persistence getPersistence() {
+    return persistence;
   }
 
   /**

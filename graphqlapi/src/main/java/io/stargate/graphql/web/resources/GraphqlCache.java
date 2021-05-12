@@ -256,7 +256,11 @@ public class GraphqlCache implements KeyspaceChangeListener {
             SchemaFactory.newDmlSchema(authorizationService, keyspace, dataStoreFactory));
       } else {
         ProcessedSchema processedSchema =
-            new SchemaProcessor(authorizationService, dataStoreFactory, true)
+            new SchemaProcessor(
+                    authorizationService,
+                    dataStoreFactory,
+                    persistence.supportsSecondaryIndex(),
+                    true)
                 .process(source.getContents(), keyspace);
         // Check that the data model still matches
         CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);

@@ -31,6 +31,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.Persistence;
 import io.stargate.graphql.web.HttpAwareContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import java.io.IOException;
@@ -67,13 +68,14 @@ public class GraphqlResourceBase {
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   @Inject protected AuthorizationService authorizationService;
+  @Inject protected Persistence persistence;
 
   /**
    * Handles a GraphQL GET request.
    *
    * <p>The payload is provided via URL parameters.
    */
-  protected static void get(
+  protected void get(
       String query,
       String operationName,
       String variables,
@@ -91,7 +93,7 @@ public class GraphqlResourceBase {
       ExecutionInput.Builder input =
           ExecutionInput.newExecutionInput(query)
               .operationName(operationName)
-              .context(new HttpAwareContext(httpRequest));
+              .context(new HttpAwareContext(httpRequest, persistence));
 
       if (!Strings.isNullOrEmpty(variables)) {
         @SuppressWarnings("unchecked")
@@ -112,7 +114,7 @@ public class GraphqlResourceBase {
    * <p>Such a request normally comprises a JSON-encoded body, but the spec also allows the query to
    * be passed as a URL parameter.
    */
-  protected static void postJson(
+  protected void postJson(
       GraphqlJsonBody jsonBody,
       String queryFromUrl,
       GraphQL graphql,
@@ -147,7 +149,7 @@ public class GraphqlResourceBase {
     ExecutionInput.Builder input =
         ExecutionInput.newExecutionInput(query)
             .operationName(operationName)
-            .context(new HttpAwareContext(httpRequest));
+            .context(new HttpAwareContext(httpRequest, persistence));
     if (variables != null) {
       input = input.variables(variables);
     }
@@ -185,7 +187,7 @@ public class GraphqlResourceBase {
    *     file parts named after the keys of the files map.
    * @param graphql the GraphQL schema to use for execution.
    */
-  protected static void postMultipartJson(
+  protected void postMultipartJson(
       GraphqlJsonBody jsonBody,
       FormDataMultiPart allParts,
       GraphQL graphql,
@@ -310,7 +312,7 @@ public class GraphqlResourceBase {
    *
    * <p>The request body is the GraphQL query directly.
    */
-  protected static void postGraphql(
+  protected void postGraphql(
       String query, GraphQL graphql, HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
 
     if (Strings.isNullOrEmpty(query)) {
@@ -322,7 +324,9 @@ public class GraphqlResourceBase {
     }
 
     ExecutionInput input =
-        ExecutionInput.newExecutionInput(query).context(new HttpAwareContext(httpRequest)).build();
+        ExecutionInput.newExecutionInput(query)
+            .context(new HttpAwareContext(httpRequest, persistence))
+            .build();
     executeAsync(input, graphql, asyncResponse);
   }
 

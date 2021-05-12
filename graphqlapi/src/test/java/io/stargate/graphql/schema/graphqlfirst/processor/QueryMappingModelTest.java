@@ -41,7 +41,10 @@ class QueryMappingModelTest {
         MappingModel.build(
             typeDefinitionRegistry,
             new ProcessingContext(
-                typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
+                typeDefinitionRegistry,
+                ImmutableKeyspace.builder().name("ks_1").build(),
+                false,
+                true));
 
     // then
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
@@ -70,6 +73,7 @@ class QueryMappingModelTest {
                     new ProcessingContext(
                         typeDefinitionRegistry,
                         ImmutableKeyspace.builder().name("ks_1").build(),
+                        false,
                         true)))
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
@@ -95,7 +99,10 @@ class QueryMappingModelTest {
         MappingModel.build(
             typeDefinitionRegistry,
             new ProcessingContext(
-                typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
+                typeDefinitionRegistry,
+                ImmutableKeyspace.builder().name("ks_1").build(),
+                false,
+                true));
     // then
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo");
@@ -133,6 +140,7 @@ class QueryMappingModelTest {
                     new ProcessingContext(
                         typeDefinitionRegistry,
                         ImmutableKeyspace.builder().name("ks_1").build(),
+                        false,
                         true)))
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
@@ -159,7 +167,10 @@ class QueryMappingModelTest {
         MappingModel.build(
             typeDefinitionRegistry,
             new ProcessingContext(
-                typeDefinitionRegistry, ImmutableKeyspace.builder().name("ks_1").build(), true));
+                typeDefinitionRegistry,
+                ImmutableKeyspace.builder().name("ks_1").build(),
+                false,
+                true));
     // then
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
     assertThat(operationMappingModel.getCoordinates().getFieldName()).isEqualTo("foo1");

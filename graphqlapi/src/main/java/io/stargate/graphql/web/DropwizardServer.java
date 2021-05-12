@@ -155,6 +155,15 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(authorizationService).to(AuthorizationService.class);
               }
             });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(persistence).to(Persistence.class);
+              }
+            });
 
     environment.jersey().register(PlaygroundResource.class);
 

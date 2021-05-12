@@ -32,14 +32,20 @@ class ProcessingContext {
 
   private final TypeDefinitionRegistry typeRegistry;
   private final Keyspace keyspace;
+  private final boolean defaultsToRegularIndexes;
   private final boolean isPersisted;
   private final EnumSet<CqlScalar> usedCqlScalars = EnumSet.noneOf(CqlScalar.class);
   private final List<ProcessingMessage<ProcessingLogType>> logs;
   private final List<ProcessingMessage<ProcessingErrorType>> errors;
 
-  ProcessingContext(TypeDefinitionRegistry typeRegistry, Keyspace keyspace, boolean isPersisted) {
+  ProcessingContext(
+      TypeDefinitionRegistry typeRegistry,
+      Keyspace keyspace,
+      boolean defaultsToRegularIndexes,
+      boolean isPersisted) {
     this.typeRegistry = typeRegistry;
     this.keyspace = keyspace;
+    this.defaultsToRegularIndexes = defaultsToRegularIndexes;
     this.isPersisted = isPersisted;
     this.logs = new ArrayList<>();
     this.errors = new ArrayList<>();
@@ -55,7 +61,16 @@ class ProcessingContext {
     return keyspace;
   }
 
-  /** @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean) */
+  /**
+   * @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean, boolean)
+   */
+  public boolean defaultsToRegularIndexes() {
+    return defaultsToRegularIndexes;
+  }
+
+  /**
+   * @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean, boolean)
+   */
   public boolean isPersisted() {
     return isPersisted;
   }
