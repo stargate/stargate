@@ -94,12 +94,4 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
   protected static Row cqlRow(Value... values) {
     return Row.newBuilder().addAllValues(Arrays.asList(values)).build();
   }
-
-  protected static Value stringValue(String value) {
-    return Value.newBuilder().setString(value).build();
-  }
-
-  protected static Value intValue(long value) {
-    return Value.newBuilder().setInt(value).build();
-  }
 }

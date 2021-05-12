@@ -15,9 +15,6 @@
  */
 package io.stargate.grpc.payload;
 
-import static io.stargate.grpc.Values.intValue;
-import static io.stargate.grpc.Values.stringValue;
-import static io.stargate.grpc.Values.uuidValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -26,6 +23,7 @@ import com.google.protobuf.Any;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
 import io.stargate.grpc.Utils;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Payload.Type;
@@ -77,13 +75,13 @@ public class ProcessResultTests {
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
             .addExpectedRow(
-                intValue(1),
-                stringValue("a"),
-                uuidValue(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
+                Values.of(1),
+                Values.of("a"),
+                Values.of(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
             .addExpectedRow(
-                intValue(2),
-                stringValue("b"),
-                uuidValue(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
+                Values.of(2),
+                Values.of("b"),
+                Values.of(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
             .build(false),
         resultSet()
             .addActualColumn(Column.create("c1", Column.Type.Int))
@@ -92,13 +90,13 @@ public class ProcessResultTests {
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
             .addExpectedRow(
-                intValue(1),
-                stringValue("a"),
-                uuidValue(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
+                Values.of(1),
+                Values.of("a"),
+                Values.of(UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531")))
             .addExpectedRow(
-                intValue(2),
-                stringValue("b"),
-                uuidValue(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
+                Values.of(2),
+                Values.of("b"),
+                Values.of(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
             .build(true));
   }
 

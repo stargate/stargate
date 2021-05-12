@@ -15,8 +15,6 @@
  */
 package io.stargate.grpc.service;
 
-import static io.stargate.grpc.Values.intValue;
-import static io.stargate.grpc.Values.stringValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -39,6 +37,7 @@ import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
@@ -79,7 +78,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
             invocation -> {
               BoundStatement statement =
                   (BoundStatement) invocation.getArgument(0, Statement.class);
-              assertStatement(prepared, statement, stringValue("local"));
+              assertStatement(prepared, statement, Values.of("local"));
               List<List<ByteBuffer>> rows =
                   Arrays.asList(
                       Arrays.asList(
@@ -93,7 +92,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result = executeQuery(stub, query, stringValue("local"));
+    QueryOuterClass.Result result = executeQuery(stub, query, Values.of("local"));
 
     assertThat(result.hasPayload()).isTrue();
     ResultSet rs = result.getPayload().getValue().unpack(ResultSet.class);
@@ -166,12 +165,12 @@ public class ExecuteQueryTest extends BaseServiceTest {
         arguments(
             org.assertj.core.util.Arrays.array(
                 Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
-            org.assertj.core.util.Arrays.array(stringValue("a")),
+            org.assertj.core.util.Arrays.array(Values.of("a")),
             "Invalid number of bind values. Expected 2, but received 1"),
         // Invalid type
         arguments(
             org.assertj.core.util.Arrays.array(Column.create("k", Type.Varchar)),
-            org.assertj.core.util.Arrays.array(intValue(1)),
+            org.assertj.core.util.Arrays.array(Values.of(1)),
             "Invalid argument at position 1"));
   }
 

@@ -14,58 +14,50 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class Values {
-  public static Value NULL_VALUE = Value.newBuilder().setNull(Null.newBuilder().build()).build();
-  public static Value UNSET_VALUE = Value.newBuilder().setUnset(Unset.newBuilder().build()).build();
+  public static Value NULL = Value.newBuilder().setNull(Null.newBuilder().build()).build();
+  public static Value UNSET = Value.newBuilder().setUnset(Unset.newBuilder().build()).build();
 
   private static final LocalDate EPOCH = LocalDate.of(1970, 1, 1);
 
-  public static Value nullValue() {
-    return NULL_VALUE;
-  }
-
-  public static Value unsetValue() {
-    return UNSET_VALUE;
-  }
-
-  public static Value booleanValue(boolean value) {
+  public static Value of(boolean value) {
     return Value.newBuilder().setBoolean(value).build();
   }
 
-  public static Value dateValue(LocalDate value) {
+  public static Value of(LocalDate value) {
     long days = ChronoUnit.DAYS.between(EPOCH, value);
     int unsigned = (int) days - Integer.MIN_VALUE;
     return Value.newBuilder().setDate(unsigned).build();
   }
 
-  public static Value floatValue(float value) {
+  public static Value of(float value) {
     return Value.newBuilder().setFloat(value).build();
   }
 
-  public static Value doubleValue(double value) {
+  public static Value of(double value) {
     return Value.newBuilder().setDouble(value).build();
   }
 
-  public static Value bytesValue(byte[] value) {
+  public static Value of(byte[] value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
-  public static Value inetValue(InetAddress value) {
-    return bytesValue(value.getAddress());
+  public static Value of(InetAddress value) {
+    return of(value.getAddress());
   }
 
-  public static Value intValue(long value) {
+  public static Value of(long value) {
     return Value.newBuilder().setInt(value).build();
   }
 
-  public static Value stringValue(String value) {
+  public static Value of(String value) {
     return Value.newBuilder().setString(value).build();
   }
 
-  public static Value timeValue(LocalTime value) {
+  public static Value of(LocalTime value) {
     return Value.newBuilder().setTime(value.toNanoOfDay()).build();
   }
 
-  public static Value uuidValue(UUID value) {
+  public static Value of(UUID value) {
     return Value.newBuilder()
         .setUuid(
             Uuid.newBuilder()
@@ -74,7 +66,7 @@ public class Values {
         .build();
   }
 
-  public static Value collection(Value... elements) {
+  public static Value of(Value... elements) {
     return Value.newBuilder()
         .setCollection(Collection.newBuilder().addAllElements(Arrays.asList(elements)).build())
         .build();
