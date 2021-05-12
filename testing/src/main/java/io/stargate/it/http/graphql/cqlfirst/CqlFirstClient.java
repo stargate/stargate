@@ -23,23 +23,37 @@ public class CqlFirstClient extends GraphqlClient {
 
   private final String host;
   private final String authToken;
+  private final String dmlUrl;
 
   public CqlFirstClient(String host, String authToken) {
     this.host = host;
     this.authToken = authToken;
+    this.dmlUrl = String.format("http://%s:8080/graphql-schema", host);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a successful response. */
-  public Map<String, Object> getGraphqlData(CqlIdentifier keyspaceId, String graphqlQuery) {
-    return getGraphqlData(authToken, buildUrl(keyspaceId), graphqlQuery);
+  public Map<String, Object> executeDmlQuery(CqlIdentifier keyspaceId, String graphqlQuery) {
+    return getGraphqlData(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
-  public String getGraphqlError(CqlIdentifier keyspaceId, String graphqlQuery) {
-    return getGraphqlError(authToken, buildUrl(keyspaceId), graphqlQuery);
+  public String getDmlQueryError(CqlIdentifier keyspaceId, String graphqlQuery) {
+    return getGraphqlError(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
-  private String buildUrl(CqlIdentifier keyspaceId) {
+  /** Executes a GraphQL query in {@code graphql-schema}, expecting a successful response. */
+  public Map<String, Object> executeDdlQuery(String query) {
+    return getGraphqlData(authToken, dmlUrl, query);
+  }
+
+  /**
+   * Executes a GraphQL query in {@code graphql-schema}, expecting a <b>single</b> GraphQL error.
+   */
+  public String getDdlQueryError(String query) {
+    return getGraphqlError(authToken, dmlUrl, query);
+  }
+
+  private String buildKeyspaceUrl(CqlIdentifier keyspaceId) {
     return String.format("http://%s:8080/graphql/%s", host, keyspaceId.asInternal());
   }
 }

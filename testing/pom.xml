@@ -210,16 +210,6 @@
         <version>3.2.2</version>
         <executions>
           <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <rootPackageName>com.example.graphql.client.schema</rootPackageName>
-              <introspectionFile>${project.basedir}/src/main/graphql/schema/schema.json</introspectionFile>
-              <sourceDirName>${project.basedir}/src/main/graphql/schema</sourceDirName>
-            </configuration>
-          </execution>
-          <execution>
             <id>betterbotz</id>
             <goals>
               <goal>generate</goal>

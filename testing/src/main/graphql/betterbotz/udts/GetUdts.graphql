@@ -1,9 +1,0 @@
-query GetUdts($value: UdtsInput) {
-    Udts(value: $value) {
-        pageState
-        values {
-            a { b { i } }
-            bs { i }
-        }
-    }
-}

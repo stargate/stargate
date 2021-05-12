@@ -24,8 +24,15 @@ import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.Persistence;
+import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result.Prepared;
+import io.stargate.db.Statement;
+import io.stargate.db.schema.Column;
+import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -35,13 +42,25 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class BaseServiceTest {
   private static final String SERVER_NAME = "ServiceTests";
 
   private Server server;
+  private ManagedChannel clientChannel;
+
+  protected @Mock Persistence persistence;
+
+  protected @Mock Connection connection;
 
   @AfterEach
   public void cleanUp() {
@@ -49,14 +68,19 @@ public class BaseServiceTest {
       if (server != null) {
         server.shutdown().awaitTermination();
       }
+      if (clientChannel != null) {
+        clientChannel.shutdown().awaitTermination(60, TimeUnit.SECONDS);
+      }
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
   }
 
   protected StargateBlockingStub makeBlockingStub() {
-    ManagedChannel channel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
-    return StargateGrpc.newBlockingStub(channel);
+    if (clientChannel == null) {
+      clientChannel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
+    }
+    return StargateGrpc.newBlockingStub(clientChannel);
   }
 
   protected QueryOuterClass.Result executeQuery(
@@ -75,6 +99,10 @@ public class BaseServiceTest {
     return QueryParameters.newBuilder().setPayload(cqlPayload(values));
   }
 
+  protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
+    return BatchQuery.newBuilder().setCql(cql).setPayload(cqlPayload(values)).build();
+  }
+
   protected void startServer(Persistence persistence) {
     assertThat(server).isNull();
     server =
@@ -87,6 +115,19 @@ public class BaseServiceTest {
       server.start();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
+    }
+  }
+
+  protected void assertStatement(Prepared prepared, Statement statement, Value... values) {
+    assertThat(statement).isInstanceOf(BoundStatement.class);
+    assertThat(((BoundStatement) statement).preparedId()).isEqualTo(prepared.statementId);
+    List<ByteBuffer> boundValues = statement.values();
+    assertThat(boundValues).hasSize(values.length);
+    for (int i = 0; i < values.length; ++i) {
+      Column column = prepared.metadata.columns.get(i);
+      assertThat(column.type().rawType()).isNotNull();
+      Value actual = ValueCodecs.CODECS.get(column.type().rawType()).decode(boundValues.get(i));
+      assertThat(values[i]).isEqualTo(actual);
     }
   }
 }
