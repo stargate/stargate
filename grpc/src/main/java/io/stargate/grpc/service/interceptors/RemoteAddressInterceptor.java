@@ -30,6 +30,7 @@ import io.stargate.grpc.service.Service;
  * Service#REMOTE_ADDRESS_KEY}.
  */
 public class RemoteAddressInterceptor implements ServerInterceptor {
+
   @Override
   public <ReqT, RespT> Listener<ReqT> interceptCall(
       ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {

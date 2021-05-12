@@ -16,6 +16,9 @@
 package io.stargate.grpc.payload.cql;
 
 import com.google.protobuf.Any;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -30,9 +33,21 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.proto.QueryOuterClass.*;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.proto.QueryOuterClass.ListSpec;
+import io.stargate.proto.QueryOuterClass.MapSpec;
+import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Payload.Type;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
+import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.proto.QueryOuterClass.SetSpec;
+import io.stargate.proto.QueryOuterClass.TupleSpec;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Builder;
+import io.stargate.proto.QueryOuterClass.UdtSpec;
+import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -154,6 +169,14 @@ public class ValuesHandler implements PayloadHandler {
         rowBuilder.addValues(decodeValue(codec, row.get(i)));
       }
       resultSetBuilder.addRows(rowBuilder);
+    }
+
+    if (rows.resultMetadata.pagingState != null) {
+      resultSetBuilder.setPagingState(
+          BytesValue.newBuilder()
+              .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
+              .build());
+      resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     }
 
     return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
