@@ -81,11 +81,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     try {
       Persistence persistence = ((HttpAwareContext) environment.getContext()).getPersistence();
       ProcessedSchema processedSchema =
-          new SchemaProcessor(
-                  authorizationService,
-                  dataStoreFactory,
-                  persistence.supportsSecondaryIndex(),
-                  false)
+          new SchemaProcessor(authorizationService, dataStoreFactory, persistence, false)
               .process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 

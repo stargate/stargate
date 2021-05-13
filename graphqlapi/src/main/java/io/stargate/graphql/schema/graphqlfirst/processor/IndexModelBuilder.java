@@ -56,17 +56,32 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
   }
 
   @Override
-  IndexModel build() {
-    Optional<String> indexClass =
-        DirectiveHelper.getStringArgument(cqlIndexDirective, "class", context);
-    // Some persistence backends default to SAI when no class is specified:
-    if (!indexClass.isPresent() && !context.defaultsToRegularIndexes()) {
-      indexClass = Optional.of("org.apache.cassandra.index.sai.StorageAttachedIndex");
-    }
-
+  IndexModel build() throws SkipException {
     String indexName =
         DirectiveHelper.getStringArgument(cqlIndexDirective, "name", context)
             .orElse(parentCqlName + '_' + columnCqlName + "_idx");
+
+    Optional<String> indexClass =
+        DirectiveHelper.getStringArgument(cqlIndexDirective, "class", context);
+
+    // Some persistence backends default to SAI when no class is specified:
+    if (!indexClass.isPresent() && !context.getPersistence().supportsSecondaryIndex()) {
+      if (!context.getPersistence().supportsSAI()) {
+        // Cannot happen with any of the existing persistence implementations, but handle it just in
+        // case:
+        invalidMapping(
+            "%s: the persistence backend does not support regular secondary indexes nor SAI, "
+                + "indexes that don't specify indexClass can't be mapped",
+            messagePrefix);
+        throw SkipException.INSTANCE;
+      }
+      info(
+          "%s: using SAI for index %s because the persistence backend does not support "
+              + "regular secondary indexes",
+          messagePrefix, indexName);
+      indexClass = Optional.of("org.apache.cassandra.index.sai.StorageAttachedIndex");
+    }
+
     CollectionIndexingType indexingType =
         DirectiveHelper.getEnumArgument(cqlIndexDirective, "target", IndexTarget.class, context)
             .filter(this::validateTarget)
@@ -80,6 +95,7 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
     if (cqlType.isUserDefined() && !cqlType.isFrozen()) {
       invalidMapping(
           "%s: fields that map to UDTs can only be indexed if they are frozen", messagePrefix);
+      throw SkipException.INSTANCE;
     }
 
     return new IndexModel(indexName, indexClass, indexingType, indexOptions);

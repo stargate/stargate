@@ -21,11 +21,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import graphql.GraphqlErrorException;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import io.stargate.db.Persistence;
 import io.stargate.db.schema.ImmutableKeyspace;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class QueryMappingModelTest {
+
+  @Mock private Persistence persistence;
 
   @Test
   public void shouldBuildAMappingModelAndQueryWithOnePrimaryKey() {
@@ -43,7 +50,7 @@ class QueryMappingModelTest {
             new ProcessingContext(
                 typeDefinitionRegistry,
                 ImmutableKeyspace.builder().name("ks_1").build(),
-                false,
+                persistence,
                 true));
 
     // then
@@ -73,7 +80,7 @@ class QueryMappingModelTest {
                     new ProcessingContext(
                         typeDefinitionRegistry,
                         ImmutableKeyspace.builder().name("ks_1").build(),
-                        false,
+                        persistence,
                         true)))
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
@@ -101,7 +108,7 @@ class QueryMappingModelTest {
             new ProcessingContext(
                 typeDefinitionRegistry,
                 ImmutableKeyspace.builder().name("ks_1").build(),
-                false,
+                persistence,
                 true));
     // then
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);
@@ -140,7 +147,7 @@ class QueryMappingModelTest {
                     new ProcessingContext(
                         typeDefinitionRegistry,
                         ImmutableKeyspace.builder().name("ks_1").build(),
-                        false,
+                        persistence,
                         true)))
         .isInstanceOf(GraphqlErrorException.class)
         .extracting(ex -> extractMappingErrors((GraphqlErrorException) ex))
@@ -169,7 +176,7 @@ class QueryMappingModelTest {
             new ProcessingContext(
                 typeDefinitionRegistry,
                 ImmutableKeyspace.builder().name("ks_1").build(),
-                false,
+                persistence,
                 true));
     // then
     QueryModel operationMappingModel = (QueryModel) mappingModel.getOperations().get(0);

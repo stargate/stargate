@@ -21,6 +21,7 @@ import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.scalars.CqlScalar;
@@ -32,7 +33,7 @@ class ProcessingContext {
 
   private final TypeDefinitionRegistry typeRegistry;
   private final Keyspace keyspace;
-  private final boolean defaultsToRegularIndexes;
+  private final Persistence persistence;
   private final boolean isPersisted;
   private final EnumSet<CqlScalar> usedCqlScalars = EnumSet.noneOf(CqlScalar.class);
   private final List<ProcessingMessage<ProcessingLogType>> logs;
@@ -41,11 +42,11 @@ class ProcessingContext {
   ProcessingContext(
       TypeDefinitionRegistry typeRegistry,
       Keyspace keyspace,
-      boolean defaultsToRegularIndexes,
+      Persistence persistence,
       boolean isPersisted) {
     this.typeRegistry = typeRegistry;
     this.keyspace = keyspace;
-    this.defaultsToRegularIndexes = defaultsToRegularIndexes;
+    this.persistence = persistence;
     this.isPersisted = isPersisted;
     this.logs = new ArrayList<>();
     this.errors = new ArrayList<>();
@@ -61,11 +62,8 @@ class ProcessingContext {
     return keyspace;
   }
 
-  /**
-   * @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean, boolean)
-   */
-  public boolean defaultsToRegularIndexes() {
-    return defaultsToRegularIndexes;
+  public Persistence getPersistence() {
+    return persistence;
   }
 
   /**

@@ -319,9 +319,15 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
         throw SkipException.INSTANCE;
       }
     }
-    return cqlIndexDirective.map(
-        d ->
-            new IndexModelBuilder(d, parentCqlName, cqlName, cqlType, messagePrefix, context)
-                .build());
+    return cqlIndexDirective.flatMap(
+        d -> {
+          try {
+            return Optional.of(
+                new IndexModelBuilder(d, parentCqlName, cqlName, cqlType, messagePrefix, context)
+                    .build());
+          } catch (SkipException e) {
+            return Optional.empty();
+          }
+        });
   }
 }
