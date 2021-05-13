@@ -30,7 +30,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import net.jcip.annotations.NotThreadSafe;
-import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,11 +58,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public static String collectionPath;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceIdentifier) throws IOException {
+  public static void setup(
+      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceIdentifier)
+      throws IOException {
     host = "http://" + cluster.seedAddress();
     hostWithPort = host + ":8082";
     keyspace = keyspaceIdentifier.toString();
-    collectionPath = hostWithPort + "/v2/namespaces/" + keyspace + "/collections/" + TARGET_COLLECTION;
+    collectionPath =
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/" + TARGET_COLLECTION;
     initAuth();
   }
 
@@ -95,24 +103,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    String resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/maths",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/quiz/maths", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths"), "1", null));
 
@@ -134,56 +130,27 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             .toString();
 
     // Missing token header
-    RestUtils.post(
-        null, collectionPath, data, 401);
-    RestUtils.put(
-        null, collectionPath + "/1", data, 401);
-    RestUtils.patch(
-        null, collectionPath + "/1", data, 401);
-    RestUtils.delete(
-        null, collectionPath + "/1", 401);
-    RestUtils.get(
-        null, collectionPath + "/1", 401);
-    RestUtils.get(
-        null, collectionPath, 401);
+    RestUtils.post(null, collectionPath, data, 401);
+    RestUtils.put(null, collectionPath + "/1", data, 401);
+    RestUtils.patch(null, collectionPath + "/1", data, 401);
+    RestUtils.delete(null, collectionPath + "/1", 401);
+    RestUtils.get(null, collectionPath + "/1", 401);
+    RestUtils.get(null, collectionPath, 401);
 
     // Bad token header
-    RestUtils.post(
-        "garbage",
-        collectionPath,
-        data,
-        401);
-    RestUtils.put(
-        "garbage",
-        collectionPath + "/1",
-        data,
-        401);
-    RestUtils.patch(
-        "garbage",
-        collectionPath + "/1",
-        data,
-        401);
-    RestUtils.delete(
-        "garbage", collectionPath + "/1", 401);
-    RestUtils.get(
-        "garbage", collectionPath + "/1", 401);
-    RestUtils.get(
-        "garbage", collectionPath, 401);
+    RestUtils.post("garbage", collectionPath, data, 401);
+    RestUtils.put("garbage", collectionPath + "/1", data, 401);
+    RestUtils.patch("garbage", collectionPath + "/1", data, 401);
+    RestUtils.delete("garbage", collectionPath + "/1", 401);
+    RestUtils.get("garbage", collectionPath + "/1", 401);
+    RestUtils.get("garbage", collectionPath, 401);
   }
 
   @Test
   public void testBasicForms() throws IOException {
-    RestUtils.putForm(
-        authToken,
-        collectionPath + "/1",
-        "a=b&b=null&c.b=3.3&d.[0].[2]=true",
-        200);
+    RestUtils.putForm(authToken, collectionPath + "/1", "a=b&b=null&c.b=3.3&d.[0].[2]=true", 200);
 
-    String resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     JsonNode expected =
         OBJECT_MAPPER.readTree(
             "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
@@ -239,56 +206,31 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidKeyPut() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are not allowed\" }");
 
-    String resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"commas,\": \"are not allowed\" }");
-    resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are not allowed\" }");
-    resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods..\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are not allowed\" }");
-    resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*.\",\"code\":400}");
@@ -297,145 +239,65 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testWeirdButAllowedKeys() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{ \"$\": \"weird but allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    String resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"$30\": \"not as weird\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"@\": \"weird but allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"meet me @ the place\": \"not as weird\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"?\": \"weird but allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"spac es\": \"weird but allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"3\": [\"totally allowed\"] }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path/3/[0]",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path/3/[0]", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree("\"totally allowed\""), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"-1\": \"totally allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path/-1",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path/-1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree("\"totally allowed\""), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{ \"Eric says \\\"hello\\\"\": \"totally allowed\" }");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/path",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/path",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/path", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
   }
 
@@ -443,21 +305,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidDepthAndLength() throws IOException {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("tooDeep.json"));
-    String resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp).isEqualTo("{\"description\":\"Max depth of 64 exceeded.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"some\": \"json\" }");
-    resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1/[1000000]",
-            obj.toString(),
-            400);
+    resp = RestUtils.put(authToken, collectionPath + "/1/[1000000]", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo("{\"description\":\"Max array length of 1000000 exceeded.\",\"code\":400}");
   }
@@ -466,34 +318,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testArrayGet() throws IOException {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            200);
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/maths/q1/options/[0]",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/quiz/maths/q1/options/[0]", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/maths/q1/options/0"), "1", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/maths/q1/options/[0]?raw=true",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/quiz/maths/q1/options/[0]?raw=true", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj.requiredAt("/quiz/maths/q1/options/0"));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/nests/q1/options/[3]/this",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/1/quiz/nests/q1/options/[3]/this", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(obj.requiredAt("/quiz/nests/q1/options/3/this"), "1", null));
   }
@@ -502,111 +337,54 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPathGet() throws IOException {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String resp =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            200);
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
-    RestUtils.get(
-        authToken,
-        collectionPath + "/1/nonexistent/path",
-        204);
+    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path", 204);
+
+    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path/[1]", 204);
 
     RestUtils.get(
-        authToken,
-        collectionPath + "/1/nonexistent/path/[1]",
-        204);
-
-    RestUtils.get(
-        authToken,
-        collectionPath + "/1/quiz/maths/q1/options/[9999]",
-        204); // out of bounds
+        authToken, collectionPath + "/1/quiz/maths/q1/options/[9999]", 204); // out of bounds
   }
 
   @Test
   public void testPutNullsAndEmpties() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": null}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    String resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"abc\": {}}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/2",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/2", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/2",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/2", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "2", null));
 
     obj = OBJECT_MAPPER.readTree("{\"abc\": []}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/3",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/3", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/3",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/3", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "3", null));
 
     obj =
         OBJECT_MAPPER.readTree(
             "{\"abc\": [], \"bcd\": {}, \"cde\": null, \"abcd\": { \"nest1\": [], \"nest2\": {}}}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/4",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/4", obj.toString(), 200);
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/4",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/4", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "4", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/4/abc",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/4/abc", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.createArrayNode(), "4", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/4/bcd",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/4/bcd", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.createObjectNode(), "4", null));
 
-    resp =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/4/abcd/nest1",
-            200);
+    resp = RestUtils.get(authToken, collectionPath + "/4/abcd/nest1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.createArrayNode(), "4", null));
   }
@@ -615,41 +393,20 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingObject() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = OBJECT_MAPPER.readTree("{\"q5000\": \"hello?\"}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz/sport",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz/sport", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/sport",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz/sport", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
 
     ObjectNode sportNode = OBJECT_MAPPER.createObjectNode();
     sportNode.set("q5000", TextNode.valueOf("hello?"));
@@ -663,41 +420,20 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingArrayElement() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = OBJECT_MAPPER.readTree("{\"q5000\": \"hello?\"}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz/nests/q1/options/[0]",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz/nests/q1/options/[0]", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/nests/q1/options/[0]",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz/nests/q1/options/[0]", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
 
     ObjectNode optionNode = OBJECT_MAPPER.createObjectNode();
     optionNode.set("q5000", TextNode.valueOf("hello?"));
@@ -711,54 +447,25 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPutReplacingWithArray() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj = OBJECT_MAPPER.readTree("[{\"array\": \"at\"}, \"sub\", \"doc\"]");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("[0, \"a\", \"2\", true]");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz/nests/q1",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz/nests/q1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/nests/q1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz/nests/q1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     ObjectNode nestsNode =
         (ObjectNode) OBJECT_MAPPER.readTree("{\"nests\":{\"q1\":[0,\"a\",\"2\",true]}}");
     ObjectNode fullObjNode = (ObjectNode) fullObj;
@@ -766,31 +473,15 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObjNode, "1", null));
 
     obj = OBJECT_MAPPER.readTree("[{\"array\": \"at\"}, \"\", \"doc\"]");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"we\": {\"are\": \"done\"}}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1/quiz",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
   }
 
@@ -798,62 +489,33 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPuts() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = OBJECT_MAPPER.readTree("3");
-    r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    r = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("true");
-    r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1/quiz",
-            obj.toString(),
-            400);
+    r = RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("null");
-    r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1/quiz",
-            obj.toString(),
-            400);
+    r = RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("\"Eric\"");
-    r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1/quiz/sport",
-            obj.toString(),
-            400);
+    r = RestUtils.put(authToken, collectionPath + "/1/quiz/sport", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
@@ -863,51 +525,23 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testDelete() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
-    RestUtils.delete(
-        authToken,
-        collectionPath + "/1/quiz/sport/q1/question",
-        204);
+    RestUtils.delete(authToken, collectionPath + "/1/quiz/sport/q1/question", 204);
 
-    RestUtils.get(
-        authToken,
-            collectionPath + "/1/quiz/sport/q1/question",
-        204);
+    RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/question", 204);
 
-    RestUtils.delete(
-        authToken,
-        collectionPath + "/1/quiz/maths",
-        204);
+    RestUtils.delete(authToken, collectionPath + "/1/quiz/maths", 204);
 
-    RestUtils.get(
-        authToken,
-        collectionPath + "/1/quiz/maths",
-        204);
+    RestUtils.get(authToken, collectionPath + "/1/quiz/maths", 204);
 
-    RestUtils.delete(
-        authToken,
-            collectionPath + "/1/quiz/nests/q1/options/[0]",
-        204);
+    RestUtils.delete(authToken, collectionPath + "/1/quiz/nests/q1/options/[0]", 204);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1/quiz/nests/q1/options",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1/quiz/nests/q1/options", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -916,23 +550,16 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 "1",
                 null));
 
-    RestUtils.delete(
-        authToken, collectionPath + "/1", 204);
+    RestUtils.delete(authToken, collectionPath + "/1", 204);
 
-    RestUtils.get(
-        authToken, collectionPath + "/1", 204);
+    RestUtils.get(authToken, collectionPath + "/1", 204);
   }
 
   @Test
   public void testPost() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    Response resp =
-        RestUtils.postRaw(
-            authToken,
-            collectionPath,
-            fullObj.toString(),
-            201);
+    Response resp = RestUtils.postRaw(authToken, collectionPath, fullObj.toString(), 201);
     String newLocation = resp.header("location");
     String body = resp.body().string();
     String newId = OBJECT_MAPPER.readTree(body).requiredAt("/documentId").asText();
@@ -945,96 +572,51 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testRootDocumentPatch() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": 1}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    String r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": true}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
-        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": true }"), "1", null));
+        .isEqualTo(
+            wrapResponse(OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": true }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": {\"a\": {\"b\": 0 }}}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
-                OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"), "1", null));
+                OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"),
+                "1",
+                null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [1,2,3,4]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": [1,2,3,4] }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [5,{\"a\": 23},7,8]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
                 OBJECT_MAPPER.readTree("{ \"abc\": 1, \"bcd\": [5,{\"a\": 23},7,8] }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1044,17 +626,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": {\"replace\": \"array\"}}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1063,17 +637,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = OBJECT_MAPPER.readTree("{\"done\": \"done\"}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1086,47 +652,23 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testRootDocumentPatchNulls() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": null}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    String r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(obj, "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": null}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(OBJECT_MAPPER.readTree("{ \"abc\": null, \"bcd\": null }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": {\"a\": {\"b\": null }}}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1135,34 +677,18 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [null,2,null,4]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
                 OBJECT_MAPPER.readTree("{ \"abc\": null, \"bcd\": [null,2,null,4] }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [1,{\"a\": null},3,4]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1171,33 +697,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 null));
 
     obj = OBJECT_MAPPER.readTree("{\"bcd\": [null]}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(OBJECT_MAPPER.readTree("{ \"abc\": null, \"bcd\": [null] }"), "1", null));
 
     obj = OBJECT_MAPPER.readTree("{\"null\": null}");
-    RestUtils.patch(
-        authToken,
-        collectionPath + "/1",
-        obj.toString(),
-        200);
+    RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(
             wrapResponse(
@@ -1210,84 +720,45 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testInvalidPatches() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    String r =
-        RestUtils.put(
-            authToken,
-            collectionPath + "/1",
-            fullObj.toString(),
-            200);
+    String r = RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
     assertThat(r).isEqualTo("{\"documentId\":\"1\"}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/1",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, "1", null));
 
     JsonNode obj;
     obj = OBJECT_MAPPER.readTree("[{\"array\": \"at\"}, \"root\", \"doc\"]");
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"A patch operation must be done with a JSON object, not an array.\",\"code\":400}");
 
     // For patching, you must use an object, so arrays even patched to sub-paths are not allowed.
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1/quiz/sport/q1",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1/quiz/sport/q1", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"A patch operation must be done with a JSON object, not an array.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("3");
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("true");
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1/quiz",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("null");
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1/quiz",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("\"Eric\"");
-    r =
-        RestUtils.patch(
-            authToken,
-            collectionPath + "/1/quiz/sport",
-            obj.toString(),
-            400);
+    r = RestUtils.patch(authToken, collectionPath + "/1/quiz/sport", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
@@ -1297,17 +768,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testBasicSearch() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // EQ
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
             200);
 
     String searchResultStr =
@@ -1317,14 +785,15 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.get(
         authToken,
-            collectionPath + "/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true",
+        collectionPath + "/cool-search-id?where={\"price\": {\"$eq\": 600}}&raw=true",
         204);
 
     // LT
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&raw=true",
             200);
 
     searchResultStr =
@@ -1347,7 +816,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&raw=true",
             200);
 
     searchResultStr = "[{\"products\": {\"electronics\": {\"iPhone_11\": {\"price\": 900}}}}]";
@@ -1357,7 +827,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&raw=true",
             200);
 
     searchResultStr =
@@ -1368,7 +839,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&raw=true",
             200);
     searchResultStr =
         "["
@@ -1384,17 +856,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testBasicSearchSelectionSet() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // EQ
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}&fields=[\"name\", \"price\", \"model\", \"manufacturer\"]",
             200);
 
     String searchResultStr =
@@ -1406,7 +875,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.food.*.price\": {\"$lt\": 600}}&fields=[\"name\", \"price\", \"model\"]&raw=true",
             200);
 
     searchResultStr =
@@ -1417,7 +887,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]",
+            collectionPath
+                + "/cool-search-id?where={\"products.food.*.price\": {\"$lte\": 600}}&fields=[\"price\", \"sku\"]",
             200);
 
     searchResultStr =
@@ -1429,7 +900,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gt\": 600}}&fields=[\"price\", \"throwaway\"]&raw=true",
             200);
 
     searchResultStr = "[{\"products\": {\"electronics\": {\"iPhone_11\": {\"price\": 900}}}}]";
@@ -1439,7 +911,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.price\": {\"$gte\": 600}}&fields=[\"price\"]&raw=true",
             200);
 
     searchResultStr =
@@ -1450,7 +923,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$exists\": true}}&fields=[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]&raw=true",
             200);
     searchResultStr =
         "["
@@ -1466,17 +940,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testSearchNotEquals() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // NE with String
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.model\": {\"$ne\": \"3a\"}}",
             200);
 
     String searchResultStr =
@@ -1488,7 +959,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}",
+            collectionPath
+                + "/cool-search-id?where={\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}",
             200);
 
     searchResultStr =
@@ -1510,7 +982,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     // NE with double compared to integer
     RestUtils.get(
         authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
+        collectionPath + "/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
         204);
 
     // NE with null
@@ -1530,16 +1002,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode fullObj1 =
         OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
     JsonNode fullObj2 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj1.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id-2",
-        fullObj2.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id-2", fullObj2.toString(), 200);
 
     // Any filter on full collection search should only match the level of nesting of the where
     // clause
@@ -1584,17 +1048,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testSearchIn() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // IN with String
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}",
             200);
 
     String searchResultStr =
@@ -1606,7 +1067,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$in\": [600, 900]}}",
             200);
 
     searchResultStr =
@@ -1618,7 +1080,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}",
             200);
 
     searchResultStr =
@@ -1642,17 +1105,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testSearchNotIn() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // NIN with String
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}",
             200);
 
     String searchResultStr =
@@ -1664,7 +1124,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [600, 900]}}",
             200);
 
     searchResultStr =
@@ -1676,7 +1137,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}",
             200);
 
     searchResultStr =
@@ -1700,17 +1162,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testFilterCombos() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // NIN (limited support) with GT (full support)
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}",
             200);
 
     String searchResultStr =
@@ -1722,7 +1181,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}",
+            collectionPath
+                + "/cool-search-id?where={\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"], \"$ne\": \"11\"}}",
             200);
 
     searchResultStr = "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]";
@@ -1732,25 +1192,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
-    RestUtils.get(
-        authToken,
-            collectionPath + "/cool-search-id?where=hello",
-        500);
+    RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 500);
 
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where=[\"a\"]}",
-            400);
+    String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Search was expecting a JSON object as input.\",\"code\":400}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": true}}",
-            400);
+    r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where={\"a\": true}}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Search entry for field a was expecting a JSON object as input.\",\"code\":400}");
@@ -1766,43 +1215,33 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}",
-            400);
+            authToken, collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}", 400);
     assertThat(r).startsWith("{\"description\":\"Invalid operator: exists, valid operators are:");
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": null}}}",
-            400);
+            authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": null}}}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": {}}}}",
-            400);
+            authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": {}}}}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": []}}}",
-            400);
+            authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": []}}}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$in\": 2}}}",
-            400);
+            authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$in\": 2}}}", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Value entry for field a, operation $in was expecting an array\",\"code\":400}");
@@ -1824,11 +1263,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         .contains(
             "{\"description\":\"When selecting `fields`, the field referenced by `where` must be in the selection.\",\"code\":400}");
 
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?fields=[\"b\"]",
-            400);
+    r = RestUtils.get(authToken, collectionPath + "/cool-search-id?fields=[\"b\"]", 400);
     assertThat(r)
         .contains(
             "{\"description\":\"Selecting fields is not allowed without `where`.\",\"code\":400}");
@@ -1838,17 +1273,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testMultiSearch() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // Multiple operators
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}&raw=true",
             200);
 
     String searchResultStr =
@@ -1859,7 +1291,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}&raw=true",
             200);
     searchResultStr = "[{\"quiz\":{\"maths\":{\"q1\":{\"options\":{\"[0]\":10.2}}}}}]";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
@@ -1867,7 +1300,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q2\":{\"options\":{\"[3]\":{\"this\":{\"that\":{\"them\":false}}}}}}}}]";
@@ -1877,7 +1311,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}&raw=true",
             200);
     searchResultStr =
         "["
@@ -1890,7 +1325,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
+            collectionPath
+                + "/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]";
@@ -1901,11 +1337,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPaginationSingleDocSearch() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/cool-search-id",
-        fullObj.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // With page size of 100
     String r =
@@ -1921,7 +1353,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}&page-state="
+            collectionPath
+                + "/cool-search-id?page-size=20&where={\"*.value\": {\"$gt\": 0}}&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     JsonNode responseBody2 = OBJECT_MAPPER.readTree(r);
@@ -1952,7 +1385,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10&page-state="
+            collectionPath
+                + "/cool-search-id?where={\"*.value\": {\"$gt\": 1}}&page-size=10&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     responseBody2 = OBJECT_MAPPER.readTree(r);
@@ -1978,16 +1412,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode doc2 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/2",
-        doc2.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
 
     String r =
         RestUtils.get(
@@ -2048,28 +1474,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc1.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/2",
-        doc2.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/3",
-        doc3.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
     // page-size defaults to 1 document when excluded
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath,
-            200);
+    String r = RestUtils.get(authToken, collectionPath, 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2120,11 +1530,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     docsSeen = new HashSet<>();
     // set page-size to 2
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "?page-size=2",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "?page-size=2", 200);
     resp = OBJECT_MAPPER.readTree(r);
     pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     data = resp.requiredAt("/data");
@@ -2162,11 +1568,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen = new HashSet<>();
 
     // set page-size to 4
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "?page-size=4",
-            200);
+    r = RestUtils.get(authToken, collectionPath + "?page-size=4", 200);
     resp = OBJECT_MAPPER.readTree(r);
     assertThat(resp.at("/pageState").isMissingNode()).isTrue();
     data = resp.requiredAt("/data");
@@ -2198,28 +1600,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc1.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/2",
-        doc2.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/3",
-        doc3.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
     // page-size defaults to 1 document when excluded
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "?fields=[\"a\"]",
-            200);
+    String r = RestUtils.get(authToken, collectionPath + "?fields=[\"a\"]", 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2393,11 +1779,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     JsonNode doc1 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc1.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
 
     String r =
         RestUtils.get(
@@ -2434,21 +1816,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     Set<String> docsSeen = new HashSet<>();
 
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc1.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/2",
-        doc2.toString(),
-        200);
-    RestUtils.put(
-        authToken,
-        collectionPath + "/3",
-        doc3.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
     // page-size defaults to 1 document when excluded
     String r =
@@ -2528,11 +1898,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidFullDocPageSize() throws IOException {
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "?page-size=21",
-            400);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=21", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
@@ -2542,17 +1908,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testPaginationDisallowedLimitedSupport() throws IOException {
     JsonNode doc1 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    RestUtils.put(
-        authToken,
-        collectionPath + "/1",
-        doc1.toString(),
-        200);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
 
     String r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5",
-            400);
+            authToken, collectionPath + "/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"The results as requested must fit in one page, try increasing the `page-size` parameter.\",\"code\":400}");
@@ -2594,7 +1954,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/namespaces?raw=true", host),
             HttpStatus.SC_OK);
 
-    List<Keyspace> keyspaces = OBJECT_MAPPER.readValue(body, new TypeReference<List<Keyspace>>() {});
+    List<Keyspace> keyspaces =
+        OBJECT_MAPPER.readValue(body, new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
         .anySatisfy(
             value ->
