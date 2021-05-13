@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class EmptyKeyspaceTest extends BaseOsgiIntegrationTest {
+public class IntrospectionQueryTest extends BaseOsgiIntegrationTest {
 
   private static CqlFirstClient CLIENT;
 
@@ -42,9 +42,10 @@ public class EmptyKeyspaceTest extends BaseOsgiIntegrationTest {
   @DisplayName("The introspection query should succeed for a keyspace without any table")
   public void theIntrospectionQueryShouldSucceedForAKeyspaceWithoutAnyTable() {
     String keyspaceName = "library";
-    Map<String, Object> response = createKeyspace(keyspaceName);
 
+    Map<String, Object> response = createKeyspace(keyspaceName);
     assertThat(JsonPath.<Boolean>read(response, "$.createKeyspace")).isTrue();
+
     assertThatCode(() -> introspectionQuery(keyspaceName)).doesNotThrowAnyException();
   }
 
