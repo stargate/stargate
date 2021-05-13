@@ -134,7 +134,7 @@ public class DmlSchemaBuilder {
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =
           GraphQLFieldDefinition.newFieldDefinition()
-              .name("__keyspaceEmptyQuery")
+              .name("keyspaceEmptyQuery")
               .description("Placeholder query that is exposed when a keyspace is empty.")
               .type(Scalars.GraphQLBoolean)
               .dataFetcher((d) -> true)
@@ -145,7 +145,7 @@ public class DmlSchemaBuilder {
     if (mutationFields.isEmpty()) {
       GraphQLFieldDefinition emptyMutationField =
           GraphQLFieldDefinition.newFieldDefinition()
-              .name("__keyspaceEmptyMutation")
+              .name("keyspaceEmptyMutation")
               .description("Placeholder mutation that is exposed when a keyspace is empty.")
               .type(Scalars.GraphQLBoolean)
               .dataFetcher((d) -> true)
