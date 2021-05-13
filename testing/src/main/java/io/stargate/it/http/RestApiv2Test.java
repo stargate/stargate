@@ -49,9 +49,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
@@ -2348,6 +2350,333 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
+  }
+
+  @Test
+  public void createUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // throws error because same name, but ifNotExists = false
+    String response =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            udtString,
+            HttpStatus.SC_BAD_REQUEST);
+
+    String typeName = "udt1";
+
+    Error error = objectMapper.readValue(response, Error.class);
+    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.getDescription())
+        .isEqualTo(
+            String.format(
+                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+
+    // don't create and don't throw exception because ifNotExists = true
+    udtString =
+        "{\"name\": \"udt1\", \"ifNotExists\": true,"
+            + "\"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+  }
+
+  @Test
+  public void updateInvalidUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // add existing field
+    udtString =
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    // missing add-type and rename-type
+    udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void updateUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"varchar\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // update UDT: add new field
+    udtString =
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    // udpate UDT: rename fields
+    udtString =
+        "{\"name\": \"udt1\",\"renameFields\":"
+            + "[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    // retrieve UDT
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    Map<String, Object> response = (Map<String, Object>) getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("udt1");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(2);
+
+    Set<String> fieldNames = new HashSet<>();
+    fieldNames.add(fields.get(0).get("name"));
+    fieldNames.add(fields.get(1).get("name"));
+
+    assertThat(fieldNames.contains("name1")).isTrue();
+    assertThat(fieldNames.contains("name2")).isTrue();
+
+    // create UDT
+    udtString = "{\"name\": \"udt2\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // update UDT: add and rename field
+    udtString =
+        "{\"name\": \"udt2\","
+            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"varchar\"}]},"
+            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+  }
+
+  @Test
+  public void testInvalidUdtType() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void dropUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+        HttpStatus.SC_NO_CONTENT);
+
+    // delete a non existent UDT
+    RestUtils.delete(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+        HttpStatus.SC_BAD_REQUEST);
+
+    // delete an UDT in use
+    udtString =
+        "{\"name\": \"fullname\", \"fields\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "name fullname"),
+        Collections.singletonList("id"),
+        null);
+
+    String res =
+        RestUtils.delete(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "fullname"),
+            HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void getUdt() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    Map<String, Object> response = (Map<String, Object>) getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("test_udt1");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.get(0).get("name")).isEqualTo("arrival");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
+
+    // get non existent UDT
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "invalid_udt"),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void listAllTypes() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> response =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(response.size()).isEqualTo(0);
+
+    // creates 10 UDTs
+    String udtString =
+        "{\"name\": \"%s\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    for (int i = 0; i < 10; i++) {
+      RestUtils.post(
+          authToken,
+          String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+          String.format(udtString, "udt" + i),
+          HttpStatus.SC_CREATED);
+    }
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    response =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(response.size()).isEqualTo(10);
+
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
+    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
