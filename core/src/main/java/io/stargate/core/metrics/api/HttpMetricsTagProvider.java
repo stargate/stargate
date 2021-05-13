@@ -34,7 +34,7 @@ public interface HttpMetricsTagProvider {
   /**
    * Returns tags for a HTTP request, usually extracted from the given headers.
    *
-   * <p>Nota that the implementation must return constant amount of tags for any input.
+   * <p>Note that the implementation must return constant amount of tags for any input.
    *
    * @param headers HTTP Headers
    * @return Tags
