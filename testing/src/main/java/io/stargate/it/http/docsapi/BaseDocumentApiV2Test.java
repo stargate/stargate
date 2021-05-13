@@ -205,7 +205,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     String errorMessage =
         String.format(
-            "{\"description\":\"Bad request: The Cassandra table %s.not_docs is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.\",\"code\":400}",
+            "{\"description\":\"The Cassandra table %s.not_docs is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.\",\"code\":400}",
             keyspace);
 
     String resp =
@@ -1974,7 +1974,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidFullDocPageSize() throws IOException {
-    String r = RestUtils.get(authToken, collectionPath + "?page-size=21", 400);
+    RestUtils.post(
+            authToken,
+            collectionPath,
+            "{\"doc\" : \"doc\"}",
+            200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "?page-size=21",
+            400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");

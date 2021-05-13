@@ -57,14 +57,17 @@ public class DocumentService {
   private DocsApiConfiguration docsApiConfiguration;
   private JsonConverter jsonConverterService;
   private ObjectMapper mapper;
+  private DocsSchemaChecker schemaChecker;
 
   public DocumentService(
       ObjectMapper mapper,
       JsonConverter jsonConverterService,
-      DocsApiConfiguration docsApiConfiguration) {
+      DocsApiConfiguration docsApiConfiguration,
+      DocsSchemaChecker schemaChecker) {
     this.mapper = mapper;
     this.jsonConverterService = jsonConverterService;
     this.docsApiConfiguration = docsApiConfiguration;
+    this.schemaChecker = schemaChecker;
   }
 
   /*
@@ -95,16 +98,6 @@ public class DocumentService {
 
   private String leftPadTo6(String value) {
     return StringUtils.leftPad(value, 6, '0');
-  }
-
-  private void checkTableIsDocsCollection(DocumentDB db, String keyspace, String collection) {
-    if (!db.isDocumentsTable(keyspace, collection)) {
-      throw new DocumentAPIRequestException(
-          String.format(
-              "The Cassandra table %s.%s is not a Documents collection. "
-                  + "Accessing arbitrary tables via the Documents API is not permitted.",
-              keyspace, collection));
-    }
   }
 
   private String convertArrayPath(String path) {
@@ -416,7 +409,7 @@ public class DocumentService {
       db.maybeCreateTableIndexes(keyspace, collection);
     }
 
-    checkTableIsDocsCollection(db, keyspace, collection);
+    schemaChecker.checkValidity(keyspace, collection, db);
 
     // Left-pad the path segments that represent arrays
     List<String> convertedPath = new ArrayList<>(path.size());
@@ -453,7 +446,6 @@ public class DocumentService {
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws UnauthorizedException {
-    checkTableIsDocsCollection(db, keyspace, collection);
 
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
@@ -648,7 +640,6 @@ public class DocumentService {
       String documentId,
       Paginator paginator)
       throws UnauthorizedException {
-    checkTableIsDocsCollection(db, keyspace, collection);
     FilterCondition first = filters.get(0);
     List<String> path = first.getPath();
 
@@ -782,7 +773,6 @@ public class DocumentService {
   public JsonNode getFullDocuments(
       DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
       throws UnauthorizedException {
-    checkTableIsDocsCollection(db, keyspace, collection);
     ObjectNode docsResult = mapper.createObjectNode();
     LinkedHashMap<String, List<Row>> rowsByDoc = new LinkedHashMap<>();
     do {
@@ -867,7 +857,6 @@ public class DocumentService {
       List<String> fields,
       Paginator paginator)
       throws UnauthorizedException {
-    checkTableIsDocsCollection(db, keyspace, collection);
     List<FilterCondition> inCassandraFilters =
         filters.stream()
             .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))

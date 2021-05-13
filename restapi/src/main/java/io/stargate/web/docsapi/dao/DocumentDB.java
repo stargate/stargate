@@ -23,6 +23,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
@@ -291,6 +292,22 @@ public class DocumentDB {
     if (columnNames.size() != allColumnNames.size()) return false;
     columnNames.removeAll(allColumnNames);
     return columnNames.isEmpty();
+  }
+
+  public void tableExists(String keyspaceName, String tableName) {
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+
+    if (null == keyspace) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST,
+          String.format("Namespace %s does not exist.", keyspaceName));
+    }
+    Table table = keyspace.table(tableName);
+    if (null == table) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST,
+          String.format("Collection %s does not exist.", tableName));
+    }
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
