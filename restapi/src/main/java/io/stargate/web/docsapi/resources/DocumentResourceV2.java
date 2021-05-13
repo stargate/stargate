@@ -11,8 +11,8 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
-import io.stargate.web.docsapi.exception.ResourceNotFoundException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocumentService;
@@ -608,23 +608,24 @@ public class DocumentResourceV2 {
               selectionList = documentService.convertToSelectionList(fieldsJson);
             }
           } else if (fields != null) {
-            throw new DocumentAPIRequestException(
-                "Selecting fields is not allowed without `where`");
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_FIELDS_WITHOUT_WHERE);
           }
 
           if (!filters.isEmpty()) {
             Set<String> distinctFields =
                 filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
             if (distinctFields.size() > 1) {
-              throw new DocumentAPIRequestException(
+              String msg =
                   String.format(
-                      "Conditions across multiple fields are not yet supported (found: %s)",
-                      distinctFields));
+                      "Conditions across multiple fields are not yet supported. Found: %s.",
+                      distinctFields);
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
             }
             String fieldName = filters.get(0).getField();
             if (!selectionList.isEmpty() && !selectionList.contains(fieldName)) {
-              throw new DocumentAPIRequestException(
-                  "When selecting `fields`, the field referenced by `where` must be in the selection.");
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
             }
           }
 
@@ -632,13 +633,14 @@ public class DocumentResourceV2 {
           AuthenticatedDB authenticatedDB = dbFactory.getDataStoreForToken(authToken, allHeaders);
           Keyspace keyspace = authenticatedDB.getKeyspace(namespace);
           if (null == keyspace) {
-            throw new ResourceNotFoundException(
-                String.format("Namespace %s does not exist.", namespace));
+            String message = String.format("Namespace %s does not exist.", namespace);
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
           }
           Table table = keyspace.table(collection);
           if (null == table) {
-            throw new ResourceNotFoundException(
-                String.format("Collection %s does not exist.", collection));
+            String message = String.format("Collection %s does not exist.", collection);
+            throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST, message);
           }
 
           JsonNode node;
@@ -772,7 +774,7 @@ public class DocumentResourceV2 {
           JsonNode results;
 
           if (pageSizeParam > 20) {
-            throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
           }
           if (filters.isEmpty()) {
             results =
@@ -806,26 +808,14 @@ public class DocumentResourceV2 {
   static Response handle(Callable<Response> action) {
     try {
       return action.call();
+    } catch (ErrorCodeRuntimeException errorCodeException) {
+      return errorCodeException.getResponse();
     } catch (UnauthorizedException ue) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(
               new Error(
                   "Role unauthorized for operation: " + ue.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
-          .build();
-    } catch (DocumentAPIRequestException sre) {
-      return Response.status(Response.Status.BAD_REQUEST)
-          .entity(
-              new Error(
-                  "Bad request: " + sre.getLocalizedMessage(),
-                  Response.Status.BAD_REQUEST.getStatusCode()))
-          .build();
-    } catch (ResourceNotFoundException nfe) {
-      return Response.status(Response.Status.NOT_FOUND)
-          .entity(
-              new Error(
-                  "Not found: " + nfe.getLocalizedMessage(),
-                  Response.Status.NOT_FOUND.getStatusCode()))
           .build();
     } catch (NoNodeAvailableException e) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)

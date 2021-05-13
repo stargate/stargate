@@ -7,7 +7,8 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 
@@ -31,7 +32,7 @@ public class Paginator {
     this.dataStore = dataStore;
     docPageSize = Math.max(1, pageSize);
     if (docPageSize > DocumentDB.MAX_PAGE_SIZE) {
-      throw new DocumentAPIRequestException("The parameter `page-size` is limited to 20.");
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
     }
 
     this.dbPageSize = dbPageSize;

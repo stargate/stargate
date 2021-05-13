@@ -37,7 +37,8 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
@@ -268,7 +269,8 @@ public class DocumentServiceTest {
 
     thrown = catchThrowable(() -> convertArrayPath.invoke(service, "[1000000]"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED)
         .hasMessage("Max array length of 1000000 exceeded.");
   }
 
@@ -894,7 +896,8 @@ public class DocumentServiceTest {
                 shredPayload.invoke(
                     service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME)
         .hasMessageContaining("are not permitted in JSON field names, invalid field coo]");
   }
 
@@ -912,8 +915,9 @@ public class DocumentServiceTest {
                 shredPayload.invoke(
                     service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, true, true));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessageContaining("A patch operation must be done with a JSON object, not an array.");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED)
+        .hasMessageContaining(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED.getDefaultMessage());
   }
 
   @Test
@@ -990,7 +994,8 @@ public class DocumentServiceTest {
                     EMPTY_HEADERS));
 
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID)
         .hasMessageContaining(
             "Updating a key with just a JSON primitive, empty object, or empty array is not allowed.");
   }
@@ -1061,28 +1066,33 @@ public class DocumentServiceTest {
     Throwable thrown =
         catchThrowable(() -> validateOpAndValue.invoke(service, "$ne", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
         .hasMessageContaining("was expecting a value or `null`");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
         .hasMessageContaining("only supports the value `true`");
 
     final JsonNode value2 = mapper.readTree("false");
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value2, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
         .hasMessageContaining("only supports the value `true`");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$gt", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
         .hasMessageContaining("was expecting a non-null value");
 
     thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$in", value, "field"));
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
         .hasMessageContaining("was expecting an array");
   }
 
@@ -1101,14 +1111,16 @@ public class DocumentServiceTest {
     final JsonNode input = mapper.readTree("{}");
     Throwable thrown = catchThrowable(() -> service.convertToSelectionList(input));
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessageContaining("`fields` must be a JSON array, found ");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
+        .hasMessage("`fields` must be a JSON array, found {}");
 
     final JsonNode input2 = mapper.readTree("[\"A\", 0]");
     thrown = catchThrowable(() -> service.convertToSelectionList(input2));
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessageContaining("Each field must be a string, found ");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
+        .hasMessage("Each field must be a string, found 0");
   }
 
   @Test
@@ -1134,19 +1146,22 @@ public class DocumentServiceTest {
     final JsonNode input = mapper.readTree("[]");
     Throwable thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input));
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessage("Search was expecting a JSON object as input.");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED)
+        .hasMessage(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED.getDefaultMessage());
 
     final JsonNode input2 = mapper.readTree("{\"\": {}}");
     thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input2));
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessage("The field(s) you are searching for can't be the empty string!");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
+        .hasMessage(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID.getDefaultMessage());
 
     final JsonNode input3 = mapper.readTree("{\"a\": []}}");
     thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input3));
     assertThat(thrown)
-        .isInstanceOf(DocumentAPIRequestException.class)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED)
         .hasMessage("Search entry for field a was expecting a JSON object as input.");
   }
 
@@ -1379,9 +1394,9 @@ public class DocumentServiceTest {
                     paginator));
 
     assertThat(thrown.getCause())
-        .isInstanceOf(DocumentAPIRequestException.class)
-        .hasMessage(
-            "The results as requested must fit in one page, try increasing the `page-size` parameter.");
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_RESULTS_NOT_FITTING)
+        .hasMessage(ErrorCode.DOCS_API_SEARCH_RESULTS_NOT_FITTING.getDefaultMessage());
   }
 
   @Test

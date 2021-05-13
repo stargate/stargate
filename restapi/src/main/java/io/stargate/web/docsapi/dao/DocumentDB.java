@@ -23,7 +23,8 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -169,15 +170,18 @@ public class DocumentDB {
   public boolean maybeCreateTable(String keyspaceName, String tableName) {
     Keyspace ks = dataStore.schema().keyspace(keyspaceName);
 
-    if (ks == null)
-      throw new DocumentAPIRequestException(
-          String.format("Unknown namespace %s, you must create it first.", keyspaceName));
+    if (ks == null) {
+      String message =
+          String.format("Unknown namespace %s, you must create it first.", keyspaceName);
+      throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
+    }
 
     if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
-      throw new DocumentAPIRequestException(
+      String message =
           String.format(
               "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores.",
-              tableName));
+              tableName);
+      throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_NAME_INVALID, message);
     }
 
     if (ks.table(tableName) != null) return false;
