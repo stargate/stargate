@@ -95,10 +95,10 @@ public class CqlImpl {
       }
     }
 
-    int metricUpdateRate =
-        Integer.parseInt(System.getProperty("stargate.cql.metrics.updateRate", "10000"));
+    double metricsUpdatePeriodSeconds =
+        Double.parseDouble(System.getProperty("stargate.cql.metrics.updatePeriodSeconds", "0.1"));
     ClientMetrics.instance.init(
-        servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricUpdateRate);
+        servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricsUpdatePeriodSeconds);
     servers.forEach(Server::start);
     persistence.setRpcReady(true);
   }

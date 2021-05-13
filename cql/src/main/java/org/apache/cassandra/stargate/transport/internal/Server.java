@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
+import io.micrometer.core.instrument.Tags;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -44,7 +45,10 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.cql.impl.CqlImpl;
-import io.stargate.db.*;
+import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.EventListener;
+import io.stargate.db.EventListenerWithChannelFilter;
+import io.stargate.db.Persistence;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -180,8 +184,8 @@ public class Server implements CassandraDaemon.Server {
     return connectionTracker.countConnectedClientsByUser();
   }
 
-  public Map<ConnectionMetrics, Integer> countConnectedClientsByConnectionMetrics() {
-    return connectionTracker.countConnectedClientsByConnectionMetrics();
+  public Map<Tags, Integer> countConnectedClientsByConnectionTags() {
+    return connectionTracker.countConnectedClientsByConnectionTags();
   }
 
   public List<ConnectedClient> getConnectedClients() {
@@ -330,14 +334,14 @@ public class Server implements CassandraDaemon.Server {
       return result;
     }
 
-    Map<ConnectionMetrics, Integer> countConnectedClientsByConnectionMetrics() {
-      Map<ConnectionMetrics, Integer> result = new HashMap<>();
+    Map<Tags, Integer> countConnectedClientsByConnectionTags() {
+      Map<Tags, Integer> result = new HashMap<>();
       for (Channel c : allChannels) {
         Connection connection = c.attr(Connection.attributeKey).get();
-        if (connection instanceof ServerConnection) {
-          ServerConnection conn = (ServerConnection) connection;
-          ConnectionMetrics connectionMetrics = conn.getConnectionMetrics();
-          result.compute(connectionMetrics, (ci, v) -> v == null ? 1 : v + 1);
+        if (null != connection) {
+          ConnectionMetrics connectionMetrics = connection.getConnectionMetrics();
+          Tags tags = connectionMetrics.getTags();
+          result.compute(tags, (t, v) -> v == null ? 1 : v + 1);
         }
       }
       return result;

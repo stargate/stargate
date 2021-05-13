@@ -68,7 +68,7 @@ class ClientMetricsTest {
     when(clientTagProvider.getClientInfoTags(clientInfo2)).thenReturn(Tags.of("client", "two"));
 
     List<Server> servers = Arrays.asList(server1, server2);
-    clientMetrics.init(servers, meterRegistry, clientTagProvider, 0);
+    clientMetrics.init(servers, meterRegistry, clientTagProvider, 0d);
   }
 
   @Nested
@@ -299,16 +299,12 @@ class ClientMetricsTest {
 
     @Test
     public void happyPath() {
-      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
-      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
-      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(connectionMetrics1, 10);
-      clientInfoConnectionMap.put(connectionMetrics2, 20);
+      Map<Tags, Integer> clientInfoTagsMap = new HashMap<>();
+      clientInfoTagsMap.put(Tags.of("cm", "one"), 10);
+      clientInfoTagsMap.put(Tags.of("cm", "two"), 20);
 
-      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
-      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
-      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      when(server1.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
+      when(server2.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
 
       clientMetrics.updateConnectedClients();
 
@@ -331,21 +327,16 @@ class ClientMetricsTest {
 
     @Test
     public void removedConnections() {
-      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
-      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
-      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(connectionMetrics1, 10);
-      clientInfoConnectionMap.put(connectionMetrics2, 20);
-
-      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
-      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
-      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      Map<Tags, Integer> clientInfoTagsMap = new HashMap<>();
+      clientInfoTagsMap.put(Tags.of("cm", "one"), 10);
+      clientInfoTagsMap.put(Tags.of("cm", "two"), 20);
+      when(server1.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
+      when(server2.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
 
       clientMetrics.updateConnectedClients();
 
-      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
+      when(server1.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
+      when(server2.countConnectedClientsByConnectionTags()).thenReturn(Collections.emptyMap());
 
       clientMetrics.updateConnectedClients();
 
@@ -368,21 +359,16 @@ class ClientMetricsTest {
 
     @Test
     public void noConnections() {
-      ConnectionMetrics connectionMetrics1 = mock(ConnectionMetrics.class);
-      ConnectionMetrics connectionMetrics2 = mock(ConnectionMetrics.class);
-      Map<ConnectionMetrics, Integer> clientInfoConnectionMap = new HashMap<>();
-      clientInfoConnectionMap.put(connectionMetrics1, 10);
-      clientInfoConnectionMap.put(connectionMetrics2, 20);
-
-      when(connectionMetrics1.getTags()).thenReturn(Tags.of("cm", "one"));
-      when(connectionMetrics2.getTags()).thenReturn(Tags.of("cm", "two"));
-      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
-      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(clientInfoConnectionMap);
+      Map<Tags, Integer> clientInfoTagsMap = new HashMap<>();
+      clientInfoTagsMap.put(Tags.of("cm", "one"), 10);
+      clientInfoTagsMap.put(Tags.of("cm", "two"), 20);
+      when(server1.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
+      when(server2.countConnectedClientsByConnectionTags()).thenReturn(clientInfoTagsMap);
 
       clientMetrics.updateConnectedClients();
 
-      when(server1.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
-      when(server2.countConnectedClientsByConnectionMetrics()).thenReturn(Collections.emptyMap());
+      when(server1.countConnectedClientsByConnectionTags()).thenReturn(Collections.emptyMap());
+      when(server2.countConnectedClientsByConnectionTags()).thenReturn(Collections.emptyMap());
 
       clientMetrics.updateConnectedClients();
 

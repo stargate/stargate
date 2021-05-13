@@ -51,12 +51,26 @@ public class ServerConnection extends Connection {
       Connection.Tracker tracker,
       Persistence persistence,
       AuthenticationService authentication) {
-    super(
+    this(
         channel,
+        proxyInfo,
         version,
         tracker,
-        ClientMetrics.instance.connectionMetrics(getClientInfo(channel, proxyInfo)));
-    this.clientInfo = getClientInfo(channel, proxyInfo);
+        persistence,
+        authentication,
+        getClientInfo(channel, proxyInfo));
+  }
+
+  private ServerConnection(
+      Channel channel,
+      ProxyInfo proxyInfo,
+      ProtocolVersion version,
+      Connection.Tracker tracker,
+      Persistence persistence,
+      AuthenticationService authentication,
+      ClientInfo clientInfo) {
+    super(channel, version, tracker, ClientMetrics.instance.connectionMetrics(clientInfo));
+    this.clientInfo = clientInfo;
     this.persistenceConnection = persistence.newConnection(clientInfo);
 
     if (proxyInfo != null) this.persistenceConnection.setCustomProperties(proxyInfo.toHeaders());

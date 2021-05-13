@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -132,14 +131,14 @@ public final class ClientMetrics {
    * @param servers List of servers to get metrics for
    * @param meterRegistry Micrometer MeterRegistry to report to
    * @param clientInfoTagProvider Tag provider for the connection
-   * @param updateRateMillis Number of milliseconds to schedule the internal metric update task. If
-   *     zero or less task will not be scheduled.
+   * @param updatePeriodSeconds The period for internal metric update in 1/s (f.e. for 10 sec rate,
+   *     use 0.1). If zero or less task will not be scheduled.
    */
   public synchronized void init(
       Collection<Server> servers,
       MeterRegistry meterRegistry,
       ClientInfoMetricsTagProvider clientInfoTagProvider,
-      int updateRateMillis) {
+      double updatePeriodSeconds) {
 
     if (initialized) return;
 
@@ -170,8 +169,9 @@ public final class ClientMetrics {
 
     initialized = true;
 
-    // if we have the update rate, init the executor service and submit the update task
-    if (updateRateMillis > 0) {
+    // if we have the positive period, init the executor service and submit the update task
+    if (updatePeriodSeconds > 0) {
+      long fixedRateMillis = Double.valueOf(1000d / updatePeriodSeconds).longValue();
       executorService =
           Executors.newSingleThreadScheduledExecutor(
               new BasicThreadFactory.Builder()
@@ -189,7 +189,7 @@ public final class ClientMetrics {
             }
           },
           0,
-          updateRateMillis,
+          fixedRateMillis,
           TimeUnit.MILLISECONDS);
     }
   }
@@ -205,6 +205,7 @@ public final class ClientMetrics {
           executorService.shutdownNow();
         }
       } catch (InterruptedException e) {
+        logger.warn("Interrupted during executor termination, going for shutdownNow().", e);
         executorService.shutdownNow();
       }
     }
@@ -227,16 +228,15 @@ public final class ClientMetrics {
   }
 
   void updateConnectedClients() {
-    Map<ConnectionMetrics, Integer> total = new HashMap<>();
+    Map<Tags, Integer> total = new HashMap<>();
 
     for (Server server : servers) {
       server
-          .countConnectedClientsByConnectionMetrics()
-          .forEach(
-              (metrics, count) -> total.compute(metrics, (ci, v) -> v == null ? count : v + count));
+          .countConnectedClientsByConnectionTags()
+          .forEach((tags, count) -> total.compute(tags, (t, v) -> v == null ? count : v + count));
     }
 
-    recordMapToMultiGauge(connectedNativeClients, total, ConnectionMetrics::getTags);
+    recordMapToMultiGauge(connectedNativeClients, total, Function.identity());
   }
 
   void updateConnectedClientsByUser() {
@@ -270,7 +270,7 @@ public final class ClientMetrics {
    * @return full name
    */
   private static String metric(String name) {
-    // to keep the back-ward compatibility, init all metric names with cql_ + DefaultNameFactory
+    // to keep the back-ward compatibility, init all metric names with cql. + DefaultNameFactory
     String metricName = factory.createMetricName(name).getMetricName();
     return "cql." + metricName;
   }
@@ -325,19 +325,6 @@ public final class ClientMetrics {
     @Override
     public Tags getTags() {
       return tags;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-      ConnectionMetricsImpl that = (ConnectionMetricsImpl) o;
-      return tags.equals(that.tags);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(tags);
     }
   }
 }
