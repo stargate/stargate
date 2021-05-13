@@ -48,6 +48,7 @@ import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.SingleSchemaFetche
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.UndeploySchemaFetcher;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingLogType;
+import io.stargate.graphql.web.resources.GraphqlCache;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import io.stargate.graphql.web.resources.ResourcePaths;
 import java.io.InputStream;
@@ -343,11 +344,15 @@ public class AdminSchemaBuilder {
 
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
+  private final GraphqlCache graphqlCache;
 
   public AdminSchemaBuilder(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory,
+      GraphqlCache graphqlCache) {
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
+    this.graphqlCache = graphqlCache;
   }
 
   private static GraphQLFieldDefinition.Builder deploySchemaStart() {
@@ -412,10 +417,11 @@ public class AdminSchemaBuilder {
                     new AllSchemasFetcher(authorizationService, dataStoreFactory))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
-                    new DeploySchemaFetcher(authorizationService, dataStoreFactory))
+                    new DeploySchemaFetcher(authorizationService, dataStoreFactory, graphqlCache))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
-                    new DeploySchemaFileFetcher(authorizationService, dataStoreFactory))
+                    new DeploySchemaFileFetcher(
+                        authorizationService, dataStoreFactory, graphqlCache))
                 .dataFetcher(
                     coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION),
                     new UndeploySchemaFetcher(authorizationService, dataStoreFactory))

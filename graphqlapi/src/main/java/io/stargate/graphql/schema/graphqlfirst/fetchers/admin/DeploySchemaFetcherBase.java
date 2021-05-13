@@ -32,15 +32,21 @@ import io.stargate.graphql.schema.graphqlfirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
+import io.stargate.graphql.web.resources.GraphqlCache;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
 abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResponseDto> {
 
+  private final GraphqlCache graphqlCache;
+
   DeploySchemaFetcherBase(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory,
+      GraphqlCache graphqlCache) {
     super(authorizationService, dataStoreFactory);
+    this.graphqlCache = graphqlCache;
   }
 
   @Override
@@ -100,7 +106,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
       schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
-      // TODO update SchemaFirstCache from here instead of letting it reload from the DB
+      graphqlCache.getGraphQLAndUpdateCache(
+          keyspaceName, dataStore, newSource, authenticationSubject.customProperties());
     }
     return response;
   }

@@ -82,7 +82,8 @@ public class GraphqlCache implements KeyspaceChangeListener {
     this.ddlGraphql =
         newGraphql(SchemaFactory.newDdlSchema(authorizationService, dataStoreFactory));
     this.schemaFirstAdminGraphql =
-        GraphQL.newGraphQL(new AdminSchemaBuilder(authorizationService, dataStoreFactory).build())
+        GraphQL.newGraphQL(
+                new AdminSchemaBuilder(authorizationService, dataStoreFactory, this).build())
             .build();
     this.defaultKeyspace = findDefaultKeyspace(dataStoreFactory.createInternal());
 
@@ -104,6 +105,16 @@ public class GraphqlCache implements KeyspaceChangeListener {
     DataStore dataStore = buildUserDatastore(subject, headers);
     SchemaSource latestSource =
         enableGraphqlFirst ? new SchemaSourceDao(dataStore).getLatestVersion(keyspaceName) : null;
+
+    return getGraphQLAndUpdateCache(keyspaceName, dataStore, latestSource, headers);
+  }
+
+  public GraphQL getGraphQLAndUpdateCache(
+      String keyspaceName,
+      DataStore dataStore,
+      SchemaSource latestSource,
+      Map<String, String> headers)
+      throws Exception {
 
     String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
     DmlGraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
