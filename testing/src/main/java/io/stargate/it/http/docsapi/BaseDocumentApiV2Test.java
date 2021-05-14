@@ -195,11 +195,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void testAccessArbitraryTableDisallowed() throws IOException {
+  public void testAccessArbitraryTableDisallowed(CqlSession session) throws IOException {
     assertThat(
             session
                 .execute(
-                    String.format("create table %s.not_docs(x text primary key, y text)", keyspace))
+                    String.format(
+                        "create table \"%s\".not_docs(x text primary key, y text)", keyspace))
                 .wasApplied())
         .isTrue();
 
@@ -1974,17 +1975,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidFullDocPageSize() throws IOException {
-    RestUtils.post(
-            authToken,
-            collectionPath,
-            "{\"doc\" : \"doc\"}",
-            200);
+    RestUtils.post(authToken, collectionPath, "{\"doc\" : \"doc\"}", 201);
 
-    String r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "?page-size=21",
-            400);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=21", 400);
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");

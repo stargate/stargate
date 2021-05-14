@@ -655,7 +655,6 @@ public class DocumentResourceV2 {
                     pageStateParam,
                     pageSizeParam,
                     pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
-            db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
                     db, namespace, collection, filters, selectionList, id, paginator);

@@ -23,6 +23,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
@@ -158,6 +159,10 @@ public class DocumentDB {
 
   public QueryBuilder builder() {
     return dataStore.queryBuilder();
+  }
+
+  public Schema schema() {
+    return dataStore.schema();
   }
 
   /**
