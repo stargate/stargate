@@ -29,6 +29,7 @@ import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOp
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -128,6 +129,7 @@ class CombinedConditionTest {
     @Test
     public void numberValue() {
       Object filterValue = new Object();
+      when(row.isNull("bool_value")).thenReturn(true);
       when(row.isNull("text_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(false);
       when(row.getDouble("dbl_value")).thenReturn(22d);
@@ -143,7 +145,9 @@ class CombinedConditionTest {
     @Test
     public void stringValue() {
       Object filterValue = new Object();
+      when(row.isNull("bool_value")).thenReturn(true);
       when(row.isNull("text_value")).thenReturn(false);
+      when(row.isNull("dbl_value")).thenReturn(true);
       when(row.getString("text_value")).thenReturn("Jordan");
       when(filterOperation.test(filterValue, "Jordan")).thenReturn(true);
 
@@ -158,6 +162,13 @@ class CombinedConditionTest {
   // set of simple int test in order to confirm with existing predicates
   @Nested
   class Integration {
+
+    @BeforeEach
+    public void initRow() {
+      when(row.isNull("bool_value")).thenReturn(true);
+      when(row.isNull("dbl_value")).thenReturn(true);
+      when(row.isNull("text_value")).thenReturn(true);
+    }
 
     @Test
     public void inPredicateNotMatched() {

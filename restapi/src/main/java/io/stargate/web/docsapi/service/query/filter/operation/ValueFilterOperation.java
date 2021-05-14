@@ -16,23 +16,24 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
- * Predicate that can compare values against {@link String}, {@link Double}, {@link Boolean}
- * database values.
+ * Filter operation that can compare {@link String}, {@link Double}, {@link Boolean} database values
+ * against their corresponding filter values.
  */
 public interface ValueFilterOperation extends BaseFilterOperation {
 
   /**
-   * Tests the filter value and database against this predicate.
+   * Tests the filter {@link String} value and database {@link String} against this filter
+   * operation.
    *
    * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
-   * @return <code>true</code> if the filter value matches the predicate, otherwise <code>false
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
   boolean test(String filterValue, String dbValue);
 
   /**
-   * Validates if the filter input can be used against this predicate.
+   * Validates if the filter input can be used against this filter operation.
    *
    * <p>Implementations should throw proper exception in case the validation fails.
    *
@@ -43,17 +44,18 @@ public interface ValueFilterOperation extends BaseFilterOperation {
   };
 
   /**
-   * Tests the filter value and database against this predicate.
+   * Tests the filter {@link Number} value and database {@link Double} against this filter
+   * operation.
    *
    * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
-   * @return <code>true</code> if the filter value matches the predicate, otherwise <code>false
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
   boolean test(Number filterValue, Double dbValue);
 
   /**
-   * Validates if the filter input can be used against this predicate.
+   * Validates if the filter input can be used against this filter operation.
    *
    * <p>Implementations should throw proper exception in case the validation fails.
    *
@@ -64,17 +66,18 @@ public interface ValueFilterOperation extends BaseFilterOperation {
   };
 
   /**
-   * Tests the filter value and database against this predicate.
+   * Tests the filter {@link Boolean} value and database {@link Boolean} against this filter
+   * operation.
    *
    * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
-   * @return <code>true</code> if the filter value matches the predicate, otherwise <code>false
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
   boolean test(Boolean filterValue, Boolean dbValue);
 
   /**
-   * Validates if the filter input can be used against this predicate.
+   * Validates if the filter input can be used against this filter operation.
    *
    * <p>Implementations should throw proper exception in case the validation fails.
    *

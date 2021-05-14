@@ -17,14 +17,50 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
- * Special type of filter operation that can test a generic value against all database values.
+ * Special type of filter operation that can test a generic input value against all database values.
  *
- * @param <V> Type of a value used in the predicate.
+ * @param <FV> Type of the filter value used in the filter.
  */
-public interface CombinedFilterOperation<V> extends BaseFilterOperation {
-  boolean test(V filterValue, Object dbValue);
+public interface CombinedFilterOperation<FV> extends BaseFilterOperation {
 
-  default void validateFilterInput(V filterValue) {
+  /**
+   * Tests the filter value and database {@link String} against this filter operation.
+   *
+   * @param filterValue Filter value, can be <code>null</code>
+   * @param dbValue DB value, can be <code>null</code>
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
+   * </code>
+   */
+  boolean test(FV filterValue, String dbValue);
+
+  /**
+   * Tests the filter value and database {@link Double} against this filter operation.
+   *
+   * @param filterValue Filter value, can be <code>null</code>
+   * @param dbValue DB value, can be <code>null</code>
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
+   * </code>
+   */
+  boolean test(FV filterValue, Double dbValue);
+
+  /**
+   * Tests the filter value and database {@link Boolean} against this filter operation.
+   *
+   * @param filterValue Filter value, can be <code>null</code>
+   * @param dbValue DB value, can be <code>null</code>
+   * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
+   * </code>
+   */
+  boolean test(FV filterValue, Boolean dbValue);
+
+  /**
+   * Validates if the filter input can be used against this filter operation.
+   *
+   * <p>Implementations should throw proper exception in case the validation fails.
+   *
+   * @param filterValue Filter value, can be <code>null</code>
+   */
+  default void validateFilterInput(FV filterValue) {
     // default impl empty
-  };
+  }
 }

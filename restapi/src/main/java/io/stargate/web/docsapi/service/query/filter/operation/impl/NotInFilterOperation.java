@@ -49,7 +49,19 @@ public abstract class NotInFilterOperation extends InFilterOperation {
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, Object dbValue) {
+  public boolean test(List<?> filterValue, String dbValue) {
+    return !super.test(filterValue, dbValue);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Boolean dbValue) {
+    return !super.test(filterValue, dbValue);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Double dbValue) {
     return !super.test(filterValue, dbValue);
   }
 }

@@ -64,11 +64,20 @@ public abstract class CombinedCondition<V> implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    Object dbValue = getValue(row, isNumericBooleans());
+    Boolean dbValueBoolean = getBoolean(row, isNumericBooleans());
+    Double dbValueDouble = getDouble(row);
+    String dbValueString = getString(row);
 
     CombinedFilterOperation<V> filterOperation = getFilterOperation();
     V queryValue = getQueryValue();
 
-    return filterOperation.test(queryValue, dbValue);
+    // compare against the non-null values, fallback to text compare even if null
+    if (null != dbValueBoolean) {
+      return filterOperation.test(queryValue, dbValueBoolean);
+    } else if (null != dbValueDouble) {
+      return filterOperation.test(queryValue, dbValueDouble);
+    } else {
+      return filterOperation.test(queryValue, dbValueString);
+    }
   }
 }

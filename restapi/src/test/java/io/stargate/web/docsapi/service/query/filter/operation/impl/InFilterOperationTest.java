@@ -161,7 +161,7 @@ class InFilterOperationTest {
   }
 
   @Nested
-  class ValidateBooleanFilterInput {
+  class ValidateFilterInput {
 
     @Test
     public void isNull() {
@@ -181,58 +181,6 @@ class InFilterOperationTest {
     public void isNotEmpty() {
       Throwable throwable =
           catchThrowable(() -> in.validateFilterInput(Collections.singletonList(true)));
-
-      assertThat(throwable).isNull();
-    }
-  }
-
-  @Nested
-  class ValidateStringFilterInput {
-
-    @Test
-    public void isNull() {
-      Throwable throwable = catchThrowable(() -> in.validateFilterInput(null));
-
-      assertThat(throwable).isNotNull();
-    }
-
-    @Test
-    public void isEmpty() {
-      Throwable throwable = catchThrowable(() -> in.validateFilterInput(Collections.emptyList()));
-
-      assertThat(throwable).isNotNull();
-    }
-
-    @Test
-    public void isNotEmpty() {
-      Throwable throwable =
-          catchThrowable(() -> in.validateFilterInput(Collections.singletonList("Jordan")));
-
-      assertThat(throwable).isNull();
-    }
-  }
-
-  @Nested
-  class ValidateDoubleFilterInput {
-
-    @Test
-    public void isNull() {
-      Throwable throwable = catchThrowable(() -> in.validateFilterInput(null));
-
-      assertThat(throwable).isNotNull();
-    }
-
-    @Test
-    public void isEmpty() {
-      Throwable throwable = catchThrowable(() -> in.validateFilterInput(Collections.emptyList()));
-
-      assertThat(throwable).isNotNull();
-    }
-
-    @Test
-    public void isNotEmpty() {
-      Throwable throwable =
-          catchThrowable(() -> in.validateFilterInput(Collections.singletonList(23)));
 
       assertThat(throwable).isNull();
     }

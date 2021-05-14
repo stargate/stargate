@@ -48,22 +48,45 @@ public abstract class InFilterOperation implements CombinedFilterOperation<List<
     return Optional.empty();
   }
 
+  /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, Object dbValue) {
+  public boolean test(List<?> filterValue, String dbValue) {
     // if null, check any is null, avoid .contains(null) as some impl could throw NPE
     if (null == dbValue) {
       return filterValue.stream().anyMatch(Objects::isNull);
-    } else if (dbValue instanceof Double) {
+    } else {
+      return filterValue.stream()
+          .filter(String.class::isInstance)
+          .anyMatch(value -> value.equals(dbValue));
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Boolean dbValue) {
+    // if null, check any is null, avoid .contains(null) as some impl could throw NPE
+    if (null == dbValue) {
+      return filterValue.stream().anyMatch(Objects::isNull);
+    } else {
+      return filterValue.stream()
+          .filter(Boolean.class::isInstance)
+          .anyMatch(value -> value.equals(dbValue));
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean test(List<?> filterValue, Double dbValue) {
+    // if null, check any is null, avoid .contains(null) as some impl could throw NPE
+    if (null == dbValue) {
+      return filterValue.stream().anyMatch(Objects::isNull);
+    } else {
       // TODO maybe more correct number matching here as well
+
       return filterValue.stream()
           .filter(Number.class::isInstance)
           .map(Number.class::cast)
           .anyMatch(value -> Double.valueOf(value.doubleValue()).equals(dbValue));
-    } else {
-      Class<?> clazz = dbValue.getClass();
-      return filterValue.stream()
-          .filter(clazz::isInstance)
-          .anyMatch(value -> value.equals(dbValue));
     }
   }
 
