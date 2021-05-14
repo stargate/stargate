@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
+import java.util.Optional;
+
 public enum SupportedAggregationFunction {
   COUNT("count"),
   AVG("avg"),
@@ -32,13 +34,12 @@ public enum SupportedAggregationFunction {
     return name;
   }
 
-  public static SupportedAggregationFunction valueOfIgnoreCase(String functionName) {
+  public static Optional<SupportedAggregationFunction> valueOfIgnoreCase(String functionName) {
     for (SupportedAggregationFunction f : values()) {
       if (f.name.equalsIgnoreCase(functionName)) {
-        return f;
+        return Optional.of(f);
       }
     }
-    throw new UnsupportedOperationException(
-        String.format("The aggregation function: %s is not supported.", functionName));
+    return Optional.empty();
   }
 }

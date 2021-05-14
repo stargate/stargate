@@ -53,34 +53,41 @@ public class AggregationsFetcherSupport {
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
         Map<String, Object> arguments = selectedField.getArguments();
-        SupportedAggregationFunction supportedFunction = getSupportedFunction(arguments);
-        switch (supportedFunction) {
-          case COUNT:
-            functionCalls.add(
-                createAggregationFunctionCall(
-                    arguments, QueryBuilderImpl.FunctionCall::count, selectedField, COUNT));
-            break;
-          case AVG:
-            functionCalls.add(
-                createAggregationFunctionCall(
-                    arguments, QueryBuilderImpl.FunctionCall::avg, selectedField, AVG));
-            break;
-          case MIN:
-            functionCalls.add(
-                createAggregationFunctionCall(
-                    arguments, QueryBuilderImpl.FunctionCall::min, selectedField, MIN));
-            break;
-          case MAX:
-            functionCalls.add(
-                createAggregationFunctionCall(
-                    arguments, QueryBuilderImpl.FunctionCall::max, selectedField, MAX));
-            break;
-          case SUM:
-            functionCalls.add(
-                createAggregationFunctionCall(
-                    arguments, QueryBuilderImpl.FunctionCall::sum, selectedField, SUM));
-            break;
-        }
+        // if there is no SupportedAggregationFunction for arguments, ignore
+        getSupportedFunction(arguments)
+            .ifPresent(
+                f -> {
+                  switch (f) {
+                    case COUNT:
+                      functionCalls.add(
+                          createAggregationFunctionCall(
+                              arguments,
+                              QueryBuilderImpl.FunctionCall::count,
+                              selectedField,
+                              COUNT));
+                      break;
+                    case AVG:
+                      functionCalls.add(
+                          createAggregationFunctionCall(
+                              arguments, QueryBuilderImpl.FunctionCall::avg, selectedField, AVG));
+                      break;
+                    case MIN:
+                      functionCalls.add(
+                          createAggregationFunctionCall(
+                              arguments, QueryBuilderImpl.FunctionCall::min, selectedField, MIN));
+                      break;
+                    case MAX:
+                      functionCalls.add(
+                          createAggregationFunctionCall(
+                              arguments, QueryBuilderImpl.FunctionCall::max, selectedField, MAX));
+                      break;
+                    case SUM:
+                      functionCalls.add(
+                          createAggregationFunctionCall(
+                              arguments, QueryBuilderImpl.FunctionCall::sum, selectedField, SUM));
+                      break;
+                  }
+                });
       }
     }
     return functionCalls;
@@ -94,9 +101,9 @@ public class AggregationsFetcherSupport {
     }
     for (SelectedField valuesField : valuesFields) {
       for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        SupportedGraphqlFunction function =
-            SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName());
-        putResultValue(columns, row, selectedField, function.getRowValueExtractor());
+        // if there is no SupportedGraphqlFunction for arguments, ignore
+        SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName())
+            .ifPresent(f -> putResultValue(columns, row, selectedField, f.getRowValueExtractor()));
       }
     }
     return columns;
@@ -124,9 +131,13 @@ public class AggregationsFetcherSupport {
   // it will return: 'system.count(a)'
   private String generateAggregationColumnName(SelectedField selectedField) {
     Map<String, Object> arguments = selectedField.getArguments();
-    SupportedAggregationFunction functionName = getSupportedFunction(arguments);
-    List<String> args = getAndValidateArgs(arguments, functionName);
-    return String.format("system.%s(%s)", functionName.getName(), args.get(0));
+    Optional<SupportedAggregationFunction> functionName = getSupportedFunction(arguments);
+    if (!functionName.isPresent()) {
+      throw new IllegalStateException(
+          String.format("The function for arguments: %s does not exists.", arguments));
+    }
+    List<String> args = getAndValidateArgs(arguments, functionName.get());
+    return String.format("system.%s(%s)", functionName.get().getName(), args.get(0));
   }
 
   private QueryBuilderImpl.FunctionCall createAggregationFunctionCall(
@@ -165,7 +176,8 @@ public class AggregationsFetcherSupport {
     return args;
   }
 
-  private SupportedAggregationFunction getSupportedFunction(Map<String, Object> arguments) {
+  private Optional<SupportedAggregationFunction> getSupportedFunction(
+      Map<String, Object> arguments) {
     return SupportedAggregationFunction.valueOfIgnoreCase((String) arguments.get("name"));
   }
 

@@ -16,6 +16,7 @@
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
 import io.stargate.db.datastore.Row;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 public enum SupportedGraphqlFunction {
@@ -44,13 +45,12 @@ public enum SupportedGraphqlFunction {
     return rowValueExtractor;
   }
 
-  public static SupportedGraphqlFunction valueOfIgnoreCase(String functionName) {
+  public static Optional<SupportedGraphqlFunction> valueOfIgnoreCase(String functionName) {
     for (SupportedGraphqlFunction f : values()) {
       if (f.name.equalsIgnoreCase(functionName)) {
-        return f;
+        return Optional.of(f);
       }
     }
-    throw new UnsupportedOperationException(
-        String.format("The graphQL aggregation function: %s is not supported.", functionName));
+    return Optional.empty();
   }
 }

@@ -129,7 +129,19 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
     String result = getOrderWithUnknownFunction("p1");
 
-    assertThat(result).contains("The aggregation function: some_unknown_function is not supported");
+    assertThat(result).contains("Column 'unknown_function' is not defined in the Row's metadata.");
+  }
+
+  @Test
+  @DisplayName("Should error when trying to use an unknown graphql function return type")
+  public void shouldErrorWhenTryingToUseAnUnknownGraphqlFunctionReturnType() {
+    insertOrder("p1", "c1", "2500", "d1");
+
+    String result = getOrderWithUnknownFunctionReturnType("p1");
+
+    assertThat(result)
+        .contains(
+            "Validation error of type FieldUndefined: Field '_unknown_function' in type 'Orders' is undefined");
   }
 
   @Test
@@ -222,7 +234,14 @@ public class AggregationFunctionsTest extends BetterbotzTestBase {
 
   private String getOrderWithUnknownFunction(String prodName) {
     return getOrderWithFunctionError(
-        prodName, "sum: _decimal_function(name: \"some_unknown_function\", args: [\"price\"])");
+        prodName,
+        "unknown_function: _decimal_function(name: \"some_unknown_function\", args: [\"price\"])");
+  }
+
+  private String getOrderWithUnknownFunctionReturnType(String prodName) {
+    return getOrderWithFunctionError(
+        prodName,
+        "unknown_function_return_type: _unknown_function(name: \"count\", args: [\"price\"])");
   }
 
   private Map<String, Object> getOrderWithMin(String prodName) {
