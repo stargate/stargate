@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -70,8 +72,16 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @AfterEach
-  public void truncateAllTables(CqlSession session) {
-    session.execute(String.format("TRUNCATE %s", TARGET_COLLECTION));
+  public void emptyTargetCollection(CqlSession session) {
+    ResultSet results = session.execute(String.format("SELECT key FROM %s", TARGET_COLLECTION));
+    List<String> ids = new ArrayList<>();
+    results.forEach(row -> ids.add(String.format("'%s'", row.getString("key"))));
+
+    if (!ids.isEmpty()) {
+      session.execute(
+          String.format(
+              "DELETE FROM %s WHERE key IN (%s)", TARGET_COLLECTION, String.join(", ", ids)));
+    }
   }
 
   private static void initAuth() throws IOException {
