@@ -21,6 +21,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
@@ -32,6 +33,7 @@ import io.stargate.graphql.schema.graphqlfirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
+import io.stargate.graphql.web.HttpAwareContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -77,8 +79,9 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();
     List<MigrationQuery> queries;
     try {
+      Persistence persistence = ((HttpAwareContext) environment.getContext()).getPersistence();
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authorizationService, dataStoreFactory, false)
+          new SchemaProcessor(authorizationService, dataStoreFactory, persistence, false)
               .process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 
