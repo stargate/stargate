@@ -22,10 +22,16 @@ import com.bpodgursky.jbool_expressions.Literal;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.PathSegment;
@@ -136,7 +142,7 @@ public class ExpressionParser {
       int idx = Integer.parseInt(innerPath);
       if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
         String msg = String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH);
-        throw new DocumentAPIRequestException(msg);
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
       }
       return "[" + leftPadTo6(innerPath) + "]";
     }
