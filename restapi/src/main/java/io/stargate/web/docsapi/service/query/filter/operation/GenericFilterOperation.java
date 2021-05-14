@@ -21,7 +21,7 @@ package io.stargate.web.docsapi.service.query.filter.operation;
  *
  * @param <FV> Type of the filter value used in the filter.
  */
-public interface CombinedFilterOperation<FV> extends BaseFilterOperation {
+public interface GenericFilterOperation<FV> extends BaseFilterOperation {
 
   /**
    * Tests the filter value and database {@link String} against this filter operation.

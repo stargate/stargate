@@ -19,8 +19,8 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,7 +29,7 @@ import org.immutables.value.Value;
 /** In list filter operation. */
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @Value.Immutable(singleton = true)
-public abstract class InFilterOperation implements CombinedFilterOperation<List<?>> {
+public abstract class InFilterOperation implements GenericFilterOperation<List<?>> {
 
   /** @return Singleton instance */
   public static InFilterOperation of() {

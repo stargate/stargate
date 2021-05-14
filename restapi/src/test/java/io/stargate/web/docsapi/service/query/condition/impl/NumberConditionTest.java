@@ -48,7 +48,7 @@ class NumberConditionTest {
       NumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
 
       assertThat(condition).isNotNull();
-      verify(filterOperation).validateDoubleFilterInput(value);
+      verify(filterOperation).validateNumberFilterInput(value);
       verifyNoMoreInteractions(filterOperation);
     }
   }

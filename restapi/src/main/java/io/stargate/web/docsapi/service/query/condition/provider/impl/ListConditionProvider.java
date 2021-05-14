@@ -20,29 +20,29 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableGenericCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Condition provider for the {@link CombinedCondition} for lists. Extract objects from the array
+ * Condition provider for the {@link GenericCondition} for lists. Extract objects from the array
  * JSON node.
  */
 public class ListConditionProvider implements ConditionProvider {
 
   /** Filter operation to use in the condition. */
-  private final CombinedFilterOperation<List<?>> filterOperation;
+  private final GenericFilterOperation<List<?>> filterOperation;
 
-  public static ListConditionProvider of(CombinedFilterOperation<List<?>> predicate) {
+  public static ListConditionProvider of(GenericFilterOperation<List<?>> predicate) {
     return new ListConditionProvider(predicate);
   }
 
-  public ListConditionProvider(CombinedFilterOperation<List<?>> filterOperation) {
+  public ListConditionProvider(GenericFilterOperation<List<?>> filterOperation) {
     this.filterOperation = filterOperation;
   }
 
@@ -52,8 +52,8 @@ public class ListConditionProvider implements ConditionProvider {
     if (node.isArray()) {
       Iterator<JsonNode> iterator = node.iterator();
       List<?> input = getListConditionValues(iterator);
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(filterOperation, input, numericBooleans);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(filterOperation, input, numericBooleans);
       return Optional.of(condition);
     }
     return Optional.empty();

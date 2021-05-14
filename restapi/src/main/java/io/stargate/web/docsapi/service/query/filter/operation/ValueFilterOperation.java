@@ -16,8 +16,9 @@
 package io.stargate.web.docsapi.service.query.filter.operation;
 
 /**
- * Filter operation that can compare {@link String}, {@link Double}, {@link Boolean} database values
- * against their corresponding filter values.
+ * Filter operation that can compare {@link String}, {@link Double} and {@link Boolean} database
+ * values against their corresponding {@link String}, {@link Number} and {@link Boolean} filter
+ * values.
  */
 public interface ValueFilterOperation extends BaseFilterOperation {
 
@@ -61,7 +62,7 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    *
    * @param filterValue Filter value, can be <code>null</code>
    */
-  default void validateDoubleFilterInput(Number filterValue) {
+  default void validateNumberFilterInput(Number filterValue) {
     // default impl empty
   };
 

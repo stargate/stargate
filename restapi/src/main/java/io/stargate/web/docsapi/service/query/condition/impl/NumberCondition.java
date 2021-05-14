@@ -39,7 +39,7 @@ public abstract class NumberCondition implements BaseCondition {
   /** Validates the value against the predicate. */
   @Value.Check
   protected void validate() {
-    getFilterOperation().validateDoubleFilterInput(getQueryValue());
+    getFilterOperation().validateNumberFilterInput(getQueryValue());
   }
 
   /** {@inheritDoc} */

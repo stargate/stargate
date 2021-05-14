@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
 import java.util.Collections;
@@ -37,9 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class CombinedConditionTest {
+class GenericConditionTest {
 
-  @Mock CombinedFilterOperation<Object> filterOperation;
+  @Mock GenericFilterOperation<Object> filterOperation;
 
   @Mock Row row;
 
@@ -50,8 +50,8 @@ class CombinedConditionTest {
     public void predicateValidated() {
       Object queryValue = new Object();
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, queryValue, true);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, queryValue, true);
 
       assertThat(condition).isNotNull();
       verify(filterOperation).validateFilterInput(queryValue);
@@ -65,8 +65,8 @@ class CombinedConditionTest {
     @Test
     public void alwaysEmpty() {
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, new Object(), true);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, new Object(), true);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
@@ -86,8 +86,8 @@ class CombinedConditionTest {
       when(row.isNull("dbl_value")).thenReturn(true);
       when(filterOperation.test(filterValue, (String) null)).thenReturn(true);
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, filterValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -102,8 +102,8 @@ class CombinedConditionTest {
       when(row.getBoolean("bool_value")).thenReturn(false);
       when(filterOperation.test(filterValue, false)).thenReturn(true);
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, filterValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -119,8 +119,8 @@ class CombinedConditionTest {
       when(row.getByte("bool_value")).thenReturn(byteValue);
       when(filterOperation.test(filterValue, false)).thenReturn(true);
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, true);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, filterValue, true);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -135,8 +135,8 @@ class CombinedConditionTest {
       when(row.getDouble("dbl_value")).thenReturn(22d);
       when(filterOperation.test(filterValue, 22d)).thenReturn(true);
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, filterValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -151,8 +151,8 @@ class CombinedConditionTest {
       when(row.getString("text_value")).thenReturn("Jordan");
       when(filterOperation.test(filterValue, "Jordan")).thenReturn(true);
 
-      CombinedCondition<Object> condition =
-          ImmutableCombinedCondition.of(filterOperation, filterValue, false);
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, filterValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -175,8 +175,8 @@ class CombinedConditionTest {
       String findMe = "find-me";
       List<?> queryValue = Collections.singletonList(findMe);
 
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(InFilterOperation.of(), queryValue, false);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(InFilterOperation.of(), queryValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isFalse();
@@ -189,8 +189,8 @@ class CombinedConditionTest {
       when(row.isNull("text_value")).thenReturn(false);
       when(row.getString("text_value")).thenReturn(findMe);
 
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(InFilterOperation.of(), queryValue, false);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(InFilterOperation.of(), queryValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -201,8 +201,8 @@ class CombinedConditionTest {
       String findMe = "find-me";
       List<?> queryValue = Collections.singletonList(findMe);
 
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(NotInFilterOperation.of(), queryValue, false);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -215,8 +215,8 @@ class CombinedConditionTest {
       when(row.isNull("text_value")).thenReturn(false);
       when(row.getString("text_value")).thenReturn(findMe);
 
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(NotInFilterOperation.of(), queryValue, false);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isFalse();
@@ -229,8 +229,8 @@ class CombinedConditionTest {
       when(row.isNull("text_value")).thenReturn(false);
       when(row.getString("text_value")).thenReturn("something");
 
-      CombinedCondition<List<?>> condition =
-          ImmutableCombinedCondition.of(NotInFilterOperation.of(), queryValue, false);
+      GenericCondition<List<?>> condition =
+          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
