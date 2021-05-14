@@ -24,6 +24,9 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.graphqlfirst.AdminSchemaBuilder;
@@ -64,18 +67,18 @@ public class FilesResource {
   private static final Logger LOG = LoggerFactory.getLogger(FilesResource.class);
   private static final String DIRECTIVES_RESPONSE = buildDirectivesResponse();
 
-  private final SchemaSourceDao schemaSourceDao;
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
 
   @Inject
   public FilesResource(
-      SchemaSourceDao schemaSourceDao,
       AuthenticationService authenticationService,
-      AuthorizationService authorizationService) {
-    this.schemaSourceDao = schemaSourceDao;
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
+    this.dataStoreFactory = dataStoreFactory;
   }
 
   @GET
@@ -98,13 +101,9 @@ public class FilesResource {
       throws Exception {
 
     if (!DmlResource.KEYSPACE_NAME_PATTERN.matcher(keyspace).matches()) {
-      LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspace);
+      LOG.warn("Malformed keyspace in URI, this could be an XSS attack: {}", keyspace);
       // Do not reflect back the value
-      return Response.status(Response.Status.BAD_REQUEST).entity("Invalid keyspace name").build();
-    }
-
-    if (!isAuthorized(token, httpRequest)) {
-      return Response.status(Response.Status.UNAUTHORIZED).build();
+      return Response.status(Response.Status.BAD_REQUEST).entity("Malformed keyspace name").build();
     }
 
     UUID versionUuid = null;
@@ -112,19 +111,41 @@ public class FilesResource {
       try {
         versionUuid = UUID.fromString(version);
       } catch (IllegalArgumentException e) {
-        return notFound(keyspace, version);
+        LOG.warn("Malformed version in URI, this could be an XSS attack: {}", version);
+        return Response.status(Response.Status.BAD_REQUEST).entity("Malformed version").build();
       }
     }
 
-    SchemaSource schemaSource =
-        schemaSourceDao.getSingleVersion(keyspace, Optional.ofNullable(versionUuid));
-    if (schemaSource == null) {
-      return notFound(keyspace, version);
-    }
+    try {
+      Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(httpRequest);
+      AuthenticationSubject authenticationSubject =
+          authenticationService.validateToken(token, headers);
+      authorizationService.authorizeSchemaRead(
+          authenticationSubject,
+          Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
+          Collections.singletonList(SchemaSourceDao.TABLE_NAME),
+          SourceAPI.GRAPHQL,
+          ResourceKind.TABLE);
 
-    return Response.ok(schemaSource.getContents())
-        .header("Content-Disposition", "inline; filename=" + createFileName(schemaSource))
-        .build();
+      DataStore dataStore =
+          dataStoreFactory.create(
+              authenticationSubject.asUser(),
+              DataStoreOptions.builder().putAllCustomProperties(headers).build());
+      SchemaSource schemaSource =
+          new SchemaSourceDao(dataStore)
+              .getSingleVersion(keyspace, Optional.ofNullable(versionUuid));
+
+      if (schemaSource == null) {
+        return notFound(keyspace, version);
+      }
+
+      return Response.ok(schemaSource.getContents())
+          .header("Content-Disposition", "inline; filename=" + createFileName(schemaSource))
+          .build();
+
+    } catch (UnauthorizedException e) {
+      return Response.status(Response.Status.UNAUTHORIZED).build();
+    }
   }
 
   private Response notFound(String keyspace, String version) {
@@ -156,23 +177,6 @@ public class FilesResource {
       return result.toString();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    }
-  }
-
-  private boolean isAuthorized(String token, HttpServletRequest httpRequest) {
-    try {
-      Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(httpRequest);
-      AuthenticationSubject authenticationSubject =
-          authenticationService.validateToken(token, headers);
-      authorizationService.authorizeSchemaRead(
-          authenticationSubject,
-          Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
-          Collections.singletonList(SchemaSourceDao.TABLE_NAME),
-          SourceAPI.GRAPHQL,
-          ResourceKind.TABLE);
-      return true;
-    } catch (UnauthorizedException e) {
-      return false;
     }
   }
 }

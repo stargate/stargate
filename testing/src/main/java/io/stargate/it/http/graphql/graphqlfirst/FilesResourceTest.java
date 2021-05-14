@@ -71,13 +71,18 @@ public class FilesResourceTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should return 404 if schema file coordinates are invalid")
+  @DisplayName("Should return 404 if schema file coordinates do not exist")
   public void schemaFileNotFound(@TestKeyspace CqlIdentifier keyspaceId) {
     CLIENT.expectSchemaFileStatus("unknown_keyspace", Status.NOT_FOUND);
-    CLIENT.expectSchemaFileStatus("malformed keyspace #!?", Status.NOT_FOUND);
     CLIENT.expectSchemaFileStatus(
         keyspaceId.asInternal(), WRONG_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
-    CLIENT.expectSchemaFileStatus(keyspaceId.asInternal(), "NOT A UUID", Status.NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("Should return 400 if schema file coordinates are malformed")
+  public void schemaFileMalformed(@TestKeyspace CqlIdentifier keyspaceId) {
+    CLIENT.expectSchemaFileStatus("malformed keyspace #!?", Status.BAD_REQUEST);
+    CLIENT.expectSchemaFileStatus(keyspaceId.asInternal(), "NOT A UUID", Status.BAD_REQUEST);
   }
 
   @Test

@@ -54,6 +54,6 @@ public class CqlFirstClient extends GraphqlClient {
   }
 
   private String buildKeyspaceUrl(CqlIdentifier keyspaceId) {
-    return String.format("http://%s:8080/graphql/%s", host, keyspaceId.asInternal());
+    return String.format("http://%s:8080/graphql/%s", host, urlEncode(keyspaceId.asInternal()));
   }
 }

@@ -167,9 +167,10 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   private String buildSchemaFileUri(String keyspace, String version) {
-    String url = String.format("http://%s:8080%s/keyspace/%s.graphql", host, FILES, keyspace);
+    String url =
+        String.format("http://%s:8080%s/keyspace/%s.graphql", host, FILES, urlEncode(keyspace));
     if (version != null) {
-      url = url + "?version=" + version;
+      url = url + "?version=" + urlEncode(version);
     }
     return url;
   }

@@ -30,7 +30,6 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.GraphqlActivator;
-import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.web.resources.AdminResource;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.DdlResource;
@@ -107,16 +106,6 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
 
-    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStoreFactory.createInternal());
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(schemaSourceDao).to(SchemaSourceDao.class);
-              }
-            });
     environment
         .jersey()
         .register(
@@ -135,6 +124,15 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(authorizationService).to(AuthorizationService.class);
               }
             });
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(dataStoreFactory).to(DataStoreFactory.class);
+              }
+            });
 
     environment
         .jersey()
@@ -146,15 +144,6 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
     environment.jersey().register(new AuthenticationFilter(authenticationService));
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(authorizationService).to(AuthorizationService.class);
-              }
-            });
     environment
         .jersey()
         .register(
