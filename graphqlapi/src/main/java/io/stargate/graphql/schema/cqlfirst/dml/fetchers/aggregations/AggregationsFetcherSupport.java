@@ -50,45 +50,40 @@ public class AggregationsFetcherSupport {
     }
 
     List<QueryBuilderImpl.FunctionCall> functionCalls = new ArrayList<>();
-    for (SelectedField valuesField : valuesFields) {
-      for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        Map<String, Object> arguments = selectedField.getArguments();
-        // if there is no SupportedAggregationFunction for arguments, ignore
-        getSupportedFunction(arguments)
-            .ifPresent(
-                f -> {
-                  switch (f) {
-                    case COUNT:
-                      functionCalls.add(
-                          createAggregationFunctionCall(
-                              arguments,
-                              QueryBuilderImpl.FunctionCall::count,
-                              selectedField,
-                              COUNT));
-                      break;
-                    case AVG:
-                      functionCalls.add(
-                          createAggregationFunctionCall(
-                              arguments, QueryBuilderImpl.FunctionCall::avg, selectedField, AVG));
-                      break;
-                    case MIN:
-                      functionCalls.add(
-                          createAggregationFunctionCall(
-                              arguments, QueryBuilderImpl.FunctionCall::min, selectedField, MIN));
-                      break;
-                    case MAX:
-                      functionCalls.add(
-                          createAggregationFunctionCall(
-                              arguments, QueryBuilderImpl.FunctionCall::max, selectedField, MAX));
-                      break;
-                    case SUM:
-                      functionCalls.add(
-                          createAggregationFunctionCall(
-                              arguments, QueryBuilderImpl.FunctionCall::sum, selectedField, SUM));
-                      break;
-                  }
-                });
-      }
+    for (SelectedField selectedField : extractAllFieldsAndDeduplicate(valuesFields)) {
+      Map<String, Object> arguments = selectedField.getArguments();
+      // if there is no SupportedAggregationFunction for arguments, ignore
+      getSupportedFunction(arguments)
+          .ifPresent(
+              f -> {
+                switch (f) {
+                  case COUNT:
+                    functionCalls.add(
+                        createAggregationFunctionCall(
+                            arguments, QueryBuilderImpl.FunctionCall::count, selectedField, COUNT));
+                    break;
+                  case AVG:
+                    functionCalls.add(
+                        createAggregationFunctionCall(
+                            arguments, QueryBuilderImpl.FunctionCall::avg, selectedField, AVG));
+                    break;
+                  case MIN:
+                    functionCalls.add(
+                        createAggregationFunctionCall(
+                            arguments, QueryBuilderImpl.FunctionCall::min, selectedField, MIN));
+                    break;
+                  case MAX:
+                    functionCalls.add(
+                        createAggregationFunctionCall(
+                            arguments, QueryBuilderImpl.FunctionCall::max, selectedField, MAX));
+                    break;
+                  case SUM:
+                    functionCalls.add(
+                        createAggregationFunctionCall(
+                            arguments, QueryBuilderImpl.FunctionCall::sum, selectedField, SUM));
+                    break;
+                }
+              });
     }
     return functionCalls;
   }
@@ -99,12 +94,10 @@ public class AggregationsFetcherSupport {
     if (valuesFields.isEmpty()) {
       return columns;
     }
-    for (SelectedField valuesField : valuesFields) {
-      for (SelectedField selectedField : getAllFieldsWithNameArg(valuesField)) {
-        // if there is no SupportedGraphqlFunction for arguments, ignore
-        SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName())
-            .ifPresent(f -> putResultValue(columns, row, selectedField, f.getRowValueExtractor()));
-      }
+    for (SelectedField selectedField : extractAllFieldsAndDeduplicate(valuesFields)) {
+      // if there is no SupportedGraphqlFunction for arguments, ignore
+      SupportedGraphqlFunction.valueOfIgnoreCase(selectedField.getName())
+          .ifPresent(f -> putResultValue(columns, row, selectedField, f.getRowValueExtractor()));
     }
     return columns;
   }
@@ -181,15 +174,10 @@ public class AggregationsFetcherSupport {
     return SupportedAggregationFunction.valueOfIgnoreCase((String) arguments.get("name"));
   }
 
-  private Set<SelectedField> getAllFieldsWithNameArg(SelectedField valuesField) {
-    // all aggregation functions MUST have the 'name' argument
-    return valuesField.getSelectionSet().getFields().stream()
-        .filter(
-            v -> {
-              Object name = v.getArguments().get("name");
-              // the 'name' value must be a non-null String
-              return name instanceof String;
-            })
+  private Set<SelectedField> extractAllFieldsAndDeduplicate(List<SelectedField> valuesFields) {
+    // extract all inner selections set, and deduplicate them
+    return valuesFields.stream()
+        .flatMap(v -> v.getSelectionSet().getFields().stream())
         .collect(Collectors.toSet());
   }
 }
