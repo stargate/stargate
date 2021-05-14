@@ -22,7 +22,8 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
@@ -65,7 +66,9 @@ class ListConditionProviderTest {
 
       Throwable throwable = catchThrowable(() -> provider.createCondition(node, numericBooleans));
 
-      assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
     }
 
     @Test

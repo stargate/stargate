@@ -17,7 +17,8 @@
 package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCondition;
@@ -77,7 +78,7 @@ public class ListConditionProvider implements ConditionProvider {
                 String.format(
                     "Operation %s was not expecting a list containing a %s node type.",
                     filterOperation.getOpCode(), node.getNodeType());
-            throw new DocumentAPIRequestException(msg);
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
           }
         });
     return result;
