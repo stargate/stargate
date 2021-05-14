@@ -318,16 +318,11 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
         invalidMapping("%s: UDT fields can't have an index", messagePrefix);
         throw SkipException.INSTANCE;
       }
+      return Optional.of(
+          new IndexModelBuilder(
+                  cqlIndexDirective.get(), parentCqlName, cqlName, cqlType, messagePrefix, context)
+              .build());
     }
-    return cqlIndexDirective.flatMap(
-        d -> {
-          try {
-            return Optional.of(
-                new IndexModelBuilder(d, parentCqlName, cqlName, cqlType, messagePrefix, context)
-                    .build());
-          } catch (SkipException e) {
-            return Optional.empty();
-          }
-        });
+    return Optional.empty();
   }
 }
