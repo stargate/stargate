@@ -18,7 +18,12 @@ package io.stargate.web.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.*;
+import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableBooleanCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableNumberCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;

@@ -17,7 +17,9 @@
 package io.stargate.web.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;

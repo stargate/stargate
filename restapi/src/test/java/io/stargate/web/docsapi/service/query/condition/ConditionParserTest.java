@@ -22,11 +22,19 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.GteFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.LteFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NeFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,7 +61,9 @@ class ConditionParserTest {
 
       Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
 
-      assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
     }
 
     @Test
@@ -64,7 +74,9 @@ class ConditionParserTest {
 
       Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
 
-      assertThat(throwable).isInstanceOf(DocumentAPIRequestException.class);
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
     }
 
     @Test

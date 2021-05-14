@@ -4,7 +4,14 @@ import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvide
 import io.stargate.web.docsapi.service.query.condition.provider.impl.BasicConditionProvider;
 import io.stargate.web.docsapi.service.query.condition.provider.impl.ExistsConditionProvider;
 import io.stargate.web.docsapi.service.query.condition.provider.impl.ListConditionProvider;
-import io.stargate.web.docsapi.service.query.filter.operation.impl.*;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.GteFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.LteFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NeFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;

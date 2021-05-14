@@ -17,10 +17,16 @@
 package io.stargate.web.docsapi.service.query.condition;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Simple service that wraps all available raw filter values and connects them to a {@link
@@ -64,12 +70,12 @@ public class ConditionParser {
                   String.format(
                       "Operation %s does not support the provided value %s.",
                       filterOp, valueNode.toPrettyString());
-              throw new DocumentAPIRequestException(msg);
+              throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
             }
           } else {
             // provider can not be found
             String msg = String.format("Operation %s is not supported.", filterOp);
-            throw new DocumentAPIRequestException(msg);
+            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
           }
         });
     return results;

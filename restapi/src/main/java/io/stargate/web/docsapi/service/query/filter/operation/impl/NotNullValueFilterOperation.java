@@ -16,7 +16,8 @@
 
 package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.filter.operation.ComparingValueFilterOperation;
 
 /** Shared abstract class for all the filter operation that require non-null filter values. */
@@ -44,7 +45,7 @@ public abstract class NotNullValueFilterOperation implements ComparingValueFilte
     if (null == filterInput) {
       String msg =
           String.format("Operation %s was expecting a non-null value", getOpCode().getRawValue());
-      throw new DocumentAPIRequestException(msg);
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
   }
 }
