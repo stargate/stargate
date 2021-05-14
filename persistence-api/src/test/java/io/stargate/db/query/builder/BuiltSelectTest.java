@@ -11,9 +11,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.QueryType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -153,6 +151,68 @@ class BuiltSelectTest extends BuiltQueryTest {
   }
 
   @Test
+  public void shouldPassAllFunctionCallsAsArgument() {
+    // given
+    List<QueryBuilderImpl.FunctionCall> functionCalls =
+        Arrays.asList(
+            QueryBuilderImpl.FunctionCall.avg("col1"),
+            QueryBuilderImpl.FunctionCall.sum("col1"),
+            QueryBuilderImpl.FunctionCall.max("col1"),
+            QueryBuilderImpl.FunctionCall.min("col1"),
+            QueryBuilderImpl.FunctionCall.writeTime("col1"),
+            QueryBuilderImpl.FunctionCall.count("col1"));
+
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .function(functionCalls)
+            .from(KS_NAME, "t1")
+            .build();
+    assertBuiltQuery(
+        query,
+        "SELECT k2, v1, AVG(col1), SUM(col1), MAX(col1), MIN(col1), WRITETIME(col1), COUNT(col1) FROM ks.t1",
+        emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(
+        select,
+        "SELECT k2, v1, AVG(col1), SUM(col1), MAX(col1), MIN(col1), WRITETIME(col1), COUNT(col1) FROM ks.t1");
+  }
+
+  @Test
+  public void shouldPassAllFunctionCallsWithAliasAsArgument() {
+    // given
+    List<QueryBuilderImpl.FunctionCall> functionCalls =
+        Arrays.asList(
+            QueryBuilderImpl.FunctionCall.avg("col1", "avg"),
+            QueryBuilderImpl.FunctionCall.sum("col1", "sum"),
+            QueryBuilderImpl.FunctionCall.max("col1", "max"),
+            QueryBuilderImpl.FunctionCall.min("col1", "min"),
+            QueryBuilderImpl.FunctionCall.writeTime("col1", "writeTime"),
+            QueryBuilderImpl.FunctionCall.count("col1", "count"));
+
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .function(functionCalls)
+            .from(KS_NAME, "t1")
+            .build();
+    assertBuiltQuery(
+        query,
+        "SELECT k2, v1, AVG(col1) AS avg, SUM(col1) AS sum, MAX(col1) AS max, MIN(col1) AS min, WRITETIME(col1) AS \"writeTime\", COUNT(col1) AS count FROM ks.t1",
+        emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(
+        select,
+        "SELECT k2, v1, AVG(col1) AS avg, SUM(col1) AS sum, MAX(col1) AS max, MIN(col1) AS min, WRITETIME(col1) AS \"writeTime\", COUNT(col1) AS count FROM ks.t1");
+  }
+
+  @Test
   public void shouldCreateOneQueryWithAllAggregationsUsingColumnAPI() {
     Column column = Column.create("v1", Column.Kind.Regular);
     BuiltQuery<?> query =
@@ -185,6 +245,26 @@ class BuiltSelectTest extends BuiltQueryTest {
 
     assertThat(select.isStarSelect()).isFalse();
     assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1"));
+  }
+
+  @Test
+  public void shouldWorkForACaseSensitiveColumnName() {
+    BuiltQuery<?> query =
+        newBuilder()
+            .select()
+            .column("k2", "v1")
+            .count("caseSensitiveCol")
+            .from(KS_NAME, "t1")
+            .build();
+
+    assertBuiltQuery(query, "SELECT k2, v1, COUNT(\"caseSensitiveCol\") FROM ks.t1", emptyList());
+
+    BoundSelect select = checkedCast(query.bind());
+
+    assertBoundQuery(select, "SELECT k2, v1, COUNT(\"caseSensitiveCol\") FROM ks.t1");
+
+    assertThat(select.isStarSelect()).isFalse();
+    assertThat(names(select.selectedColumns())).isEqualTo(asSet("k2", "v1", "caseSensitiveCol"));
   }
 
   @Test

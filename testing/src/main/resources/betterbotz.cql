@@ -24,5 +24,13 @@ CREATE TABLE IF NOT EXISTS betterbotz."Orders" (
     description text,
     price decimal,
     "sellPrice" decimal,
+    "value_int" int,
+    "value_double" double,
+    "value_bigint" bigint,
+    "value_varint" varint,
+    "value_float" float,
+    "value_smallint" smallint,
+    "value_tinyint" tinyint,
+
     PRIMARY KEY (("prodName"), "customerName")
 );

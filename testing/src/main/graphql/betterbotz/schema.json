@@ -5054,6 +5054,342 @@
               },
               "isDeprecated": false,
               "deprecationReason": null
+            },
+            {
+                "name": "_int_function",
+                "description": "function invocation",
+                   "args": [
+                 {
+                   "name": "name",
+                   "description": "Name of the function to invoke",
+                   "type": {
+                     "kind": "SCALAR",
+                     "name": "String",
+                     "ofType": null
+                   },
+                   "defaultValue": null
+                 },
+                 {
+                   "name": "args",
+                   "description": "Arguments passed to a function. It can be a list of columns names.",
+                   "type": {
+                     "kind": "LIST",
+                     "name": null,
+                     "ofType": {
+                       "kind": "NON_NULL",
+                       "name": null,
+                       "ofType": {
+                         "kind": "SCALAR",
+                         "name": "String",
+                         "ofType": null
+                       }
+                     }
+                   }
+                 }
+                ],
+                "type": {
+                  "kind": "SCALAR",
+                  "name": "Int",
+                  "ofType": null
+                },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_double_function",
+              "description": "function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_varint_function",
+              "description": "function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Varint",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_smallint_function",
+              "description": "function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "SmallInt",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_tinyint_function",
+              "description": "function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "TinyInt",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_float_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_bigint_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "BigInt",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "_decimal_function",
+              "description": "float function invocation",
+              "args": [
+                {
+                  "name": "name",
+                  "description": "Name of the function to invoke",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
+                  "name": "args",
+                  "description": "Arguments passed to a function. It can be a list of columns names.",
+                  "type": {
+                    "kind": "LIST",
+                    "name": null,
+                    "ofType": {
+                      "kind": "NON_NULL",
+                      "name": null,
+                      "ofType": {
+                        "kind": "SCALAR",
+                        "name": "String",
+                        "ofType": null
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Decimal",
+                "ofType": null
+              },
+              "fields": null,
+              "inputFields": null,
+              "isDeprecated": false,
+              "deprecationReason": null
             }
           ],
           "inputFields": null,
@@ -5234,6 +5570,76 @@
               "type": {
                 "kind": "SCALAR",
                 "name": "Decimal",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_int",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_double",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_bigint",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "BigInt",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_varint",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Varint",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_float",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_smallint",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "SmallInt",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "value_tinyint",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "TinyInt",
                 "ofType": null
               },
               "defaultValue": null

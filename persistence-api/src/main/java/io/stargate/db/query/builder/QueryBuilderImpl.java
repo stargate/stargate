@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import jdk.nashorn.internal.ir.FunctionCall;
 import org.javatuples.Pair;
 
 /** Convenience builder for creating queries. */
@@ -78,7 +79,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -338,7 +339,7 @@ public class QueryBuilderImpl {
   }
 
   public void writeTimeColumn(String columnName) {
-    functionCalls.add(FunctionCall.function(columnName, "WRITETIME"));
+    functionCalls.add(FunctionCall.writeTime(columnName));
   }
 
   public void writeTimeColumn(Column columnName) {
@@ -346,7 +347,7 @@ public class QueryBuilderImpl {
   }
 
   public void count(String columnName) {
-    functionCalls.add(FunctionCall.function(columnName, "COUNT"));
+    functionCalls.add(FunctionCall.count(columnName));
   }
 
   public void count(Column columnName) {
@@ -354,7 +355,7 @@ public class QueryBuilderImpl {
   }
 
   public void max(String maxColumnName) {
-    functionCalls.add(FunctionCall.function(maxColumnName, "MAX"));
+    functionCalls.add(FunctionCall.max(maxColumnName));
   }
 
   public void max(Column maxColumnName) {
@@ -362,7 +363,7 @@ public class QueryBuilderImpl {
   }
 
   public void min(String minColumnName) {
-    functionCalls.add(FunctionCall.function(minColumnName, "MIN"));
+    functionCalls.add(FunctionCall.min(minColumnName));
   }
 
   public void min(Column minColumnName) {
@@ -370,7 +371,7 @@ public class QueryBuilderImpl {
   }
 
   public void sum(String sumColumnName) {
-    functionCalls.add(FunctionCall.function(sumColumnName, "SUM"));
+    functionCalls.add(FunctionCall.sum(sumColumnName));
   }
 
   public void sum(Column sumColumnName) {
@@ -378,11 +379,15 @@ public class QueryBuilderImpl {
   }
 
   public void avg(String avgColumnName) {
-    functionCalls.add(FunctionCall.function(avgColumnName, "AVG"));
+    functionCalls.add(FunctionCall.avg(avgColumnName));
   }
 
   public void avg(Column avgColumnName) {
     avg(avgColumnName.name());
+  }
+
+  public void function(Collection<FunctionCall> calls) {
+    functionCalls.addAll(calls);
   }
 
   public void star() {
@@ -1571,14 +1576,14 @@ public class QueryBuilderImpl {
 
     builder
         .append(functionCall.getFunctionName() + "(")
-        .append(functionCall.getColumnName())
+        .append(cqlName(functionCall.getColumnName()))
         .append(")");
     if (functionCall.getAlias() != null) {
       builder.append("AS").append(cqlName(functionCall.getAlias()));
     }
   }
 
-  private static class FunctionCall {
+  public static class FunctionCall {
     final String columnName;
     @Nullable String alias;
     final String functionName;
@@ -1593,8 +1598,52 @@ public class QueryBuilderImpl {
       return new FunctionCall(name, alias, functionName);
     }
 
-    public static FunctionCall function(String name, String functionName) {
-      return new FunctionCall(name, null, functionName);
+    public static FunctionCall count(String columnName) {
+      return count(columnName, null);
+    }
+
+    public static FunctionCall count(String columnName, String alias) {
+      return function(columnName, alias, "COUNT");
+    }
+
+    public static FunctionCall max(String columnName) {
+      return max(columnName, null);
+    }
+
+    public static FunctionCall max(String columnName, String alias) {
+      return function(columnName, alias, "MAX");
+    }
+
+    public static FunctionCall min(String columnName) {
+      return min(columnName, null);
+    }
+
+    public static FunctionCall min(String columnName, String alias) {
+      return function(columnName, alias, "MIN");
+    }
+
+    public static FunctionCall avg(String columnName) {
+      return avg(columnName, null);
+    }
+
+    public static FunctionCall avg(String columnName, String alias) {
+      return function(columnName, alias, "AVG");
+    }
+
+    public static FunctionCall sum(String columnName) {
+      return sum(columnName, null);
+    }
+
+    public static FunctionCall sum(String columnName, String alias) {
+      return function(columnName, alias, "SUM");
+    }
+
+    public static FunctionCall writeTime(String columnName) {
+      return writeTime(columnName, null);
+    }
+
+    public static FunctionCall writeTime(String columnName, String alias) {
+      return function(columnName, alias, "WRITETIME");
     }
 
     public void setAlias(String alias) {
