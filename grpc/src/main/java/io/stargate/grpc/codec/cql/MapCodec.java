@@ -25,8 +25,7 @@ public class MapCodec extends CompositeCodec {
 
     int elementCount = map.getElementsCount();
     if (elementCount % 2 != 0) {
-      throw new IllegalArgumentException(
-          "Missing pair value (expected an even number of elements)");
+      throw new IllegalArgumentException("Expected an even number of elements");
     }
 
     ByteBuffer[] encodedElements = new ByteBuffer[elementCount];
