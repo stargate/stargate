@@ -409,7 +409,7 @@ public class ValueCodecTest {
         arguments(
             Type.Map.of(Type.Uuid, Type.Varchar),
             Values.of(Values.of(Uuids.random())),
-            "Missing pair value (expected an even number of elements)"),
+            "Expected an even number of elements"),
         arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.NULL, "Expected collection type"),
         arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.UNSET, "Expected collection type"),
         arguments(

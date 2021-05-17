@@ -173,7 +173,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
         Arguments.of(
             Values.of(Values.of("a"), Values.of(1), Values.of("b")),
             "map_test",
-            "Invalid argument at position 2: Missing pair value (expected an even number of elements)"),
+            "Invalid argument at position 2: Expected an even number of elements"),
         Arguments.of(
             Values.of(Values.of("a"), Values.NULL),
             "map_test",
