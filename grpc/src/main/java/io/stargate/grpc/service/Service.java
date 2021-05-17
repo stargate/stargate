@@ -69,6 +69,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
       Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
+  // TODO: Add a maximum size and add tuning options
+  private final Cache<PrepareInfo, Prepared> preparedCache = Caffeine.newBuilder().build();
+
+  private final Persistence persistence;
+  private final ByteBuffer unsetValue;
+
+  @SuppressWarnings("unused")
+  private final Metrics metrics;
+
   /** Used as key for the the local prepare cache. */
   @Value.Immutable
   interface PrepareInfo {
@@ -81,15 +90,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
     String cql();
   }
-
-  // TODO: Add a maximum size and add tuning options
-  private final Cache<PrepareInfo, Prepared> preparedCache = Caffeine.newBuilder().build();
-
-  private final Persistence persistence;
-  private final ByteBuffer unsetValue;
-
-  @SuppressWarnings("unused")
-  private final Metrics metrics;
 
   public Service(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
