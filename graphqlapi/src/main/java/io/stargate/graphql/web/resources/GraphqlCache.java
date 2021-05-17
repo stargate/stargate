@@ -106,16 +106,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
     SchemaSource latestSource =
         enableGraphqlFirst ? new SchemaSourceDao(dataStore).getLatestVersion(keyspaceName) : null;
 
-    return getGraphQLAndUpdateCache(keyspaceName, dataStore, latestSource, headers);
-  }
-
-  public GraphQL getGraphQLAndUpdateCache(
-      String keyspaceName,
-      DataStore dataStore,
-      SchemaSource latestSource,
-      Map<String, String> headers)
-      throws Exception {
-
     String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
     DmlGraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
     if (currentHolder != null && currentHolder.isSameVersionAs(latestSource)) {
@@ -234,6 +224,23 @@ public class GraphqlCache implements KeyspaceChangeListener {
     // It is assumed that the data model will only evolve by deploying new GraphQL schema versions.
   }
 
+  public void put(
+      String keyspaceName, SchemaSource newSource, GraphQL graphql, AuthenticationSubject subject) {
+    Map<String, String> headers = subject.customProperties();
+    DataStore dataStore = buildUserDatastore(subject, headers);
+    String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
+
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    if (keyspace == null) {
+      LOG.trace("Keyspace {} does not exist", decoratedKeyspaceName);
+      return;
+    }
+    LOG.trace(
+        "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
+    DmlGraphqlHolder schemaHolder = new DmlGraphqlHolder(newSource, keyspace, graphql);
+    dmlGraphqls.put(decoratedKeyspaceName, schemaHolder);
+  }
+
   /**
    * Holds the GraphQL schema for a particular keyspace (either CQL-first or GraphQL-first,
    * depending on whether there is a SchemaSource for this keyspace).
@@ -249,6 +256,12 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
     DmlGraphqlHolder(SchemaSource source, Keyspace keyspace) {
       this.source = source;
+      this.keyspace = keyspace;
+    }
+
+    DmlGraphqlHolder(SchemaSource source, Keyspace keyspace, GraphQL graphQL) {
+      this.source = source;
+      this.graphqlFuture.complete(graphQL);
       this.keyspace = keyspace;
     }
 

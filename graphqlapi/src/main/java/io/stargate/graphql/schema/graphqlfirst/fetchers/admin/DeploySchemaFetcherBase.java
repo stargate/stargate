@@ -84,9 +84,11 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
 
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();
     List<MigrationQuery> queries;
+    ProcessedSchema processedSchema;
     try {
       Persistence persistence = ((HttpAwareContext) environment.getContext()).getPersistence();
-      ProcessedSchema processedSchema =
+
+      processedSchema =
           new SchemaProcessor(authorizationService, dataStoreFactory, persistence, false)
               .process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
@@ -109,8 +111,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
       schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
-      graphqlCache.getGraphQLAndUpdateCache(
-          keyspaceName, dataStore, newSource, authenticationSubject.customProperties());
+      graphqlCache.put(
+          keyspaceName, newSource, processedSchema.getGraphql(), authenticationSubject);
     }
     return response;
   }
