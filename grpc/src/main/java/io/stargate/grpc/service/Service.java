@@ -227,6 +227,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     Result.Builder resultBuilder = makeResultBuilder(result);
                     switch (result.kind) {
                       case Void:
+                      case SchemaChange: // Fallthrough intended
                         break;
                       case Rows:
                         Rows rows = (Rows) result;
@@ -240,14 +241,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                               handler.processResult((Rows) result, parameters));
                         }
                         break;
-                      case SchemaChange:
-                        // TODO: Wait for schema agreement, etc. Could this be made async? This is
-                        // blocking the gRPC thread.
-                        persistence.waitForSchemaAgreement();
-                        break;
                       case SetKeyspace:
-                        // TODO: Prevent "USE <keyspace>" from happening
-                        throw Status.INTERNAL
+                        throw Status.INVALID_ARGUMENT
                             .withDescription("USE <keyspace> not supported")
                             .asException();
                       default:
