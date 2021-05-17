@@ -13,9 +13,11 @@ public class DocsApiComponentsBinder extends AbstractBinder {
   protected void configure() {
     DocsApiConfiguration conf = DocsApiConfiguration.DEFAULT;
     JsonConverter jsonConverter = new JsonConverter(environment.getObjectMapper(), conf);
+    DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
     bind(conf).to(DocsApiConfiguration.class);
     bind(jsonConverter).to(JsonConverter.class);
-    bind(new DocumentService(environment.getObjectMapper(), jsonConverter, conf))
+    bind(schemaChecker).to(DocsSchemaChecker.class);
+    bind(new DocumentService(environment.getObjectMapper(), jsonConverter, conf, schemaChecker))
         .to(DocumentService.class);
   }
 }
