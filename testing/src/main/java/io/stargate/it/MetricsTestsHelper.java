@@ -16,11 +16,14 @@
 package io.stargate.it;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MetricsTestsHelper {
-  public static double getMetricValue(String body, String metricName, Pattern regexpPattern) {
+
+  public static Optional<Double> getMetricValueOptional(
+      String body, String metricName, Pattern regexpPattern) {
     return Arrays.stream(body.split("\n"))
         .filter(v -> v.contains(metricName))
         .filter(v -> regexpPattern.matcher(v).find())
@@ -34,7 +37,10 @@ public class MetricsTestsHelper {
                   String.format("Value: %s does not contain the numeric value for metric", v));
             })
         .map(Double::parseDouble)
-        .findAny()
-        .get();
+        .findAny();
+  }
+
+  public static double getMetricValue(String body, String metricName, Pattern regexpPattern) {
+    return getMetricValueOptional(body, metricName, regexpPattern).get();
   }
 }

@@ -687,8 +687,14 @@ public class DocumentResourceV2Test {
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
-    assertThat(((Error) r.getEntity()).getDescription())
-        .isEqualTo("Bad request: The parameter `page-size` is limited to 20.");
+    assertThat(r.getEntity())
+        .isInstanceOfSatisfying(
+            Error.class,
+            error -> {
+              assertThat(error.getCode()).isEqualTo(400);
+              assertThat(error.getDescription())
+                  .isEqualTo("The parameter `page-size` is limited to 20.");
+            });
   }
 
   @Test
@@ -759,7 +765,13 @@ public class DocumentResourceV2Test {
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
-    assertThat(((Error) r.getEntity()).getDescription())
-        .isEqualTo("Bad request: The parameter `page-size` is limited to 20.");
+    assertThat(r.getEntity())
+        .isInstanceOfSatisfying(
+            Error.class,
+            error -> {
+              assertThat(error.getCode()).isEqualTo(400);
+              assertThat(error.getDescription())
+                  .isEqualTo("The parameter `page-size` is limited to 20.");
+            });
   }
 }

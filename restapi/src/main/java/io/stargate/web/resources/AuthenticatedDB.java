@@ -19,6 +19,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import java.util.Collection;
 import java.util.Set;
 import javax.ws.rs.NotFoundException;
@@ -77,5 +78,40 @@ public class AuthenticatedDB {
 
   public void setAuthenticationSubject(AuthenticationSubject authenticationSubject) {
     this.authenticationSubject = authenticationSubject;
+  }
+
+  /**
+   * Retrieve user defined types definitions for a keyspace.
+   *
+   * @param keyspaceName existing keyspace name
+   * @return a collection of user defined types definitions
+   */
+  public Collection<UserDefinedType> getTypes(String keyspaceName) {
+    Keyspace keyspace = getKeyspace(keyspaceName);
+    if (keyspace == null) {
+      throw new NotFoundException(String.format("keyspace '%s' not found", keyspaceName));
+    }
+    return keyspace.userDefinedTypes();
+  }
+
+  /**
+   * Retrieve user defined types definitions from its identifier in a keyspace.
+   *
+   * @param keyspaceName existing keyspace name
+   * @param typeName identifier for the type
+   * @return a collection of user defined types definitions
+   */
+  public UserDefinedType getType(String keyspaceName, String typeName) {
+    Keyspace keyspace = getKeyspace(keyspaceName);
+    if (keyspace == null) {
+      throw new NotFoundException(String.format("keyspace '%s' not found", keyspaceName));
+    }
+
+    UserDefinedType typeMetadata = keyspace.userDefinedType(typeName);
+    if (typeMetadata == null) {
+      throw new NotFoundException(
+          String.format("type '%s' not found in the keyspace '%s'", typeName, keyspaceName));
+    }
+    return typeMetadata;
   }
 }

@@ -49,6 +49,7 @@ import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntity;
@@ -80,19 +81,21 @@ public class SchemaProcessor {
 
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
+  private final Persistence persistence;
   private final boolean isPersisted;
 
   /**
    * @param isPersisted whether we are processing a schema already stored in the database, or a
    *     schema that a user is attempting to deploy. This is just used to customize a couple of
-   *     error messages.
    */
   public SchemaProcessor(
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
+      Persistence persistence,
       boolean isPersisted) {
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
+    this.persistence = persistence;
     this.isPersisted = isPersisted;
   }
 
@@ -109,7 +112,7 @@ public class SchemaProcessor {
    */
   public ProcessedSchema process(String source, Keyspace keyspace) {
     TypeDefinitionRegistry registry = parse(source);
-    ProcessingContext context = new ProcessingContext(registry, keyspace, isPersisted);
+    ProcessingContext context = new ProcessingContext(registry, keyspace, persistence, isPersisted);
     MappingModel mappingModel = MappingModel.build(registry, context);
 
     addGeneratedTypes(mappingModel, registry);

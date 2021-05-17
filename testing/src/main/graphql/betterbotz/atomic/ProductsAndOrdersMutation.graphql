@@ -7,7 +7,7 @@ mutation ProductsAndOrdersMutation(
         applied
         value {
             id
-            name
+            nameAlias: name
             price
             created
             description

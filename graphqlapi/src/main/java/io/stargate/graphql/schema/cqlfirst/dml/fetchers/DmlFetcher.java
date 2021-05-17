@@ -32,6 +32,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   private static final Logger log = LoggerFactory.getLogger(DmlFetcher.class);
   protected final Table table;
   protected final NameMapping nameMapping;
+  protected final DbColumnGetter dbColumnGetter;
 
   protected DmlFetcher(
       Table table,
@@ -41,6 +42,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     super(authorizationService, dataStoreFactory);
     this.table = table;
     this.nameMapping = nameMapping;
+    this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
   @Override
@@ -82,7 +84,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
     List<BuiltCondition> where = new ArrayList<>();
     for (Map.Entry<String, Map<String, Object>> clauseEntry : columnList.entrySet()) {
-      Column column = getColumn(table, clauseEntry.getKey());
+      Column column = dbColumnGetter.getColumn(table, clauseEntry.getKey());
       for (Map.Entry<String, Object> condition : clauseEntry.getValue().entrySet()) {
         FilterOperator operator = FilterOperator.fromFieldName(condition.getKey());
         where.add(operator.buildCondition(column, condition.getValue(), nameMapping));
@@ -101,7 +103,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
       if (value == null) return ImmutableList.of();
 
       for (Map.Entry<String, Object> entry : value.entrySet()) {
-        Column column = getColumn(table, entry.getKey());
+        Column column = dbColumnGetter.getColumn(table, entry.getKey());
         Object whereValue = toDBValue(column.type(), entry.getValue());
         relations.add(BuiltCondition.of(column.name(), Predicate.EQ, whereValue));
       }

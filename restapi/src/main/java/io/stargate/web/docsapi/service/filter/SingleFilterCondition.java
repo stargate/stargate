@@ -1,6 +1,7 @@
 package io.stargate.web.docsapi.service.filter;
 
-import io.stargate.web.docsapi.exception.DocumentAPIRequestException;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import java.util.List;
 
 public class SingleFilterCondition implements FilterCondition {
@@ -17,9 +18,10 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new DocumentAPIRequestException(
+      String msg =
           String.format(
-              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
+              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg, e);
     }
     this.textValue = textValue;
     this.doubleValue = null;
@@ -32,9 +34,10 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new DocumentAPIRequestException(
+      String msg =
           String.format(
-              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
+              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg, e);
     }
     this.textValue = null;
     this.doubleValue = doubleValue;
@@ -47,9 +50,10 @@ public class SingleFilterCondition implements FilterCondition {
     try {
       this.op = FilterOp.valueOf(opStr.toUpperCase().substring(1));
     } catch (IllegalArgumentException e) {
-      throw new DocumentAPIRequestException(
+      String msg =
           String.format(
-              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues()));
+              "Invalid operator: %s, valid operators are: %s", opStr, FilterOp.allRawValues());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg, e);
     }
     this.textValue = null;
     this.doubleValue = null;

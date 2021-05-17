@@ -18,7 +18,9 @@ package io.stargate.testing;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import io.stargate.testing.auth.LoggingAuthorizationProcessorImpl;
+import io.stargate.testing.metrics.FixedClientInfoTagProvider;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +34,10 @@ public class TestingServicesActivator extends BaseActivator {
 
   public static final String HTTP_TAG_PROVIDER_PROPERTY = "stargate.metrics.http_tag_provider.id";
   public static final String TAG_ME_HTTP_TAG_PROVIDER = "TagMeProvider";
+
+  public static final String CLIENT_INFO_TAG_PROVIDER_PROPERTY =
+      "stargate.metrics.client_info_tag_provider.id";
+  public static final String FIXED_TAG_PROVIDER = "FixedProvider";
 
   public TestingServicesActivator() {
     super("testing-services");
@@ -53,7 +59,13 @@ public class TestingServicesActivator extends BaseActivator {
     if (TAG_ME_HTTP_TAG_PROVIDER.equals(System.getProperty(HTTP_TAG_PROVIDER_PROPERTY))) {
       TagMeHttpMetricsTagProvider tagProvider = new TagMeHttpMetricsTagProvider();
 
-      services.add(new ServiceAndProperties(tagProvider, HttpMetricsTagProvider.class, null));
+      services.add(new ServiceAndProperties(tagProvider, HttpMetricsTagProvider.class));
+    }
+
+    if (FIXED_TAG_PROVIDER.equals(System.getProperty(CLIENT_INFO_TAG_PROVIDER_PROPERTY))) {
+      FixedClientInfoTagProvider tagProvider = new FixedClientInfoTagProvider();
+
+      services.add(new ServiceAndProperties(tagProvider, ClientInfoMetricsTagProvider.class));
     }
 
     return services;

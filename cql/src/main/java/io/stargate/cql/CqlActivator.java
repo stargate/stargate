@@ -21,6 +21,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -31,6 +32,8 @@ import org.jetbrains.annotations.Nullable;
 public class CqlActivator extends BaseActivator {
   private CqlImpl cql;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<ClientInfoMetricsTagProvider> clientInfoTagProvider =
+      ServicePointer.create(ClientInfoMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
           AuthenticationService.class,
@@ -52,7 +55,13 @@ public class CqlActivator extends BaseActivator {
     if (cql != null) { // Already started
       return null;
     }
-    cql = new CqlImpl(makeConfig(), persistence.get(), metrics.get(), authentication.get());
+    cql =
+        new CqlImpl(
+            makeConfig(),
+            persistence.get(),
+            metrics.get(),
+            authentication.get(),
+            clientInfoTagProvider.get());
     cql.start();
 
     return null;
@@ -70,9 +79,9 @@ public class CqlActivator extends BaseActivator {
   @Override
   protected List<ServicePointer<?>> dependencies() {
     if (USE_AUTH_SERVICE) {
-      return Arrays.asList(metrics, persistence, authentication);
+      return Arrays.asList(metrics, clientInfoTagProvider, persistence, authentication);
     } else {
-      return Arrays.asList(metrics, persistence);
+      return Arrays.asList(metrics, clientInfoTagProvider, persistence);
     }
   }
 

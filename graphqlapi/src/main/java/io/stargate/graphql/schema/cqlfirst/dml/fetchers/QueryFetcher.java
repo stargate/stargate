@@ -33,6 +33,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.AggregationsFetcherSupport;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,12 +45,15 @@ import java.util.stream.Collectors;
 
 public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
+  private final AggregationsFetcherSupport aggregationsFetcherSupport;
+
   public QueryFetcher(
       Table table,
       NameMapping nameMapping,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
     super(table, nameMapping, authorizationService, dataStoreFactory);
+    this.aggregationsFetcherSupport = new AggregationsFetcherSupport(nameMapping, table);
   }
 
   @Override
@@ -73,7 +77,13 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
     result.put(
         "values",
         resultSet.currentPageRows().stream()
-            .map(row -> DataTypeMapping.toGraphQLValue(nameMapping, table, row))
+            .map(
+                row -> {
+                  Map<String, Object> columns =
+                      DataTypeMapping.toGraphQLValue(nameMapping, table, row);
+                  return aggregationsFetcherSupport.addAggregationResults(
+                      columns, environment, row);
+                })
             .collect(Collectors.toList()));
 
     ByteBuffer pageState = resultSet.getPagingState();
@@ -93,10 +103,12 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         limit = (int) limitObj;
       }
     }
+
     return dataStore
         .queryBuilder()
         .select()
         .column(buildQueryColumns(environment))
+        .function(aggregationsFetcherSupport.buildAggregatedFunctions(environment))
         .from(table.keyspace(), table.name())
         .where(buildClause(table, environment))
         .limit(limit)
@@ -113,7 +125,9 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         int split = order.lastIndexOf("_");
         String column = order.substring(0, split);
         boolean desc = order.substring(split + 1).equals("DESC");
-        orderBy.add(ColumnOrder.of(getDBColumnName(table, column), desc ? Order.DESC : Order.ASC));
+        orderBy.add(
+            ColumnOrder.of(
+                dbColumnGetter.getDBColumnName(table, column), desc ? Order.DESC : Order.ASC));
       }
       return orderBy;
     }
@@ -140,7 +154,7 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
           continue;
         }
 
-        String column = getDBColumnName(table, selectedField.getName());
+        String column = dbColumnGetter.getDBColumnName(table, selectedField.getName());
         if (column != null) {
           queryColumns.add(Column.reference(column));
         }

@@ -19,66 +19,79 @@
 
 package org.apache.cassandra.stargate.metrics;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.MultiGauge;
+import io.micrometer.core.instrument.Tags;
 import io.netty.buffer.ByteBufAllocatorMetricProvider;
-import java.util.ArrayList;
+import io.stargate.db.ClientInfo;
+import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.cassandra.metrics.DefaultNameFactory;
-import org.apache.cassandra.metrics.MetricNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
-import org.apache.cassandra.stargate.transport.internal.ClientStat;
-import org.apache.cassandra.stargate.transport.internal.ConnectedClient;
 import org.apache.cassandra.stargate.transport.internal.Server;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ClientMetrics {
+
+  private static final Logger logger = LoggerFactory.getLogger(ClientMetrics.class);
+
+  /** Singleton instance to use. */
   public static final ClientMetrics instance = new ClientMetrics();
 
-  private static final MetricNameFactory factory = new DefaultNameFactory("Client");
+  /** Default name factory for the cassandra metrics. */
+  private static final DefaultNameFactory factory = new DefaultNameFactory("Client");
 
+  // these are our metric names used
+  private static final String REQUESTS_PROCESSED_METRIC;
+  private static final String REQUESTS_DISCARDED_METRIC;
+  private static final String AUTH_SUCCESS_METRIC;
+  private static final String AUTH_FAILURE_METRIC;
+  private static final String AUTH_ERROR_METRIC;
+
+  // init to avoid re-computing on each record
+  static {
+    REQUESTS_PROCESSED_METRIC = metric("RequestsProcessed");
+    REQUESTS_DISCARDED_METRIC = metric("RequestDiscarded");
+    AUTH_SUCCESS_METRIC = metric("AuthSuccess");
+    AUTH_FAILURE_METRIC = metric("AuthFailure");
+    AUTH_ERROR_METRIC = metric("AuthError");
+  }
+
+  // initialized state
   private volatile boolean initialized = false;
+  // internal executor
+  private ScheduledExecutorService executorService;
+
+  // dependencies
   private Collection<Server> servers = Collections.emptyList();
-  private MetricRegistry metricRegistry;
+  private MeterRegistry meterRegistry;
+  private ClientInfoMetricsTagProvider clientInfoTagProvider;
 
-  private Meter authSuccess;
-  private Meter authFailure;
-  private Meter authError;
-
+  // internal initialized meters
   private AtomicInteger pausedConnections;
-  private Meter requestDiscarded;
-  private Meter requestsProcessed;
-
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
-  private Histogram bytesReceivedPerFrame;
-  private Histogram bytesTransmittedPerFrame;
+  private DistributionSummary bytesReceivedPerFrame;
+  private DistributionSummary bytesTransmittedPerFrame;
+  private MultiGauge connectedNativeClients;
+  private MultiGauge connectedNativeClientsByUser;
 
   private ClientMetrics() {}
-
-  public void markRequestProcessed() {
-    requestsProcessed.mark();
-  }
-
-  public void markAuthSuccess() {
-    authSuccess.mark();
-  }
-
-  public void markAuthFailure() {
-    authFailure.mark();
-  }
-
-  public void markAuthError() {
-    authError.mark();
-  }
 
   public void pauseConnection() {
     pausedConnections.incrementAndGet();
@@ -88,64 +101,116 @@ public final class ClientMetrics {
     pausedConnections.decrementAndGet();
   }
 
-  public void markRequestDiscarded() {
-    requestDiscarded.mark();
+  public void incrementTotalBytesRead(double value) {
+    totalBytesRead.increment(value);
   }
 
-  public Counter getTotalBytesRead() {
-    return totalBytesRead;
+  public void incrementTotalBytesWritten(double value) {
+    totalBytesWritten.increment(value);
   }
 
-  public Counter getTotalBytesWritten() {
-    return totalBytesWritten;
+  public void recordBytesReceivedPerFrame(double value) {
+    bytesReceivedPerFrame.record(value);
   }
 
-  public Histogram getBytesReceivedPerFrame() {
-    return bytesReceivedPerFrame;
+  public void recordBytesTransmittedPerFrame(double value) {
+    bytesTransmittedPerFrame.record(value);
   }
 
-  public Histogram getBytesTransmittedPerFrame() {
-    return bytesTransmittedPerFrame;
+  public ConnectionMetrics connectionMetrics(ClientInfo clientInfo) {
+    if (!initialized) {
+      throw new IllegalStateException("Client metrics not initialized yet.");
+    }
+
+    return new ConnectionMetricsImpl(clientInfo);
   }
 
-  public List<ConnectedClient> allConnectedClients() {
-    List<ConnectedClient> clients = new ArrayList<>();
+  /**
+   * Initializes the {@link ClientMetrics} instance.
+   *
+   * @param servers List of servers to get metrics for
+   * @param meterRegistry Micrometer MeterRegistry to report to
+   * @param clientInfoTagProvider Tag provider for the connection
+   * @param updatePeriodSeconds The period for internal metric update in 1/s (f.e. for 10 sec rate,
+   *     use 0.1). If zero or less task will not be scheduled.
+   */
+  public synchronized void init(
+      Collection<Server> servers,
+      MeterRegistry meterRegistry,
+      ClientInfoMetricsTagProvider clientInfoTagProvider,
+      double updatePeriodSeconds) {
 
-    for (Server server : servers) clients.addAll(server.getConnectedClients());
-
-    return clients;
-  }
-
-  public synchronized void init(Collection<Server> servers, MetricRegistry metricRegistry) {
     if (initialized) return;
 
     this.servers = servers;
-    this.metricRegistry = metricRegistry;
+    this.meterRegistry = meterRegistry;
+    this.clientInfoTagProvider = clientInfoTagProvider;
 
-    registerGauge("NettyDirectMemory", this::nettyDirectMemory);
-    registerGauge("NettyHeapMemory", this::nettyHeapMemory);
+    // netty gauges
+    meterRegistry.gauge(
+        metric("NettyDirectMemory"), Tags.empty(), this, ClientMetrics::nettyDirectMemory);
+    meterRegistry.gauge(
+        metric("NettyHeapMemory"), Tags.empty(), this, ClientMetrics::nettyHeapMemory);
 
-    registerGauge("connectedNativeClients", this::countConnectedClients);
-    registerGauge("connectedNativeClientsByUser", this::countConnectedClientsByUser);
-    registerGauge("connections", this::connectedClients);
-    registerGauge("clientsByProtocolVersion", this::recentClientStats);
+    // connected native clients with the client info tags must be a multi gauge
+    connectedNativeClients =
+        MultiGauge.builder(metric("connectedNativeClients")).register(meterRegistry);
+    connectedNativeClientsByUser =
+        MultiGauge.builder(metric("connectedNativeClientsByUser")).register(meterRegistry);
 
-    authSuccess = registerMeter("AuthSuccess");
-    authFailure = registerMeter("AuthFailure");
-    authError = registerMeter("AuthError");
+    pausedConnections =
+        meterRegistry.gauge(metric("PausedConnections"), Tags.empty(), new AtomicInteger(0));
 
-    pausedConnections = new AtomicInteger();
-    registerGauge("PausedConnections", pausedConnections::get);
-    requestDiscarded = registerMeter("RequestDiscarded");
-    requestsProcessed = registerMeter("RequestsProcessed");
+    totalBytesRead = meterRegistry.counter(metric("TotalBytesRead"));
+    totalBytesWritten = meterRegistry.counter(metric("TotalBytesWritten"));
 
-    totalBytesRead = registerCounter("TotalBytesRead");
-    totalBytesWritten = registerCounter("TotalBytesWritten");
-
-    bytesReceivedPerFrame = registerHistogram("BytesReceivedPerFrame");
-    bytesTransmittedPerFrame = registerHistogram("BytesTransmittedPerFrame");
+    bytesReceivedPerFrame = meterRegistry.summary(metric("BytesReceivedPerFrame"));
+    bytesTransmittedPerFrame = meterRegistry.summary(metric("BytesTransmittedPerFrame"));
 
     initialized = true;
+
+    // if we have the positive period, init the executor service and submit the update task
+    if (updatePeriodSeconds > 0) {
+      long fixedRateMillis = Double.valueOf(1000d / updatePeriodSeconds).longValue();
+      executorService =
+          Executors.newSingleThreadScheduledExecutor(
+              new BasicThreadFactory.Builder()
+                  .daemon(true)
+                  .priority(1)
+                  .namingPattern("cql-metrics-updater")
+                  .build());
+      executorService.scheduleAtFixedRate(
+          () -> {
+            try {
+              updateConnectedClients();
+              updateConnectedClientsByUser();
+            } catch (Exception e) {
+              logger.warn("Error updating the connected client metrics.");
+            }
+          },
+          0,
+          fixedRateMillis,
+          TimeUnit.MILLISECONDS);
+    }
+  }
+
+  /** Shuts down the #executor service and marks instance as not initialized. */
+  public synchronized void shutdown() {
+    if (!initialized) return;
+
+    if (null != executorService && !executorService.isShutdown()) {
+      executorService.shutdown();
+      try {
+        if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+          executorService.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        logger.warn("Interrupted during executor termination, going for shutdownNow().", e);
+        executorService.shutdownNow();
+      }
+    }
+
+    initialized = false;
   }
 
   private long nettyDirectMemory() {
@@ -162,15 +227,19 @@ public final class ClientMetrics {
     return -1;
   }
 
-  private int countConnectedClients() {
-    int count = 0;
+  void updateConnectedClients() {
+    Map<Tags, Integer> total = new HashMap<>();
 
-    for (Server server : servers) count += server.countConnectedClients();
+    for (Server server : servers) {
+      server
+          .countConnectedClientsByConnectionTags()
+          .forEach((tags, count) -> total.compute(tags, (t, v) -> v == null ? count : v + count));
+    }
 
-    return count;
+    recordMapToMultiGauge(connectedNativeClients, total, Function.identity());
   }
 
-  private Map<String, Integer> countConnectedClientsByUser() {
+  void updateConnectedClientsByUser() {
     Map<String, Integer> counts = new HashMap<>();
 
     for (Server server : servers) {
@@ -180,42 +249,82 @@ public final class ClientMetrics {
               (username, count) -> counts.put(username, counts.getOrDefault(username, 0) + count));
     }
 
-    return counts;
+    recordMapToMultiGauge(
+        connectedNativeClientsByUser, counts, username -> Tags.of("username", username));
   }
 
-  private List<Map<String, String>> connectedClients() {
-    List<Map<String, String>> clients = new ArrayList<>();
+  private <T> void recordMapToMultiGauge(
+      MultiGauge gauge, Map<T, ? extends Number> source, Function<T, Tags> tagsFunction) {
+    List<MultiGauge.Row<?>> rows =
+        source.entrySet().stream()
+            .map(entry -> MultiGauge.Row.of(tagsFunction.apply(entry.getKey()), entry.getValue()))
+            .collect(Collectors.toList());
 
-    for (Server server : servers)
-      for (ConnectedClient client : server.getConnectedClients()) clients.add(client.asMap());
-
-    return clients;
+    gauge.register(rows, true);
   }
 
-  private List<Map<String, String>> recentClientStats() {
-    List<Map<String, String>> stats = new ArrayList<>();
-
-    for (Server server : servers)
-      for (ClientStat stat : server.recentClientStats()) stats.add(stat.asMap());
-
-    stats.sort(Comparator.comparing(map -> map.get(ClientStat.PROTOCOL_VERSION)));
-
-    return stats;
+  /**
+   * Resolves a metric name for the micrometer registry.
+   *
+   * @param name metric name
+   * @return full name
+   */
+  private static String metric(String name) {
+    // to keep the back-ward compatibility, init all metric names with cql. + DefaultNameFactory
+    String metricName = factory.createMetricName(name).getMetricName();
+    return "cql." + metricName;
   }
 
-  private <T> Gauge<T> registerGauge(String name, Gauge<T> gauge) {
-    return metricRegistry.register(factory.createMetricName(name).getMetricName(), gauge);
-  }
+  private class ConnectionMetricsImpl implements ConnectionMetrics {
 
-  private Histogram registerHistogram(String name) {
-    return metricRegistry.histogram(factory.createMetricName(name).getMetricName());
-  }
+    private final Tags tags;
+    private final Counter requestsProcessed;
+    private final Counter requestsDiscarded;
+    private final Counter authSuccess;
+    private final Counter authFailure;
+    private final Counter authError;
 
-  private Counter registerCounter(String name) {
-    return metricRegistry.counter(factory.createMetricName(name).getMetricName());
-  }
+    public ConnectionMetricsImpl(ClientInfo clientInfo) {
+      tags =
+          Optional.ofNullable(clientInfo)
+              .map(clientInfoTagProvider::getClientInfoTags)
+              .orElse(Tags.empty());
 
-  private Meter registerMeter(String name) {
-    return metricRegistry.meter(factory.createMetricName(name).getMetricName());
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tags);
+      requestsDiscarded = meterRegistry.counter(REQUESTS_DISCARDED_METRIC, tags);
+      authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
+      authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
+      authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
+    }
+
+    @Override
+    public void markRequestProcessed() {
+      requestsProcessed.increment();
+    }
+
+    @Override
+    public void markRequestDiscarded() {
+      requestsDiscarded.increment();
+    }
+
+    @Override
+    public void markAuthSuccess() {
+      authSuccess.increment();
+    }
+
+    @Override
+    public void markAuthFailure() {
+      authFailure.increment();
+    }
+
+    @Override
+    public void markAuthError() {
+      authError.increment();
+    }
+
+    @Override
+    public Tags getTags() {
+      return tags;
+    }
   }
 }

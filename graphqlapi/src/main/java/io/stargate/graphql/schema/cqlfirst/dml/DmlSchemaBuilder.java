@@ -15,29 +15,18 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml;
 
+import static graphql.Scalars.GraphQLFloat;
+import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
-import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLDirective;
-import graphql.schema.GraphQLEnumType;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLInputObjectField;
-import graphql.schema.GraphQLInputObjectType;
-import graphql.schema.GraphQLInputType;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNonNull;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLSchema;
-import graphql.schema.GraphQLType;
-import graphql.schema.GraphQLTypeReference;
+import graphql.schema.*;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
@@ -46,6 +35,8 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -134,7 +125,7 @@ public class DmlSchemaBuilder {
     if (queryFields.isEmpty()) {
       GraphQLFieldDefinition emptyQueryField =
           GraphQLFieldDefinition.newFieldDefinition()
-              .name("__keyspaceEmptyQuery")
+              .name("keyspaceEmptyQuery")
               .description("Placeholder query that is exposed when a keyspace is empty.")
               .type(Scalars.GraphQLBoolean)
               .dataFetcher((d) -> true)
@@ -145,7 +136,7 @@ public class DmlSchemaBuilder {
     if (mutationFields.isEmpty()) {
       GraphQLFieldDefinition emptyMutationField =
           GraphQLFieldDefinition.newFieldDefinition()
-              .name("__keyspaceEmptyMutation")
+              .name("keyspaceEmptyMutation")
               .description("Placeholder mutation that is exposed when a keyspace is empty.")
               .type(Scalars.GraphQLBoolean)
               .dataFetcher((d) -> true)
@@ -174,7 +165,7 @@ public class DmlSchemaBuilder {
     builder.additionalDirective(
         GraphQLDirective.newDirective()
             .validLocation(Introspection.DirectiveLocation.MUTATION)
-            .name(ASYNC_DIRECTIVE)
+            .name(SchemaConstants.ASYNC_DIRECTIVE)
             .description(
                 "Instructs the server to apply the mutations asynchronously without waiting for the result.")
             .build());
@@ -415,7 +406,7 @@ public class DmlSchemaBuilder {
                 .description(
                     String.format(
                         "This field is relevant and fulfilled with data, only when used with the @%s directive",
-                        ASYNC_DIRECTIVE))
+                        SchemaConstants.ASYNC_DIRECTIVE))
                 .type(Scalars.GraphQLBoolean))
         .field(
             GraphQLFieldDefinition.newFieldDefinition()
@@ -553,7 +544,41 @@ public class DmlSchemaBuilder {
       }
     }
 
+    buildAggregationFunctions(builder);
+
     return builder.build();
+  }
+
+  private void buildAggregationFunctions(GraphQLObjectType.Builder builder) {
+    builder.field(buildFunctionField(INT_FUNCTION, GraphQLInt));
+    // The GraphQLFloat corresponds to CQL double
+    builder.field(buildFunctionField(DOUBLE_FUNCTION, GraphQLFloat));
+    builder.field(buildFunctionField(BIGINT_FUNCTION, CqlScalar.BIGINT.getGraphqlType()));
+    builder.field(buildFunctionField(DECIMAL_FUNCTION, CqlScalar.DECIMAL.getGraphqlType()));
+    builder.field(buildFunctionField(VARINT_FUNCTION, CqlScalar.VARINT.getGraphqlType()));
+    builder.field(buildFunctionField(FLOAT_FUNCTION, CqlScalar.FLOAT.getGraphqlType()));
+    builder.field(buildFunctionField(SMALLINT_FUNCTION, CqlScalar.SMALLINT.getGraphqlType()));
+    builder.field(buildFunctionField(TINYINT_FUNCTION, CqlScalar.TINYINT.getGraphqlType()));
+  }
+
+  private GraphQLFieldDefinition buildFunctionField(
+      SupportedGraphqlFunction graphqlFunction, GraphQLScalarType returnType) {
+    return GraphQLFieldDefinition.newFieldDefinition()
+        .name(graphqlFunction.getName())
+        .description(
+            String.format("Invocation of an aggregate function that returns %s.", returnType))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("name")
+                .description("Name of the function to invoke")
+                .type(new GraphQLNonNull(GraphQLString)))
+        .argument(
+            GraphQLArgument.newArgument()
+                .name("args")
+                .description("Arguments passed to a function. It can be a list of column names.")
+                .type(new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(GraphQLString)))))
+        .type(returnType)
+        .build();
   }
 
   private GraphQLFieldDefinition buildWarnings() {

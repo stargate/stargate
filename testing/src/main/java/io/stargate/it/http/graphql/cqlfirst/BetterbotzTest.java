@@ -49,6 +49,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "    description text,\n"
           + "    price decimal,\n"
           + "    \"sellPrice\" decimal,\n"
+          + "\"value_int\" int,\n"
+          + "    \"value_double\" double,\n"
+          + "    \"value_bigint\" bigint,\n"
+          + "    \"value_varint\" varint,\n"
+          + "    \"value_float\" float,\n"
+          + "    \"value_smallint\" smallint,\n"
+          + "    \"value_tinyint\" tinyint,"
           + "    PRIMARY KEY ((\"prodName\"), \"customerName\")\n"
           + ")",
       "INSERT INTO \"Orders\" "

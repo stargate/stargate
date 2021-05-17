@@ -85,7 +85,7 @@ public class InsertMutationFetcher extends MutationFetcher {
 
     List<ValueModifier> modifiers = new ArrayList<>();
     for (Map.Entry<String, Object> entry : value.entrySet()) {
-      Column column = getColumn(table, entry.getKey());
+      Column column = dbColumnGetter.getColumn(table, entry.getKey());
       modifiers.add(ValueModifier.set(column.name(), toDBValue(column, entry.getValue())));
     }
     return modifiers;
