@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -223,20 +224,25 @@ public class DocumentDB {
     }
   }
 
-  public boolean maybeCreateTableIndexes(String keyspaceName, String tableName) {
-    try {
-      if (dataStore.supportsSAI()) {
-        createSAIIndexes(keyspaceName, tableName);
-      } else {
-        createDefaultIndexes(keyspaceName, tableName);
-      }
-      return true;
-    } catch (AlreadyExistsException e) {
-      logger.info("Indexes already exist, skipping creation", e);
-      return false;
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Unable to create indexes for collection " + tableName, e);
+  public CompletableFuture<Void> maybeCreateTableIndexes(String keyspaceName, String tableName) {
+    CompletableFuture<Void> result;
+    if (dataStore.supportsSAI()) {
+      result = createSAIIndexes(keyspaceName, tableName);
+    } else {
+      result = createDefaultIndexes(keyspaceName, tableName);
     }
+
+    // make sure errors are logger, so that we don't swallow the exception
+    return result.whenComplete(
+        (unused, throwable) -> {
+          if (null != throwable) {
+            logger.error(
+                "Error creating indexes for the document API collection {} in keyspace {}.",
+                tableName,
+                keyspaceName,
+                throwable);
+          }
+        });
   }
 
   /**
@@ -252,8 +258,16 @@ public class DocumentDB {
       return false;
     }
 
-    dropTableIndexes(keyspaceName, tableName);
-    return maybeCreateTableIndexes(keyspaceName, tableName);
+    CompletableFuture<Void> upgrade =
+        dropTableIndexes(keyspaceName, tableName)
+            .thenCompose(v -> maybeCreateTableIndexes(keyspaceName, tableName));
+
+    try {
+      upgrade.get();
+      return true;
+    } catch (ExecutionException | InterruptedException e) {
+      throw new RuntimeException("Unable to upgrade table indexes.", e);
+    }
   }
 
   /**
@@ -263,21 +277,20 @@ public class DocumentDB {
    * @param keyspaceName The name of the keyspace containing the indexes that are being dropped.
    * @param tableName The name of the table used in the indexes that are being dropped.
    */
-  public void dropTableIndexes(String keyspaceName, String tableName) {
-    try {
-      for (String name : VALUE_COLUMN_NAMES) {
-        dataStore
-            .queryBuilder()
-            .drop()
-            .index(keyspaceName, tableName + "_" + name + "_idx")
-            .ifExists()
-            .build()
-            .execute()
-            .get();
-      }
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
+  public CompletableFuture<Void> dropTableIndexes(String keyspaceName, String tableName) {
+    CompletableFuture<?>[] deleteAll = new CompletableFuture<?>[VALUE_COLUMN_NAMES.length];
+    for (int i = 0; i < VALUE_COLUMN_NAMES.length; i++) {
+      CompletableFuture<ResultSet> executeDelete =
+          dataStore
+              .queryBuilder()
+              .drop()
+              .index(keyspaceName, tableName + "_" + VALUE_COLUMN_NAMES[i] + "_idx")
+              .ifExists()
+              .build()
+              .execute();
+      deleteAll[i] = executeDelete;
     }
+    return CompletableFuture.allOf(deleteAll);
   }
 
   /**
@@ -315,16 +328,17 @@ public class DocumentDB {
     }
   }
 
-  private void createDefaultIndexes(String keyspaceName, String tableName)
-      throws InterruptedException, ExecutionException {
-    for (String name : VALUE_COLUMN_NAMES) {
-      createDefaultIndex(keyspaceName, tableName, name);
+  private CompletableFuture<Void> createDefaultIndexes(String keyspaceName, String tableName) {
+    CompletableFuture<?>[] createAll = new CompletableFuture<?>[VALUE_COLUMN_NAMES.length];
+    for (int i = 0; i < VALUE_COLUMN_NAMES.length; i++) {
+      createAll[i] = createDefaultIndex(keyspaceName, tableName, VALUE_COLUMN_NAMES[i]);
     }
+    return CompletableFuture.allOf(createAll);
   }
 
-  private void createDefaultIndex(String keyspaceName, String tableName, String columnName)
-      throws InterruptedException, ExecutionException {
-    dataStore
+  private CompletableFuture<ResultSet> createDefaultIndex(
+      String keyspaceName, String tableName, String columnName) {
+    return dataStore
         .queryBuilder()
         .create()
         .index()
@@ -332,32 +346,34 @@ public class DocumentDB {
         .on(keyspaceName, tableName)
         .column(columnName)
         .build()
-        .execute()
-        .get();
+        .execute();
   }
 
-  private void createSAIIndexes(String keyspaceName, String tableName)
-      throws InterruptedException, ExecutionException {
-    for (String name : VALUE_COLUMN_NAMES) {
+  private CompletableFuture<Void> createSAIIndexes(String keyspaceName, String tableName) {
+    CompletableFuture<?>[] createAll = new CompletableFuture<?>[VALUE_COLUMN_NAMES.length];
+    for (int i = 0; i < VALUE_COLUMN_NAMES.length; i++) {
+      String name = VALUE_COLUMN_NAMES[i];
       if (name.equals("bool_value") && dataStore.supportsSecondaryIndex()) {
         // SAI doesn't support booleans, so add a non-SAI index here.
-        createDefaultIndex(keyspaceName, tableName, name);
+        createAll[i] = createDefaultIndex(keyspaceName, tableName, name);
       } else {
         // If the data store explicitly does not support secondary indexes,
         // it will use a tinyint to represent booleans and use SAI.
-        dataStore
-            .queryBuilder()
-            .create()
-            .index()
-            .ifNotExists()
-            .on(keyspaceName, tableName)
-            .column(name)
-            .custom("StorageAttachedIndex")
-            .build()
-            .execute()
-            .get();
+        CompletableFuture<ResultSet> createFuture =
+            dataStore
+                .queryBuilder()
+                .create()
+                .index()
+                .ifNotExists()
+                .on(keyspaceName, tableName)
+                .column(name)
+                .custom("StorageAttachedIndex")
+                .build()
+                .execute();
+        createAll[i] = createFuture;
       }
     }
+    return CompletableFuture.allOf(createAll);
   }
 
   public void deleteTable(String keyspaceName, String tableName)
