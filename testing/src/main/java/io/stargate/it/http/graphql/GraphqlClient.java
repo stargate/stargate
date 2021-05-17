@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.http.RestUtils;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +87,14 @@ public abstract class GraphqlClient {
     } catch (IOException e) {
       fail("Unexpected error while sending POST request", e);
       return null; // never reached
+    }
+  }
+
+  protected String urlEncode(String parameter) {
+    try {
+      return URLEncoder.encode(parameter, StandardCharsets.UTF_8.name());
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError(e);
     }
   }
 }
