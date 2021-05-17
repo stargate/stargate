@@ -53,7 +53,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.immutables.value.Value;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
@@ -67,8 +69,21 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
       Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
+  /** Used as key for the the local prepare cache. */
+  @Value.Immutable
+  interface PrepareInfo {
+
+    @Nullable
+    String keyspace();
+
+    @Nullable
+    String user();
+
+    String cql();
+  }
+
   // TODO: Add a maximum size and add tuning options
-  private final Cache<String, Prepared> preparedCache = Caffeine.newBuilder().build();
+  private final Cache<PrepareInfo, Prepared> preparedCache = Caffeine.newBuilder().build();
 
   private final Persistence persistence;
   private final ByteBuffer unsetValue;
@@ -90,11 +105,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection = newConnection(authenticationSubject.asUser());
       QueryParameters queryParameters = query.getParameters();
 
-      prepareQuery(
-              connection,
-              query.getCql(),
-              queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null,
-              queryParameters.getTracing())
+      PrepareInfo prepareInfo =
+          ImmutablePrepareInfo.builder()
+              .keyspace(
+                  queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null)
+              .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
+              .cql(query.getCql())
+              .build();
+
+      prepareQuery(connection, prepareInfo, queryParameters.getTracing())
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -152,33 +171,28 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   private CompletableFuture<Prepared> prepareQuery(
-      Connection connection, String cql, String keyspace, boolean tracing) {
+      Connection connection, PrepareInfo prepareInfo, boolean tracing) {
     CompletableFuture<Prepared> future = new CompletableFuture<>();
-    final StringBuilder keyBuilder = new StringBuilder();
-    connection.loggedUser().ifPresent(user -> keyBuilder.append(user.name()));
-    if (keyspace != null) {
-      keyBuilder.append(keyspace);
-    }
-    keyBuilder.append(cql);
-    final String key = keyBuilder.toString();
+
     // Caching here to avoid round trip to the persistence backend thread.
-    Prepared prepared = preparedCache.getIfPresent(key);
+    Prepared prepared = preparedCache.getIfPresent(prepareInfo);
     if (prepared != null) {
       future.complete(prepared);
     } else {
       ImmutableParameters.Builder parameterBuilder =
           ImmutableParameters.builder().tracingRequested(tracing);
+      String keyspace = prepareInfo.keyspace();
       if (keyspace != null) {
         parameterBuilder.defaultKeyspace(keyspace);
       }
       connection
-          .prepare(cql, parameterBuilder.build())
+          .prepare(prepareInfo.cql(), parameterBuilder.build())
           .whenComplete(
               (p, t) -> {
                 if (t != null) {
                   future.completeExceptionally(t);
                 } else {
-                  preparedCache.put(key, p);
+                  preparedCache.put(prepareInfo, p);
                   future.complete(p);
                 }
               });
@@ -430,11 +444,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       BatchQuery query = batch.getQueries(index);
       BatchParameters batchParameters = batch.getParameters();
 
-      prepareQuery(
-              connection,
-              query.getCql(),
-              batchParameters.hasKeyspace() ? batchParameters.getKeyspace().getValue() : null,
-              batchParameters.getTracing())
+      PrepareInfo prepareInfo =
+          ImmutablePrepareInfo.builder()
+              .keyspace(
+                  batchParameters.hasKeyspace() ? batchParameters.getKeyspace().getValue() : null)
+              .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
+              .cql(query.getCql())
+              .build();
+
+      prepareQuery(connection, prepareInfo, batchParameters.getTracing())
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
