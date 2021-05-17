@@ -206,7 +206,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     String errorMessage =
         String.format(
-            "{\"description\":\"The Cassandra table %s.not_docs is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.\",\"code\":400}",
+            "{\"description\":\"The database table %s.not_docs is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.\",\"code\":400}",
             keyspace);
 
     String resp =

@@ -40,7 +40,7 @@ public class DocsSchemaChecker {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_TABLE_NOT_A_COLLECTION,
           String.format(
-              "The Cassandra table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
+              "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
               keyspace, table));
     }
     return true;
