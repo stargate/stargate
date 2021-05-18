@@ -57,13 +57,6 @@ class IfConditionModelBuilder extends ModelBuilderBase<IfConditionModel> {
         ifDirective
             .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
             .orElse(Predicate.EQ);
-    // todo verify that IF
-    if (predicate == Predicate.NEQ) {
-      invalidMapping(
-          "Operation %s: predicate NEQ (on %s) is not allowed for WHERE conditions",
-          operationName, argument.getName());
-      throw SkipException.INSTANCE;
-    }
 
     FieldModel field = findField(fieldName);
 
@@ -101,6 +94,7 @@ class IfConditionModelBuilder extends ModelBuilderBase<IfConditionModel> {
       throws SkipException {
     switch (predicate) {
       case EQ:
+      case NEQ:
       case LT:
       case GT:
       case LTE:

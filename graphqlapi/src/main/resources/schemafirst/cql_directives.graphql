@@ -206,10 +206,24 @@ directive @cql_delete(
 ) on FIELD_DEFINITION
 
 """
-A predicate used in `@cql_where` and `@cql_if` to define a condition.
+A predicate used in `@cql_where` to define a condition.
 """
 enum Predicate {
     EQ
+    IN
+    LT
+    GT
+    LTE
+    GTE
+    CONTAINS
+}
+
+"""
+A predicate used in `@cql_if` to define a condition.
+"""
+enum IfPredicate {
+    EQ
+    NEQ
     IN
     LT
     GT
@@ -249,7 +263,7 @@ directive @cql_if (
     """
     The predicate to use for the condition.
     """
-    predicate: Predicate = EQ
+    predicate: IfPredicate = EQ
 ) on ARGUMENT_DEFINITION
 
 """

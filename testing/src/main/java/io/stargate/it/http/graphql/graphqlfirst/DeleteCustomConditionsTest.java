@@ -87,6 +87,11 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
             + "v: Int @cql_if(field: \"v\", predicate: EQ)\n"
             + "): Boolean\n"
             + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "deleteFooNEQ(\n"
+            + "pk: Int\n"
+            + "v: Int @cql_if(field: \"v\", predicate: NEQ)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "}");
   }
 
@@ -105,25 +110,25 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should delete row with cql_if EQUAL predicate")
+  @DisplayName("Should delete rows with cql_if EQ predicate")
   public void deleteWithCqlIfEqual() {
     // Given
     insert(1, 1000);
 
     // when
     Object response =
-        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo(pk: 1, v: 1000) }");
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo(pk: 1, v: 999) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
-    assertThat(exists(1)).isFalse();
+    assertThat(exists(1)).isTrue();
 
-    // Deleting a non-existing row always returns true:
     // when
     response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFoo(pk: 1, v: 1000) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
+    assertThat(exists(1)).isFalse();
   }
 
   @Test
@@ -197,6 +202,29 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLTE")).isTrue();
+    assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete rows with cql_if NQE predicate")
+  public void deleteWithCqlIfNotEqual() {
+    // Given
+    insert(1, 100);
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooNEQ(pk: 1, v: 100) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooNEQ")).isTrue();
+    assertThat(exists(1)).isTrue();
+
+    // Deleting a non-existing row always returns true:
+    // when
+    response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooNEQ(pk: 1, v: 99) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooNEQ")).isTrue();
     assertThat(exists(1)).isFalse();
   }
 }
