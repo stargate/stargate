@@ -67,12 +67,11 @@ class IfConditionModelBuilder extends ModelBuilderBase<IfConditionModel> {
 
     FieldModel field = findField(fieldName);
 
-    // Check that the predicate is allowed for this type of field, and that the types match:
+    // The CQL IF works only for regular columns (non PK, CK)
     if (field.isPartitionKey()) {
       invalidMapping(
           "Operation %s: predicate %s is not supported for partition keys (field %s)",
           operationName, predicate, field.getGraphqlName());
-      // The CQL IF works only for regular columns (non PK, CK)
     }
     if (field.isClusteringColumn()) {
       invalidMapping(
@@ -100,37 +99,25 @@ class IfConditionModelBuilder extends ModelBuilderBase<IfConditionModel> {
 
   private void checkValidForRegularColumn(Predicate predicate, FieldModel field)
       throws SkipException {
-    IndexModel index =
-        field
-            .getIndex()
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Operation %s: non-primary key argument %s must be indexed in order to "
-                          + "use it in a condition",
-                      operationName, argument.getName());
-                  return SkipException.INSTANCE;
-                });
-    // Only perform these checks for regular indexes, because we can't assume what custom indexes
-    // support
-    if (!index.isCustom()) {
-      switch (predicate) {
-        case EQ:
-          checkArgumentIsSameAs(field);
-          break;
-        case IN:
-          checkArgumentIsListOf(field);
-          break;
-        case CONTAINS:
-          checkArgumentIsElementOf(field);
-          break;
-        default:
-          invalidMapping(
-              "Operation %s: predicate %s is not supported for indexed field %s "
-                  + "(expected EQ, IN or CONTAINS)",
-              operationName, predicate, field.getGraphqlName());
-          throw SkipException.INSTANCE;
-      }
+    switch (predicate) {
+      case EQ:
+      case LT:
+      case GT:
+      case LTE:
+      case GTE:
+        checkArgumentIsSameAs(field);
+        break;
+      case IN:
+        checkArgumentIsListOf(field);
+        break;
+      case CONTAINS:
+        checkArgumentIsElementOf(field);
+      default:
+        invalidMapping(
+            "Operation %s: predicate %s is not supported for clustering field %s "
+                + "(expected EQ, LT, GT, LTE, GTE or IN)",
+            operationName, predicate, field.getGraphqlName());
+        throw SkipException.INSTANCE;
     }
   }
 

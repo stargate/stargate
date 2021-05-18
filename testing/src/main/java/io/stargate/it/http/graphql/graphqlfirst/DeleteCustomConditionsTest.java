@@ -49,24 +49,39 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
         KEYSPACE,
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
-            + "  v: Int @cql_index\n"
+            + "  v: Int\n"
             + " "
             + "}\n"
             + "type DeleteFooResult @cql_payload {\n"
             + "  applied: Boolean\n"
             + "}\n"
             + "type Query {\n"
-            + "  foo(pk: Int!, v:Int): Foo\n"
+            + "  foo(pk: Int!): Foo\n"
             + "}\n"
             + "type DeleteFooResponse @cql_payload {\n"
             + "  applied: Boolean"
             + "}\n"
             + "type Mutation {\n"
-            //            + "  deleteFooGT(\n"
-            //            + "pk: Int\n"
-            //            + "v: Int @cql_if(field: \"v\", predicate: GT)\n"
-            //            + "): Boolean\n"
-            //            + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "  deleteFooGT(\n"
+            + "pk: Int\n"
+            + "v: Int @cql_if(field: \"v\", predicate: GT)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "  deleteFooLT(\n"
+            + "pk: Int\n"
+            + "v: Int @cql_if(field: \"v\", predicate: LT)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "  deleteFooLTE(\n"
+            + "pk: Int\n"
+            + "v: Int @cql_if(field: \"v\", predicate: LTE)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "  deleteFooGTE(\n"
+            + "pk: Int\n"
+            + "v: Int @cql_if(field: \"v\", predicate: GTE)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "deleteFoo(\n"
             + "pk: Int\n"
             + "v: Int @cql_if(field: \"v\", predicate: EQ)\n"
@@ -113,7 +128,7 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
 
   @Test
   @DisplayName("Should delete rows with cql_if GT predicate")
-  public void deleteWithGreaterThanAndLessThan() {
+  public void deleteWithGreaterThanPredicate() {
     // Given
     insert(1, 100);
 
@@ -122,13 +137,66 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
         CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooGT(pk: 1, v: 100) }");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGT")).isTrue();
     assertThat(exists(1)).isTrue();
 
-    // retry
+    // when
     response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooGT(pk: 1, v: 99) }");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGT")).isTrue();
+    assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete rows with cql_if GTE predicate")
+  public void deleteWithGreaterThanEqualPredicate() {
+    // Given
+    insert(1, 100);
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooGTE(pk: 1, v: 100) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGTE")).isTrue();
+    assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete rows with cql_if LT predicate")
+  public void deleteWithLessThanPredicate() {
+    // Given
+    insert(1, 100);
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooLT(pk: 1, v: 100) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLT")).isTrue();
+    assertThat(exists(1)).isTrue();
+
+    // when
+    response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooLT(pk: 1, v: 101) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLT")).isTrue();
+    assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete rows with cql_if LTE predicate")
+  public void deleteWithLessThanEqualPredicate() {
+    // Given
+    insert(1, 100);
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooLTE(pk: 1, v: 100) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLTE")).isTrue();
+    assertThat(exists(1)).isFalse();
   }
 }
