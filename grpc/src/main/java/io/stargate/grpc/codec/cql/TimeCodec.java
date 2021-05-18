@@ -22,7 +22,7 @@ public class TimeCodec implements ValueCodec {
   }
 
   @Override
-  public Value decode(@NonNull ByteBuffer bytes) {
+  public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
         .setTime(TypeCodecs.BIGINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();

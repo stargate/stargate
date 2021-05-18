@@ -6,6 +6,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.StringValue;
+import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -31,7 +32,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void simpleQuery(@TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
-    StargateBlockingStub stub = this.stub.withCallCredentials(new StargateBearerToken(authToken));
+    StargateBlockingStub stub = stubWithCallCredentials();
 
     StringValue keyspaceValue = StringValue.of(keyspace.toString());
 
@@ -45,7 +46,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         stub.executeQuery(
             cqlQuery(
                 "INSERT INTO test (k, v) VALUES (?, ?)",
-                cqlQueryParameters(stringValue("b"), intValue(2)).setKeyspace(keyspaceValue)));
+                cqlQueryParameters(Values.of("b"), Values.of(2)).setKeyspace(keyspaceValue)));
     assertThat(result).isNotNull();
 
     result =
@@ -57,7 +58,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(stringValue("a"), intValue(1)), cqlRow(stringValue("b"), intValue(2)))));
+                    cqlRow(Values.of("a"), Values.of(1)), cqlRow(Values.of("b"), Values.of(2)))));
   }
 
   @Test

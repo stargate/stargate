@@ -18,7 +18,7 @@ public class DateCodec implements ValueCodec {
   }
 
   @Override
-  public Value decode(@NonNull ByteBuffer bytes) {
+  public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
         .setDate(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();

@@ -16,35 +16,49 @@
 package io.stargate.grpc.codec.cql;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import io.stargate.db.schema.Column;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import io.grpc.Status;
 import io.stargate.db.schema.Column.Type;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
 
 public class ValueCodecs {
-  public static final Map<Type, ValueCodec> CODECS =
-      Collections.unmodifiableMap(
-          new EnumMap<Type, ValueCodec>(Column.Type.class) {
-            {
-              put(Type.Ascii, new StringCodec(TypeCodecs.ASCII));
-              put(Type.Bigint, new BigintCodec());
-              put(Type.Blob, new BytesCodec());
-              put(Type.Boolean, new BooleanCodec());
-              put(Type.Counter, new BigintCodec());
-              put(Type.Date, new DateCodec());
-              put(Type.Double, new DoubleCodec());
-              put(Type.Float, new FloatCodec());
-              put(Type.Int, new IntCodec());
-              put(Type.Inet, new InetCodec());
-              put(Type.Smallint, new SmallintCodec());
-              put(Type.Text, new StringCodec(TypeCodecs.TEXT));
-              put(Type.Time, new TimeCodec());
-              put(Type.Timestamp, new BigintCodec());
-              put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID));
-              put(Type.Tinyint, new TinyintCodec());
-              put(Type.Uuid, new UuidCodec(TypeCodecs.UUID));
-              put(Type.Varchar, new StringCodec(TypeCodecs.TEXT));
-            }
-          });
+
+  private static final ImmutableMap<Type, ValueCodec> CODECS =
+      Maps.immutableEnumMap(
+          ImmutableMap.<Type, ValueCodec>builder()
+              .put(Type.Ascii, new StringCodec(TypeCodecs.ASCII))
+              .put(Type.Bigint, new BigintCodec())
+              .put(Type.Blob, new BytesCodec())
+              .put(Type.Boolean, new BooleanCodec())
+              .put(Type.Counter, new BigintCodec())
+              .put(Type.Date, new DateCodec())
+              .put(Type.Double, new DoubleCodec())
+              .put(Type.Float, new FloatCodec())
+              .put(Type.Int, new IntCodec())
+              .put(Type.Inet, new InetCodec())
+              .put(Type.Smallint, new SmallintCodec())
+              .put(Type.Text, new StringCodec(TypeCodecs.TEXT))
+              .put(Type.Time, new TimeCodec())
+              .put(Type.Timestamp, new BigintCodec())
+              .put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID))
+              .put(Type.Tinyint, new TinyintCodec())
+              .put(Type.Uuid, new UuidCodec(TypeCodecs.UUID))
+              .put(Type.Varchar, new StringCodec(TypeCodecs.TEXT))
+              .put(Type.List, new CollectionCodec())
+              .put(Type.Set, new CollectionCodec())
+              .put(Type.Map, new MapCodec())
+              .put(Type.Tuple, new TupleCodec())
+              .build());
+
+  @NonNull
+  public static ValueCodec get(Type type) {
+    ValueCodec codec = CODECS.get(type);
+    if (codec == null) {
+      throw Status.UNIMPLEMENTED
+          .withDescription(String.format("Unable to encode/decode type '%s'", type.cqlDefinition()))
+          .asRuntimeException();
+    }
+    return codec;
+  }
 }
