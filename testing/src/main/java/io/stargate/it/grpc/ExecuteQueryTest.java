@@ -1,11 +1,13 @@
 package io.stargate.it.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.StringValue;
+import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -64,7 +66,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void simpleQueryWithPaging() throws InvalidProtocolBufferException {
     Result result =
-        stub.withCallCredentials(new StargateBearerToken(authToken))
+        stubWithCallCredentials()
             .executeQuery(
                 Query.newBuilder()
                     .setCql("select keyspace_name,table_name from system_schema.tables")
@@ -80,5 +82,50 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
     assertThat(rs.getRowsCount()).isEqualTo(2);
     assertThat(rs.getPagingState()).isNotNull();
     assertThat(rs.getPageSize().getValue()).isGreaterThan(0);
+  }
+
+  @Test
+  public void useKeyspace(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+    assertThatThrownBy(
+            () -> {
+              Result result =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("USE system")
+                          .setParameters(
+                              QueryParameters.newBuilder()
+                                  .setPayload(Payload.newBuilder().setType(Type.TYPE_CQL).build())
+                                  .build())
+                          .build());
+              assertThat(result).isNotNull();
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("USE <keyspace> not supported");
+
+    // Verify that system local doesn't work
+    assertThatThrownBy(
+            () -> {
+              Result result =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("SELECT * FROM local")
+                          .setParameters(
+                              QueryParameters.newBuilder()
+                                  .setPayload(Payload.newBuilder().setType(Type.TYPE_CQL).build())
+                                  .build())
+                          .build());
+              assertThat(result).isNotNull();
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("No keyspace has been specified");
+
+    // Verify that setting the keyspace using parameters still works
+    Result result =
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES ('a', 1)",
+                cqlQueryParameters().setKeyspace(StringValue.of(keyspace.toString()))));
+    assertThat(result).isNotNull();
   }
 }
