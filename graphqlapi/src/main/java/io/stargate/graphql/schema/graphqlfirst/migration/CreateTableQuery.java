@@ -16,6 +16,12 @@
 package io.stargate.graphql.schema.graphqlfirst.migration;
 
 import com.google.common.collect.ImmutableList;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.schema.Index;
@@ -60,6 +66,18 @@ public class CreateTableQuery extends MigrationQuery {
   @Override
   public String getDescription() {
     return "Create table " + table.name();
+  }
+
+  @Override
+  public void authorize(AuthorizationService authorizationService, AuthenticationSubject subject)
+      throws UnauthorizedException {
+    authorizationService.authorizeSchemaWrite(
+        subject,
+        table.keyspace(),
+        table.name(),
+        Scope.CREATE,
+        SourceAPI.GRAPHQL,
+        ResourceKind.TABLE);
   }
 
   @Override
