@@ -16,8 +16,10 @@
 package io.stargate.graphql.web;
 
 import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
@@ -29,10 +31,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletRequest;
 
-public class HttpAwareContext {
+public class StargateGraphqlContext {
 
   private final HttpServletRequest request;
   private final AuthenticationSubject subject;
+  private final AuthorizationService authorizationService;
+  private final DataStoreFactory dataStoreFactory;
   private final Persistence persistence;
 
   // We need to manually maintain state between multiple selections in a single mutation
@@ -43,9 +47,15 @@ public class HttpAwareContext {
   // For more information.
   private final BatchContext batchContext = new BatchContext();
 
-  public HttpAwareContext(HttpServletRequest request, Persistence persistence) {
+  public StargateGraphqlContext(
+      HttpServletRequest request,
+      AuthorizationService authorizationService,
+      DataStoreFactory dataStoreFactory,
+      Persistence persistence) {
     this.request = request;
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
+    this.authorizationService = authorizationService;
+    this.dataStoreFactory = dataStoreFactory;
     this.persistence = persistence;
     if (this.subject == null) {
       // This happens if a GraphQL resource is not annotated with @Authenticated
@@ -63,6 +73,14 @@ public class HttpAwareContext {
 
   public BatchContext getBatchContext() {
     return batchContext;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
+  }
+
+  public DataStoreFactory getDataStoreFactory() {
+    return dataStoreFactory;
   }
 
   public Persistence getPersistence() {

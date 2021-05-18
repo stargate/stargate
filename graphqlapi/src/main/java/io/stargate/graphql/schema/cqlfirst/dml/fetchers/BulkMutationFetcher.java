@@ -22,14 +22,11 @@ import static java.util.stream.Stream.concat;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,19 +37,13 @@ import java.util.stream.Stream;
 
 public abstract class BulkMutationFetcher
     extends DmlFetcher<CompletableFuture<List<Map<String, Object>>>> {
-  protected BulkMutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authorizationService, dataStoreFactory);
+  protected BulkMutationFetcher(Table table, NameMapping nameMapping) {
+    super(table, nameMapping);
   }
 
   @Override
   protected CompletableFuture<List<Map<String, Object>>> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
     List<BoundQuery> queries = new ArrayList<>();
     Exception buildException = null;
 
@@ -61,7 +52,7 @@ public abstract class BulkMutationFetcher
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      queries = buildQueries(environment, dataStore, authenticationSubject);
+      queries = buildQueries(environment, dataStore, context);
     } catch (Exception e) {
       buildException = e;
     }
@@ -106,8 +97,8 @@ public abstract class BulkMutationFetcher
       Exception buildException,
       OperationDefinition operation) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
-    HttpAwareContext context = environment.getContext();
-    HttpAwareContext.BatchContext batchContext = context.getBatchContext();
+    StargateGraphqlContext context = environment.getContext();
+    StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
       // Users should specify query options once in the batch
@@ -151,8 +142,6 @@ public abstract class BulkMutationFetcher
   }
 
   protected abstract List<BoundQuery> buildQueries(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception;
 }

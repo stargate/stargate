@@ -16,15 +16,8 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 
 public class DeploySchemaFetcher extends DeploySchemaFetcherBase {
-
-  public DeploySchemaFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
 
   @Override
   protected String getSchemaContents(DataFetchingEnvironment environment) {

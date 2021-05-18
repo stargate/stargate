@@ -17,11 +17,8 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
@@ -31,6 +28,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.QueryModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.scalars.CqlScalar;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
@@ -45,20 +43,14 @@ public class QueryFetcher extends DeployedFetcher<Object> {
 
   private final QueryModel model;
 
-  public QueryFetcher(
-      QueryModel model,
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authorizationService, dataStoreFactory);
+  public QueryFetcher(QueryModel model, MappingModel mappingModel) {
+    super(mappingModel);
     this.model = model;
   }
 
   @Override
   protected Object get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     Keyspace keyspace = dataStore.schema().keyspace(model.getEntity().getKeyspaceName());
 
@@ -86,7 +78,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
             model.getLimit(),
             model.getPageSize(),
             dataStore,
-            authenticationSubject);
+            environment.getContext());
     Object entityData =
         returnType.isEntityList()
             ? toEntities(resultSet, model.getEntity())

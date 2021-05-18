@@ -16,35 +16,31 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
 
 public class CreateIndexFetcher extends IndexFetcher {
-  public CreateIndexFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory, Scope.CREATE);
+  public CreateIndexFetcher() {
+    super(Scope.CREATE);
   }
 
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
-    String columnName = dataFetchingEnvironment.getArgument("columnName");
+    String columnName = environment.getArgument("columnName");
 
-    String indexName = dataFetchingEnvironment.getArgument("indexName");
+    String indexName = environment.getArgument("indexName");
 
-    boolean ifNotExists =
-        dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
-    String customIndexClass = dataFetchingEnvironment.getArgumentOrDefault("indexType", null);
+    boolean ifNotExists = environment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
+    String customIndexClass = environment.getArgumentOrDefault("indexType", null);
 
-    String indexKind = dataFetchingEnvironment.getArgumentOrDefault("indexKind", null);
+    String indexKind = environment.getArgumentOrDefault("indexKind", null);
     boolean indexKeys = false;
     boolean indexEntries = false;
     boolean indexValues = false;
