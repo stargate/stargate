@@ -28,6 +28,8 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 abstract class OperationModelBuilderBase<T extends OperationModel> extends ModelBuilderBase<T> {
 
@@ -90,16 +92,42 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
    */
   protected List<WhereConditionModel> buildWhereConditions(EntityModel entity)
       throws SkipException {
-    ImmutableList.Builder<WhereConditionModel> whereConditionsBuilder = ImmutableList.builder();
+    return buildConditionModel(
+        entity,
+        (inputValue, e) ->
+            new WhereConditionModelBuilder(inputValue, operationName, e, entities, context),
+        (value) -> DirectiveHelper.getDirective("cql_if", value).isPresent());
+  }
+
+  /**
+   * For each field of the given entity, try to find an operation argument of the same name, and
+   * build a condition that will get appended to the CQL query.
+   */
+  protected List<IfConditionModel> buildIfConditions(EntityModel entity) throws SkipException {
+    return buildConditionModel(
+        entity,
+        (inputValue, e) ->
+            new IfConditionModelBuilder(inputValue, operationName, e, entities, context),
+        (value) -> !DirectiveHelper.getDirective("cql_if", value).isPresent());
+  }
+
+  private <C extends ConditionModel> List<C> buildConditionModel(
+      EntityModel entity,
+      BiFunction<InputValueDefinition, EntityModel, ModelBuilderBase<C>> modelBuilder,
+      Predicate<InputValueDefinition> skipIf)
+      throws SkipException {
+    ImmutableList.Builder<C> whereConditionsBuilder = ImmutableList.builder();
     boolean foundErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
+      if (skipIf.test(inputValue)) {
+        // skip a field annotated with a given directive
+        continue;
+      }
       if (DirectiveHelper.getDirective("cql_pagingState", inputValue).isPresent()) {
         continue;
       }
       try {
-        whereConditionsBuilder.add(
-            new WhereConditionModelBuilder(inputValue, operationName, entity, entities, context)
-                .build());
+        whereConditionsBuilder.add(modelBuilder.apply(inputValue, entity).build());
       } catch (SkipException __) {
         foundErrors = true;
       }

@@ -18,14 +18,14 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 
-/** Maps a GraphQL operation argument to a CQL WHERE clause. */
-public class WhereConditionModel implements ConditionModel {
+/** Maps a GraphQL operation argument to a CQL IF clause that is used with DELETE statements. */
+public class IfConditionModel implements ConditionModel {
 
   private final FieldModel field;
   private final Predicate predicate;
   private final String argumentName;
 
-  public WhereConditionModel(FieldModel field, Predicate predicate, String argumentName) {
+  public IfConditionModel(FieldModel field, Predicate predicate, String argumentName) {
     this.field = field;
     this.predicate = predicate;
     this.argumentName = argumentName;
@@ -50,8 +50,6 @@ public class WhereConditionModel implements ConditionModel {
 
   @Override
   public BuiltCondition build(Object cqlValue) {
-    // TODO change this when we support operators other than EQ
-    // The user will specify which operator to use via a directive, and we'll apply it here.
     return BuiltCondition.of(field.getCqlName(), predicate, cqlValue);
   }
 }

@@ -206,7 +206,7 @@ directive @cql_delete(
 ) on FIELD_DEFINITION
 
 """
-A predicate used in `@cql_where` to define a condition.
+A predicate used in `@cql_where` and `@cql_if` to define a condition.
 """
 enum Predicate {
     EQ
@@ -222,6 +222,23 @@ enum Predicate {
 Annotates a parameter to customize the WHERE condition that is generated from it.
 """
 directive @cql_where (
+
+    """
+    The name of the field that the condition applies to (if absent, it will be the name of the
+    argument).
+    """
+    field: String
+
+    """
+    The predicate to use for the condition.
+    """
+    predicate: Predicate = EQ
+) on ARGUMENT_DEFINITION
+
+"""
+Annotates a parameter to customize the DELETE condition that is generated from it.
+"""
+directive @cql_if (
 
     """
     The name of the field that the condition applies to (if absent, it will be the name of the

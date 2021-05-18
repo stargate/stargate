@@ -80,13 +80,16 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
     }
 
     List<BuiltCondition> whereConditions =
-        bind(model.getWhereConditions(), entityModel, hasArgument, getArgument, keyspace);
+        bindWhere(model.getWhereConditions(), entityModel, hasArgument, getArgument, keyspace);
+    List<BuiltCondition> ifConditions =
+        bindIf(model.getIfConditions(), entityModel, hasArgument, getArgument, keyspace);
     AbstractBound<?> query =
         dataStore
             .queryBuilder()
             .delete()
             .from(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .where(whereConditions)
+            .ifs(ifConditions)
             .ifExists(model.ifExists())
             .build()
             .bind();

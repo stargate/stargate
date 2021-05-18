@@ -28,6 +28,7 @@ public class DeleteModel extends MutationModel {
   private final EntityModel entity;
   private final Optional<String> entityArgumentName;
   private final List<WhereConditionModel> whereConditions;
+  private final List<IfConditionModel> ifConditions;
   private final ReturnType returnType;
   private final boolean ifExists;
 
@@ -37,12 +38,14 @@ public class DeleteModel extends MutationModel {
       EntityModel entity,
       Optional<String> entityArgumentName,
       List<WhereConditionModel> whereConditions,
+      List<IfConditionModel> ifConditions,
       ReturnType returnType,
       boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
     this.whereConditions = whereConditions;
+    this.ifConditions = ifConditions;
     this.returnType = returnType;
     this.ifExists = ifExists;
   }
@@ -65,6 +68,10 @@ public class DeleteModel extends MutationModel {
    */
   public List<WhereConditionModel> getWhereConditions() {
     return whereConditions;
+  }
+
+  public List<IfConditionModel> getIfConditions() {
+    return ifConditions;
   }
 
   public ReturnType getReturnType() {

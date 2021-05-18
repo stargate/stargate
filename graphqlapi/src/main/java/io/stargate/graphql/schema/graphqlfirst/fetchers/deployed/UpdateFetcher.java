@@ -60,7 +60,7 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
 
     List<BuiltCondition> whereConditions =
-        bind(
+        bindWhere(
             entityModel.getPrimaryKeyWhereConditions(),
             entityModel,
             input::containsKey,

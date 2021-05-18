@@ -40,10 +40,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
-import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.WhereConditionModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.*;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.nio.ByteBuffer;
@@ -371,7 +368,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
    *     argument).
    * @param getArgument how to get the value of an argument (same).
    */
-  protected List<BuiltCondition> bind(
+  protected List<BuiltCondition> bindWhere(
       List<WhereConditionModel> whereConditions,
       EntityModel entity,
       Predicate<String> hasArgument,
@@ -380,7 +377,49 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
     List<BuiltCondition> result = new ArrayList<>();
     List<WhereConditionModel> activeConditions = new ArrayList<>();
-    for (WhereConditionModel whereCondition : whereConditions) {
+    bind(whereConditions, hasArgument, getArgument, keyspace, result, activeConditions);
+
+    // Re-check the validity of the query (we already did while building the model, but some
+    // conditions might not apply if the corresponding argument was missing).
+    entity
+        .validateNoFiltering(activeConditions)
+        .ifPresent(
+            message -> {
+              throw new IllegalArgumentException("Invalid arguments: " + message);
+            });
+    return result;
+  }
+
+  protected List<BuiltCondition> bindIf(
+      List<IfConditionModel> whereConditions,
+      EntityModel entity,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Keyspace keyspace) {
+
+    List<BuiltCondition> result = new ArrayList<>();
+    List<IfConditionModel> activeConditions = new ArrayList<>();
+    bind(whereConditions, hasArgument, getArgument, keyspace, result, activeConditions);
+
+    // Re-check the validity of the query (we already did while building the model, but some
+    // conditions might not apply if the corresponding argument was missing).
+    //    entity
+    //            .validateNoFiltering(activeConditions)
+    //            .ifPresent(
+    //                    message -> {
+    //                      throw new IllegalArgumentException("Invalid arguments: " + message);
+    //                    });
+    return result;
+  }
+
+  private <T extends ConditionModel> void bind(
+      List<T> conditions,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Keyspace keyspace,
+      List<BuiltCondition> result,
+      List<T> activeConditions) {
+    for (T whereCondition : conditions) {
       FieldModel field = whereCondition.getField();
       if (hasArgument.test(whereCondition.getArgumentName())) {
         activeConditions.add(whereCondition);
@@ -401,15 +440,5 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
         result.add(whereCondition.build(cqlValue));
       }
     }
-
-    // Re-check the validity of the query (we already did while building the model, but some
-    // conditions might not apply if the corresponding argument was missing).
-    entity
-        .validateNoFiltering(activeConditions)
-        .ifPresent(
-            message -> {
-              throw new IllegalArgumentException("Invalid arguments: " + message);
-            });
-    return result;
   }
 }
