@@ -142,6 +142,23 @@ public class GraphqlCache implements KeyspaceChangeListener {
     return currentHolder == null ? null : currentHolder.getGraphql();
   }
 
+  public void putDml(
+      String keyspaceName, SchemaSource newSource, GraphQL graphql, AuthenticationSubject subject) {
+    Map<String, String> headers = subject.customProperties();
+    DataStore dataStore = buildUserDatastore(subject, headers);
+    String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
+
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    if (keyspace == null) {
+      LOG.trace("Keyspace {} does not exist", decoratedKeyspaceName);
+      return;
+    }
+    LOG.trace(
+        "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
+    DmlGraphqlHolder schemaHolder = new DmlGraphqlHolder(newSource, graphql);
+    dmlGraphqls.put(decoratedKeyspaceName, schemaHolder);
+  }
+
   public String getDefaultKeyspaceName() {
     return defaultKeyspace;
   }
@@ -224,23 +241,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
     // It is assumed that the data model will only evolve by deploying new GraphQL schema versions.
   }
 
-  public void put(
-      String keyspaceName, SchemaSource newSource, GraphQL graphql, AuthenticationSubject subject) {
-    Map<String, String> headers = subject.customProperties();
-    DataStore dataStore = buildUserDatastore(subject, headers);
-    String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
-
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-    if (keyspace == null) {
-      LOG.trace("Keyspace {} does not exist", decoratedKeyspaceName);
-      return;
-    }
-    LOG.trace(
-        "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
-    DmlGraphqlHolder schemaHolder = new DmlGraphqlHolder(newSource, keyspace, graphql);
-    dmlGraphqls.put(decoratedKeyspaceName, schemaHolder);
-  }
-
   /**
    * Holds the GraphQL schema for a particular keyspace (either CQL-first or GraphQL-first,
    * depending on whether there is a SchemaSource for this keyspace).
@@ -259,10 +259,11 @@ public class GraphqlCache implements KeyspaceChangeListener {
       this.keyspace = keyspace;
     }
 
-    DmlGraphqlHolder(SchemaSource source, Keyspace keyspace, GraphQL graphQL) {
+    DmlGraphqlHolder(SchemaSource source, GraphQL graphQL) {
       this.source = source;
       this.graphqlFuture.complete(graphQL);
-      this.keyspace = keyspace;
+      // when the graphqlFuture is already completed, the keyspace is not-needed
+      this.keyspace = null;
     }
 
     void init() {

@@ -111,7 +111,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
       schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
-      graphqlCache.put(
+      graphqlCache.putDml(
           keyspaceName, newSource, processedSchema.getGraphql(), authenticationSubject);
     }
     return response;
