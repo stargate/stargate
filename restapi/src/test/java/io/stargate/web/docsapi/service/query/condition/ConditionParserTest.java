@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.query.condition.impl.ImmutableCombinedCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableExistsCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableGenericCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
@@ -165,7 +165,7 @@ class ConditionParserTest {
       expected.add(2);
       assertThat(conditions)
           .containsOnly(
-              ImmutableCombinedCondition.of(InFilterOperation.of(), expected, NUMERIC_BOOLEANS));
+              ImmutableGenericCondition.of(InFilterOperation.of(), expected, NUMERIC_BOOLEANS));
     }
 
     @Test
@@ -179,7 +179,7 @@ class ConditionParserTest {
       expected.add(2);
       assertThat(conditions)
           .containsOnly(
-              ImmutableCombinedCondition.of(NotInFilterOperation.of(), expected, NUMERIC_BOOLEANS));
+              ImmutableGenericCondition.of(NotInFilterOperation.of(), expected, NUMERIC_BOOLEANS));
     }
   }
 }

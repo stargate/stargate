@@ -19,22 +19,22 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * Condition that works with the {@link CombinedFilterOperation} in order to match a single {@link
+ * Condition that works with the {@link GenericFilterOperation} in order to match a single {@link
  * Row} against multiple database column values.
  *
  * @param <V>
  */
 @Value.Immutable
-public abstract class CombinedCondition<V> implements BaseCondition {
+public abstract class GenericCondition<V> implements BaseCondition {
 
   /** @return Filter operation for the condition. */
   @Value.Parameter
-  public abstract CombinedFilterOperation<V> getFilterOperation();
+  public abstract GenericFilterOperation<V> getFilterOperation();
 
   /** @return Filter query value. */
   @Value.Parameter
@@ -48,9 +48,7 @@ public abstract class CombinedCondition<V> implements BaseCondition {
   @Value.Check
   protected void validate() {
     V queryValue = getQueryValue();
-    getFilterOperation().validateBooleanFilterInput(queryValue);
-    getFilterOperation().validateStringFilterInput(queryValue);
-    getFilterOperation().validateDoubleFilterInput(queryValue);
+    getFilterOperation().validateFilterInput(queryValue);
   }
 
   /**
@@ -70,7 +68,7 @@ public abstract class CombinedCondition<V> implements BaseCondition {
     Double dbValueDouble = getDouble(row);
     String dbValueString = getString(row);
 
-    CombinedFilterOperation<V> filterOperation = getFilterOperation();
+    GenericFilterOperation<V> filterOperation = getFilterOperation();
     V queryValue = getQueryValue();
 
     // compare against the non-null values, fallback to text compare even if null

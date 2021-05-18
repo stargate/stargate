@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.CombinedFilterOperation;
+import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
@@ -42,7 +42,7 @@ class ListConditionProviderTest {
 
   @InjectMocks ListConditionProvider provider;
 
-  @Mock CombinedFilterOperation<List<?>> filterOperation;
+  @Mock GenericFilterOperation<List<?>> filterOperation;
 
   @Nested
   class CreateCondition {
@@ -83,7 +83,7 @@ class ListConditionProviderTest {
               baseCondition -> {
                 assertThat(baseCondition)
                     .isInstanceOfSatisfying(
-                        CombinedCondition.class,
+                        GenericCondition.class,
                         bc -> {
                           @SuppressWarnings("unchecked")
                           List<Object> queryValue = (List<Object>) bc.getQueryValue();

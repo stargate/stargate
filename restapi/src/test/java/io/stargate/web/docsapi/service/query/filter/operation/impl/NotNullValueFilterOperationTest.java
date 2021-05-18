@@ -83,18 +83,18 @@ class NotNullValueFilterOperationTest {
   }
 
   @Nested
-  class ValidateDoubleFilterInput {
+  class ValidateNumberFilterInput {
 
     @Test
     public void isNull() {
-      Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(null));
+      Throwable throwable = catchThrowable(() -> predicate.validateNumberFilterInput(null));
 
       assertThat(throwable).isNotNull();
     }
 
     @Test
     public void isNotNull() {
-      Throwable throwable = catchThrowable(() -> predicate.validateDoubleFilterInput(23));
+      Throwable throwable = catchThrowable(() -> predicate.validateNumberFilterInput(23));
 
       assertThat(throwable).isNull();
     }
