@@ -20,7 +20,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -30,7 +30,7 @@ public abstract class StringCondition implements BaseCondition {
 
   /** @return Predicate for the condition. */
   @Value.Parameter
-  public abstract StringValueFilterOperation<String> getFilterOperation();
+  public abstract ValueFilterOperation getFilterOperation();
 
   /** @return Filter query value. */
   @Value.Parameter

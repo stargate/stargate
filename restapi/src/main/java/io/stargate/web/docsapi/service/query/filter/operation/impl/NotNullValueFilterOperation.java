@@ -25,7 +25,7 @@ public abstract class NotNullValueFilterOperation implements ComparingValueFilte
 
   /** {@inheritDoc} */
   @Override
-  public void validateDoubleFilterInput(Number filterValue) {
+  public void validateNumberFilterInput(Number filterValue) {
     validateFilterInput(filterValue);
   }
 

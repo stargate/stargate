@@ -25,9 +25,7 @@ import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondi
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
-import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
-import io.stargate.web.docsapi.service.query.filter.operation.DoubleValueFilterOperation;
-import io.stargate.web.docsapi.service.query.filter.operation.StringValueFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 
 /**
@@ -36,20 +34,12 @@ import java.util.Optional;
  *
  * @param <V> Type of the filter operation
  */
-public class BasicConditionProvider<
-        V extends
-            StringValueFilterOperation<String> & DoubleValueFilterOperation<Number>
-                & BooleanValueFilterOperation<Boolean>>
-    implements ConditionProvider {
+public class BasicConditionProvider<V extends ValueFilterOperation> implements ConditionProvider {
 
   /** Filter operation to use when creating the condition. */
   private final V filterOperation;
 
-  public static <
-          V extends
-              StringValueFilterOperation<String> & DoubleValueFilterOperation<Number>
-                  & BooleanValueFilterOperation<Boolean>>
-      BasicConditionProvider<V> of(V predicate) {
+  public static <V extends ValueFilterOperation> BasicConditionProvider<V> of(V predicate) {
     return new BasicConditionProvider<>(predicate);
   }
 

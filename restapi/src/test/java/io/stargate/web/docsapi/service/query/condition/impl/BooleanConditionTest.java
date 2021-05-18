@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.filter.operation.BooleanValueFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
@@ -36,7 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BooleanConditionTest {
 
-  @Mock BooleanValueFilterOperation<Boolean> filterOperation;
+  @Mock ValueFilterOperation filterOperation;
 
   @Nested
   class Constructor {

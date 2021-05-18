@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
-import io.stargate.web.docsapi.service.query.condition.impl.CombinedCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
@@ -358,7 +358,7 @@ class ExpressionParserIntTest {
                             assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
                                 .isInstanceOfSatisfying(
-                                    CombinedCondition.class,
+                                    GenericCondition.class,
                                     sc -> {
                                       Optional<?> builtCondition = sc.getBuiltCondition();
                                       assertThat(builtCondition).isEmpty();
