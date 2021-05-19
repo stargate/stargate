@@ -228,7 +228,6 @@ enum IfPredicate {
     GT
     LTE
     GTE
-    CONTAINS
 }
 
 """
