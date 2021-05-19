@@ -61,7 +61,7 @@ public class QueryExecutor {
     List<Column> idColumns = select.table().primaryKeyColumns().subList(0, identityDepth);
 
     return execute(query, pageSize, pagingState)
-        .concatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)), 1)
+        .flatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)), 1) // concurrency factor 1
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
         .filter(Accumulator::isComplete)
