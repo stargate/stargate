@@ -392,7 +392,6 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected List<BuiltCondition> bindIf(
       List<IfConditionModel> whereConditions,
-      EntityModel entity,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
@@ -401,14 +400,6 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
     List<IfConditionModel> activeConditions = new ArrayList<>();
     bind(whereConditions, hasArgument, getArgument, keyspace, result, activeConditions);
 
-    // Re-check the validity of the query (we already did while building the model, but some
-    // conditions might not apply if the corresponding argument was missing).
-    //    entity
-    //            .validateNoFiltering(activeConditions)
-    //            .ifPresent(
-    //                    message -> {
-    //                      throw new IllegalArgumentException("Invalid arguments: " + message);
-    //                    });
     return result;
   }
 
