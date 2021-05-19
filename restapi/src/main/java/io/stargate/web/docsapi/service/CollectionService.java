@@ -4,6 +4,8 @@ import io.stargate.db.schema.Index;
 import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.CollectionUpgradeType;
 import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.resources.Db;
@@ -52,6 +54,6 @@ public class CollectionService {
     if (upgradeType == CollectionUpgradeType.SAI_INDEX_UPGRADE) {
       return docDB.upgradeTableIndexes(keyspaceName, tableName);
     }
-    throw new RuntimeException("Invalid upgrade type: " + upgradeType);
+    throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID);
   }
 }

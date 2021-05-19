@@ -38,7 +38,7 @@ public class DocsSchemaChecker {
     boolean isDocsTable = db.isDocumentsTable(keyspace, table);
     if (!isDocsTable) {
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_TABLE_NOT_A_COLLECTION,
+          ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION,
           String.format(
               "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
               keyspace, table));

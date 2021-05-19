@@ -24,6 +24,7 @@ import io.stargate.it.http.models.Credentials;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.Optional;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -74,22 +75,18 @@ public class RestUtils {
       Headers headers, String path, String requestBody, int expectedStatusCode) throws IOException {
     OkHttpClient client = client();
 
-    Request request;
+    RequestBody rb =
+        Optional.ofNullable(requestBody)
+            .map(b -> RequestBody.create(MediaType.parse("application/json"), b))
+            .orElse(RequestBody.create(null, new byte[] {}));
+
+    Request.Builder requestBuilder = new Request.Builder().url(path).post(rb);
+
     if (headers != null) {
-      request =
-          new Request.Builder()
-              .url(path)
-              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-              .headers(headers)
-              .build();
-    } else {
-      request =
-          new Request.Builder()
-              .url(path)
-              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-              .build();
+      requestBuilder.headers(headers);
     }
 
+    Request request = requestBuilder.build();
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 

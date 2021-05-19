@@ -2,30 +2,46 @@ package io.stargate.web.docsapi.resources;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.models.DocCollection;
+import io.stargate.web.docsapi.models.dto.CreateCollectionDto;
+import io.stargate.web.docsapi.models.dto.UpgradeCollectionDto;
 import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.AuthenticatedDB;
-import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -34,12 +50,12 @@ import javax.ws.rs.core.Response;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"documents"})
-@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
+@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}/collections")
 @Produces(MediaType.APPLICATION_JSON)
 public class CollectionsResource {
+
   @Inject private Db db;
-  private static final ObjectMapper mapper = new ObjectMapper();
-  private static final CollectionService collectionService = new CollectionService();
+  @Inject private CollectionService collectionService;
 
   @GET
   @ApiOperation(value = "List collections in namespace")
@@ -49,7 +65,6 @@ public class CollectionsResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCollections(
@@ -69,7 +84,7 @@ public class CollectionsResource {
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
-          Set<Table> tables = (Set<Table>) authenticatedDB.getTables(namespace);
+          Collection<Table> tables = authenticatedDB.getTables(namespace);
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
@@ -84,10 +99,8 @@ public class CollectionsResource {
                   .map(table -> collectionService.getCollectionInfo(table, db))
                   .collect(Collectors.toList());
 
-          Object response = raw ? result : new ResponseWrapper(result);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
+          Object response = raw ? result : new ResponseWrapper<>(result);
+          return Response.status(Response.Status.OK).entity(response).build();
         });
   }
 
@@ -96,11 +109,11 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created"),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response createCollection(
@@ -117,26 +130,25 @@ public class CollectionsResource {
               value = "JSON with the name of the collection",
               required = true,
               example = "{\"name\": \"example\"}")
-          String payload,
+          @NotNull(message = "payload not provided")
+          @Valid
+          CreateCollectionDto body,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
           DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
-          DocCollection info = mapper.readValue(payload, DocCollection.class);
-          if (info.getName() == null) {
-            throw new IllegalArgumentException("`name` is required to create a collection");
-          }
+
           db.getAuthorizationService()
               .authorizeSchemaWrite(
                   docDB.getAuthenticationSubject(),
                   namespace,
-                  info.getName(),
+                  body.getName(),
                   Scope.CREATE,
                   SourceAPI.REST,
                   ResourceKind.TABLE);
 
-          boolean res = collectionService.createCollection(namespace, info.getName(), docDB);
+          boolean res = collectionService.createCollection(namespace, body.getName(), docDB);
           if (res) {
             return Response.status(Response.Status.CREATED).build();
           } else {
@@ -144,7 +156,7 @@ public class CollectionsResource {
                 .entity(
                     new Error(
                         String.format(
-                            "Create failed: collection %s already exists.", info.getName()),
+                            "Create failed: collection %s already exists.", body.getName()),
                         Response.Status.CONFLICT.getStatusCode()))
                 .build();
           }
@@ -160,7 +172,7 @@ public class CollectionsResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("collections/{collection-id}")
+  @Path("{collection-id}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response deleteCollection(
@@ -193,13 +205,10 @@ public class CollectionsResource {
           Table toDelete =
               authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
           if (toDelete == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                .entity(
-                    new Error(
-                        String.format("Bad request: Collection '%s' not found", collection),
-                        Response.Status.NOT_FOUND.getStatusCode()))
-                .build();
+            String msg = String.format("Collection '%s' not found.", collection);
+            return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
           }
+
           collectionService.deleteCollection(
               namespace,
               collection,
@@ -222,9 +231,10 @@ public class CollectionsResource {
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Collection not found", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("collections/{collection-id}/upgrade")
+  @Path("{collection-id}/upgrade")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response upgradeCollection(
@@ -245,7 +255,7 @@ public class CollectionsResource {
               value = "JSON with the upgrade type",
               required = true,
               example = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}")
-          String payload,
+          UpgradeCollectionDto body,
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
@@ -263,18 +273,14 @@ public class CollectionsResource {
 
           Table table = authenticatedDB.getTable(namespace, collection);
           if (table == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                .entity("Collection not found")
-                .build();
+            String msg = String.format("Collection %s not found.", collection);
+            return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
           }
-          DocCollection request = mapper.readValue(payload, DocCollection.class);
+
           DocCollection info = collectionService.getCollectionInfo(table, db);
-          if (request.getUpgradeType() == null
-              || !info.getUpgradeAvailable()
-              || info.getUpgradeType() != request.getUpgradeType()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity("That collection cannot be upgraded in that manner")
-                .build();
+          if (!info.getUpgradeAvailable()
+              || !Objects.equals(info.getUpgradeType(), body.getUpgradeType())) {
+            return ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID.toResponse();
           }
 
           boolean success =
@@ -285,20 +291,20 @@ public class CollectionsResource {
                       authenticatedDB.getDataStore(),
                       authenticatedDB.getAuthenticationSubject(),
                       db.getAuthorizationService()),
-                  request.getUpgradeType());
+                  body.getUpgradeType());
 
           if (success) {
             table = authenticatedDB.getTable(namespace, collection);
             info = collectionService.getCollectionInfo(table, db);
 
-            Object response = raw ? info : new ResponseWrapper(info);
-            return Response.status(Response.Status.OK)
-                .entity(Converters.writeResponse(response))
-                .build();
+            Object response = raw ? info : new ResponseWrapper<>(info);
+            return Response.status(Response.Status.OK).entity(response).build();
           } else {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity("Collection was not upgraded.")
-                .build();
+            Error error =
+                new Error(
+                    "Collection was not upgraded.",
+                    Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(error).build();
           }
         });
   }

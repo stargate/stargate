@@ -1,20 +1,22 @@
 package io.stargate.it.http.docsapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
@@ -23,70 +25,40 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
 public class CollectionTest extends BaseOsgiIntegrationTest {
-  private String keyspace;
-  private CqlSession session;
-  private boolean isDse;
-  private static String authToken;
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final OkHttpClient client =
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final OkHttpClient CLIENT =
       new OkHttpClient().newBuilder().readTimeout(Duration.ofMinutes(3)).build();
 
-  private String host;
-  private String hostWithPort;
+  private static String authToken;
+  private static String host;
+  private static String hostWithPort;
+  private static boolean isDse;
 
-  @BeforeEach
-  public void setup(ClusterConnectionInfo backend, StargateConnectionInfo stargate)
+  @BeforeAll
+  public static void setup(ClusterConnectionInfo backend, StargateConnectionInfo stargate)
       throws IOException {
     host = "http://" + stargate.seedAddress();
     hostWithPort = host + ":8082";
-
-    keyspace = "ks_collection_" + System.currentTimeMillis();
     isDse = backend.isDse();
-    session =
-        CqlSession.builder()
-            .withConfigLoader(
-                DriverConfigLoader.programmaticBuilder()
-                    .withDuration(DefaultDriverOption.REQUEST_TRACE_INTERVAL, Duration.ofSeconds(5))
-                    .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.METADATA_SCHEMA_REQUEST_TIMEOUT,
-                        Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(180))
-                    .withDuration(
-                        DefaultDriverOption.CONTROL_CONNECTION_TIMEOUT, Duration.ofSeconds(180))
-                    .build())
-            .withAuthCredentials("cassandra", "cassandra")
-            .addContactPoint(new InetSocketAddress(stargate.seedAddress(), 9043))
-            .withLocalDatacenter(stargate.datacenter())
-            .build();
-
-    assertThat(
-            session
-                .execute(
-                    String.format(
-                        "create keyspace if not exists %s WITH replication = "
-                            + "{'class': 'SimpleStrategy', 'replication_factor': 1 }",
-                        keyspace))
-                .wasApplied())
-        .isTrue();
 
     initAuth();
   }
 
-  private void initAuth() throws IOException {
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  private static void initAuth() throws IOException {
+    OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     RequestBody requestBody =
         RequestBody.create(
             MediaType.parse("application/json"),
-            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")));
+            OBJECT_MAPPER.writeValueAsString(new Credentials("cassandra", "cassandra")));
 
     Request request =
         new Request.Builder()
@@ -94,146 +66,183 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
             .post(requestBody)
             .addHeader("X-Cassandra-Request-Id", "foo")
             .build();
-    Response response = client.newCall(request).execute();
+    Response response = CLIENT.newCall(request).execute();
     ResponseBody body = response.body();
 
     assertThat(body).isNotNull();
     AuthTokenResponse authTokenResponse =
-        objectMapper.readValue(body.string(), AuthTokenResponse.class);
+        OBJECT_MAPPER.readValue(body.string(), AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
   }
 
-  @AfterEach
-  public void teardown() {
-    session.close();
+  String getBasePath(CqlIdentifier keyspace) {
+    return hostWithPort + "/v2/namespaces/" + keyspace + "/collections";
   }
 
-  @Test
-  public void testGet() throws IOException {
-    String r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=false", 200);
-    String expected = "{\"data\": []}";
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class GetCollections {
 
-    r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    expected = "[]";
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+    @Test
+    public void raw(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.get(authToken, getBasePath(keyspace) + "?raw=true", 200);
+
+      String expected = "[]";
+      assertThat(r).isEqualTo(expected);
+    }
+
+    @Test
+    public void notRaw(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.get(authToken, getBasePath(keyspace) + "?raw=false", 200);
+
+      String expected = "{\"data\":[]}";
+      assertThat(r).isEqualTo(expected);
+    }
   }
 
-  @Test
-  public void testPost() throws IOException {
-    String r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree("[]"));
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class CreateCollection {
 
-    // Create a brand new collection
-    String newColl = "{\"name\": \"newcollection\"}";
-    RestUtils.post(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 201);
+    @Test
+    public void created(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      // Create a brand new collection
+      String payload = "{\"name\": \"newcollection\"}";
 
-    r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    String expected = "[{\"name\": \"newcollection\", \"upgradeAvailable\": false}]";
+      RestUtils.post(authToken, getBasePath(keyspace), payload, 201);
 
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+      String r = RestUtils.get(authToken, getBasePath(keyspace) + "?raw=true", 200);
+      String expected = "[{\"name\":\"newcollection\",\"upgradeAvailable\":false}]";
+      assertThat(r).isEqualTo(expected);
+    }
+
+    @Test
+    public void noPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.post(authToken, getBasePath(keyspace), null, 422);
+
+      assertThat(r)
+          .isEqualTo("{\"description\":\"Request invalid: payload not provided.\",\"code\":422}");
+    }
+
+    @Test
+    public void invalidPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      // no name in the json
+      String payload = "{}";
+
+      String r = RestUtils.post(authToken, getBasePath(keyspace), payload, 422);
+
+      assertThat(r)
+          .isEqualTo(
+              "{\"description\":\"Request invalid: `name` is required to create a collection.\",\"code\":422}");
+    }
   }
 
-  @Test
-  public void testInvalidPost() throws IOException {
-    String r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree("[]"));
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class DeleteCollection {
 
-    // Create a brand new collection
-    String newColl = "{}";
-    r =
-        RestUtils.post(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Bad request: `name` is required to create a collection\",\"code\":400}");
-  }
-
-  @Test
-  public void testDelete() throws IOException {
-    String r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree("[]"));
-
-    // Create a brand new collection
-    String newColl = "{\"name\": \"newcollection\"}";
-    RestUtils.post(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 201);
-
-    // Delete it
-    RestUtils.delete(
-        authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection", 204);
-
-    // Delete it again, not found
-    r =
-        RestUtils.delete(
-            authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection",
-            404);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Bad request: Collection 'newcollection' not found\",\"code\":404}");
-  }
-
-  @Test
-  public void testUpgrade() throws IOException {
-    if (isDse) {
-      // Create a brand new collection, it should already have SAI so it requires no upgrade
+    @Test
+    public void deleted(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String basePath = getBasePath(keyspace);
       String newColl = "{\"name\": \"newcollection\"}";
-      RestUtils.post(
-          authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 201);
+      RestUtils.post(authToken, basePath, newColl, 201);
 
-      // Illegal, as the collection is already in its most upgraded state (with SAI)
+      RestUtils.delete(authToken, basePath + "/newcollection", 204);
+    }
+
+    @Test
+    public void notExisting(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String result = RestUtils.delete(authToken, getBasePath(keyspace) + "/notexisting", 404);
+
+      assertThat(result)
+          .isEqualTo("{\"description\":\"Collection 'notexisting' not found.\",\"code\":404}");
+    }
+  }
+
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class UpgradeCollection {
+
+    @Test
+    public void upgrade(@TestKeyspace CqlIdentifier keyspace, CqlSession cqlSession)
+        throws IOException {
+      // ignore if not dse
+      assumeTrue(isDse);
+
+      // Create a brand new collection, it should already have SAI so drop it before calling
+      String newColl = "{\"name\": \"newcollection\"}";
+      RestUtils.post(authToken, getBasePath(keyspace), newColl, 201);
+      dropIndexes(cqlSession, keyspace, "newcollection"); //
+
       String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
       String r =
           RestUtils.post(
               authToken,
-              hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection/upgrade",
-              upgradeAction,
-              400);
-      assertThat(r).isEqualTo("That collection cannot be upgraded in that manner");
-
-      // Drop all the relevant indexes to simulate "downgrading"
-      dropIndexes("newcollection");
-
-      // Now do the upgrade to add SAI
-      r =
-          RestUtils.post(
-              authToken,
-              hostWithPort
-                  + "/v2/namespaces/"
-                  + keyspace
-                  + "/collections/newcollection/upgrade?raw=true",
+              getBasePath(keyspace) + "/newcollection/upgrade?raw=true",
               upgradeAction,
               200);
-      String expected = "{\"name\":\"newcollection\",\"upgradeAvailable\":false}";
-      assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+
+      assertThat(r).isEqualTo("{\"name\":\"newcollection\",\"upgradeAvailable\":false}");
     }
-  }
 
-  private void dropIndexes(String collection) {
-    session.execute(String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_leaf_idx"));
+    @Test
+    public void upgradeNotAvailable(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      // ignore if not dse
+      assumeTrue(isDse);
 
-    session.execute(
-        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_text_value_idx"));
+      // Create a brand new collection, it should already have SAI so it requires no upgrade
+      String newColl = "{\"name\": \"newcollection\"}";
+      RestUtils.post(authToken, getBasePath(keyspace), newColl, 201);
 
-    session.execute(
-        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_dbl_value_idx"));
+      String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
+      String r =
+          RestUtils.post(
+              authToken, getBasePath(keyspace) + "/newcollection/upgrade", upgradeAction, 400);
 
-    session.execute(
-        String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_bool_value_idx"));
+      assertThat(r)
+          .isEqualTo(
+              "{\"description\":\"The collection cannot be upgraded in given manner.\",\"code\":404}");
+    }
+
+    @Test
+    public void noPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r =
+          RestUtils.post(authToken, getBasePath(keyspace) + "/newcollection/upgrade", null, 422);
+
+      assertThat(r)
+          .isEqualTo("{\"description\":\"Request invalid: payload not provided.\",\"code\":422}");
+    }
+
+    @Test
+    public void invalidPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      // no name in the json
+      String payload = "{\"upgradeType\": null}";
+
+      String r =
+          RestUtils.post(authToken, getBasePath(keyspace) + "/newcollection/upgrade", payload, 422);
+
+      assertThat(r)
+          .isEqualTo(
+              "{\"description\":\"Request invalid: `upgradeType` is required to upgrade a collection.\",\"code\":422}");
+    }
+
+    private void dropIndexes(CqlSession session, CqlIdentifier keyspace, String collection) {
+      session.execute(
+          String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_leaf_idx"));
+
+      session.execute(
+          String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_text_value_idx"));
+
+      session.execute(
+          String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_dbl_value_idx"));
+
+      session.execute(
+          String.format("DROP INDEX \"%s\".\"%s\"", keyspace, collection + "_bool_value_idx"));
+    }
   }
 }
