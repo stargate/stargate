@@ -19,12 +19,12 @@ import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Regular;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.reactivex.Flowable;
+import io.reactivex.subscribers.TestSubscriber;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.ValidatingDataStore.QueryAssert;
@@ -42,17 +42,12 @@ import io.stargate.db.schema.Table;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 class QueryExecutorTest extends AbstractDataStoreTest {
 
@@ -197,47 +192,25 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         withQuery(table, "SELECT * FROM %s").withPageSize(pageSize).returning(rows.build());
 
     Flowable<RawDocument> flowable = executor.queryDocs(allDocsQuery, pageSize, null);
-    AtomicReference<Subscription> subscription = new AtomicReference<>();
-    Semaphore sem = new Semaphore(0);
-    flowable.subscribe(
-        new Subscriber<RawDocument>() {
-          @Override
-          public void onSubscribe(Subscription s) {
-            subscription.set(s);
-          }
+    TestSubscriber<RawDocument> test = flowable.test(1);
+    test.assertSubscribed();
 
-          @Override
-          public void onNext(RawDocument rawDocument) {
-            sem.release();
-          }
+    test.awaitCount(1);
+    test.assertValueAt(0, d -> d.id().equals("0"));
+    queryAssert.assertExecuteCount().isEqualTo(1); // first page fetched
 
-          @Override
-          public void onError(Throwable t) {
-            fail("Rx error: " + t, t);
-          }
+    test.request(pageSize - 3); // total requested == pageSize - 2
+    test.awaitCount(pageSize - 2);
+    test.assertValueAt(pageSize - 3, d -> d.id().equals("" + (pageSize - 3)));
+    queryAssert.assertExecuteCount().isEqualTo(1); // still on page 1
 
-          @Override
-          public void onComplete() {
-            // nop
-          }
-        });
-
-    assertThat(subscription.get()).isNotNull();
-
-    subscription.get().request(1);
-    assertThat(sem.tryAcquire(30, TimeUnit.SECONDS)).isTrue();
-    queryAssert.assertExecuteCount().isEqualTo(2);
-
-    subscription.get().request(pageSize - 3); // total requested == pageSize - 2
-    assertThat(sem.tryAcquire(pageSize - 3, 30, TimeUnit.SECONDS)).isTrue();
-    queryAssert.assertExecuteCount().isEqualTo(2); // still on page 2
-
-    subscription.get().request(1);
+    test.request(1);
     // Total requested here == pageSize - 1
-    // One more row is requested from upstream to detect doc boundaries, which ends page 2
-    // and causes page 3 to be executed
-    assertThat(sem.tryAcquire(30, TimeUnit.SECONDS)).isTrue();
-    queryAssert.assertExecuteCount().isEqualTo(3);
+    // One more row is requested from upstream to detect doc boundaries, which ends page 1
+    // and causes page 2 to be executed
+    test.awaitCount(pageSize - 1);
+    test.assertValueAt(pageSize - 2, d -> d.id().equals("" + (pageSize - 2)));
+    queryAssert.assertExecuteCount().isEqualTo(2);
   }
 
   @ParameterizedTest
