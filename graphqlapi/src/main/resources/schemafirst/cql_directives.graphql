@@ -224,7 +224,6 @@ A predicate used in `@cql_if` to define a condition.
 enum IfPredicate {
     EQ
     NEQ
-    IN
     LT
     GT
     LTE
