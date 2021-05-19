@@ -20,6 +20,7 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.core.Response;
@@ -69,14 +70,27 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   /**
-   * Deploys new contents to a keyspace, assuming this will produce a single GraphQL error.
+   * Deploys new contents to a keyspace, assuming it will produce errors.
    *
-   * @return the message of that error.
+   * @return the full contents of the {@code errors} field in the response.
+   */
+  public List<Map<String, Object>> getDeploySchemaErrors(
+      String keyspace, String expectedVersion, String contents) {
+    return getGraphqlErrors(
+        authToken, adminUri, buildDeploySchemaQuery(keyspace, expectedVersion, false, contents));
+  }
+
+  /**
+   * Same as {@link #getDeploySchemaErrors}, but also assumes that there is exactly one error, and
+   * we're only interested in that error's message.
+   *
+   * @return the message.
    */
   public String getDeploySchemaError(String keyspace, String expectedVersion, String contents) {
     return getDeploySchemaError(keyspace, expectedVersion, false, contents);
   }
 
+  /** @see #getDeploySchemaError(String, String, String) */
   public String getDeploySchemaError(
       String keyspace, String expectedVersion, boolean force, String contents) {
     return getGraphqlError(

@@ -59,6 +59,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SchemaProcessor {
@@ -289,13 +290,19 @@ public class SchemaProcessor {
       return parser.parse(source);
     } catch (SchemaProblem schemaProblem) {
       List<GraphQLError> schemaErrors = schemaProblem.getErrors();
+      // Convert to JSON explicitly, because the parser sometimes returns errors that also implement
+      // java.lang.Exception (e.g. NonSDLDefinitionError), and those get formatted with a full stack
+      // trace by default.
+      List<Map<String, Object>> errorsJson =
+          schemaErrors.stream().map(GraphQLError::toSpecification).collect(Collectors.toList());
+
       String schemaOrigin = isPersisted ? "stored for this keyspace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
               String.format(
                   "The schema %s is not valid GraphQL. See details in `extensions.schemaErrors` below.",
                   schemaOrigin))
-          .extensions(ImmutableMap.of("schemaErrors", schemaErrors))
+          .extensions(ImmutableMap.of("schemaErrors", errorsJson))
           .build();
     }
   }

@@ -21,14 +21,17 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.core.Response;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -358,5 +361,29 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
             String.format(
                 "You specified expectedVersion %s, but there is a more recent version %s",
                 wrongVersion, version));
+  }
+
+  @Test
+  @DisplayName("Should not include stacktrace in error response")
+  public void deploySchemaErrorNoStacktrace(@TestKeyspace CqlIdentifier keyspaceId) {
+    // given
+    String invalidSchema = "type Foo { id ID }"; // missing column before `ID`
+
+    // when
+    List<Map<String, Object>> errors =
+        CLIENT.getDeploySchemaErrors(keyspaceId.asInternal(), null, invalidSchema);
+
+    // then
+    assertThat(errors).hasSize(1);
+    Map<String, Object> schemaError = JsonPath.read(errors.get(0), "$.extensions.schemaErrors[0]");
+    assertThat(schemaError.get("message"))
+        .asInstanceOf(InstanceOfAssertFactories.STRING)
+        .contains(
+            "The schema definition text contains a non schema definition language (SDL) element "
+                + "'OperationDefinition'");
+    // The error is a NonSDLDefinitionError, which also implements java.lang.Exception. By default
+    // the GraphQL engine formats it with the full stacktrace, ensure that we explicitly convert it
+    // to the spec's format to avoid that:
+    assertThat(schemaError).doesNotContainKey("stackTrace");
   }
 }
