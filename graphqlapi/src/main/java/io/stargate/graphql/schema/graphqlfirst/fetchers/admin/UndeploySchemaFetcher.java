@@ -16,30 +16,21 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.UUID;
 
 public class UndeploySchemaFetcher extends CassandraFetcher<Boolean> {
 
-  public UndeploySchemaFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Boolean get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
 
     String keyspaceName = environment.getArgument("keyspace");
@@ -49,13 +40,15 @@ public class UndeploySchemaFetcher extends CassandraFetcher<Boolean> {
           String.format("Keyspace '%s' does not exist.", keyspaceName));
     }
 
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
     UUID expectedVersion = getExpectedVersion(environment);
     boolean force = environment.getArgument("force");

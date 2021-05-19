@@ -16,8 +16,6 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column.Kind;
@@ -26,18 +24,13 @@ import java.util.Map;
 
 public class AlterTableAddFetcher extends TableFetcher {
 
-  public AlterTableAddFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
-    List<Map<String, Object>> toAdd = dataFetchingEnvironment.getArgument("toAdd");
+    List<Map<String, Object>> toAdd = environment.getArgument("toAdd");
     if (toAdd.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("toAdd must contain at least one element");

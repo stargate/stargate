@@ -17,41 +17,32 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import com.google.common.annotations.VisibleForTesting;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.List;
 import java.util.function.Function;
 
 public class AllSchemasFetcher extends SchemaFetcher<List<SchemaSource>> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
-  public AllSchemasFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    this(authorizationService, dataStoreFactory, (SchemaSourceDao::new));
+  public AllSchemasFetcher() {
+    this(SchemaSourceDao::new);
   }
 
   @VisibleForTesting
-  public AllSchemasFetcher(
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
-    super(authorizationService, dataStoreFactory);
+  public AllSchemasFetcher(Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
     this.schemaSourceDaoProvider = schemaSourceDaoProvider;
   }
 
   @Override
   protected List<SchemaSource> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
     String keyspace = getKeyspace(environment, dataStore);
 
-    authorize(authenticationSubject, keyspace);
+    authorize(context, keyspace);
 
     return schemaSourceDaoProvider.apply(dataStore).getAllVersions(keyspace);
   }

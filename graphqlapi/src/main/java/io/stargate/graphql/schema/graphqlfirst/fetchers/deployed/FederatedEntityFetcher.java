@@ -17,16 +17,14 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.apollographql.federation.graphqljava._Entity;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,33 +41,26 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
 
   private final MappingModel mappingModel;
 
-  public FederatedEntityFetcher(
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authorizationService, dataStoreFactory);
+  public FederatedEntityFetcher(MappingModel mappingModel) {
+    super(mappingModel);
     this.mappingModel = mappingModel;
   }
 
   @Override
   protected List<FederatedEntity> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     List<FederatedEntity> result = new ArrayList<>();
     for (Map<String, Object> representation :
         environment.<List<Map<String, Object>>>getArgument(_Entity.argumentName)) {
-      result.add(getEntity(representation, dataStore, authenticationSubject));
+      result.add(getEntity(representation, dataStore, context));
     }
     return result;
   }
 
   private FederatedEntity getEntity(
-      Map<String, Object> representation,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      Map<String, Object> representation, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     Object rawTypeName = representation.get("__typename");
     if (!(rawTypeName instanceof String)) {
@@ -98,7 +89,7 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
             Optional.empty(),
             Optional.empty(),
             dataStore,
-            authenticationSubject);
+            context);
     Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
     return FederatedEntity.wrap(entityModel, entity);
   }

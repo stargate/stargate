@@ -16,26 +16,19 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import java.util.List;
 
 public class AlterTableDropFetcher extends TableFetcher {
 
-  public AlterTableDropFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
-    List<String> toDrop = dataFetchingEnvironment.getArgument("toDrop");
+    List<String> toDrop = environment.getArgument("toDrop");
     if (toDrop.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("toDrop must contain at least one element");

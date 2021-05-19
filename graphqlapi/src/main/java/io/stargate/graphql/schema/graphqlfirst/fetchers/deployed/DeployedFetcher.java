@@ -23,14 +23,11 @@ import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.schema.GraphQLScalarType;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundSelect;
@@ -46,6 +43,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.WhereConditionModel;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,11 +63,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   protected final MappingModel mappingModel;
 
-  public DeployedFetcher(
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
+  public DeployedFetcher(MappingModel mappingModel) {
     this.mappingModel = mappingModel;
   }
 
@@ -256,7 +250,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Optional<Integer> limit,
       Optional<Integer> pageSize,
       DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      StargateGraphqlContext context)
       throws UnauthorizedException {
 
     AbstractBound<?> query =
@@ -272,13 +266,15 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
             .bind();
 
     try {
-      return authorizationService.authorizedDataRead(
-          () -> executeUnchecked(query, pagingState, pageSize, dataStore),
-          authenticationSubject,
-          entity.getKeyspaceName(),
-          entity.getCqlName(),
-          TypedKeyValue.forSelect((BoundSelect) query),
-          SourceAPI.GRAPHQL);
+      return context
+          .getAuthorizationService()
+          .authorizedDataRead(
+              () -> executeUnchecked(query, pagingState, pageSize, dataStore),
+              context.getSubject(),
+              entity.getKeyspaceName(),
+              entity.getCqlName(),
+              TypedKeyValue.forSelect((BoundSelect) query),
+              SourceAPI.GRAPHQL);
     } catch (Exception e) {
       if (e instanceof UnauthorizedException) {
         throw (UnauthorizedException) e;

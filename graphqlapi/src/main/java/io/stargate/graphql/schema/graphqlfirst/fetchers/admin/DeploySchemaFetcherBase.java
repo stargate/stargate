@@ -16,14 +16,10 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
@@ -33,24 +29,18 @@ import io.stargate.graphql.schema.graphqlfirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
 abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResponseDto> {
 
-  DeploySchemaFetcherBase(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected DeploySchemaResponseDto get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
+
     SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
 
     String keyspaceName = environment.getArgument("keyspace");
@@ -59,13 +49,15 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       throw new IllegalArgumentException("Keyspace '%s' does not exist.");
     }
 
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
@@ -79,10 +71,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();
     List<MigrationQuery> queries;
     try {
-      Persistence persistence = ((HttpAwareContext) environment.getContext()).getPersistence();
       ProcessedSchema processedSchema =
-          new SchemaProcessor(authorizationService, dataStoreFactory, persistence, false)
-              .process(input, keyspace);
+          new SchemaProcessor(context.getPersistence(), false).process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 
       queries =

@@ -94,8 +94,7 @@ public class DropwizardServer extends Application<Configuration> {
   @Override
   public void run(final Configuration config, final Environment environment) throws Exception {
 
-    GraphqlCache graphqlCache =
-        new GraphqlCache(persistence, authorizationService, dataStoreFactory, enableGraphqlFirst);
+    GraphqlCache graphqlCache = new GraphqlCache(persistence, dataStoreFactory, enableGraphqlFirst);
     environment
         .jersey()
         .register(

@@ -27,8 +27,6 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
 import graphql.schema.*;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
@@ -52,14 +50,12 @@ public class DmlSchemaBuilder {
 
   private static final Logger LOG = LoggerFactory.getLogger(DmlSchemaBuilder.class);
 
-  private final AuthorizationService authorizationService;
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final List<String> warnings = new ArrayList<>();
   private final FieldInputTypeCache fieldInputTypes;
   private final FieldOutputTypeCache fieldOutputTypes;
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
-  private final DataStoreFactory dataStoreFactory;
   private final Keyspace keyspace;
 
   /** Describes the different kind of types generated from a table */
@@ -71,16 +67,11 @@ public class DmlSchemaBuilder {
     Order
   }
 
-  public DmlSchemaBuilder(
-      AuthorizationService authorizationService,
-      Keyspace keyspace,
-      DataStoreFactory dataStoreFactory) {
+  public DmlSchemaBuilder(Keyspace keyspace) {
 
-    this.authorizationService = authorizationService;
     this.keyspace = keyspace;
 
     this.nameMapping = new NameMapping(keyspace.tables(), keyspace.userDefinedTypes(), warnings);
-    this.dataStoreFactory = dataStoreFactory;
     this.fieldInputTypes = new FieldInputTypeCache(this.nameMapping, warnings);
     this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping, warnings);
     this.fieldFilterInputTypes =
@@ -215,8 +206,7 @@ public class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(
-                new QueryFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+            .dataFetcher(new QueryFetcher(table, nameMapping))
             .build();
 
     GraphQLFieldDefinition filterQuery =
@@ -236,8 +226,7 @@ public class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(
-                new QueryFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+            .dataFetcher(new QueryFetcher(table, nameMapping))
             .build();
 
     return ImmutableList.of(query, filterQuery);
@@ -292,8 +281,7 @@ public class DmlSchemaBuilder {
                 .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new UpdateMutationFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+        .dataFetcher(new UpdateMutationFetcher(table, nameMapping))
         .build();
   }
 
@@ -317,9 +305,7 @@ public class DmlSchemaBuilder {
         .type(
             new GraphQLList(
                 new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult")))
-        .dataFetcher(
-            new BulkInsertMutationFetcher(
-                table, nameMapping, authorizationService, dataStoreFactory))
+        .dataFetcher(new BulkInsertMutationFetcher(table, nameMapping))
         .build();
   }
 
@@ -339,8 +325,7 @@ public class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new InsertMutationFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+        .dataFetcher(new InsertMutationFetcher(table, nameMapping))
         .build();
   }
 
@@ -364,8 +349,7 @@ public class DmlSchemaBuilder {
                 .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(
-            new DeleteMutationFetcher(table, nameMapping, authorizationService, dataStoreFactory))
+        .dataFetcher(new DeleteMutationFetcher(table, nameMapping))
         .build();
   }
 

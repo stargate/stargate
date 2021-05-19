@@ -31,8 +31,8 @@ import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Schema;
-import io.stargate.graphql.web.HttpAwareContext;
-import io.stargate.graphql.web.HttpAwareContext.BatchContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
+import io.stargate.graphql.web.StargateGraphqlContext.BatchContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -131,13 +131,16 @@ public abstract class GraphQlTestBase {
    */
   protected ExecutionResult executeGraphQl(String query) {
     // Use a context mock per execution
-    HttpAwareContext context = mock(HttpAwareContext.class);
+    StargateGraphqlContext context = mock(StargateGraphqlContext.class);
 
     // Use a dedicated batch executor per execution
     BatchContext batchContext = new BatchContext();
+    when(context.getBatchContext()).thenReturn(batchContext);
 
     when(context.getSubject()).thenReturn(authenticationSubject);
-    when(context.getBatchContext()).thenReturn(batchContext);
+    when(context.getAuthorizationService()).thenReturn(authorizationService);
+    when(context.getDataStoreFactory()).thenReturn(dataStoreFactory);
+
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }
 

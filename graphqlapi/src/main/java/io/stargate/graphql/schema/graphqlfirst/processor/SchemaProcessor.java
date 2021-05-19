@@ -48,9 +48,7 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntity;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntityFetcher;
@@ -79,8 +77,6 @@ public class SchemaProcessor {
                   SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
                   StandardCharsets.UTF_8));
 
-  private final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
   private final Persistence persistence;
   private final boolean isPersisted;
 
@@ -88,13 +84,7 @@ public class SchemaProcessor {
    * @param isPersisted whether we are processing a schema already stored in the database, or a
    *     schema that a user is attempting to deploy. This is just used to customize a couple of
    */
-  public SchemaProcessor(
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      Persistence persistence,
-      boolean isPersisted) {
-    this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
+  public SchemaProcessor(Persistence persistence, boolean isPersisted) {
     this.persistence = persistence;
     this.isPersisted = isPersisted;
   }
@@ -207,8 +197,7 @@ public class SchemaProcessor {
         Federation.transform(schema);
     if (mappingModel.hasFederatedEntities()) {
       federationTransformer
-          .fetchEntities(
-              new FederatedEntityFetcher(mappingModel, authorizationService, dataStoreFactory))
+          .fetchEntities(new FederatedEntityFetcher(mappingModel))
           .resolveEntityType(
               environment -> {
                 FederatedEntity entity = environment.getObject();
@@ -314,9 +303,7 @@ public class SchemaProcessor {
   private GraphQLCodeRegistry buildCodeRegistry(MappingModel mappingModel) {
     GraphQLCodeRegistry.Builder builder = GraphQLCodeRegistry.newCodeRegistry();
     for (OperationModel operation : mappingModel.getOperations()) {
-      builder.dataFetcher(
-          operation.getCoordinates(),
-          operation.getDataFetcher(mappingModel, authorizationService, dataStoreFactory));
+      builder.dataFetcher(operation.getCoordinates(), operation.getDataFetcher(mappingModel));
     }
     return builder.build();
   }

@@ -22,31 +22,22 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<String, Object>>> {
-  protected MutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authorizationService, dataStoreFactory);
+  protected MutationFetcher(Table table, NameMapping nameMapping) {
+    super(table, nameMapping);
   }
 
   @Override
   protected CompletableFuture<Map<String, Object>> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject) {
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
     BoundQuery query = null;
     Exception buildException = null;
 
@@ -55,7 +46,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      query = buildQuery(environment, dataStore, authenticationSubject);
+      query = buildQuery(environment, dataStore, context);
     } catch (Exception e) {
       buildException = e;
     }
@@ -90,8 +81,8 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       Exception buildException,
       OperationDefinition operation) {
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
-    HttpAwareContext context = environment.getContext();
-    HttpAwareContext.BatchContext batchContext = context.getBatchContext();
+    StargateGraphqlContext context = environment.getContext();
+    StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
       // Users should specify query options once in the batch
@@ -127,8 +118,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
   }
 
   protected abstract BoundQuery buildQuery(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception;
 }

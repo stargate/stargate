@@ -16,40 +16,33 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.graphql.web.StargateGraphqlContext;
 
 public class DropKeyspaceFetcher extends DdlQueryFetcher {
 
-  public DropKeyspaceFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
-      QueryBuilder builder,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, QueryBuilder builder, StargateGraphqlContext context)
       throws UnauthorizedException {
-    String keyspaceName = dataFetchingEnvironment.getArgument("name");
+    String keyspaceName = environment.getArgument("name");
 
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.DROP,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.DROP,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
-    boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
+    boolean ifExists = environment.getArgumentOrDefault("ifExists", Boolean.FALSE);
 
     return builder.drop().keyspace(keyspaceName).ifExists(ifExists).build();
   }

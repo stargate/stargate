@@ -16,40 +16,38 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
 
 public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
-  public SchemaFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
 
-  protected void authorize(AuthenticationSubject authenticationSubject, String keyspace)
+  protected void authorize(StargateGraphqlContext context, String keyspace)
       throws UnauthorizedException {
-    authorizationService.authorizeSchemaRead(
-        authenticationSubject,
-        Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
-        Collections.singletonList(SchemaSourceDao.TABLE_NAME),
-        SourceAPI.GRAPHQL,
-        ResourceKind.TABLE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaRead(
+            context.getSubject(),
+            Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
+            Collections.singletonList(SchemaSourceDao.TABLE_NAME),
+            SourceAPI.GRAPHQL,
+            ResourceKind.TABLE);
 
     // Also check that the user has access to the keyspace. We don't want to let them see the
     // GraphQL schema for something that's forbidden to them.
-    authorizationService.authorizeSchemaRead(
-        authenticationSubject,
-        Collections.singletonList(keyspace),
-        Collections.emptyList(),
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaRead(
+            context.getSubject(),
+            Collections.singletonList(keyspace),
+            Collections.emptyList(),
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
   }
 
   protected String getKeyspace(DataFetchingEnvironment environment, DataStore dataStore) {
