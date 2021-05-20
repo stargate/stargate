@@ -15,8 +15,8 @@
  */
 package io.stargate.web.docsapi.service;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Single;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.ResultSet;
@@ -55,7 +55,7 @@ public class RawDocument {
   }
 
   public Single<RawDocument> populateFrom(Flowable<RawDocument> docs) {
-    return docs.limit(1)
+    return docs.take(1)
         .singleElement()
         .map(this::populateFrom)
         .switchIfEmpty(Single.fromCallable(() -> replaceRows(Collections.emptyList())));

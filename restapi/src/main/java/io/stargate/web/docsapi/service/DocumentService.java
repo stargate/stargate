@@ -15,8 +15,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import io.reactivex.Flowable;
-import io.reactivex.FlowableTransformer;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableTransformer;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
@@ -467,7 +467,7 @@ public class DocumentService {
     }
 
     List<RawDocument> docs =
-        db.executeSelect(keyspace, collection, predicates, 0, null).limit(1).toList().blockingGet();
+        db.executeSelect(keyspace, collection, predicates, 0, null).take(1).toList().blockingGet();
 
     if (docs.isEmpty()) {
       return null;
@@ -716,7 +716,7 @@ public class DocumentService {
     List<RawDocument> docs =
         db.executeSelect(keyDepth, mainQuery, dbPageSize, paginator.getCurrentDbPageState())
             .compose(filterInMemory(db, inMemoryFilters))
-            .limit(paginator.docPageSize)
+            .take(paginator.docPageSize)
             .toList()
             .blockingGet();
 
@@ -793,7 +793,7 @@ public class DocumentService {
                 ImmutableList.of(),
                 docsApiConfiguration.getSearchPageSize(),
                 paginator.getCurrentDbPageState())
-            .limit(paginator.docPageSize)
+            .take(paginator.docPageSize)
             .toList()
             .blockingGet();
 
@@ -857,7 +857,7 @@ public class DocumentService {
                           keyspace, collection, ImmutableList.of(keyPredicate), 0, null));
                 })
             .compose(filterInMemory(db, inMemoryFilters))
-            .limit(paginator.docPageSize)
+            .take(paginator.docPageSize)
             .toList()
             .blockingGet();
 
@@ -918,7 +918,7 @@ public class DocumentService {
 
                 // If the nested query finds any docs, return the input doc to preserve
                 // the paging order of the main query
-                return db.executeSelect(nestedQuery, 1, null).limit(1).map(nested -> d);
+                return db.executeSelect(nestedQuery, 1, null).take(1).map(nested -> d);
               });
     }
 
@@ -943,7 +943,7 @@ public class DocumentService {
                 docsApiConfiguration.getSearchPageSize(),
                 paginator.getCurrentDbPageState())
             .compose(filterInMemory(db, inMemoryFilters))
-            .limit(paginator.docPageSize)
+            .take(paginator.docPageSize)
             .toList()
             .blockingGet();
 

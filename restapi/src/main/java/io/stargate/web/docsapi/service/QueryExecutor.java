@@ -17,12 +17,12 @@ package io.stargate.web.docsapi.service;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import hu.akarnokd.rxjava2.operators.ExpandStrategy;
-import hu.akarnokd.rxjava2.operators.FlowableTransformers;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
-import io.reactivex.FlowableOnSubscribe;
-import io.reactivex.Single;
+import hu.akarnokd.rxjava3.operators.ExpandStrategy;
+import hu.akarnokd.rxjava3.operators.FlowableTransformers;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableOnSubscribe;
+import io.reactivex.rxjava3.core.Single;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -116,7 +116,7 @@ public class QueryExecutor {
                             futureResult.complete(rows);
                           }
                         }))
-        .limit(1);
+        .take(1);
   }
 
   private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, AbstractBound<?> query) {

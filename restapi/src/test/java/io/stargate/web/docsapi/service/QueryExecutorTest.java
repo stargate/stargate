@@ -23,8 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import io.reactivex.Flowable;
-import io.reactivex.subscribers.TestSubscriber;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.ValidatingDataStore.QueryAssert;
@@ -182,7 +182,6 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     Flowable<RawDocument> flowable = executor.queryDocs(allDocsQuery, pageSize, null);
     TestSubscriber<RawDocument> test = flowable.test(1);
-    test.assertSubscribed();
 
     test.awaitCount(1);
     test.assertValueAt(0, d -> d.id().equals("0"));
@@ -360,7 +359,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
             .build()
             .bind();
 
-    List<RawDocument> docs = executor.queryDocs(3, query, pageSize, null).limit(2).test().values();
+    List<RawDocument> docs = executor.queryDocs(3, query, pageSize, null).take(2).test().values();
 
     assertThat(docs).hasSize(2);
     assertThat(docs.get(0).key()).containsExactly("a", "x", "2");
