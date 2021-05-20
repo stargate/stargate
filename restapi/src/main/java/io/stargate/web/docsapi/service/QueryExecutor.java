@@ -142,7 +142,7 @@ public class QueryExecutor {
     return seeds;
   }
 
-  public class Accumulator {
+  private class Accumulator {
 
     private final String id;
     private final List<String> docKey;
