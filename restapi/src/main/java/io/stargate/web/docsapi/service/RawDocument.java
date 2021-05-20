@@ -22,6 +22,7 @@ import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 
 public class RawDocument {
@@ -54,7 +55,14 @@ public class RawDocument {
   }
 
   public Single<RawDocument> populateFrom(Flowable<RawDocument> docs) {
-    return docs.limit(1).map(this::populateFrom).singleElement().toSingle();
+    return docs.limit(1)
+        .singleElement()
+        .map(this::populateFrom)
+        .switchIfEmpty(Single.fromCallable(() -> replaceRows(Collections.emptyList())));
+  }
+
+  private RawDocument replaceRows(List<Row> newRows) {
+    return new RawDocument(id, docKey, resultSet, hasNext, newRows);
   }
 
   public RawDocument populateFrom(RawDocument doc) {
@@ -64,7 +72,7 @@ public class RawDocument {
     }
 
     // Use query state of current doc, but rows from the other doc
-    return new RawDocument(id, docKey, resultSet, hasNext, doc.rows);
+    return replaceRows(doc.rows);
   }
 
   public boolean hasPagingState() {

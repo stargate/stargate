@@ -136,18 +136,19 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     List<RawDocument> r1 = executor.queryDocs(allDocsQuery, pageSize, null).test().values();
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
-
     assertThat(r1.get(0).hasPagingState()).isTrue();
+    assertThat(r1.get(1).hasPagingState()).isTrue();
+    assertThat(r1.get(2).hasPagingState()).isTrue();
+    assertThat(r1.get(3).hasPagingState()).isTrue();
+
     ByteBuffer ps1 = r1.get(0).makePagingState();
     List<RawDocument> r2 = executor.queryDocs(allDocsQuery, pageSize, ps1).test().values();
     assertThat(r2).extracting(RawDocument::id).containsExactly("2", "3", "4", "5");
 
-    assertThat(r1.get(1).hasPagingState()).isTrue();
     ByteBuffer ps2 = r1.get(1).makePagingState();
     List<RawDocument> r3 = executor.queryDocs(allDocsQuery, pageSize, ps2).test().values();
     assertThat(r3).extracting(RawDocument::id).containsExactly("3", "4", "5");
 
-    assertThat(r1.get(3).hasPagingState()).isTrue();
     ByteBuffer ps4 = r1.get(3).makePagingState();
     List<RawDocument> r4 = executor.queryDocs(allDocsQuery, pageSize, ps4).test().values();
     assertThat(r4).extracting(RawDocument::id).containsExactly("5");
