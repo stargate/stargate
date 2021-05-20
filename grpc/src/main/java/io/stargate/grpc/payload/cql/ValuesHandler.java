@@ -15,6 +15,8 @@
  */
 package io.stargate.grpc.payload.cql;
 
+import static io.stargate.grpc.codec.cql.ValueCodec.decodeValue;
+
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
@@ -33,29 +35,13 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.ListSpec;
-import io.stargate.proto.QueryOuterClass.MapSpec;
-import io.stargate.proto.QueryOuterClass.Payload;
+import io.stargate.proto.QueryOuterClass.*;
 import io.stargate.proto.QueryOuterClass.Payload.Type;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.SetSpec;
-import io.stargate.proto.QueryOuterClass.TupleSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Builder;
-import io.stargate.proto.QueryOuterClass.UdtSpec;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ValuesHandler implements PayloadHandler {
-  private static final Value NULL_VALUE =
-      Value.newBuilder().setNull(Value.Null.newBuilder().build()).build();
-
   @Override
   public BoundStatement bindValues(Prepared prepared, Payload payload, ByteBuffer unsetValue)
       throws InvalidProtocolBufferException, StatusException {
@@ -97,18 +83,14 @@ public class ValuesHandler implements PayloadHandler {
                                 String.format("Unable to find bind marker with name '%s'", name))
                             .asException());
         ColumnType columnType = columnTypeNotNull(column);
-        ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
+        ValueCodec codec = ValueCodecs.get(columnType.rawType());
         Value value = values.getValues(i);
-        if (codec == null) {
-          throw Status.UNIMPLEMENTED
-              .withDescription(String.format("Unsupported type %s", columnType))
-              .asException();
-        }
         try {
           boundValues.add(encodeValue(codec, value, columnType, unsetValue));
         } catch (Exception e) {
           throw Status.INVALID_ARGUMENT
-              .withDescription(String.format("Invalid argument for name '%s'", name))
+              .withDescription(
+                  String.format("Invalid argument for name '%s': %s", name, e.getMessage()))
               .withCause(e)
               .asException();
         }
@@ -119,17 +101,13 @@ public class ValuesHandler implements PayloadHandler {
         Column column = columns.get(i);
         Value value = values.getValues(i);
         ColumnType columnType = columnTypeNotNull(column);
-        ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
-        if (codec == null) {
-          throw Status.UNIMPLEMENTED
-              .withDescription(String.format("Unsupported type %s", columnType))
-              .asException();
-        }
+        ValueCodec codec = ValueCodecs.get(columnType.rawType());
         try {
           boundValues.add(encodeValue(codec, value, columnType, unsetValue));
         } catch (Exception e) {
           throw Status.INVALID_ARGUMENT
-              .withDescription(String.format("Invalid argument at position %d", i + 1))
+              .withDescription(
+                  String.format("Invalid argument at position %d: %s", i + 1, e.getMessage()))
               .withCause(e)
               .asException();
         }
@@ -162,11 +140,8 @@ public class ValuesHandler implements PayloadHandler {
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
-        ValueCodec codec = ValueCodecs.CODECS.get(columnType.rawType());
-        if (codec == null) {
-          throw Status.FAILED_PRECONDITION.withDescription("Unsupported column type").asException();
-        }
-        rowBuilder.addValues(decodeValue(codec, row.get(i)));
+        ValueCodec codec = ValueCodecs.get(columnType.rawType());
+        rowBuilder.addValues(decodeValue(codec, row.get(i), columnType));
       }
       resultSetBuilder.addRows(rowBuilder);
     }
@@ -185,20 +160,10 @@ public class ValuesHandler implements PayloadHandler {
   @Nullable
   private ByteBuffer encodeValue(
       ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue) {
-    if (value.hasNull()) {
-      return null;
-    } else if (value.hasUnset()) {
+    if (value.hasUnset()) {
       return unsetValue;
     } else {
-      return codec.encode(value, columnType);
-    }
-  }
-
-  private Value decodeValue(ValueCodec codec, ByteBuffer bytes) {
-    if (bytes == null) {
-      return NULL_VALUE;
-    } else {
-      return codec.decode(bytes);
+      return ValueCodec.encodeValue(codec, value, columnType);
     }
   }
 
@@ -214,7 +179,8 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   private TypeSpec convertType(ColumnType columnType) throws StatusException {
-    Builder builder = TypeSpec.newBuilder().setType(TypeSpec.Type.forNumber(columnType.id()));
+    TypeSpec.Builder builder =
+        TypeSpec.newBuilder().setType(TypeSpec.Type.forNumber(columnType.id()));
 
     if (columnType.isParameterized()) {
       List<ColumnType> parameters = columnType.parameters();

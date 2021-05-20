@@ -17,8 +17,6 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.InsertFetcher;
 import java.util.Optional;
 
@@ -60,10 +58,7 @@ public class InsertModel extends MutationModel {
   }
 
   @Override
-  public DataFetcher<?> getDataFetcher(
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    return new InsertFetcher(this, mappingModel, authorizationService, dataStoreFactory);
+  public DataFetcher<?> getDataFetcher(MappingModel mappingModel) {
+    return new InsertFetcher(this, mappingModel);
   }
 }

@@ -16,8 +16,6 @@
 package io.stargate.graphql.schema.cqlfirst;
 
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.cqlfirst.ddl.DdlSchemaBuilder;
 import io.stargate.graphql.schema.cqlfirst.dml.DmlSchemaBuilder;
@@ -30,11 +28,8 @@ public class SchemaFactory {
    *
    * <p>This is the API exposed at {@code /graphql/<keyspaceName>}.
    */
-  public static GraphQLSchema newDmlSchema(
-      AuthorizationService authorizationService,
-      Keyspace keyspace,
-      DataStoreFactory dataStoreFactory) {
-    return new DmlSchemaBuilder(authorizationService, keyspace, dataStoreFactory).build();
+  public static GraphQLSchema newDmlSchema(Keyspace keyspace) {
+    return new DmlSchemaBuilder(keyspace).build();
   }
 
   /**
@@ -43,8 +38,7 @@ public class SchemaFactory {
    *
    * <p>This is the API exposed at {@code /graphql-schema}.
    */
-  public static GraphQLSchema newDdlSchema(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    return new DdlSchemaBuilder(authorizationService, dataStoreFactory).build();
+  public static GraphQLSchema newDdlSchema() {
+    return new DdlSchemaBuilder().build();
   }
 }

@@ -18,13 +18,10 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
@@ -34,6 +31,7 @@ import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.AggregationsFetcherSupport;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,31 +45,27 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   private final AggregationsFetcherSupport aggregationsFetcherSupport;
 
-  public QueryFetcher(
-      Table table,
-      NameMapping nameMapping,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authorizationService, dataStoreFactory);
+  public QueryFetcher(Table table, NameMapping nameMapping) {
+    super(table, nameMapping);
     this.aggregationsFetcherSupport = new AggregationsFetcherSupport(nameMapping, table);
   }
 
   @Override
   protected Map<String, Object> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
     BoundQuery query = buildQuery(environment, dataStore);
 
     ResultSet resultSet =
-        authorizationService.authorizedDataRead(
-            () -> dataStore.execute(query).get(),
-            authenticationSubject,
-            table.keyspace(),
-            table.name(),
-            TypedKeyValue.forSelect((BoundSelect) query),
-            SourceAPI.GRAPHQL);
+        context
+            .getAuthorizationService()
+            .authorizedDataRead(
+                () -> dataStore.execute(query).get(),
+                context.getSubject(),
+                table.keyspace(),
+                table.name(),
+                TypedKeyValue.forSelect((BoundSelect) query),
+                SourceAPI.GRAPHQL);
 
     Map<String, Object> result = new HashMap<>();
     result.put(

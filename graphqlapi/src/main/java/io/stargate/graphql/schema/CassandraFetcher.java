@@ -3,18 +3,14 @@ package io.stargate.graphql.schema;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
 public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> {
-  protected final AuthorizationService authorizationService;
-  protected final DataStoreFactory dataStoreFactory;
 
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
@@ -27,27 +23,22 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
           .serialConsistencyLevel(DEFAULT_SERIAL_CONSISTENCY)
           .build();
 
-  public CassandraFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
-  }
-
   @Override
   public final ResultT get(DataFetchingEnvironment environment) throws Exception {
-    HttpAwareContext httpAwareContext = environment.getContext();
+    StargateGraphqlContext context = environment.getContext();
 
-    AuthenticationSubject authenticationSubject = httpAwareContext.getSubject();
+    AuthenticationSubject authenticationSubject = context.getSubject();
 
     Parameters parameters = getDatastoreParameters(environment);
     DataStoreOptions dataStoreOptions =
         DataStoreOptions.builder()
-            .putAllCustomProperties(httpAwareContext.getAllHeaders())
+            .putAllCustomProperties(context.getAllHeaders())
             .defaultParameters(parameters)
             .alwaysPrepareQueries(true)
             .build();
-    DataStore dataStore = dataStoreFactory.create(authenticationSubject.asUser(), dataStoreOptions);
-    return get(environment, dataStore, authenticationSubject);
+    DataStore dataStore =
+        context.getDataStoreFactory().create(authenticationSubject.asUser(), dataStoreOptions);
+    return get(environment, dataStore, context);
   }
 
   protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
@@ -55,8 +46,6 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
   }
 
   protected abstract ResultT get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception;
 }

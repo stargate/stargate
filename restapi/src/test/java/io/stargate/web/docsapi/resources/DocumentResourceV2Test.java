@@ -15,9 +15,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
+import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
@@ -45,6 +44,7 @@ public class DocumentResourceV2Test {
   @InjectMocks private DocumentResourceV2 documentResourceV2;
   @Mock private DocumentService documentServiceMock;
   @Mock private Db dbFactoryMock;
+  @Mock private DocsSchemaChecker schemaCheckerMock;
   @Spy private ObjectMapper mapper = new ObjectMapper();
   @Spy private DocsApiConfiguration conf;
   private HttpServletRequest httpServletRequest;
@@ -210,13 +210,6 @@ public class DocumentResourceV2Test {
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
 
-    Keyspace keyspaceMock = mock(Keyspace.class);
-    Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
-        .thenReturn(authenticatedDBMock);
-    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
-    when(keyspaceMock.table(collection)).thenReturn(tableMock);
-
     Response r =
         documentResourceV2.getDoc(
             headers,
@@ -237,9 +230,7 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDocPath_rawTrue()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+  public void getDocPath_rawTrue() throws JsonProcessingException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -259,13 +250,6 @@ public class DocumentResourceV2Test {
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
-
-    Keyspace keyspaceMock = mock(Keyspace.class);
-    Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
-        .thenReturn(authenticatedDBMock);
-    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
-    when(keyspaceMock.table(collection)).thenReturn(tableMock);
 
     Response r =
         documentResourceV2.getDocPath(
@@ -288,9 +272,7 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDocPath_whereAndFields()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+  public void getDocPath_whereAndFields() throws JsonProcessingException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -322,13 +304,6 @@ public class DocumentResourceV2Test {
 
     Mockito.when(documentServiceMock.convertToSelectionList(anyObject())).thenCallRealMethod();
 
-    Keyspace keyspaceMock = mock(Keyspace.class);
-    Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
-        .thenReturn(authenticatedDBMock);
-    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
-    when(keyspaceMock.table(collection)).thenReturn(tableMock);
-
     Response r =
         documentResourceV2.getDocPath(
             headers,
@@ -350,9 +325,7 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDocPath_rawFalse()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
+  public void getDocPath_rawFalse() throws JsonProcessingException, UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -372,13 +345,6 @@ public class DocumentResourceV2Test {
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(mockedReturn);
-
-    Keyspace keyspaceMock = mock(Keyspace.class);
-    Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
-        .thenReturn(authenticatedDBMock);
-    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
-    when(keyspaceMock.table(collection)).thenReturn(tableMock);
 
     Response r =
         documentResourceV2.getDocPath(
@@ -404,8 +370,7 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void getDocPath_emptyResult()
-      throws ExecutionException, InterruptedException, UnauthorizedException {
+  public void getDocPath_emptyResult() throws UnauthorizedException {
     HttpHeaders headers = mock(HttpHeaders.class);
     UriInfo ui = mock(UriInfo.class);
     String authToken = "auth_token";
@@ -422,13 +387,6 @@ public class DocumentResourceV2Test {
             documentServiceMock.getJsonAtPath(
                 anyObject(), anyString(), anyString(), anyString(), anyObject()))
         .thenReturn(null);
-
-    Keyspace keyspaceMock = mock(Keyspace.class);
-    Table tableMock = mock(Table.class);
-    when(dbFactoryMock.getDataStoreForToken(Mockito.eq(authToken), anyObject()))
-        .thenReturn(authenticatedDBMock);
-    when(authenticatedDBMock.getKeyspace(keyspace)).thenReturn(keyspaceMock);
-    when(keyspaceMock.table(collection)).thenReturn(tableMock);
 
     Response r =
         documentResourceV2.getDocPath(

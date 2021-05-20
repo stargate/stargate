@@ -23,6 +23,8 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
@@ -159,6 +161,10 @@ public class DocumentDB {
     return dataStore.queryBuilder();
   }
 
+  public Schema schema() {
+    return dataStore.schema();
+  }
+
   /**
    * Creates the table described by @param tableName, in keyspace @keyspaceName, if it doesn't
    * already exist.
@@ -271,6 +277,41 @@ public class DocumentDB {
       }
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Unable to drop indexes in preparation for upgrade", e);
+    }
+  }
+
+  /**
+   * Checks that a table in a particular keyspace has the schema of a Documents collection. This is
+   * done by checking that the table has all of the columns required.
+   *
+   * <p>Does not check that the table and keyspace exist.
+   *
+   * @param keyspaceName The name of the keyspace.
+   * @param tableName The name of the table.
+   */
+  public boolean isDocumentsTable(String keyspaceName, String tableName) {
+    List<String> columnNames =
+        dataStore.schema().keyspace(keyspaceName).table(tableName).columns().stream()
+            .map(Column::name)
+            .collect(Collectors.toList());
+    if (columnNames.size() != allColumnNames.size()) return false;
+    columnNames.removeAll(allColumnNames);
+    return columnNames.isEmpty();
+  }
+
+  public void tableExists(String keyspaceName, String tableName) {
+    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+
+    if (null == keyspace) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST,
+          String.format("Namespace %s does not exist.", keyspaceName));
+    }
+    Table table = keyspace.table(tableName);
+    if (null == table) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST,
+          String.format("Collection %s does not exist.", tableName));
     }
   }
 

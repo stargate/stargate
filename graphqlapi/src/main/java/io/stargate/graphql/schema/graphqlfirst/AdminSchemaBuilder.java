@@ -39,8 +39,6 @@ import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.AllSchemasFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFileFetcher;
@@ -342,16 +340,9 @@ public class AdminSchemaBuilder {
           .field(UNDEPLOY_SCHEMA_MUTATION)
           .build();
 
-  private final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
   private final GraphqlCache graphqlCache;
 
-  public AdminSchemaBuilder(
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      GraphqlCache graphqlCache) {
-    this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
+  public AdminSchemaBuilder(GraphqlCache graphqlCache) {
     this.graphqlCache = graphqlCache;
   }
 
@@ -409,22 +400,17 @@ public class AdminSchemaBuilder {
         .mutation(MUTATION)
         .codeRegistry(
             newCodeRegistry()
+                .dataFetcher(coordinates(QUERY, SCHEMA_QUERY), new SingleSchemaFetcher())
                 .dataFetcher(
-                    coordinates(QUERY, SCHEMA_QUERY),
-                    new SingleSchemaFetcher(authorizationService, dataStoreFactory))
-                .dataFetcher(
-                    coordinates(QUERY, SCHEMA_HISTORY_PER_KEYSPACE_QUERY),
-                    new AllSchemasFetcher(authorizationService, dataStoreFactory))
+                    coordinates(QUERY, SCHEMA_HISTORY_PER_KEYSPACE_QUERY), new AllSchemasFetcher())
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
-                    new DeploySchemaFetcher(authorizationService, dataStoreFactory, graphqlCache))
+                    new DeploySchemaFetcher(graphqlCache))
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
-                    new DeploySchemaFileFetcher(
-                        authorizationService, dataStoreFactory, graphqlCache))
+                    new DeploySchemaFileFetcher(graphqlCache))
                 .dataFetcher(
-                    coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION),
-                    new UndeploySchemaFetcher(authorizationService, dataStoreFactory))
+                    coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION), new UndeploySchemaFetcher())
                 .build())
         .build();
   }

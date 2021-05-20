@@ -16,14 +16,10 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
@@ -33,7 +29,7 @@ import io.stargate.graphql.schema.graphqlfirst.migration.MigrationQuery;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import java.io.IOException;
 import java.util.List;
@@ -43,20 +39,15 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
 
   private final GraphqlCache graphqlCache;
 
-  DeploySchemaFetcherBase(
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      GraphqlCache graphqlCache) {
-    super(authorizationService, dataStoreFactory);
+  DeploySchemaFetcherBase(GraphqlCache graphqlCache) {
     this.graphqlCache = graphqlCache;
   }
 
   @Override
   protected DeploySchemaResponseDto get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
+
     SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
 
     String keyspaceName = environment.getArgument("keyspace");
@@ -65,13 +56,15 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       throw new IllegalArgumentException("Keyspace '%s' does not exist.");
     }
 
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
@@ -86,11 +79,8 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
     List<MigrationQuery> queries;
     ProcessedSchema processedSchema;
     try {
-      Persistence persistence = ((HttpAwareContext) environment.getContext()).getPersistence();
-
       processedSchema =
-          new SchemaProcessor(authorizationService, dataStoreFactory, persistence, false)
-              .process(input, keyspace);
+          new SchemaProcessor(context.getPersistence(), false).process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 
       queries =
@@ -112,7 +102,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
       graphqlCache.putDml(
-          keyspaceName, newSource, processedSchema.getGraphql(), authenticationSubject);
+          keyspaceName, newSource, processedSchema.getGraphql(), context.getSubject());
     }
     return response;
   }

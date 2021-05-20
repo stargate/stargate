@@ -3,14 +3,11 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.TtlFromOptionsExtractor.getTTL;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
@@ -19,25 +16,20 @@ import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class UpdateMutationFetcher extends MutationFetcher {
 
-  public UpdateMutationFetcher(
-      Table table,
-      NameMapping nameMapping,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(table, nameMapping, authorizationService, dataStoreFactory);
+  public UpdateMutationFetcher(Table table, NameMapping nameMapping) {
+    super(table, nameMapping);
   }
 
   @Override
   protected BoundQuery buildQuery(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     boolean ifExists =
         environment.containsArgument("ifExists")
@@ -56,13 +48,15 @@ public class UpdateMutationFetcher extends MutationFetcher {
             .build()
             .bind();
 
-    authorizationService.authorizeDataWrite(
-        authenticationSubject,
-        table.keyspace(),
-        table.name(),
-        TypedKeyValue.forDML((BoundDMLQuery) query),
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL);
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            table.keyspace(),
+            table.name(),
+            TypedKeyValue.forDML((BoundDMLQuery) query),
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL);
 
     return query;
   }

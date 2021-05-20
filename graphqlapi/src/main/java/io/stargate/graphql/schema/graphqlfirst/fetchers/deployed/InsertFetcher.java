@@ -17,14 +17,11 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
@@ -40,6 +37,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,20 +50,14 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
 
   private final InsertModel model;
 
-  public InsertFetcher(
-      InsertModel model,
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authorizationService, dataStoreFactory);
+  public InsertFetcher(InsertModel model, MappingModel mappingModel) {
+    super(mappingModel);
     this.model = model;
   }
 
   @Override
   protected Map<String, Object> get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -107,13 +99,15 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
             .build()
             .bind();
 
-    authorizationService.authorizeDataWrite(
-        authenticationSubject,
-        entityModel.getKeyspaceName(),
-        entityModel.getCqlName(),
-        TypedKeyValue.forDML((BoundDMLQuery) query),
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL);
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            entityModel.getKeyspaceName(),
+            entityModel.getCqlName(),
+            TypedKeyValue.forDML((BoundDMLQuery) query),
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL);
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 

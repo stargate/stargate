@@ -22,7 +22,6 @@ import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
 import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -60,7 +59,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
       Boolean.getBoolean("stargate.graphql.default_keyspace.disabled");
 
   private final Persistence persistence;
-  private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final boolean enableGraphqlFirst;
 
@@ -70,21 +68,13 @@ public class GraphqlCache implements KeyspaceChangeListener {
   private final ConcurrentMap<String, DmlGraphqlHolder> dmlGraphqls = new ConcurrentHashMap<>();
 
   public GraphqlCache(
-      Persistence persistence,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      boolean enableGraphqlFirst) {
+      Persistence persistence, DataStoreFactory dataStoreFactory, boolean enableGraphqlFirst) {
     this.persistence = persistence;
-    this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.enableGraphqlFirst = enableGraphqlFirst;
 
-    this.ddlGraphql =
-        newGraphql(SchemaFactory.newDdlSchema(authorizationService, dataStoreFactory));
-    this.schemaFirstAdminGraphql =
-        GraphQL.newGraphQL(
-                new AdminSchemaBuilder(authorizationService, dataStoreFactory, this).build())
-            .build();
+    this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
+    this.schemaFirstAdminGraphql = GraphQL.newGraphQL(new AdminSchemaBuilder(this).build()).build();
     this.defaultKeyspace = findDefaultKeyspace(dataStoreFactory.createInternal());
 
     persistence.registerEventListener(this);
@@ -277,12 +267,10 @@ public class GraphqlCache implements KeyspaceChangeListener {
     private GraphQL buildGraphql() {
 
       if (source == null) {
-        return newGraphql(
-            SchemaFactory.newDmlSchema(authorizationService, keyspace, dataStoreFactory));
+        return newGraphql(SchemaFactory.newDmlSchema(keyspace));
       } else {
         ProcessedSchema processedSchema =
-            new SchemaProcessor(authorizationService, dataStoreFactory, persistence, true)
-                .process(source.getContents(), keyspace);
+            new SchemaProcessor(persistence, true).process(source.getContents(), keyspace);
         // Check that the data model still matches
         CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);
 

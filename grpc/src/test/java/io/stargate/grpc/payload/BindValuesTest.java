@@ -48,9 +48,7 @@ public class BindValuesTest {
   public void bindValuesValid(
       Payload.Type type, Prepared prepared, Payload payload, PayloadValuesValidator validator)
       throws Exception {
-    PayloadHandler handler = PayloadHandlers.HANDLERS.get(type);
-    assertThat(handler).isNotNull();
-
+    PayloadHandler handler = PayloadHandlers.get(type);
     BoundStatement statement = handler.bindValues(prepared, payload, Utils.UNSET);
 
     validator.validate(statement, prepared, payload);
@@ -126,9 +124,7 @@ public class BindValuesTest {
       Payload payload,
       Class<?> expectedException,
       String expectedMessage) {
-    PayloadHandler handler = PayloadHandlers.HANDLERS.get(type);
-    assertThat(handler).isNotNull();
-
+    PayloadHandler handler = PayloadHandlers.get(type);
     assertThatThrownBy(
             () -> {
               handler.bindValues(prepared, payload, Utils.UNSET);
@@ -256,8 +252,7 @@ public class BindValuesTest {
                             .findFirst()
                             .orElseThrow(() -> new AssertionError("Unable to find column"));
                     Column column = columns.get(index);
-                    Value decodedValue =
-                        decodeValue(column.type().rawType(), statement.values().get(index));
+                    Value decodedValue = decodeValue(column.type(), statement.values().get(index));
                     assertThat(decodedValue).isEqualTo(values.getValues(index));
                   }
                 });
@@ -265,19 +260,19 @@ public class BindValuesTest {
         List<Column> columns = prepared.metadata.columns;
         for (int i = 0; i < columns.size(); ++i) {
           Column column = columns.get(i);
-          Value decodedValue = decodeValue(column.type().rawType(), statement.values().get(i));
+          Value decodedValue = decodeValue(column.type(), statement.values().get(i));
           assertThat(decodedValue).isEqualTo(values.getValues(i));
         }
       }
     }
 
-    private Value decodeValue(Column.Type type, ByteBuffer bytes) {
+    private Value decodeValue(Column.ColumnType type, ByteBuffer bytes) {
       if (bytes == null) {
         return Value.newBuilder().setNull(Null.newBuilder().build()).build();
       } else if (bytes == Utils.UNSET) {
         return Value.newBuilder().setUnset(Unset.newBuilder().build()).build();
       } else {
-        return ValueCodecs.CODECS.get(type).decode(bytes);
+        return ValueCodecs.get(type.rawType()).decode(bytes, type);
       }
     }
   }

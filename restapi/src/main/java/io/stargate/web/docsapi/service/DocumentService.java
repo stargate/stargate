@@ -57,14 +57,17 @@ public class DocumentService {
   private DocsApiConfiguration docsApiConfiguration;
   private JsonConverter jsonConverterService;
   private ObjectMapper mapper;
+  private DocsSchemaChecker schemaChecker;
 
   public DocumentService(
       ObjectMapper mapper,
       JsonConverter jsonConverterService,
-      DocsApiConfiguration docsApiConfiguration) {
+      DocsApiConfiguration docsApiConfiguration,
+      DocsSchemaChecker schemaChecker) {
     this.mapper = mapper;
     this.jsonConverterService = jsonConverterService;
     this.docsApiConfiguration = docsApiConfiguration;
+    this.schemaChecker = schemaChecker;
   }
 
   /*
@@ -406,6 +409,8 @@ public class DocumentService {
       db.maybeCreateTableIndexes(keyspace, collection);
     }
 
+    schemaChecker.checkValidity(keyspace, collection, db);
+
     // Left-pad the path segments that represent arrays
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
@@ -441,6 +446,7 @@ public class DocumentService {
   public JsonNode getJsonAtPath(
       DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
       throws UnauthorizedException {
+
     List<BuiltCondition> predicates = new ArrayList<>();
     predicates.add(BuiltCondition.of("key", Predicate.EQ, id));
 
