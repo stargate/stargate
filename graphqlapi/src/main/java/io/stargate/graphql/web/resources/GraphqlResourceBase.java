@@ -71,6 +71,7 @@ public class GraphqlResourceBase {
   @Inject protected AuthorizationService authorizationService;
   @Inject protected DataStoreFactory dataStoreFactory;
   @Inject protected Persistence persistence;
+  @Inject protected GraphqlCache graphqlCache;
 
   /**
    * Handles a GraphQL GET request.
@@ -97,7 +98,11 @@ public class GraphqlResourceBase {
               .operationName(operationName)
               .context(
                   new StargateGraphqlContext(
-                      httpRequest, authorizationService, dataStoreFactory, persistence));
+                      httpRequest,
+                      authorizationService,
+                      dataStoreFactory,
+                      persistence,
+                      graphqlCache));
 
       if (!Strings.isNullOrEmpty(variables)) {
         @SuppressWarnings("unchecked")
@@ -155,7 +160,11 @@ public class GraphqlResourceBase {
             .operationName(operationName)
             .context(
                 new StargateGraphqlContext(
-                    httpRequest, authorizationService, dataStoreFactory, persistence));
+                    httpRequest,
+                    authorizationService,
+                    dataStoreFactory,
+                    persistence,
+                    graphqlCache));
     if (variables != null) {
       input = input.variables(variables);
     }
@@ -333,7 +342,7 @@ public class GraphqlResourceBase {
         ExecutionInput.newExecutionInput(query)
             .context(
                 new StargateGraphqlContext(
-                    httpRequest, authorizationService, dataStoreFactory, persistence))
+                    httpRequest, authorizationService, dataStoreFactory, persistence, graphqlCache))
             .build();
     executeAsync(input, graphql, asyncResponse);
   }

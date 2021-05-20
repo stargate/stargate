@@ -70,8 +70,9 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
 
     DeploySchemaResponseDto response = new DeploySchemaResponseDto();
     List<MigrationQuery> queries;
+    ProcessedSchema processedSchema;
     try {
-      ProcessedSchema processedSchema =
+      processedSchema =
           new SchemaProcessor(context.getPersistence(), false).process(input, keyspace);
       response.setLogs(processedSchema.getLogs());
 
@@ -93,7 +94,9 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
       schemaSourceDao.purgeOldVersions(keyspaceName);
       response.setVersion(newSource.getVersion());
-      // TODO update SchemaFirstCache from here instead of letting it reload from the DB
+      context
+          .getGraphqlCache()
+          .putDml(keyspaceName, newSource, processedSchema.getGraphql(), context.getSubject());
     }
     return response;
   }
