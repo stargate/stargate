@@ -50,7 +50,7 @@ import javax.ws.rs.core.Response;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"documents"})
-@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}/collections")
+@Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Produces(MediaType.APPLICATION_JSON)
 public class CollectionsResource {
 
@@ -65,6 +65,7 @@ public class CollectionsResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
+  @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response getCollections(
@@ -114,6 +115,7 @@ public class CollectionsResource {
         @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
+  @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response createCollection(
@@ -172,7 +174,7 @@ public class CollectionsResource {
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("{collection-id}")
+  @Path("collections/{collection-id}")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response deleteCollection(
@@ -234,7 +236,7 @@ public class CollectionsResource {
         @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
-  @Path("{collection-id}/upgrade")
+  @Path("collections/{collection-id}/upgrade")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public Response upgradeCollection(
