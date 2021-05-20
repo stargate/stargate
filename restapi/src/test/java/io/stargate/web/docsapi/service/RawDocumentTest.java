@@ -18,7 +18,7 @@ package io.stargate.web.docsapi.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import java.util.List;

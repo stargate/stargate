@@ -4,7 +4,7 @@ import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
