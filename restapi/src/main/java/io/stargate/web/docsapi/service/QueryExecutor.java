@@ -52,13 +52,13 @@ public class QueryExecutor {
   }
 
   public Flowable<RawDocument> queryDocs(
-      int identityDepth, AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+      int keyDepth, AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
     BuiltSelect select = (BuiltSelect) query.source().query();
-    if (identityDepth < 1 || identityDepth > select.table().primaryKeyColumns().size()) {
-      throw new IllegalArgumentException("Invalid document identity depth: " + identityDepth);
+    if (keyDepth < 1 || keyDepth > select.table().primaryKeyColumns().size()) {
+      throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
     }
 
-    List<Column> idColumns = select.table().primaryKeyColumns().subList(0, identityDepth);
+    List<Column> idColumns = select.table().primaryKeyColumns().subList(0, keyDepth);
 
     return execute(query, pageSize, pagingState)
         .flatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)), 1) // concurrency factor 1
