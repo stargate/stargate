@@ -542,7 +542,7 @@ public class DsePersistence
                                 Conversion.toResult(
                                     (ResultMessage) response,
                                     Conversion.toInternal(parameters.protocolVersion()),
-                                    ClientWarn.instance.getWarnings());
+                                    ClientWarn.instance.getAndClearWarnings());
                         return result;
                       } finally {
                         // this is to clean the thread local in TPC thread
@@ -574,7 +574,7 @@ public class DsePersistence
 
     private PersistenceException convertExceptionWithWarnings(Throwable t) {
       PersistenceException pe = Conversion.convertInternalException(t);
-      pe.setWarnings(ClientWarn.instance.getWarnings());
+      pe.setWarnings(ClientWarn.instance.getAndClearWarnings());
       return pe;
     }
 
