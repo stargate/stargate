@@ -74,7 +74,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
     this.enableGraphqlFirst = enableGraphqlFirst;
 
     this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
-    this.schemaFirstAdminGraphql = GraphQL.newGraphQL(new AdminSchemaBuilder(this).build()).build();
+    this.schemaFirstAdminGraphql = GraphQL.newGraphQL(new AdminSchemaBuilder().build()).build();
     this.defaultKeyspace = findDefaultKeyspace(dataStoreFactory.createInternal());
 
     persistence.registerEventListener(this);

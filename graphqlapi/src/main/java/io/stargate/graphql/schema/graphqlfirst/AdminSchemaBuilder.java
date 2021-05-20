@@ -46,7 +46,6 @@ import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.SingleSchemaFetche
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.UndeploySchemaFetcher;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationStrategy;
 import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingLogType;
-import io.stargate.graphql.web.resources.GraphqlCache;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import io.stargate.graphql.web.resources.ResourcePaths;
 import java.io.InputStream;
@@ -339,12 +338,6 @@ public class AdminSchemaBuilder {
           .field(DEPLOY_SCHEMA_FILE_MUTATION)
           .field(UNDEPLOY_SCHEMA_MUTATION)
           .build();
-
-  private final GraphqlCache graphqlCache;
-
-  public AdminSchemaBuilder(GraphqlCache graphqlCache) {
-    this.graphqlCache = graphqlCache;
-  }
 
   private static GraphQLFieldDefinition.Builder deploySchemaStart() {
     return newFieldDefinition()
