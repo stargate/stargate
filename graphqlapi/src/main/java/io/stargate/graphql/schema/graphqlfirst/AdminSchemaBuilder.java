@@ -404,11 +404,10 @@ public class AdminSchemaBuilder {
                 .dataFetcher(
                     coordinates(QUERY, SCHEMA_HISTORY_PER_KEYSPACE_QUERY), new AllSchemasFetcher())
                 .dataFetcher(
-                    coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION),
-                    new DeploySchemaFetcher(graphqlCache))
+                    coordinates(MUTATION, DEPLOY_SCHEMA_MUTATION), new DeploySchemaFetcher())
                 .dataFetcher(
                     coordinates(MUTATION, DEPLOY_SCHEMA_FILE_MUTATION),
-                    new DeploySchemaFileFetcher(graphqlCache))
+                    new DeploySchemaFileFetcher())
                 .dataFetcher(
                     coordinates(MUTATION, UNDEPLOY_SCHEMA_MUTATION), new UndeploySchemaFetcher())
                 .build())

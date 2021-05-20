@@ -23,6 +23,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
+import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class StargateGraphqlContext {
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final Persistence persistence;
+  private final GraphqlCache graphqlCache;
 
   // We need to manually maintain state between multiple selections in a single mutation
   // operation to execute them as a batch.
@@ -51,12 +53,14 @@ public class StargateGraphqlContext {
       HttpServletRequest request,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
-      Persistence persistence) {
+      Persistence persistence,
+      GraphqlCache graphqlCache) {
     this.request = request;
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.persistence = persistence;
+    this.graphqlCache = graphqlCache;
     if (this.subject == null) {
       // This happens if a GraphQL resource is not annotated with @Authenticated
       throw new AssertionError("Missing authentication subject in the request");
@@ -85,6 +89,10 @@ public class StargateGraphqlContext {
 
   public Persistence getPersistence() {
     return persistence;
+  }
+
+  public GraphqlCache getGraphqlCache() {
+    return graphqlCache;
   }
 
   /**

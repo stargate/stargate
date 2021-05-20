@@ -17,17 +17,12 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import com.google.common.io.CharStreams;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.graphql.web.resources.GraphqlCache;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 public class DeploySchemaFileFetcher extends DeploySchemaFetcherBase {
-
-  public DeploySchemaFileFetcher(GraphqlCache graphqlCache) {
-    super(graphqlCache);
-  }
 
   @Override
   protected String getSchemaContents(DataFetchingEnvironment environment) throws IOException {
