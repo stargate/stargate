@@ -257,6 +257,8 @@ public class CollectionsResource {
               value = "JSON with the upgrade type",
               required = true,
               example = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}")
+          @NotNull(message = "payload not provided")
+          @Valid
           UpgradeCollectionDto body,
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
