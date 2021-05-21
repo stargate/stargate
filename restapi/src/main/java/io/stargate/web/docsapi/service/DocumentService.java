@@ -985,9 +985,10 @@ public class DocumentService {
     collectNestedElementConditions(predicates, condition.getPath());
     collectFieldConditions(predicates, condition);
 
-    // The rest of the paths must match empty-string
-    for (int i = condition.getPath().size() + 1; i < MAX_DEPTH; i++) {
-      predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
+    // The next path element must match empty-string
+    int next = condition.getPath().size() + 1;
+    if (next < MAX_DEPTH) {
+      predicates.add(BuiltCondition.of("p" + next, Predicate.EQ, ""));
     }
 
     collectValueConditions(predicates, condition, booleanAsNumeric);

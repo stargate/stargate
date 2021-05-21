@@ -438,6 +438,10 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .isEqualTo("[{\"a\":{\"d\":{\"c\":3,\"z\":true}}},{\"a\":{\"f\":{\"c\":100}}}]");
   }
 
+  private Object[] params(Object... params) {
+    return params;
+  }
+
   private Object[] fillParams(Object val, int count, double lastValue, Object... params) {
     Object[] result = new Object[params.length + count + 1];
     Arrays.fill(result, val);
@@ -466,8 +470,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   void testSearchDocEmpty() throws JsonProcessingException {
     withQuery(
             table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 > ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 = ? AND p6 = ? AND p7 = ? AND p8 = ? AND p9 = ? AND p10 = ? AND p11 = ? AND p12 = ? AND p13 = ? AND p14 = ? AND p15 = ? AND p16 = ? AND p17 = ? AND p18 = ? AND p19 = ? AND p20 = ? AND p21 = ? AND p22 = ? AND p23 = ? AND p24 = ? AND p25 = ? AND p26 = ? AND p27 = ? AND p28 = ? AND p29 = ? AND p30 = ? AND p31 = ? AND p32 = ? AND p33 = ? AND p34 = ? AND p35 = ? AND p36 = ? AND p37 = ? AND p38 = ? AND p39 = ? AND p40 = ? AND p41 = ? AND p42 = ? AND p43 = ? AND p44 = ? AND p45 = ? AND p46 = ? AND p47 = ? AND p48 = ? AND p49 = ? AND p50 = ? AND p51 = ? AND p52 = ? AND p53 = ? AND p54 = ? AND p55 = ? AND p56 = ? AND p57 = ? AND p58 = ? AND p59 = ? AND p60 = ? AND p61 = ? AND p62 = ? AND p63 = ? AND dbl_value > ? ALLOW FILTERING",
-            fillParams("", 61, 1.0d, "a", "", "c"))
+            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 > ? AND p2 = ? AND p3 = ? AND dbl_value > ? ALLOW FILTERING",
+            params("a", "", "c", "", 1.0))
         .returningNothing();
     DocumentResponseWrapper<Map<String, ?>> r = searchDoc("{\"a.*.c\":{\"$gt\":1}}", null);
     assertThat(r.getPageState()).isNull();
@@ -481,19 +485,15 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     withQuery(
             table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 = ? AND p6 = ? AND p7 = ? AND p8 = ? AND p9 = ? AND p10 = ? AND p11 = ? AND p12 = ? AND p13 = ? AND p14 = ? AND p15 = ? AND p16 = ? AND p17 = ? AND p18 = ? AND p19 = ? AND p20 = ? AND p21 = ? AND p22 = ? AND p23 = ? AND p24 = ? AND p25 = ? AND p26 = ? AND p27 = ? AND p28 = ? AND p29 = ? AND p30 = ? AND p31 = ? AND p32 = ? AND p33 = ? AND p34 = ? AND p35 = ? AND p36 = ? AND p37 = ? AND p38 = ? AND p39 = ? AND p40 = ? AND p41 = ? AND p42 = ? AND p43 = ? AND p44 = ? AND p45 = ? AND p46 = ? AND p47 = ? AND p48 = ? AND p49 = ? AND p50 = ? AND p51 = ? AND p52 = ? AND p53 = ? AND p54 = ? AND p55 = ? AND p56 = ? AND p57 = ? AND p58 = ? AND p59 = ? AND p60 = ? AND p61 = ? AND p62 = ? AND p63 = ? AND dbl_value > ? ALLOW FILTERING",
-            fillParams("", 62, 1.0d, "a", "c"))
+            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING",
+            params("a", "c", "", 1.0))
         .returning(ImmutableList.of(leafRow(id1), leafRow(id2)));
 
-    withQuery(
-            table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 = ? AND p6 = ? AND p7 = ? AND p8 = ? AND p9 = ? AND p10 = ? AND p11 = ? AND p12 = ? AND p13 = ? AND p14 = ? AND p15 = ? AND p16 = ? AND p17 = ? AND p18 = ? AND p19 = ? AND p20 = ? AND p21 = ? AND p22 = ? AND p23 = ? AND p24 = ? AND p25 = ? AND p26 = ? AND p27 = ? AND p28 = ? AND p29 = ? AND p30 = ? AND p31 = ? AND p32 = ? AND p33 = ? AND p34 = ? AND p35 = ? AND p36 = ? AND p37 = ? AND p38 = ? AND p39 = ? AND p40 = ? AND p41 = ? AND p42 = ? AND p43 = ? AND p44 = ? AND p45 = ? AND p46 = ? AND p47 = ? AND p48 = ? AND p49 = ? AND p50 = ? AND p51 = ? AND p52 = ? AND p53 = ? AND p54 = ? AND p55 = ? AND p56 = ? AND p57 = ? AND p58 = ? AND p59 = ? AND p60 = ? AND p61 = ? AND p62 = ? AND p63 = ? AND dbl_value = ? ALLOW FILTERING",
-            fillParams("", 61, 2.0d, id1, "d", "e", "f"))
+    String checkDblValueQuery =
+        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? ALLOW FILTERING";
+    withQuery(table, checkDblValueQuery, id1, "d", "e", "f", "", 2.0)
         .returning(ImmutableList.of(leafRow(id1)));
-    withQuery(
-            table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 = ? AND p6 = ? AND p7 = ? AND p8 = ? AND p9 = ? AND p10 = ? AND p11 = ? AND p12 = ? AND p13 = ? AND p14 = ? AND p15 = ? AND p16 = ? AND p17 = ? AND p18 = ? AND p19 = ? AND p20 = ? AND p21 = ? AND p22 = ? AND p23 = ? AND p24 = ? AND p25 = ? AND p26 = ? AND p27 = ? AND p28 = ? AND p29 = ? AND p30 = ? AND p31 = ? AND p32 = ? AND p33 = ? AND p34 = ? AND p35 = ? AND p36 = ? AND p37 = ? AND p38 = ? AND p39 = ? AND p40 = ? AND p41 = ? AND p42 = ? AND p43 = ? AND p44 = ? AND p45 = ? AND p46 = ? AND p47 = ? AND p48 = ? AND p49 = ? AND p50 = ? AND p51 = ? AND p52 = ? AND p53 = ? AND p54 = ? AND p55 = ? AND p56 = ? AND p57 = ? AND p58 = ? AND p59 = ? AND p60 = ? AND p61 = ? AND p62 = ? AND p63 = ? AND dbl_value = ? ALLOW FILTERING",
-            fillParams("", 61, 2.0d, id2, "d", "e", "f"))
+    withQuery(table, checkDblValueQuery, id2, "d", "e", "f", "", 2.0)
         .returning(ImmutableList.of(leafRow(id2)));
 
     withQuery(table, selectAll("WHERE key = ?"), id1)
