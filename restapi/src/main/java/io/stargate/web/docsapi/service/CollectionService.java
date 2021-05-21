@@ -54,6 +54,7 @@ public class CollectionService {
     if (upgradeType == CollectionUpgradeType.SAI_INDEX_UPGRADE) {
       return docDB.upgradeTableIndexes(keyspaceName, tableName);
     }
-    throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID);
+    String msg = String.format("Invalid upgrade type: %s.", upgradeType);
+    throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID, msg);
   }
 }

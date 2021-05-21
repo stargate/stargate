@@ -24,7 +24,7 @@ import javax.validation.constraints.NotNull;
 
 /** The DTO for the collection creation. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CreateCollectionDto {
+public class CreateCollection {
 
   @JsonProperty("name")
   @NotNull(message = "`name` is required to create a collection")
@@ -32,7 +32,7 @@ public class CreateCollectionDto {
   private final String name;
 
   @JsonCreator
-  public CreateCollectionDto(@JsonProperty("name") String name) {
+  public CreateCollection(@JsonProperty("name") String name) {
     this.name = name;
   }
 

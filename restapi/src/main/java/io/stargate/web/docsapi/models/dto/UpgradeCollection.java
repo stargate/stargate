@@ -24,14 +24,14 @@ import javax.validation.constraints.NotNull;
 
 /** The DTO for the collection upgrade. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UpgradeCollectionDto {
+public class UpgradeCollection {
 
   @JsonProperty("upgradeType")
   @NotNull(message = "`upgradeType` is required to upgrade a collection")
   private final CollectionUpgradeType upgradeType;
 
   @JsonCreator
-  public UpgradeCollectionDto(@JsonProperty("upgradeType") CollectionUpgradeType upgradeType) {
+  public UpgradeCollection(@JsonProperty("upgradeType") CollectionUpgradeType upgradeType) {
     this.upgradeType = upgradeType;
   }
 

@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-public class CollectionTest extends BaseOsgiIntegrationTest {
+public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final OkHttpClient CLIENT =

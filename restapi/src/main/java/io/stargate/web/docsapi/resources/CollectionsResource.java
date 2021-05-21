@@ -10,8 +10,8 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.models.DocCollection;
-import io.stargate.web.docsapi.models.dto.CreateCollectionDto;
-import io.stargate.web.docsapi.models.dto.UpgradeCollectionDto;
+import io.stargate.web.docsapi.models.dto.CreateCollection;
+import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
@@ -134,7 +134,7 @@ public class CollectionsResource {
               example = "{\"name\": \"example\"}")
           @NotNull(message = "payload not provided")
           @Valid
-          CreateCollectionDto body,
+          CreateCollection body,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -259,7 +259,7 @@ public class CollectionsResource {
               example = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}")
           @NotNull(message = "payload not provided")
           @Valid
-          UpgradeCollectionDto body,
+          UpgradeCollection body,
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
