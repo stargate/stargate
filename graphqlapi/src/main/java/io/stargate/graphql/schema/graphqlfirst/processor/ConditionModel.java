@@ -4,7 +4,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 
 public interface ConditionModel {
-  FieldModel getField();;
+  FieldModel getField();
 
   Predicate getPredicate();
 

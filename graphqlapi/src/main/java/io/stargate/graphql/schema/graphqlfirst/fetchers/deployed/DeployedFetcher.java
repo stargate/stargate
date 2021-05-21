@@ -369,7 +369,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param getArgument how to get the value of an argument (same).
    */
   protected List<BuiltCondition> bindWhere(
-      List<WhereConditionModel> whereConditions,
+      List<WhereConditionModel> conditions,
       EntityModel entity,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
@@ -377,7 +377,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
     List<BuiltCondition> result = new ArrayList<>();
     List<WhereConditionModel> activeConditions = new ArrayList<>();
-    bind(whereConditions, hasArgument, getArgument, keyspace, result, activeConditions);
+    bind(conditions, hasArgument, getArgument, keyspace, result, activeConditions);
 
     // Re-check the validity of the query (we already did while building the model, but some
     // conditions might not apply if the corresponding argument was missing).
@@ -391,14 +391,14 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected List<BuiltCondition> bindIf(
-      List<IfConditionModel> whereConditions,
+      List<IfConditionModel> conditions,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
     List<IfConditionModel> activeConditions = new ArrayList<>();
-    bind(whereConditions, hasArgument, getArgument, keyspace, result, activeConditions);
+    bind(conditions, hasArgument, getArgument, keyspace, result, activeConditions);
 
     return result;
   }

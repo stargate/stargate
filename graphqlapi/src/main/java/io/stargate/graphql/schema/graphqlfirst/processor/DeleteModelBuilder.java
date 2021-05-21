@@ -21,7 +21,12 @@ import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 class DeleteModelBuilder extends MutationModelBuilder {
