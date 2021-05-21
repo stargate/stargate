@@ -1,5 +1,52 @@
 # Changelog
 
+## [v1.0.25](https://github.com/stargate/stargate/tree/v1.0.25) (2021-05-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.24...v1.0.25)
+
+**Implemented enhancements:**
+
+- Add "CREATE TYPE" to REST API for creating UDTs [\#579](https://github.com/stargate/stargate/issues/579)
+
+**Closed issues:**
+
+- Pass all fetcher context via HttpAwareContext [\#945](https://github.com/stargate/stargate/issues/945)
+- updateColumn should allow altering type [\#845](https://github.com/stargate/stargate/issues/845)
+- JVM OnOutOfMemoryError configuration warning on startup [\#793](https://github.com/stargate/stargate/issues/793)
+- With empty tables POST to /graphql/keyspace fails [\#769](https://github.com/stargate/stargate/issues/769)
+- Restapi only uses last clustering expression in list [\#406](https://github.com/stargate/stargate/issues/406)
+- Built-in C\* aggregation functions [\#130](https://github.com/stargate/stargate/issues/130)
+- Add async writes [\#128](https://github.com/stargate/stargate/issues/128)
+
+**Merged pull requests:**
+
+- Update DSE persistence to 6.8.13 [\#964](https://github.com/stargate/stargate/pull/964) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- GraphQL: pass all fetcher dependencies through environment.getContext\(\) \(fixes \#945\) [\#956](https://github.com/stargate/stargate/pull/956) ([olim7t](https://github.com/olim7t))
+- Prevent "USE \<keyspace\>" requests [\#955](https://github.com/stargate/stargate/pull/955) ([mpenick](https://github.com/mpenick))
+- Reset warnings in finally for dse [\#954](https://github.com/stargate/stargate/pull/954) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- GraphQL schema-first: use user-scoped datastore to fetch schema files [\#953](https://github.com/stargate/stargate/pull/953) ([olim7t](https://github.com/olim7t))
+- update schema cache from DeploySchemaFetcherBase [\#950](https://github.com/stargate/stargate/pull/950) ([tomekl007](https://github.com/tomekl007))
+- fix the introspection query for an empty keyspace [\#949](https://github.com/stargate/stargate/pull/949) ([tomekl007](https://github.com/tomekl007))
+- GraphQL schema-first: handle persistence backends that default to SAI indexes [\#946](https://github.com/stargate/stargate/pull/946) ([olim7t](https://github.com/olim7t))
+- speed-up the BaseDocumentApiV2Test [\#943](https://github.com/stargate/stargate/pull/943) ([ivansenic](https://github.com/ivansenic))
+- Added client info metric tag provider [\#941](https://github.com/stargate/stargate/pull/941) ([ivansenic](https://github.com/ivansenic))
+- Add async writes [\#940](https://github.com/stargate/stargate/pull/940) ([tomekl007](https://github.com/tomekl007))
+- Bump cassandra-all from 3.11.6 to 3.11.8 in /persistence-common [\#939](https://github.com/stargate/stargate/pull/939) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump cassandra-all from 3.11.6 to 3.11.8 in /persistence-cassandra-3.11 [\#938](https://github.com/stargate/stargate/pull/938) ([dependabot[bot]](https://github.com/apps/dependabot))
+- gRPC: Collections [\#936](https://github.com/stargate/stargate/pull/936) ([mpenick](https://github.com/mpenick))
+- Add checks for document table validity before querying [\#933](https://github.com/stargate/stargate/pull/933) ([EricBorczuk](https://github.com/EricBorczuk))
+- gRPC: Add warnings [\#932](https://github.com/stargate/stargate/pull/932) ([mpenick](https://github.com/mpenick))
+- Include gRPC stuff in release bump [\#927](https://github.com/stargate/stargate/pull/927) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#926](https://github.com/stargate/stargate/pull/926) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix the response code for getAllIndexes [\#924](https://github.com/stargate/stargate/pull/924) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- introduced error code for better handling of the responses from… [\#921](https://github.com/stargate/stargate/pull/921) ([ivansenic](https://github.com/ivansenic))
+- generic constructor for ServiceAndProperties [\#920](https://github.com/stargate/stargate/pull/920) ([ivansenic](https://github.com/ivansenic))
+- gRPC: Batches [\#918](https://github.com/stargate/stargate/pull/918) ([mpenick](https://github.com/mpenick))
+- Split GraphQL legacy tests and limit usage of Apollo library [\#906](https://github.com/stargate/stargate/pull/906) ([olim7t](https://github.com/olim7t))
+- Cql first build in aggregations [\#901](https://github.com/stargate/stargate/pull/901) ([tomekl007](https://github.com/tomekl007))
+- Add Support for UserDefinedType in RestAPIv2  [\#895](https://github.com/stargate/stargate/pull/895) ([eribeiro](https://github.com/eribeiro))
+- Start adding paging [\#885](https://github.com/stargate/stargate/pull/885) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.24](https://github.com/stargate/stargate/tree/v1.0.24) (2021-05-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.23...v1.0.24)
