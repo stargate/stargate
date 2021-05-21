@@ -196,13 +196,13 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
       assumeTrue(isDse);
 
       // Create a brand new collection, it should already have SAI so it requires no upgrade
-      String newColl = "{\"name\": \"newcollection\"}";
+      String newColl = "{\"name\": \"othercollection\"}";
       RestUtils.post(authToken, getBasePath(keyspace), newColl, 201);
 
       String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
       String r =
           RestUtils.post(
-              authToken, getBasePath(keyspace) + "/newcollection/upgrade", upgradeAction, 400);
+              authToken, getBasePath(keyspace) + "/othercollection/upgrade", upgradeAction, 400);
 
       assertThat(r)
           .isEqualTo(
