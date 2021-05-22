@@ -1,6 +1,7 @@
 package io.stargate.it.http.docsapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -136,12 +137,20 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
     RestUtils.post(
         authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 201);
 
-    r =
-        RestUtils.get(
-            authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true", 200);
-    String expected = "[{\"name\": \"newcollection\", \"upgradeAvailable\": false}]";
+    // since index creation is async, we might get upgradeAvailable false a bit later
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .untilAsserted(
+            () -> {
+              String result =
+                  RestUtils.get(
+                      authToken,
+                      hostWithPort + "/v2/namespaces/" + keyspace + "/collections?raw=true",
+                      200);
+              String expected = "[{\"name\": \"newcollection\", \"upgradeAvailable\": false}]";
 
-    assertThat(objectMapper.readTree(r)).isEqualTo(objectMapper.readTree(expected));
+              assertThat(objectMapper.readTree(result)).isEqualTo(objectMapper.readTree(expected));
+            });
   }
 
   @Test
@@ -196,21 +205,30 @@ public class CollectionTest extends BaseOsgiIntegrationTest {
       RestUtils.post(
           authToken, hostWithPort + "/v2/namespaces/" + keyspace + "/collections", newColl, 201);
 
-      // Illegal, as the collection is already in its most upgraded state (with SAI)
       String upgradeAction = "{\"upgradeType\": \"SAI_INDEX_UPGRADE\"}";
-      String r =
-          RestUtils.post(
-              authToken,
-              hostWithPort + "/v2/namespaces/" + keyspace + "/collections/newcollection/upgrade",
-              upgradeAction,
-              400);
-      assertThat(r).isEqualTo("That collection cannot be upgraded in that manner");
+      // since index creation is async, we might get upgrade failure later
+      await()
+          .atMost(Duration.ofSeconds(10))
+          .untilAsserted(
+              () -> {
+                // Illegal, as the collection is already in its most upgraded state (with SAI)
+                String r =
+                    RestUtils.post(
+                        authToken,
+                        hostWithPort
+                            + "/v2/namespaces/"
+                            + keyspace
+                            + "/collections/newcollection/upgrade",
+                        upgradeAction,
+                        400);
+                assertThat(r).isEqualTo("That collection cannot be upgraded in that manner");
+              });
 
       // Drop all the relevant indexes to simulate "downgrading"
       dropIndexes("newcollection");
 
       // Now do the upgrade to add SAI
-      r =
+      String r =
           RestUtils.post(
               authToken,
               hostWithPort
