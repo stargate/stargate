@@ -410,7 +410,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       Keyspace keyspace,
       List<BuiltCondition> result,
       List<T> activeConditions) {
-    for (T whereCondition : conditions) {
+    for (T condition : conditions) {
       FieldModel field = whereCondition.getField();
       if (hasArgument.test(whereCondition.getArgumentName())) {
         activeConditions.add(whereCondition);
