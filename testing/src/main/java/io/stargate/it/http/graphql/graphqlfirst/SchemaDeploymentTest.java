@@ -367,7 +367,7 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
   @DisplayName("Should not include stacktrace in error response")
   public void deploySchemaErrorNoStacktrace(@TestKeyspace CqlIdentifier keyspaceId) {
     // given
-    String invalidSchema = "type Foo { id ID }"; // missing column before `ID`
+    String invalidSchema = "type Foo { id ID }"; // missing colon before `ID`
 
     // when
     List<Map<String, Object>> errors =
