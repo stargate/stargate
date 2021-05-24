@@ -417,12 +417,12 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
 
-    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path", 204);
+    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path", 404);
 
-    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path/[1]", 204);
+    RestUtils.get(authToken, collectionPath + "/1/nonexistent/path/[1]", 404);
 
     RestUtils.get(
-        authToken, collectionPath + "/1/quiz/maths/q1/options/[9999]", 204); // out of bounds
+        authToken, collectionPath + "/1/quiz/maths/q1/options/[9999]", 404); // out of bounds
   }
 
   @Test
@@ -610,11 +610,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(authToken, collectionPath + "/1/quiz/sport/q1/question", 204);
 
-    RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/question", 204);
+    RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/question", 404);
 
     RestUtils.delete(authToken, collectionPath + "/1/quiz/maths", 204);
 
-    RestUtils.get(authToken, collectionPath + "/1/quiz/maths", 204);
+    RestUtils.get(authToken, collectionPath + "/1/quiz/maths", 404);
 
     RestUtils.delete(authToken, collectionPath + "/1/quiz/nests/q1/options/[0]", 204);
 
@@ -629,7 +629,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(authToken, collectionPath + "/1", 204);
 
-    RestUtils.get(authToken, collectionPath + "/1", 204);
+    RestUtils.get(authToken, collectionPath + "/1", 404);
   }
 
   @Test
