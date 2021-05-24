@@ -17,14 +17,12 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import static graphql.language.ListType.newListType;
 
-import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
-import java.util.Optional;
 
 class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
 
@@ -37,26 +35,13 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionMode
     super(context, argument, operationName, entity, entities);
   }
 
-  ConditionModel build() throws SkipException {
+  @Override
+  protected String getDirectiveName() {
+    return "cql_where";
+  }
 
-    Optional<Directive> whereDirective = DirectiveHelper.getDirective("cql_where", argument);
-    String fieldName =
-        whereDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
-            .orElse(argument.getName());
-    Predicate predicate =
-        whereDirective
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
-            .orElse(Predicate.EQ);
-    if (predicate == Predicate.NEQ) {
-      invalidMapping(
-          "Operation %s: predicate NEQ (on %s) is not allowed for WHERE conditions",
-          operationName, argument.getName());
-      throw SkipException.INSTANCE;
-    }
-
-    FieldModel field = findField(fieldName);
-
+  @Override
+  protected void validate(FieldModel field, Predicate predicate) throws SkipException {
     // Check that the predicate is allowed for this type of field, and that the types match:
     if (field.isPartitionKey()) {
       checkValidForPartitionKey(predicate, field);
@@ -65,8 +50,6 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionMode
     } else {
       checkValidForRegularColumn(predicate, field);
     }
-
-    return new ConditionModel(field, predicate, argument.getName());
   }
 
   private void checkValidForPartitionKey(Predicate predicate, FieldModel field)

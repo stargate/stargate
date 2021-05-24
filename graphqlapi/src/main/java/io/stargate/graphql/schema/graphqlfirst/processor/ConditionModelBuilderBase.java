@@ -15,12 +15,15 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
+import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
+import java.util.Optional;
 
-public abstract class ConditionModelBuilderBase<ModelT> extends ModelBuilderBase<ModelT> {
+public abstract class ConditionModelBuilderBase<ModelT> extends ModelBuilderBase<ConditionModel> {
   protected final InputValueDefinition argument;
   protected final String operationName;
   protected final EntityModel entity;
@@ -84,5 +87,29 @@ public abstract class ConditionModelBuilderBase<ModelT> extends ModelBuilderBase
                   operationName, fieldName, entity.getGraphqlName());
               return SkipException.INSTANCE;
             });
+  }
+
+  protected abstract String getDirectiveName();
+
+  protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
+
+  @Override
+  protected ConditionModel build() throws SkipException {
+
+    Optional<Directive> ifDirective = DirectiveHelper.getDirective(getDirectiveName(), argument);
+    String fieldName =
+        ifDirective
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
+            .orElse(argument.getName());
+    Predicate predicate =
+        ifDirective
+            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
+            .orElse(Predicate.EQ);
+
+    FieldModel field = findField(fieldName);
+
+    validate(field, predicate);
+
+    return new ConditionModel(field, predicate, argument.getName());
   }
 }

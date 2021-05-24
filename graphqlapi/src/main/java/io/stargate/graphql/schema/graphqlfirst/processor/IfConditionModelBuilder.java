@@ -15,11 +15,9 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
 import java.util.Map;
-import java.util.Optional;
 
 class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
 
@@ -32,20 +30,13 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> 
     super(context, argument, operationName, entity, entities);
   }
 
-  ConditionModel build() throws SkipException {
+  @Override
+  protected String getDirectiveName() {
+    return "cql_if";
+  }
 
-    Optional<Directive> ifDirective = DirectiveHelper.getDirective("cql_if", argument);
-    String fieldName =
-        ifDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
-            .orElse(argument.getName());
-    Predicate predicate =
-        ifDirective
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
-            .orElse(Predicate.EQ);
-
-    FieldModel field = findField(fieldName);
-
+  @Override
+  protected void validate(FieldModel field, Predicate predicate) throws SkipException {
     // The CQL IF works only for regular columns (non PK, CK)
     if (field.isPartitionKey()) {
       invalidMapping(
@@ -57,8 +48,6 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> 
     } else {
       checkValidForRegularColumn(predicate, field);
     }
-
-    return new ConditionModel(field, predicate, argument.getName());
   }
 
   private void checkValidForRegularColumn(Predicate predicate, FieldModel field)
