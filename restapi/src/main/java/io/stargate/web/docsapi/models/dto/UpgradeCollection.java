@@ -43,6 +43,6 @@ public class UpgradeCollection {
 
   @Override
   public String toString() {
-    return String.format("UpgradeCollectionDto(upgradeType=%s)", upgradeType);
+    return String.format("UpgradeCollection(upgradeType=%s)", upgradeType);
   }
 }

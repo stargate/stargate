@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,8 +20,6 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.web.models.Keyspace;
-import io.stargate.web.models.ResponseWrapper;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.time.Duration;
@@ -38,7 +35,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -1983,123 +1979,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
   }
 
-  // Below are "namespace" tests that should match the REST Api's keyspace tests
-  @Test
-  public void getNamespaces() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken, String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_OK);
-
-    ResponseWrapper response = OBJECT_MAPPER.readValue(body, ResponseWrapper.class);
-    List<Keyspace> keyspaces =
-        OBJECT_MAPPER.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value).isEqualToComparingFieldByField(new Keyspace("system", null)));
-  }
-
-  @Test
-  public void getNamespacesMissingToken() throws IOException {
-    RestUtils.get(
-        "", String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Test
-  public void getNamespacesBadToken() throws IOException {
-    RestUtils.get(
-        "foo", String.format("%s:8082/v2/schemas/namespaces", host), HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Test
-  public void getNamespacesRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/namespaces?raw=true", host),
-            HttpStatus.SC_OK);
-
-    List<Keyspace> keyspaces =
-        OBJECT_MAPPER.readValue(body, new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .isEqualToComparingFieldByField(new Keyspace("system_schema", null)));
-  }
-
-  @Test
-  public void getNamespace() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/namespaces/system", host),
-            HttpStatus.SC_OK);
-
-    ResponseWrapper response = OBJECT_MAPPER.readValue(body, ResponseWrapper.class);
-    Keyspace keyspace = OBJECT_MAPPER.convertValue(response.getData(), Keyspace.class);
-
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
-  }
-
-  @Test
-  public void getNamespaceRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/namespaces/system?raw=true", host),
-            HttpStatus.SC_OK);
-
-    Keyspace keyspace = OBJECT_MAPPER.readValue(body, Keyspace.class);
-
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace("system", null));
-  }
-
-  @Test
-  public void getNamespaceNotFound() throws IOException {
-    RestUtils.get(
-        authToken,
-        String.format("%s:8082/v2/schemas/namespaces/ks_not_found", host),
-        HttpStatus.SC_NOT_FOUND);
-  }
-
-  @Test
-  public void createNamespace() throws IOException {
-    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
-    createKeyspace(keyspaceName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s:8082/v2/schemas/namespaces/%s?raw=true", host, keyspaceName),
-            HttpStatus.SC_OK);
-
-    Keyspace keyspace = OBJECT_MAPPER.readValue(body, Keyspace.class);
-
-    assertThat(keyspace).isEqualToComparingFieldByField(new Keyspace(keyspaceName, null));
-  }
-
-  @Test
-  public void deleteNamespace() throws IOException {
-    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
-    createKeyspace(keyspaceName);
-
-    RestUtils.get(
-        authToken,
-        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
-        HttpStatus.SC_OK);
-
-    RestUtils.delete(
-        authToken,
-        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
-        HttpStatus.SC_NO_CONTENT);
-
-    RestUtils.get(
-        authToken,
-        String.format("%s:8082/v2/schemas/namespaces/%s", host, keyspaceName),
-        HttpStatus.SC_NOT_FOUND);
-  }
-
   @Test
   public void createCollection() throws IOException {
     String tableName = "tb_createTable_" + System.currentTimeMillis();
@@ -2149,16 +2028,5 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
       wrapperNode.set("pageState", TextNode.valueOf(pagingState));
     }
     return wrapperNode;
-  }
-
-  private void createKeyspace(String keyspaceName) throws IOException {
-    String createKeyspaceRequest =
-        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/schemas/namespaces", host),
-        createKeyspaceRequest,
-        HttpStatus.SC_CREATED);
   }
 }

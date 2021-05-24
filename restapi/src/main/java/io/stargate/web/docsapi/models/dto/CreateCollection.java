@@ -44,6 +44,6 @@ public class CreateCollection {
 
   @Override
   public String toString() {
-    return String.format("CreateCollectionDto(name=%s)", name);
+    return String.format("CreateCollection(name=%s)", name);
   }
 }
