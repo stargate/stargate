@@ -248,7 +248,9 @@ directive @cql_where (
 ) on ARGUMENT_DEFINITION
 
 """
-Annotates a parameter to customize the DELETE condition that is generated from it.
+Annotates a parameter to indicate that it will be used as a condition that must test true on the selected entity in order for the mutation to be applied.
+
+This is only allowed for delete and update mutations.
 """
 directive @cql_if (
 
