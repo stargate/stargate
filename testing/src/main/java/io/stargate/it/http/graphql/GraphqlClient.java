@@ -52,12 +52,19 @@ public abstract class GraphqlClient {
   }
 
   protected String getGraphqlError(String authToken, String url, String graphqlQuery) {
+    List<Map<String, Object>> errors = getGraphqlErrors(authToken, url, graphqlQuery);
+    assertThat(errors).hasSize(1);
+    return (String) errors.get(0).get("message");
+  }
+
+  protected List<Map<String, Object>> getGraphqlErrors(
+      String authToken, String url, String graphqlQuery) {
     Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
     assertThat(response).isNotNull();
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-    assertThat(errors).hasSize(1);
-    return (String) errors.get(0).get("message");
+    assertThat(errors).isNotEmpty();
+    return errors;
   }
 
   protected Map<String, Object> getGraphqlResponse(
