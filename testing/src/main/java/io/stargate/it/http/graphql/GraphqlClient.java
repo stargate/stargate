@@ -57,6 +57,16 @@ public abstract class GraphqlClient {
     return (String) errors.get(0).get("message");
   }
 
+  protected Map<String, Object> getGraphqlErrors(
+      String authToken, String url, String graphqlQuery) {
+    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
+    assertThat(response).isNotNull();
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
+    assertThat(errors).hasSize(1);
+    return errors.get(0);
+  }
+
   protected Map<String, Object> getGraphqlResponse(
       String authToken, String url, String graphqlQuery) {
     try {

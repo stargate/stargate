@@ -53,7 +53,7 @@ public class ConditionsModelBuilder {
       if (isCqlIfDirective(inputValue) && isCqlWhereDirective(inputValue)) {
         invalidMappingReporter.invalidMapping(
             "You cannot set both: %s and %s directives on the same field: %s",
-            CQL_IF, CQL_IF, inputValue);
+            CQL_IF, CQL_IF, inputValue.getName());
         foundErrors = true;
       }
 

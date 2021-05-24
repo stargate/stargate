@@ -77,9 +77,19 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getDeploySchemaError(keyspace, expectedVersion, false, contents);
   }
 
+  public Map<String, Object> getDeploySchemaErrors(String keyspace, String contents) {
+    return getDeploySchemaErrors(keyspace, null, false, contents);
+  }
+
   public String getDeploySchemaError(
       String keyspace, String expectedVersion, boolean force, String contents) {
     return getGraphqlError(
+        authToken, adminUri, buildDeploySchemaQuery(keyspace, expectedVersion, force, contents));
+  }
+
+  public Map<String, Object> getDeploySchemaErrors(
+      String keyspace, String expectedVersion, boolean force, String contents) {
+    return getGraphqlErrors(
         authToken, adminUri, buildDeploySchemaQuery(keyspace, expectedVersion, force, contents));
   }
 
