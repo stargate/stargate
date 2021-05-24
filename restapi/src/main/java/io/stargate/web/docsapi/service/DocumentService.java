@@ -36,6 +36,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -59,6 +60,7 @@ public class DocumentService {
   private ObjectMapper mapper;
   private DocsSchemaChecker schemaChecker;
 
+  @Inject
   public DocumentService(
       ObjectMapper mapper,
       JsonConverter jsonConverterService,

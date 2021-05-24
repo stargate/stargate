@@ -50,6 +50,7 @@ import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
 import io.stargate.web.resources.v2.schemas.UserDefinedTypesResource;
 import io.stargate.web.swagger.SwaggerUIResource;
+import io.stargate.web.validation.ViolationExceptionMapper;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -114,6 +115,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     configureObjectMapper(environment.getObjectMapper());
 
+    environment.jersey().register(new ViolationExceptionMapper());
     environment
         .jersey()
         .register(
