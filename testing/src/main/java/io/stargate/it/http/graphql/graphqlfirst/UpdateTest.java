@@ -19,13 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.Row;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,14 +65,6 @@ public class UpdateTest extends GraphqlFirstTestBase {
     SESSION.execute("truncate table \"User\"");
   }
 
-  private static void insert(int pk, int cc1, int cc2) {
-    SESSION.execute("INSERT INTO \"Foo\"(pk, cc1, cc2) VALUES (?, ?, ?)", pk, cc1, cc2);
-  }
-
-  private static List<Row> findAllUsers(int pk, int cc1) {
-    return SESSION.execute("SELECT * FROM \"User\" WHERE pk = ? AND cc1 = ?", pk, cc1).all();
-  }
-
   @Test
   @DisplayName("Should update user with all PKs and CKs")
   public void testSimpleUpdate() {
@@ -88,8 +78,10 @@ public class UpdateTest extends GraphqlFirstTestBase {
     updateUser(1, 2, 3, "Tom");
     updateUser(1, 2, 4, "Mike");
 
-    // When update for partial PKs, should override two user-names
+    // when
     String error = updateUserPartialPk(1, 2, "Updated");
+
+    // then
     assertThat(error).contains("Some clustering keys are missing: cc2");
   }
 
