@@ -411,12 +411,12 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       List<BuiltCondition> result,
       List<T> activeConditions) {
     for (T condition : conditions) {
-      FieldModel field = whereCondition.getField();
-      if (hasArgument.test(whereCondition.getArgumentName())) {
-        activeConditions.add(whereCondition);
-        Object graphqlValue = getArgument.apply(whereCondition.getArgumentName());
+      FieldModel field = condition.getField();
+      if (hasArgument.test(condition.getArgumentName())) {
+        activeConditions.add(condition);
+        Object graphqlValue = getArgument.apply(condition.getArgumentName());
         Column.ColumnType cqlType;
-        switch (whereCondition.getPredicate()) {
+        switch (condition.getPredicate()) {
           case IN:
             cqlType = Column.Type.List.of(field.getCqlType());
             break;
@@ -428,7 +428,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
             break;
         }
         Object cqlValue = toCqlValue(graphqlValue, cqlType, keyspace);
-        result.add(whereCondition.build(cqlValue));
+        result.add(condition.build(cqlValue));
       }
     }
   }
