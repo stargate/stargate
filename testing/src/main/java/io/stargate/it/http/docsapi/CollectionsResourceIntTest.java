@@ -206,7 +206,7 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
 
       assertThat(r)
           .isEqualTo(
-              "{\"description\":\"The collection cannot be upgraded in given manner.\",\"code\":404}");
+              "{\"description\":\"The collection cannot be upgraded in given manner.\",\"code\":400}");
     }
 
     @Test
