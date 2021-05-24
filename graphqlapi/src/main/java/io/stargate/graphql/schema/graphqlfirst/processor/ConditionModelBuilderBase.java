@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static graphql.language.ListType.newListType;
+
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
@@ -23,7 +25,7 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
 
-public abstract class ConditionModelBuilderBase<ModelT> extends ModelBuilderBase<ConditionModel> {
+public abstract class ConditionModelBuilderBase extends ModelBuilderBase<ConditionModel> {
   protected final InputValueDefinition argument;
   protected final String operationName;
   protected final EntityModel entity;
@@ -111,5 +113,22 @@ public abstract class ConditionModelBuilderBase<ModelT> extends ModelBuilderBase
     validate(field, predicate);
 
     return new ConditionModel(field, predicate, argument.getName());
+  }
+
+  protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
+
+    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
+    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> expectedArgumentType = newListType(fieldInputType).build();
+
+    if (!argumentType.isEqualTo(expectedArgumentType)) {
+      invalidMapping(
+          "Operation %s: expected argument %s to have type %s to match %s.%s",
+          operationName,
+          argument.getName(),
+          TypeHelper.format(expectedArgumentType),
+          entity.getGraphqlName(),
+          field.getGraphqlName());
+    }
   }
 }

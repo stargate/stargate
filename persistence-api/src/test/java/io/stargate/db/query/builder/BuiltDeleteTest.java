@@ -13,6 +13,7 @@ import io.stargate.db.query.QueryType;
 import io.stargate.db.query.RowsRange;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.schema.Column.Type;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -195,5 +196,37 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "Java value 3 of type 'java.lang.Integer' is not a valid value for CQL type text");
+  }
+
+  @Test
+  public void testINPredicateCondition() {
+    QueryBuilder builder = newBuilder();
+
+    BuiltQuery<?> query =
+        builder
+            .delete()
+            .from(KS_NAME, "t1")
+            .where("k1", Predicate.EQ, "foo")
+            .ifs(
+                BuiltCondition.of(
+                    BuiltCondition.LHS.column("v2"), Predicate.IN, Arrays.asList(1, 2)))
+            .ifExists(false)
+            .build();
+
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 IN (1, 2)", emptyList());
+
+    setBound(query.bind());
+
+    assertTestDeleteBoundQuery(
+        "DELETE FROM ks.t1 WHERE k1 = ? IF v2 IN ?", "foo", Arrays.asList(1, 2));
+  }
+
+  private void assertTestDeleteBoundQuery(String expectedBoundQuery, String k1, List<Integer> v) {
+    assertBoundQuery(bound, expectedBoundQuery, asList(k1, v));
+
+    assertThat(bound.table().name()).isEqualTo("t1");
+    assertThat(bound.rowsUpdated().isRanges()).isTrue();
+    assertThat(bound.ttl()).isEmpty();
+    assertThat(bound.timestamp()).isEmpty();
   }
 }

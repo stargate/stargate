@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static graphql.language.ListType.newListType;
-
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
@@ -24,7 +22,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 
-class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
+class WhereConditionModelBuilder extends ConditionModelBuilderBase {
 
   WhereConditionModelBuilder(
       InputValueDefinition argument,
@@ -125,23 +123,6 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionMode
               operationName, predicate, field.getGraphqlName());
           throw SkipException.INSTANCE;
       }
-    }
-  }
-
-  private void checkArgumentIsListOf(FieldModel field) throws SkipException {
-
-    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
-    Type<?> expectedArgumentType = newListType(fieldInputType).build();
-
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(expectedArgumentType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
     }
   }
 

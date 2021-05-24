@@ -92,6 +92,11 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
             + "v: Int @cql_if(field: \"v\", predicate: NEQ)\n"
             + "): Boolean\n"
             + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "deleteFooIN(\n"
+            + "pk: Int\n"
+            + "vs: [Int] @cql_if(field: \"v\", predicate: IN)\n"
+            + "): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "}");
   }
 
@@ -225,6 +230,29 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooNEQ")).isTrue();
+    assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should delete rows with cql_if IN predicate")
+  public void deleteWithCqlIfINisNotSupported() {
+    // Given
+    insert(1, 100);
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooIN(pk: 1, vs: [99]) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIN")).isTrue();
+    assertThat(exists(1)).isTrue();
+
+    // when
+    response =
+        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { deleteFooIN(pk: 1, vs: [99, 100]) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIN")).isTrue();
     assertThat(exists(1)).isFalse();
   }
 }

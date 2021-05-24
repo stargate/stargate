@@ -19,7 +19,7 @@ import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
 import java.util.Map;
 
-class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
+class IfConditionModelBuilder extends ConditionModelBuilderBase {
 
   IfConditionModelBuilder(
       InputValueDefinition argument,
@@ -60,6 +60,9 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> 
       case LTE:
       case GTE:
         checkArgumentIsSameAs(field);
+        break;
+      case IN:
+        checkArgumentIsListOf(field);
         break;
       default:
         invalidMapping(

@@ -115,7 +115,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
       BiFunction<InputValueDefinition, EntityModel, ModelBuilderBase<C>> modelBuilder,
       Predicate<InputValueDefinition> skipIf)
       throws SkipException {
-    ImmutableList.Builder<C> whereConditionsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<C> conditionsBuilder = ImmutableList.builder();
     boolean foundErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
       if (skipIf.test(inputValue)) {
@@ -126,7 +126,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
         continue;
       }
       try {
-        whereConditionsBuilder.add(modelBuilder.apply(inputValue, entity).build());
+        conditionsBuilder.add(modelBuilder.apply(inputValue, entity).build());
       } catch (SkipException __) {
         foundErrors = true;
       }
@@ -134,7 +134,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     if (foundErrors) {
       throw SkipException.INSTANCE;
     }
-    return whereConditionsBuilder.build();
+    return conditionsBuilder.build();
   }
 
   protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)
