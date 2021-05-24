@@ -20,18 +20,18 @@ import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.grpc.Status;
 import io.stargate.grpc.payload.cql.ValuesHandler;
-import io.stargate.proto.QueryOuterClass.Payload.Type;
+import io.stargate.proto.QueryOuterClass.Payload;
 
 public class PayloadHandlers {
 
-  private static final ImmutableMap<Type, PayloadHandler> HANDLERS =
+  private static final ImmutableMap<Payload.Type, PayloadHandler> HANDLERS =
       Maps.immutableEnumMap(
-          ImmutableMap.<Type, PayloadHandler>builder()
-              .put(Type.TYPE_CQL, new ValuesHandler())
+          ImmutableMap.<Payload.Type, PayloadHandler>builder()
+              .put(Payload.Type.CQL, new ValuesHandler())
               .build());
 
   @NonNull
-  public static PayloadHandler get(Type type) {
+  public static PayloadHandler get(Payload.Type type) {
     PayloadHandler handler = HANDLERS.get(type);
     if (handler == null) {
       throw Status.UNIMPLEMENTED.withDescription("Unsupported payload type").asRuntimeException();

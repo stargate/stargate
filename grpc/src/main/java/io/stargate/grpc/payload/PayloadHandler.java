@@ -15,10 +15,10 @@
  */
 package io.stargate.grpc.payload;
 
+import com.google.protobuf.Any;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import java.nio.ByteBuffer;
 
@@ -34,18 +34,17 @@ public interface PayloadHandler {
    * @return A statement that has been bound with payload values.
    * @throws Exception
    */
-  BoundStatement bindValues(Prepared prepared, Payload payload, ByteBuffer unsetValue)
-      throws Exception;
+  BoundStatement bindValues(Prepared prepared, Any payload, ByteBuffer unsetValue) throws Exception;
 
   /**
    * Convert a {@link Rows} result type into a result payload.
    *
    * @param rows The raw CQL native protocol values and column metadata needed to convert to the
    *     resulting payload result.
-   * @param parameters Mostly used for {@link QueryParameters#getSkipMetadata()}, but could be used
-   *     to control other payload-specific features in the future.
+   * @param parameters Mostly used for {@link QueryParameters#getPopulateMetadata()}, but could be
+   *     used to control other payload-specific features in the future.
    * @return A payload built from the raw CQL native protocol values.
    * @throws Exception
    */
-  Payload processResult(Rows rows, QueryParameters parameters) throws Exception;
+  Any processResult(Rows rows, QueryParameters parameters) throws Exception;
 }

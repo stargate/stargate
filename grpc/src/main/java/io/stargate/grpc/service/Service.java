@@ -44,7 +44,7 @@ import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.Result;
+import io.stargate.proto.QueryOuterClass.Response;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -99,7 +99,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @Override
-  public void executeQuery(Query query, StreamObserver<Result> responseObserver) {
+  public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
     try {
       AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
       Connection connection = newConnection(authenticationSubject.asUser());
@@ -128,7 +128,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @Override
-  public void executeBatch(Batch batch, StreamObserver<Result> responseObserver) {
+  public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     try {
       AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
       Connection connection = newConnection(authenticationSubject.asUser());
@@ -158,7 +158,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private void handleError(Throwable throwable, StreamObserver<Result> responseObserver) {
+  private void handleError(Throwable throwable, StreamObserver<?> responseObserver) {
     if (throwable instanceof StatusException || throwable instanceof StatusRuntimeException) {
       responseObserver.onError(throwable);
     } else {
@@ -204,42 +204,35 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection,
       Prepared prepared,
       Query query,
-      StreamObserver<Result> responseObserver) {
+      StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
-      QueryParameters parameters = query.getParameters();
-      Payload payload = parameters.getPayload();
+      Payload values = query.getValues();
+      PayloadHandler handler = PayloadHandlers.get(values.getType());
 
-      PayloadHandler handler = PayloadHandlers.get(payload.getType());
+      QueryParameters parameters = query.getParameters();
 
       connection
           .execute(
-              bindValues(handler, prepared, payload),
-              makeParameters(parameters),
-              queryStartNanoTime)
+              bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
           .whenComplete(
               (result, t) -> {
                 if (t != null) {
                   handleError(t, responseObserver);
                 } else {
                   try {
-                    Result.Builder resultBuilder = makeResultBuilder(result);
+                    Response.Builder responseBuilder = makeResponseBuilder(result);
                     switch (result.kind) {
                       case Void:
                       case SchemaChange: // Fallthrough intended
                         break;
                       case Rows:
-                        Rows rows = (Rows) result;
-                        if (rows.rows.isEmpty()
-                            && (parameters.getSkipMetadata()
-                                || rows.resultMetadata.columns.isEmpty())) {
-                          resultBuilder.setPayload(
-                              Payload.newBuilder().setType(payload.getType()).build());
-                        } else {
-                          resultBuilder.setPayload(
-                              handler.processResult((Rows) result, parameters));
-                        }
+                        responseBuilder.setResultSet(
+                            Payload.newBuilder()
+                                .setType(query.getValues().getType())
+                                .setData(
+                                    handler.processResult((Rows) result, query.getParameters())));
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -250,7 +243,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                             .withDescription("Unhandled result kind")
                             .asException();
                     }
-                    responseObserver.onNext(resultBuilder.build());
+                    responseObserver.onNext(responseBuilder.build());
                     responseObserver.onCompleted();
                   } catch (Exception e) {
                     handleError(e, responseObserver);
@@ -266,7 +259,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection,
       io.stargate.db.Batch preparedBatch,
       BatchParameters parameters,
-      StreamObserver<Result> responseObserver) {
+      StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
@@ -278,11 +271,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   handleError(t, responseObserver);
                 } else {
                   try {
-                    Result.Builder resultBuilder = makeResultBuilder(result);
+                    Response.Builder responseBuilder = makeResponseBuilder(result);
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }
-                    responseObserver.onNext(resultBuilder.build());
+                    responseObserver.onNext(responseBuilder.build());
                     responseObserver.onCompleted();
                   } catch (Exception e) {
                     handleError(e, responseObserver);
@@ -294,12 +287,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload payload)
+  private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
       throws Exception {
-    if (!payload.hasValue()) {
+    if (!values.hasData()) {
       return new BoundStatement(prepared.statementId, Collections.emptyList(), null);
     }
-    return handler.bindValues(prepared, payload, unsetValue);
+    return handler.bindValues(prepared, values.getData(), unsetValue);
   }
 
   private Parameters makeParameters(QueryParameters parameters) {
@@ -382,8 +375,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return connection;
   }
 
-  private Result.Builder makeResultBuilder(io.stargate.db.Result result) {
-    Result.Builder resultBuilder = Result.newBuilder();
+  private Response.Builder makeResponseBuilder(io.stargate.db.Result result) {
+    Response.Builder resultBuilder = Response.newBuilder();
     List<String> warnings = result.getWarnings();
     if (warnings != null) {
       resultBuilder.addAllWarnings(warnings);
@@ -454,8 +447,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   future.completeExceptionally(t);
                 } else {
                   try {
-                    PayloadHandler handler = PayloadHandlers.get(query.getPayload().getType());
-                    statements.add(bindValues(handler, prepared, query.getPayload()));
+                    PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
+                    statements.add(bindValues(handler, prepared, query.getValues()));
                     next(); // Prepare the next query in the batch
                   } catch (Exception e) {
                     future.completeExceptionally(e);

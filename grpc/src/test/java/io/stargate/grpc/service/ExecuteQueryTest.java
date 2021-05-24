@@ -39,13 +39,17 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.proto.QueryOuterClass.TypeSpec.Basic;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -92,10 +96,11 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result = executeQuery(stub, query, Values.of("local"));
+    QueryOuterClass.Response response = executeQuery(stub, query, Values.of("local"));
 
-    assertThat(result.hasPayload()).isTrue();
-    ResultSet rs = result.getPayload().getValue().unpack(ResultSet.class);
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
@@ -120,16 +125,16 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeQuery(
             Query.newBuilder()
-                .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
-                .setParameters(QueryParameters.newBuilder().build()) // No payload
-                .build());
+                .setCql("INSERT INTO test (c1, c2) VALUE (?, ?)")
+                .setParameters(QueryParameters.newBuilder().build())
+                .build()); // No payload
 
-    assertThat(result.hasPayload()).isTrue();
-    assertThat(result.getPayload().hasValue()).isFalse();
-    assertThat(result.getPayload().getType()).isEqualTo(Payload.Type.TYPE_CQL);
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getResultSet().hasData()).isTrue();
+    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
   }
 
   @ParameterizedTest
@@ -152,8 +157,8 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     assertThatThrownBy(
             () -> {
-              QueryOuterClass.Result result = executeQuery(stub, "DOES NOT MATTER", values);
-              assertThat(result).isNotNull(); // Never going to happen
+              QueryOuterClass.Response response = executeQuery(stub, "DOES NOT MATTER", values);
+              assertThat(response).isNotNull(); // Never going to happen
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining(expectedMessage);
@@ -196,13 +201,150 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeQuery(
             Query.newBuilder()
                 .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
-                .setParameters(QueryParameters.newBuilder().build()) // No payload
+                .setParameters(QueryParameters.newBuilder().build())
                 .build());
 
-    assertThat(result.getWarningsList()).containsAll(expectedWarnings);
+    assertThat(response.getWarningsList()).containsAll(expectedWarnings);
+  }
+
+  @ParameterizedTest
+  @MethodSource("columnMetadataValues")
+  public void columnMetadata(
+      ResultMetadata resultMetadata, List<ColumnSpec> expected, boolean populateColumnsMetadata)
+      throws InvalidProtocolBufferException {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new Result.Rows(Collections.emptyList(), resultMetadata)));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    QueryOuterClass.Response response =
+        stub.executeQuery(
+            Query.newBuilder()
+                .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                .setParameters(
+                    QueryParameters.newBuilder()
+                        .setPopulateMetadata(populateColumnsMetadata)
+                        .build())
+                .build());
+
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    assertThat(rs.getColumnsList()).containsExactlyElementsOf(expected);
+  }
+
+  public static Stream<Arguments> columnMetadataValues() {
+    return Stream.of(
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("c1", Column.Type.Int))
+            .addActual(Column.create("c2", Column.Type.Varchar))
+            .addActual(Column.create("c3", Column.Type.Uuid))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("c1")
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.INT)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("c2")
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("c3")
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))
+            .build(true),
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("l", Type.List.of(Type.Text)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("l")
+                    .setType(
+                        TypeSpec.newBuilder()
+                            .setList(
+                                TypeSpec.List.newBuilder()
+                                    .setElement(TypeSpec.newBuilder().setBasic(Basic.TEXT)))))
+            .build(true),
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("l", Type.List.of(Type.Int)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("l")
+                    .setType(
+                        TypeSpec.newBuilder()
+                            .setList(
+                                TypeSpec.List.newBuilder()
+                                    .setElement(
+                                        TypeSpec.newBuilder().setBasic(TypeSpec.Basic.INT)))))
+            .build(true),
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("s", Type.Set.of(Type.Uuid)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("s")
+                    .setType(
+                        TypeSpec.newBuilder()
+                            .setSet(
+                                TypeSpec.Set.newBuilder()
+                                    .setElement(
+                                        TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))))
+            .build(true),
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("m", Type.Map.of(Type.Varchar, Type.Bigint)))
+            .addExpected(
+                ColumnSpec.newBuilder()
+                    .setName("m")
+                    .setType(
+                        TypeSpec.newBuilder()
+                            .setMap(
+                                TypeSpec.Map.newBuilder()
+                                    .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR))
+                                    .setValue(
+                                        TypeSpec.newBuilder().setBasic(TypeSpec.Basic.BIGINT)))))
+            .build(true),
+        ColumnMetadataBuilder.builder()
+            .addActual(Column.create("c1", Column.Type.Int))
+            .addActual(Column.create("c2", Column.Type.Varchar))
+            .addActual(Column.create("c3", Column.Type.Uuid))
+            .build(false));
+  }
+
+  private static class ColumnMetadataBuilder {
+    private final List<Column> actual = new ArrayList<>();
+    private final List<ColumnSpec> expected = new ArrayList<>();
+
+    public static ColumnMetadataBuilder builder() {
+      return new ColumnMetadataBuilder();
+    }
+
+    public ColumnMetadataBuilder addActual(Column column) {
+      actual.add(column);
+      return this;
+    }
+
+    public ColumnMetadataBuilder addExpected(ColumnSpec.Builder column) {
+      expected.add(column.build());
+      return this;
+    }
+
+    Arguments build(boolean populateColumnsMetadata) {
+      return arguments(
+          Utils.makeResultMetadata(actual.toArray(new Column[actual.size()])),
+          expected,
+          populateColumnsMetadata);
+    }
   }
 }
