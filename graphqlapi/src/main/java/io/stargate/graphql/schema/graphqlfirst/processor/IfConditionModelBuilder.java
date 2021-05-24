@@ -21,7 +21,7 @@ import io.stargate.db.query.Predicate;
 import java.util.Map;
 import java.util.Optional;
 
-class IfConditionModelBuilder extends ConditionModelBuilderBase<IfConditionModel> {
+class IfConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
 
   IfConditionModelBuilder(
       InputValueDefinition argument,
@@ -32,7 +32,7 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase<IfConditionModel
     super(context, argument, operationName, entity, entities);
   }
 
-  IfConditionModel build() throws SkipException {
+  ConditionModel build() throws SkipException {
 
     Optional<Directive> ifDirective = DirectiveHelper.getDirective("cql_if", argument);
     String fieldName =
@@ -49,18 +49,16 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase<IfConditionModel
     // The CQL IF works only for regular columns (non PK, CK)
     if (field.isPartitionKey()) {
       invalidMapping(
-          "Operation %s: predicate %s is not supported for partition keys (field %s)",
-          operationName, predicate, field.getGraphqlName());
+          "The cql_if is not supported for partition keys (field %s)", field.getGraphqlName());
     }
     if (field.isClusteringColumn()) {
       invalidMapping(
-          "Operation %s: predicate %s is not supported for clustering keys (field %s)",
-          operationName, predicate, field.getGraphqlName());
+          "The cql_if is not supported for clustering keys (field %s)", field.getGraphqlName());
     } else {
       checkValidForRegularColumn(predicate, field);
     }
 
-    return new IfConditionModel(field, predicate, argument.getName());
+    return new ConditionModel(field, predicate, argument.getName());
   }
 
   private void checkValidForRegularColumn(Predicate predicate, FieldModel field)

@@ -31,7 +31,7 @@ public class QueryModel extends OperationModel {
   // (returning multiple entities), index lookups, etc
 
   private final EntityModel entity;
-  private final List<WhereConditionModel> whereConditions;
+  private final List<ConditionModel> whereConditions;
   private final Optional<String> pagingStateArgumentName;
   private final Optional<Integer> limit;
   private final Optional<Integer> pageSize;
@@ -41,7 +41,7 @@ public class QueryModel extends OperationModel {
       String parentTypeName,
       FieldDefinition field,
       EntityModel entity,
-      List<WhereConditionModel> whereConditions,
+      List<ConditionModel> whereConditions,
       Optional<String> pagingStateArgumentName,
       Optional<Integer> limit,
       Optional<Integer> pageSize,
@@ -59,7 +59,7 @@ public class QueryModel extends OperationModel {
     return entity;
   }
 
-  public List<WhereConditionModel> getWhereConditions() {
+  public List<ConditionModel> getWhereConditions() {
     return whereConditions;
   }
 

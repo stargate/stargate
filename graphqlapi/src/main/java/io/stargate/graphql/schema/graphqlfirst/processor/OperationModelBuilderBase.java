@@ -90,9 +90,8 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
    * For each field of the given entity, try to find an operation argument of the same name, and
    * build a condition that will get appended to the CQL query.
    */
-  protected List<WhereConditionModel> buildWhereConditions(EntityModel entity)
-      throws SkipException {
-    return buildConditionModel(
+  protected List<ConditionModel> buildWhereConditions(EntityModel entity) throws SkipException {
+    return buildConditions(
         entity,
         (inputValue, e) ->
             new WhereConditionModelBuilder(inputValue, operationName, e, entities, context),
@@ -103,15 +102,15 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
    * For each field of the given entity, try to find an operation argument of the same name, and
    * build a condition that will get appended to the CQL query.
    */
-  protected List<IfConditionModel> buildIfConditions(EntityModel entity) throws SkipException {
-    return buildConditionModel(
+  protected List<ConditionModel> buildIfConditions(EntityModel entity) throws SkipException {
+    return buildConditions(
         entity,
         (inputValue, e) ->
             new IfConditionModelBuilder(inputValue, operationName, e, entities, context),
         (value) -> !DirectiveHelper.getDirective("cql_if", value).isPresent());
   }
 
-  private <C extends ConditionModel> List<C> buildConditionModel(
+  private <C extends ConditionModel> List<C> buildConditions(
       EntityModel entity,
       BiFunction<InputValueDefinition, EntityModel, ModelBuilderBase<C>> modelBuilder,
       Predicate<InputValueDefinition> skipIf)
@@ -138,7 +137,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     return whereConditionsBuilder.build();
   }
 
-  protected void validateNoFiltering(List<WhereConditionModel> whereConditions, EntityModel entity)
+  protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)
       throws SkipException {
     Optional<String> maybeError = entity.validateNoFiltering(whereConditions);
     if (maybeError.isPresent()) {

@@ -26,7 +26,7 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
 
-class WhereConditionModelBuilder extends ConditionModelBuilderBase<WhereConditionModel> {
+class WhereConditionModelBuilder extends ConditionModelBuilderBase<ConditionModel> {
 
   WhereConditionModelBuilder(
       InputValueDefinition argument,
@@ -37,7 +37,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase<WhereConditio
     super(context, argument, operationName, entity, entities);
   }
 
-  WhereConditionModel build() throws SkipException {
+  ConditionModel build() throws SkipException {
 
     Optional<Directive> whereDirective = DirectiveHelper.getDirective("cql_where", argument);
     String fieldName =
@@ -66,7 +66,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase<WhereConditio
       checkValidForRegularColumn(predicate, field);
     }
 
-    return new WhereConditionModel(field, predicate, argument.getName());
+    return new ConditionModel(field, predicate, argument.getName());
   }
 
   private void checkValidForPartitionKey(Predicate predicate, FieldModel field)

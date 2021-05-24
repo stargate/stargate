@@ -27,8 +27,8 @@ public class DeleteModel extends MutationModel {
 
   private final EntityModel entity;
   private final Optional<String> entityArgumentName;
-  private final List<WhereConditionModel> whereConditions;
-  private final List<IfConditionModel> ifConditions;
+  private final List<ConditionModel> whereConditions;
+  private final List<ConditionModel> ifConditions;
   private final ReturnType returnType;
   private final boolean ifExists;
 
@@ -37,8 +37,8 @@ public class DeleteModel extends MutationModel {
       FieldDefinition field,
       EntityModel entity,
       Optional<String> entityArgumentName,
-      List<WhereConditionModel> whereConditions,
-      List<IfConditionModel> ifConditions,
+      List<ConditionModel> whereConditions,
+      List<ConditionModel> ifConditions,
       ReturnType returnType,
       boolean ifExists) {
     super(parentTypeName, field);
@@ -66,11 +66,11 @@ public class DeleteModel extends MutationModel {
    * If the mutation takes individual PK fields, the condition builder associated with each field.
    * Either this or {@link #getEntityArgumentName()} is set.
    */
-  public List<WhereConditionModel> getWhereConditions() {
+  public List<ConditionModel> getWhereConditions() {
     return whereConditions;
   }
 
-  public List<IfConditionModel> getIfConditions() {
+  public List<ConditionModel> getIfConditions() {
     return ifConditions;
   }
 

@@ -83,8 +83,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
     Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
     Optional<String> entityArgumentName =
         entityFromFirstArgument.map(__ -> firstArgument.getName());
-    List<WhereConditionModel> whereConditions;
-    List<IfConditionModel> ifConditions;
+    List<ConditionModel> whereConditions;
+    List<ConditionModel> ifConditions;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(

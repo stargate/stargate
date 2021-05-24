@@ -369,15 +369,15 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * @param getArgument how to get the value of an argument (same).
    */
   protected List<BuiltCondition> bindWhere(
-      List<WhereConditionModel> conditions,
+      List<ConditionModel> conditions,
       EntityModel entity,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
-    List<WhereConditionModel> activeConditions = new ArrayList<>();
-    bind(conditions, hasArgument, getArgument, keyspace, result, activeConditions);
+    List<ConditionModel> activeConditions =
+        bind(conditions, hasArgument, getArgument, keyspace, result);
 
     // Re-check the validity of the query (we already did while building the model, but some
     // conditions might not apply if the corresponding argument was missing).
@@ -391,25 +391,23 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected List<BuiltCondition> bindIf(
-      List<IfConditionModel> conditions,
+      List<ConditionModel> conditions,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
-    List<IfConditionModel> activeConditions = new ArrayList<>();
-    bind(conditions, hasArgument, getArgument, keyspace, result, activeConditions);
-
+    bind(conditions, hasArgument, getArgument, keyspace, result);
     return result;
   }
 
-  private <T extends ConditionModel> void bind(
+  private <T extends ConditionModel> List<T> bind(
       List<T> conditions,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace,
-      List<BuiltCondition> result,
-      List<T> activeConditions) {
+      List<BuiltCondition> result) {
+    List<T> activeConditions = new ArrayList<>();
     for (T condition : conditions) {
       FieldModel field = condition.getField();
       if (hasArgument.test(condition.getArgumentName())) {
@@ -431,5 +429,6 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
         result.add(condition.build(cqlValue));
       }
     }
+    return activeConditions;
   }
 }
