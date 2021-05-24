@@ -29,6 +29,8 @@ public abstract class BuiltQueryTest {
           .column("v1", Type.Text, Kind.Regular)
           .column("v2", Type.Int, Kind.Regular)
           .column("caseSensitiveCol", Type.Int, Kind.Regular)
+          .column("list", Type.List.of(Type.Text), Kind.Regular)
+          .column("map", Type.Map.of(Type.Text, Type.Text), Kind.Regular)
           .build();
 
   private static final TypedValue.Codec valueCodec = TypedValue.Codec.testCodec();

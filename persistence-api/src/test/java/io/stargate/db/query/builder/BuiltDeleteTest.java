@@ -199,29 +199,168 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
   }
 
   @Test
-  public void testINPredicateCondition() {
-    QueryBuilder builder = newBuilder();
-
+  public void testEQPredicateCondition() {
+    // given, when
     BuiltQuery<?> query =
-        builder
-            .delete()
-            .from(KS_NAME, "t1")
-            .where("k1", Predicate.EQ, "foo")
-            .ifs(
-                BuiltCondition.of(
-                    BuiltCondition.LHS.column("v2"), Predicate.IN, Arrays.asList(1, 2)))
-            .ifExists(false)
-            .build();
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.EQ, 100));
 
-    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 IN (1, 2)", emptyList());
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 = 100", emptyList());
 
+    // when
     setBound(query.bind());
 
-    assertTestDeleteBoundQuery(
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 = ?", "foo", 100);
+  }
+
+  @Test
+  public void testNEQPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.NEQ, 100));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 != 100", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 != ?", "foo", 100);
+  }
+
+  @Test
+  public void testLTPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.LT, 100));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 < 100", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 < ?", "foo", 100);
+  }
+
+  @Test
+  public void testGTPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.GT, 100));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 > 100", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 > ?", "foo", 100);
+  }
+
+  @Test
+  public void testLTEPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.LTE, 100));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 <= 100", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 <= ?", "foo", 100);
+  }
+
+  @Test
+  public void testGTEPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.GTE, 100));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 >= 100", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange("DELETE FROM ks.t1 WHERE k1 = ? IF v2 >= ?", "foo", 100);
+  }
+
+  @Test
+  public void testINPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(
+            BuiltCondition.of(BuiltCondition.LHS.column("v2"), Predicate.IN, Arrays.asList(1, 2)));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF v2 IN (1, 2)", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange(
         "DELETE FROM ks.t1 WHERE k1 = ? IF v2 IN ?", "foo", Arrays.asList(1, 2));
   }
 
-  private void assertTestDeleteBoundQuery(String expectedBoundQuery, String k1, List<Integer> v) {
+  @Test
+  public void testCONTAINSPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(
+            BuiltCondition.of(BuiltCondition.LHS.column("list"), Predicate.CONTAINS, "a"));
+
+    // when
+    assertBuiltQuery(query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF list CONTAINS 'a'", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange(
+        "DELETE FROM ks.t1 WHERE k1 = ? IF list CONTAINS ?", "foo", "a");
+  }
+
+  @Test
+  public void testCONTAINS_KEYPredicateCondition() {
+    // given, when
+    BuiltQuery<?> query =
+        queryWithCondition(
+            BuiltCondition.of(BuiltCondition.LHS.column("map"), Predicate.CONTAINS_KEY, "a"));
+
+    // when
+    assertBuiltQuery(
+        query, "DELETE FROM ks.t1 WHERE k1 = 'foo' IF map CONTAINS KEY 'a'", emptyList());
+
+    // when
+    setBound(query.bind());
+
+    // then
+    assertTestDeleteBoundQueryRange(
+        "DELETE FROM ks.t1 WHERE k1 = ? IF map CONTAINS KEY ?", "foo", "a");
+  }
+
+  private BuiltQuery<?> queryWithCondition(BuiltCondition condition) {
+    QueryBuilder builder = newBuilder();
+    return builder
+        .delete()
+        .from(KS_NAME, "t1")
+        .where("k1", Predicate.EQ, "foo")
+        .ifs(condition)
+        .ifExists(false)
+        .build();
+  }
+
+  private void assertTestDeleteBoundQueryRange(String expectedBoundQuery, String k1, Object v) {
     assertBoundQuery(bound, expectedBoundQuery, asList(k1, v));
 
     assertThat(bound.table().name()).isEqualTo("t1");

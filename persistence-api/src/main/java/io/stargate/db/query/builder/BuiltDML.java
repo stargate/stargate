@@ -270,7 +270,15 @@ abstract class BuiltDML<Q extends AbstractBound<?> & BoundDMLQuery> extends Buil
         Condition.LHS lhs = createLHS(bc.lhs());
         TypedValue v;
         if (bc.predicate().equals(Predicate.IN)) {
+          // IN works only on a LIST type
           v = handleValue(lhs.toString(), Column.Type.List.of(lhs.valueType()), bc.value());
+        } else if (bc.predicate().equals(Predicate.CONTAINS)) {
+          // for a CONTAINS, the valueType is a list. We need to extract the underlying value
+          v = handleValue(lhs.toString(), lhs.valueType().fieldType(lhs.toString()), bc.value());
+        } else if (bc.predicate().equals(Predicate.CONTAINS_KEY)) {
+          // CONTAINS_KEY works only for Map, extract KEY type and use it
+          ColumnType keyType = lhs.valueType().parameters().get(0);
+          v = handleValue(lhs.toString(), keyType, bc.value());
         } else {
           v = handleValue(lhs.toString(), lhs.valueType(), bc.value());
         }
