@@ -63,7 +63,7 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                 });
 
     Optional<String> pagingStateArgumentName = findPagingState();
-    List<ConditionModel> whereConditions = buildWhereConditions(entity);
+    List<ConditionModel> whereConditions = buildConditions(entity).getWhereConditions();
     validateNoFiltering(whereConditions, entity);
 
     return new QueryModel(
