@@ -121,6 +121,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
         whereConditions,
         ifConditions,
         returnType,
-        ifExists);
+        ifExists,
+        getConsistencyLevel(cqlDeleteDirective),
+        getSerialConsistencyLevel(cqlDeleteDirective));
   }
 }

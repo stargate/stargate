@@ -38,16 +38,12 @@ import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
-public class DeleteFetcher extends DeployedFetcher<Object> {
-
-  private final DeleteModel model;
+public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
 
   public DeleteFetcher(DeleteModel model, MappingModel mappingModel) {
-    super(mappingModel);
-    this.model = model;
+    super(model, mappingModel);
   }
 
   @Override
@@ -101,7 +97,7 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    ResultSet resultSet = executeUnchecked(query, dataStore);
     boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
 
     ReturnType returnType = model.getReturnType();

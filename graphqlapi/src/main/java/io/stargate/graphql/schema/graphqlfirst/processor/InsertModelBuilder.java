@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
@@ -39,7 +40,8 @@ class InsertModelBuilder extends MutationModelBuilder {
   @Override
   InsertModel build() throws SkipException {
 
-    boolean ifNotExists = computeIfNotExists();
+    Optional<Directive> cqlInsertDirective = DirectiveHelper.getDirective("cql_insert", operation);
+    boolean ifNotExists = computeIfNotExists(cqlInsertDirective);
 
     // Validate inputs: must be a single entity argument
     List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
@@ -81,17 +83,22 @@ class InsertModelBuilder extends MutationModelBuilder {
             .map(ResponsePayloadModel.class::cast);
 
     return new InsertModel(
-        parentTypeName, operation, entity, input.getName(), responsePayload, ifNotExists);
+        parentTypeName,
+        operation,
+        entity,
+        input.getName(),
+        responsePayload,
+        ifNotExists,
+        getConsistencyLevel(cqlInsertDirective),
+        getSerialConsistencyLevel(cqlInsertDirective));
   }
 
-  private boolean computeIfNotExists() {
+  private boolean computeIfNotExists(Optional<Directive> cqlInsertDirective) {
     // If the directive is set, it always takes precedence
     Optional<Boolean> fromDirective =
-        DirectiveHelper.getDirective(CqlDirectives.INSERT, operation)
-            .flatMap(
-                d ->
-                    DirectiveHelper.getBooleanArgument(
-                        d, CqlDirectives.INSERT_IF_NOT_EXISTS, context));
+        cqlInsertDirective.flatMap(
+            d ->
+                DirectiveHelper.getBooleanArgument(d, CqlDirectives.INSERT_IF_NOT_EXISTS, context));
     if (fromDirective.isPresent()) {
       return fromDirective.get();
     }

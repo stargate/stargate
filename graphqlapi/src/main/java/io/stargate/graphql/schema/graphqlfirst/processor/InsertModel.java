@@ -19,6 +19,7 @@ import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.InsertFetcher;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class InsertModel extends MutationModel {
 
@@ -33,8 +34,10 @@ public class InsertModel extends MutationModel {
       EntityModel entity,
       String entityArgumentName,
       Optional<ResponsePayloadModel> responsePayload,
-      boolean ifNotExists) {
-    super(parentTypeName, field);
+      boolean ifNotExists,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel) {
+    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
     this.responsePayload = responsePayload;
