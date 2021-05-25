@@ -15,9 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import com.google.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
@@ -35,6 +33,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
   protected final String operationName;
   protected final Map<String, EntityModel> entities;
   protected final Map<String, ResponsePayloadModel> responsePayloads;
+  private final ConditionsModelBuilder conditionsModelBuilder;
 
   protected OperationModelBuilderBase(
       FieldDefinition operation,
@@ -46,6 +45,14 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     this.operationName = operation.getName();
     this.entities = entities;
     this.responsePayloads = responsePayloads;
+    this.conditionsModelBuilder =
+        new ConditionsModelBuilder(
+            (inputValue, e) ->
+                new WhereConditionModelBuilder(inputValue, operationName, e, entities, context),
+            (inputValue, e) ->
+                new IfConditionModelBuilder(inputValue, operationName, e, entities, context),
+            operation,
+            this);
   }
 
   OperationModel.ReturnType getReturnType(String operationDescription) throws SkipException {
@@ -84,33 +91,12 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     throw SkipException.INSTANCE;
   }
 
-  /**
-   * For each field of the given entity, try to find an operation argument of the same name, and
-   * build a condition that will get appended to the CQL query.
-   */
-  protected List<WhereConditionModel> buildWhereConditions(EntityModel entity)
+  protected ConditionsModelBuilder.Conditions buildConditions(EntityModel entity)
       throws SkipException {
-    ImmutableList.Builder<WhereConditionModel> whereConditionsBuilder = ImmutableList.builder();
-    boolean foundErrors = false;
-    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (DirectiveHelper.getDirective("cql_pagingState", inputValue).isPresent()) {
-        continue;
-      }
-      try {
-        whereConditionsBuilder.add(
-            new WhereConditionModelBuilder(inputValue, operationName, entity, entities, context)
-                .build());
-      } catch (SkipException __) {
-        foundErrors = true;
-      }
-    }
-    if (foundErrors) {
-      throw SkipException.INSTANCE;
-    }
-    return whereConditionsBuilder.build();
+    return conditionsModelBuilder.build(entity);
   }
 
-  protected void validateNoFiltering(List<WhereConditionModel> whereConditions, EntityModel entity)
+  protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)
       throws SkipException {
     Optional<String> maybeError = entity.validateNoFiltering(whereConditions);
     if (maybeError.isPresent()) {

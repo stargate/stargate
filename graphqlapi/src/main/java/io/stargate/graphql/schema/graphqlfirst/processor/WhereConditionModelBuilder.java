@@ -15,23 +15,14 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static graphql.language.ListType.newListType;
-
-import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
-import java.util.Optional;
 
-class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
-
-  private final InputValueDefinition argument;
-  private final String operationName;
-  private final EntityModel entity;
-  private final Map<String, EntityModel> entities;
+class WhereConditionModelBuilder extends ConditionModelBuilderBase {
 
   WhereConditionModelBuilder(
       InputValueDefinition argument,
@@ -39,33 +30,16 @@ class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
       EntityModel entity,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(context, argument.getSourceLocation());
-    this.argument = argument;
-    this.operationName = operationName;
-    this.entity = entity;
-    this.entities = entities;
+    super(context, argument, operationName, entity, entities);
   }
 
-  WhereConditionModel build() throws SkipException {
+  @Override
+  protected String getDirectiveName() {
+    return "cql_where";
+  }
 
-    Optional<Directive> whereDirective = DirectiveHelper.getDirective("cql_where", argument);
-    String fieldName =
-        whereDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
-            .orElse(argument.getName());
-    Predicate predicate =
-        whereDirective
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
-            .orElse(Predicate.EQ);
-    if (predicate == Predicate.NEQ) {
-      invalidMapping(
-          "Operation %s: predicate NEQ (on %s) is not allowed for WHERE conditions",
-          operationName, argument.getName());
-      throw SkipException.INSTANCE;
-    }
-
-    FieldModel field = findField(fieldName);
-
+  @Override
+  protected void validate(FieldModel field, Predicate predicate) throws SkipException {
     // Check that the predicate is allowed for this type of field, and that the types match:
     if (field.isPartitionKey()) {
       checkValidForPartitionKey(predicate, field);
@@ -74,21 +48,6 @@ class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
     } else {
       checkValidForRegularColumn(predicate, field);
     }
-
-    return new WhereConditionModel(field, predicate, argument.getName());
-  }
-
-  private FieldModel findField(String fieldName) throws SkipException {
-    return entity.getAllColumns().stream()
-        .filter(f -> f.getGraphqlName().equals(fieldName))
-        .findFirst()
-        .orElseThrow(
-            () -> {
-              invalidMapping(
-                  "Operation %s: could not find field %s in type %s",
-                  operationName, fieldName, entity.getGraphqlName());
-              return SkipException.INSTANCE;
-            });
   }
 
   private void checkValidForPartitionKey(Predicate predicate, FieldModel field)
@@ -167,40 +126,6 @@ class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
     }
   }
 
-  private void checkArgumentIsSameAs(FieldModel field) throws SkipException {
-
-    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
-
-    if (!argumentType.isEqualTo(fieldInputType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(fieldInputType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
-      throw SkipException.INSTANCE;
-    }
-  }
-
-  private void checkArgumentIsListOf(FieldModel field) throws SkipException {
-
-    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
-    Type<?> expectedArgumentType = newListType(fieldInputType).build();
-
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(expectedArgumentType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
-    }
-  }
-
   private void checkArgumentIsElementOf(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
@@ -222,23 +147,6 @@ class WhereConditionModelBuilder extends ModelBuilderBase<WhereConditionModel> {
           TypeHelper.format(expectedArgumentType),
           entity.getGraphqlName(),
           field.getGraphqlName());
-    }
-  }
-
-  private Type<?> toInput(
-      Type<?> fieldType, InputValueDefinition inputValue, EntityModel entity, FieldModel field)
-      throws SkipException {
-    try {
-      return TypeHelper.toInput(TypeHelper.unwrapNonNull(fieldType), entities);
-    } catch (IllegalArgumentException e) {
-      invalidMapping(
-          "Operation %s: can't infer expected input type for %s (matching %s.%s) because %s",
-          operationName,
-          inputValue.getName(),
-          entity.getGraphqlName(),
-          field.getGraphqlName(),
-          e.getMessage());
-      throw SkipException.INSTANCE;
     }
   }
 }

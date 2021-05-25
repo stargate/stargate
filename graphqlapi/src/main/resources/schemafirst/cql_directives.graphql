@@ -219,6 +219,19 @@ enum Predicate {
 }
 
 """
+A predicate used in `@cql_if` to define a condition.
+"""
+enum IfPredicate {
+    EQ
+    NEQ
+    LT
+    GT
+    LTE
+    GTE
+    IN
+}
+
+"""
 Annotates a parameter to customize the WHERE condition that is generated from it.
 """
 directive @cql_where (
@@ -233,6 +246,25 @@ directive @cql_where (
     The predicate to use for the condition.
     """
     predicate: Predicate = EQ
+) on ARGUMENT_DEFINITION
+
+"""
+Annotates a parameter to indicate that it will be used as a condition that must test true on the selected entity in order for the mutation to be applied.
+
+This is only allowed for delete and update mutations.
+"""
+directive @cql_if (
+
+    """
+    The name of the field that the condition applies to (if absent, it will be the name of the
+    argument).
+    """
+    field: String
+
+    """
+    The predicate to use for the condition.
+    """
+    predicate: IfPredicate = EQ
 ) on ARGUMENT_DEFINITION
 
 """

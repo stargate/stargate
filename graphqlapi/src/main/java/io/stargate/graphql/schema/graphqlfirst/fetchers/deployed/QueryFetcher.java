@@ -63,7 +63,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
     ReturnType returnType = model.getReturnType();
 
     List<BuiltCondition> whereConditions =
-        bind(
+        bindWhere(
             model.getWhereConditions(),
             model.getEntity(),
             environment::containsArgument,

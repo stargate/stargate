@@ -75,7 +75,7 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
     }
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     List<BuiltCondition> whereConditions =
-        bind(
+        bindWhere(
             entityModel.getPrimaryKeyWhereConditions(),
             entityModel,
             representation::containsKey,

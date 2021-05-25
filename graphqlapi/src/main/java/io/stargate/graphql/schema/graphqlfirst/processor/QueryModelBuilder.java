@@ -63,7 +63,14 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                 });
 
     Optional<String> pagingStateArgumentName = findPagingState();
-    List<WhereConditionModel> whereConditions = buildWhereConditions(entity);
+    ConditionsModelBuilder.Conditions conditions = buildConditions(entity);
+    // if conditions are not supported for a SELECT query
+    if (!conditions.getIfConditions().isEmpty()) {
+      invalidMapping(
+          "@cql_if is not supported for select query, but it was set on one of the fields");
+      throw SkipException.INSTANCE;
+    }
+    List<ConditionModel> whereConditions = conditions.getWhereConditions();
     validateNoFiltering(whereConditions, entity);
 
     return new QueryModel(

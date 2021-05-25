@@ -39,7 +39,7 @@ public class EntityModel {
   private final List<FieldModel> partitionKey;
   private final List<FieldModel> clusteringColumns;
   private final List<FieldModel> primaryKey;
-  private final List<WhereConditionModel> primaryKeyWhereConditions;
+  private final List<ConditionModel> primaryKeyWhereConditions;
   private final List<FieldModel> regularColumns;
   private final List<FieldModel> allColumns;
   private final Table tableCqlSchema;
@@ -74,7 +74,7 @@ public class EntityModel {
         ImmutableList.<FieldModel>builder().addAll(partitionKey).addAll(clusteringColumns).build();
     this.primaryKeyWhereConditions =
         primaryKey.stream()
-            .map(field -> new WhereConditionModel(field, Predicate.EQ, field.getGraphqlName()))
+            .map(field -> new ConditionModel(field, Predicate.EQ, field.getGraphqlName()))
             .collect(Collectors.toList());
     this.regularColumns = ImmutableList.copyOf(regularColumns);
     this.allColumns =
@@ -120,7 +120,7 @@ public class EntityModel {
    * Returns a default list of WHERE conditions that select all primary key columns with {@code =}
    * relations.
    */
-  public List<WhereConditionModel> getPrimaryKeyWhereConditions() {
+  public List<ConditionModel> getPrimaryKeyWhereConditions() {
     return primaryKeyWhereConditions;
   }
 
@@ -160,7 +160,7 @@ public class EntityModel {
    *
    * @return an optional error message if the validation failed, empty otherwise.
    */
-  public Optional<String> validateNoFiltering(Collection<WhereConditionModel> conditions) {
+  public Optional<String> validateNoFiltering(Collection<ConditionModel> conditions) {
 
     long indexCount = conditions.stream().filter(c -> !c.getField().isPrimaryKey()).count();
 
@@ -173,8 +173,7 @@ public class EntityModel {
     return Optional.of("cannot use more than one indexed field per operation");
   }
 
-  private Optional<String> validateNoFilteringWhenNoIndex(
-      Collection<WhereConditionModel> conditions) {
+  private Optional<String> validateNoFilteringWhenNoIndex(Collection<ConditionModel> conditions) {
     // All partition key fields must be present
     for (FieldModel field : this.getPartitionKey()) {
       if (conditions.stream().noneMatch(c -> c.getField().equals(field))) {
@@ -189,7 +188,7 @@ public class EntityModel {
     // field after it can be restricted by any condition.
     String firstNonEqField = null;
     for (FieldModel field : this.getClusteringColumns()) {
-      Optional<WhereConditionModel> maybeCondition =
+      Optional<ConditionModel> maybeCondition =
           conditions.stream().filter(c -> c.getField().equals(field)).findFirst();
       if (!maybeCondition.isPresent()) {
         if (firstNonEqField == null) {
@@ -212,8 +211,7 @@ public class EntityModel {
     return Optional.empty();
   }
 
-  private Optional<String> validateNoFilteringWhenOneIndex(
-      Collection<WhereConditionModel> conditions) {
+  private Optional<String> validateNoFilteringWhenOneIndex(Collection<ConditionModel> conditions) {
 
     // No clustering fields
     if (conditions.stream().anyMatch(c -> c.getField().isClusteringColumn())) {

@@ -21,6 +21,7 @@ import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +83,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
     Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
     Optional<String> entityArgumentName =
         entityFromFirstArgument.map(__ -> firstArgument.getName());
-    List<WhereConditionModel> whereConditions;
+    List<ConditionModel> whereConditions;
+    List<ConditionModel> ifConditions;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -92,9 +94,12 @@ class DeleteModelBuilder extends MutationModelBuilder {
       }
       entity = entityFromFirstArgument.get();
       whereConditions = entity.getPrimaryKeyWhereConditions();
+      ifConditions = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlDeleteDirective);
-      whereConditions = buildWhereConditions(entity);
+      ConditionsModelBuilder.Conditions conditions = buildConditions(entity);
+      whereConditions = conditions.getWhereConditions();
+      ifConditions = conditions.getIfConditions();
       validateNoFiltering(whereConditions, entity);
     }
 
@@ -104,6 +109,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
         entity,
         entityArgumentName,
         whereConditions,
+        ifConditions,
         returnType,
         ifExists);
   }
