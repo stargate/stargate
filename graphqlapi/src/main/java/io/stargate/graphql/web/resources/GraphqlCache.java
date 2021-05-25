@@ -16,6 +16,7 @@
 package io.stargate.graphql.web.resources;
 
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -39,6 +40,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,7 +99,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
         enableGraphqlFirst ? new SchemaSourceDao(dataStore).getLatestVersion(keyspaceName) : null;
 
     String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
-    GraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
+    final GraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
     if (currentHolder != null && currentHolder.matches(latestSource)) {
       LOG.trace("Returning cached schema for {}", decoratedKeyspaceName);
       return currentHolder.getGraphql();
@@ -113,16 +115,16 @@ public class GraphqlCache implements KeyspaceChangeListener {
         "Computing new version for {} ({})",
         decoratedKeyspaceName,
         (currentHolder == null) ? "wasn't cached before" : "schema has changed");
-    GraphqlHolder newHolder = new LazyGraphqlHolder(latestSource, keyspace);
-    if (currentHolder == null) {
-      dmlGraphqls.putIfAbsent(decoratedKeyspaceName, newHolder);
-    } else {
-      dmlGraphqls.replace(decoratedKeyspaceName, currentHolder, newHolder);
-    }
+    GraphqlHolder newHolder =
+        (latestSource == null)
+            ? new LazyCqlFirstGraphqlHolder(keyspace)
+            : new LazySchemaFirstGraphqlHolder(latestSource, keyspace);
 
-    // Fetch again in case we got beat replacing the entry.
-    currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
-    return currentHolder == null ? null : currentHolder.getGraphql();
+    // Put with a CAS, in case someone else deployed the new version before us:
+    GraphqlHolder result =
+        dmlGraphqls.compute(
+            decoratedKeyspaceName, (__, v) -> Objects.equals(v, currentHolder) ? newHolder : v);
+    return result == null ? null : result.getGraphql();
   }
 
   public void putDml(
@@ -133,7 +135,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
     LOG.trace(
         "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
-    GraphqlHolder schemaHolder = new ImmediateGraphqlHolder(newSource, graphql);
+    GraphqlHolder schemaHolder = new ImmediateSchemaFirstGraphqlHolder(newSource, graphql);
     dmlGraphqls.put(decoratedKeyspaceName, schemaHolder);
   }
 
@@ -235,67 +237,79 @@ public class GraphqlCache implements KeyspaceChangeListener {
     boolean isCqlFirst();
   }
 
-  /**
-   * An entry used when we need to recompute the schema (because we're reacting to the insertion of
-   * a new row in the source table).
-   */
-  class LazyGraphqlHolder implements GraphqlHolder {
-    private final SchemaSource source;
-    private final Supplier<GraphQL> computeGraphql;
-    private volatile GraphQL graphql;
+  /** Entry for a CQL-first keyspace. */
+  static class LazyCqlFirstGraphqlHolder implements GraphqlHolder {
 
-    LazyGraphqlHolder(SchemaSource source, Keyspace keyspace) {
+    private final Supplier<GraphQL> graphqlSupplier;
+
+    LazyCqlFirstGraphqlHolder(Keyspace keyspace) {
+      graphqlSupplier = Suppliers.memoize(() -> newGraphql(SchemaFactory.newDmlSchema(keyspace)));
+    }
+
+    @Override
+    public GraphQL getGraphql() {
+      return graphqlSupplier.get();
+    }
+
+    @Override
+    public boolean matches(@Nullable SchemaSource source) {
+      return source == null;
+    }
+
+    @Override
+    public boolean isCqlFirst() {
+      return true;
+    }
+  }
+
+  /**
+   * Entry for a schema-first keyspace, when we've detected a new row in the {@code schema_source}
+   * table.
+   */
+  class LazySchemaFirstGraphqlHolder implements GraphqlHolder {
+
+    private final SchemaSource source;
+    private final Supplier<GraphQL> graphqlSupplier;
+
+    LazySchemaFirstGraphqlHolder(SchemaSource source, Keyspace keyspace) {
       this.source = source;
-      this.computeGraphql =
-          (source == null)
-              ? () -> newGraphql(SchemaFactory.newDmlSchema(keyspace))
-              : () -> {
+      graphqlSupplier =
+          Suppliers.memoize(
+              () -> {
                 ProcessedSchema processedSchema =
                     new SchemaProcessor(persistence, true).process(source.getContents(), keyspace);
                 // Check that the data model still matches
                 CassandraMigrator.forPersisted()
                     .compute(processedSchema.getMappingModel(), keyspace);
                 return processedSchema.getGraphql();
-              };
+              });
     }
 
     @Override
     public GraphQL getGraphql() {
-      GraphQL result = graphql;
-      if (result != null) {
-        return result;
-      }
-      synchronized (this) {
-        if (graphql == null) {
-          graphql = computeGraphql.get();
-        }
-        return graphql;
-      }
+      return graphqlSupplier.get();
     }
 
     @Override
     public boolean matches(@Nullable SchemaSource otherSource) {
-      return (source == null && otherSource == null)
-          || (source != null
-              && otherSource != null
-              && source.getVersion().equals(otherSource.getVersion()));
+      return otherSource != null && source.getVersion().equals(otherSource.getVersion());
     }
 
     @Override
     public boolean isCqlFirst() {
-      return source == null;
+      return false;
     }
   }
 
   /**
-   * An entry used when we already have the GraphQL schema (because we're coming from a deployment
-   * operation).
+   * Entry for a schema-first keyspace, when we already have the GraphQL schema (because we're
+   * coming from a deployment operation).
    */
-  static class ImmediateGraphqlHolder implements GraphqlHolder {
+  static class ImmediateSchemaFirstGraphqlHolder implements GraphqlHolder {
     private final SchemaSource source;
     private final GraphQL graphql;
 
-    ImmediateGraphqlHolder(SchemaSource source, GraphQL graphql) {
+    ImmediateSchemaFirstGraphqlHolder(SchemaSource source, GraphQL graphql) {
       this.source = source;
       this.graphql = graphql;
     }
