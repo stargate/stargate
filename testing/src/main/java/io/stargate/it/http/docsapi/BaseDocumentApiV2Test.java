@@ -1983,20 +1983,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
   }
 
-  @Test
-  public void testPaginationDisallowedLimitedSupport() throws IOException {
-    JsonNode doc1 =
-        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
-    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
-
-    String r =
-        RestUtils.get(
-            authToken, collectionPath + "/1?where={\"*.value\":{\"$nin\": [3]}}&page-size=5", 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The results as requested must fit in one page, try increasing the `page-size` parameter.\",\"code\":400}");
-  }
-
   // Below are "namespace" tests that should match the REST Api's keyspace tests
   @Test
   public void getNamespaces() throws IOException {
