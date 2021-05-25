@@ -18,16 +18,24 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.UpdateFetcher;
+import java.util.List;
+import java.util.Optional;
 
 public class UpdateModel extends MutationModel {
 
   private final EntityModel entity;
-  private final String entityArgumentName;
+  private final List<ConditionModel> ifConditions;
+  private final Optional<String> entityArgumentName;
 
-  UpdateModel(
-      String parentTypeName, FieldDefinition field, EntityModel entity, String entityArgumentName) {
+  public UpdateModel(
+      String parentTypeName,
+      FieldDefinition field,
+      EntityModel entity,
+      List<ConditionModel> ifConditions,
+      Optional<String> entityArgumentName) {
     super(parentTypeName, field);
     this.entity = entity;
+    this.ifConditions = ifConditions;
     this.entityArgumentName = entityArgumentName;
   }
 
@@ -35,7 +43,11 @@ public class UpdateModel extends MutationModel {
     return entity;
   }
 
-  public String getEntityArgumentName() {
+  public List<ConditionModel> getIfConditions() {
+    return ifConditions;
+  }
+
+  public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
   }
 

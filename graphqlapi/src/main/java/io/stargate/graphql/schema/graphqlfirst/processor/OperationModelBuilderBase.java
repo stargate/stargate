@@ -96,6 +96,11 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     return conditionsModelBuilder.build(entity);
   }
 
+  protected ConditionsModelBuilder.Conditions buildOnlyIfConditions(EntityModel entity)
+      throws SkipException {
+    return conditionsModelBuilder.buildOnlyIfConditions(entity);
+  }
+
   protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)
       throws SkipException {
     Optional<String> maybeError = entity.validateNoFiltering(whereConditions);

@@ -15,12 +15,15 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 class UpdateModelBuilder extends MutationModelBuilder {
 
@@ -43,6 +46,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
     // Currently requiring exactly one argument that must be an entity input with all PK fields set.
     // We could also take the PK fields directly (need a way to specify the entity), partial PKs for
     // multi-row deletions, additional IF conditions, etc.
+    Optional<Directive> cqlUpdateDirective = DirectiveHelper.getDirective("cql_update", operation);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
     if (returnType != SimpleReturnType.BOOLEAN) {
@@ -50,30 +54,35 @@ class UpdateModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
 
-    List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
-    if (inputs.isEmpty()) {
+    List<InputValueDefinition> arguments = operation.getInputValueDefinitions();
+    if (arguments.isEmpty()) {
       invalidMapping(
-          "Mutation %s: updates must take the entity input type as the first argument",
+          "Mutation %s: updates must take either the entity input type or a list of primary key fields",
           operationName);
       throw SkipException.INSTANCE;
     }
 
-    if (inputs.size() > 1) {
-      invalidMapping("Mutation %s: updates can't have more than one argument", operationName);
-      throw SkipException.INSTANCE;
+    EntityModel entity;
+    InputValueDefinition firstArgument = arguments.get(0);
+    Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
+    Optional<String> entityArgumentName =
+        entityFromFirstArgument.map(__ -> firstArgument.getName());
+    List<ConditionModel> ifConditions;
+    if (entityFromFirstArgument.isPresent()) {
+      if (arguments.size() > 1) {
+        invalidMapping(
+            "Mutation %s: if an update takes an entity input type, it must be the only argument",
+            operationName);
+        throw SkipException.INSTANCE;
+      }
+      entity = entityFromFirstArgument.get();
+      ifConditions = Collections.emptyList();
+    } else {
+      entity = entityFromDirective(cqlUpdateDirective, "update", "cql_update");
+      ConditionsModelBuilder.Conditions conditions = buildOnlyIfConditions(entity);
+      ifConditions = conditions.getIfConditions();
     }
 
-    InputValueDefinition input = inputs.get(0);
-    EntityModel entity =
-        findEntity(input)
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Mutation %s: unexpected argument type, "
-                          + "updates expect an input object that maps to a CQL entity",
-                      operationName);
-                  return SkipException.INSTANCE;
-                });
-    return new UpdateModel(parentTypeName, operation, entity, input.getName());
+    return new UpdateModel(parentTypeName, operation, entity, ifConditions, entityArgumentName);
   }
 }

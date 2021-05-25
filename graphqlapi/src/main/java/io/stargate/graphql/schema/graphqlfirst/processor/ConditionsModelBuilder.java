@@ -44,7 +44,15 @@ public class ConditionsModelBuilder {
     this.invalidMappingReporter = invalidMappingReporter;
   }
 
+  public Conditions buildOnlyIfConditions(EntityModel entity) throws SkipException {
+    return build(entity, false);
+  }
+
   public Conditions build(EntityModel entity) throws SkipException {
+    return build(entity, true);
+  }
+
+  private Conditions build(EntityModel entity, boolean buildWhere) throws SkipException {
     ImmutableList.Builder<ConditionModel> ifConditionsBuilder = ImmutableList.builder();
     ImmutableList.Builder<ConditionModel> whereConditionsBuilder = ImmutableList.builder();
     boolean foundErrors = false;
@@ -64,7 +72,7 @@ public class ConditionsModelBuilder {
         // only fields explicitly annotated with cql_if are used
         if (isCqlIfDirective(inputValue)) {
           ifConditionsBuilder.add(ifConditionModelBuilder.apply(inputValue, entity).build());
-        } else {
+        } else if (buildWhere) {
           // all other fields should be used for cql_where
           whereConditionsBuilder.add(whereConditionModelBuilder.apply(inputValue, entity).build());
         }

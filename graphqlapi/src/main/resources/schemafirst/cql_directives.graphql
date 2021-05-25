@@ -172,7 +172,14 @@ directive @cql_insert(
 Indicates that a mutation should be mapped to a CQL UPDATE query.
 Note that this is not required if the mutation name starts with `update`.
 """
-directive @cql_update on FIELD_DEFINITION
+directive @cql_update(
+    """
+    The name of the type to delete. This is only needed if the mutation takes individual key fields
+    as arguments (as opposed to an instance of the type).
+    This must be a type that maps to a table.
+    """
+    targetEntity: String
+) on FIELD_DEFINITION
 
 """
 Indicates that a mutation should be mapped to a CQL DELETE query.

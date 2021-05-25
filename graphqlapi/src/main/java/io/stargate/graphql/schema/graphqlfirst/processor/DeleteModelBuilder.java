@@ -96,7 +96,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
     } else {
-      entity = entityFromDirective(cqlDeleteDirective);
+      entity = entityFromDirective(cqlDeleteDirective, "delete", "cql_delete");
       ConditionsModelBuilder.Conditions conditions = buildConditions(entity);
       whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();
@@ -128,29 +128,5 @@ class DeleteModelBuilder extends MutationModelBuilder {
               }
               return false;
             });
-  }
-
-  private EntityModel entityFromDirective(Optional<Directive> cqlDeleteDirective)
-      throws SkipException {
-    EntityModel entity;
-    String entityName =
-        cqlDeleteDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Mutation %s: if a delete doesn't take an entity input type, "
-                          + "it must indicate the entity name in '@cql_delete.targetEntity'",
-                      operationName);
-                  return SkipException.INSTANCE;
-                });
-    entity = entities.get(entityName);
-    if (entity == null) {
-      invalidMapping(
-          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
-          operationName, entityName);
-      throw SkipException.INSTANCE;
-    }
-    return entity;
   }
 }

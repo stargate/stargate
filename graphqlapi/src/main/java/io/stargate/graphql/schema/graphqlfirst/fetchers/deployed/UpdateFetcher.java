@@ -21,6 +21,7 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -32,6 +33,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.UpdateModel;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
+import java.util.function.Function;
 
 public class UpdateFetcher extends DeployedFetcher<Boolean> {
 
@@ -49,21 +51,35 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
 
     EntityModel entityModel = model.getEntity();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
-    Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
+
+    // We're either getting the values from a single entity argument, or individual PK field
+    // arguments:
+    java.util.function.Predicate<String> hasArgument;
+    Function<String, Object> getArgument;
+    if (model.getEntityArgumentName().isPresent()) {
+      Map<String, Object> entity = environment.getArgument(model.getEntityArgumentName().get());
+      hasArgument = entity::containsKey;
+      getArgument = entity::get;
+    } else {
+      hasArgument = environment::containsArgument;
+      getArgument = environment::getArgument;
+    }
 
     List<BuiltCondition> whereConditions =
         bindWhere(
             entityModel.getPrimaryKeyWhereConditions(),
             entityModel,
-            input::containsKey,
-            input::get,
+            hasArgument,
+            getArgument,
             keyspace);
+    List<BuiltCondition> ifConditions =
+        bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
 
     Collection<ValueModifier> modifiers = new ArrayList<>();
     for (FieldModel column : entityModel.getRegularColumns()) {
       String graphqlName = column.getGraphqlName();
-      if (input.containsKey(graphqlName)) {
-        Object graphqlValue = input.get(graphqlName);
+      if (hasArgument.test(graphqlName)) {
+        Object graphqlValue = getArgument.apply(graphqlName);
         modifiers.add(
             ValueModifier.set(
                 column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
@@ -80,6 +96,7 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
             .where(whereConditions)
+            .ifs(ifConditions)
             .build()
             .bind();
 
@@ -93,8 +110,12 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
-
-    return true;
+    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    // when if conditions are not empty, the applied MUST be present
+    if (!ifConditions.isEmpty()) {
+      return resultSet.one().getBoolean("[applied]");
+    } else {
+      return true;
+    }
   }
 }
