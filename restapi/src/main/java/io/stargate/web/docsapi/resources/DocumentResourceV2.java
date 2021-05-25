@@ -669,7 +669,7 @@ public class DocumentResourceV2 {
           if (filters.isEmpty()) {
             node = documentService.getJsonAtPath(db, namespace, collection, id, path);
             if (node == null) {
-              return Response.noContent().build();
+              return Response.status(Response.Status.NOT_FOUND).build();
             }
 
             String json;

@@ -406,7 +406,7 @@ public class DocumentResourceV2Test {
             pageStateParam,
             false,
             httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(204);
+    assertThat(r.getStatus()).isEqualTo(404);
     r =
         documentResourceV2.getDocPath(
             headers,
@@ -422,7 +422,7 @@ public class DocumentResourceV2Test {
             pageStateParam,
             true,
             httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(204);
+    assertThat(r.getStatus()).isEqualTo(404);
   }
 
   @Test
