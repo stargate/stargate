@@ -77,6 +77,30 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
         .contains("You cannot set both: cql_if and cql_where directives on the same field: v");
   }
 
+  @Test
+  @DisplayName("Should fail when deploying schema with a SELECT query field annotated with cql_if")
+  public void shouldFailToDeploySchemaWithASelectQueryFieldAnnotatedWithCqlIf() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT.getDeploySchemaErrors(
+            KEYSPACE,
+            "type Foo @cql_input {\n"
+                + "  pk: Int! @cql_column(partitionKey: true)\n"
+                + "  v: Int\n"
+                + " "
+                + "}\n"
+                + "type DeleteFooResult @cql_payload {\n"
+                + "  applied: Boolean\n"
+                + "}\n"
+                + "type Query {\n"
+                + "  foo(pk: Int! @cql_if(field: \"v\", predicate: EQ)): Foo\n"
+                + "}\n");
+
+    // then
+    assertThat(getMappingErrors(errors))
+        .contains("@cql_if is not supported for select query, but it was set on one of the fields");
+  }
+
   @SuppressWarnings("unchecked")
   private String getMappingErrors(Map<String, Object> errors) {
     Map<String, Object> value =
