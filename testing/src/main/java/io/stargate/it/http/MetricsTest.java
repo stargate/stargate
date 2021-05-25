@@ -48,6 +48,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
     builder.putSystemProperties(
         TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
         TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER);
+    builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
   }
 
   @BeforeAll
@@ -83,7 +84,17 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("module=\"restapi\"")
                     .contains("uri=\"/v1/keyspaces\"")
                     .contains(String.format("status=\"%d\"", status))
-                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.95\""))
+        .anySatisfy(
+            metric ->
+                assertThat(metric)
+                    .contains("method=\"GET\"")
+                    .contains("module=\"restapi\"")
+                    .contains("uri=\"/v1/keyspaces\"")
+                    .contains(String.format("status=\"%d\"", status))
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.99\""));
   }
 
   @Test
@@ -114,7 +125,17 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("module=\"graphqlapi\"")
                     .contains("uri=\"/graphql\"")
                     .contains(String.format("status=\"%d\"", status))
-                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.95\""))
+        .anySatisfy(
+            metric ->
+                assertThat(metric)
+                    .contains("method=\"GET\"")
+                    .contains("module=\"graphqlapi\"")
+                    .contains("uri=\"/graphql\"")
+                    .contains(String.format("status=\"%d\"", status))
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.99\""));
   }
 
   @Test
@@ -145,7 +166,17 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains("module=\"authapi\"")
                     .contains("uri=\"/v1/auth\"")
                     .contains(String.format("status=\"%d\"", status))
-                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.95\""))
+        .anySatisfy(
+            metric ->
+                assertThat(metric)
+                    .contains("method=\"POST\"")
+                    .contains("module=\"authapi\"")
+                    .contains("uri=\"/v1/auth\"")
+                    .contains(String.format("status=\"%d\"", status))
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.99\""));
   }
 
   @ParameterizedTest

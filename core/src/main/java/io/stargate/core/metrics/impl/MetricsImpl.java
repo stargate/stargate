@@ -33,6 +33,7 @@ public class MetricsImpl implements Metrics, MetricsScraper {
 
     PrometheusMeterRegistry meterRegistry =
         new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, collectorRegistry, Clock.SYSTEM);
+    MeterRegistryConfiguration.configure(meterRegistry);
     return meterRegistry;
   }
 
