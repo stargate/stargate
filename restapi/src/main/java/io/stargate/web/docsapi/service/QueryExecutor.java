@@ -21,7 +21,6 @@ import hu.akarnokd.rxjava3.operators.ExpandStrategy;
 import hu.akarnokd.rxjava3.operators.FlowableTransformers;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
-import io.reactivex.rxjava3.flowables.ConnectableFlowable;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -75,39 +74,34 @@ public class QueryExecutor {
 
   private Flowable<ResultSet> fetchPage(
       AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
-    ConnectableFlowable<ResultSet> publisher =
-        Single.<ResultSet>create(
-                emitter ->
-                    dataStore
-                        .execute(
-                            query,
-                            p -> {
-                              if (pageSize <= 0) {
-                                return p; // if page size is not set pagingState is ignored by C*
-                              }
+    return Single.<ResultSet>create(
+            emitter ->
+                dataStore
+                    .execute(
+                        query,
+                        p -> {
+                          if (pageSize <= 0) {
+                            return p; // if page size is not set pagingState is ignored by C*
+                          }
 
-                              ImmutableParameters.Builder builder = p.toBuilder();
-                              builder.pageSize(pageSize);
-                              if (pagingState != null) {
-                                builder.pagingState(pagingState);
-                              }
-                              return builder.build();
-                            })
-                        .whenComplete(
-                            (rows, t) -> {
-                              if (t != null) {
-                                emitter.onError(t);
-                              } else {
-                                emitter.onSuccess(rows);
-                              }
-                            }))
-            .toFlowable()
-            .publish();
-
-    // Separate subscription from execution. The publisher will only subscribe to upstream when
-    // connect() is called, i.e when the ResultSet is actually requested.
-    // Note: the value of `n` is irrelevant in this case since there will be at most one request.
-    return publisher.doOnRequest(n -> publisher.connect()).take(1);
+                          ImmutableParameters.Builder builder = p.toBuilder();
+                          builder.pageSize(pageSize);
+                          if (pagingState != null) {
+                            builder.pagingState(pagingState);
+                          }
+                          return builder.build();
+                        })
+                    .whenComplete(
+                        (rows, t) -> {
+                          if (t != null) {
+                            emitter.onError(t);
+                          } else {
+                            emitter.onSuccess(rows);
+                          }
+                        }))
+        .toFlowable()
+        .compose(FlowableConnectOnRequest.with()) // separate subscription from query execution
+        .take(1);
   }
 
   private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, AbstractBound<?> query) {
