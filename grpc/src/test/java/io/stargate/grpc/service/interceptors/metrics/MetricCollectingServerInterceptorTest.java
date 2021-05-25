@@ -288,16 +288,24 @@ public class MetricCollectingServerInterceptorTest {
     }
 
     @Override
-    public void request(int i) {}
+    public void request(int i) {
+      // Not implemented
+    }
 
     @Override
-    public void sendHeaders(Metadata metadata) {}
+    public void sendHeaders(Metadata metadata) {
+      // Not implemented
+    }
 
     @Override
-    public void sendMessage(Object o) {}
+    public void sendMessage(Object o) {
+      // Not implemented
+    }
 
     @Override
-    public void close(Status status, Metadata metadata) {}
+    public void close(Status status, Metadata metadata) {
+      // Not implemented
+    }
 
     @Override
     public boolean isCancelled() {
