@@ -23,6 +23,7 @@ import io.stargate.db.Persistence;
 import io.stargate.grpc.service.Service;
 import io.stargate.grpc.service.interceptors.AuthenticationInterceptor;
 import io.stargate.grpc.service.interceptors.RemoteAddressInterceptor;
+import io.stargate.grpc.service.interceptors.metrics.MetricCollectingServerInterceptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ public class GrpcImpl {
         ServerBuilder.forPort(PORT)
             .intercept(new AuthenticationInterceptor(authenticationService))
             .intercept(new RemoteAddressInterceptor())
+            .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new Service(persistence, metrics))
             .build();
   }
