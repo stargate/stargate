@@ -44,6 +44,26 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
     this.entities = entities;
   }
 
+  @Override
+  protected ConditionModel build() throws SkipException {
+
+    Optional<Directive> directive = DirectiveHelper.getDirective(getDirectiveName(), argument);
+    String fieldName =
+        directive
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
+            .orElse(argument.getName());
+    Predicate predicate =
+        directive
+            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
+            .orElse(Predicate.EQ);
+
+    FieldModel field = findField(fieldName);
+
+    validate(field, predicate);
+
+    return new ConditionModel(field, predicate, argument.getName());
+  }
+
   protected void checkArgumentIsSameAs(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
@@ -94,26 +114,6 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
   protected abstract String getDirectiveName();
 
   protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
-
-  @Override
-  protected ConditionModel build() throws SkipException {
-
-    Optional<Directive> ifDirective = DirectiveHelper.getDirective(getDirectiveName(), argument);
-    String fieldName =
-        ifDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
-            .orElse(argument.getName());
-    Predicate predicate =
-        ifDirective
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
-            .orElse(Predicate.EQ);
-
-    FieldModel field = findField(fieldName);
-
-    validate(field, predicate);
-
-    return new ConditionModel(field, predicate, argument.getName());
-  }
 
   protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
 

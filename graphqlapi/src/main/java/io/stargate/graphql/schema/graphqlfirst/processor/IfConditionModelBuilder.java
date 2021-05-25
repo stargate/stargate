@@ -40,11 +40,11 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase {
     // The CQL IF works only for regular columns (non PK, CK)
     if (field.isPartitionKey()) {
       invalidMapping(
-          "The cql_if is not supported for partition keys (field %s)", field.getGraphqlName());
+          "@cql_if is not supported for partition keys (field %s)", field.getGraphqlName());
     }
     if (field.isClusteringColumn()) {
       invalidMapping(
-          "The cql_if is not supported for clustering keys (field %s)", field.getGraphqlName());
+          "@cql_if is not supported for clustering keys (field %s)", field.getGraphqlName());
     } else {
       checkValidForRegularColumn(predicate, field);
     }

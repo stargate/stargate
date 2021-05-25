@@ -74,7 +74,7 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("You cannot set both: cql_if and cql_if directives on the same field: v");
+        .contains("You cannot set both: cql_if and cql_where directives on the same field: v");
   }
 
   @SuppressWarnings("unchecked")
