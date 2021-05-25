@@ -202,7 +202,7 @@ public class NamespaceResourceIntTest extends BaseOsgiIntegrationTest {
       String keyspace = RandomStringUtils.randomAlphanumeric(16);
       String payload =
           String.format(
-              "{\"name\": \"%s\", \"datacenters\": [ { \"name\": \"dc1\", \"replicas\": 1 }, { \"name\": \"dc2\" }]}",
+              "{\"name\": \"%s\", \"datacenters\": [ { \"name\": \"dc1\", \"replicas\": 1 } ]}",
               keyspace);
 
       String result = RestUtils.post(authToken, basePath, payload, HttpStatus.SC_CREATED);
@@ -222,16 +222,11 @@ public class NamespaceResourceIntTest extends BaseOsgiIntegrationTest {
                         ArrayNode.class,
                         dcs ->
                             assertThat(dcs)
-                                .hasSize(2)
+                                .hasSize(1)
                                 .anySatisfy(
                                     dc -> {
                                       assertThat(dc.findValuesAsText("name")).containsOnly("dc1");
                                       assertThat(dc.findValue("replicas").asInt()).isEqualTo(1);
-                                    })
-                                .anySatisfy(
-                                    dc -> {
-                                      assertThat(dc.findValuesAsText("name")).containsOnly("dc2");
-                                      assertThat(dc.findValue("replicas").asInt()).isEqualTo(3);
                                     }));
               });
     }
