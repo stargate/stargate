@@ -124,7 +124,6 @@ public class CreateNamespace {
     }
 
     @ApiModelProperty(
-        required = true,
         value = "The amount of replicas for the given `datacenter`. Defaults to 3.",
         example = "3")
     @JsonProperty("replicas")
