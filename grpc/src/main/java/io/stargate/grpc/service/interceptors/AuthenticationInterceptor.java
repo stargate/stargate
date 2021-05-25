@@ -63,5 +63,5 @@ public class AuthenticationInterceptor implements ServerInterceptor {
     return new NopListener<>();
   }
 
-  private class NopListener<ReqT> extends ServerCall.Listener<ReqT> { }
+  private class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
 }
