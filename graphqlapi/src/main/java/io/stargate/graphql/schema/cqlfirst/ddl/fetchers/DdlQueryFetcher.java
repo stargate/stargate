@@ -16,11 +16,8 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -30,6 +27,7 @@ import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,27 +38,16 @@ import java.util.Map;
  */
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
-  protected DdlQueryFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Boolean get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
-    dataStore
-        .execute(buildQuery(environment, dataStore.queryBuilder(), authenticationSubject).bind())
-        .get();
+    dataStore.execute(buildQuery(environment, dataStore.queryBuilder(), context).bind()).get();
     return true;
   }
 
   protected abstract Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
-      QueryBuilder builder,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, QueryBuilder builder, StargateGraphqlContext context)
       throws UnauthorizedException;
 
   protected ColumnType decodeType(Object typeObject) {

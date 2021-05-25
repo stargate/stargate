@@ -16,8 +16,6 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -27,26 +25,20 @@ import java.util.Map;
 
 public class CreateTableFetcher extends TableFetcher {
 
-  public CreateTableFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
-    Boolean ifNotExists = dataFetchingEnvironment.getArgument("ifNotExists");
-    List<Map<String, Object>> partitionKeys = dataFetchingEnvironment.getArgument("partitionKeys");
+    Boolean ifNotExists = environment.getArgument("ifNotExists");
+    List<Map<String, Object>> partitionKeys = environment.getArgument("partitionKeys");
     if (partitionKeys.isEmpty()) {
       // TODO see if we can enforce that through the schema instead
       throw new IllegalArgumentException("partitionKeys must contain at least one element");
     }
-    List<Map<String, Object>> clusteringKeys =
-        dataFetchingEnvironment.getArgument("clusteringKeys");
-    List<Map<String, Object>> values = dataFetchingEnvironment.getArgument("values");
+    List<Map<String, Object>> clusteringKeys = environment.getArgument("clusteringKeys");
+    List<Map<String, Object>> values = environment.getArgument("values");
 
     List<Column> partitionKeyColumns = decodeColumns(partitionKeys, Kind.PartitionKey);
     List<Column> clusteringColumns = decodeColumns(clusteringKeys, Kind.Clustering);

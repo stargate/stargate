@@ -16,14 +16,11 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -33,26 +30,21 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.UpdateModel;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 
 public class UpdateFetcher extends DeployedFetcher<Boolean> {
 
   private final UpdateModel model;
 
-  public UpdateFetcher(
-      UpdateModel model,
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authorizationService, dataStoreFactory);
+  public UpdateFetcher(UpdateModel model, MappingModel mappingModel) {
+    super(mappingModel);
     this.model = model;
   }
 
   @Override
   protected Boolean get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();
@@ -91,13 +83,15 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
             .build()
             .bind();
 
-    authorizationService.authorizeDataWrite(
-        authenticationSubject,
-        entityModel.getKeyspaceName(),
-        entityModel.getCqlName(),
-        TypedKeyValue.forDML((BoundDMLQuery) query),
-        Scope.MODIFY,
-        SourceAPI.GRAPHQL);
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            entityModel.getKeyspaceName(),
+            entityModel.getCqlName(),
+            TypedKeyValue.forDML((BoundDMLQuery) query),
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL);
 
     executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 

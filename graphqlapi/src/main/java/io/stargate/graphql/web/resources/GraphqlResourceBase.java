@@ -32,7 +32,8 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.Persistence;
-import io.stargate.graphql.web.HttpAwareContext;
+import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,7 +69,9 @@ public class GraphqlResourceBase {
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   @Inject protected AuthorizationService authorizationService;
+  @Inject protected DataStoreFactory dataStoreFactory;
   @Inject protected Persistence persistence;
+  @Inject protected GraphqlCache graphqlCache;
 
   /**
    * Handles a GraphQL GET request.
@@ -93,7 +96,13 @@ public class GraphqlResourceBase {
       ExecutionInput.Builder input =
           ExecutionInput.newExecutionInput(query)
               .operationName(operationName)
-              .context(new HttpAwareContext(httpRequest, persistence));
+              .context(
+                  new StargateGraphqlContext(
+                      httpRequest,
+                      authorizationService,
+                      dataStoreFactory,
+                      persistence,
+                      graphqlCache));
 
       if (!Strings.isNullOrEmpty(variables)) {
         @SuppressWarnings("unchecked")
@@ -149,7 +158,13 @@ public class GraphqlResourceBase {
     ExecutionInput.Builder input =
         ExecutionInput.newExecutionInput(query)
             .operationName(operationName)
-            .context(new HttpAwareContext(httpRequest, persistence));
+            .context(
+                new StargateGraphqlContext(
+                    httpRequest,
+                    authorizationService,
+                    dataStoreFactory,
+                    persistence,
+                    graphqlCache));
     if (variables != null) {
       input = input.variables(variables);
     }
@@ -325,7 +340,9 @@ public class GraphqlResourceBase {
 
     ExecutionInput input =
         ExecutionInput.newExecutionInput(query)
-            .context(new HttpAwareContext(httpRequest, persistence))
+            .context(
+                new StargateGraphqlContext(
+                    httpRequest, authorizationService, dataStoreFactory, persistence, graphqlCache))
             .build();
     executeAsync(input, graphql, asyncResponse);
   }

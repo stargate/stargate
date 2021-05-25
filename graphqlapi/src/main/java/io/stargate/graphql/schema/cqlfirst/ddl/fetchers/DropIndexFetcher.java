@@ -16,28 +16,25 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 
 public class DropIndexFetcher extends IndexFetcher {
 
-  public DropIndexFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory, Scope.DROP);
+  public DropIndexFetcher() {
+    super(Scope.DROP);
   }
 
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
 
-    String indexName = dataFetchingEnvironment.getArgument("indexName");
-    boolean ifExists = dataFetchingEnvironment.getArgumentOrDefault("ifExists", Boolean.FALSE);
+    String indexName = environment.getArgument("indexName");
+    boolean ifExists = environment.getArgumentOrDefault("ifExists", Boolean.FALSE);
 
     return builder.drop().index(keyspaceName, indexName).ifExists(ifExists).build();
   }

@@ -60,6 +60,13 @@ public enum ErrorCode {
           "The parameter `page-size` is limited to %d.",
           DocsApiConfiguration.DEFAULT.getMaxPageSize())),
 
+  DOCS_API_GENERAL_UPGRADE_INVALID(
+      Response.Status.BAD_REQUEST, "The collection cannot be upgraded in given manner."),
+
+  DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION(
+      Response.Status.BAD_REQUEST,
+      "The requested database table is not a Documents API Collection."),
+
   DOCS_API_GET_FIELDS_WITHOUT_WHERE(
       Response.Status.BAD_REQUEST, "Selecting fields is not allowed without `where`."),
 

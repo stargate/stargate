@@ -16,47 +16,39 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CreateKeyspaceFetcher extends DdlQueryFetcher {
 
-  public CreateKeyspaceFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
-      QueryBuilder builder,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, QueryBuilder builder, StargateGraphqlContext context)
       throws UnauthorizedException {
-    String keyspaceName = dataFetchingEnvironment.getArgument("name");
+    String keyspaceName = environment.getArgument("name");
 
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.CREATE,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.CREATE,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
-    boolean ifNotExists =
-        dataFetchingEnvironment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
-    Integer replicas = dataFetchingEnvironment.getArgument("replicas");
-    List<Map<String, Object>> datacenters = dataFetchingEnvironment.getArgument("datacenters");
+    boolean ifNotExists = environment.getArgumentOrDefault("ifNotExists", Boolean.FALSE);
+    Integer replicas = environment.getArgument("replicas");
+    List<Map<String, Object>> datacenters = environment.getArgument("datacenters");
     if (replicas == null && datacenters == null) {
       throw new IllegalArgumentException("You must specify either replicas or datacenters");
     }

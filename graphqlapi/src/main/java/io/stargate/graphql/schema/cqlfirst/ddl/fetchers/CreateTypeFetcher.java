@@ -16,49 +16,42 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class CreateTypeFetcher extends DdlQueryFetcher {
 
-  public CreateTypeFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
-      QueryBuilder builder,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, QueryBuilder builder, StargateGraphqlContext context)
       throws UnauthorizedException {
 
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String typeName = dataFetchingEnvironment.getArgument("typeName");
+    String keyspaceName = environment.getArgument("keyspaceName");
+    String typeName = environment.getArgument("typeName");
 
     // Permissions on a type are the same as keyspace
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.CREATE,
-        SourceAPI.GRAPHQL,
-        ResourceKind.TYPE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.CREATE,
+            SourceAPI.GRAPHQL,
+            ResourceKind.TYPE);
 
-    List<Map<String, Object>> fieldList = dataFetchingEnvironment.getArgument("fields");
+    List<Map<String, Object>> fieldList = environment.getArgument("fields");
     if (fieldList.isEmpty()) {
       throw new IllegalArgumentException("Must have at least one field");
     }
@@ -73,7 +66,7 @@ public class CreateTypeFetcher extends DdlQueryFetcher {
             .addAllColumns(fields)
             .build();
 
-    Boolean ifNotExists = dataFetchingEnvironment.getArgument("ifNotExists");
+    Boolean ifNotExists = environment.getArgument("ifNotExists");
     return builder
         .create()
         .type(keyspaceName, udt)

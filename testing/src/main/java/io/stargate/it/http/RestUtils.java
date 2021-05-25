@@ -74,22 +74,16 @@ public class RestUtils {
       Headers headers, String path, String requestBody, int expectedStatusCode) throws IOException {
     OkHttpClient client = client();
 
-    Request request;
+    RequestBody rb =
+        null != requestBody
+            ? RequestBody.create(MediaType.parse("application/json"), requestBody)
+            : RequestBody.create(null, new byte[] {});
+    Request.Builder requestBuilder = new Request.Builder().url(path).post(rb);
     if (headers != null) {
-      request =
-          new Request.Builder()
-              .url(path)
-              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-              .headers(headers)
-              .build();
-    } else {
-      request =
-          new Request.Builder()
-              .url(path)
-              .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-              .build();
+      requestBuilder.headers(headers);
     }
 
+    Request request = requestBuilder.build();
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 

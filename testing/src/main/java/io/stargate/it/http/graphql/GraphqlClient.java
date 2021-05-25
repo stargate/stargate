@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.http.RestUtils;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,22 +52,19 @@ public abstract class GraphqlClient {
   }
 
   protected String getGraphqlError(String authToken, String url, String graphqlQuery) {
-    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
-    assertThat(response).isNotNull();
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
+    List<Map<String, Object>> errors = getGraphqlErrors(authToken, url, graphqlQuery);
     assertThat(errors).hasSize(1);
     return (String) errors.get(0).get("message");
   }
 
-  protected Map<String, Object> getGraphqlErrors(
+  protected List<Map<String, Object>> getGraphqlErrors(
       String authToken, String url, String graphqlQuery) {
     Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
     assertThat(response).isNotNull();
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-    assertThat(errors).hasSize(1);
-    return errors.get(0);
+    assertThat(errors).isNotEmpty();
+    return errors;
   }
 
   protected Map<String, Object> getGraphqlResponse(
@@ -94,6 +94,14 @@ public abstract class GraphqlClient {
     } catch (IOException e) {
       fail("Unexpected error while sending POST request", e);
       return null; // never reached
+    }
+  }
+
+  protected String urlEncode(String parameter) {
+    try {
+      return URLEncoder.encode(parameter, StandardCharsets.UTF_8.name());
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError(e);
     }
   }
 }

@@ -16,25 +16,18 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 
 public class DropTableFetcher extends TableFetcher {
 
-  public DropTableFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
+      DataFetchingEnvironment environment,
       QueryBuilder builder,
       String keyspaceName,
       String tableName) {
-    Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
+    Boolean ifExists = environment.getArgument("ifExists");
     return builder
         .drop()
         .table(keyspaceName, tableName)

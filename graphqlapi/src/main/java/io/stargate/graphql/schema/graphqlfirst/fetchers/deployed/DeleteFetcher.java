@@ -17,14 +17,11 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.builder.AbstractBound;
@@ -37,6 +34,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnTy
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,20 +45,14 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
 
   private final DeleteModel model;
 
-  public DeleteFetcher(
-      DeleteModel model,
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(mappingModel, authorizationService, dataStoreFactory);
+  public DeleteFetcher(DeleteModel model, MappingModel mappingModel) {
+    super(mappingModel);
     this.model = model;
   }
 
   @Override
   protected Object get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();
@@ -94,13 +86,15 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
             .build()
             .bind();
 
-    authorizationService.authorizeDataWrite(
-        authenticationSubject,
-        entityModel.getKeyspaceName(),
-        entityModel.getCqlName(),
-        TypedKeyValue.forDML((BoundDelete) query),
-        Scope.DELETE,
-        SourceAPI.GRAPHQL);
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            entityModel.getKeyspaceName(),
+            entityModel.getCqlName(),
+            TypedKeyValue.forDML((BoundDelete) query),
+            Scope.DELETE,
+            SourceAPI.GRAPHQL);
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
     boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");

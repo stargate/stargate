@@ -17,11 +17,10 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
 import com.google.common.annotations.VisibleForTesting;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.*;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -29,31 +28,24 @@ import java.util.function.Function;
 public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
   private final Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider;
 
-  public SingleSchemaFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    this(authorizationService, dataStoreFactory, SchemaSourceDao::new);
+  public SingleSchemaFetcher() {
+    this(SchemaSourceDao::new);
   }
 
   @VisibleForTesting
-  public SingleSchemaFetcher(
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
-    super(authorizationService, dataStoreFactory);
+  public SingleSchemaFetcher(Function<DataStore, SchemaSourceDao> schemaSourceDaoProvider) {
     this.schemaSourceDaoProvider = schemaSourceDaoProvider;
   }
 
   @Override
   protected SchemaSource get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
     String keyspace = getKeyspace(environment, dataStore);
     Optional<UUID> version =
         Optional.ofNullable((String) environment.getArgument("version")).map(UUID::fromString);
 
-    authorize(authenticationSubject, keyspace);
+    authorize(context, keyspace);
 
     return schemaSourceDaoProvider.apply(dataStore).getSingleVersion(keyspace, version);
   }

@@ -16,28 +16,19 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
 
 public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
 
-  public SingleKeyspaceFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected KeyspaceDto get(
-      DataFetchingEnvironment environment,
-      DataStore dataStore,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws Exception {
     String keyspaceName = environment.getArgument("name");
 
@@ -46,13 +37,15 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
       return null;
     }
 
-    authorizationService.authorizeSchemaRead(
-        authenticationSubject,
-        Collections.singletonList(keyspace.name()),
-        null,
-        SourceAPI.GRAPHQL,
-        ResourceKind.KEYSPACE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaRead(
+            context.getSubject(),
+            Collections.singletonList(keyspace.name()),
+            null,
+            SourceAPI.GRAPHQL,
+            ResourceKind.KEYSPACE);
 
-    return new KeyspaceDto(keyspace, authorizationService, authenticationSubject);
+    return new KeyspaceDto(keyspace, context.getAuthorizationService(), context.getSubject());
   }
 }

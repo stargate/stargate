@@ -16,44 +16,37 @@
 package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.graphql.web.StargateGraphqlContext;
 
 public class DropTypeFetcher extends DdlQueryFetcher {
 
-  public DropTypeFetcher(
-      AuthorizationService authorizationService, DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
-  }
-
   @Override
   protected Query<?> buildQuery(
-      DataFetchingEnvironment dataFetchingEnvironment,
-      QueryBuilder builder,
-      AuthenticationSubject authenticationSubject)
+      DataFetchingEnvironment environment, QueryBuilder builder, StargateGraphqlContext context)
       throws UnauthorizedException {
 
-    String keyspaceName = dataFetchingEnvironment.getArgument("keyspaceName");
-    String typeName = dataFetchingEnvironment.getArgument("typeName");
+    String keyspaceName = environment.getArgument("keyspaceName");
+    String typeName = environment.getArgument("typeName");
 
     // Permissions on a type are the same as keyspace
-    authorizationService.authorizeSchemaWrite(
-        authenticationSubject,
-        keyspaceName,
-        null,
-        Scope.DROP,
-        SourceAPI.GRAPHQL,
-        ResourceKind.TYPE);
+    context
+        .getAuthorizationService()
+        .authorizeSchemaWrite(
+            context.getSubject(),
+            keyspaceName,
+            null,
+            Scope.DROP,
+            SourceAPI.GRAPHQL,
+            ResourceKind.TYPE);
 
-    Boolean ifExists = dataFetchingEnvironment.getArgument("ifExists");
+    Boolean ifExists = environment.getArgument("ifExists");
     return builder
         .drop()
         .type(keyspaceName, UserDefinedType.reference(typeName))

@@ -21,6 +21,7 @@ import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Values;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.io.IOException;
 import java.util.Arrays;
 import org.apache.http.HttpStatus;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  protected StargateGrpc.StargateBlockingStub stub;
+  protected StargateBlockingStub stub;
   protected String authToken;
 
   @BeforeEach
@@ -53,6 +54,14 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
     AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
+  }
+
+  protected StargateBlockingStub stubWithCallCredentials(String token) {
+    return stub.withCallCredentials(new StargateBearerToken(token));
+  }
+
+  protected StargateBlockingStub stubWithCallCredentials() {
+    return stubWithCallCredentials(authToken);
   }
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
@@ -84,13 +93,5 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
 
   protected static Row cqlRow(Value... values) {
     return Row.newBuilder().addAllValues(Arrays.asList(values)).build();
-  }
-
-  protected static Value stringValue(String value) {
-    return Value.newBuilder().setString(value).build();
-  }
-
-  protected static Value intValue(long value) {
-    return Value.newBuilder().setInt(value).build();
   }
 }

@@ -48,29 +48,32 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
   public void shouldFailToDeploySchemaWithAFieldAnnotatedWithBothCqlIfAndCqlWhere() {
     // given, when
     Map<String, Object> errors =
-        CLIENT.getDeploySchemaErrors(
-            KEYSPACE,
-            "type Foo @cql_input {\n"
-                + "  pk: Int! @cql_column(partitionKey: true)\n"
-                + "  v: Int\n"
-                + " "
-                + "}\n"
-                + "type DeleteFooResult @cql_payload {\n"
-                + "  applied: Boolean\n"
-                + "}\n"
-                + "type Query {\n"
-                + "  foo(pk: Int!): Foo\n"
-                + "}\n"
-                + "type DeleteFooResponse @cql_payload {\n"
-                + "  applied: Boolean"
-                + "}\n"
-                + "type Mutation {\n"
-                + "  deleteFooWhereAndIfOnTheSameField(\n"
-                + "pk: Int\n"
-                + "v: Int @cql_if(field: \"v\", predicate: GT) @cql_where(field: \"v\" predicate: GT)\n"
-                + "): Boolean\n"
-                + "    @cql_delete(targetEntity: \"Foo\")\n"
-                + "}");
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type Foo @cql_input {\n"
+                    + "  pk: Int! @cql_column(partitionKey: true)\n"
+                    + "  v: Int\n"
+                    + " "
+                    + "}\n"
+                    + "type DeleteFooResult @cql_payload {\n"
+                    + "  applied: Boolean\n"
+                    + "}\n"
+                    + "type Query {\n"
+                    + "  foo(pk: Int!): Foo\n"
+                    + "}\n"
+                    + "type DeleteFooResponse @cql_payload {\n"
+                    + "  applied: Boolean"
+                    + "}\n"
+                    + "type Mutation {\n"
+                    + "  deleteFooWhereAndIfOnTheSameField(\n"
+                    + "pk: Int\n"
+                    + "v: Int @cql_if(field: \"v\", predicate: GT) @cql_where(field: \"v\" predicate: GT)\n"
+                    + "): Boolean\n"
+                    + "    @cql_delete(targetEntity: \"Foo\")\n"
+                    + "}")
+            .get(0);
 
     // then
     assertThat(getMappingErrors(errors))
@@ -82,19 +85,22 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
   public void shouldFailToDeploySchemaWithASelectQueryFieldAnnotatedWithCqlIf() {
     // given, when
     Map<String, Object> errors =
-        CLIENT.getDeploySchemaErrors(
-            KEYSPACE,
-            "type Foo @cql_input {\n"
-                + "  pk: Int! @cql_column(partitionKey: true)\n"
-                + "  v: Int\n"
-                + " "
-                + "}\n"
-                + "type DeleteFooResult @cql_payload {\n"
-                + "  applied: Boolean\n"
-                + "}\n"
-                + "type Query {\n"
-                + "  foo(pk: Int! @cql_if(field: \"v\", predicate: EQ)): Foo\n"
-                + "}\n");
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type Foo @cql_input {\n"
+                    + "  pk: Int! @cql_column(partitionKey: true)\n"
+                    + "  v: Int\n"
+                    + " "
+                    + "}\n"
+                    + "type DeleteFooResult @cql_payload {\n"
+                    + "  applied: Boolean\n"
+                    + "}\n"
+                    + "type Query {\n"
+                    + "  foo(pk: Int! @cql_if(field: \"v\", predicate: EQ)): Foo\n"
+                    + "}\n")
+            .get(0);
 
     // then
     assertThat(getMappingErrors(errors))

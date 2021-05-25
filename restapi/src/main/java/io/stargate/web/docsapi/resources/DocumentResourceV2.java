@@ -6,8 +6,6 @@ import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
@@ -15,10 +13,10 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
+import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.Error;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -65,6 +63,7 @@ public class DocumentResourceV2 {
   @Inject private ObjectMapper mapper;
   @Inject private DocumentService documentService;
   @Inject private DocsApiConfiguration docsApiConfiguration;
+  @Inject private DocsSchemaChecker schemaChecker;
 
   @POST
   @ManagedAsync
@@ -630,23 +629,11 @@ public class DocumentResourceV2 {
           }
 
           // check first that namespace and table exist
-          AuthenticatedDB authenticatedDB = dbFactory.getDataStoreForToken(authToken, allHeaders);
-          Keyspace keyspace = authenticatedDB.getKeyspace(namespace);
-          if (null == keyspace) {
-            String message = String.format("Namespace %s does not exist.", namespace);
-            throw new ErrorCodeRuntimeException(
-                ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
-          }
-          Table table = keyspace.table(collection);
-          if (null == table) {
-            String message = String.format("Collection %s does not exist.", collection);
-            throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST, message);
-          }
+          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+          schemaChecker.checkValidity(namespace, collection, db);
 
           JsonNode node;
           if (filters.isEmpty()) {
-
-            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
             node = documentService.getJsonAtPath(db, namespace, collection, id, path);
             if (node == null) {
               return Response.noContent().build();
@@ -668,7 +655,6 @@ public class DocumentResourceV2 {
                     pageStateParam,
                     pageSizeParam,
                     pageSizeParam > 0 ? pageSizeParam : docsApiConfiguration.getSearchPageSize());
-            DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
             JsonNode result =
                 documentService.searchDocumentsV2(
                     db, namespace, collection, filters, selectionList, id, paginator);
@@ -763,6 +749,7 @@ public class DocumentResourceV2 {
           }
 
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
+          schemaChecker.checkValidity(namespace, collection, db);
 
           final Paginator paginator =
               new Paginator(

@@ -22,11 +22,11 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Schema;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 
@@ -42,19 +42,19 @@ class AllSchemasFetcherTest {
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
     when(schemaSourceDao.getAllVersions(keyspace))
         .thenReturn(Arrays.asList(schemaSource1, schemaSource2));
-    AllSchemasFetcher allSchemasFetcher =
-        new AllSchemasFetcher(
-            mock(AuthorizationService.class),
-            mock(DataStoreFactory.class),
-            (ds) -> schemaSourceDao);
+    AllSchemasFetcher allSchemasFetcher = new AllSchemasFetcher((ds) -> schemaSourceDao);
 
     DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(keyspace);
     DataStore dataStore = mockDataStore(keyspace);
 
+    StargateGraphqlContext context = mock(StargateGraphqlContext.class);
+    AuthorizationService authorizationService = mock(AuthorizationService.class);
+    AuthenticationSubject subject = mock(AuthenticationSubject.class);
+    when(context.getAuthorizationService()).thenReturn(authorizationService);
+    when(context.getSubject()).thenReturn(subject);
+
     // when
-    List<SchemaSource> result =
-        allSchemasFetcher.get(
-            dataFetchingEnvironment, dataStore, mock(AuthenticationSubject.class));
+    List<SchemaSource> result = allSchemasFetcher.get(dataFetchingEnvironment, dataStore, context);
 
     // then
     assertThat(result).containsExactly(schemaSource1, schemaSource2);

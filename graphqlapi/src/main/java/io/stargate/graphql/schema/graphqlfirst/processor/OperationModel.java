@@ -19,8 +19,6 @@ import graphql.Scalars;
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
-import io.stargate.auth.AuthorizationService;
-import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -40,10 +38,7 @@ public abstract class OperationModel {
     return coordinates;
   }
 
-  public abstract DataFetcher<?> getDataFetcher(
-      MappingModel mappingModel,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory);
+  public abstract DataFetcher<?> getDataFetcher(MappingModel mappingModel);
 
   public interface ReturnType {
     Optional<EntityModel> getEntity();

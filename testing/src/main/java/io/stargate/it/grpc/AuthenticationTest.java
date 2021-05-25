@@ -22,7 +22,7 @@ public class AuthenticationTest extends GrpcIntegrationTest {
   public void invalidCredentials() {
     assertThatThrownBy(
             () -> {
-              stub.withCallCredentials(new StargateBearerToken("not-a-token-that-exists"))
+              stubWithCallCredentials("not-a-token-that-exists")
                   .executeQuery(Query.newBuilder().setCql("SELECT * FROM system.local").build());
             })
         .isInstanceOf(StatusRuntimeException.class)

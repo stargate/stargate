@@ -6,11 +6,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
@@ -22,7 +20,10 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -34,12 +35,7 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected final NameMapping nameMapping;
   protected final DbColumnGetter dbColumnGetter;
 
-  protected DmlFetcher(
-      Table table,
-      NameMapping nameMapping,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    super(authorizationService, dataStoreFactory);
+  protected DmlFetcher(Table table, NameMapping nameMapping) {
     this.table = table;
     this.nameMapping = nameMapping;
     this.dbColumnGetter = new DbColumnGetter(nameMapping);

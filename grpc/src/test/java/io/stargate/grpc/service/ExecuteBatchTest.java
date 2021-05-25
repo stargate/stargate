@@ -1,7 +1,5 @@
 package io.stargate.grpc.service;
 
-import static io.stargate.grpc.Utils.intValue;
-import static io.stargate.grpc.Utils.stringValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -19,6 +17,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
@@ -61,9 +60,9 @@ public class ExecuteBatchTest extends BaseServiceTest {
               assertThat(batch.type()).isEqualTo(BatchType.LOGGED);
               assertThat(batch.size()).isEqualTo(3);
 
-              assertStatement(prepared, batch.statements().get(0), stringValue("a"), intValue(1));
-              assertStatement(prepared, batch.statements().get(1), stringValue("b"), intValue(2));
-              assertStatement(prepared, batch.statements().get(2), stringValue("c"), intValue(3));
+              assertStatement(prepared, batch.statements().get(0), Values.of("a"), Values.of(1));
+              assertStatement(prepared, batch.statements().get(1), Values.of("b"), Values.of(2));
+              assertStatement(prepared, batch.statements().get(2), Values.of("c"), Values.of(3));
 
               return CompletableFuture.completedFuture(new Result.Void());
             });
@@ -79,13 +78,13 @@ public class ExecuteBatchTest extends BaseServiceTest {
             QueryOuterClass.Batch.newBuilder()
                 .addQueries(
                     cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", stringValue("a"), intValue(1)))
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("a"), Values.of(1)))
                 .addQueries(
                     cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", stringValue("b"), intValue(2)))
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
                 .addQueries(
                     cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", stringValue("c"), intValue(3)))
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
                 .build());
 
     assertThat(result.hasPayload()).isFalse();
@@ -181,12 +180,12 @@ public class ExecuteBatchTest extends BaseServiceTest {
         // Invalid arity
         arguments(
             Arrays.array(Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
-            Arrays.array(stringValue("a")),
+            Arrays.array(Values.of("a")),
             "Invalid number of bind values. Expected 2, but received 1"),
         // Invalid type
         arguments(
             Arrays.array(Column.create("k", Type.Varchar)),
-            Arrays.array(intValue(1)),
+            Arrays.array(Values.of(1)),
             "Invalid argument at position 1"));
   }
 

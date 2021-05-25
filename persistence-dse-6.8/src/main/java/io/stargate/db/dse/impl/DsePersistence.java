@@ -542,9 +542,10 @@ public class DsePersistence
                                 Conversion.toResult(
                                     (ResultMessage) response,
                                     Conversion.toInternal(parameters.protocolVersion()),
-                                    ClientWarn.instance.getWarnings());
+                                    ClientWarn.instance.getAndClearWarnings());
                         return result;
                       } finally {
+                        // this is to clean the thread local in TPC thread
                         ClientWarn.instance.resetWarnings();
                       }
                     })
@@ -561,12 +562,19 @@ public class DsePersistence
         CompletableFuture<T> exceptionalFuture = new CompletableFuture<>();
         exceptionalFuture.completeExceptionally(convertExceptionWithWarnings(e));
         return exceptionalFuture;
+      } finally {
+        // this is to clean the thread local in non-TPC thread.
+        // note that: even though request execution happens asynchronously in TPC thread, but the
+        // thread local
+        // values should been already copied by TPC threads when enqueueing TPC tasks via {@link
+        // ExecutorLocals#create()).
+        ClientWarn.instance.resetWarnings();
       }
     }
 
     private PersistenceException convertExceptionWithWarnings(Throwable t) {
       PersistenceException pe = Conversion.convertInternalException(t);
-      pe.setWarnings(ClientWarn.instance.getWarnings());
+      pe.setWarnings(ClientWarn.instance.getAndClearWarnings());
       return pe;
     }
 
