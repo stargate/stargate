@@ -18,17 +18,16 @@ package io.stargate.web.docsapi.resources;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.web.docsapi.models.dto.CreateNamespace;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.AuthenticatedDB;
-import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
@@ -38,12 +37,13 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -64,8 +64,8 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Path("/v2/schemas/namespaces")
 @Produces(MediaType.APPLICATION_JSON)
 public class NamespacesResource {
+
   @Inject private Db db;
-  private static final ObjectMapper mapper = new ObjectMapper();
 
   @Timed
   @GET
@@ -108,9 +108,7 @@ public class NamespacesResource {
                   ResourceKind.KEYSPACE);
 
           Object response = raw ? namespaces : new ResponseWrapper(namespaces);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
+          return Response.status(Response.Status.OK).entity(response).build();
         });
   }
 
@@ -166,9 +164,7 @@ public class NamespacesResource {
           Keyspace keyspaceResponse = new Keyspace(keyspace.name(), buildDatacenters(keyspace));
 
           Object response = raw ? keyspaceResponse : new ResponseWrapper(keyspaceResponse);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
+          return Response.status(Response.Status.OK).entity(response).build();
         });
   }
 
@@ -212,16 +208,16 @@ public class NamespacesResource {
                       + "      ],\n"
                       + "}\n"
                       + "```")
-          String payload,
+          @NotNull(message = "payload not provided")
+          @Valid
+          CreateNamespace body,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
           AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
 
-          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
-
-          String keyspaceName = (String) requestBody.get("name");
+          String keyspaceName = body.getName();
           db.getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
@@ -231,23 +227,7 @@ public class NamespacesResource {
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          Replication replication;
-          if (requestBody.containsKey("datacenters")) {
-            ArrayList<?> datacenters = (ArrayList<?>) requestBody.get("datacenters");
-            Map<String, Integer> dcReplications = new HashMap<>();
-            for (Object dc : datacenters) {
-              String dcName = (String) ((Map<?, ?>) dc).get("name");
-              Integer replicas =
-                  ((Map<?, ?>) dc).containsKey("replicas")
-                      ? (Integer) ((Map<?, ?>) dc).get("replicas")
-                      : 3;
-              dcReplications.put(dcName, replicas);
-            }
-            replication = Replication.networkTopologyStrategy(dcReplications);
-          } else {
-            replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
-          }
-
+          Replication replication = body.getReplication();
           authenticatedDB
               .getDataStore()
               .queryBuilder()
@@ -260,7 +240,7 @@ public class NamespacesResource {
               .join();
 
           return Response.status(Response.Status.CREATED)
-              .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
+              .entity(Collections.singletonMap("name", keyspaceName))
               .build();
         });
   }
