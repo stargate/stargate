@@ -55,7 +55,7 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
     Map<String, Object> response = new LinkedHashMap<>();
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
-    java.util.function.Predicate<String> hasArgument;
+    Predicate<String> hasArgument;
     Function<String, Object> getArgument;
     if (model.getEntityArgumentName().isPresent()) {
       Map<String, Object> entity = environment.getArgument(model.getEntityArgumentName().get());
