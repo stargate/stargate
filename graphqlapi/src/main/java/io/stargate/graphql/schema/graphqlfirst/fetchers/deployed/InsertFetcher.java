@@ -23,7 +23,6 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.ValueModifier;
@@ -33,7 +32,6 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
@@ -109,32 +107,9 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
             SourceAPI.GRAPHQL);
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    populateResponseWithResultSet(
+        selectionSet, response, isLwt, resultSet, model.getResponsePayload(), model.getEntity());
 
-    boolean applied;
-    if (isLwt) {
-      Row row = resultSet.one();
-      applied = row.getBoolean("[applied]");
-      if (!applied) {
-        // The row contains the existing data, write it in the response.
-        for (FieldModel field : model.getEntity().getAllColumns()) {
-          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
-            continue;
-          }
-          Object cqlValue = row.getObject(field.getCqlName());
-          writeEntityField(
-              field.getGraphqlName(),
-              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
-              selectionSet,
-              response,
-              model.getResponsePayload());
-        }
-      }
-    } else {
-      applied = true;
-    }
-    if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
-      response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
-    }
     return response;
   }
 

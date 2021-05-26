@@ -23,7 +23,6 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -115,31 +114,8 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
-    boolean applied;
-    if (isLwt) {
-      Row row = resultSet.one();
-      applied = row.getBoolean("[applied]");
-      if (!applied) {
-        // The row contains the existing data, write it in the response.
-        for (FieldModel field : model.getEntity().getAllColumns()) {
-          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
-            continue;
-          }
-          Object cqlValue = row.getObject(field.getCqlName());
-          writeEntityField(
-              field.getGraphqlName(),
-              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
-              selectionSet,
-              response,
-              model.getResponsePayload());
-        }
-      }
-    } else {
-      applied = true;
-    }
-    if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
-      response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
-    }
+    populateResponseWithResultSet(
+        selectionSet, response, isLwt, resultSet, model.getResponsePayload(), model.getEntity());
     return response;
   }
 }

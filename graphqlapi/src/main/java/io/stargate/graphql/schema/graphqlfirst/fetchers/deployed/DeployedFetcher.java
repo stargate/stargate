@@ -464,4 +464,38 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
                 responseMap.computeIfAbsent(rootPath, __ -> new HashMap<String, Object>());
     targetMap.put(fieldName, value);
   }
+
+  protected void populateResponseWithResultSet(
+      DataFetchingFieldSelectionSet selectionSet,
+      Map<String, Object> response,
+      boolean isLwt,
+      ResultSet resultSet,
+      Optional<ResponsePayloadModel> responsePayloadModel,
+      EntityModel entityModel) {
+    boolean applied;
+    if (isLwt) {
+      Row row = resultSet.one();
+      applied = row.getBoolean("[applied]");
+      if (!applied) {
+        // The row contains the existing data, write it in the response.
+        for (FieldModel field : entityModel.getAllColumns()) {
+          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
+            continue;
+          }
+          Object cqlValue = row.getObject(field.getCqlName());
+          writeEntityField(
+              field.getGraphqlName(),
+              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
+              selectionSet,
+              response,
+              responsePayloadModel);
+        }
+      }
+    } else {
+      applied = true;
+    }
+    if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
+      response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+    }
+  }
 }
