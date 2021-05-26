@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
+import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -27,15 +28,12 @@ import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.UpdateModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.*;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import java.util.function.Function;
 
-public class UpdateFetcher extends DeployedFetcher<Boolean> {
+public class UpdateFetcher extends DeployedFetcher<Object> {
 
   private final UpdateModel model;
 
@@ -45,7 +43,7 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
   }
 
   @Override
-  protected Boolean get(
+  protected Object get(
       DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
 
@@ -113,10 +111,24 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
+    boolean applied;
     if (!ifConditions.isEmpty() || model.ifExists()) {
-      return resultSet.one().getBoolean("[applied]");
+      applied = resultSet.one().getBoolean("[applied]");
     } else {
-      return !model.ifExists();
+      applied = !model.ifExists();
+    }
+
+    OperationModel.ReturnType returnType = model.getReturnType();
+    if (returnType == OperationModel.SimpleReturnType.BOOLEAN) {
+      return applied;
+    } else {
+      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+      if (payload.getTechnicalFields().contains(ResponsePayloadModel.TechnicalField.APPLIED)) {
+        return ImmutableMap.of(
+            ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+      } else {
+        return Collections.emptyMap();
+      }
     }
   }
 }

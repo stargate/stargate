@@ -26,6 +26,7 @@ public class UpdateModel extends MutationModel {
   private final EntityModel entity;
   private final List<ConditionModel> ifConditions;
   private final Optional<String> entityArgumentName;
+  private final ReturnType returnType;
   private final boolean ifExists;
 
   public UpdateModel(
@@ -34,11 +35,13 @@ public class UpdateModel extends MutationModel {
       EntityModel entity,
       List<ConditionModel> ifConditions,
       Optional<String> entityArgumentName,
+      ReturnType returnType,
       boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
     this.ifConditions = ifConditions;
     this.entityArgumentName = entityArgumentName;
+    this.returnType = returnType;
     this.ifExists = ifExists;
   }
 
@@ -56,6 +59,10 @@ public class UpdateModel extends MutationModel {
 
   public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
+  }
+
+  public ReturnType getReturnType() {
+    return returnType;
   }
 
   @Override

@@ -20,10 +20,8 @@ import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 class UpdateModelBuilder extends MutationModelBuilder {
 
@@ -50,9 +48,26 @@ class UpdateModelBuilder extends MutationModelBuilder {
     boolean ifExists = computeIfExists(cqlUpdateDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (returnType != SimpleReturnType.BOOLEAN) {
-      invalidMapping("Mutation %s: updates can only return Boolean", operationName);
+    if (returnType != SimpleReturnType.BOOLEAN && !(returnType instanceof ResponsePayloadModel)) {
+      invalidMapping(
+          "Mutation %s: invalid return type. Expected Boolean or a response payload",
+          operationName);
       throw SkipException.INSTANCE;
+    }
+
+    if (returnType instanceof ResponsePayloadModel) {
+      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+      Set<String> unsupportedFields =
+          payload.getTechnicalFields().stream()
+              .filter(f -> f != ResponsePayloadModel.TechnicalField.APPLIED)
+              .map(ResponsePayloadModel.TechnicalField::getGraphqlName)
+              .collect(Collectors.toCollection(HashSet::new));
+      payload.getEntityField().ifPresent(e -> unsupportedFields.add(e.getName()));
+      if (!unsupportedFields.isEmpty()) {
+        warn(
+            "Mutation %s: 'applied' is the only supported field in update response payloads. Others will always be null (%s).",
+            operationName, String.join(", ", unsupportedFields));
+      }
     }
 
     List<InputValueDefinition> arguments = operation.getInputValueDefinitions();
@@ -85,6 +100,6 @@ class UpdateModelBuilder extends MutationModelBuilder {
     }
 
     return new UpdateModel(
-        parentTypeName, operation, entity, ifConditions, entityArgumentName, ifExists);
+        parentTypeName, operation, entity, ifConditions, entityArgumentName, returnType, ifExists);
   }
 }

@@ -51,6 +51,9 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             + "  age: Int\n"
             + "}\n"
             + "type Query { user(pk: Int!): User }\n"
+            + "type UpdateUserResponse @cql_payload {\n"
+            + "  applied: Boolean"
+            + "}\n"
             + "type Mutation {\n"
             + "  updateUser(user: UserInput!): Boolean @cql_update\n"
             + "  updateUserEQ(\n"
@@ -59,7 +62,13 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
             + "  ): Boolean\n"
             + "    @cql_update(targetEntity: \"User\")\n"
+            + "  updateUserEQCustomPayload(\n"
+            + "    pk: Int\n"
+            + "    username: String\n"
+            + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
+            + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
             + "  updateUserIfExists(user: UserInput!): Boolean @cql_update\n"
+            + "  updateUserIfExistsCustomPayload(user: UserInput!): UpdateUserResponse @cql_update(ifExists: true)\n"
             + "  updateUserOnlyIfPresent(user: UserInput!): Boolean @cql_update(ifExists: true)\n"
             + "}");
   }
@@ -91,6 +100,34 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ")).isTrue();
+    assertThat(getUserName(1)).isEqualTo("John");
+  }
+
+  @Test
+  @DisplayName(
+      "Should conditional update user using a predicate with the custom payload return type")
+  public void testConditionalUpdateUserUsingPredicateWithCustomPayloadReturnType() {
+    // given
+    updateUser(1, 18, "Max");
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserEQCustomPayload(pk: 1, age: 100, username: \"John\") {applied} }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQCustomPayload.applied")).isFalse();
+    assertThat(getUserName(1)).isEqualTo("Max");
+
+    // when
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserEQCustomPayload(pk: 1, age: 18,  username: \"John\") {applied} }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQCustomPayload.applied")).isTrue();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
@@ -145,6 +182,35 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
 
     // then should update the user
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserOnlyIfPresent")).isTrue();
+    assertThat(getUserName(1)).isEqualTo("John");
+  }
+
+  @Test
+  @DisplayName("Should update if exists returning with the custom payload return type")
+  public void testIfExistsWithCustomPayloadReturnType() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserIfExistsCustomPayload(user: { pk: 1, age: 100, username: \"John\" } ) {applied} }");
+
+    // then should not update user, because it does not exists
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExistsCustomPayload.applied"))
+        .isFalse();
+    assertThat(getUserRow(1)).isNull();
+
+    // given inserted user
+    updateUser(1, 100, "Max");
+
+    // when update existing user
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserIfExistsCustomPayload(user: { pk: 1, age: 18,  username: \"John\" } ) {applied} }");
+
+    // then should update the user
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExistsCustomPayload.applied"))
+        .isTrue();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
