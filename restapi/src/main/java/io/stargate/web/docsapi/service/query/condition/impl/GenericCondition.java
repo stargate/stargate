@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -59,6 +60,18 @@ public abstract class GenericCondition<V> implements BaseCondition {
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
     return Optional.empty();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public FilterOperationCode getFilterOperationCode() {
+    return getFilterOperation().getOpCode();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isEvaluateOnMissingFields() {
+    return getFilterOperation().isEvaluateOnMissingFields();
   }
 
   /** {@inheritDoc} */

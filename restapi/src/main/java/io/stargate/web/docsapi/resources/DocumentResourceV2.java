@@ -2,17 +2,16 @@ package io.stargate.web.docsapi.resources;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
-import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.resources.error.ErrorHandler;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
@@ -781,152 +780,11 @@ public class DocumentResourceV2 {
         });
   }
 
-  @GET
-  @ManagedAsync
-  @ApiOperation(
-      value = "Search documents in a collection",
-      notes =
-          "Page over documents in a collection, with optional search parameters. Does not perform well for large documents.",
-      response = DocumentResponseWrapper.class)
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
-        @ApiResponse(code = 204, message = "No Content", response = Error.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
-      })
-  @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response searchDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(
-              value =
-                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists")
-          @QueryParam("where")
-          String where,
-      @ApiParam(
-              value = "the field names that you want to restrict the results to",
-              required = false)
-          @QueryParam("fields")
-          String fields,
-      @ApiParam(
-              value = "the max number of documents to return, max " + DocumentDB.MAX_PAGE_SIZE,
-              defaultValue = "1")
-          @QueryParam("page-size")
-          int pageSizeParam,
-      @ApiParam(
-              value = "Cassandra page state, used for pagination on consecutive requests",
-              required = false)
-          @QueryParam("page-state")
-          String pageStateParam,
-      @ApiParam(
-              value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false")
-          @QueryParam("profile")
-          Boolean profile,
-      // TODO: Someday, support this in a non-restrictive way
-      // @QueryParam("sort") String sort,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
-      @Context HttpServletRequest request) {
-    return handle(
-        () -> {
-          if (pageSizeParam > DocumentDB.MAX_PAGE_SIZE) {
-            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED);
-          }
-
-          // enforce the declared parameter default
-          int effectivePageSize = pageSizeParam <= 0 ? 1 : pageSizeParam;
-          final Paginator paginator = new Paginator(pageStateParam, effectivePageSize);
-
-          ExecutionContext context = ExecutionContext.create(profile);
-
-          List<FilterCondition> filters = new ArrayList<>();
-          List<String> selectionList = new ArrayList<>();
-          if (where != null) {
-            JsonNode filterJson = mapper.readTree(where);
-            filters = documentService.convertToFilterOps(new ArrayList<>(), filterJson);
-          }
-
-          if (fields != null) {
-            JsonNode fieldsJson = mapper.readTree(fields);
-            selectionList = documentService.convertToSelectionList(fieldsJson);
-          }
-
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-          schemaChecker.checkValidity(namespace, collection, db);
-
-          JsonNode results;
-
-          if (filters.isEmpty()) {
-            results =
-                documentService.getFullDocuments(
-                    db, namespace, collection, selectionList, paginator, context);
-          } else {
-            results =
-                documentService.getFullDocumentsFiltered(
-                    db, namespace, collection, filters, selectionList, paginator, context);
-          }
-
-          if (results == null) {
-            return Response.noContent().build();
-          }
-
-          String json;
-          if (raw == null || !raw) {
-            json =
-                mapper.writeValueAsString(
-                    new DocumentResponseWrapper<>(
-                        null, paginator.makeExternalPagingState(), results, context.toProfile()));
-          } else {
-            json = mapper.writeValueAsString(results);
-          }
-
-          logger.debug(json);
-          return Response.ok(json).build();
-        });
-  }
-
   static Response handle(Callable<Response> action) {
     try {
       return action.call();
-    } catch (ErrorCodeRuntimeException errorCodeException) {
-      return errorCodeException.getResponse();
-    } catch (UnauthorizedException ue) {
-      return Response.status(Response.Status.UNAUTHORIZED)
-          .entity(
-              new Error(
-                  "Role unauthorized for operation: " + ue.getMessage(),
-                  Response.Status.UNAUTHORIZED.getStatusCode()))
-          .build();
-    } catch (NoNodeAvailableException e) {
-      return Response.status(Response.Status.SERVICE_UNAVAILABLE)
-          .entity(
-              new Error(
-                  "Internal connection to Cassandra closed",
-                  Response.Status.SERVICE_UNAVAILABLE.getStatusCode()))
-          .build();
     } catch (Throwable t) {
-      logger.error("Error when executing request", t);
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(
-              new Error(
-                  "Server error: " + t.getLocalizedMessage(),
-                  Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
-          .build();
+      return ErrorHandler.EXCEPTION_TO_RESPONSE.apply(t);
     }
   }
 }

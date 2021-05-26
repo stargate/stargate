@@ -248,29 +248,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             request));
   }
 
-  private <T> DocumentResponseWrapper<T> searchDoc(String where, String fields)
-      throws JsonProcessingException {
-    return searchDoc(where, fields, false);
-  }
-
-  private <T> DocumentResponseWrapper<T> searchDoc(String where, String fields, boolean profile)
-      throws JsonProcessingException {
-    return unwrap(
-        resource.searchDoc(
-            headers,
-            uriInfo,
-            authToken,
-            keyspace.name(),
-            table.name(),
-            where,
-            fields,
-            20,
-            null,
-            profile,
-            false,
-            request));
-  }
-
   private <T> String getDocPathRaw(String id, String where, String fields, List<PathSegment> path) {
     Response r =
         resource.getDocPath(
@@ -500,122 +477,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testSearchDocEmpty() throws JsonProcessingException {
-    withQuery(
-            table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 > ? AND p2 = ? AND p3 = ? AND dbl_value > ? ALLOW FILTERING",
-            params("a", "", "c", "", 1.0))
-        .returningNothing();
-    DocumentResponseWrapper<Map<String, ?>> r = searchDoc("{\"a.*.c\":{\"$gt\":1}}", null);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData()).isEqualTo(m());
-  }
-
-  @Test
-  void testSearchDoc() throws JsonProcessingException {
-    final String id1 = "id1";
-    final String id2 = "id2";
-
-    withQuery(
-            table,
-            "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING",
-            params("a", "c", "", 1.0))
-        .returning(ImmutableList.of(leafRow(id1), leafRow(id2)));
-
-    String checkDblValueQuery =
-        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? LIMIT ? ALLOW FILTERING";
-    withQuery(table, checkDblValueQuery, id1, "d", "e", "f", "", 2.0, 1)
-        .returning(ImmutableList.of(leafRow(id1)));
-    withQuery(table, checkDblValueQuery, id2, "d", "e", "f", "", 2.0, 1)
-        .returning(ImmutableList.of(leafRow(id2)));
-
-    withQuery(table, selectAll("WHERE key = ?"), id1)
-        .returning(ImmutableList.of(row(id1, 3.0, "a", "b"), row(id1, 4.0, "a", "c")));
-
-    withQuery(table, selectAll("WHERE key = ?"), id2)
-        .returning(
-            ImmutableList.of(
-                row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
-
-    DocumentResponseWrapper<Map<String, ?>> r =
-        searchDoc("{\"a.c\":{\"$gt\":1,\"$ne\":10},\"d.e.f\":{\"$eq\":2}}", null);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData()).isEqualTo(m(id1, m("a", m("b", 3, "c", 4))));
-
-    r = searchDoc("{\"a.c\":{\"$gt\":1},\"d.e.f\":{\"$eq\":2}}", null);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData())
-        .isEqualTo(m(id1, m("a", m("b", 3, "c", 4)), id2, m("a", m("b", 5, "c", 10, "d", 5))));
-
-    r = searchDoc("{\"a.c\":{\"$gt\":1},\"d.e.f\":{\"$eq\":2}}", "[\"a.b\"]");
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData()).isEqualTo(m(id1, m("a", m("b", 3)), id2, m("a", m("b", 5))));
-  }
-
-  @Test
-  void testSearchDocInMemory() throws JsonProcessingException {
-    final String id1 = "id1";
-    final String id2 = "id2";
-    final String id3 = "id3";
-
-    // full scan
-    withQuery(table, selectAll(""))
-        .returning(
-            ImmutableList.of(
-                row(id1, 3.0, "a", "b"),
-                row(id1, 3.0, "a", "c"),
-                row(id1, 3.0, "a", "d"),
-                row(id2, 4.0, "a", "e"),
-                row(id2, 4.0, "a", "c"),
-                row(id3, 10.0, "a", "c"),
-                row(id3, 20.0, "a", "b")));
-
-    DocumentResponseWrapper<Map<String, ?>> r = searchDoc("{\"a.c\":{\"$ne\":10}}", null);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData())
-        .isEqualTo(m(id1, m("a", m("b", 3, "c", 3, "d", 3)), id2, m("a", m("e", 4, "c", 4))));
-
-    r = searchDoc("{\"a.c\":{\"$ne\":10}}", "[\"a.b\"]");
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData()).isEqualTo(m(id1, m("a", m("b", 3)), id2, m()));
-  }
-
-  @Test
-  void testSearchDocFullScan() throws JsonProcessingException {
-    final String id1 = "id1";
-    final String id2 = "id2";
-    final String id3 = "id3";
-
-    // full scan
-    withQuery(table, selectAll(""))
-        .returning(
-            ImmutableList.of(
-                row(id1, 3.0, "a", "b"),
-                row(id1, 3.0, "a", "c"),
-                row(id1, 3.0, "a", "d"),
-                row(id2, 4.0, "a", "e"),
-                row(id2, 4.0, "a", "c"),
-                row(id3, 10.0, "a", "c"),
-                row(id3, 20.0, "a", "b")));
-
-    DocumentResponseWrapper<Map<String, ?>> r = searchDoc(null, null);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData())
-        .isEqualTo(
-            m(
-                id1,
-                m("a", m("b", 3, "c", 3, "d", 3)),
-                id2,
-                m("a", m("e", 4, "c", 4)),
-                id3,
-                m("a", m("b", 20, "c", 10))));
-
-    r = searchDoc(null, "[\"a.b\"]");
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData()).isEqualTo(m(id1, m("a", m("b", 3)), id2, m(), id3, m("a", m("b", 20))));
-  }
-
-  @Test
   void testPutAtPathRoot()
       throws UnauthorizedException, JsonProcessingException, ProcessingException {
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
@@ -787,16 +648,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .hasMessageContaining("test3");
   }
 
-  @Test
-  void testSearchDocUnauthorized() throws UnauthorizedException {
-    Mockito.doThrow(new UnauthorizedException("test4"))
-        .when(authorizationService)
-        .authorizeDataRead(any(), eq(keyspace.name()), eq(table.name()), eq(SourceAPI.REST));
-
-    assertThatThrownBy(() -> searchDoc("{\"a.*.y\":{\"$in\":[\"yy\"]}}", null))
-        .hasMessageContaining("test4");
-  }
-
   @Nested
   class Profiling {
 
@@ -839,70 +690,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
       withQuery(table, insert, fillParams(70, id3, "a", SEPARATOR, "a", null, 123.0d, null, 200L))
           .returningNothing();
-    }
-
-    @Test
-    void searchMixedFilters() throws JsonProcessingException {
-      DocumentResponseWrapper<Map<String, ?>> r =
-          searchDoc("{\"a.c\":{\"$gt\":1,\"$ne\":10},\"d.e.f\":{\"$eq\":2}}", null, true);
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("FILTER: a.c GT 1.0")
-                          .addQueries(QueryInfo.of(dblValueGtQuery, 1, 3))
-                          .build())
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("FILTER: d.e.f EQ 2.0")
-                          .addQueries(QueryInfo.of(dblValueEqQuery, 3, 2))
-                          .build())
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("LoadProperties")
-                          .addQueries(QueryInfo.of(selectByKey, 2, 5))
-                          .build())
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("FILTER IN MEMORY: a.c NE 10.0")
-                          .build())
-                  .build());
-    }
-
-    @Test
-    void searchInMemoryFilters() throws JsonProcessingException {
-      DocumentResponseWrapper<Map<String, ?>> r = searchDoc("{\"a.c\":{\"$ne\":10}}", null, true);
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("LoadAllDocuments")
-                          .addQueries(QueryInfo.of(selectAll, 1, 3))
-                          .build())
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("FILTER IN MEMORY: a.c NE 10.0")
-                          .build())
-                  .build());
-    }
-
-    @Test
-    void searchNoFilters() throws JsonProcessingException {
-      DocumentResponseWrapper<Map<String, ?>> r = searchDoc(null, null, true);
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("LoadAllDocuments")
-                          .addQueries(QueryInfo.of(selectAll, 1, 3))
-                          .build())
-                  .build());
     }
 
     @Test

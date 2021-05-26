@@ -34,23 +34,17 @@ import java.util.Optional;
  */
 public class ConditionParser {
 
-  /** If number booleans should be used when creating conditions. */
-  private final boolean numericBooleans;
-
-  public ConditionParser(boolean numericBooleans) {
-    this.numericBooleans = numericBooleans;
-  }
-
   /**
    * Creates the conditions for the node containing the raw filter ops as the keys. For example:
    * <code>{ "$gt: { 5 }, "$lt": { 10 }}</code>.
    *
    * @param conditionsNode Node containing the filter ops as keys
+   * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Collection of created conditions.
    * @throws io.stargate.web.docsapi.exception.DocumentAPIRequestException If filter op is not
    *     found, condition constructions fails or filter value is not supported by the filter op.
    */
-  public Collection<BaseCondition> getConditions(JsonNode conditionsNode) {
+  public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(

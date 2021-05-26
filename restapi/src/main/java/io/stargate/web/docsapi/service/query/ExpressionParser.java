@@ -21,21 +21,19 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
-import org.apache.commons.lang3.StringUtils;
 
 public class ExpressionParser {
 
@@ -43,6 +41,7 @@ public class ExpressionParser {
 
   private final ConditionParser conditionProvider;
 
+  @Inject
   public ExpressionParser(ConditionParser predicateProvider) {
     this.conditionProvider = predicateProvider;
   }
@@ -50,7 +49,7 @@ public class ExpressionParser {
   /**
    * Constructs the filter expression for the given filter query represented by the JSON node.
    *
-   * <p>This method will {@link #parse(List, JsonNode)} the filter query first and then:
+   * <p>This method will {@link #parse(List, JsonNode, boolean)} the filter query first and then:
    *
    * <ol>
    *   <li>1. Combine all expression in with And operation
@@ -59,20 +58,21 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
+   * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
    */
   public Expression<FilterExpression> constructFilterExpression(
-      List<PathSegment> prependedPath, JsonNode filterJson) {
-    List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson);
+      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+    List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson, numericBooleans);
 
     // if this is empty we can simply return true
     if (parse.isEmpty()) {
-      // TODO ISE: should be actually throw exception here or return optional
       return Literal.getTrue();
     }
 
-    // otherwise combine with and and simplify only
-    And<FilterExpression> and = And.of(parse);
+    // otherwise combine with and (respect the order) and simplify only
+    Expression<FilterExpression>[] array = parse.toArray(new Expression[parse.size()]);
+    And<FilterExpression> and = And.of(array, Comparator.comparingInt(parse::indexOf));
     return RuleSet.simplify(and);
   }
 
@@ -81,10 +81,11 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
+   * @param numericBooleans If number booleans should be used when creating conditions.
    * @return List of all expressions
    */
   public List<Expression<FilterExpression>> parse(
-      List<PathSegment> prependedPath, JsonNode filterJson) {
+      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     List<Expression<FilterExpression>> expressions = new ArrayList<>();
 
     Iterator<Map.Entry<String, JsonNode>> fields = filterJson.fields();
@@ -92,7 +93,8 @@ public class ExpressionParser {
       Map.Entry<String, JsonNode> field = fields.next();
       String fieldPath = field.getKey();
       FilterPath filterPath = getFilterPath(prependedPath, fieldPath);
-      Collection<BaseCondition> fieldConditions = conditionProvider.getConditions(field.getValue());
+      Collection<BaseCondition> fieldConditions =
+          conditionProvider.getConditions(field.getValue(), numericBooleans);
       for (BaseCondition fieldCondition : fieldConditions) {
         ImmutableFilterExpression expression =
             ImmutableFilterExpression.of(filterPath, fieldCondition);
@@ -115,7 +117,9 @@ public class ExpressionParser {
   private FilterPath getFilterPath(List<PathSegment> prependedPath, String fieldPath) {
     String[] fieldNamePath = PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
-        Arrays.stream(fieldNamePath).map(this::convertArrayPath).collect(Collectors.toList());
+        Arrays.stream(fieldNamePath)
+            .map(DocumentServiceUtils::convertArrayPath)
+            .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
@@ -123,7 +127,7 @@ public class ExpressionParser {
               .map(
                   pathSeg -> {
                     String path = pathSeg.getPath();
-                    return convertArrayPath(path);
+                    return DocumentServiceUtils.convertArrayPath(path);
                   })
               .collect(Collectors.toList());
 
@@ -131,26 +135,5 @@ public class ExpressionParser {
     }
 
     return ImmutableFilterPath.of(convertedFieldNamePath);
-  }
-
-  // TODO ISE: taken fom document service, best to extract to some kind of static utils
-  private String convertArrayPath(String path) {
-
-    // TODO charAt can be faster here?
-    if (path.startsWith("[") && path.endsWith("]")) {
-      String innerPath = path.substring(1, path.length() - 1);
-      int idx = Integer.parseInt(innerPath);
-      if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
-        String msg = String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH);
-        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
-      }
-      return "[" + leftPadTo6(innerPath) + "]";
-    }
-    return path;
-  }
-
-  // TODO ISE: taken fom document service, best to extract to some kind of static utils
-  private String leftPadTo6(String value) {
-    return StringUtils.leftPad(value, 6, '0');
   }
 }

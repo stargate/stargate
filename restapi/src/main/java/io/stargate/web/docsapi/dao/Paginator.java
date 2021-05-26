@@ -29,6 +29,27 @@ public class Paginator {
     }
   }
 
+  /**
+   * Utility to make the external paging state from docs, without side effects in {@link Paginator}.
+   *
+   * @param paginator Paginator
+   * @param docs document
+   * @return String to serve to external
+   */
+  public static String makeExternalPagingState(Paginator paginator, List<RawDocument> docs) {
+    // If we have less docs than the page requires, this means there's no point requesting the
+    // next page. Note that in this case the last doc in the list _may_ have an internal paging
+    // state. This may happen if some docs are filtered in memory after fetching from persistence.
+    if (docs.size() >= paginator.docPageSize) {
+      RawDocument lastDoc = docs.get(docs.size() - 1);
+      ByteBuffer byteBuffer = lastDoc.makePagingState();
+      if (null != byteBuffer) {
+        return Base64.getEncoder().encodeToString(byteBuffer.array());
+      }
+    }
+    return null;
+  }
+
   public String makeExternalPagingState() {
     if (currentPageState == null) {
       return null;

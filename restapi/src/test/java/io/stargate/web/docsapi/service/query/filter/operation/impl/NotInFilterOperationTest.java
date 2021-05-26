@@ -171,4 +171,15 @@ class NotInFilterOperationTest {
       assertThat(result).isEqualTo(FilterOperationCode.NIN);
     }
   }
+
+  @Nested
+  class IsEvaluateOnMissingFields {
+
+    @Test
+    public void evaluate() {
+      boolean result = nin.isEvaluateOnMissingFields();
+
+      assertThat(result).isTrue();
+    }
+  }
 }

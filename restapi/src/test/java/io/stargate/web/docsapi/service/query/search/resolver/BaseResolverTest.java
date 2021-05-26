@@ -1,0 +1,82 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package io.stargate.web.docsapi.service.query.search.resolver;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Literal;
+import io.stargate.web.docsapi.service.ExecutionContext;
+import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.query.FilterPath;
+import io.stargate.web.docsapi.service.query.ImmutableFilterExpression;
+import io.stargate.web.docsapi.service.query.ImmutableFilterPath;
+import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOperation;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
+import java.util.Collections;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class BaseResolverTest {
+
+  @Nested
+  class Resolve {
+
+    @Test
+    public void literalTrue() {
+      ExecutionContext context = ExecutionContext.create(true);
+
+      DocumentsResolver result = BaseResolver.resolve(Literal.getTrue(), context);
+
+      assertThat(result).isNull();
+    }
+
+    @Test
+    public void singleExpression() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+
+      DocumentsResolver result = BaseResolver.resolve(expression, context);
+
+      assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
+    }
+
+    @Test
+    public void andOnSamePath() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition1 = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
+      BaseCondition condition2 = ImmutableStringCondition.of(LtFilterOperation.of(), "find-me");
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2);
+
+      DocumentsResolver result = BaseResolver.resolve(And.of(expression1, expression2), context);
+
+      assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
+    }
+  }
+}

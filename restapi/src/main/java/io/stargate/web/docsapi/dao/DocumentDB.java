@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -57,6 +58,7 @@ public class DocumentDB {
   public static final Integer MAX_ARRAY_LENGTH =
       Integer.getInteger("stargate.document_max_array_len", 1000000);
   public static final String GLOB_VALUE = "*";
+  public static final String GLOB_ARRAY_VALUE = "[*]";
 
   public static final String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
   public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
@@ -125,6 +127,10 @@ public class DocumentDB {
     }
 
     executor = new QueryExecutor(dataStore);
+  }
+
+  public QueryExecutor getQueryExecutor() {
+    return executor;
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -400,21 +406,23 @@ public class DocumentDB {
       List<BuiltCondition> predicates,
       int pageSize,
       ByteBuffer pagingState,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    AbstractBound<?> query =
-        this.builder()
-            .select()
-            .column(DocumentDB.allColumns())
-            .writeTimeColumn("leaf")
-            .from(keyspace, collection)
-            .where(predicates)
-            .build()
-            .bind();
-    return executor.queryDocs(query, pageSize, pagingState, context);
+      ExecutionContext context) {
+    return Single.fromCallable(
+            () -> {
+              // Run generic authorizeDataRead for now
+              getAuthorizationService()
+                  .authorizeDataRead(
+                      getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+              return this.builder()
+                  .select()
+                  .column(DocumentDB.allColumns())
+                  .writeTimeColumn("leaf")
+                  .from(keyspace, collection)
+                  .where(predicates)
+                  .build()
+                  .bind();
+            })
+        .flatMapPublisher(q -> executor.queryDocs(q, pageSize, pagingState, context));
   }
 
   public Flowable<RawDocument> executeSelect(

@@ -47,7 +47,7 @@ class ConditionParserTest {
 
   private static final boolean NUMERIC_BOOLEANS = RandomUtils.nextBoolean();
 
-  ConditionParser conditionParser = new ConditionParser(NUMERIC_BOOLEANS);
+  ConditionParser conditionParser = new ConditionParser();
 
   @Nested
   class GetConditions {
@@ -59,7 +59,8 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$exgf", value);
 
-      Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
+      Throwable throwable =
+          catchThrowable(() -> conditionParser.getConditions(node, NUMERIC_BOOLEANS));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -72,7 +73,8 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$in", value);
 
-      Throwable throwable = catchThrowable(() -> conditionParser.getConditions(node));
+      Throwable throwable =
+          catchThrowable(() -> conditionParser.getConditions(node, NUMERIC_BOOLEANS));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -84,7 +86,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$eq", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(EqFilterOperation.of(), value));
@@ -95,7 +97,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$ne", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(NeFilterOperation.of(), value));
@@ -106,7 +108,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$gt", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(GtFilterOperation.of(), value));
@@ -117,7 +119,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$gte", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(GteFilterOperation.of(), value));
@@ -128,7 +130,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$lt", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(LtFilterOperation.of(), value));
@@ -139,7 +141,7 @@ class ConditionParserTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode node = objectMapper.createObjectNode().put("$lte", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions)
           .containsOnly(ImmutableStringCondition.of(LteFilterOperation.of(), value));
@@ -149,7 +151,7 @@ class ConditionParserTest {
     public void exists() {
       ObjectNode node = objectMapper.createObjectNode().put("$exists", true);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       assertThat(conditions).containsOnly(ImmutableExistsCondition.of(true));
     }
@@ -159,7 +161,7 @@ class ConditionParserTest {
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$in", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);
@@ -173,7 +175,7 @@ class ConditionParserTest {
       ArrayNode value = objectMapper.createArrayNode().add(2);
       ObjectNode node = objectMapper.createObjectNode().set("$nin", value);
 
-      Collection<BaseCondition> conditions = conditionParser.getConditions(node);
+      Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       List<Object> expected = new ArrayList<>();
       expected.add(2);

@@ -16,12 +16,35 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 /** Constants needed in the query. */
 public interface QueryConstants {
+
+  String KEY_COLUMN_NAME = "key";
+
+  String LEAF_COLUMN_NAME = "leaf";
 
   String STRING_VALUE_COLUMN_NAME = "text_value";
 
   String DOUBLE_VALUE_COLUMN_NAME = "dbl_value";
 
   String BOOLEAN_VALUE_COLUMN_NAME = "bool_value";
+
+  Function<Integer, String> P_COLUMN_NAME = p -> "p" + p;
+
+  Function<Integer, String[]> ALL_COLUMNS_NAMES =
+      depth -> {
+        Stream<String> pColumns = IntStream.range(0, depth).mapToObj(P_COLUMN_NAME::apply);
+        Stream<String> fixedColumns =
+            Stream.of(
+                KEY_COLUMN_NAME,
+                LEAF_COLUMN_NAME,
+                STRING_VALUE_COLUMN_NAME,
+                DOUBLE_VALUE_COLUMN_NAME,
+                BOOLEAN_VALUE_COLUMN_NAME);
+        return Stream.concat(fixedColumns, pColumns).toArray(String[]::new);
+      };
 }

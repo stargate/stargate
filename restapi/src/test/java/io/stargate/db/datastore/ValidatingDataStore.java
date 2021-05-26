@@ -177,6 +177,7 @@ public class ValidatingDataStore implements DataStore {
     private final String actualCql;
     private final Query<B> query;
     private boolean bound;
+    private BoundQuery.Source<Query<B>> source;
 
     private Prepared(Query<B> query) {
       this.actualCql = query.queryStringForPreparation();
@@ -222,6 +223,7 @@ public class ValidatingDataStore implements DataStore {
       ExpectedExecution exec = new ExpectedExecution(this, expectation);
       expectedExecutions.add(exec);
       bound = true;
+      this.source = new BoundQuery.Source<>(query, values);
       //noinspection unchecked
       return (B) exec;
     }
@@ -341,7 +343,7 @@ public class ValidatingDataStore implements DataStore {
 
     @Override
     public Source<?> source() {
-      throw new UnsupportedOperationException();
+      return query.source;
     }
 
     @Override

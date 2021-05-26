@@ -55,7 +55,7 @@ class ExpressionParserIntTest {
 
   @BeforeEach
   public void init() {
-    service = new ExpressionParser(new ConditionParser(false));
+    service = new ExpressionParser(new ConditionParser());
   }
 
   @Nested
@@ -69,7 +69,7 @@ class ExpressionParserIntTest {
               .set("myField", mapper.createObjectNode().put("$eq", "some-value"));
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root);
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -95,16 +95,32 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void andWrapping() {
+    public void andWrappingRespected() {
       ObjectNode root = mapper.createObjectNode();
-      root.set("myField", mapper.createObjectNode().put("$ne", "some-value"));
-      root.set("myOtherField", mapper.createObjectNode().put("$gt", "some-value"));
+      root.set("b", mapper.createObjectNode().put("$ne", "some-value"));
+      root.set("a", mapper.createObjectNode().put("$gt", "some-value"));
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root);
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .isInstanceOfSatisfying(And.class, a -> assertThat(a.getChildren()).hasSize(2));
+          .isInstanceOfSatisfying(
+              And.class,
+              a -> {
+                assertThat(a.getChildren()).hasSize(2);
+                assertThat(a.getChildren().get(0))
+                    .isInstanceOfSatisfying(
+                        FilterExpression.class,
+                        first -> {
+                          assertThat(first.getFilterPath().getField()).isEqualTo("b");
+                        });
+                assertThat(a.getChildren().get(1))
+                    .isInstanceOfSatisfying(
+                        FilterExpression.class,
+                        first -> {
+                          assertThat(first.getFilterPath().getField()).isEqualTo("a");
+                        });
+              });
     }
   }
 
@@ -118,7 +134,8 @@ class ExpressionParserIntTest {
               .createObjectNode()
               .set("myField", mapper.createObjectNode().put("$lt", "some-value"));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .singleElement()
@@ -149,7 +166,8 @@ class ExpressionParserIntTest {
       ObjectNode root =
           mapper.createObjectNode().set("myField", mapper.createObjectNode().put("$gte", true));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .singleElement()
@@ -180,7 +198,8 @@ class ExpressionParserIntTest {
       ObjectNode root =
           mapper.createObjectNode().set("myField", mapper.createObjectNode().put("$lte", 22d));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .singleElement()
@@ -212,7 +231,8 @@ class ExpressionParserIntTest {
               .createObjectNode()
               .set("my.filter.field", mapper.createObjectNode().put("$eq", "some-value"));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .singleElement()
@@ -245,7 +265,8 @@ class ExpressionParserIntTest {
               .createObjectNode()
               .set("my.filters.[2].field", mapper.createObjectNode().put("$eq", "some-value"));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .singleElement()
@@ -273,6 +294,41 @@ class ExpressionParserIntTest {
     }
 
     @Test
+    public void singleFieldArraySplitIndex() {
+      ObjectNode root =
+          mapper
+              .createObjectNode()
+              .set("my.filters.[1],[2].field", mapper.createObjectNode().put("$eq", "some-value"));
+
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .singleElement()
+          .isInstanceOfSatisfying(
+              FilterExpression.class,
+              c -> {
+                assertThat(c.getFilterPath().getField()).isEqualTo("field");
+                assertThat(c.getFilterPath().getParentPath())
+                    .containsExactly("my", "filters", "[1],[2]");
+                assertThat(c.getCondition())
+                    .isInstanceOfSatisfying(
+                        StringCondition.class,
+                        sc -> {
+                          assertThat(sc.getBuiltCondition())
+                              .hasValueSatisfying(
+                                  builtCondition -> {
+                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.value().get())
+                                        .isEqualTo("some-value");
+                                  });
+                          assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
+                          assertThat(sc.getQueryValue()).isEqualTo("some-value");
+                        });
+              });
+    }
+
+    @Test
     public void singleFieldPrepend() {
       ObjectNode root =
           mapper
@@ -282,7 +338,7 @@ class ExpressionParserIntTest {
       when(segment.getPath()).thenReturn("first").thenReturn("second");
 
       List<Expression<FilterExpression>> result =
-          service.parse(Arrays.asList(segment, segment), root);
+          service.parse(Arrays.asList(segment, segment), root, false);
 
       assertThat(result)
           .singleElement()
@@ -319,7 +375,8 @@ class ExpressionParserIntTest {
               .put("$eq", "some-value")
               .set("$in", mapper.createArrayNode().add("array-one").add("array-two")));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .hasSize(2)
@@ -383,7 +440,8 @@ class ExpressionParserIntTest {
       root.set("myField", mapper.createObjectNode().put("$eq", "some-value"));
       root.set("myOtherField", mapper.createObjectNode().put("$ne", "some-small-value"));
 
-      List<Expression<FilterExpression>> result = service.parse(Collections.emptyList(), root);
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
 
       assertThat(result)
           .hasSize(2)

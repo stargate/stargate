@@ -35,7 +35,7 @@ public abstract class ExistsCondition implements BaseCondition {
 
   /** @return Filter query value. */
   @Value.Parameter
-  public abstract boolean getQueryValue();
+  public abstract Boolean getQueryValue();
 
   /** Validates the filter value as we only accept true */
   @Value.Check
@@ -59,6 +59,18 @@ public abstract class ExistsCondition implements BaseCondition {
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
     return Optional.empty();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public FilterOperationCode getFilterOperationCode() {
+    return FilterOperationCode.EXISTS;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isEvaluateOnMissingFields() {
+    return false;
   }
 
   /** {@inheritDoc} */

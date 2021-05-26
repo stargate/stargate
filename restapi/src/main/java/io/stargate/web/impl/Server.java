@@ -37,6 +37,7 @@ import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.JsonSchemaResource;
 import io.stargate.web.docsapi.resources.NamespacesResource;
+import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
@@ -150,6 +151,7 @@ public class Server extends Application<ApplicationConfiguration> {
     // Documents API
     environment.jersey().register(new DocsApiComponentsBinder(environment));
     environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(ReactiveDocumentResourceV2.class);
     environment.jersey().register(JsonSchemaResource.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
