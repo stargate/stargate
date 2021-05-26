@@ -41,7 +41,6 @@ import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.Service.PrepareInfo;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -76,7 +75,6 @@ import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
-import org.apache.tinkerpop.gremlin.structure.T;
 import org.immutables.value.Value;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
@@ -84,12 +82,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
-
-  private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
-
-  /** The maximum number of batch queries to prepare simultaneously. */
-  private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
-      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -107,6 +99,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       ProtoUtils.keyForProto(AlreadyExists.getDefaultInstance());
   public static Key<CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
       ProtoUtils.keyForProto(CasWriteUnknown.getDefaultInstance());
+
+  private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
+
+  /** The maximum number of batch queries to prepare simultaneously. */
+  private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
+      Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
   // TODO: Add a maximum size and add tuning options
   private final Cache<PrepareInfo, Prepared> preparedCache = Caffeine.newBuilder().build();
@@ -156,13 +154,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
-                  handleError(t, responseObserver);
+                  handleException(t, responseObserver);
                 } else {
                   executePrepared(connection, prepared, query, responseObserver);
                 }
               });
     } catch (Throwable t) {
-      handleError(t, responseObserver);
+      handleException(t, responseObserver);
     }
   }
 
@@ -186,167 +184,22 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .whenComplete(
               (preparedBatch, t) -> {
                 if (t != null) {
-                  handleError(t, responseObserver);
+                  handleException(t, responseObserver);
                 } else {
                   executeBatch(connection, preparedBatch, batch.getParameters(), responseObserver);
                 }
               });
 
     } catch (Throwable t) {
-      handleError(t, responseObserver);
+      handleException(t, responseObserver);
     }
   }
 
-  private void handleError(Throwable throwable, StreamObserver<?> responseObserver) {
+  private void handleException(Throwable throwable, StreamObserver<?> responseObserver) {
     if (throwable instanceof StatusException || throwable instanceof StatusRuntimeException) {
       responseObserver.onError(throwable);
     } else if (throwable instanceof PersistenceException) {
-      PersistenceException pe = (PersistenceException) throwable;
-      switch (pe.code()) {
-        case SERVER_ERROR:
-        case PROTOCOL_ERROR: // Fallthrough
-        case UNPREPARED: // Fallthrough
-          onError(responseObserver, Status.INTERNAL, pe);
-          break;
-        case INVALID:
-        case SYNTAX_ERROR: // Fallthrough
-          onError(responseObserver, Status.INVALID_ARGUMENT, pe);
-          break;
-        case TRUNCATE_ERROR:
-        case CDC_WRITE_FAILURE: // Fallthrough
-          onError(responseObserver, Status.ABORTED, pe);
-          break;
-        case BAD_CREDENTIALS:
-          onError(responseObserver, Status.UNAUTHENTICATED, pe);
-          break;
-        case UNAVAILABLE:
-          UnavailableException ue = (UnavailableException) pe;
-          onError(
-              responseObserver,
-              Status.UNAVAILABLE,
-              ue,
-              makeTrailer(
-                  UNAVAILABLE_KEY,
-                  Unavailable.newBuilder()
-                      .setConsistencyValue(ue.consistency.code)
-                      .setAlive(ue.alive)
-                      .setRequired(ue.required)
-                      .build()));
-          break;
-        case OVERLOADED:
-          onError(responseObserver, Status.RESOURCE_EXHAUSTED, pe);
-          break;
-        case IS_BOOTSTRAPPING:
-          onError(responseObserver, Status.UNAVAILABLE, pe);
-          break;
-        case WRITE_TIMEOUT:
-          WriteTimeoutException wte = (WriteTimeoutException) pe;
-          onError(
-              responseObserver,
-              Status.DEADLINE_EXCEEDED,
-              pe,
-              makeTrailer(
-                  WRITE_TIMEOUT_KEY,
-                  WriteTimeout.newBuilder()
-                      .setConsistencyValue(wte.consistency.code)
-                      .setBlockFor(wte.blockFor)
-                      .setReceived(wte.received)
-                      .setWriteType(wte.writeType.name())
-                      .build()));
-          break;
-        case READ_TIMEOUT:
-          ReadTimeoutException rte = (ReadTimeoutException) pe;
-          onError(
-              responseObserver,
-              Status.DEADLINE_EXCEEDED,
-              pe,
-              makeTrailer(
-                  READ_TIMEOUT_KEY,
-                  ReadTimeout.newBuilder()
-                      .setConsistencyValue(rte.consistency.code)
-                      .setBlockFor(rte.blockFor)
-                      .setReceived(rte.received)
-                      .setDataPresent(rte.dataPresent)
-                      .build()));
-          break;
-        case READ_FAILURE:
-          ReadFailureException rfe = (ReadFailureException) pe;
-          onError(
-              responseObserver,
-              Status.ABORTED,
-              pe,
-              makeTrailer(
-                  READ_FAILURE_KEY,
-                  ReadFailure.newBuilder()
-                      .setConsistencyValue(rfe.consistency.code)
-                      .setNumFailures(rfe.failureReasonByEndpoint.size())
-                      .setBlockFor(rfe.blockFor)
-                      .setReceived(rfe.received)
-                      .setDataPresent(rfe.dataPresent)
-                      .build()));
-          break;
-        case FUNCTION_FAILURE:
-          FunctionExecutionException fee = (FunctionExecutionException) pe;
-          onError(
-              responseObserver,
-              Status.FAILED_PRECONDITION,
-              pe,
-              makeTrailer(
-                  FUNCTION_FAILURE_KEY,
-                  FunctionFailure.newBuilder()
-                      .setKeyspace(fee.functionName.keyspace)
-                      .setFunction(fee.functionName.name)
-                      .addAllArgTypes(fee.argTypes)
-                      .build()));
-          break;
-        case WRITE_FAILURE:
-          WriteFailureException wfe = (WriteFailureException) pe;
-          onError(
-              responseObserver,
-              Status.ABORTED,
-              pe,
-              makeTrailer(
-                  WRITE_FAILURE_KEY,
-                  WriteFailure.newBuilder()
-                      .setConsistencyValue(wfe.consistency.code)
-                      .setNumFailures(wfe.failureReasonByEndpoint.size())
-                      .setBlockFor(wfe.blockFor)
-                      .setReceived(wfe.received)
-                      .setWriteType(wfe.writeType.name())
-                      .build()));
-          break;
-        case CAS_WRITE_UNKNOWN:
-          CasWriteUnknownResultException cwe = (CasWriteUnknownResultException) pe;
-          onError(
-              responseObserver,
-              Status.ABORTED,
-              pe,
-              makeTrailer(
-                  CAS_WRITE_UNKNOWN_KEY,
-                  CasWriteUnknown.newBuilder()
-                      .setConsistencyValue(cwe.consistency.code)
-                      .setBlockFor(cwe.blockFor)
-                      .setReceived(cwe.received)
-                      .build()));
-          break;
-        case UNAUTHORIZED:
-          onError(responseObserver, Status.PERMISSION_DENIED, pe);
-          break;
-        case CONFIG_ERROR:
-          onError(responseObserver, Status.FAILED_PRECONDITION, pe);
-          break;
-        case ALREADY_EXISTS:
-          onError(responseObserver, Status.ALREADY_EXISTS, pe);
-          AlreadyExistsException aee = (AlreadyExistsException) pe;
-          onError(
-              responseObserver,
-              Status.ALREADY_EXISTS,
-              pe,
-              makeTrailer(
-                  ALREADY_EXISTS_KEY,
-                  AlreadyExists.newBuilder().setKeyspace(aee.ksName).setTable(aee.cfName).build()));
-          break;
-      }
+      handlePersistenceException((PersistenceException) throwable, responseObserver);
     } else {
       responseObserver.onError(
           Status.UNKNOWN
@@ -356,19 +209,169 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private static void onError(
+  private void handlePersistenceException(
+      PersistenceException pe, StreamObserver<?> responseObserver) {
+    switch (pe.code()) {
+      case SERVER_ERROR:
+      case PROTOCOL_ERROR: // Fallthrough
+      case UNPREPARED: // Fallthrough
+        onError(responseObserver, Status.INTERNAL, pe);
+        break;
+      case INVALID:
+      case SYNTAX_ERROR: // Fallthrough
+        onError(responseObserver, Status.INVALID_ARGUMENT, pe);
+        break;
+      case TRUNCATE_ERROR:
+      case CDC_WRITE_FAILURE: // Fallthrough
+        onError(responseObserver, Status.ABORTED, pe);
+        break;
+      case BAD_CREDENTIALS:
+        onError(responseObserver, Status.UNAUTHENTICATED, pe);
+        break;
+      case UNAVAILABLE:
+        UnavailableException ue = (UnavailableException) pe;
+        onError(
+            responseObserver,
+            Status.UNAVAILABLE,
+            ue,
+            makeTrailer(
+                UNAVAILABLE_KEY,
+                Unavailable.newBuilder()
+                    .setConsistencyValue(ue.consistency.code)
+                    .setAlive(ue.alive)
+                    .setRequired(ue.required)
+                    .build()));
+        break;
+      case OVERLOADED:
+        onError(responseObserver, Status.RESOURCE_EXHAUSTED, pe);
+        break;
+      case IS_BOOTSTRAPPING:
+        onError(responseObserver, Status.UNAVAILABLE, pe);
+        break;
+      case WRITE_TIMEOUT:
+        WriteTimeoutException wte = (WriteTimeoutException) pe;
+        onError(
+            responseObserver,
+            Status.DEADLINE_EXCEEDED,
+            pe,
+            makeTrailer(
+                WRITE_TIMEOUT_KEY,
+                WriteTimeout.newBuilder()
+                    .setConsistencyValue(wte.consistency.code)
+                    .setBlockFor(wte.blockFor)
+                    .setReceived(wte.received)
+                    .setWriteType(wte.writeType.name())
+                    .build()));
+        break;
+      case READ_TIMEOUT:
+        ReadTimeoutException rte = (ReadTimeoutException) pe;
+        onError(
+            responseObserver,
+            Status.DEADLINE_EXCEEDED,
+            pe,
+            makeTrailer(
+                READ_TIMEOUT_KEY,
+                ReadTimeout.newBuilder()
+                    .setConsistencyValue(rte.consistency.code)
+                    .setBlockFor(rte.blockFor)
+                    .setReceived(rte.received)
+                    .setDataPresent(rte.dataPresent)
+                    .build()));
+        break;
+      case READ_FAILURE:
+        ReadFailureException rfe = (ReadFailureException) pe;
+        onError(
+            responseObserver,
+            Status.ABORTED,
+            pe,
+            makeTrailer(
+                READ_FAILURE_KEY,
+                ReadFailure.newBuilder()
+                    .setConsistencyValue(rfe.consistency.code)
+                    .setNumFailures(rfe.failureReasonByEndpoint.size())
+                    .setBlockFor(rfe.blockFor)
+                    .setReceived(rfe.received)
+                    .setDataPresent(rfe.dataPresent)
+                    .build()));
+        break;
+      case FUNCTION_FAILURE:
+        FunctionExecutionException fee = (FunctionExecutionException) pe;
+        onError(
+            responseObserver,
+            Status.FAILED_PRECONDITION,
+            pe,
+            makeTrailer(
+                FUNCTION_FAILURE_KEY,
+                FunctionFailure.newBuilder()
+                    .setKeyspace(fee.functionName.keyspace)
+                    .setFunction(fee.functionName.name)
+                    .addAllArgTypes(fee.argTypes)
+                    .build()));
+        break;
+      case WRITE_FAILURE:
+        WriteFailureException wfe = (WriteFailureException) pe;
+        onError(
+            responseObserver,
+            Status.ABORTED,
+            pe,
+            makeTrailer(
+                WRITE_FAILURE_KEY,
+                WriteFailure.newBuilder()
+                    .setConsistencyValue(wfe.consistency.code)
+                    .setNumFailures(wfe.failureReasonByEndpoint.size())
+                    .setBlockFor(wfe.blockFor)
+                    .setReceived(wfe.received)
+                    .setWriteType(wfe.writeType.name())
+                    .build()));
+        break;
+      case CAS_WRITE_UNKNOWN:
+        CasWriteUnknownResultException cwe = (CasWriteUnknownResultException) pe;
+        onError(
+            responseObserver,
+            Status.ABORTED,
+            pe,
+            makeTrailer(
+                CAS_WRITE_UNKNOWN_KEY,
+                CasWriteUnknown.newBuilder()
+                    .setConsistencyValue(cwe.consistency.code)
+                    .setBlockFor(cwe.blockFor)
+                    .setReceived(cwe.received)
+                    .build()));
+        break;
+      case UNAUTHORIZED:
+        onError(responseObserver, Status.PERMISSION_DENIED, pe);
+        break;
+      case CONFIG_ERROR:
+        onError(responseObserver, Status.FAILED_PRECONDITION, pe);
+        break;
+      case ALREADY_EXISTS:
+        AlreadyExistsException aee = (AlreadyExistsException) pe;
+        onError(
+            responseObserver,
+            Status.ALREADY_EXISTS,
+            pe,
+            makeTrailer(
+                ALREADY_EXISTS_KEY,
+                AlreadyExists.newBuilder().setKeyspace(aee.ksName).setTable(aee.cfName).build()));
+        break;
+      default:
+        onError(responseObserver, Status.UNKNOWN, pe);
+        break;
+    }
+  }
+
+  private void onError(
       StreamObserver<?> responseObserver, Status status, Throwable throwable, Metadata trailer) {
-    status = status.withCause(throwable).withDescription(throwable.getMessage());
+    status = status.withDescription(throwable.getMessage()).withCause(throwable);
     responseObserver.onError(
         trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
   }
 
-  public static void onError(
-      StreamObserver<?> responseObserver, Status status, Throwable throwable) {
+  public void onError(StreamObserver<?> responseObserver, Status status, Throwable throwable) {
     onError(responseObserver, status, throwable, null);
   }
 
-  private static <T> Metadata makeTrailer(Key<T> key, T value) {
+  private <T> Metadata makeTrailer(Key<T> key, T value) {
     Metadata trailer = new Metadata();
     trailer.put(key, value);
     return trailer;
@@ -423,7 +426,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .whenComplete(
               (result, t) -> {
                 if (t != null) {
-                  handleError(t, responseObserver);
+                  handleException(t, responseObserver);
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -450,12 +453,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     responseObserver.onNext(responseBuilder.build());
                     responseObserver.onCompleted();
                   } catch (Throwable th) {
-                    handleError(th, responseObserver);
+                    handleException(th, responseObserver);
                   }
                 }
               });
     } catch (Throwable t) {
-      handleError(t, responseObserver);
+      handleException(t, responseObserver);
     }
   }
 
@@ -472,7 +475,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .whenComplete(
               (result, t) -> {
                 if (t != null) {
-                  handleError(t, responseObserver);
+                  handleException(t, responseObserver);
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -482,12 +485,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     responseObserver.onNext(responseBuilder.build());
                     responseObserver.onCompleted();
                   } catch (Throwable th) {
-                    handleError(th, responseObserver);
+                    handleException(th, responseObserver);
                   }
                 }
               });
     } catch (Throwable t) {
-      handleError(t, responseObserver);
+      handleException(t, responseObserver);
     }
   }
 
