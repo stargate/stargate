@@ -15,9 +15,11 @@
  */
 package io.stargate.graphql.web.resources;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
@@ -38,11 +40,11 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +67,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
   private final GraphQL ddlGraphql;
   private final GraphQL schemaFirstAdminGraphql;
   private final String defaultKeyspace;
-  private final ConcurrentMap<String, DmlGraphqlHolder> dmlGraphqls = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, GraphqlHolder> dmlGraphqls = new ConcurrentHashMap<>();
 
   public GraphqlCache(
       Persistence persistence, DataStoreFactory dataStoreFactory, boolean enableGraphqlFirst) {
@@ -97,8 +99,8 @@ public class GraphqlCache implements KeyspaceChangeListener {
         enableGraphqlFirst ? new SchemaSourceDao(dataStore).getLatestVersion(keyspaceName) : null;
 
     String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
-    DmlGraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
-    if (currentHolder != null && currentHolder.isSameVersionAs(latestSource)) {
+    final GraphqlHolder currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
+    if (currentHolder != null && currentHolder.matches(latestSource)) {
       LOG.trace("Returning cached schema for {}", decoratedKeyspaceName);
       return currentHolder.getGraphql();
     }
@@ -113,23 +115,16 @@ public class GraphqlCache implements KeyspaceChangeListener {
         "Computing new version for {} ({})",
         decoratedKeyspaceName,
         (currentHolder == null) ? "wasn't cached before" : "schema has changed");
-    DmlGraphqlHolder newHolder = new DmlGraphqlHolder(latestSource, keyspace);
-    boolean installed =
-        (currentHolder == null)
-            ? dmlGraphqls.putIfAbsent(decoratedKeyspaceName, newHolder) == null
-            : dmlGraphqls.replace(decoratedKeyspaceName, currentHolder, newHolder);
+    GraphqlHolder newHolder =
+        (latestSource == null)
+            ? new LazyCqlFirstGraphqlHolder(keyspace)
+            : new LazySchemaFirstGraphqlHolder(latestSource, keyspace);
 
-    if (installed) {
-      LOG.trace("Installing new version for {} in the cache", decoratedKeyspaceName);
-      newHolder.init();
-      return newHolder.getGraphql();
-    }
-
-    LOG.trace(
-        "Got beat installing new version for {} in the cache, fetching again",
-        decoratedKeyspaceName);
-    currentHolder = dmlGraphqls.get(decoratedKeyspaceName);
-    return currentHolder == null ? null : currentHolder.getGraphql();
+    // Put with a CAS, in case someone else deployed the new version before us:
+    GraphqlHolder result =
+        dmlGraphqls.compute(
+            decoratedKeyspaceName, (__, v) -> Objects.equals(v, currentHolder) ? newHolder : v);
+    return result == null ? null : result.getGraphql();
   }
 
   public void putDml(
@@ -138,14 +133,9 @@ public class GraphqlCache implements KeyspaceChangeListener {
     DataStore dataStore = buildUserDatastore(subject, headers);
     String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
 
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
-    if (keyspace == null) {
-      LOG.trace("Keyspace {} does not exist", decoratedKeyspaceName);
-      return;
-    }
     LOG.trace(
         "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
-    DmlGraphqlHolder schemaHolder = new DmlGraphqlHolder(newSource, graphql);
+    GraphqlHolder schemaHolder = new ImmediateSchemaFirstGraphqlHolder(newSource, graphql);
     dmlGraphqls.put(decoratedKeyspaceName, schemaHolder);
   }
 
@@ -215,7 +205,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
     // CQL-first schemas react to CQL schema changes: invalidate the cached version so that it gets
     // regenerated.
-    DmlGraphqlHolder holder = dmlGraphqls.get(decoratedKeyspaceName);
+    GraphqlHolder holder = dmlGraphqls.get(decoratedKeyspaceName);
     if (holder != null
         && holder.isCqlFirst()
         && dmlGraphqls.remove(decoratedKeyspaceName) != null
@@ -232,70 +222,111 @@ public class GraphqlCache implements KeyspaceChangeListener {
   }
 
   /**
-   * Holds the GraphQL schema for a particular keyspace (either CQL-first or GraphQL-first,
-   * depending on whether there is a SchemaSource for this keyspace).
+   * An entry that holds the GraphQL schema cached for a particular keyspace (either CQL-first or
+   * GraphQL-first, depending on whether a custom schema was deployed).
    */
-  class DmlGraphqlHolder {
+  interface GraphqlHolder {
+    GraphQL getGraphql();
 
-    // the user-provided GraphQL schema, or null if CQL-first
-    private final SchemaSource source;
-    private final Keyspace keyspace;
-    // This future is used to guarantee that the cached value is built only once, even if two
-    // clients try to initialize it concurrently.
-    private final CompletableFuture<GraphQL> graphqlFuture = new CompletableFuture<>();
+    /**
+     * Whether the schema matches the given source (if it doesn't, it will have to be recomputed).
+     * Note that the source can be {@code null} to indicate that no custom schema was deployed.
+     */
+    boolean matches(@Nullable SchemaSource source);
 
-    DmlGraphqlHolder(SchemaSource source, Keyspace keyspace) {
-      this.source = source;
-      this.keyspace = keyspace;
+    boolean isCqlFirst();
+  }
+
+  /** Entry for a CQL-first keyspace. */
+  static class LazyCqlFirstGraphqlHolder implements GraphqlHolder {
+
+    private final Supplier<GraphQL> graphqlSupplier;
+
+    LazyCqlFirstGraphqlHolder(Keyspace keyspace) {
+      graphqlSupplier = Suppliers.memoize(() -> newGraphql(SchemaFactory.newDmlSchema(keyspace)));
     }
 
-    DmlGraphqlHolder(SchemaSource source, GraphQL graphQL) {
-      this.source = source;
-      this.graphqlFuture.complete(graphQL);
-      // when the graphqlFuture is already completed, the keyspace is not-needed
-      this.keyspace = null;
+    @Override
+    public GraphQL getGraphql() {
+      return graphqlSupplier.get();
     }
 
-    void init() {
-      try {
-        graphqlFuture.complete(buildGraphql());
-      } catch (Exception e) {
-        graphqlFuture.completeExceptionally(e);
-      }
-    }
-
-    private GraphQL buildGraphql() {
-
-      if (source == null) {
-        return newGraphql(SchemaFactory.newDmlSchema(keyspace));
-      } else {
-        ProcessedSchema processedSchema =
-            new SchemaProcessor(persistence, true).process(source.getContents(), keyspace);
-        // Check that the data model still matches
-        CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);
-
-        return processedSchema.getGraphql();
-      }
-    }
-
-    boolean isSameVersionAs(SchemaSource otherSource) {
-      return (source == null && otherSource == null)
-          || (source != null
-              && otherSource != null
-              && source.getVersion().equals(otherSource.getVersion()));
-    }
-
-    boolean isCqlFirst() {
+    @Override
+    public boolean matches(@Nullable SchemaSource source) {
       return source == null;
     }
 
-    GraphQL getGraphql() throws Exception {
-      try {
-        return graphqlFuture.get();
-      } catch (ExecutionException e) {
-        Throwables.throwIfUnchecked(e.getCause());
-        throw new RuntimeException(e.getCause());
-      }
+    @Override
+    public boolean isCqlFirst() {
+      return true;
+    }
+  }
+
+  /**
+   * Entry for a schema-first keyspace, when we've detected a new row in the {@code schema_source}
+   * table.
+   */
+  class LazySchemaFirstGraphqlHolder implements GraphqlHolder {
+
+    private final SchemaSource source;
+    private final Supplier<GraphQL> graphqlSupplier;
+
+    LazySchemaFirstGraphqlHolder(SchemaSource source, Keyspace keyspace) {
+      this.source = source;
+      graphqlSupplier =
+          Suppliers.memoize(
+              () -> {
+                ProcessedSchema processedSchema =
+                    new SchemaProcessor(persistence, true).process(source.getContents(), keyspace);
+                // Check that the data model still matches
+                CassandraMigrator.forPersisted()
+                    .compute(processedSchema.getMappingModel(), keyspace);
+                return processedSchema.getGraphql();
+              });
+    }
+
+    @Override
+    public GraphQL getGraphql() {
+      return graphqlSupplier.get();
+    }
+
+    @Override
+    public boolean matches(@Nullable SchemaSource otherSource) {
+      return otherSource != null && source.getVersion().equals(otherSource.getVersion());
+    }
+
+    @Override
+    public boolean isCqlFirst() {
+      return false;
+    }
+  }
+
+  /**
+   * Entry for a schema-first keyspace, when we already have the GraphQL schema (because we're
+   * coming from a deployment operation).
+   */
+  static class ImmediateSchemaFirstGraphqlHolder implements GraphqlHolder {
+    private final SchemaSource source;
+    private final GraphQL graphql;
+
+    ImmediateSchemaFirstGraphqlHolder(SchemaSource source, GraphQL graphql) {
+      this.source = source;
+      this.graphql = graphql;
+    }
+
+    @Override
+    public GraphQL getGraphql() {
+      return graphql;
+    }
+
+    @Override
+    public boolean matches(@Nullable SchemaSource otherSource) {
+      return otherSource != null && this.source.getVersion().equals(otherSource.getVersion());
+    }
+
+    @Override
+    public boolean isCqlFirst() {
+      return false;
     }
   }
 }
