@@ -99,7 +99,19 @@ class UpdateModelBuilder extends MutationModelBuilder {
       ifConditions = conditions.getIfConditions();
     }
 
+    Optional<ResponsePayloadModel> responsePayload =
+        Optional.of(returnType)
+            .filter(ResponsePayloadModel.class::isInstance)
+            .map(ResponsePayloadModel.class::cast);
+
     return new UpdateModel(
-        parentTypeName, operation, entity, ifConditions, entityArgumentName, returnType, ifExists);
+        parentTypeName,
+        operation,
+        entity,
+        ifConditions,
+        entityArgumentName,
+        returnType,
+        responsePayload,
+        ifExists);
   }
 }

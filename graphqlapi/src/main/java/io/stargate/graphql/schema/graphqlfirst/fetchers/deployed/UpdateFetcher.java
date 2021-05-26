@@ -15,14 +15,15 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -33,7 +34,7 @@ import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import java.util.function.Function;
 
-public class UpdateFetcher extends DeployedFetcher<Object> {
+public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
 
   private final UpdateModel model;
 
@@ -43,13 +44,15 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
   }
 
   @Override
-  protected Object get(
+  protected Map<String, Object> get(
       DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
+    DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
     EntityModel entityModel = model.getEntity();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
 
+    Map<String, Object> response = new LinkedHashMap<>();
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
     java.util.function.Predicate<String> hasArgument;
@@ -72,6 +75,7 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
             keyspace);
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
+    boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
     Collection<ValueModifier> modifiers = new ArrayList<>();
     for (FieldModel column : entityModel.getRegularColumns()) {
@@ -112,23 +116,30 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
     boolean applied;
-    if (!ifConditions.isEmpty() || model.ifExists()) {
-      applied = resultSet.one().getBoolean("[applied]");
-    } else {
-      applied = !model.ifExists();
-    }
-
-    OperationModel.ReturnType returnType = model.getReturnType();
-    if (returnType == OperationModel.SimpleReturnType.BOOLEAN) {
-      return applied;
-    } else {
-      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
-      if (payload.getTechnicalFields().contains(ResponsePayloadModel.TechnicalField.APPLIED)) {
-        return ImmutableMap.of(
-            ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
-      } else {
-        return Collections.emptyMap();
+    if (isLwt) {
+      Row row = resultSet.one();
+      applied = row.getBoolean("[applied]");
+      if (!applied) {
+        // The row contains the existing data, write it in the response.
+        for (FieldModel field : model.getEntity().getAllColumns()) {
+          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
+            continue;
+          }
+          Object cqlValue = row.getObject(field.getCqlName());
+          writeEntityField(
+              field.getGraphqlName(),
+              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
+              selectionSet,
+              response,
+              model.getResponsePayload());
+        }
       }
+    } else {
+      applied = true;
     }
+    if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
+      response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+    }
+    return response;
   }
 }

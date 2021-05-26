@@ -33,14 +33,12 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +85,8 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
       setters.add(ValueModifier.set(column.getCqlName(), cqlValue));
       // Echo the values back to the response now. We might override that later if the query turned
       // out to be a failed LWT.
-      writeEntityField(graphqlName, graphqlValue, selectionSet, response);
+      writeEntityField(
+          graphqlName, graphqlValue, selectionSet, response, model.getResponsePayload());
     }
 
     AbstractBound<?> query =
@@ -126,7 +125,8 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
               field.getGraphqlName(),
               toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
               selectionSet,
-              response);
+              response,
+              model.getResponsePayload());
         }
       }
     } else {
@@ -146,40 +146,5 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
       return Uuids.timeBased();
     }
     throw new AssertionError("This shouldn't get called for CQL type " + cqlType);
-  }
-
-  /** Writes an entity field in the response. */
-  private void writeEntityField(
-      String fieldName,
-      Object value,
-      DataFetchingFieldSelectionSet selectionSet,
-      Map<String, Object> responseMap) {
-
-    // Determine if we need an additional level of nesting. This happens if the mutation returns a
-    // payload type that contains the entity.
-    String rootPath = null;
-    if (model.getResponsePayload().isPresent()) {
-      ResponsePayloadModel responsePayload = model.getResponsePayload().get();
-      if (!responsePayload.getEntityField().isPresent()) {
-        // This can happen if the payload only contains "technical" fields, like `applied`. In that
-        // case we never need to write any field.
-        return;
-      }
-      rootPath = responsePayload.getEntityField().get().getName();
-    }
-
-    // Check if the GraphQL query asked for that field.
-    String selectionPattern = (rootPath == null) ? fieldName : rootPath + '/' + fieldName;
-    if (!selectionSet.contains(selectionPattern)) {
-      return;
-    }
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> targetMap =
-        (rootPath == null)
-            ? responseMap
-            : (Map<String, Object>)
-                responseMap.computeIfAbsent(rootPath, __ -> new HashMap<String, Object>());
-    targetMap.put(fieldName, value);
   }
 }

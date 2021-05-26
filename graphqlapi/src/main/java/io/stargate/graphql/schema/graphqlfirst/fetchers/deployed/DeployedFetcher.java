@@ -22,6 +22,7 @@ import com.google.common.collect.Sets;
 import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -426,5 +427,41 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       }
     }
     return activeConditions;
+  }
+
+  /** Writes an entity field in the response. */
+  protected void writeEntityField(
+      String fieldName,
+      Object value,
+      DataFetchingFieldSelectionSet selectionSet,
+      Map<String, Object> responseMap,
+      Optional<ResponsePayloadModel> responsePayloadModel) {
+
+    // Determine if we need an additional level of nesting. This happens if the mutation returns a
+    // payload type that contains the entity.
+    String rootPath = null;
+    if (responsePayloadModel.isPresent()) {
+      ResponsePayloadModel responsePayload = responsePayloadModel.get();
+      if (!responsePayload.getEntityField().isPresent()) {
+        // This can happen if the payload only contains "technical" fields, like `applied`. In that
+        // case we never need to write any field.
+        return;
+      }
+      rootPath = responsePayload.getEntityField().get().getName();
+    }
+
+    // Check if the GraphQL query asked for that field.
+    String selectionPattern = (rootPath == null) ? fieldName : rootPath + '/' + fieldName;
+    if (!selectionSet.contains(selectionPattern)) {
+      return;
+    }
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> targetMap =
+        (rootPath == null)
+            ? responseMap
+            : (Map<String, Object>)
+                responseMap.computeIfAbsent(rootPath, __ -> new HashMap<String, Object>());
+    targetMap.put(fieldName, value);
   }
 }

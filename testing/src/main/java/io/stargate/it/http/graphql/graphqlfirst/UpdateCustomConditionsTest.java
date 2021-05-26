@@ -52,24 +52,18 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             + "}\n"
             + "type Query { user(pk: Int!): User }\n"
             + "type UpdateUserResponse @cql_payload {\n"
-            + "  applied: Boolean"
+            + "  applied: Boolean\n"
+            + "  user: User!\n"
             + "}\n"
             + "type Mutation {\n"
-            + "  updateUser(user: UserInput!): Boolean @cql_update\n"
-            + "  updateUserEQ(\n"
-            + "    pk: Int\n"
-            + "    username: String\n"
-            + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
-            + "  ): Boolean\n"
-            + "    @cql_update(targetEntity: \"User\")\n"
+            + "  updateUser(user: UserInput!): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
             + "  updateUserEQCustomPayload(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserIfExists(user: UserInput!): Boolean @cql_update\n"
+            + "  updateUserIfExists(user: UserInput!): UpdateUserResponse @cql_update\n"
             + "  updateUserIfExistsCustomPayload(user: UserInput!): UpdateUserResponse @cql_update(ifExists: true)\n"
-            + "  updateUserOnlyIfPresent(user: UserInput!): Boolean @cql_update(ifExists: true)\n"
             + "}");
   }
 
@@ -79,33 +73,8 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should conditional update user using EQ predicate")
-  public void testConditionalUpdateUserUsingEQPredicate() {
-    // given
-    updateUser(1, 18, "Max");
-
-    // when
-    Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE, "mutation { updateUserEQ(pk: 1, age: 100, username: \"John\") }");
-
-    // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ")).isFalse();
-    assertThat(getUserName(1)).isEqualTo("Max");
-
-    // when
-    response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE, "mutation { updateUserEQ(pk: 1, age: 18,  username: \"John\") }");
-
-    // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ")).isTrue();
-    assertThat(getUserName(1)).isEqualTo("John");
-  }
-
-  @Test
   @DisplayName(
-      "Should conditional update user using a predicate with the custom payload return type")
+      "Should conditional update user using EQ predicate with a custom payload return type")
   public void testConditionalUpdateUserUsingPredicateWithCustomPayloadReturnType() {
     // given
     updateUser(1, 18, "Max");
@@ -114,10 +83,17 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserEQCustomPayload(pk: 1, age: 100, username: \"John\") {applied} }");
+            "mutation { updateUserEQCustomPayload(pk: 1, age: 100, username: \"John\") { \n"
+                + "    applied"
+                + "    user { age }\n"
+                + "  }\n"
+                + "}");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQCustomPayload.applied")).isFalse();
+    // age contains the previous value
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserEQCustomPayload.user.age"))
+        .isEqualTo(18);
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
@@ -138,10 +114,10 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserIfExists(user: { pk: 1, age: 100, username: \"John\" } ) }");
+            "mutation { updateUserIfExists(user: { pk: 1, age: 100, username: \"John\" } ) {applied} }");
 
     // then should not update user, because it does not exists
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists.applied")).isFalse();
     assertThat(getUserRow(1)).isNull();
 
     // given inserted user
@@ -151,37 +127,10 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserIfExists(user: { pk: 1, age: 18,  username: \"John\" } ) }");
+            "mutation { updateUserIfExists(user: { pk: 1, age: 18,  username: \"John\" } ) {applied} }");
 
     // then should update the user
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists")).isTrue();
-    assertThat(getUserName(1)).isEqualTo("John");
-  }
-
-  @Test
-  @DisplayName("Should update if exists using the ifExists argument on the cql_update directive")
-  public void testIfExistsUsingArgumentOnCqlUpdateDirective() {
-    // when
-    Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            "mutation { updateUserOnlyIfPresent(user: { pk: 1, age: 100, username: \"John\" } ) }");
-
-    // then should not update user, because it does not exists
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserOnlyIfPresent")).isFalse();
-    assertThat(getUserRow(1)).isNull();
-
-    // given inserted user
-    updateUser(1, 100, "Max");
-
-    // when update existing user
-    response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            "mutation { updateUserOnlyIfPresent(user: { pk: 1, age: 18,  username: \"John\" } ) }");
-
-    // then should update the user
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserOnlyIfPresent")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists.applied")).isTrue();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
@@ -220,12 +169,13 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             KEYSPACE,
             String.format(
                 "mutation {\n"
-                    + "  result: updateUser(user: {pk: %s, age: %s, username: \"%s\"})\n"
+                    + "  result: updateUser(user: {pk: %s, age: %s, username: \"%s\"}) \n "
+                    + "{ applied }\n"
                     + "}",
                 pk1, age, username));
 
     // Should have generated an id
-    Boolean id = JsonPath.read(response, "$.result");
+    Boolean id = JsonPath.read(response, "$.result.applied");
     assertThat(id).isTrue();
   }
 }
