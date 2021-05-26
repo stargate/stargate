@@ -97,6 +97,7 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
             .value(modifiers)
             .where(whereConditions)
             .ifs(ifConditions)
+            .ifExists(model.ifExists())
             .build()
             .bind();
 
@@ -111,11 +112,11 @@ public class UpdateFetcher extends DeployedFetcher<Boolean> {
             SourceAPI.GRAPHQL);
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
-    // when if conditions are not empty, the applied MUST be present
-    if (!ifConditions.isEmpty()) {
+
+    if (!ifConditions.isEmpty() || model.ifExists()) {
       return resultSet.one().getBoolean("[applied]");
     } else {
-      return true;
+      return !model.ifExists();
     }
   }
 }

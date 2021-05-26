@@ -179,6 +179,24 @@ directive @cql_update(
     This must be a type that maps to a table.
     """
     targetEntity: String
+
+    """
+    Whether to check if the entity exists before deleting.
+
+    Delete mutations return the outcome of the deletion, either directly if the mutation returns
+    `Boolean`, or via the `applied` field if the mutation returns a response payload object.
+
+    * If `ifExists` is `false`, the mutation will always return `true`, whether it actually deleted
+    something or not.
+    * If `ifExists` is `true`, the mutation will return `true` if it deleted something, and `false`
+    otherwise.
+
+    Note that setting this flag to `true` might increase the latency of the operation. It should
+    not be used casually.
+
+    By convention, this flag will be set automatically if the mutation name ends with `IfExists`.
+    """
+    ifExists: Boolean = false
 ) on FIELD_DEFINITION
 
 """

@@ -47,6 +47,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
     // We could also take the PK fields directly (need a way to specify the entity), partial PKs for
     // multi-row deletions, additional IF conditions, etc.
     Optional<Directive> cqlUpdateDirective = DirectiveHelper.getDirective("cql_update", operation);
+    boolean ifExists = computeIfExists(cqlUpdateDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
     if (returnType != SimpleReturnType.BOOLEAN) {
@@ -83,6 +84,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       ifConditions = conditions.getIfConditions();
     }
 
-    return new UpdateModel(parentTypeName, operation, entity, ifConditions, entityArgumentName);
+    return new UpdateModel(
+        parentTypeName, operation, entity, ifConditions, entityArgumentName, ifExists);
   }
 }

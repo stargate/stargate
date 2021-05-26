@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
@@ -29,6 +30,11 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     return Objects.requireNonNull(resultSet.one()).getString("username");
   }
 
+  private static Row getUserRow(int pk) {
+    ResultSet resultSet = SESSION.execute("SELECT * FROM \"User\" WHERE pk = ? ", pk);
+    return resultSet.one();
+  }
+
   @BeforeAll
   public static void setup(
       StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
@@ -48,11 +54,13 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             + "type Mutation {\n"
             + "  updateUser(user: UserInput!): Boolean @cql_update\n"
             + "  updateUserEQ(\n"
-            + "pk: Int\n"
-            + "username: String\n"
-            + "age: Int @cql_if(field: \"age\", predicate: EQ)\n"
-            + "): Boolean\n"
-            + "    @cql_update(targetEntity: \"User\")"
+            + "    pk: Int\n"
+            + "    username: String\n"
+            + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
+            + "  ): Boolean\n"
+            + "    @cql_update(targetEntity: \"User\")\n"
+            + "  updateUserIfExists(user: UserInput!): Boolean @cql_update\n"
+            + "  updateUserOnlyIfPresent(user: UserInput!): Boolean @cql_update(ifExists: true)\n"
             + "}");
   }
 
@@ -83,6 +91,60 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ")).isTrue();
+    assertThat(getUserName(1)).isEqualTo("John");
+  }
+
+  @Test
+  @DisplayName("Should update if exists using method with naming convention")
+  public void testIfExistsNamingConvention() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserIfExists(user: { pk: 1, age: 100, username: \"John\" } ) }");
+
+    // then should not update user, because it does not exists
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists")).isFalse();
+    assertThat(getUserRow(1)).isNull();
+
+    // given inserted user
+    updateUser(1, 100, "Max");
+
+    // when update existing user
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserIfExists(user: { pk: 1, age: 18,  username: \"John\" } ) }");
+
+    // then should update the user
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists")).isTrue();
+    assertThat(getUserName(1)).isEqualTo("John");
+  }
+
+  @Test
+  @DisplayName("Should update if exists using the ifExists argument on the cql_update directive")
+  public void testIfExistsUsingArgumentOnCqlUpdateDirective() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserOnlyIfPresent(user: { pk: 1, age: 100, username: \"John\" } ) }");
+
+    // then should not update user, because it does not exists
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserOnlyIfPresent")).isFalse();
+    assertThat(getUserRow(1)).isNull();
+
+    // given inserted user
+    updateUser(1, 100, "Max");
+
+    // when update existing user
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { updateUserOnlyIfPresent(user: { pk: 1, age: 18,  username: \"John\" } ) }");
+
+    // then should update the user
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserOnlyIfPresent")).isTrue();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 

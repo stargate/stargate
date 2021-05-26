@@ -113,20 +113,4 @@ class DeleteModelBuilder extends MutationModelBuilder {
         returnType,
         ifExists);
   }
-
-  private boolean computeIfExists(Optional<Directive> cqlDeleteDirective) {
-    return cqlDeleteDirective
-        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
-        .orElseGet(
-            () -> {
-              if (operation.getName().endsWith("IfExists")) {
-                info(
-                    "Mutation %s: setting the 'ifExists' flag implicitly "
-                        + "because the name follows the naming convention.",
-                    operationName);
-                return true;
-              }
-              return false;
-            });
-  }
 }
