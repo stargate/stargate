@@ -28,6 +28,7 @@ import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.SchemaBuilder.SchemaBuilder__5;
+import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import java.util.*;
@@ -40,6 +41,7 @@ public class DocumentDBTest {
 
   private static final Schema schema = buildSchema();
 
+  private final ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
   private DocumentDB documentDB;
   private TestDataStore ds;
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -206,7 +208,8 @@ public class DocumentDBTest {
     map.put("dbl_value", null);
     map.put("text_value", null);
     Object[] values = map.values().toArray();
-    documentDB.deleteThenInsertBatch("keyspace", "table", "key", singletonList(values), path, 1L);
+    documentDB.deleteThenInsertBatch(
+        "keyspace", "table", "key", singletonList(values), path, 1L, context);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(2);
@@ -241,7 +244,7 @@ public class DocumentDBTest {
     map.put("text_value", null);
     Object[] values = map.values().toArray();
     documentDB.deletePatchedPathsThenInsertBatch(
-        "keyspace", "table", "key", singletonList(values), path, patchedKeys, 1L);
+        "keyspace", "table", "key", singletonList(values), path, patchedKeys, 1L, context);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(4);
@@ -318,7 +321,7 @@ public class DocumentDBTest {
     deadLeaves.put("$.b", new HashSet<>());
     deadLeaves.get("$.b").add(DeadLeaf.ARRAYLEAF);
 
-    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves);
+    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves, context);
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(2);

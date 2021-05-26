@@ -407,6 +407,16 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testGetProfile() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+
+    String resp = RestUtils.get(authToken, collectionPath + "/1?profile=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
   public void testInvalidPathGet() throws IOException {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -559,6 +569,27 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testPutProfile() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    String resp = RestUtils.put(authToken, collectionPath + "/1?profile=true", obj.toString(), 200);
+    assertThat(OBJECT_MAPPER.readTree(resp).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
+  public void testPutDocPathProfile() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+
+    obj = OBJECT_MAPPER.readTree("[0, \"a\", \"2\", true]");
+    String resp =
+        RestUtils.put(
+            authToken, collectionPath + "/1/quiz/nests/q1?profile=true", obj.toString(), 200);
+    assertThat(OBJECT_MAPPER.readTree(resp).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
   public void testInvalidPuts() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -640,6 +671,15 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     String r = RestUtils.get(authToken, newLocation, 200);
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObj, newId, null));
+  }
+
+  @Test
+  public void testPostProfile() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    String resp =
+        RestUtils.post(authToken, collectionPath + "?profile=true", fullObj.toString(), 201);
+    assertThat(OBJECT_MAPPER.readTree(resp).get("profile").isEmpty()).isFalse();
   }
 
   @Test
@@ -835,6 +875,27 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
+  }
+
+  @Test
+  public void testDocumentPatchProfile() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": null}");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+
+    obj = OBJECT_MAPPER.readTree("{\"bcd\": null}");
+    String r = RestUtils.patch(authToken, collectionPath + "/1?profile=true", obj.toString(), 200);
+    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
+  public void testDocumentPathPatchProfile() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": \"string1\"}");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+
+    obj = OBJECT_MAPPER.readTree("{\"bcd\": null}");
+    String r =
+        RestUtils.patch(authToken, collectionPath + "/1/abc?profile=true", obj.toString(), 200);
+    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
   }
 
   @Test
@@ -1071,6 +1132,22 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testBasicSearchProfile() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // EQ
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?profile=true&where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
   public void testFullCollectionSearchFilterNesting() throws IOException {
     JsonNode fullObj1 =
         OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
@@ -1115,6 +1192,23 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void testFullCollectionSearchProfile() throws IOException {
+    JsonNode fullObj1 =
+        OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=false&profile=true",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
   }
 
   @Test

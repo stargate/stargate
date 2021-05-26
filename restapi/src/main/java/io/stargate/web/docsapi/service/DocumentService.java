@@ -399,7 +399,8 @@ public class DocumentService {
       boolean patching,
       Db dbFactory,
       boolean isJson,
-      Map<String, String> headers)
+      Map<String, String> headers,
+      ExecutionContext context)
       throws UnauthorizedException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
 
@@ -441,14 +442,33 @@ public class DocumentService {
     long now = timeSource.currentTimeMicros();
     if (patching) {
       db.deletePatchedPathsThenInsertBatch(
-          keyspace, collection, id, bindVariableList, convertedPath, firstLevelKeys, now);
+          keyspace,
+          collection,
+          id,
+          bindVariableList,
+          convertedPath,
+          firstLevelKeys,
+          now,
+          context.nested("ASYNC PATCH"));
     } else {
-      db.deleteThenInsertBatch(keyspace, collection, id, bindVariableList, convertedPath, now);
+      db.deleteThenInsertBatch(
+          keyspace,
+          collection,
+          id,
+          bindVariableList,
+          convertedPath,
+          now,
+          context.nested("ASYNC INSERT"));
     }
   }
 
   public JsonNode getJsonAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      List<PathSegment> path,
+      ExecutionContext context)
       throws UnauthorizedException {
 
     List<BuiltCondition> predicates = new ArrayList<>();
@@ -469,7 +489,10 @@ public class DocumentService {
     }
 
     List<RawDocument> docs =
-        db.executeSelect(keyspace, collection, predicates, 0, null).take(1).toList().blockingGet();
+        db.executeSelect(keyspace, collection, predicates, 0, null, nestedPopulate(context))
+            .take(1)
+            .toList()
+            .blockingGet();
 
     if (docs.isEmpty()) {
       return null;
@@ -481,7 +504,8 @@ public class DocumentService {
             rawDoc.rows(), collector, false, db.treatBooleansAsNumeric());
     if (!collector.isEmpty()) {
       logger.info(String.format("Deleting %d dead leaves", collector.getLeaves().size()));
-      db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves());
+      long now = timeSource.currentTimeMicros();
+      db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves(), context, now);
     }
     JsonNode node = result.at(pathStr.toString());
     if (node.isMissingNode()) {
@@ -639,10 +663,13 @@ public class DocumentService {
   }
 
   private FlowableTransformer<RawDocument, RawDocument> filterInMemory(
-      DocumentDB db, List<FilterCondition> filters) {
+      DocumentDB db, List<FilterCondition> filters, ExecutionContext context) {
     if (filters.isEmpty()) {
       return flowable -> flowable;
     }
+
+    // Create nested contexts to report in-memory filtering activity
+    filters.forEach(f -> nestedInMemory(context, f));
 
     Set<String> filterFieldPaths =
         filters.stream().map(FilterCondition::getFullFieldPath).collect(Collectors.toSet());
@@ -661,7 +688,8 @@ public class DocumentService {
       List<FilterCondition> filters,
       List<String> fields,
       String documentId,
-      Paginator paginator)
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     db.authorizeSelect(keyspace, collection);
     FilterCondition first = filters.get(0);
@@ -672,6 +700,7 @@ public class DocumentService {
 
     int dbPageSize;
     List<FilterCondition> inMemoryFilters;
+    ExecutionContext mainContext;
     if (fields.isEmpty()) {
       conditions.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
 
@@ -690,6 +719,9 @@ public class DocumentService {
 
       if (!inCassandraFilters.isEmpty()) {
         collectFieldConditions(conditions, inCassandraFilters.get(0));
+        mainContext = nestedProperties(context, inCassandraFilters);
+      } else {
+        mainContext = nestedPopulate(context);
       }
 
       for (FilterCondition filter : inCassandraFilters) {
@@ -700,6 +732,7 @@ public class DocumentService {
       inMemoryFilters = filters;
 
       collectNestedElementConditions(conditions, path);
+      mainContext = nestedPopulate(context);
     }
 
     AbstractBound<?> mainQuery =
@@ -716,8 +749,9 @@ public class DocumentService {
     // Use `key` plus some of the clustering columns (path elements) for grouping query results
     int keyDepth = first.getPath().size() + 1; // +1 for the partition key
     List<RawDocument> docs =
-        db.executeSelect(keyDepth, mainQuery, dbPageSize, paginator.getCurrentDbPageState())
-            .compose(filterInMemory(db, inMemoryFilters))
+        db.executeSelect(
+                keyDepth, mainQuery, dbPageSize, paginator.getCurrentDbPageState(), mainContext)
+            .compose(filterInMemory(db, inMemoryFilters, context))
             .take(paginator.docPageSize)
             .toList()
             .blockingGet();
@@ -784,7 +818,12 @@ public class DocumentService {
    * documents.
    */
   public JsonNode getFullDocuments(
-      DocumentDB db, String keyspace, String collection, List<String> fields, Paginator paginator)
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      List<String> fields,
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
 
@@ -794,7 +833,8 @@ public class DocumentService {
                 collection,
                 ImmutableList.of(),
                 docsApiConfiguration.getSearchPageSize(),
-                paginator.getCurrentDbPageState())
+                paginator.getCurrentDbPageState(),
+                nestedAllDocs(context))
             .take(paginator.docPageSize)
             .toList()
             .blockingGet();
@@ -818,7 +858,8 @@ public class DocumentService {
       String collection,
       List<FilterCondition> filters,
       List<String> fields,
-      Paginator paginator)
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     List<FilterCondition> inCassandraFilters =
         filters.stream()
@@ -831,10 +872,10 @@ public class DocumentService {
 
     if (inCassandraFilters.isEmpty()) {
       return searchWithOnlyInMemoryFilters(
-          db, keyspace, collection, inMemoryFilters, fields, paginator);
+          db, keyspace, collection, inMemoryFilters, fields, paginator, context);
     }
     return searchUsingCassandraFilters(
-        db, keyspace, collection, inCassandraFilters, inMemoryFilters, fields, paginator);
+        db, keyspace, collection, inCassandraFilters, inMemoryFilters, fields, paginator, context);
   }
 
   private JsonNode searchUsingCassandraFilters(
@@ -844,21 +885,32 @@ public class DocumentService {
       List<FilterCondition> inCassandraFilters,
       List<FilterCondition> inMemoryFilters,
       List<String> fields,
-      Paginator paginator)
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
 
+    Flowable<RawDocument> candidates =
+        getCandidatesForPage(db, keyspace, collection, inCassandraFilters, paginator, context);
+
+    ExecutionContext populateCtx = nestedPopulate(context);
+
     List<RawDocument> docs =
-        getCandidatesForPage(db, keyspace, collection, inCassandraFilters, paginator)
+        candidates
             .concatMapSingle(
                 d -> {
                   // TODO: revisit fetching doc rows in batches using IN on `key`
                   BuiltCondition keyPredicate = BuiltCondition.of("key", Predicate.EQ, d.id());
                   return d.populateFrom(
                       db.executeSelect(
-                          keyspace, collection, ImmutableList.of(keyPredicate), 0, null));
+                          keyspace,
+                          collection,
+                          ImmutableList.of(keyPredicate),
+                          0,
+                          null,
+                          populateCtx));
                 })
-            .compose(filterInMemory(db, inMemoryFilters))
+            .compose(filterInMemory(db, inMemoryFilters, context))
             .take(paginator.docPageSize)
             .toList()
             .blockingGet();
@@ -870,12 +922,50 @@ public class DocumentService {
     return docsResult;
   }
 
+  private ExecutionContext nested(ExecutionContext context, FilterCondition filter) {
+    return context.nested(
+        "FILTER: "
+            + filter.getFullFieldPath()
+            + " "
+            + filter.getFilterOp()
+            + " "
+            + filter.getValue());
+  }
+
+  private ExecutionContext nestedInMemory(ExecutionContext context, FilterCondition filter) {
+    return context.nested(
+        "FILTER IN MEMORY: "
+            + filter.getFullFieldPath()
+            + " "
+            + filter.getFilterOp()
+            + " "
+            + filter.getValue());
+  }
+
+  private ExecutionContext nestedProperties(
+      ExecutionContext context, List<FilterCondition> filters) {
+    return context.nested(
+        "LoadProperties: "
+            + filters.stream()
+                .map(f -> f.getFullFieldPath() + " " + f.getFilterOp() + " " + f.getValue())
+                .collect(Collectors.joining(" AND ")));
+  }
+
+  private ExecutionContext nestedAllDocs(ExecutionContext context) {
+    return context.nested("LoadAllDocuments");
+  }
+
+  private ExecutionContext nestedPopulate(ExecutionContext context) {
+    return context.nested("LoadProperties");
+  }
+
   private Flowable<RawDocument> getCandidatesForPage(
       DocumentDB db,
       String keyspace,
       String collection,
       List<FilterCondition> inCassandraFilters,
-      Paginator paginator)
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     db.authorizeSelect(keyspace, collection);
 
@@ -895,10 +985,14 @@ public class DocumentService {
 
     Flowable<RawDocument> docs =
         db.executeSelect(
-            mainQuery, docsApiConfiguration.getSearchPageSize(), paginator.getCurrentDbPageState());
+            mainQuery,
+            docsApiConfiguration.getSearchPageSize(),
+            paginator.getCurrentDbPageState(),
+            nested(context, pagingCondition));
 
     while (it.hasNext()) {
       FilterCondition nestedCondition = it.next();
+      ExecutionContext nestedCtx = nested(context, nestedCondition);
 
       // chain the other filters as nested queries
       docs =
@@ -920,7 +1014,7 @@ public class DocumentService {
 
                 // If the nested query finds any docs, return the input doc to preserve
                 // the paging order of the main query
-                return db.executeSelect(nestedQuery, 1, null).take(1).map(nested -> d);
+                return db.executeSelect(nestedQuery, 1, null, nestedCtx).take(1).map(nested -> d);
               });
     }
 
@@ -933,7 +1027,8 @@ public class DocumentService {
       String collection,
       List<FilterCondition> inMemoryFilters,
       List<String> fields,
-      Paginator paginator)
+      Paginator paginator,
+      ExecutionContext context)
       throws UnauthorizedException {
     ObjectNode docsResult = mapper.createObjectNode();
 
@@ -943,8 +1038,9 @@ public class DocumentService {
                 collection,
                 ImmutableList.of(),
                 docsApiConfiguration.getSearchPageSize(),
-                paginator.getCurrentDbPageState())
-            .compose(filterInMemory(db, inMemoryFilters))
+                paginator.getCurrentDbPageState(),
+                nestedAllDocs(context))
+            .compose(filterInMemory(db, inMemoryFilters, context))
             .take(paginator.docPageSize)
             .toList()
             .blockingGet();

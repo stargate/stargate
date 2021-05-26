@@ -1,6 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
@@ -70,7 +71,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.postDoc(
-            headers, ui, authToken, keyspace, collection, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -89,7 +90,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -109,7 +110,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            path,
+            payload,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -129,7 +139,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -150,7 +160,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            path,
+            payload,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -210,7 +229,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -225,6 +244,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -251,7 +271,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -267,6 +287,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -299,7 +320,8 @@ public class DocumentResourceV2Test {
                 anyList(),
                 anyList(),
                 anyString(),
-                anyObject()))
+                anyObject(),
+                any()))
         .thenReturn(mockedReturn);
 
     Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
@@ -320,6 +342,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -346,7 +369,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -362,6 +385,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             false,
             httpServletRequest);
 
@@ -388,7 +412,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), any()))
         .thenReturn(null);
 
     Response r =
@@ -405,6 +429,7 @@ public class DocumentResourceV2Test {
             pageSizeParam,
             pageStateParam,
             false,
+            false,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(404);
     r =
@@ -420,6 +445,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(404);
@@ -453,7 +479,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject(), any()))
         .thenReturn(searchResult);
 
     Response r =
@@ -467,6 +493,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
@@ -504,7 +531,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject(), any()))
         .thenReturn(searchResult);
 
     Response r =
@@ -518,6 +545,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
@@ -555,7 +583,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
+                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject(), any()))
         .thenReturn(searchResult);
 
     Response r =
@@ -569,6 +597,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
@@ -606,6 +635,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(204);
@@ -639,6 +669,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);
@@ -673,7 +704,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getFullDocuments(
-                anyObject(), anyString(), anyString(), anyList(), anyObject()))
+                anyObject(), anyString(), anyString(), anyList(), anyObject(), any()))
         .thenReturn(searchResult);
 
     Response r =
@@ -687,6 +718,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(200);
@@ -717,6 +749,7 @@ public class DocumentResourceV2Test {
             fields,
             pageSizeParam,
             pageStateParam,
+            false,
             raw,
             httpServletRequest);
     assertThat(r.getStatus()).isEqualTo(400);

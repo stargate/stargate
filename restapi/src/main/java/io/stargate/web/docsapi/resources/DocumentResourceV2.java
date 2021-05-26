@@ -16,6 +16,7 @@ import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
+import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.filter.FilterCondition;
 import io.stargate.web.models.Error;
 import io.stargate.web.resources.Db;
@@ -124,6 +125,12 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
       @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
@@ -136,6 +143,12 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           documentService.putAtPath(
               authToken,
               namespace,
@@ -146,13 +159,16 @@ public class DocumentResourceV2 {
               false,
               dbFactory,
               isJson,
-              getAllHeaders(request));
+              getAllHeaders(request),
+              context);
 
           return Response.created(
                   URI.create(
                       String.format(
                           "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(newId, null, null)))
+              .entity(
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(newId, null, null, context.toProfile())))
               .build();
         });
   }
@@ -188,6 +204,12 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
       @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     logger.debug("Put: Collection = {}, id = {}", collection, id);
     return handle(
@@ -197,6 +219,12 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           documentService.putAtPath(
               authToken,
               namespace,
@@ -207,9 +235,12 @@ public class DocumentResourceV2 {
               false,
               dbFactory,
               isJson,
-              getAllHeaders(request));
+              getAllHeaders(request),
+              context);
           return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .entity(
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
         });
   }
@@ -250,6 +281,12 @@ public class DocumentResourceV2 {
           @PathParam("document-path")
           List<PathSegment> path,
       @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     logger.debug("Put: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
@@ -259,6 +296,12 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           documentService.putAtPath(
               authToken,
               namespace,
@@ -269,9 +312,12 @@ public class DocumentResourceV2 {
               false,
               dbFactory,
               isJson,
-              getAllHeaders(request));
+              getAllHeaders(request),
+              context);
           return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .entity(
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
         });
   }
@@ -309,6 +355,12 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
       @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     logger.debug("Patch: Collection = {}, id = {}", collection, id);
     return handle(
@@ -318,6 +370,12 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           documentService.putAtPath(
               authToken,
               namespace,
@@ -328,9 +386,12 @@ public class DocumentResourceV2 {
               true,
               dbFactory,
               isJson,
-              getAllHeaders(request));
+              getAllHeaders(request),
+              context);
           return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .entity(
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
         });
   }
@@ -372,6 +433,12 @@ public class DocumentResourceV2 {
           @PathParam("document-path")
           List<PathSegment> path,
       @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     logger.debug("Patch: Collection = {}, id = {}, path = {}", collection, id, path);
     return handle(
@@ -381,6 +448,12 @@ public class DocumentResourceV2 {
                   .getHeaderString(HttpHeaders.CONTENT_TYPE)
                   .toLowerCase()
                   .contains("application/json");
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           documentService.putAtPath(
               authToken,
               namespace,
@@ -391,9 +464,12 @@ public class DocumentResourceV2 {
               true,
               dbFactory,
               isJson,
-              getAllHeaders(request));
+              getAllHeaders(request),
+              context);
           return Response.ok()
-              .entity(mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, null)))
+              .entity(
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
         });
   }
@@ -536,6 +612,12 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("page-state")
           String pageStateParam,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
     if (pageSizeParam <= 0) {
@@ -554,6 +636,7 @@ public class DocumentResourceV2 {
         fields,
         pageSizeParam,
         pageStateParam,
+        profile,
         raw,
         request);
   }
@@ -618,6 +701,12 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("page-state")
           String pageStateParam,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
     if (pageSizeParam <= 0) {
@@ -665,16 +754,23 @@ public class DocumentResourceV2 {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
           schemaChecker.checkValidity(namespace, collection, db);
 
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
+
           JsonNode node;
           if (filters.isEmpty()) {
-            node = documentService.getJsonAtPath(db, namespace, collection, id, path);
+            node = documentService.getJsonAtPath(db, namespace, collection, id, path, context);
             if (node == null) {
               return Response.status(Response.Status.NOT_FOUND).build();
             }
 
             String json;
             if (raw == null || !raw) {
-              json = mapper.writeValueAsString(new DocumentResponseWrapper<>(id, null, node));
+              json =
+                  mapper.writeValueAsString(
+                      new DocumentResponseWrapper<>(id, null, node, context.toProfile()));
             } else {
               json = mapper.writeValueAsString(node);
             }
@@ -685,7 +781,7 @@ public class DocumentResourceV2 {
             final Paginator paginator = new Paginator(pageStateParam, finalPageSizeParam);
             JsonNode result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id, paginator);
+                    db, namespace, collection, filters, selectionList, id, paginator, context);
 
             if (result == null) {
               return Response.noContent().build();
@@ -697,7 +793,8 @@ public class DocumentResourceV2 {
               String pagingStateStr = paginator.makeExternalPagingState();
               json =
                   mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(id, pagingStateStr, result));
+                      new DocumentResponseWrapper<>(
+                          id, pagingStateStr, result, context.toProfile()));
             } else {
               json = mapper.writeValueAsString(result);
             }
@@ -760,6 +857,12 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("page-state")
           String pageStateParam,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false",
+              required = false)
+          @QueryParam("profile")
+          Boolean profile,
       // TODO: Someday, support this in a non-restrictive way
       // @QueryParam("sort") String sort,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
@@ -773,6 +876,11 @@ public class DocumentResourceV2 {
           // enforce the declared parameter default
           int effectivePageSize = pageSizeParam <= 0 ? 1 : pageSizeParam;
           final Paginator paginator = new Paginator(pageStateParam, effectivePageSize);
+
+          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+          if (profile != null && profile) {
+            context = ExecutionContext.create();
+          }
 
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
@@ -794,11 +902,11 @@ public class DocumentResourceV2 {
           if (filters.isEmpty()) {
             results =
                 documentService.getFullDocuments(
-                    db, namespace, collection, selectionList, paginator);
+                    db, namespace, collection, selectionList, paginator, context);
           } else {
             results =
                 documentService.getFullDocumentsFiltered(
-                    db, namespace, collection, filters, selectionList, paginator);
+                    db, namespace, collection, filters, selectionList, paginator, context);
           }
 
           if (results == null) {
@@ -810,7 +918,7 @@ public class DocumentResourceV2 {
             json =
                 mapper.writeValueAsString(
                     new DocumentResponseWrapper<>(
-                        null, paginator.makeExternalPagingState(), results));
+                        null, paginator.makeExternalPagingState(), results, context.toProfile()));
           } else {
             json = mapper.writeValueAsString(results);
           }

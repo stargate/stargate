@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.stargate.web.docsapi.service.ExecutionProfile;
 import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -30,6 +31,9 @@ public class DocumentResponseWrapper<T> {
 
   @JsonProperty("data")
   T data;
+
+  @JsonProperty("profile")
+  ExecutionProfile profile;
 
   @ApiModelProperty(value = "The id of the document")
   public String getDocumentId() {
@@ -62,13 +66,19 @@ public class DocumentResponseWrapper<T> {
     return this;
   }
 
+  public ExecutionProfile getProfile() {
+    return profile;
+  }
+
   @JsonCreator
   public DocumentResponseWrapper(
       @JsonProperty("documentId") final String documentId,
       @JsonProperty("pageState") final String pageState,
-      @JsonProperty("data") final T data) {
+      @JsonProperty("data") final T data,
+      @JsonProperty("profile") ExecutionProfile profile) {
     this.documentId = documentId;
     this.pageState = pageState;
     this.data = data;
+    this.profile = profile;
   }
 }

@@ -44,12 +44,16 @@ public class QueryExecutor {
   }
 
   public Flowable<RawDocument> queryDocs(
-      AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
-    return queryDocs(1, query, pageSize, pagingState);
+      AbstractBound<?> query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
+    return queryDocs(1, query, pageSize, pagingState, context);
   }
 
   public Flowable<RawDocument> queryDocs(
-      int keyDepth, AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+      int keyDepth,
+      AbstractBound<?> query,
+      int pageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
     BuiltSelect select = (BuiltSelect) query.source().query();
     if (keyDepth < 1 || keyDepth > select.table().primaryKeyColumns().size()) {
       throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
@@ -58,7 +62,9 @@ public class QueryExecutor {
     List<Column> idColumns = select.table().primaryKeyColumns().subList(0, keyDepth);
 
     return execute(query, pageSize, pagingState)
-        .flatMap(rs -> Flowable.fromIterable(seeds(rs, idColumns)), 1) // concurrency factor 1
+        .flatMap(
+            rs -> Flowable.fromIterable(seeds(query, rs, idColumns, context)),
+            1) // concurrency factor 1
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
         .filter(Accumulator::isComplete)
@@ -113,8 +119,10 @@ public class QueryExecutor {
     }
   }
 
-  private Iterable<Accumulator> seeds(ResultSet rs, List<Column> keyColumns) {
+  private Iterable<Accumulator> seeds(
+      AbstractBound<?> query, ResultSet rs, List<Column> keyColumns, ExecutionContext context) {
     List<Row> rows = rs.currentPageRows();
+    context.traceCqlResult(query, rows.size());
     List<Accumulator> seeds = new ArrayList<>(rows.size());
     for (Row row : rows) {
       String id = row.getString("key");
