@@ -32,6 +32,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.*;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
 
@@ -77,19 +78,8 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
     Collection<ValueModifier> modifiers = new ArrayList<>();
-    for (FieldModel column : entityModel.getRegularColumns()) {
-      String graphqlName = column.getGraphqlName();
-      if (hasArgument.test(graphqlName)) {
-        Object graphqlValue = getArgument.apply(graphqlName);
-        modifiers.add(
-            ValueModifier.set(
-                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      }
-    }
-    if (modifiers.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Input object must have at least one non-PK field set for an update");
-    }
+    prepopulateWithInputData(
+        entityModel, keyspace, hasArgument, getArgument, modifiers, response, selectionSet);
 
     AbstractBound<?> query =
         dataStore
@@ -117,5 +107,35 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
     populateResponseWithResultSet(
         selectionSet, response, isLwt, resultSet, model.getResponsePayload(), model.getEntity());
     return response;
+  }
+
+  private void prepopulateWithInputData(
+      EntityModel entityModel,
+      Keyspace keyspace,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Collection<ValueModifier> modifiers,
+      Map<String, Object> response,
+      DataFetchingFieldSelectionSet selectionSet) {
+    for (FieldModel column : entityModel.getRegularColumns()) {
+      String graphqlName = column.getGraphqlName();
+
+      if (hasArgument.test(graphqlName)) {
+        Object graphqlValue = getArgument.apply(graphqlName);
+        modifiers.add(
+            ValueModifier.set(
+                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
+
+        // Echo the values back to the response now. We might override that later if the query
+        // turned
+        // out to be a failed LWT.
+        writeEntityField(
+            graphqlName, graphqlValue, selectionSet, response, model.getResponsePayload());
+      }
+    }
+    if (modifiers.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Input object must have at least one non-PK field set for an update");
+    }
   }
 }

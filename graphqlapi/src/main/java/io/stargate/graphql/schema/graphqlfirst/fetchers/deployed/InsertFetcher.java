@@ -62,30 +62,8 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
-    Collection<ValueModifier> setters = new ArrayList<>();
-    for (FieldModel column : entityModel.getAllColumns()) {
-      String graphqlName = column.getGraphqlName();
-      Object graphqlValue;
-      Object cqlValue;
-      if (input.containsKey(graphqlName)) {
-        graphqlValue = input.get(graphqlName);
-        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
-      } else if (column.isPrimaryKey()) {
-        if (TypeHelper.mapsToUuid(column.getGraphqlType())) {
-          cqlValue = generateUuid(column.getCqlType());
-          graphqlValue = cqlValue.toString();
-        } else {
-          throw new IllegalArgumentException("Missing value for field " + graphqlName);
-        }
-      } else {
-        continue;
-      }
-      setters.add(ValueModifier.set(column.getCqlName(), cqlValue));
-      // Echo the values back to the response now. We might override that later if the query turned
-      // out to be a failed LWT.
-      writeEntityField(
-          graphqlName, graphqlValue, selectionSet, response, model.getResponsePayload());
-    }
+    Collection<ValueModifier> setters =
+        prepopulateWithInputData(selectionSet, entityModel, keyspace, input, response);
 
     AbstractBound<?> query =
         dataStore
@@ -111,6 +89,39 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
         selectionSet, response, isLwt, resultSet, model.getResponsePayload(), model.getEntity());
 
     return response;
+  }
+
+  private Collection<ValueModifier> prepopulateWithInputData(
+      DataFetchingFieldSelectionSet selectionSet,
+      EntityModel entityModel,
+      Keyspace keyspace,
+      Map<String, Object> input,
+      Map<String, Object> response) {
+    Collection<ValueModifier> setters = new ArrayList<>();
+    for (FieldModel column : entityModel.getAllColumns()) {
+      String graphqlName = column.getGraphqlName();
+      Object graphqlValue;
+      Object cqlValue;
+      if (input.containsKey(graphqlName)) {
+        graphqlValue = input.get(graphqlName);
+        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
+      } else if (column.isPrimaryKey()) {
+        if (TypeHelper.mapsToUuid(column.getGraphqlType())) {
+          cqlValue = generateUuid(column.getCqlType());
+          graphqlValue = cqlValue.toString();
+        } else {
+          throw new IllegalArgumentException("Missing value for field " + graphqlName);
+        }
+      } else {
+        continue;
+      }
+      setters.add(ValueModifier.set(column.getCqlName(), cqlValue));
+      // Echo the values back to the response now. We might override that later if the query turned
+      // out to be a failed LWT.
+      writeEntityField(
+          graphqlName, graphqlValue, selectionSet, response, model.getResponsePayload());
+    }
+    return setters;
   }
 
   private Object generateUuid(Column.ColumnType cqlType) {

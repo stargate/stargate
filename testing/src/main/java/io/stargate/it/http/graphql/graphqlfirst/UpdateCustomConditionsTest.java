@@ -85,25 +85,36 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             KEYSPACE,
             "mutation { updateUserEQCustomPayload(pk: 1, age: 100, username: \"John\") { \n"
                 + "    applied"
-                + "    user { age }\n"
+                + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQCustomPayload.applied")).isFalse();
-    // age contains the previous value
+    // age contains the previous value (from DB)
     assertThat(JsonPath.<Integer>read(response, "$.updateUserEQCustomPayload.user.age"))
         .isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserEQCustomPayload.user.username"))
+        .isEqualTo("John");
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserEQCustomPayload(pk: 1, age: 18,  username: \"John\") {applied} }");
+            "mutation { updateUserEQCustomPayload(pk: 1, age: 18, username: \"John\") { \n"
+                + "    applied"
+                + "    user { age, username }\n"
+                + "  }\n"
+                + "}");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQCustomPayload.applied")).isTrue();
+    // age contains the new value
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserEQCustomPayload.user.age"))
+        .isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserEQCustomPayload.user.username"))
+        .isEqualTo("John");
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
