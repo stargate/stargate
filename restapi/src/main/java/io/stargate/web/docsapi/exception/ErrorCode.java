@@ -92,7 +92,13 @@ public enum ErrorCode {
 
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,
-      "The results as requested must fit in one page, try increasing the `page-size` parameter.");
+      "The results as requested must fit in one page, try increasing the `page-size` parameter."),
+
+  DOCS_API_JSON_SCHEMA_INVALID(
+      Response.Status.BAD_REQUEST, "The provided JSON schema is invalid or malformed."),
+
+  DOCS_API_INVALID_JSON_VALUE(
+      Response.Status.BAD_REQUEST, "The provided JSON does not match the collection's schema.");
 
   /** Status of the response. */
   private final Response.Status responseStatus;

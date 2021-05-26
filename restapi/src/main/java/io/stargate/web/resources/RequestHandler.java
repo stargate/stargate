@@ -16,6 +16,7 @@
 package io.stargate.web.resources;
 
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.models.Error;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -34,6 +35,8 @@ public class RequestHandler {
   public static Response handle(Callable<Response> action) {
     try {
       return action.call();
+    } catch (ErrorCodeRuntimeException errorCodeException) {
+      return errorCodeException.getResponse();
     } catch (NotFoundException nfe) {
       logger.info("Resource not found", nfe);
       return Response.status(Response.Status.NOT_FOUND)

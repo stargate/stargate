@@ -19,5 +19,6 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bindAsContract(DocsSchemaChecker.class);
     bindAsContract(DocumentService.class);
     bindAsContract(CollectionService.class);
+    bindAsContract(JsonSchemaHandler.class);
   }
 }
