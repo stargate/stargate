@@ -68,8 +68,8 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
     return entity;
   }
 
-  protected boolean computeIfExists(Optional<Directive> cqlDeleteDirective) {
-    return cqlDeleteDirective
+  protected boolean computeIfExists(Optional<Directive> directive) {
+    return directive
         .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
         .orElseGet(
             () -> {

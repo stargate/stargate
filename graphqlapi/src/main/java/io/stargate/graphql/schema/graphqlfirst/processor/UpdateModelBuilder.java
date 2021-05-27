@@ -39,11 +39,6 @@ class UpdateModelBuilder extends MutationModelBuilder {
 
   @Override
   MutationModel build() throws SkipException {
-
-    // TODO more options for signature
-    // Currently requiring exactly one argument that must be an entity input with all PK fields set.
-    // We could also take the PK fields directly (need a way to specify the entity), partial PKs for
-    // multi-row deletions, additional IF conditions, etc.
     Optional<Directive> cqlUpdateDirective = DirectiveHelper.getDirective("cql_update", operation);
     boolean ifExists = computeIfExists(cqlUpdateDirective);
 

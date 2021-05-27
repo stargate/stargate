@@ -174,21 +174,21 @@ Note that this is not required if the mutation name starts with `update`.
 """
 directive @cql_update(
     """
-    The name of the type to delete. This is only needed if the mutation takes individual key fields
+    The name of the type to update. This is only needed if the mutation takes individual key fields
     as arguments (as opposed to an instance of the type).
     This must be a type that maps to a table.
     """
     targetEntity: String
 
     """
-    Whether to check if the entity exists before deleting.
+    Whether to check if the entity exists before updating.
 
-    Delete mutations return the outcome of the deletion, either directly if the mutation returns
+    Update mutations return the outcome of the update, either directly if the mutation returns
     `Boolean`, or via the `applied` field if the mutation returns a response payload object.
 
-    * If `ifExists` is `false`, the mutation will always return `true`, whether it actually deleted
+    * If `ifExists` is `false`, the mutation will always return `true`, whether it actually updated
     something or not.
-    * If `ifExists` is `true`, the mutation will return `true` if it deleted something, and `false`
+    * If `ifExists` is `true`, the mutation will return `true` if it updated something, and `false`
     otherwise.
 
     Note that setting this flag to `true` might increase the latency of the operation. It should
