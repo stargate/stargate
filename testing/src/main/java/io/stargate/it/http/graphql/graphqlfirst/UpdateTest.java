@@ -54,9 +54,13 @@ public class UpdateTest extends GraphqlFirstTestBase {
             + "  username: String\n"
             + "}\n"
             + "type Query { user(pk: Int!, cc1: Int!, cc2: Int!): User }\n"
+            + "type UpdateUserResponse @cql_payload {\n"
+            + "  applied: Boolean\n"
+            + "  user: User!\n"
+            + "}\n"
             + "type Mutation {\n"
-            + "  updateUser(user: UserInput!): Boolean @cql_update\n"
-            + "  updateUserPartialPk(user: UserInput!): Boolean @cql_update\n"
+            + "  updateUser(user: UserInput!): UpdateUserResponse @cql_update\n"
+            + "  updateUserPartialPk(user: UserInput!): UpdateUserResponse @cql_update\n"
             + "}");
   }
 
@@ -91,12 +95,12 @@ public class UpdateTest extends GraphqlFirstTestBase {
             KEYSPACE,
             String.format(
                 "mutation {\n"
-                    + "  result: updateUser(user: {pk: %s, cc1: %s, cc2: %s, username: \"%s\"})\n"
+                    + "  result: updateUser(user: {pk: %s, cc1: %s, cc2: %s, username: \"%s\"}) {applied}\n"
                     + "}",
                 pk1, cc1, cc2, username));
 
     // Should have generated an id
-    Boolean id = JsonPath.read(response, "$.result");
+    Boolean id = JsonPath.read(response, "$.result.applied");
     assertThat(id).isTrue();
   }
 
@@ -105,7 +109,7 @@ public class UpdateTest extends GraphqlFirstTestBase {
         KEYSPACE,
         String.format(
             "mutation {\n"
-                + "  result: updateUserPartialPk(user: {pk: %s, cc1: %s, username: \"%s\"})\n"
+                + "  result: updateUserPartialPk(user: {pk: %s, cc1: %s, username: \"%s\"}) {applied} \n"
                 + "}",
             pk1, cc1, username));
   }
