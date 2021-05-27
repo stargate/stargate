@@ -68,9 +68,9 @@ public class CreateIndexQuery extends MigrationQuery {
         subject,
         table.keyspace(),
         table.name(),
-        Scope.ALTER,
+        Scope.CREATE,
         SourceAPI.GRAPHQL,
-        ResourceKind.TABLE);
+        ResourceKind.INDEX);
   }
 
   @Override

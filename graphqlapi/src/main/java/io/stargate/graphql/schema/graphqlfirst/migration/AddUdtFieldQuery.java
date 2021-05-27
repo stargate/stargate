@@ -56,7 +56,7 @@ public class AddUdtFieldQuery extends MigrationQuery {
   public void authorize(AuthorizationService authorizationService, AuthenticationSubject subject)
       throws UnauthorizedException {
     authorizationService.authorizeSchemaWrite(
-        subject, type.keyspace(), type.name(), Scope.ALTER, SourceAPI.GRAPHQL, ResourceKind.TYPE);
+        subject, type.keyspace(), null, Scope.ALTER, SourceAPI.GRAPHQL, ResourceKind.TYPE);
   }
 
   @Override
