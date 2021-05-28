@@ -9,7 +9,7 @@
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
   <properties>
-    <cassandra.version>4.0-beta4</cassandra.version>
+    <cassandra.version>4.0-rc1</cassandra.version>
   </properties>
   <dependencies>
     <dependency>

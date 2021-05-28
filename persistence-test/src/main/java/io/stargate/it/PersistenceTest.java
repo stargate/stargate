@@ -49,7 +49,6 @@ import static io.stargate.db.schema.Column.Type.Uuid;
 import static io.stargate.db.schema.Column.Type.Varchar;
 import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.assertj.core.api.Fail.fail;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -546,12 +545,6 @@ public abstract class PersistenceTest {
 
   @Test
   public void testSecondaryIndexes() throws ExecutionException, InterruptedException {
-    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
-    assumeThat(isCassandra4())
-        .as(
-            "Disabled because it is currently not possible to enable SAI indexes "
-                + "on a Cassandra 4 backend")
-        .isFalse();
     createKeyspace();
     dataStore
         .queryBuilder()
