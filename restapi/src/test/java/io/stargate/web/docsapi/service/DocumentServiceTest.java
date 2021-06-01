@@ -51,6 +51,8 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
+import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.Db;
 import java.util.Arrays;

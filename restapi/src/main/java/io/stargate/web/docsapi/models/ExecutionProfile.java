@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.docsapi.service;
+package io.stargate.web.docsapi.models;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.immutables.value.Value;
 
@@ -28,10 +28,12 @@ import org.immutables.value.Value;
 @Value.Immutable(lazyhash = true)
 public interface ExecutionProfile {
 
-  @JsonProperty
+  @ApiModelProperty("Brief information about this execution step")
   String description();
 
+  @ApiModelProperty("A set of CQL queries performed under this execution step")
   List<QueryInfo> queries();
 
+  @ApiModelProperty("Nested execution steps")
   List<ExecutionProfile> nested();
 }

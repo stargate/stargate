@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.docsapi.service;
+package io.stargate.web.docsapi.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.swagger.annotations.ApiModelProperty;
 import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableQueryInfo.class)
@@ -25,12 +26,15 @@ import org.immutables.value.Value;
 @Value.Immutable(lazyhash = true)
 public interface QueryInfo {
 
+  @ApiModelProperty("CQL query text")
   @JsonProperty("cql")
   String preparedCQL();
 
+  @ApiModelProperty("The number of times this query was executed")
   @JsonProperty("executionCount")
   int execCount();
 
+  @ApiModelProperty("The total number of rows fetched by this query")
   @JsonProperty("rowCount")
   int rowCount();
 

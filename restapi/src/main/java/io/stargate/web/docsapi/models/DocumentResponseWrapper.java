@@ -18,7 +18,6 @@ package io.stargate.web.docsapi.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.stargate.web.docsapi.service.ExecutionProfile;
 import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -66,6 +65,7 @@ public class DocumentResponseWrapper<T> {
     return this;
   }
 
+  @ApiModelProperty("Profiling information related to the execution of the request (optional)")
   public ExecutionProfile getProfile() {
     return profile;
   }
