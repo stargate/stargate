@@ -32,8 +32,12 @@ public abstract class ExecutionContext {
 
   public static final ExecutionContext NOOP_CONTEXT = new NoOpContext();
 
-  public static ExecutionContext create() {
-    return new ProfilingContext("root");
+  public static ExecutionContext create(Boolean enabled) {
+    if (Boolean.TRUE.equals(enabled)) {
+      return new ProfilingContext("root");
+    } else {
+      return NOOP_CONTEXT;
+    }
   }
 
   public abstract ExecutionContext nested(String description);

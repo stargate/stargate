@@ -144,10 +144,7 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           documentService.putAtPath(
               authToken,
@@ -206,8 +203,7 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @Context HttpServletRequest request) {
@@ -220,10 +216,7 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           documentService.putAtPath(
               authToken,
@@ -283,8 +276,7 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @Context HttpServletRequest request) {
@@ -297,10 +289,7 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           documentService.putAtPath(
               authToken,
@@ -357,8 +346,7 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @Context HttpServletRequest request) {
@@ -371,10 +359,7 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           documentService.putAtPath(
               authToken,
@@ -435,8 +420,7 @@ public class DocumentResourceV2 {
       @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @Context HttpServletRequest request) {
@@ -449,10 +433,7 @@ public class DocumentResourceV2 {
                   .toLowerCase()
                   .contains("application/json");
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           documentService.putAtPath(
               authToken,
@@ -614,8 +595,7 @@ public class DocumentResourceV2 {
           String pageStateParam,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
@@ -703,8 +683,7 @@ public class DocumentResourceV2 {
           String pageStateParam,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
@@ -754,10 +733,7 @@ public class DocumentResourceV2 {
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
           schemaChecker.checkValidity(namespace, collection, db);
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           JsonNode node;
           if (filters.isEmpty()) {
@@ -859,8 +835,7 @@ public class DocumentResourceV2 {
           String pageStateParam,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
+              defaultValue = "false")
           @QueryParam("profile")
           Boolean profile,
       // TODO: Someday, support this in a non-restrictive way
@@ -877,10 +852,7 @@ public class DocumentResourceV2 {
           int effectivePageSize = pageSizeParam <= 0 ? 1 : pageSizeParam;
           final Paginator paginator = new Paginator(pageStateParam, effectivePageSize);
 
-          ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-          if (profile != null && profile) {
-            context = ExecutionContext.create();
-          }
+          ExecutionContext context = ExecutionContext.create(profile);
 
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
