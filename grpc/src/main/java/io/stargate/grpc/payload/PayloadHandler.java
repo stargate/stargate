@@ -41,8 +41,8 @@ public interface PayloadHandler {
    *
    * @param rows The raw CQL native protocol values and column metadata needed to convert to the
    *     resulting payload result.
-   * @param parameters Mostly used for {@link QueryParameters#getPopulateMetadata()}, but could be
-   *     used to control other payload-specific features in the future.
+   * @param parameters Mostly used for {@link QueryParameters#getSkipMetadata()}, but could be used
+   *     to control other payload-specific features in the future.
    * @return A payload built from the raw CQL native protocol values.
    * @throws Exception
    */

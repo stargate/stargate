@@ -129,7 +129,7 @@ public class ValuesHandler implements PayloadHandler {
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 
-    if (parameters.getPopulateMetadata()) {
+    if (!parameters.getSkipMetadata()) {
       for (Column column : columns) {
         resultSetBuilder.addColumns(
             ColumnSpec.newBuilder()

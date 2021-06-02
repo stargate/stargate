@@ -132,7 +132,7 @@ message QueryParameters {
   google.protobuf.Int32Value page_size = 3;
   google.protobuf.BytesValue paging_state = 4;
   bool tracing = 5;
-  bool populate_metadata = 6;
+  bool skip_metadata = 6;
   google.protobuf.Int64Value timestamp = 7;
   ConsistencyValue serial_consistency = 8;
   google.protobuf.Int32Value now_in_seconds = 9;

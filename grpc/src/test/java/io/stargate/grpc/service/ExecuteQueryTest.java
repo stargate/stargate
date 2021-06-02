@@ -84,8 +84,8 @@ public class ExecuteQueryTest extends BaseServiceTest {
                   (BoundStatement) invocation.getArgument(0, Statement.class);
               assertStatement(prepared, statement, Values.of("local"));
               List<List<ByteBuffer>> rows =
-                  Arrays.asList(
-                      Arrays.asList(
+                  Collections.singletonList(
+                      Collections.singletonList(
                           TypeCodecs.TEXT.encode(releaseVersion, ProtocolVersion.DEFAULT)));
               return CompletableFuture.completedFuture(new Result.Rows(rows, resultMetadata));
             });
@@ -214,7 +214,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
   @ParameterizedTest
   @MethodSource("columnMetadataValues")
   public void columnMetadata(
-      ResultMetadata resultMetadata, List<ColumnSpec> expected, boolean populateColumnsMetadata)
+      ResultMetadata resultMetadata, List<ColumnSpec> expected, boolean skipMetadata)
       throws InvalidProtocolBufferException {
     Prepared prepared = Utils.makePrepared();
 
@@ -236,10 +236,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
         stub.executeQuery(
             Query.newBuilder()
                 .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
-                .setParameters(
-                    QueryParameters.newBuilder()
-                        .setPopulateMetadata(populateColumnsMetadata)
-                        .build())
+                .setParameters(QueryParameters.newBuilder().setSkipMetadata(skipMetadata).build())
                 .build());
 
     assertThat(response.hasResultSet()).isTrue();
@@ -266,7 +263,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
                 ColumnSpec.newBuilder()
                     .setName("c3")
                     .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))
-            .build(true),
+            .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("l", Type.List.of(Type.Text)))
             .addExpected(
@@ -277,7 +274,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
                             .setList(
                                 TypeSpec.List.newBuilder()
                                     .setElement(TypeSpec.newBuilder().setBasic(Basic.TEXT)))))
-            .build(true),
+            .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("l", Type.List.of(Type.Int)))
             .addExpected(
@@ -289,7 +286,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
                                 TypeSpec.List.newBuilder()
                                     .setElement(
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.INT)))))
-            .build(true),
+            .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("s", Type.Set.of(Type.Uuid)))
             .addExpected(
@@ -301,7 +298,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
                                 TypeSpec.Set.newBuilder()
                                     .setElement(
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))))
-            .build(true),
+            .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("m", Type.Map.of(Type.Varchar, Type.Bigint)))
             .addExpected(
@@ -314,12 +311,12 @@ public class ExecuteQueryTest extends BaseServiceTest {
                                     .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR))
                                     .setValue(
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.BIGINT)))))
-            .build(true),
+            .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("c1", Column.Type.Int))
             .addActual(Column.create("c2", Column.Type.Varchar))
             .addActual(Column.create("c3", Column.Type.Uuid))
-            .build(false));
+            .build(true));
   }
 
   private static class ColumnMetadataBuilder {
@@ -340,11 +337,9 @@ public class ExecuteQueryTest extends BaseServiceTest {
       return this;
     }
 
-    Arguments build(boolean populateColumnsMetadata) {
+    Arguments build(boolean skipMetadata) {
       return arguments(
-          Utils.makeResultMetadata(actual.toArray(new Column[actual.size()])),
-          expected,
-          populateColumnsMetadata);
+          Utils.makeResultMetadata(actual.toArray(new Column[0])), expected, skipMetadata);
     }
   }
 }

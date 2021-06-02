@@ -22,6 +22,7 @@ import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.google.protobuf.Any;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
@@ -80,7 +81,7 @@ public class ProcessResultTests {
                 Values.of(2),
                 Values.of("b"),
                 Values.of(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
-            .build(true),
+            .build(false),
         ResultSetBuilder.builder()
             .addActualColumn(Column.create("c1", Column.Type.Int))
             .addActualColumn(Column.create("c2", Column.Type.Varchar))
@@ -95,7 +96,7 @@ public class ProcessResultTests {
                 Values.of(2),
                 Values.of("b"),
                 Values.of(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
-            .build(false));
+            .build(true));
   }
 
   private static class ResultSetBuilder {
@@ -128,17 +129,19 @@ public class ProcessResultTests {
       List<ByteBuffer> row = new ArrayList<>(values.length);
       for (int i = 0; i < columns.size(); ++i) {
         Column column = columns.get(i);
-        row.add(column.type().codec().encode(values[i], ProtocolVersion.DEFAULT));
+        ColumnType type = column.type();
+        assertThat(type).isNotNull();
+        row.add(type.codec().encode(values[i], ProtocolVersion.DEFAULT));
       }
       rows.add(row);
       return this;
     }
 
-    Arguments build(boolean populateMetadata) {
+    Arguments build(boolean skipMetadata) {
       return arguments(
           Payload.Type.CQL,
-          new Rows(rows, Utils.makeResultMetadata(columns.toArray(new Column[columns.size()]))),
-          QueryParameters.newBuilder().setPopulateMetadata(populateMetadata).build(),
+          new Rows(rows, Utils.makeResultMetadata(columns.toArray(new Column[0]))),
+          QueryParameters.newBuilder().setSkipMetadata(skipMetadata).build(),
           Any.pack(resultSet.build()));
     }
   }
