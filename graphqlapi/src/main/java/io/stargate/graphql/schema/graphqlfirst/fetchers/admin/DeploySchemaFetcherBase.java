@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
@@ -49,15 +48,15 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       throw new IllegalArgumentException("Keyspace '%s' does not exist.");
     }
 
+    // Ensure that we'll be able to save the new version in the schema table:
     context
         .getAuthorizationService()
-        .authorizeSchemaWrite(
+        .authorizeDataWrite(
             context.getSubject(),
-            keyspaceName,
-            null,
+            SchemaSourceDao.KEYSPACE_NAME,
+            SchemaSourceDao.TABLE_NAME,
             Scope.MODIFY,
-            SourceAPI.GRAPHQL,
-            ResourceKind.KEYSPACE);
+            SourceAPI.GRAPHQL);
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
@@ -79,6 +78,11 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       queries =
           CassandraMigrator.forDeployment(migrationStrategy)
               .compute(processedSchema.getMappingModel(), keyspace);
+
+      for (MigrationQuery query : queries) {
+        query.authorize(context.getAuthorizationService(), context.getSubject());
+      }
+
       response.setCqlChanges(queries);
     } catch (Exception e) {
       if (!dryRun) {
