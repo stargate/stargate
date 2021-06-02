@@ -809,12 +809,13 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     void setQueryExpectations() {
 
       withQuery(table, dblValueGtQuery, params("a", "c", "", 1.0))
-          .returning(ImmutableList.of(leafRow(id1), leafRow(id2)));
+          .returning(ImmutableList.of(leafRow(id1), leafRow(id2), leafRow(id3)));
 
       withQuery(table, dblValueEqQuery, id1, "d", "e", "f", "", 2.0)
           .returning(ImmutableList.of(leafRow(id1)));
       withQuery(table, dblValueEqQuery, id2, "d", "e", "f", "", 2.0)
           .returning(ImmutableList.of(leafRow(id2)));
+      withQuery(table, dblValueEqQuery, id3, "d", "e", "f", "", 2.0).returningNothing();
 
       withQuery(table, selectByKey, id1)
           .returning(ImmutableList.of(row(id1, 3.0, "a", "b"), row(id1, 4.0, "a", "c")));
@@ -844,12 +845,12 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                   .addNested(
                       ImmutableExecutionProfile.builder()
                           .description("FILTER: a.c GT 1.0")
-                          .addQueries(QueryInfo.of(dblValueGtQuery, 1, 2))
+                          .addQueries(QueryInfo.of(dblValueGtQuery, 1, 3))
                           .build())
                   .addNested(
                       ImmutableExecutionProfile.builder()
                           .description("FILTER: d.e.f EQ 2.0")
-                          .addQueries(QueryInfo.of(dblValueEqQuery, 2, 2))
+                          .addQueries(QueryInfo.of(dblValueEqQuery, 3, 2))
                           .build())
                   .addNested(
                       ImmutableExecutionProfile.builder()

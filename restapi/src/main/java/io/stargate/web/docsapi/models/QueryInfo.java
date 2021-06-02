@@ -63,7 +63,7 @@ public interface QueryInfo {
 
     return ImmutableQueryInfo.builder()
         .preparedCQL(cql)
-        .execCount(i1.execCount() + i1.execCount())
+        .execCount(i1.execCount() + i2.execCount())
         .rowCount(i1.rowCount() + i2.rowCount())
         .build();
   }
