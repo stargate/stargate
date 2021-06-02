@@ -23,6 +23,7 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,12 +61,22 @@ public class ValidatingPaginator {
 
   public <T> List<T> filter(List<T> data) {
     int from = Math.max(offset, 0);
-    int to = Math.min(from + pageSize, data.size());
-    List<T> filtered = data.subList(from, to);
+    if (from >= data.size()) {
+      return Collections.emptyList();
+    }
 
-    if (data.size() > to) {
+    int to = from + pageSize;
+    if (to > data.size()) {
+      to = data.size();
+    } else {
+      // Emulate C* behaviour - if the requested page ends exactly on or before the known data
+      // boundary we will return a non-null paging state because the data set is not technically
+      // "exhausted" yet. Only when we try and fail to fetch more data than available, we'll flag
+      // "end of data" by returning an empty paging state
       nextOffset = to;
     }
+
+    List<T> filtered = data.subList(from, to);
 
     return filtered;
   }

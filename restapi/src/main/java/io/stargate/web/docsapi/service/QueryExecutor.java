@@ -54,6 +54,12 @@ public class QueryExecutor {
       int pageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
+    if (pageSize <= 0) {
+      // Note: if page size is not set, C* will ignore paging state, but subsequent pages may be
+      // requested by the execute() method, so we require a specific page size for all queries here.
+      throw new IllegalArgumentException("Unsupported page size: " + pageSize);
+    }
+
     BuiltSelect select = (BuiltSelect) query.source().query();
     if (keyDepth < 1 || keyDepth > select.table().primaryKeyColumns().size()) {
       throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
@@ -86,10 +92,6 @@ public class QueryExecutor {
                     .execute(
                         query,
                         p -> {
-                          if (pageSize <= 0) {
-                            return p; // if page size is not set pagingState is ignored by C*
-                          }
-
                           ImmutableParameters.Builder builder = p.toBuilder();
                           builder.pageSize(pageSize);
                           if (pagingState != null) {

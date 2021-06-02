@@ -205,8 +205,10 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"3", "5", "100"})
   void testFullScanFinalPagingState(int pageSize) {
+    // Note: page size must not be a divisor of the result set size for this test to work normally
+    // Otherwise, the last doc will have a non-null paging state
     withFiveTestDocs(pageSize);
 
     List<RawDocument> r1 =
@@ -217,8 +219,10 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"3", "4", "6", "100"})
   void testPopulate(int pageSize) {
+    // Note: page size must not be a divisor of the result set size for this test to work normally.
+    // Otherwise, the last doc will have a non-null paging state
     withFiveTestDocIds(pageSize);
     withQuery(table, "SELECT * FROM %s WHERE key = ?", "2")
         .withPageSize(pageSize)
@@ -338,8 +342,10 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"2", "4", "5", "100"})
   void testSubDocumentsPaged(int pageSize) {
+    // Note: page size must not be a divisor of the result set size for this test to work normally
+    // Otherwise, the last doc will have a non-null paging state
     withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
         .withPageSize(pageSize)
         .returning(

@@ -519,10 +519,10 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .returning(ImmutableList.of(leafRow(id1), leafRow(id2)));
 
     String checkDblValueQuery =
-        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? ALLOW FILTERING";
-    withQuery(table, checkDblValueQuery, id1, "d", "e", "f", "", 2.0)
+        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? LIMIT ? ALLOW FILTERING";
+    withQuery(table, checkDblValueQuery, id1, "d", "e", "f", "", 2.0, 1)
         .returning(ImmutableList.of(leafRow(id1)));
-    withQuery(table, checkDblValueQuery, id2, "d", "e", "f", "", 2.0)
+    withQuery(table, checkDblValueQuery, id2, "d", "e", "f", "", 2.0, 1)
         .returning(ImmutableList.of(leafRow(id2)));
 
     withQuery(table, selectAll("WHERE key = ?"), id1)
@@ -796,7 +796,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     private final String dblValueGtQuery =
         "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING";
     private final String dblValueEqQuery =
-        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? ALLOW FILTERING";
+        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? LIMIT ? ALLOW FILTERING";
     private final String selectByKey = selectAll("WHERE key = ?");
     private final String selectAll = selectAll("");
     private final String insert =
@@ -811,11 +811,11 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
       withQuery(table, dblValueGtQuery, params("a", "c", "", 1.0))
           .returning(ImmutableList.of(leafRow(id1), leafRow(id2), leafRow(id3)));
 
-      withQuery(table, dblValueEqQuery, id1, "d", "e", "f", "", 2.0)
+      withQuery(table, dblValueEqQuery, id1, "d", "e", "f", "", 2.0, 1)
           .returning(ImmutableList.of(leafRow(id1)));
-      withQuery(table, dblValueEqQuery, id2, "d", "e", "f", "", 2.0)
+      withQuery(table, dblValueEqQuery, id2, "d", "e", "f", "", 2.0, 1)
           .returning(ImmutableList.of(leafRow(id2)));
-      withQuery(table, dblValueEqQuery, id3, "d", "e", "f", "", 2.0).returningNothing();
+      withQuery(table, dblValueEqQuery, id3, "d", "e", "f", "", 2.0, 1).returningNothing();
 
       withQuery(table, selectByKey, id1)
           .returning(ImmutableList.of(row(id1, 3.0, "a", "b"), row(id1, 4.0, "a", "c")));

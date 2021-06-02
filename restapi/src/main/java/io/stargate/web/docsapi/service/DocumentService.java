@@ -489,7 +489,17 @@ public class DocumentService {
     }
 
     List<RawDocument> docs =
-        db.executeSelect(keyspace, collection, predicates, 0, null, nestedPopulate(context))
+        db.executeSelect(
+                keyspace,
+                collection,
+                predicates,
+                // We have to use a non-zero page size here in case the whole doc does not
+                // fit into one page because C* will ignore paging state on subsequent requests
+                // if the page size is <= 0.
+                // TODO: use a separate page size parameter for full doc queries?
+                docsApiConfiguration.getSearchPageSize(),
+                null,
+                nestedPopulate(context))
             .take(1)
             .toList()
             .blockingGet();
@@ -906,7 +916,11 @@ public class DocumentService {
                           keyspace,
                           collection,
                           ImmutableList.of(keyPredicate),
-                          0,
+                          // We have to use a non-zero page size here in case the whole doc does not
+                          // fit into one page because C* will ignore paging state on subsequent
+                          // requests if the page size is <= 0.
+                          // TODO: use a separate page size parameter for populating queries?
+                          docsApiConfiguration.getSearchPageSize(),
                           null,
                           populateCtx));
                 })
@@ -1008,13 +1022,16 @@ public class DocumentService {
                         .from(keyspace, collection)
                         .where(keyCondition)
                         .where(buildConditions(nestedCondition, db.treatBooleansAsNumeric()))
+                        .limit(1)
                         .allowFiltering()
                         .build()
                         .bind();
 
                 // If the nested query finds any docs, return the input doc to preserve
-                // the paging order of the main query
-                return db.executeSelect(nestedQuery, 1, null, nestedCtx).take(1).map(nested -> d);
+                // the paging order of the main query.
+                // Note: use page size larger than the query limit to make sure the backend
+                // paginator is exhausted on the first page.
+                return db.executeSelect(nestedQuery, 2, null, nestedCtx).take(1).map(nested -> d);
               });
     }
 
