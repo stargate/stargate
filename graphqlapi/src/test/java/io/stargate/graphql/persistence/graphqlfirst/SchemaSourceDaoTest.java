@@ -169,11 +169,14 @@ class SchemaSourceDaoTest {
             "-1",
             // simple, not a number
             "a",
-            // network, negative RF
+            // network, invalid RF
+            "dc1 = 0, dc2 = 2",
             "dc1 = -1, dc2 = 2",
             // network, not a number
             "dc1 = a, dc2 = 2",
-            // network, malformed
+            // network, empty DC
+            "= 1, dc2 = 2",
+            // network, malformed k/v pair
             "dc1 = 1, dc2")) {
       Replication replication = parseReplication(spec);
       assertThat(replication.toString()).isEqualTo(Replication.simpleStrategy(1).toString());
