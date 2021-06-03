@@ -1,5 +1,49 @@
 # Changelog
 
+## [v1.0.26](https://github.com/stargate/stargate/tree/v1.0.26) (2021-06-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.25...v1.0.26)
+
+**Implemented enhancements:**
+
+- Query Chaining for GraphQL API [\#154](https://github.com/stargate/stargate/issues/154)
+
+**Fixed bugs:**
+
+- Inconsistencies in C\* RequestFailureReason mapping for DSE [\#982](https://github.com/stargate/stargate/issues/982)
+- Stargate does not load non-system keyspaces if it tries to throw an InvalidTypeException [\#645](https://github.com/stargate/stargate/issues/645)
+
+**Closed issues:**
+
+- Query plan analysis for combined and-queries [\#973](https://github.com/stargate/stargate/issues/973)
+- Revisit `GraphqlCache.DmlGraphqlHolder` [\#959](https://github.com/stargate/stargate/issues/959)
+- Add support for collections to gRPC [\#935](https://github.com/stargate/stargate/issues/935)
+- Prevent `USE \<keyspace\>` queries over gRPC [\#928](https://github.com/stargate/stargate/issues/928)
+- Support partition key level deletes with GraphQL API [\#583](https://github.com/stargate/stargate/issues/583)
+- GraphQL: Document collections, batches and UDTs support [\#312](https://github.com/stargate/stargate/issues/312)
+
+**Merged pull requests:**
+
+- Avoid proactively fetching empty pages when one result set row is expected [\#988](https://github.com/stargate/stargate/pull/988) ([dimas-b](https://github.com/dimas-b))
+- Add dependency to the legacy driver in OSS persistence modules [\#985](https://github.com/stargate/stargate/pull/985) ([olim7t](https://github.com/olim7t))
+- Add RequestFailureReason enum values for DSE [\#983](https://github.com/stargate/stargate/pull/983) ([dimas-b](https://github.com/dimas-b))
+- Add Docs API query profiling [\#980](https://github.com/stargate/stargate/pull/980) ([dimas-b](https://github.com/dimas-b))
+- Fix NPE caused by `AuthenticationInterceptor` [\#977](https://github.com/stargate/stargate/pull/977) ([mpenick](https://github.com/mpenick))
+- relates to \#944: config prop for the http request metrics percentiles [\#974](https://github.com/stargate/stargate/pull/974) ([ivansenic](https://github.com/ivansenic))
+- GraphQL schema-first: check authorization for the DDL queries of a deploySchema [\#972](https://github.com/stargate/stargate/pull/972) ([olim7t](https://github.com/olim7t))
+- GraphQL: simplify cache internals \(fixes \#959\) [\#971](https://github.com/stargate/stargate/pull/971) ([olim7t](https://github.com/olim7t))
+- gRPC API cleanup [\#970](https://github.com/stargate/stargate/pull/970) ([mpenick](https://github.com/mpenick))
+- Change to 404 on empty GET [\#969](https://github.com/stargate/stargate/pull/969) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#947: added validations for NamespacesResource [\#968](https://github.com/stargate/stargate/pull/968) ([ivansenic](https://github.com/ivansenic))
+- GrapqhQL-first update IT [\#967](https://github.com/stargate/stargate/pull/967) ([tomekl007](https://github.com/tomekl007))
+- Reduce the number of predicates in nested CQL queries for Docs API filters [\#966](https://github.com/stargate/stargate/pull/966) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#965](https://github.com/stargate/stargate/pull/965) ([github-actions[bot]](https://github.com/apps/github-actions))
+- releates to \#947: validation for the CollectionsResource [\#962](https://github.com/stargate/stargate/pull/962) ([ivansenic](https://github.com/ivansenic))
+- GraphQL schema-first: don't return full stacktrace some parsing errors [\#961](https://github.com/stargate/stargate/pull/961) ([olim7t](https://github.com/olim7t))
+- Remove duplicate integration test [\#960](https://github.com/stargate/stargate/pull/960) ([olim7t](https://github.com/olim7t))
+- Custom if clause for delete [\#958](https://github.com/stargate/stargate/pull/958) ([tomekl007](https://github.com/tomekl007))
+- Refactor docs api pagination [\#937](https://github.com/stargate/stargate/pull/937) ([dimas-b](https://github.com/dimas-b))
+
 ## [v1.0.25](https://github.com/stargate/stargate/tree/v1.0.25) (2021-05-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.24...v1.0.25)
