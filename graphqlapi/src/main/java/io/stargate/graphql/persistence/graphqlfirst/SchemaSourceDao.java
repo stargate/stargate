@@ -45,9 +45,9 @@ public class SchemaSourceDao {
   public static final String TABLE_NAME = "schema_source";
   public static final String KEYSPACE_REPLICATION_PROPERTY =
       "stargate.graphql_first.replication_options";
+  private static final Replication DEFAULT_KEYSPACE_REPLICATION = Replication.simpleStrategy(1);
   private static final Replication KEYSPACE_REPLICATION =
       parseReplication(System.getProperty(KEYSPACE_REPLICATION_PROPERTY));
-  private static final Replication DEFAULT_KEYSPACE_REPLICATION = Replication.simpleStrategy(1);
 
   @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace_name";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
