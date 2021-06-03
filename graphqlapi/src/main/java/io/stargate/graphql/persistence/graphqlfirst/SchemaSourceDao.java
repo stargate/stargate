@@ -16,6 +16,7 @@
 package io.stargate.graphql.persistence.graphqlfirst;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -42,6 +43,9 @@ public class SchemaSourceDao {
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String KEYSPACE_NAME = "stargate_graphql";
   public static final String TABLE_NAME = "schema_source";
+  private static final Replication KEYSPACE_REPLICATION_OPTIONS =
+      parseReplication(System.getProperty("stargate.graphql_first.replication_options"));
+
   @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace_name";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
@@ -187,7 +191,7 @@ public class SchemaSourceDao {
                 .create()
                 .keyspace(KEYSPACE_NAME)
                 .ifNotExists()
-                .withReplication(Replication.simpleStrategy(1))
+                .withReplication(KEYSPACE_REPLICATION_OPTIONS)
                 .build()
                 .bind())
         .get();
@@ -341,6 +345,38 @@ public class SchemaSourceDao {
               .build()
               .bind();
       dataStore.execute(deleteSchemaQuery).get();
+    }
+  }
+
+  @VisibleForTesting
+  static Replication parseReplication(String spec) {
+    if (spec == null) {
+      LOGGER.debug("stargate_graphql: no replication options configured, defaulting to RF=1");
+      return Replication.simpleStrategy(1);
+    }
+
+    if (spec.matches("\\d+")) {
+      int rf = Integer.parseInt(spec);
+      LOGGER.debug("stargate_graphql: using configured RF={}", rf);
+      return Replication.simpleStrategy(rf);
+    }
+
+    try {
+      Map<String, String> rawOptions =
+          Splitter.on(",").withKeyValueSeparator(Splitter.on("=").trimResults()).split(spec);
+      Map<String, Integer> options = new LinkedHashMap<>();
+      for (Map.Entry<String, String> entry : rawOptions.entrySet()) {
+        int rf = Integer.parseInt(entry.getValue());
+        if (rf < 1) {
+          throw new IllegalArgumentException();
+        }
+        options.put(entry.getKey(), rf);
+      }
+      return Replication.networkTopologyStrategy(options);
+    } catch (IllegalArgumentException e) {
+      // This covers both splitting errors and invalid integer values
+      LOGGER.warn("stargate_graphql: invalid replication config '{}', defaulting to RF=1", spec);
+      return Replication.simpleStrategy(1);
     }
   }
 }
