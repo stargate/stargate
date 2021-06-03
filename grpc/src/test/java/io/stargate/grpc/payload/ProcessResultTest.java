@@ -22,11 +22,11 @@ import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.google.protobuf.Any;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.Payload;
-import io.stargate.proto.QueryOuterClass.Payload.Type;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Row;
@@ -42,36 +42,35 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class ProcessResultTests {
+public class ProcessResultTest {
   @ParameterizedTest
   @MethodSource("results")
   public void processResult(
-      Payload.Type type, Rows rows, QueryParameters queryParameters, Payload expected)
+      Payload.Type type, Rows rows, QueryParameters queryParameters, Any expected)
       throws Exception {
-
     PayloadHandler handler = PayloadHandlers.get(type);
-    Payload actual = handler.processResult(rows, queryParameters);
+    Any actual = handler.processResult(rows, queryParameters);
     assertThat(actual).isEqualTo(expected);
   }
 
   public static Stream<Arguments> results() {
     return Stream.of(
-        resultSet()
+        ResultSetBuilder.builder()
             .addActualColumn(Column.create("c1", Column.Type.Int))
             .addActualColumn(Column.create("c2", Column.Type.Varchar))
             .addActualColumn(Column.create("c3", Column.Type.Uuid))
             .addExpectedColumn(
                 ColumnSpec.newBuilder()
                     .setName("c1")
-                    .setType(TypeSpec.newBuilder().setType(TypeSpec.Type.TYPE_INT)))
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.INT)))
             .addExpectedColumn(
                 ColumnSpec.newBuilder()
                     .setName("c2")
-                    .setType(TypeSpec.newBuilder().setType(TypeSpec.Type.TYPE_VARCHAR)))
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR)))
             .addExpectedColumn(
                 ColumnSpec.newBuilder()
                     .setName("c3")
-                    .setType(TypeSpec.newBuilder().setType(TypeSpec.Type.TYPE_UUID)))
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
             .addExpectedRow(
@@ -83,7 +82,7 @@ public class ProcessResultTests {
                 Values.of("b"),
                 Values.of(UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113")))
             .build(false),
-        resultSet()
+        ResultSetBuilder.builder()
             .addActualColumn(Column.create("c1", Column.Type.Int))
             .addActualColumn(Column.create("c2", Column.Type.Varchar))
             .addActualColumn(Column.create("c3", Column.Type.Uuid))
@@ -104,6 +103,10 @@ public class ProcessResultTests {
     private final List<Column> columns = new ArrayList<>();
     private final List<List<ByteBuffer>> rows = new ArrayList<>();
     private final ResultSet.Builder resultSet = ResultSet.newBuilder();
+
+    public static ResultSetBuilder builder() {
+      return new ResultSetBuilder();
+    }
 
     public ResultSetBuilder addExpectedColumn(ColumnSpec.Builder columnSpec) {
       resultSet.addColumns(columnSpec.build());
@@ -126,7 +129,9 @@ public class ProcessResultTests {
       List<ByteBuffer> row = new ArrayList<>(values.length);
       for (int i = 0; i < columns.size(); ++i) {
         Column column = columns.get(i);
-        row.add(column.type().codec().encode(values[i], ProtocolVersion.DEFAULT));
+        ColumnType type = column.type();
+        assertThat(type).isNotNull();
+        row.add(type.codec().encode(values[i], ProtocolVersion.DEFAULT));
       }
       rows.add(row);
       return this;
@@ -134,17 +139,10 @@ public class ProcessResultTests {
 
     Arguments build(boolean skipMetadata) {
       return arguments(
-          Type.TYPE_CQL,
-          new Rows(rows, Utils.makeResultMetadata(columns.toArray(new Column[columns.size()]))),
+          Payload.Type.CQL,
+          new Rows(rows, Utils.makeResultMetadata(columns.toArray(new Column[0]))),
           QueryParameters.newBuilder().setSkipMetadata(skipMetadata).build(),
-          Payload.newBuilder()
-              .setType(Type.TYPE_CQL)
-              .setValue(Any.pack(resultSet.build()))
-              .build());
+          Any.pack(resultSet.build()));
     }
-  }
-
-  private static ResultSetBuilder resultSet() {
-    return new ResultSetBuilder();
   }
 }

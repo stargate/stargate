@@ -35,17 +35,22 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.proto.QueryOuterClass.*;
-import io.stargate.proto.QueryOuterClass.Payload.Type;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
+import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ValuesHandler implements PayloadHandler {
   @Override
-  public BoundStatement bindValues(Prepared prepared, Payload payload, ByteBuffer unsetValue)
+  public BoundStatement bindValues(Prepared prepared, Any payload, ByteBuffer unsetValue)
       throws InvalidProtocolBufferException, StatusException {
-    final Values values = payload.getValue().unpack(Values.class);
+    final Values values = payload.unpack(Values.class);
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     final int valuesCount = values.getValuesCount();
@@ -118,9 +123,7 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   @Override
-  public Payload processResult(Rows rows, QueryParameters parameters) throws StatusException {
-    Payload.Builder payloadBuilder = Payload.newBuilder().setType(Type.TYPE_CQL);
-
+  public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
@@ -154,7 +157,7 @@ public class ValuesHandler implements PayloadHandler {
       resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     }
 
-    return payloadBuilder.setValue(Any.pack(resultSetBuilder.build())).build();
+    return Any.pack(resultSetBuilder.build());
   }
 
   @Nullable
@@ -168,7 +171,7 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   @NonNull
-  private ColumnType columnTypeNotNull(Column column) throws StatusException {
+  public static ColumnType columnTypeNotNull(Column column) throws StatusException {
     ColumnType type = column.type();
     if (type == null) {
       throw Status.INTERNAL
@@ -178,9 +181,8 @@ public class ValuesHandler implements PayloadHandler {
     return type;
   }
 
-  private TypeSpec convertType(ColumnType columnType) throws StatusException {
-    TypeSpec.Builder builder =
-        TypeSpec.newBuilder().setType(TypeSpec.Type.forNumber(columnType.id()));
+  public static TypeSpec convertType(ColumnType columnType) throws StatusException {
+    TypeSpec.Builder builder = TypeSpec.newBuilder();
 
     if (columnType.isParameterized()) {
       List<ColumnType> parameters = columnType.parameters();
@@ -192,7 +194,8 @@ public class ValuesHandler implements PayloadHandler {
                 .withDescription("Expected list type to have a parameterized type")
                 .asException();
           }
-          builder.setList(ListSpec.newBuilder().setElement(convertType(parameters.get(0))).build());
+          builder.setList(
+              TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
           break;
         case Map:
           if (parameters.size() != 2) {
@@ -201,7 +204,7 @@ public class ValuesHandler implements PayloadHandler {
                 .asException();
           }
           builder.setMap(
-              MapSpec.newBuilder()
+              TypeSpec.Map.newBuilder()
                   .setKey(convertType(parameters.get(0)))
                   .setValue(convertType(parameters.get(1)))
                   .build());
@@ -212,7 +215,8 @@ public class ValuesHandler implements PayloadHandler {
                 .withDescription("Expected set type to have a parameterized type")
                 .asException();
           }
-          builder.setSet(SetSpec.newBuilder().setElement(convertType(parameters.get(0))).build());
+          builder.setSet(
+              TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
           break;
         case Tuple:
           if (parameters.isEmpty()) {
@@ -220,7 +224,7 @@ public class ValuesHandler implements PayloadHandler {
                 .withDescription("Expected tuple type to have at least one parameterized type")
                 .asException();
           }
-          TupleSpec.Builder tupleBuilder = TupleSpec.newBuilder();
+          TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
           for (ColumnType parameter : parameters) {
             tupleBuilder.addElements(convertType(parameter));
           }
@@ -233,7 +237,7 @@ public class ValuesHandler implements PayloadHandler {
                 .withDescription("Expected user defined type to have at least one field")
                 .asException();
           }
-          UdtSpec.Builder udtBuilder = UdtSpec.newBuilder();
+          TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
           for (Column column : udt.columns()) {
             udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column).rawType()));
           }
@@ -242,6 +246,8 @@ public class ValuesHandler implements PayloadHandler {
         default:
           throw new AssertionError("Unhandled parameterized type");
       }
+    } else {
+      builder.setBasic(TypeSpec.Basic.forNumber(columnType.id()));
     }
 
     return builder.build();

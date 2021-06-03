@@ -2,9 +2,11 @@ package io.stargate.it.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Any;
+import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.auth.model.AuthTokenResponse;
@@ -13,8 +15,10 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.IfBundleAvailable;
 import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
+import io.stargate.proto.QueryOuterClass.Payload.Type;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Row;
@@ -64,27 +68,29 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
     return stubWithCallCredentials(authToken);
   }
 
+  protected QueryParameters.Builder queryParameters(CqlIdentifier keyspace) {
+    return QueryParameters.newBuilder().setKeyspace(StringValue.of(keyspace.toString()));
+  }
+
+  protected BatchParameters.Builder batchParameters(CqlIdentifier keyspace) {
+    return BatchParameters.newBuilder().setKeyspace(StringValue.of(keyspace.toString()));
+  }
+
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
     return BatchQuery.newBuilder()
         .setCql(cql)
-        .setPayload(
-            Payload.newBuilder()
-                .setValue(
-                    Any.pack(Values.newBuilder().addAllValues(Arrays.asList(values)).build())))
+        .setValues(
+            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
         .build();
   }
 
-  protected static Query cqlQuery(String cql, QueryParameters.Builder parameters) {
-    return Query.newBuilder().setCql(cql).setParameters(parameters).build();
-  }
-
-  protected static Query cqlQuery(String cql, Value... values) {
-    return cqlQuery(cql, cqlQueryParameters(values));
-  }
-
-  protected static QueryParameters.Builder cqlQueryParameters(Value... values) {
-    return QueryParameters.newBuilder()
-        .setPayload(Payload.newBuilder().setValue(Any.pack(cqlValues(values))));
+  protected static Query cqlQuery(String cql, QueryParameters.Builder parameters, Value... values) {
+    return Query.newBuilder()
+        .setCql(cql)
+        .setParameters(parameters)
+        .setValues(
+            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
+        .build();
   }
 
   protected static Values cqlValues(Value... values) {
