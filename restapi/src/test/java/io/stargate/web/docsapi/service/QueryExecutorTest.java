@@ -205,19 +205,32 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
   void testFullScanFinalPagingState(int pageSize) {
+    // Note: the test result set has 8 rows.
+    // If page size is a divisor of the result set size the test DataStore will return a non-null
+    // paging state in the page that contains the last row to emulate C* behaviour, which cannot
+    // say for sure that there are no more rows available in this case. Therefore, in that case
+    // the last doc will have a non-null paging state, but using it will yield no other docs.
+    boolean shouldHavePagingState = (8 % pageSize) == 0;
     withFiveTestDocs(pageSize);
 
     List<RawDocument> r1 =
         executor.queryDocs(allDocsQuery, pageSize, null, context).test().values();
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2", "3", "4", "5");
-    assertThat(r1.get(4).makePagingState()).isNull();
-    assertThat(r1.get(4).hasPagingState()).isFalse();
+    assertThat(r1.get(4).hasPagingState()).isEqualTo(shouldHavePagingState);
+    ByteBuffer pagingState = r1.get(4).makePagingState();
+    assertThat(pagingState).matches(buf -> (buf == null) == !shouldHavePagingState);
+
+    if (pagingState != null) {
+      List<RawDocument> r2 =
+          executor.queryDocs(allDocsQuery, pageSize, pagingState, context).test().values();
+      assertThat(r2).isEmpty();
+    }
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
   void testPopulate(int pageSize) {
     withFiveTestDocIds(pageSize);
     withQuery(table, "SELECT * FROM %s WHERE key = ?", "2")
@@ -252,8 +265,6 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     RawDocument doc5a = r1.get(4);
     assertThat(doc5a.id()).isEqualTo("5");
     assertThat(doc5a.rows()).hasSize(1);
-    assertThat(doc5a.makePagingState()).isNull();
-    assertThat(doc5a.hasPagingState()).isFalse();
 
     RawDocument doc5b =
         doc5a
@@ -261,8 +272,8 @@ class QueryExecutorTest extends AbstractDataStoreTest {
             .blockingGet();
     assertThat(doc5b.id()).isEqualTo("5");
     assertThat(doc5b.rows()).hasSize(3);
-    assertThat(doc5b.makePagingState()).isNull();
-    assertThat(doc5b.hasPagingState()).isFalse();
+    assertThat(doc5b.hasPagingState()).isEqualTo(doc5a.hasPagingState());
+    assertThat(doc5b.makePagingState()).isEqualTo(doc5a.makePagingState());
   }
 
   @Test
@@ -338,7 +349,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1", "3", "5", "100"})
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
   void testSubDocumentsPaged(int pageSize) {
     withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
         .withPageSize(pageSize)
@@ -391,7 +402,16 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     assertThat(docs.get(0).hasPagingState()).isTrue();
     assertThat(docs.get(0).makePagingState()).isNotNull();
-    assertThat(docs.get(1).hasPagingState()).isFalse();
-    assertThat(docs.get(1).makePagingState()).isNull();
+
+    ByteBuffer lastPagingState = docs.get(1).makePagingState();
+    assertThat(docs.get(1).hasPagingState()).isEqualTo(lastPagingState != null);
+
+    // Depending on how pages align with the result set, the last doc may or may not have a paging
+    // state (see testFullScanFinalPagingState(...) for details). In any case, though, there
+    // should be no more documents in the pipeline.
+    if (lastPagingState != null) {
+      docs = executor.queryDocs(3, query, pageSize, lastPagingState, context).test().values();
+      assertThat(docs).isEmpty();
+    }
   }
 }

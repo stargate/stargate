@@ -317,11 +317,15 @@ public class ValidatingDataStore implements DataStore {
       executed = true;
 
       Optional<ByteBuffer> pagingState = parameters.pagingState();
+      int pageSize;
       if (expectation.pageSize < Integer.MAX_VALUE) {
-        assertThat(parameters.pageSize()).hasValue(expectation.pageSize);
+        pageSize = expectation.pageSize;
+        assertThat(parameters.pageSize()).hasValue(pageSize);
+      } else {
+        pageSize = parameters.pageSize().orElse(expectation.pageSize);
       }
 
-      ValidatingPaginator paginator = ValidatingPaginator.of(expectation.pageSize, pagingState);
+      ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
 
       expectation.executed();
       return CompletableFuture.completedFuture(
