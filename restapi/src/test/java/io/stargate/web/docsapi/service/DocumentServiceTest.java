@@ -31,6 +31,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap.Builder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -50,6 +51,8 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
+import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.Db;
 import java.util.Arrays;
@@ -65,7 +68,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -134,6 +139,11 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     return schema;
   }
 
+  @BeforeAll
+  public static void setupJackson() {
+    mapper.registerModule(new GuavaModule());
+  }
+
   @BeforeEach
   void setup() throws UnauthorizedException {
     when(dataStoreFactory.createInternal(any())).thenReturn(datastore());
@@ -151,27 +161,31 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   private Map<String, Object> row(String id, Double value, String... path) {
-    Builder<String, Object> map = row(id, path);
+    return row(id, 123, value, path);
+  }
+
+  private Map<String, Object> row(String id, int timestamp, Double value, String... path) {
+    Builder<String, Object> map = row(id, timestamp, path);
     map.put("dbl_value", value);
     return map.build();
   }
 
   private Map<String, Object> row(String id, Boolean value, String... path) {
-    Builder<String, Object> map = row(id, path);
+    Builder<String, Object> map = row(id, 123, path);
     map.put("bool_value", value);
     return map.build();
   }
 
   private Map<String, Object> row(String id, String value, String... path) {
-    Builder<String, Object> map = row(id, path);
+    Builder<String, Object> map = row(id, 123, path);
     map.put("text_value", value);
     return map.build();
   }
 
-  private Builder<String, Object> row(String id, String... path) {
+  private Builder<String, Object> row(String id, int timestamp, String... path) {
     Builder<String, Object> map = ImmutableMap.builder();
     map.put("key", id);
-    map.put("writetime(leaf)", 123);
+    map.put("writetime(leaf)", timestamp);
     String leaf = null;
     for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
       String p;
@@ -206,6 +220,12 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private <T> DocumentResponseWrapper<T> getDocPath(
       String id, String where, String fields, List<PathSegment> path)
       throws JsonProcessingException {
+    return getDocPath(id, where, fields, path, false);
+  }
+
+  private <T> DocumentResponseWrapper<T> getDocPath(
+      String id, String where, String fields, List<PathSegment> path, boolean profile)
+      throws JsonProcessingException {
     return unwrap(
         resource.getDocPath(
             headers,
@@ -219,11 +239,17 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             fields,
             0,
             null,
+            profile,
             false,
             request));
   }
 
   private <T> DocumentResponseWrapper<T> searchDoc(String where, String fields)
+      throws JsonProcessingException {
+    return searchDoc(where, fields, false);
+  }
+
+  private <T> DocumentResponseWrapper<T> searchDoc(String where, String fields, boolean profile)
       throws JsonProcessingException {
     return unwrap(
         resource.searchDoc(
@@ -236,6 +262,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             fields,
             20,
             null,
+            profile,
             false,
             request));
   }
@@ -254,6 +281,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             fields,
             0,
             null,
+            false,
             true, // raw
             request);
 
@@ -312,6 +340,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 null,
                 0,
                 null,
+                false,
                 false,
                 request));
     assertThat(r.getDocumentId()).isEqualTo(id);
@@ -626,7 +655,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         false,
         db,
         true,
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
   }
 
   @Test
@@ -661,7 +691,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         false,
         db,
         true,
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
   }
 
   @Test
@@ -698,7 +729,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         true,
         db,
         true,
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
   }
 
   @Test
@@ -715,7 +747,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 true,
                 db,
                 true,
-                Collections.emptyMap());
+                Collections.emptyMap(),
+                ExecutionContext.NOOP_CONTEXT);
 
     Mockito.doThrow(new UnauthorizedException("test1"))
         .when(authorizationService)
@@ -755,5 +788,284 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     assertThatThrownBy(() -> searchDoc("{\"a.*.y\":{\"$in\":[\"yy\"]}}", null))
         .hasMessageContaining("test4");
+  }
+
+  @Nested
+  class Profiling {
+
+    private final String dblValueGtQuery =
+        "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING";
+    private final String dblValueEqQuery =
+        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? ALLOW FILTERING";
+    private final String selectByKey = selectAll("WHERE key = ?");
+    private final String selectAll = selectAll("");
+    private final String insert =
+        "INSERT INTO test_docs.collection1 (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+    private final String id1 = "id1";
+    private final String id2 = "id2";
+    private final String id3 = "id3";
+
+    @BeforeEach
+    void setQueryExpectations() {
+
+      withQuery(table, dblValueGtQuery, params("a", "c", "", 1.0))
+          .returning(ImmutableList.of(leafRow(id1), leafRow(id2), leafRow(id3)));
+
+      withQuery(table, dblValueEqQuery, id1, "d", "e", "f", "", 2.0)
+          .returning(ImmutableList.of(leafRow(id1)));
+      withQuery(table, dblValueEqQuery, id2, "d", "e", "f", "", 2.0)
+          .returning(ImmutableList.of(leafRow(id2)));
+      withQuery(table, dblValueEqQuery, id3, "d", "e", "f", "", 2.0).returningNothing();
+
+      withQuery(table, selectByKey, id1)
+          .returning(ImmutableList.of(row(id1, 3.0, "a", "b"), row(id1, 4.0, "a", "c")));
+
+      withQuery(table, selectByKey, id2)
+          .returning(
+              ImmutableList.of(
+                  row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
+
+      withQuery(table, selectAll)
+          .returning(
+              ImmutableList.of(
+                  row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
+
+      withQuery(table, insert, fillParams(70, id3, "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+          .returningNothing();
+    }
+
+    @Test
+    void searchMixedFilters() throws JsonProcessingException {
+      DocumentResponseWrapper<Map<String, ?>> r =
+          searchDoc("{\"a.c\":{\"$gt\":1,\"$ne\":10},\"d.e.f\":{\"$eq\":2}}", null, true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER: a.c GT 1.0")
+                          .addQueries(QueryInfo.of(dblValueGtQuery, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER: d.e.f EQ 2.0")
+                          .addQueries(QueryInfo.of(dblValueEqQuery, 3, 2))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties")
+                          .addQueries(QueryInfo.of(selectByKey, 2, 5))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER IN MEMORY: a.c NE 10.0")
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchInMemoryFilters() throws JsonProcessingException {
+      DocumentResponseWrapper<Map<String, ?>> r = searchDoc("{\"a.c\":{\"$ne\":10}}", null, true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadAllDocuments")
+                          .addQueries(QueryInfo.of(selectAll, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER IN MEMORY: a.c NE 10.0")
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchNoFilters() throws JsonProcessingException {
+      DocumentResponseWrapper<Map<String, ?>> r = searchDoc(null, null, true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadAllDocuments")
+                          .addQueries(QueryInfo.of(selectAll, 1, 3))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void docById() throws JsonProcessingException {
+      String id = "id3";
+      ImmutableList<Map<String, Object>> rows =
+          ImmutableList.of(
+              row(id, 2000, 3.0, "a", "d", "c"),
+              row(id, 2000, 10.0, "a", "d", "[0]"),
+              row(id, 1000, 1.0, "a", "f", "c"));
+      withQuery(table, selectByKey, id).returning(rows);
+
+      now.set(300);
+      String delete =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 IN ?";
+      withQuery(table, delete, 300L, id, "a", "d", ImmutableList.of("c")).returningNothing();
+
+      DocumentResponseWrapper<Map<String, ?>> r =
+          unwrap(
+              resource.getDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  id,
+                  null,
+                  null,
+                  0,
+                  null,
+                  true,
+                  false,
+                  request));
+
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties")
+                          .addQueries(QueryInfo.of(selectByKey, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC DOCUMENT CORRECTION")
+                          .addQueries(QueryInfo.of(delete, 1, 0)) // numRows unknown
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchWithDocIdAndFilters() throws JsonProcessingException {
+      final String id = "id1";
+      ImmutableList<Map<String, Object>> rows =
+          ImmutableList.of(
+              row(id, 3.0, "a", "d", "c"),
+              row(id, 10.0, "a", "e", "c"),
+              row(id, 1.0, "a", "f", "c"));
+      String selectWithWhere =
+          selectAll(
+              "WHERE key = ? AND leaf = ? AND p0 = ? AND p1 > ? AND p2 = ? AND dbl_value > ? AND dbl_value < ? ALLOW FILTERING");
+      withQuery(table, selectWithWhere, id, "c", "a", "", "c", 1.0d, 3.0d).returning(rows);
+
+      DocumentResponseWrapper<List<Map<String, ?>>> r =
+          getDocPath(
+              id, "{\"a.*.c\":{\"$gt\":1,\"$lt\":3,\"$ne\":10}}", null, ImmutableList.of(), true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties: a.*.c GT 1.0 AND a.*.c LT 3.0")
+                          .addQueries(QueryInfo.of(selectWithWhere, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER IN MEMORY: a.*.c NE 10.0")
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchWithDocId() throws JsonProcessingException {
+      DocumentResponseWrapper<List<Map<String, ?>>> r =
+          getDocPath(id2, null, null, ImmutableList.of(), true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties")
+                          .addQueries(QueryInfo.of(selectByKey, 1, 3))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void putDoc() throws UnauthorizedException, JsonProcessingException {
+      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
+
+      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
+      withQuery(table, delete, 199L, "id3").returningNothing();
+
+      now.set(200);
+      DocumentResponseWrapper<Object> r =
+          unwrap(
+              resource.putDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  "id3",
+                  "{\"a\":123}",
+                  true,
+                  request));
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC INSERT")
+                          // row count for DELETE is not known
+                          .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void patchDoc() throws JsonProcessingException {
+      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
+
+      String delete1 =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
+      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]").returningNothing();
+      String delete2 =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
+      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a")).returningNothing();
+
+      now.set(200);
+      DocumentResponseWrapper<Object> r =
+          unwrap(
+              resource.patchDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  "id3",
+                  "{\"a\":123}",
+                  true,
+                  request));
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC PATCH")
+                          // row count for DELETE is not known
+                          .addQueries(
+                              QueryInfo.of(insert, 1, 1),
+                              QueryInfo.of(delete2, 1, 0),
+                              QueryInfo.of(delete1, 1, 0))
+                          .build())
+                  .build());
+    }
   }
 }
