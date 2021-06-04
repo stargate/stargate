@@ -23,18 +23,21 @@ import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.*;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
+public class UpdateFetcher extends DeployedFetcher<Object> {
 
   private final UpdateModel model;
 
@@ -44,7 +47,7 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected Object get(
       DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
@@ -52,7 +55,6 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
     EntityModel entityModel = model.getEntity();
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
 
-    Map<String, Object> response = new LinkedHashMap<>();
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
     Predicate<String> hasArgument;
@@ -68,18 +70,17 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
 
     List<BuiltCondition> whereConditions =
         bindWhere(
-            entityModel.getPrimaryKeyWhereConditions(),
-            entityModel,
+            model.getWhereConditions(),
             hasArgument,
             getArgument,
+            entityModel::validateForUpdate,
             keyspace);
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
-    Collection<ValueModifier> modifiers = new ArrayList<>();
-    prepopulateWithInputData(
-        entityModel, keyspace, hasArgument, getArgument, modifiers, response, selectionSet);
+    Collection<ValueModifier> modifiers =
+        buildModifiers(entityModel, keyspace, hasArgument, getArgument);
 
     AbstractBound<?> query =
         dataStore
@@ -104,19 +105,47 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
-    populateResponseWithResultSet(
-        selectionSet, response, isLwt, resultSet, model.getResponsePayload(), model.getEntity());
-    return response;
+    boolean responseContainsEntity =
+        model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+    boolean applied;
+    Map<String, Object> entityData = responseContainsEntity ? new LinkedHashMap<>() : null;
+    if (isLwt) {
+      Row row = resultSet.one();
+      applied = row.getBoolean("[applied]");
+      if (!applied && responseContainsEntity) {
+        copyRowToEntity(row, entityData, model.getEntity());
+      }
+    } else {
+      applied = true;
+    }
+
+    if (model.getReturnType() == SimpleReturnType.BOOLEAN) {
+      return applied;
+    } else {
+      Map<String, Object> response = new LinkedHashMap<>();
+      if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
+        response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+      }
+      if (responseContainsEntity) {
+        String prefix =
+            model
+                .getResponsePayload()
+                .flatMap(ResponsePayloadModel::getEntityField)
+                .map(EntityField::getName)
+                .orElseThrow(AssertionError::new);
+        response.put(prefix, entityData);
+      }
+      return response;
+    }
   }
 
-  private void prepopulateWithInputData(
+  private Collection<ValueModifier> buildModifiers(
       EntityModel entityModel,
       Keyspace keyspace,
       Predicate<String> hasArgument,
-      Function<String, Object> getArgument,
-      Collection<ValueModifier> modifiers,
-      Map<String, Object> response,
-      DataFetchingFieldSelectionSet selectionSet) {
+      Function<String, Object> getArgument) {
+
+    List<ValueModifier> modifiers = new ArrayList<>();
     for (FieldModel column : entityModel.getRegularColumns()) {
       String graphqlName = column.getGraphqlName();
 
@@ -125,17 +154,12 @@ public class UpdateFetcher extends DeployedFetcher<Map<String, Object>> {
         modifiers.add(
             ValueModifier.set(
                 column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-
-        // Echo the values back to the response now. We might override that later if the query
-        // turned
-        // out to be a failed LWT.
-        writeEntityField(
-            graphqlName, graphqlValue, selectionSet, response, model.getResponsePayload());
       }
     }
     if (modifiers.isEmpty()) {
       throw new IllegalArgumentException(
           "Input object must have at least one non-PK field set for an update");
     }
+    return modifiers;
   }
 }

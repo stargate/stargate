@@ -18,6 +18,8 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import io.stargate.db.query.Predicate;
+import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
@@ -78,6 +80,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
     Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
     Optional<String> entityArgumentName =
         entityFromFirstArgument.map(__ -> firstArgument.getName());
+    List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
@@ -87,11 +90,16 @@ class UpdateModelBuilder extends MutationModelBuilder {
         throw SkipException.INSTANCE;
       }
       entity = entityFromFirstArgument.get();
+      whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", "cql_update");
-      ConditionsModelBuilder.Conditions conditions = buildOnlyIfConditions(entity);
+      ConditionModels conditions =
+          new ConditionModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
+              .build();
+      whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();
+      validate(whereConditions, ifConditions, entity);
     }
 
     Optional<ResponsePayloadModel> responsePayload =
@@ -103,10 +111,38 @@ class UpdateModelBuilder extends MutationModelBuilder {
         parentTypeName,
         operation,
         entity,
+        whereConditions,
         ifConditions,
         entityArgumentName,
         returnType,
         responsePayload,
         ifExists);
   }
+
+  private void validate(
+      List<ConditionModel> whereConditions, List<ConditionModel> ifConditions, EntityModel entity)
+      throws SkipException {
+
+    Optional<String> maybeError = entity.validateForUpdate(whereConditions);
+    if (maybeError.isPresent()) {
+      invalidMapping("Operation %s: %s", operationName, maybeError.get());
+      throw SkipException.INSTANCE;
+    }
+
+    if (ifConditions.isEmpty()) {
+      return;
+    }
+
+    for (ConditionModel whereCondition : whereConditions) {
+      if (whereCondition.getPredicate() == Predicate.IN) {
+        invalidMapping(
+            "Operation %s: IN predicates on primary key fields are not allowed "
+                + "if there are @cql_if conditions (%s)",
+            operationName, whereCondition.getArgumentName());
+        throw SkipException.INSTANCE;
+      }
+    }
+  }
+
+  private void ensureNoInConditions(List<ConditionModel> whereConditions) {}
 }

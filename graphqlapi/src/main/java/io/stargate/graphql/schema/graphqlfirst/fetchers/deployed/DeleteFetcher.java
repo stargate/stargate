@@ -72,7 +72,12 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
     }
 
     List<BuiltCondition> whereConditions =
-        bindWhere(model.getWhereConditions(), entityModel, hasArgument, getArgument, keyspace);
+        bindWhere(
+            model.getWhereConditions(),
+            hasArgument,
+            getArgument,
+            entityModel::validateNoFiltering,
+            keyspace);
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     AbstractBound<?> query =

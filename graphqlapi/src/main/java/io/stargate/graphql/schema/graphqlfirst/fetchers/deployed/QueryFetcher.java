@@ -65,9 +65,9 @@ public class QueryFetcher extends DeployedFetcher<Object> {
     List<BuiltCondition> whereConditions =
         bindWhere(
             model.getWhereConditions(),
-            model.getEntity(),
             environment::containsArgument,
             environment::getArgument,
+            model.getEntity()::validateNoFiltering,
             keyspace);
 
     ResultSet resultSet =

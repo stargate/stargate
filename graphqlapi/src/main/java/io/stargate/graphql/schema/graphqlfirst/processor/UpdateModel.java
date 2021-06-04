@@ -24,6 +24,7 @@ import java.util.Optional;
 public class UpdateModel extends MutationModel {
 
   private final EntityModel entity;
+  private final List<ConditionModel> whereConditions;
   private final List<ConditionModel> ifConditions;
   private final Optional<String> entityArgumentName;
   private final ReturnType returnType;
@@ -34,6 +35,7 @@ public class UpdateModel extends MutationModel {
       String parentTypeName,
       FieldDefinition field,
       EntityModel entity,
+      List<ConditionModel> whereConditions,
       List<ConditionModel> ifConditions,
       Optional<String> entityArgumentName,
       ReturnType returnType,
@@ -41,6 +43,7 @@ public class UpdateModel extends MutationModel {
       boolean ifExists) {
     super(parentTypeName, field);
     this.entity = entity;
+    this.whereConditions = whereConditions;
     this.ifConditions = ifConditions;
     this.entityArgumentName = entityArgumentName;
     this.returnType = returnType;
@@ -50,6 +53,10 @@ public class UpdateModel extends MutationModel {
 
   public EntityModel getEntity() {
     return entity;
+  }
+
+  public List<ConditionModel> getWhereConditions() {
+    return whereConditions;
   }
 
   public List<ConditionModel> getIfConditions() {

@@ -25,9 +25,10 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase {
       InputValueDefinition argument,
       String operationName,
       EntityModel entity,
+      FieldModel field,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(context, argument, operationName, entity, entities);
+    super(argument, operationName, entity, field, entities, context);
   }
 
   @Override

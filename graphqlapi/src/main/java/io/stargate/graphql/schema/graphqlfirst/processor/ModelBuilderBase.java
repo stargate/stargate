@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import com.google.errorprone.annotations.FormatMethod;
 import graphql.language.SourceLocation;
 
-abstract class ModelBuilderBase<ModelT> implements InvalidMappingReporter {
+abstract class ModelBuilderBase<ModelT> {
 
   protected final ProcessingContext context;
   protected final SourceLocation location;
@@ -41,7 +41,6 @@ abstract class ModelBuilderBase<ModelT> implements InvalidMappingReporter {
   }
 
   @FormatMethod
-  @Override
   public void invalidMapping(String format, Object... arguments) {
     context.addError(location, ProcessingErrorType.InvalidMapping, format, arguments);
   }

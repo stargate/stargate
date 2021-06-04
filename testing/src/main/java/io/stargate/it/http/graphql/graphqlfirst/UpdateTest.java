@@ -86,7 +86,10 @@ public class UpdateTest extends GraphqlFirstTestBase {
     String error = updateUserPartialPk(1, 2, "Updated");
 
     // then
-    assertThat(error).contains("Some clustering keys are missing: cc2");
+    assertThat(error)
+        .contains(
+            "all of the primary key fields must be restricted by EQ or IN "
+                + "predicates (expected pk, cc1, cc2)");
   }
 
   private void updateUser(int pk1, int cc1, int cc2, String username) {

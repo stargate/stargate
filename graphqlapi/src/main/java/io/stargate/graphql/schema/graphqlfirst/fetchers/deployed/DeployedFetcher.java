@@ -22,7 +22,6 @@ import com.google.common.collect.Sets;
 import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;
-import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -305,6 +304,23 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return singleResult;
   }
 
+  /**
+   * Copies a CQL row to a map representing the given entity. Only the columns that correspond to
+   * the entity's fields are considered. If some fields were already present in the map, they are
+   * overridden.
+   */
+  protected void copyRowToEntity(Row row, Map<String, Object> entityData, EntityModel entity) {
+    for (FieldModel field : entity.getAllColumns()) {
+      if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
+        continue;
+      }
+      Object cqlValue = row.getObject(field.getCqlName());
+      entityData.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
+    }
+  }
+
   protected ResultSet executeUnchecked(
       AbstractBound<?> query,
       Optional<ByteBuffer> pagingState,
@@ -364,22 +380,22 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
    *     cases the values are not directly arguments, but instead inner fields of an object
    *     argument).
    * @param getArgument how to get the value of an argument (same).
+   * @param validator a validation function that will be applied to the actual conditions, to check
+   *     that they form a valid where clause.
    */
   protected List<BuiltCondition> bindWhere(
       List<ConditionModel> conditions,
-      EntityModel entity,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
+      Function<List<ConditionModel>, Optional<String>> validator,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
     List<ConditionModel> activeConditions =
         bind(conditions, hasArgument, getArgument, keyspace, result);
 
-    // Re-check the validity of the query (we already did while building the model, but some
-    // conditions might not apply if the corresponding argument was missing).
-    entity
-        .validateNoFiltering(activeConditions)
+    validator
+        .apply(activeConditions)
         .ifPresent(
             message -> {
               throw new IllegalArgumentException("Invalid arguments: " + message);
@@ -427,75 +443,5 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       }
     }
     return activeConditions;
-  }
-
-  /** Writes an entity field in the response. */
-  protected void writeEntityField(
-      String fieldName,
-      Object value,
-      DataFetchingFieldSelectionSet selectionSet,
-      Map<String, Object> responseMap,
-      Optional<ResponsePayloadModel> responsePayloadModel) {
-
-    // Determine if we need an additional level of nesting. This happens if the mutation returns a
-    // payload type that contains the entity.
-    String rootPath = null;
-    if (responsePayloadModel.isPresent()) {
-      ResponsePayloadModel responsePayload = responsePayloadModel.get();
-      if (!responsePayload.getEntityField().isPresent()) {
-        // This can happen if the payload only contains "technical" fields, like `applied`. In that
-        // case we never need to write any field.
-        return;
-      }
-      rootPath = responsePayload.getEntityField().get().getName();
-    }
-
-    // Check if the GraphQL query asked for that field.
-    String selectionPattern = (rootPath == null) ? fieldName : rootPath + '/' + fieldName;
-    if (!selectionSet.contains(selectionPattern)) {
-      return;
-    }
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> targetMap =
-        (rootPath == null)
-            ? responseMap
-            : (Map<String, Object>)
-                responseMap.computeIfAbsent(rootPath, __ -> new HashMap<String, Object>());
-    targetMap.put(fieldName, value);
-  }
-
-  protected void populateResponseWithResultSet(
-      DataFetchingFieldSelectionSet selectionSet,
-      Map<String, Object> response,
-      boolean isLwt,
-      ResultSet resultSet,
-      Optional<ResponsePayloadModel> responsePayloadModel,
-      EntityModel entityModel) {
-    boolean applied;
-    if (isLwt) {
-      Row row = resultSet.one();
-      applied = row.getBoolean("[applied]");
-      if (!applied) {
-        // The row contains the existing data, write it in the response.
-        for (FieldModel field : entityModel.getAllColumns()) {
-          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
-            continue;
-          }
-          Object cqlValue = row.getObject(field.getCqlName());
-          writeEntityField(
-              field.getGraphqlName(),
-              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
-              selectionSet,
-              response,
-              responsePayloadModel);
-        }
-      }
-    } else {
-      applied = true;
-    }
-    if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
-      response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
-    }
   }
 }

@@ -77,9 +77,9 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
     List<BuiltCondition> whereConditions =
         bindWhere(
             entityModel.getPrimaryKeyWhereConditions(),
-            entityModel,
             representation::containsKey,
             representation::get,
+            entityModel::validateNoFiltering,
             keyspace);
     ResultSet resultSet =
         query(

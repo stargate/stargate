@@ -57,37 +57,41 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
             + "}\n"
             + "type Mutation {\n"
             + "  updateUser(user: UserInput!): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserEQ(\n"
+            + "  updateUserWherePkIn(\n"
+            + "    pks: [Int] @cql_where(field: \"pk\", predicate: IN)\n"
+            + "    username: String\n"
+            + "  ): Boolean @cql_update(targetEntity: \"User\")\n"
+            + "  updateUserIfAgeEQ(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: EQ)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserNEQ(\n"
+            + "  updateUserIfAgeNEQ(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: NEQ)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserGT(\n"
+            + "  updateUserIfAgeGT(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: GT)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserGTE(\n"
+            + "  updateUserIfAgeGTE(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: GTE)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserLT(\n"
+            + "  updateUserIfAgeLT(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: LT)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserLTE(\n"
+            + "  updateUserIfAgeLTE(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    age: Int @cql_if(field: \"age\", predicate: LTE)\n"
             + "  ): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-            + "  updateUserIN(\n"
+            + "  updateUserIfAgeIN(\n"
             + "    pk: Int\n"
             + "    username: String\n"
             + "    ages: [Int] @cql_if(field: \"age\", predicate: IN)\n"
@@ -103,7 +107,25 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should conditional update user using EQ predicate")
+  @DisplayName("Should update users using IN predicate on PK")
+  public void testUpdateUsingWhereIn() {
+    // given
+    updateUser(1, 18, "Max");
+    updateUser(2, 21, "Sam");
+
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateUserWherePkIn(pks: [1,2], username: \"Pat\") }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserWherePkIn")).isTrue();
+    assertThat(getUserName(1)).isEqualTo("Pat");
+    assertThat(getUserName(2)).isEqualTo("Pat");
+  }
+
+  @Test
+  @DisplayName("Should conditionally update user using EQ predicate")
   public void testConditionalUpdateUserUsingEQPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -112,39 +134,39 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserEQ(pk: 1, age: 100, username: \"John\") { \n"
+            "mutation { updateUserIfAgeEQ(pk: 1, age: 100, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeEQ.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserEQ.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserEQ.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeEQ.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeEQ.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserEQ(pk: 1, age: 18, username: \"John\") { \n"
+            "mutation { updateUserIfAgeEQ(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserEQ.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeEQ.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserEQ.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserEQ.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeEQ.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeEQ.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
   @Test
-  @DisplayName("Should conditional update user using NEQ predicate")
+  @DisplayName("Should conditionally update user using NEQ predicate")
   public void testConditionalUpdateUserUsingNEQPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -153,39 +175,39 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserNEQ(pk: 1, age: 18, username: \"John\") { \n"
+            "mutation { updateUserIfAgeNEQ(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserNEQ.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeNEQ.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserNEQ.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserNEQ.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeNEQ.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeNEQ.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserNEQ(pk: 1, age: 19, username: \"John\") { \n"
+            "mutation { updateUserIfAgeNEQ(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserNEQ.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeNEQ.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserNEQ.user.age")).isEqualTo(19);
-    assertThat(JsonPath.<String>read(response, "$.updateUserNEQ.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeNEQ.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeNEQ.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
   @Test
-  @DisplayName("Should conditional update user using GT predicate")
+  @DisplayName("Should conditionally update user using GT predicate")
   public void testConditionalUpdateUserUsingGTPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -194,39 +216,39 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserGT(pk: 1, age: 100, username: \"John\") { \n"
+            "mutation { updateUserIfAgeGT(pk: 1, age: 100, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserGT.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeGT.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserGT.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserGT.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeGT.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeGT.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserGT(pk: 1, age: 17, username: \"John\") { \n"
+            "mutation { updateUserIfAgeGT(pk: 1, age: 17, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserGT.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeGT.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserGT.user.age")).isEqualTo(17);
-    assertThat(JsonPath.<String>read(response, "$.updateUserGT.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeGT.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeGT.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
   @Test
-  @DisplayName("Should conditional update user using GTE predicate")
+  @DisplayName("Should conditionally update user using GTE predicate")
   public void testConditionalUpdateUserUsingGTEPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -235,39 +257,39 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserGTE(pk: 1, age: 19, username: \"John\") { \n"
+            "mutation { updateUserIfAgeGTE(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserGTE.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeGTE.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserGTE.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserGTE.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeGTE.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeGTE.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserGTE(pk: 1, age: 18, username: \"John\") { \n"
+            "mutation { updateUserIfAgeGTE(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserGTE.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeGTE.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserGTE.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserGTE.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeGTE.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeGTE.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
   @Test
-  @DisplayName("Should conditional update user using LT predicate")
+  @DisplayName("Should conditionally update user using LT predicate")
   public void testConditionalUpdateUserUsingLTPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -276,39 +298,39 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserLT(pk: 1, age: 18, username: \"John\") { \n"
+            "mutation { updateUserIfAgeLT(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserLT.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeLT.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserLT.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserLT.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeLT.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeLT.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserLT(pk: 1, age: 19, username: \"John\") { \n"
+            "mutation { updateUserIfAgeLT(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserLT.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeLT.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserLT.user.age")).isEqualTo(19);
-    assertThat(JsonPath.<String>read(response, "$.updateUserLT.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeLT.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeLT.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
   @Test
-  @DisplayName("Should conditional update user using LTE predicate")
+  @DisplayName("Should conditionally update user using LTE predicate")
   public void testConditionalUpdateUserUsingLTEPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -317,34 +339,34 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserLTE(pk: 1, age: 17, username: \"John\") { \n"
+            "mutation { updateUserIfAgeLTE(pk: 1, age: 17, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserLTE.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeLTE.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserLTE.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserLTE.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeLTE.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeLTE.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserLTE(pk: 1, age: 18, username: \"John\") { \n"
+            "mutation { updateUserIfAgeLTE(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserLTE.applied")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeLTE.applied")).isTrue();
     // age contains the new value
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserLTE.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserLTE.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeLTE.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeLTE.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
@@ -405,7 +427,7 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should conditional update user using IN predicate")
+  @DisplayName("Should conditionally update user using IN predicate")
   public void testConditionalUpdateUserUsingINPredicate() {
     // given
     updateUser(1, 18, "Max");
@@ -414,36 +436,33 @@ public class UpdateCustomConditionsTest extends GraphqlFirstTestBase {
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserIN(pk: 1, ages: [100], username: \"John\") { \n"
+            "mutation { updateUserIfAgeIN(pk: 1, ages: [100], username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIN.applied")).isFalse();
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeIN.applied")).isFalse();
     // age contains the previous value (from DB)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserIN.user.age")).isEqualTo(18);
-    assertThat(JsonPath.<String>read(response, "$.updateUserIN.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeIN.user.age")).isEqualTo(18);
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeIN.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("Max");
 
     // when
     response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            "mutation { updateUserIN(pk: 1, ages: [18], username: \"John\") { \n"
+            "mutation { updateUserIfAgeIN(pk: 1, ages: [18], username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
                 + "  }\n"
                 + "}");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIN.applied")).isTrue();
-    // age does not contains a new value, because it cannot be pre-populated as the graphql input
-    // does not contain the `age` field
-    // (only `ages`)
-    assertThat(JsonPath.<Integer>read(response, "$.updateUserIN.user.age")).isNull();
-    assertThat(JsonPath.<String>read(response, "$.updateUserIN.user.username")).isEqualTo("John");
+    assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfAgeIN.applied")).isTrue();
+    assertThat(JsonPath.<Integer>read(response, "$.updateUserIfAgeIN.user.age")).isNull();
+    assertThat(JsonPath.<String>read(response, "$.updateUserIfAgeIN.user.username")).isNull();
     assertThat(getUserName(1)).isEqualTo("John");
   }
 
