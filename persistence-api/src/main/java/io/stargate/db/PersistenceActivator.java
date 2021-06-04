@@ -26,7 +26,7 @@ public abstract class PersistenceActivator extends BaseActivator {
     if (BASEDIR == null || BASEDIR.isEmpty()) {
       return Files.createTempDirectory("stargate-" + getActivatorName()).toFile();
     } else {
-      return Paths.get(BASEDIR).toFile();
+      return Files.createDirectories(Paths.get(BASEDIR)).toFile();
     }
   }
 }
