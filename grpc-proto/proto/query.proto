@@ -252,6 +252,12 @@ message AlreadyExists {
   string table = 2;
 }
 
+message CasWriteUnknown {
+  Consistency consistency = 1;
+  int32 received = 2;
+  int32 block_for = 3;
+}
+
 message Row {
   repeated Value values = 1;
 }
