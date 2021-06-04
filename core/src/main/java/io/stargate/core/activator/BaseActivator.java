@@ -258,6 +258,10 @@ public abstract class BaseActivator implements BundleActivator {
     // no-op
   }
 
+  protected String getActivatorName() {
+    return activatorName;
+  }
+
   /**
    * @return List of dependent services that this component relies on. It provides the
    *     happens-before meaning that all dependent services must be present before the {@link

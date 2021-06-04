@@ -5,9 +5,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.PersistenceActivator;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
 import io.stargate.db.dse.impl.DelegatingAuthorizer;
@@ -36,7 +36,7 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.io.FileUtils;
 
-public class DsePersistenceActivator extends BaseActivator {
+public class DsePersistenceActivator extends PersistenceActivator {
 
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
@@ -176,8 +176,7 @@ public class DsePersistenceActivator extends BaseActivator {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");
     try {
-      // Throw away data directory since stargate is ephemeral anyway
-      baseDir = Files.createTempDirectory("stargate-dse").toFile();
+      baseDir = getBaseDir();
 
       dseDB.setAuthorizationService(authorizationService.get());
       dseDB.initialize(makeConfig(baseDir));

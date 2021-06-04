@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.db.PersistenceActivator;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -49,7 +48,7 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistenceActivator extends BaseActivator {
+public class CassandraPersistenceActivator extends PersistenceActivator {
 
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
 
@@ -165,11 +164,8 @@ public class CassandraPersistenceActivator extends BaseActivator {
         metrics.get().getRegistry("persistence-cassandra-3.11");
 
     try {
-      // Throw away data directory since stargate is ephemeral anyway
-      File baseDir = Files.createTempDirectory("stargate-cassandra-3.11").toFile();
-
       cassandraDB.setAuthorizationService(authorizationService.get());
-      cassandraDB.initialize(makeConfig(baseDir));
+      cassandraDB.initialize(makeConfig(getBaseDir()));
 
       IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer();
       if (authorizer instanceof DelegatingAuthorizer) {
