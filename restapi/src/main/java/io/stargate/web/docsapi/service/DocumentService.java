@@ -408,12 +408,6 @@ public class DocumentService {
       ExecutionContext context)
       throws UnauthorizedException, JsonProcessingException, ProcessingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
-
-    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
-    if (schema != null) {
-      jsonSchemaHandler.validate(schema, payload);
-    }
-
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
     boolean created = db.maybeCreateTable(keyspace, collection);
@@ -422,6 +416,13 @@ public class DocumentService {
     if (created) {
       db = dbFactory.getDocDataStoreForToken(authToken, headers);
       db.maybeCreateTableIndexes(keyspace, collection);
+    }
+
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
+    if (schema != null && path.isEmpty()) {
+      jsonSchemaHandler.validate(schema, payload);
+    } else if (schema != null) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
     }
 
     schemaChecker.checkValidity(keyspace, collection, db);

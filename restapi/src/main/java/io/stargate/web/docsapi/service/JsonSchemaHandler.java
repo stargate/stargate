@@ -40,8 +40,8 @@ public class JsonSchemaHandler {
 
   private void clearCacheOnSchemaChange(DocumentDB db) {
     if (!db.schema().equals(lastCheckedSchema)) {
-        schemasPerCollection.clear();
-        this.lastCheckedSchema = db.schema();
+      schemasPerCollection.clear();
+      this.lastCheckedSchema = db.schema();
     }
   }
 
@@ -142,6 +142,16 @@ public class JsonSchemaHandler {
   public void validate(JsonNode schema, String value)
       throws ProcessingException, JsonProcessingException {
     JsonNode jsonValue = mapper.readTree(value);
+    ProcessingReport result = schemaFactory.getValidator().validate(schema, jsonValue);
+    if (!result.isSuccess()) {
+      List<String> messages = new ArrayList<>();
+      result.forEach(msg -> messages.add(msg.getMessage()));
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Invalid JSON: " + messages.toString());
+    }
+  }
+
+  public void validate(JsonNode schema, JsonNode jsonValue) throws ProcessingException {
     ProcessingReport result = schemaFactory.getValidator().validate(schema, jsonValue);
     if (!result.isSuccess()) {
       List<String> messages = new ArrayList<>();

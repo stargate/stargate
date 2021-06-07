@@ -8,7 +8,6 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
@@ -103,34 +102,40 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void testIt() throws IOException {
-    JsonNode schema = OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("schema.json"));
+    JsonNode schema =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("schema.json"));
     RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 200);
 
-    JsonNode obj =
-        OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":1}");
+    String schemaResp = RestUtils.get(authToken, collectionPath + "/json-schema", 200);
+    assertThat(schema).isEqualTo(OBJECT_MAPPER.readTree(schemaResp));
+
+    JsonNode obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":1}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
 
-    obj =
-            OBJECT_MAPPER.readTree("{\"id\":1, \"price\":1}");
+    obj = OBJECT_MAPPER.readTree("{\"id\":1, \"price\":1}");
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     JsonNode data = OBJECT_MAPPER.readTree(resp);
     assertThat(data.requiredAt("/description"))
-      .isEqualTo(TextNode.valueOf("Invalid JSON: [object has missing required properties ([\\\"name\\\"])]"));
+        .isEqualTo(
+            TextNode.valueOf(
+                "Invalid JSON: [object has missing required properties ([\\\"name\\\"])]"));
 
-    obj =
-            OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":-1}");
+    obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":-1}");
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     data = OBJECT_MAPPER.readTree(resp);
     assertThat(data.requiredAt("/description"))
-            .isEqualTo(TextNode.valueOf("Invalid JSON: [numeric instance is lower than the required minimum (minimum: 0, found: -1)]"));
+        .isEqualTo(
+            TextNode.valueOf(
+                "Invalid JSON: [numeric instance is lower than the required minimum (minimum: 0, found: -1)]"));
   }
 
   @Test
   public void testInvalidSchema() throws IOException {
-    JsonNode schema = OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("invalid-schema.json"));
+    JsonNode schema =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("invalid-schema.json"));
     String resp = RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 400);
     JsonNode data = OBJECT_MAPPER.readTree(resp);
     assertThat(data.requiredAt("/description"))
-      .isEqualTo(TextNode.valueOf("The provided JSON schema is invalid or malformed."));
+        .isEqualTo(TextNode.valueOf("The provided JSON schema is invalid or malformed."));
   }
 }
