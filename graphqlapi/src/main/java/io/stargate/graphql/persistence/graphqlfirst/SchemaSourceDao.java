@@ -16,6 +16,7 @@
 package io.stargate.graphql.persistence.graphqlfirst;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -42,6 +43,12 @@ public class SchemaSourceDao {
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaSourceDao.class);
   public static final String KEYSPACE_NAME = "stargate_graphql";
   public static final String TABLE_NAME = "schema_source";
+  public static final String KEYSPACE_REPLICATION_PROPERTY =
+      "stargate.graphql_first.replication_options";
+  private static final Replication DEFAULT_KEYSPACE_REPLICATION = Replication.simpleStrategy(1);
+  private static final Replication KEYSPACE_REPLICATION =
+      parseReplication(System.getProperty(KEYSPACE_REPLICATION_PROPERTY));
+
   @VisibleForTesting static final String KEYSPACE_COLUMN_NAME = "keyspace_name";
   @VisibleForTesting static final String VERSION_COLUMN_NAME = "version";
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
@@ -187,7 +194,7 @@ public class SchemaSourceDao {
                 .create()
                 .keyspace(KEYSPACE_NAME)
                 .ifNotExists()
-                .withReplication(Replication.simpleStrategy(1))
+                .withReplication(KEYSPACE_REPLICATION)
                 .build()
                 .bind())
         .get();
@@ -342,5 +349,53 @@ public class SchemaSourceDao {
               .bind();
       dataStore.execute(deleteSchemaQuery).get();
     }
+  }
+
+  @VisibleForTesting
+  static Replication parseReplication(String spec) {
+    if (spec == null) {
+      LOGGER.debug("No replication configured, defaulting to {}", DEFAULT_KEYSPACE_REPLICATION);
+      return DEFAULT_KEYSPACE_REPLICATION;
+    }
+
+    try {
+      Replication replication =
+          spec.matches("\\d+") ? parseSimpleReplication(spec) : parseNetworkReplication(spec);
+      LOGGER.debug("Using configured replication {}", replication);
+      return replication;
+    } catch (IllegalArgumentException e) {
+      LOGGER.warn(
+          "Could not parse replication '{}' (from {}). Falling back to default {}",
+          spec,
+          KEYSPACE_REPLICATION_PROPERTY,
+          DEFAULT_KEYSPACE_REPLICATION);
+      return DEFAULT_KEYSPACE_REPLICATION;
+    }
+  }
+
+  private static Replication parseSimpleReplication(String spec) {
+    int rf = Integer.parseInt(spec);
+    if (rf < 1) {
+      throw new IllegalArgumentException();
+    }
+    return Replication.simpleStrategy(rf);
+  }
+
+  private static Replication parseNetworkReplication(String spec) {
+    Map<String, String> rawOptions =
+        Splitter.on(",").withKeyValueSeparator(Splitter.on("=").trimResults()).split(spec);
+    Map<String, Integer> options = new LinkedHashMap<>();
+    for (Map.Entry<String, String> entry : rawOptions.entrySet()) {
+      String dc = entry.getKey();
+      if (dc.isEmpty()) {
+        throw new IllegalArgumentException();
+      }
+      int rf = Integer.parseInt(entry.getValue());
+      if (rf < 1) {
+        throw new IllegalArgumentException();
+      }
+      options.put(dc, rf);
+    }
+    return Replication.networkTopologyStrategy(options);
   }
 }
