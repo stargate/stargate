@@ -277,7 +277,7 @@ public abstract class BaseActivator implements BundleActivator {
     if (BASEDIR == null || BASEDIR.isEmpty()) {
       return Files.createTempDirectory("stargate-" + activatorName).toFile();
     } else {
-      return Files.createDirectories(Paths.get(BASEDIR)).toFile();
+      return Files.createDirectories(Paths.get(BASEDIR, activatorName)).toFile();
     }
   }
 

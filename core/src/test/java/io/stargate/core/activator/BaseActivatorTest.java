@@ -31,7 +31,6 @@ import io.stargate.core.activator.BaseActivator.LazyServicePointer;
 import io.stargate.core.activator.BaseActivator.ServicePointer;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -534,7 +533,7 @@ class BaseActivatorTest {
     public class TestPersistenceActivator extends BaseActivator {
 
       public TestPersistenceActivator() {
-        super("test");
+        super("test-activator");
       }
 
       @Override
@@ -561,7 +560,7 @@ class BaseActivatorTest {
         File baseDir = activator.getBaseDir();
         assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
         assertThat(Files.isWritable(baseDir.toPath())).isTrue();
-        assertThat(baseDir.toPath()).isEqualTo(full);
+        assertThat(baseDir.toPath()).isEqualTo(Paths.get(full.toString(), "test-activator"));
       } finally {
         System.clearProperty("stargate.basedir");
       }
@@ -582,7 +581,7 @@ class BaseActivatorTest {
         File baseDir = activator.getBaseDir();
         assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
         assertThat(Files.isWritable(baseDir.toPath())).isTrue();
-        assertThat(baseDir.toPath()).isEqualTo(full);
+        assertThat(baseDir.toPath()).isEqualTo(Paths.get(full.toString(), "test-activator"));
       } finally {
         System.clearProperty("stargate.basedir");
       }
@@ -606,7 +605,7 @@ class BaseActivatorTest {
                   File baseDir = activator.getBaseDir();
                   assertThat(baseDir).isNotNull(); // Never reached
                 })
-            .isInstanceOf(FileAlreadyExistsException.class);
+            .isInstanceOf(IOException.class);
       } finally {
         System.clearProperty("stargate.basedir");
       }
