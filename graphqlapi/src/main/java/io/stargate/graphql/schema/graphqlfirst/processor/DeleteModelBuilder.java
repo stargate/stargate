@@ -104,6 +104,11 @@ class DeleteModelBuilder extends MutationModelBuilder {
       whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();
       validateNoFiltering(whereConditions, entity);
+      if (!ifConditions.isEmpty() && ifExists) {
+        invalidMapping(
+            "Operation %s: can't use @cql_if and ifExists at the same time", operationName);
+        throw SkipException.INSTANCE;
+      }
     }
 
     return new DeleteModel(

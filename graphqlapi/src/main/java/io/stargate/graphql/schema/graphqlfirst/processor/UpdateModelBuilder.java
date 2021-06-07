@@ -99,7 +99,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
               .build();
       whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();
-      validate(whereConditions, ifConditions, entity);
+      validate(whereConditions, ifConditions, ifExists, entity);
     }
 
     Optional<ResponsePayloadModel> responsePayload =
@@ -120,7 +120,10 @@ class UpdateModelBuilder extends MutationModelBuilder {
   }
 
   private void validate(
-      List<ConditionModel> whereConditions, List<ConditionModel> ifConditions, EntityModel entity)
+      List<ConditionModel> whereConditions,
+      List<ConditionModel> ifConditions,
+      boolean ifExists,
+      EntityModel entity)
       throws SkipException {
 
     Optional<String> maybeError = entity.validateForUpdate(whereConditions);
@@ -129,11 +132,14 @@ class UpdateModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
 
-    if (ifConditions.isEmpty()) {
-      return;
+    if (!ifConditions.isEmpty()) {
+      ensureNoInConditions(whereConditions);
+      if (ifExists) {
+        invalidMapping(
+            "Operation %s: can't use @cql_if and ifExists at the same time", operationName);
+        throw SkipException.INSTANCE;
+      }
     }
-
-    ensureNoInConditions(whereConditions);
   }
 
   private void ensureNoInConditions(List<ConditionModel> whereConditions) throws SkipException {
