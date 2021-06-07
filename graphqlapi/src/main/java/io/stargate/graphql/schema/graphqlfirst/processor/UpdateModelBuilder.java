@@ -133,6 +133,10 @@ class UpdateModelBuilder extends MutationModelBuilder {
       return;
     }
 
+    ensureNoInConditions(whereConditions);
+  }
+
+  private void ensureNoInConditions(List<ConditionModel> whereConditions) throws SkipException {
     for (ConditionModel whereCondition : whereConditions) {
       if (whereCondition.getPredicate() == Predicate.IN) {
         invalidMapping(
@@ -143,6 +147,4 @@ class UpdateModelBuilder extends MutationModelBuilder {
       }
     }
   }
-
-  private void ensureNoInConditions(List<ConditionModel> whereConditions) {}
 }
