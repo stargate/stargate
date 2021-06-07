@@ -27,7 +27,6 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -36,7 +35,6 @@ import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -505,14 +503,31 @@ public class ValueCodecTest {
             Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL)),
             Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
         arguments( // Embedded UDT
-            udt(Column.create("c", udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)))),
-            Values.of(ImmutableMap.of("c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
-            Values.of(ImmutableMap.of("c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))))),
+            udt(
+                Column.create(
+                    "c", udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)))),
+            Values.of(
+                ImmutableMap.of(
+                    "c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
+            Values.of(
+                ImmutableMap.of(
+                    "c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))))),
         arguments( // Embedded collections
-            udt(Column.create("a", Type.List.of(Type.Int)), Column.create("b", Type.Tuple.of(Type.Varchar, Type.Boolean))),
-            Values.of(ImmutableMap.of("a", Values.of(Values.of(1), Values.of(2), Values.of(3)), "b", Values.of(Values.of("c"), Values.of(true)))),
-            Values.of(ImmutableMap.of("a", Values.of(Values.of(1), Values.of(2), Values.of(3)), "b", Values.of(Values.of("c"), Values.of(true)))))
-        );
+            udt(
+                Column.create("a", Type.List.of(Type.Int)),
+                Column.create("b", Type.Tuple.of(Type.Varchar, Type.Boolean))),
+            Values.of(
+                ImmutableMap.of(
+                    "a",
+                    Values.of(Values.of(1), Values.of(2), Values.of(3)),
+                    "b",
+                    Values.of(Values.of("c"), Values.of(true)))),
+            Values.of(
+                ImmutableMap.of(
+                    "a",
+                    Values.of(Values.of(1), Values.of(2), Values.of(3)),
+                    "b",
+                    Values.of(Values.of("c"), Values.of(true))))));
   }
 
   public static Stream<Arguments> invalidUdtValues() {
@@ -536,14 +551,14 @@ public class ValueCodecTest {
         arguments(
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
             Values.UNSET,
-            "Expected user-defined type")
-    );
+            "Expected user-defined type"));
   }
 
   private static UserDefinedType udt(Column... columns) {
     return ImmutableUserDefinedType.builder()
         .name("name") // Dummy value
         .keyspace("keyspace") // Dummy value
-        .columns(Arrays.asList(columns)).build();
+        .columns(Arrays.asList(columns))
+        .build();
   }
 }
