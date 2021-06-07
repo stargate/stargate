@@ -33,8 +33,9 @@ public class PersistenceActivatorTest {
     @Test
     public void happyPathTemp() throws IOException {
       PersistenceActivator activator = new TestPersistenceActivator();
-      File file = activator.getBaseDir();
-      assertThat(Files.isDirectory(file.toPath())).isTrue();
+      File baseDir = activator.getBaseDir();
+      assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+      assertThat(Files.isWritable(baseDir.toPath())).isTrue();
     }
 
     @Test
@@ -44,9 +45,10 @@ public class PersistenceActivatorTest {
         Path full = Paths.get(temp.toString(), "name-from-system-property");
         System.setProperty("stargate.basedir", full.toString());
         PersistenceActivator activator = new TestPersistenceActivator();
-        File file = activator.getBaseDir();
-        assertThat(Files.isDirectory(file.toPath())).isTrue();
-        assertThat(file.toPath()).isEqualTo(full);
+        File baseDir = activator.getBaseDir();
+        assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+        assertThat(Files.isWritable(baseDir.toPath())).isTrue();
+        assertThat(baseDir.toPath()).isEqualTo(full);
       } finally {
         System.clearProperty("stargate.basedir");
       }
@@ -64,9 +66,10 @@ public class PersistenceActivatorTest {
 
         System.setProperty("stargate.basedir", full.toString());
         PersistenceActivator activator = new TestPersistenceActivator();
-        File file = activator.getBaseDir();
-        assertThat(Files.isDirectory(file.toPath())).isTrue();
-        assertThat(file.toPath()).isEqualTo(full);
+        File baseDir = activator.getBaseDir();
+        assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+        assertThat(Files.isWritable(baseDir.toPath())).isTrue();
+        assertThat(baseDir.toPath()).isEqualTo(full);
       } finally {
         System.clearProperty("stargate.basedir");
       }
@@ -87,8 +90,8 @@ public class PersistenceActivatorTest {
 
         assertThatThrownBy(
                 () -> {
-                  File file = activator.getBaseDir();
-                  assertThat(file).isNotNull(); // Never reached
+                  File baseDir = activator.getBaseDir();
+                  assertThat(baseDir).isNotNull(); // Never reached
                 })
             .isInstanceOf(FileAlreadyExistsException.class);
       } finally {
