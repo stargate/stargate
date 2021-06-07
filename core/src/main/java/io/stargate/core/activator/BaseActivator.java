@@ -42,8 +42,6 @@ import org.slf4j.LoggerFactory;
 public abstract class BaseActivator implements BundleActivator {
   private static final Logger logger = LoggerFactory.getLogger(BaseActivator.class);
 
-  private String BASEDIR = System.getProperty("stargate.basedir");
-
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
@@ -274,10 +272,11 @@ public abstract class BaseActivator implements BundleActivator {
    * @throws IOException if the base directory is invalid or unable to be created.
    */
   protected File getBaseDir() throws IOException {
-    if (BASEDIR == null || BASEDIR.isEmpty()) {
+    String baseDir = System.getProperty("stargate.basedir");
+    if (baseDir == null || baseDir.isEmpty()) {
       return Files.createTempDirectory("stargate-" + activatorName).toFile();
     } else {
-      return Files.createDirectories(Paths.get(BASEDIR, "stargate-" + activatorName)).toFile();
+      return Files.createDirectories(Paths.get(baseDir, "stargate-" + activatorName)).toFile();
     }
   }
 
