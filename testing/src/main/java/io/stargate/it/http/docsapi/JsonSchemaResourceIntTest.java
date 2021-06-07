@@ -102,12 +102,17 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void testIt() throws IOException {
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\":\"collection\"}",
+        201);
     JsonNode schema =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("schema.json"));
     RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 200);
 
     String schemaResp = RestUtils.get(authToken, collectionPath + "/json-schema", 200);
-    assertThat(schema).isEqualTo(OBJECT_MAPPER.readTree(schemaResp));
+    assertThat(schema.toString()).isEqualTo(OBJECT_MAPPER.readTree(schemaResp).requiredAt("/schema").toString());
 
     JsonNode obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":1}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
