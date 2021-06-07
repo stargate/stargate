@@ -10,6 +10,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltQuery;
+import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
@@ -27,6 +28,7 @@ public class JsonSchemaHandler {
   private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.byDefault();
   private final ConcurrentHashMap<ImmutableKeyspaceAndTable, JsonNode> schemasPerCollection =
       new ConcurrentHashMap<>();
+  private Schema lastCheckedSchema;
 
   @Inject
   public JsonSchemaHandler(ObjectMapper mapper) {
@@ -34,6 +36,13 @@ public class JsonSchemaHandler {
       throw new IllegalStateException("JsonSchemaHandler requires a non-null ObjectMapper");
     }
     this.mapper = mapper;
+  }
+
+  private void clearCacheOnSchemaChange(DocumentDB db) {
+    if (!db.schema().equals(lastCheckedSchema)) {
+        schemasPerCollection.clear();
+        this.lastCheckedSchema = db.schema();
+    }
   }
 
   private JsonSchemaResponse reportToResponse(JsonNode schema, ProcessingReport report) {
@@ -111,6 +120,7 @@ public class JsonSchemaHandler {
   public JsonNode getCachedJsonSchema(DocumentDB db, String namespace, String collection) {
     ImmutableKeyspaceAndTable info =
         ImmutableKeyspaceAndTable.builder().keyspace(namespace).table(collection).build();
+    clearCacheOnSchemaChange(db);
     return schemasPerCollection.computeIfAbsent(
         info,
         ksAndTable ->
