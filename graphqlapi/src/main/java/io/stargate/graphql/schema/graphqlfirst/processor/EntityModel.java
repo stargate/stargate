@@ -240,6 +240,38 @@ public class EntityModel {
         .collect(Collectors.joining(", "));
   }
 
+  /**
+   * Validates a set of conditions to ensure that they form a valid WHERE clause for an UPDATE.
+   *
+   * @return an optional error message if the validation failed, empty otherwise.
+   */
+  public Optional<String> validateForUpdate(Collection<ConditionModel> conditions) {
+    long primaryKeyCount =
+        getPrimaryKey().stream()
+            .filter(
+                field ->
+                    conditions.stream()
+                        .anyMatch(
+                            (c ->
+                                c.getField().equals(field)
+                                    && (c.getPredicate() == Predicate.EQ
+                                        || c.getPredicate() == Predicate.IN))))
+            .count();
+    if (primaryKeyCount != getPrimaryKey().size()) {
+      return Optional.of(
+          String.format(
+              "all of the primary key fields must be restricted by EQ or IN predicates (expected %s).",
+              describePrimaryKey()));
+    }
+    return Optional.empty();
+  }
+
+  private String describePrimaryKey() {
+    return this.getPrimaryKey().stream()
+        .map(FieldModel::getGraphqlName)
+        .collect(Collectors.joining(", "));
+  }
+
   @Override
   public String toString() {
     return "EntityMappingModel{"

@@ -21,6 +21,7 @@ import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
@@ -63,13 +64,9 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                 });
 
     Optional<String> pagingStateArgumentName = findPagingState();
-    ConditionsModelBuilder.Conditions conditions = buildConditions(entity);
-    // if conditions are not supported for a SELECT query
-    if (!conditions.getIfConditions().isEmpty()) {
-      invalidMapping(
-          "@cql_if is not supported for select query, but it was set on one of the fields");
-      throw SkipException.INSTANCE;
-    }
+    ConditionModels conditions =
+        new ConditionModelsBuilder(operation, OperationType.SELECT, entity, entities, context)
+            .build();
     List<ConditionModel> whereConditions = conditions.getWhereConditions();
     validateNoFiltering(whereConditions, entity);
 

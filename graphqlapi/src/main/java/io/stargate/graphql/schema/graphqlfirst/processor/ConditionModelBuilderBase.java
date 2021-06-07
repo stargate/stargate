@@ -29,35 +29,36 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
   protected final InputValueDefinition argument;
   protected final String operationName;
   protected final EntityModel entity;
+  private final FieldModel field;
   protected final Map<String, EntityModel> entities;
 
   protected ConditionModelBuilderBase(
-      ProcessingContext context,
       InputValueDefinition argument,
       String operationName,
       EntityModel entity,
-      Map<String, EntityModel> entities) {
+      FieldModel field,
+      Map<String, EntityModel> entities,
+      ProcessingContext context) {
     super(context, argument.getSourceLocation());
     this.argument = argument;
     this.operationName = operationName;
     this.entity = entity;
+    this.field = field;
     this.entities = entities;
   }
+
+  protected abstract String getDirectiveName();
+
+  protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
 
   @Override
   protected ConditionModel build() throws SkipException {
 
     Optional<Directive> directive = DirectiveHelper.getDirective(getDirectiveName(), argument);
-    String fieldName =
-        directive
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
-            .orElse(argument.getName());
     Predicate predicate =
         directive
             .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
             .orElse(Predicate.EQ);
-
-    FieldModel field = findField(fieldName);
 
     validate(field, predicate);
 
@@ -97,23 +98,6 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
       throw SkipException.INSTANCE;
     }
   }
-
-  protected FieldModel findField(String fieldName) throws SkipException {
-    return entity.getAllColumns().stream()
-        .filter(f -> f.getGraphqlName().equals(fieldName))
-        .findFirst()
-        .orElseThrow(
-            () -> {
-              invalidMapping(
-                  "Operation %s: could not find field %s in type %s",
-                  operationName, fieldName, entity.getGraphqlName());
-              return SkipException.INSTANCE;
-            });
-  }
-
-  protected abstract String getDirectiveName();
-
-  protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
 
   protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
 
