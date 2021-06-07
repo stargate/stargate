@@ -560,7 +560,8 @@ class BaseActivatorTest {
         File baseDir = activator.getBaseDir();
         assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
         assertThat(Files.isWritable(baseDir.toPath())).isTrue();
-        assertThat(baseDir.toPath()).isEqualTo(Paths.get(full.toString(), "test-activator"));
+        assertThat(baseDir.toPath())
+            .isEqualTo(Paths.get(full.toString(), "stargate-test-activator"));
       } finally {
         System.clearProperty("stargate.basedir");
       }
@@ -581,7 +582,8 @@ class BaseActivatorTest {
         File baseDir = activator.getBaseDir();
         assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
         assertThat(Files.isWritable(baseDir.toPath())).isTrue();
-        assertThat(baseDir.toPath()).isEqualTo(Paths.get(full.toString(), "test-activator"));
+        assertThat(baseDir.toPath())
+            .isEqualTo(Paths.get(full.toString(), "stargate-test-activator"));
       } finally {
         System.clearProperty("stargate.basedir");
       }
