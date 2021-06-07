@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.db.PersistenceActivator;
 import io.stargate.db.cassandra.impl.CassandraPersistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
@@ -48,7 +48,7 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistenceActivator extends PersistenceActivator {
+public class CassandraPersistenceActivator extends BaseActivator {
 
   private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
 
