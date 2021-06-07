@@ -15,11 +15,13 @@
  */
 package io.stargate.graphql.persistence.graphqlfirst;
 
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.resources.ResourcePaths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -32,11 +34,13 @@ public class SchemaSource {
   private final String keyspace;
   private final UUID version;
   private final String contents;
+  private final List<TupleValue> logs;
 
-  public SchemaSource(String keyspace, UUID version, String contents) {
+  public SchemaSource(String keyspace, UUID version, String contents, List<TupleValue> logs) {
     this.keyspace = keyspace;
     this.version = version;
     this.contents = contents;
+    this.logs = logs;
   }
 
   public String getKeyspace() {

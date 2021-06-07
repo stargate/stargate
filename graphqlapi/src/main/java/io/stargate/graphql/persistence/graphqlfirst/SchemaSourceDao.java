@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.persistence.graphqlfirst;
 
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.DataStore;
@@ -24,12 +25,10 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.Replication;
-import io.stargate.db.schema.Column;
-import io.stargate.db.schema.ImmutableColumn;
-import io.stargate.db.schema.ImmutableTable;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
+import io.stargate.db.schema.*;
 import io.stargate.graphql.schema.graphqlfirst.migration.CassandraSchemaHelper;
+import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingLogType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingMessage;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +46,7 @@ public class SchemaSourceDao {
   @VisibleForTesting static final String LATEST_VERSION_COLUMN_NAME = "latest_version";
   @VisibleForTesting static final String CONTENTS_COLUMN_NAME = "contents";
   @VisibleForTesting static final String APPLIED_COLUMN_NAME = "[applied]";
+  @VisibleForTesting static final String LOGS_COLUMN_NAME = "logs";
 
   @VisibleForTesting
   static final String DEPLOYMENT_IN_PROGRESS_COLUMN_NAME = "deployment_in_progress";
@@ -71,7 +71,13 @@ public class SchemaSourceDao {
               ImmutableColumn.create(
                   LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid),
               ImmutableColumn.create(
-                  DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean))
+                  DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, Column.Kind.Static, Column.Type.Boolean),
+              ImmutableColumn.create(
+                  LOGS_COLUMN_NAME,
+                  Column.Kind.Regular,
+                  Column.Type.List.of(
+                      Column.Type.Tuple.of(
+                          Column.Type.Varchar, Column.Type.Varchar, Column.Type.Varchar))))
           .build();
 
   private final DataStore dataStore;
@@ -120,7 +126,10 @@ public class SchemaSourceDao {
 
   private SchemaSource toSchemaSource(String keyspace, Row r) {
     return new SchemaSource(
-        keyspace, r.getUuid(VERSION_COLUMN_NAME), r.getString(CONTENTS_COLUMN_NAME));
+        keyspace,
+        r.getUuid(VERSION_COLUMN_NAME),
+        r.getString(CONTENTS_COLUMN_NAME),
+        r.getList(LOGS_COLUMN_NAME, TupleValue.class));
   }
 
   @VisibleForTesting
@@ -128,7 +137,7 @@ public class SchemaSourceDao {
     return dataStore
         .queryBuilder()
         .select()
-        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
+        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME, LOGS_COLUMN_NAME)
         .from(KEYSPACE_NAME, TABLE_NAME)
         .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
         .where(VERSION_COLUMN_NAME, Predicate.EQ, uuid)
@@ -141,7 +150,7 @@ public class SchemaSourceDao {
     return dataStore
         .queryBuilder()
         .select()
-        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME)
+        .column(VERSION_COLUMN_NAME, CONTENTS_COLUMN_NAME, LOGS_COLUMN_NAME)
         .from(KEYSPACE_NAME, TABLE_NAME)
         .where(KEYSPACE_COLUMN_NAME, Predicate.EQ, keyspace)
         .orderBy(VERSION_COLUMN_NAME, Column.Order.DESC)
@@ -150,10 +159,11 @@ public class SchemaSourceDao {
   }
 
   /** @return the new version */
-  public SchemaSource insert(String keyspace, String newContents) {
+  public SchemaSource insert(
+      String keyspace, String newContents, List<ProcessingMessage<ProcessingLogType>> logs) {
 
     UUID newVersion = Uuids.timeBased();
-
+    List<TupleValue> logsTuples = toListOfTuples(logs);
     BoundQuery insertNewSchema =
         dataStore
             .queryBuilder()
@@ -163,6 +173,7 @@ public class SchemaSourceDao {
             .value(LATEST_VERSION_COLUMN_NAME, newVersion)
             .value(CONTENTS_COLUMN_NAME, newContents)
             .value(DEPLOYMENT_IN_PROGRESS_COLUMN_NAME, false)
+            .value(LOGS_COLUMN_NAME, logsTuples)
             .build()
             .bind();
 
@@ -173,7 +184,26 @@ public class SchemaSourceDao {
           String.format(
               "Schema deployment for keyspace: %s and version: %s failed.", keyspace, newVersion));
     }
-    return new SchemaSource(keyspace, newVersion, newContents);
+    return new SchemaSource(keyspace, newVersion, newContents, logsTuples);
+  }
+
+  private List<TupleValue> toListOfTuples(List<ProcessingMessage<ProcessingLogType>> logs) {
+    ImmutableTupleType tupleType =
+        ImmutableTupleType.builder()
+            .parameters(Arrays.asList(Column.Type.Text, Column.Type.Text, Column.Type.Text))
+            .build();
+
+    return logs.stream()
+        .map(
+            log -> {
+              String locations =
+                  log.getLocations().stream()
+                      .map(v -> String.format("%s:%s", v.getLine(), v.getColumn()))
+                      .collect(Collectors.joining("\n"));
+
+              return tupleType.create(log.getMessage(), log.getErrorType().toString(), locations);
+            })
+        .collect(Collectors.toList());
   }
 
   private void ensureTableExists() throws Exception {
@@ -231,7 +261,8 @@ public class SchemaSourceDao {
 
   /**
    * "Locks" the table to start a new deployment. Concurrent calls to this method will fail until
-   * either {@link #abortDeployment(String)} or {@link #insert(String, String)} have been called.
+   * either {@link #abortDeployment(String)} or {@link #insert(String, String, List)} have been
+   * called.
    *
    * @throws IllegalStateException if the deployment could not be started.
    */

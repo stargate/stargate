@@ -20,6 +20,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -385,5 +386,32 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     // the GraphQL engine formats it with the full stacktrace, ensure that we explicitly convert it
     // to the spec's format to avoid that:
     assertThat(schemaError).doesNotContainKey("stackTrace");
+  }
+
+  @Test
+  @DisplayName("Should deploy schema and get recent schema with logs")
+  public void deploySchemaAndGetRecentSchemaWithLogs(
+      @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    // given
+    String keyspace = keyspaceId.asInternal();
+
+    // when
+    CLIENT.deploySchema(keyspace, SCHEMA_CONTENTS);
+
+    // then
+    Row row =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source wHERE keyspace_name = ?", keyspace)
+            .one();
+    assertThat(row).isNotNull();
+    TupleValue log = row.getList("logs", TupleValue.class).get(0);
+    assertThat(log.getString(0))
+        .isEqualTo(
+            "User: using id as the partition key, because it has type ID and no other fields are annotated");
+    assertThat(log.getString(1)).isEqualTo("Info");
+    assertThat(log.getString(2)).isEqualTo("1:1"); // location
+
+    // todo add a test using /schemas query
   }
 }

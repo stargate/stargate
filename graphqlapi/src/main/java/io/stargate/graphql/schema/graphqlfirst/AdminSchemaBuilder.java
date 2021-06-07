@@ -39,6 +39,7 @@ import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
+import io.stargate.graphql.schema.cqlfirst.dml.types.TupleBuilder;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.AllSchemasFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFileFetcher;
@@ -49,6 +50,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import io.stargate.graphql.web.resources.ResourcePaths;
 import java.io.InputStream;
+import java.util.Arrays;
 
 public class AdminSchemaBuilder {
 
@@ -94,6 +96,20 @@ public class AdminSchemaBuilder {
                               + "execute this GraphQL request.",
                           ResourcePaths.ADMIN))
                   .type(GraphQLString)
+                  .build())
+          .field(
+              newFieldDefinition()
+                  .name("logs")
+                  .description(
+                      String.format(
+                          "A list of messages generated during processing of the schema. "
+                              + "There could be %s and %s types",
+                          ProcessingLogType.Info, ProcessingLogType.Warning))
+                  .type(
+                      list(
+                          new TupleBuilder(
+                                  Arrays.asList(GraphQLString, GraphQLString, GraphQLString))
+                              .buildOutputType()))
                   .build())
           .build();
 

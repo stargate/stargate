@@ -36,8 +36,10 @@ class AllSchemasFetcherTest {
   public void getSchemasPerKeyspace() throws Exception {
     // given
     String keyspace = "ns_1";
-    SchemaSource schemaSource1 = new SchemaSource(keyspace, Uuids.timeBased(), "content");
-    SchemaSource schemaSource2 = new SchemaSource(keyspace, Uuids.timeBased(), "content-2");
+    SchemaSource schemaSource1 =
+        new SchemaSource(keyspace, Uuids.timeBased(), "content", Collections.emptyList());
+    SchemaSource schemaSource2 =
+        new SchemaSource(keyspace, Uuids.timeBased(), "content-2", Collections.emptyList());
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
     when(schemaSourceDao.getAllVersions(keyspace))

@@ -38,7 +38,8 @@ class SingleSchemaFetcherTest {
   public void shouldGetLatestSchemaEntry() throws Exception {
     // given
     String keyspace = "ns_1";
-    SchemaSource schemaSource = new SchemaSource(keyspace, Uuids.timeBased(), "content");
+    SchemaSource schemaSource =
+        new SchemaSource(keyspace, Uuids.timeBased(), "content", Collections.emptyList());
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
     when(schemaSourceDao.getSingleVersion(keyspace, Optional.empty())).thenReturn(schemaSource);
@@ -60,7 +61,8 @@ class SingleSchemaFetcherTest {
     // given
     String keyspace = "ns_1";
     UUID version = Uuids.timeBased();
-    SchemaSource schemaSource = new SchemaSource(keyspace, Uuids.timeBased(), "content");
+    SchemaSource schemaSource =
+        new SchemaSource(keyspace, Uuids.timeBased(), "content", Collections.emptyList());
 
     SchemaSourceDao schemaSourceDao = mock(SchemaSourceDao.class);
     when(schemaSourceDao.getSingleVersion(keyspace, Optional.of(version))).thenReturn(schemaSource);
