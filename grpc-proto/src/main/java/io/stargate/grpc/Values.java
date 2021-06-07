@@ -2,6 +2,7 @@ package io.stargate.grpc;
 
 import com.google.protobuf.ByteString;
 import io.stargate.proto.QueryOuterClass.Collection;
+import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 public class Values {
@@ -69,6 +71,12 @@ public class Values {
   public static Value of(Value... elements) {
     return Value.newBuilder()
         .setCollection(Collection.newBuilder().addAllElements(Arrays.asList(elements)).build())
+        .build();
+  }
+
+  public static Value of(Map<String, Value> fields) {
+    return Value.newBuilder()
+        .setUdt(UdtValue.newBuilder().putAllFields(fields).build())
         .build();
   }
 }

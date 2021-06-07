@@ -20,9 +20,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.google.common.collect.ImmutableMap;
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
+import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -30,6 +35,8 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,12 +63,22 @@ public class ValueCodecTest {
     "listValues",
     "setValues",
     "mapValues",
-    "tupleValues"
+    "tupleValues",
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
     assertThat(codec).isNotNull();
     ByteBuffer bytes = codec.encode(expectedValue, type);
+    Value actualValue = codec.decode(bytes, type);
+    assertThat(actualValue).isEqualTo(expectedValue);
+  }
+
+  @ParameterizedTest
+  @MethodSource({"udtValues"})
+  public void validValues(ColumnType type, Value value, Value expectedValue) {
+    ValueCodec codec = ValueCodecs.get(type.rawType());
+    assertThat(codec).isNotNull();
+    ByteBuffer bytes = codec.encode(value, type);
     Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
   }
@@ -84,7 +101,8 @@ public class ValueCodecTest {
     "invalidListValues",
     "invalidSetValues",
     "invalidMapValues",
-    "invalidTupleValues"
+    "invalidTupleValues",
+    "invalidUdtValues"
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -458,5 +476,74 @@ public class ValueCodecTest {
             Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
             Values.UNSET,
             "Expected collection type"));
+  }
+
+  public static Stream<Arguments> udtValues() {
+    return Stream.of(
+        arguments( // Simple case
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
+            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))),
+        arguments( // Flipped
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
+            Values.of(ImmutableMap.of("b", Values.of("abc"), "a", Values.of(1)))),
+        arguments( // Single first value
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.of(1))),
+            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.NULL))),
+        arguments( // Single second value
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("b", Values.of("abc"))),
+            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.of("abc")))),
+        arguments( // Empty
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of()),
+            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
+        arguments( // Null
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL)),
+            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
+        arguments( // Embedded UDT
+            udt(Column.create("c", udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)))),
+            Values.of(ImmutableMap.of("c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
+            Values.of(ImmutableMap.of("c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))))),
+        arguments( // Embedded collections
+            udt(Column.create("a", Type.List.of(Type.Int)), Column.create("b", Type.Tuple.of(Type.Varchar, Type.Boolean))),
+            Values.of(ImmutableMap.of("a", Values.of(Values.of(1), Values.of(2), Values.of(3)), "b", Values.of(Values.of("c"), Values.of(true)))),
+            Values.of(ImmutableMap.of("a", Values.of(Values.of(1), Values.of(2), Values.of(3)), "b", Values.of(Values.of("c"), Values.of(true)))))
+        );
+  }
+
+  public static Stream<Arguments> invalidUdtValues() {
+    return Stream.of(
+        arguments(
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("c", Values.of(1))),
+            "User-defined type doesn't contain a field named 'c'"),
+        arguments(
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.of("abc"), "b", Values.of("abc"))),
+            "Expected integer type"),
+        arguments(
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of(2))),
+            "Expected string type"),
+        arguments(
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.NULL,
+            "Expected user-defined type"),
+        arguments(
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            Values.UNSET,
+            "Expected user-defined type")
+    );
+  }
+
+  private static UserDefinedType udt(Column... columns) {
+    return ImmutableUserDefinedType.builder()
+        .name("name") // Dummy value
+        .keyspace("keyspace") // Dummy value
+        .columns(Arrays.asList(columns)).build();
   }
 }
