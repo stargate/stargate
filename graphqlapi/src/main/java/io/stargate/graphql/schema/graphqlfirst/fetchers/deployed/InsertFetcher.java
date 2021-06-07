@@ -35,6 +35,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
+import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
@@ -129,10 +130,9 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
     } else {
       applied = true;
     }
-    if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
-      response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+    if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
+      response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
     }
-
     return response;
   }
 
