@@ -393,6 +393,10 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
   public void deploySchemaAndGetRecentSchemaWithLogs(
       @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
     // given
+    String expectedMessage =
+        "User: using id as the partition key, because it has type ID and no other fields are annotated";
+    String expectedCategory = "Info";
+    String expectedLocations = "1:1";
     String keyspace = keyspaceId.asInternal();
 
     // when
@@ -406,23 +410,29 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
             .one();
     assertThat(row).isNotNull();
     TupleValue log = row.getList("logs", TupleValue.class).get(0);
-    assertThat(log.getString(0))
-        .isEqualTo(
-            "User: using id as the partition key, because it has type ID and no other fields are annotated");
-    assertThat(log.getString(1)).isEqualTo("Info");
-    assertThat(log.getString(2)).isEqualTo("1:1"); // location
+    assertThat(log.getString(0)).isEqualTo(expectedMessage);
+    assertThat(log.getString(1)).isEqualTo(expectedCategory);
+    assertThat(log.getString(2)).isEqualTo(expectedLocations);
 
-    Object o =
+    // when
+    Object response =
         CLIENT.executeSchemaQuery(
             String.format(
                 "{\n"
                     + "  schemas(keyspace: \"%s\") {\n"
                     + "    version\n"
                     + "    contents\n"
-                    + "    logs { item0, item1, item2 } \n"
+                    + "    logs { message, category, locations } \n"
                     + "  }\n"
                     + "}",
                 keyspace));
-    System.out.println(o);
+
+    // then
+    String message = JsonPath.read(response, "$.schemas[0].logs[0].message");
+    assertThat(message).isEqualTo(expectedMessage);
+    String category = JsonPath.read(response, "$.schemas[0].logs[0].category");
+    assertThat(category).isEqualTo(expectedCategory);
+    String locations = JsonPath.read(response, "$.schemas[0].logs[0].locations");
+    assertThat(locations).isEqualTo(expectedLocations);
   }
 }

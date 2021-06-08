@@ -39,7 +39,6 @@ import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
-import io.stargate.graphql.schema.cqlfirst.dml.types.TupleBuilder;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.AllSchemasFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.admin.DeploySchemaFileFetcher;
@@ -50,9 +49,17 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ProcessingLogType;
 import io.stargate.graphql.web.resources.GraphqlResourceBase;
 import io.stargate.graphql.web.resources.ResourcePaths;
 import java.io.InputStream;
-import java.util.Arrays;
 
 public class AdminSchemaBuilder {
+
+  private static final GraphQLObjectType PROCESSING_LOG_TYPE =
+      newObject()
+          .name("ProcessingLog")
+          .description("A log emitted by a deploy mutation.")
+          .field(newFieldDefinition().name("message").type(nonNull(GraphQLString)).build())
+          .field(newFieldDefinition().name("category").type(nonNull(GraphQLString)).build())
+          .field(newFieldDefinition().name("locations").type(GraphQLString).build())
+          .build();
 
   private static final GraphQLObjectType SCHEMA_TYPE =
       newObject()
@@ -105,11 +112,7 @@ public class AdminSchemaBuilder {
                           "A list of messages generated during processing of the schema. "
                               + "There could be %s and %s types",
                           ProcessingLogType.Info, ProcessingLogType.Warning))
-                  .type(
-                      list(
-                          new TupleBuilder(
-                                  Arrays.asList(GraphQLString, GraphQLString, GraphQLString))
-                              .buildOutputType()))
+                  .type(list(PROCESSING_LOG_TYPE))
                   .build())
           .build();
 

@@ -41,11 +41,11 @@ class SchemaSourceDaoTest {
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
     List<TupleValue> logs =
-        Arrays.asList(
+        Collections.singletonList(
             ImmutableTupleType.builder()
                 .parameters(Arrays.asList(Column.Type.Text, Column.Type.Text, Column.Type.Text))
                 .build()
-                .create("message", "type", "location"));
+                .create("message_value", "category_value", "location_value"));
 
     ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent, logs);
     DataStore dataStore = mockDataStore(resultSet);
@@ -59,10 +59,10 @@ class SchemaSourceDaoTest {
     assertThat(schema.getKeyspace()).isEqualTo(keyspace);
     assertThat(schema.getVersion()).isEqualTo(versionId);
     assertThat(schema.getDeployDate()).isNotNull();
-    TupleValue tupleValue = schema.getLogs().get(0);
-    assertThat(tupleValue.getString(0)).isEqualTo("message");
-    assertThat(tupleValue.getString(1)).isEqualTo("type");
-    assertThat(tupleValue.getString(2)).isEqualTo("location");
+    Map<String, Object> tupleValue = schema.getLogs().get(0);
+    assertThat(tupleValue.get("message")).isEqualTo("message_value");
+    assertThat(tupleValue.get("category")).isEqualTo("category_value");
+    assertThat(tupleValue.get("locations")).isEqualTo("location_value");
   }
 
   @Test

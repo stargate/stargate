@@ -33,6 +33,7 @@ import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +130,7 @@ public class SchemaSourceDao {
         keyspace,
         r.getUuid(VERSION_COLUMN_NAME),
         r.getString(CONTENTS_COLUMN_NAME),
-        r.getList(LOGS_COLUMN_NAME, TupleValue.class));
+        fromListOfTuples(r.getList(LOGS_COLUMN_NAME, TupleValue.class)));
   }
 
   @VisibleForTesting
@@ -184,7 +185,7 @@ public class SchemaSourceDao {
           String.format(
               "Schema deployment for keyspace: %s and version: %s failed.", keyspace, newVersion));
     }
-    return new SchemaSource(keyspace, newVersion, newContents, logsTuples);
+    return new SchemaSource(keyspace, newVersion, newContents, fromListOfTuples(logsTuples));
   }
 
   private List<TupleValue> toListOfTuples(List<ProcessingMessage<ProcessingLogType>> logs) {
@@ -202,6 +203,22 @@ public class SchemaSourceDao {
                       .collect(Collectors.joining("\n"));
 
               return tupleType.create(log.getMessage(), log.getErrorType().toString(), locations);
+            })
+        .collect(Collectors.toList());
+  }
+
+  private List<Map<String, Object>> fromListOfTuples(@Nullable List<TupleValue> logs) {
+    if (logs == null) {
+      return Collections.emptyList();
+    }
+    return logs.stream()
+        .map(
+            log -> {
+              Map<String, Object> result = new HashMap<>();
+              result.put("message", log.getString(0));
+              result.put("category", log.getString(1));
+              result.put("locations", log.getString(2));
+              return result;
             })
         .collect(Collectors.toList());
   }
