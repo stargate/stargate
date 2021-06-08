@@ -3,13 +3,10 @@ package io.stargate.web.docsapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
-import io.stargate.db.query.Predicate;
-import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -18,7 +15,6 @@ import io.stargate.web.docsapi.models.JsonSchemaResponse;
 import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 
@@ -59,7 +55,9 @@ public class JsonSchemaHandler {
     ProcessingReport report = schemaFactory.getSyntaxValidator().validateSchema(schema);
     JsonSchemaResponse resp = reportToResponse(schema, report);
     if (report.isSuccess()) {
-      writeSchemaToCollection(db, namespace, collection, schema.toString());
+      ObjectNode wrappedSchema = mapper.createObjectNode();
+      wrappedSchema.set("schema", schema);
+      writeSchemaToCollection(db, namespace, collection, wrappedSchema.toString());
       ImmutableKeyspaceAndTable info =
           ImmutableKeyspaceAndTable.builder().keyspace(namespace).table(collection).build();
       schemasPerCollection.put(info, schema);
@@ -69,40 +67,20 @@ public class JsonSchemaHandler {
     }
   }
 
-  private CompletableFuture<String> getRawJsonSchemaForCollection(
+  private String getRawJsonSchemaForCollection(
       DocumentDB db, String namespace, String collection) {
-    BuiltQuery q =
-        db.builder()
-            .select()
-            .column("comment")
-            .from("system_schema", "tables")
-            .where("keyspace_name", Predicate.EQ, namespace)
-            .where("table_name", Predicate.EQ, collection)
-            .build();
-    CompletableFuture<ResultSet> result = q.execute();
-    return result.thenApply(
-        rs -> {
-          List<Row> rows = rs.currentPageRows();
-          if (rows.size() > 0) {
-            String comment = rows.get(0).getString("comment");
-            return comment.isEmpty() ? null : comment;
-          } else {
-            return null;
-          }
-        });
+    String comment = db.schema().keyspace(namespace).table(collection).comment();
+    return comment.isEmpty() ? null : comment;
   }
 
-  public CompletableFuture<JsonSchemaResponse> getJsonSchemaForCollection(
+  public JsonSchemaResponse getJsonSchemaForCollection(
       DocumentDB db, String namespace, String collection) {
-    return getRawJsonSchemaForCollection(db, namespace, collection)
-        .thenApply(
-            schemaData -> {
-              try {
-                return new JsonSchemaResponse(mapper.readTree(schemaData));
-              } catch (JsonProcessingException e) {
-                return null;
-              }
-            });
+    String schemaData = getRawJsonSchemaForCollection(db, namespace, collection);
+    try {
+      return new JsonSchemaResponse(mapper.readTree(schemaData).requiredAt("/schema"));
+    } catch (JsonProcessingException e) {
+      return null;
+    }
   }
 
   /**
@@ -123,20 +101,17 @@ public class JsonSchemaHandler {
     clearCacheOnSchemaChange(db);
     return schemasPerCollection.computeIfAbsent(
         info,
-        ksAndTable ->
-            getRawJsonSchemaForCollection(db, ksAndTable.getKeyspace(), ksAndTable.getTable())
-                .thenApply(
-                    schemaStr -> {
-                      if (schemaStr == null) {
-                        return null;
-                      }
-                      try {
-                        return mapper.readTree(schemaStr);
-                      } catch (JsonProcessingException e) {
-                        return null;
-                      }
-                    })
-                .join());
+        ksAndTable -> {
+          String schemaStr = getRawJsonSchemaForCollection(db, ksAndTable.getKeyspace(), ksAndTable.getTable());
+          if (schemaStr == null) {
+            return null;
+          }
+          try {
+            return mapper.readTree(schemaStr).requiredAt("/schema");
+          } catch (JsonProcessingException e) {
+            return null;
+          }
+        });
   }
 
   public void validate(JsonNode schema, String value)

@@ -112,7 +112,8 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 200);
 
     String schemaResp = RestUtils.get(authToken, collectionPath + "/json-schema", 200);
-    assertThat(schema.toString()).isEqualTo(OBJECT_MAPPER.readTree(schemaResp).requiredAt("/schema").toString());
+    assertThat(schema.toString())
+        .isEqualTo(OBJECT_MAPPER.readTree(schemaResp).requiredAt("/schema").toString());
 
     JsonNode obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":1}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
@@ -120,18 +121,15 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
     obj = OBJECT_MAPPER.readTree("{\"id\":1, \"price\":1}");
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     JsonNode data = OBJECT_MAPPER.readTree(resp);
-    assertThat(data.requiredAt("/description"))
-        .isEqualTo(
-            TextNode.valueOf(
-                "Invalid JSON: [object has missing required properties ([\\\"name\\\"])]"));
+    assertThat(data.requiredAt("/description").textValue())
+        .isEqualTo("Invalid JSON: [object has missing required properties ([\"name\"])]");
 
     obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":-1}");
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     data = OBJECT_MAPPER.readTree(resp);
-    assertThat(data.requiredAt("/description"))
+    assertThat(data.requiredAt("/description").textValue())
         .isEqualTo(
-            TextNode.valueOf(
-                "Invalid JSON: [numeric instance is lower than the required minimum (minimum: 0, found: -1)]"));
+            "Invalid JSON: [numeric instance is lower than the required minimum (minimum: 0, found: -1)]");
   }
 
   @Test

@@ -10,7 +10,6 @@ import io.stargate.web.models.Error;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.*;
-import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -108,9 +107,9 @@ public class JsonSchemaResource {
               dbFactory.getDocDataStoreForToken(
                   token, RequestToHeadersMapper.getAllHeaders(request));
           schemaChecker.checkValidity(namespace, collection, db);
-          CompletableFuture<JsonSchemaResponse> resp =
+          JsonSchemaResponse resp =
               jsonSchemaHandler.getJsonSchemaForCollection(db, namespace, collection);
-          return Response.ok(resp.join()).build();
+          return Response.ok(resp).build();
         });
   }
 }
