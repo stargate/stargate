@@ -45,8 +45,10 @@ import io.stargate.proto.QueryOuterClass.Values;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ValuesHandler implements PayloadHandler {
+
   @Override
   public BoundStatement bindValues(Prepared prepared, Any payload, ByteBuffer unsetValue)
       throws InvalidProtocolBufferException, StatusException {
@@ -183,71 +185,72 @@ public class ValuesHandler implements PayloadHandler {
 
   public static TypeSpec convertType(ColumnType columnType) throws StatusException {
     TypeSpec.Builder builder = TypeSpec.newBuilder();
+    List<ColumnType> parameters;
 
-    if (columnType.isParameterized()) {
-      List<ColumnType> parameters = columnType.parameters();
-
-      switch (columnType.rawType()) {
-        case List:
-          if (parameters.size() != 1) {
-            throw Status.FAILED_PRECONDITION
-                .withDescription("Expected list type to have a parameterized type")
-                .asException();
-          }
-          builder.setList(
-              TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
-          break;
-        case Map:
-          if (parameters.size() != 2) {
-            throw Status.FAILED_PRECONDITION
-                .withDescription("Expected map type to have key/value parameterized types")
-                .asException();
-          }
-          builder.setMap(
-              TypeSpec.Map.newBuilder()
-                  .setKey(convertType(parameters.get(0)))
-                  .setValue(convertType(parameters.get(1)))
-                  .build());
-          break;
-        case Set:
-          if (parameters.size() != 1) {
-            throw Status.FAILED_PRECONDITION
-                .withDescription("Expected set type to have a parameterized type")
-                .asException();
-          }
-          builder.setSet(
-              TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
-          break;
-        case Tuple:
-          if (parameters.isEmpty()) {
-            throw Status.FAILED_PRECONDITION
-                .withDescription("Expected tuple type to have at least one parameterized type")
-                .asException();
-          }
-          TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
-          for (ColumnType parameter : parameters) {
-            tupleBuilder.addElements(convertType(parameter));
-          }
-          builder.setTuple(tupleBuilder.build());
-          break;
-        case UDT:
-          UserDefinedType udt = (UserDefinedType) columnType;
-          if (udt.columns().isEmpty()) {
-            throw Status.FAILED_PRECONDITION
-                .withDescription("Expected user defined type to have at least one field")
-                .asException();
-          }
-          TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
-          for (Column column : udt.columns()) {
-            udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column).rawType()));
-          }
-          builder.setUdt(udtBuilder.build());
-          break;
-        default:
-          throw new AssertionError("Unhandled parameterized type");
-      }
-    } else {
-      builder.setBasic(TypeSpec.Basic.forNumber(columnType.id()));
+    switch (columnType.rawType()) {
+      case List:
+        parameters = columnType.parameters();
+        if (parameters.size() != 1) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected list type to have a parameterized type")
+              .asException();
+        }
+        builder.setList(
+            TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
+        break;
+      case Map:
+        parameters = columnType.parameters();
+        if (parameters.size() != 2) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected map type to have key/value parameterized types")
+              .asException();
+        }
+        builder.setMap(
+            TypeSpec.Map.newBuilder()
+                .setKey(convertType(parameters.get(0)))
+                .setValue(convertType(parameters.get(1)))
+                .build());
+        break;
+      case Set:
+        parameters = columnType.parameters();
+        if (parameters.size() != 1) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected set type to have a parameterized type")
+              .asException();
+        }
+        builder.setSet(
+            TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
+        break;
+      case Tuple:
+        parameters = columnType.parameters();
+        if (parameters.isEmpty()) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected tuple type to have at least one parameterized type")
+              .asException();
+        }
+        TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
+        for (ColumnType parameter : parameters) {
+          tupleBuilder.addElements(convertType(parameter));
+        }
+        builder.setTuple(tupleBuilder.build());
+        break;
+      case UDT:
+        UserDefinedType udt = (UserDefinedType) columnType;
+        if (udt.columns().isEmpty()) {
+          throw Status.FAILED_PRECONDITION
+              .withDescription("Expected user defined type to have at least one field")
+              .asException();
+        }
+        TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
+        for (Column column : udt.columns()) {
+          udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column).rawType()));
+        }
+        builder.setUdt(udtBuilder.build());
+        break;
+      default:
+        builder.setBasic(
+            Objects.requireNonNull(
+                TypeSpec.Basic.forNumber(columnType.id()), "Unhandled parameterized type"));
     }
 
     return builder.build();
