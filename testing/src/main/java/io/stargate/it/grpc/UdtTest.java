@@ -77,7 +77,7 @@ public class UdtTest extends GrpcIntegrationTest {
   public static Stream<Arguments> udtValues() {
     return Stream.of(
         Arguments.of(
-            Values.of(
+            Values.udtOf(
                 ImmutableMap.of(
                     "f1", Values.of(1), "f2", Values.of("a"), "f3", Values.of(UUID.randomUUID()))),
             "udt_test"));
@@ -115,18 +115,18 @@ public class UdtTest extends GrpcIntegrationTest {
 
   public static Stream<Arguments> emptyValues() {
     return Stream.of(
-        Arguments.of(Values.of(ImmutableMap.of()), Values.NULL, "udt_test"),
+        Arguments.of(Values.udtOf(ImmutableMap.of()), Values.NULL, "udt_test"),
         Arguments.of(
-            Values.of(ImmutableMap.of("f1", Values.NULL, "f2", Values.NULL, "f3", Values.NULL)),
+            Values.udtOf(ImmutableMap.of("f1", Values.NULL, "f2", Values.NULL, "f3", Values.NULL)),
             Values.NULL,
             "udt_test"),
         Arguments.of(
-            Values.of(ImmutableMap.of("f1", Values.of(1))),
-            Values.of(ImmutableMap.of("f1", Values.of(1), "f2", Values.NULL, "f3", Values.NULL)),
+            Values.udtOf(ImmutableMap.of("f1", Values.of(1))),
+            Values.udtOf(ImmutableMap.of("f1", Values.of(1), "f2", Values.NULL, "f3", Values.NULL)),
             "udt_test"),
         Arguments.of(
-            Values.of(ImmutableMap.of("f2", Values.of("abc"))),
-            Values.of(
+            Values.udtOf(ImmutableMap.of("f2", Values.of("abc"))),
+            Values.udtOf(
                 ImmutableMap.of("f1", Values.NULL, "f2", Values.of("abc"), "f3", Values.NULL)),
             "udt_test"));
   }
@@ -155,7 +155,7 @@ public class UdtTest extends GrpcIntegrationTest {
   public static Stream<Arguments> invalidValues() {
     return Stream.of(
         Arguments.of(
-            Values.of(ImmutableMap.of("f1", Values.of("string_instead_of_int"))),
+            Values.udtOf(ImmutableMap.of("f1", Values.of("string_instead_of_int"))),
             "udt_test",
             "Invalid argument at position 2: Expected integer type"));
   }

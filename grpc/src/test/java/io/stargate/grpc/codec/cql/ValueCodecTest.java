@@ -480,49 +480,49 @@ public class ValueCodecTest {
     return Stream.of(
         arguments( // Simple case
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
-            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))),
         arguments( // Flipped
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
-            Values.of(ImmutableMap.of("b", Values.of("abc"), "a", Values.of(1)))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
+            Values.udtOf(ImmutableMap.of("b", Values.of("abc"), "a", Values.of(1)))),
         arguments( // Single first value
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.of(1))),
-            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.NULL))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.NULL))),
         arguments( // Single second value
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("b", Values.of("abc"))),
-            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.of("abc")))),
+            Values.udtOf(ImmutableMap.of("b", Values.of("abc"))),
+            Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.of("abc")))),
         arguments( // Empty
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of()),
-            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
+            Values.udtOf(ImmutableMap.of()),
+            Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
         arguments( // Null
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL)),
-            Values.of(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
+            Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL)),
+            Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
         arguments( // Embedded UDT
             udt(
                 Column.create(
                     "c", udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)))),
-            Values.of(
+            Values.udtOf(
                 ImmutableMap.of(
-                    "c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
-            Values.of(
+                    "c", Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
+            Values.udtOf(
                 ImmutableMap.of(
-                    "c", Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))))),
+                    "c", Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))))),
         arguments( // Embedded collections
             udt(
                 Column.create("a", Type.List.of(Type.Int)),
                 Column.create("b", Type.Tuple.of(Type.Varchar, Type.Boolean))),
-            Values.of(
+            Values.udtOf(
                 ImmutableMap.of(
                     "a",
                     Values.of(Values.of(1), Values.of(2), Values.of(3)),
                     "b",
                     Values.of(Values.of("c"), Values.of(true)))),
-            Values.of(
+            Values.udtOf(
                 ImmutableMap.of(
                     "a",
                     Values.of(Values.of(1), Values.of(2), Values.of(3)),
@@ -534,15 +534,15 @@ public class ValueCodecTest {
     return Stream.of(
         arguments(
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("c", Values.of(1))),
+            Values.udtOf(ImmutableMap.of("c", Values.of(1))),
             "User-defined type doesn't contain a field named 'c'"),
         arguments(
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.of("abc"), "b", Values.of("abc"))),
+            Values.udtOf(ImmutableMap.of("a", Values.of("abc"), "b", Values.of("abc"))),
             "Expected integer type"),
         arguments(
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
-            Values.of(ImmutableMap.of("a", Values.of(1), "b", Values.of(2))),
+            Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of(2))),
             "Expected string type"),
         arguments(
             udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),

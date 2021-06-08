@@ -74,7 +74,7 @@ public class Values {
         .build();
   }
 
-  public static Value of(Map<String, Value> fields) {
+  public static Value udtOf(Map<String, Value> fields) {
     return Value.newBuilder().setUdt(UdtValue.newBuilder().putAllFields(fields).build()).build();
   }
 }
