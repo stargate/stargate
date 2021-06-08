@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.0.27](https://github.com/stargate/stargate/tree/v1.0.27) (2021-06-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.26...v1.0.27)
+
+**Closed issues:**
+
+- Make stargate\_graphql replication options configurable [\#987](https://github.com/stargate/stargate/issues/987)
+- Improve gRPC error handling [\#923](https://github.com/stargate/stargate/issues/923)
+
+**Merged pull requests:**
+
+- Avoid filtering events that already have a channel filter associated … [\#997](https://github.com/stargate/stargate/pull/997) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#992](https://github.com/stargate/stargate/pull/992) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add system property to configure replication options of stargate\_graphql \(fixes \#987\) [\#989](https://github.com/stargate/stargate/pull/989) ([olim7t](https://github.com/olim7t))
+- gRPC errors [\#978](https://github.com/stargate/stargate/pull/978) ([mpenick](https://github.com/mpenick))
+- Allow IF conditions for UPDATE queries [\#975](https://github.com/stargate/stargate/pull/975) ([tomekl007](https://github.com/tomekl007))
+
 ## [v1.0.26](https://github.com/stargate/stargate/tree/v1.0.26) (2021-06-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.25...v1.0.26)
