@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -148,11 +147,8 @@ public class CassandraPersistenceActivator extends BaseActivator {
         metrics.get().getRegistry("persistence-cassandra-4.0");
 
     try {
-      // Throw away data directory since stargate is ephemeral anyway
-      File baseDir = Files.createTempDirectory("stargate-cassandra-4.0").toFile();
-
       cassandraDB.setAuthorizationService(authorizationService.get());
-      cassandraDB.initialize(makeConfig(baseDir));
+      cassandraDB.initialize(makeConfig(getBaseDir()));
 
       IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer();
       if (authorizer instanceof DelegatingAuthorizer) {
