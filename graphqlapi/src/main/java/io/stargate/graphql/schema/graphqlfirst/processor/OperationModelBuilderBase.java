@@ -33,7 +33,6 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
   protected final String operationName;
   protected final Map<String, EntityModel> entities;
   protected final Map<String, ResponsePayloadModel> responsePayloads;
-  private final ConditionsModelBuilder conditionsModelBuilder;
 
   protected OperationModelBuilderBase(
       FieldDefinition operation,
@@ -45,14 +44,6 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     this.operationName = operation.getName();
     this.entities = entities;
     this.responsePayloads = responsePayloads;
-    this.conditionsModelBuilder =
-        new ConditionsModelBuilder(
-            (inputValue, e) ->
-                new WhereConditionModelBuilder(inputValue, operationName, e, entities, context),
-            (inputValue, e) ->
-                new IfConditionModelBuilder(inputValue, operationName, e, entities, context),
-            operation,
-            this);
   }
 
   OperationModel.ReturnType getReturnType(String operationDescription) throws SkipException {
@@ -89,11 +80,6 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     invalidMapping(
         "%s: unsupported return type %s", operationDescription, TypeHelper.format(graphqlType));
     throw SkipException.INSTANCE;
-  }
-
-  protected ConditionsModelBuilder.Conditions buildConditions(EntityModel entity)
-      throws SkipException {
-    return conditionsModelBuilder.build(entity);
   }
 
   protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)

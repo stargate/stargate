@@ -34,17 +34,18 @@ import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
 
@@ -63,38 +64,29 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
 
     EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
+    boolean responseContainsEntity =
+        !model.getResponsePayload().isPresent()
+            || model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+    String entityPrefixInReponse =
+        model
+            .getResponsePayload()
+            .flatMap(ResponsePayloadModel::getEntityField)
+            .map(EntityField::getName)
+            .orElse(null);
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
-    Collection<ValueModifier> setters = new ArrayList<>();
-    for (FieldModel column : entityModel.getAllColumns()) {
-      String graphqlName = column.getGraphqlName();
-      Object graphqlValue;
-      Object cqlValue;
-      if (input.containsKey(graphqlName)) {
-        graphqlValue = input.get(graphqlName);
-        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
-      } else if (column.isPrimaryKey()) {
-        if (TypeHelper.mapsToUuid(column.getGraphqlType())) {
-          cqlValue = generateUuid(column.getCqlType());
-          graphqlValue = cqlValue.toString();
-        } else {
-          throw new IllegalArgumentException("Missing value for field " + graphqlName);
-        }
-      } else {
-        continue;
-      }
-      setters.add(ValueModifier.set(column.getCqlName(), cqlValue));
-      // Echo the values back to the response now. We might override that later if the query turned
-      // out to be a failed LWT.
-      writeEntityField(graphqlName, graphqlValue, selectionSet, response);
-    }
+    Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
+    Collection<ValueModifier> modifiers =
+        cqlValues.entrySet().stream()
+            .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
+            .collect(Collectors.toList());
 
     AbstractBound<?> query =
         dataStore
             .queryBuilder()
             .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .value(setters)
+            .value(modifiers)
             .ifNotExists(isLwt)
             .build()
             .bind();
@@ -111,23 +103,29 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
 
     ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
 
+    if (responseContainsEntity) {
+      Map<String, Object> entityData;
+      if (entityPrefixInReponse == null) {
+        entityData = response;
+      } else {
+        entityData = new LinkedHashMap<>();
+        response.put(entityPrefixInReponse, entityData);
+      }
+      copyInputDataToEntity(input, cqlValues, entityData, entityModel);
+    }
+
     boolean applied;
     if (isLwt) {
       Row row = resultSet.one();
       applied = row.getBoolean("[applied]");
-      if (!applied) {
-        // The row contains the existing data, write it in the response.
-        for (FieldModel field : model.getEntity().getAllColumns()) {
-          if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
-            continue;
-          }
-          Object cqlValue = row.getObject(field.getCqlName());
-          writeEntityField(
-              field.getGraphqlName(),
-              toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()),
-              selectionSet,
-              response);
-        }
+      if (!applied && responseContainsEntity) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entityData =
+            (entityPrefixInReponse == null)
+                ? response
+                : (Map<String, Object>) response.get(entityPrefixInReponse);
+        assert entityData != null;
+        copyRowToEntity(row, entityData, model.getEntity());
       }
     } else {
       applied = true;
@@ -136,6 +134,30 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
       response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
     }
     return response;
+  }
+
+  private Map<String, Object> buildCqlValues(
+      EntityModel entityModel, Keyspace keyspace, Map<String, Object> input) {
+
+    Map<String, Object> values = new HashMap<>();
+    for (FieldModel column : entityModel.getAllColumns()) {
+      String graphqlName = column.getGraphqlName();
+      Object cqlValue;
+      if (input.containsKey(graphqlName)) {
+        Object graphqlValue = input.get(graphqlName);
+        cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
+      } else if (column.isPrimaryKey()) {
+        if (TypeHelper.mapsToUuid(column.getGraphqlType())) {
+          cqlValue = generateUuid(column.getCqlType());
+        } else {
+          throw new IllegalArgumentException("Missing value for field " + graphqlName);
+        }
+      } else {
+        continue;
+      }
+      values.put(column.getCqlName(), cqlValue);
+    }
+    return values;
   }
 
   private Object generateUuid(Column.ColumnType cqlType) {
@@ -148,38 +170,30 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
     throw new AssertionError("This shouldn't get called for CQL type " + cqlType);
   }
 
-  /** Writes an entity field in the response. */
-  private void writeEntityField(
-      String fieldName,
-      Object value,
-      DataFetchingFieldSelectionSet selectionSet,
-      Map<String, Object> responseMap) {
+  /**
+   * Copy all input arguments to the response (they might get overridden later if the query turned
+   * out to be a failed LWT).
+   */
+  private void copyInputDataToEntity(
+      Map<String, Object> input,
+      Map<String, Object> cqlValues,
+      Map<String, Object> entityData,
+      EntityModel entityModel) {
 
-    // Determine if we need an additional level of nesting. This happens if the mutation returns a
-    // payload type that contains the entity.
-    String rootPath = null;
-    if (model.getResponsePayload().isPresent()) {
-      ResponsePayloadModel responsePayload = model.getResponsePayload().get();
-      if (!responsePayload.getEntityField().isPresent()) {
-        // This can happen if the payload only contains "technical" fields, like `applied`. In that
-        // case we never need to write any field.
-        return;
+    for (FieldModel column : entityModel.getAllColumns()) {
+      String graphqlName = column.getGraphqlName();
+      Object graphqlValue;
+      if (input.containsKey(graphqlName)) {
+        graphqlValue = input.get(graphqlName);
+      } else if (column.isPrimaryKey()) {
+        // The value is a generated UUID
+        Object cqlValue = cqlValues.get(column.getCqlName());
+        assert cqlValue instanceof UUID;
+        graphqlValue = cqlValue.toString();
+      } else {
+        continue;
       }
-      rootPath = responsePayload.getEntityField().get().getName();
+      entityData.put(graphqlName, graphqlValue);
     }
-
-    // Check if the GraphQL query asked for that field.
-    String selectionPattern = (rootPath == null) ? fieldName : rootPath + '/' + fieldName;
-    if (!selectionSet.contains(selectionPattern)) {
-      return;
-    }
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> targetMap =
-        (rootPath == null)
-            ? responseMap
-            : (Map<String, Object>)
-                responseMap.computeIfAbsent(rootPath, __ -> new HashMap<String, Object>());
-    targetMap.put(fieldName, value);
   }
 }

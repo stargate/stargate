@@ -172,7 +172,32 @@ directive @cql_insert(
 Indicates that a mutation should be mapped to a CQL UPDATE query.
 Note that this is not required if the mutation name starts with `update`.
 """
-directive @cql_update on FIELD_DEFINITION
+directive @cql_update(
+    """
+    The name of the type to update. This is only needed if the mutation takes individual key fields
+    as arguments (as opposed to an instance of the type).
+    This must be a type that maps to a table.
+    """
+    targetEntity: String
+
+    """
+    Whether to check if the entity exists before updating.
+
+    Update mutations return the outcome of the update, either directly if the mutation returns
+    `Boolean`, or via the `applied` field if the mutation returns a response payload object.
+
+    * If `ifExists` is `false`, the mutation will always return `true`, whether it actually updated
+    something or not.
+    * If `ifExists` is `true`, the mutation will return `true` if it updated something, and `false`
+    otherwise.
+
+    Note that setting this flag to `true` might increase the latency of the operation. It should
+    not be used casually.
+
+    By convention, this flag will be set automatically if the mutation name ends with `IfExists`.
+    """
+    ifExists: Boolean = false
+) on FIELD_DEFINITION
 
 """
 Indicates that a mutation should be mapped to a CQL DELETE query.

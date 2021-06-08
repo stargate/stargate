@@ -22,14 +22,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.data.TupleValue;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.*;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class SchemaSourceDaoTest {
@@ -145,6 +149,52 @@ class SchemaSourceDaoTest {
     assertThat(schema).isEmpty();
   }
 
+  @Test
+  @DisplayName("Should default to RF=1 if replication options not provided")
+  public void parseNullReplication() {
+    Replication replication = parseReplication(null);
+    assertThat(replication.toString()).isEqualTo(Replication.simpleStrategy(1).toString());
+  }
+
+  @Test
+  @DisplayName("Should parse simple replication options")
+  public void parseSimpleReplication() {
+    Replication replication = parseReplication("2");
+    assertThat(replication.toString()).isEqualTo(Replication.simpleStrategy(2).toString());
+  }
+
+  @Test
+  @DisplayName("Should parse network replication options")
+  public void parsNetworkReplication() {
+    Replication replication = parseReplication("dc1 = 1, dc2 = 2");
+    assertThat(replication.toString())
+        .isEqualTo(
+            Replication.networkTopologyStrategy(ImmutableMap.of("dc1", 1, "dc2", 2)).toString());
+  }
+
+  @Test
+  @DisplayName("Should fall back to RF=1 if replication options can't be parsed")
+  public void parseInvalidReplication() {
+    for (String spec :
+        ImmutableList.of(
+            // simple, negative RF
+            "-1",
+            // simple, not a number
+            "a",
+            // network, invalid RF
+            "dc1 = 0, dc2 = 2",
+            "dc1 = -1, dc2 = 2",
+            // network, not a number
+            "dc1 = a, dc2 = 2",
+            // network, empty DC
+            "= 1, dc2 = 2",
+            // network, malformed k/v pair
+            "dc1 = 1, dc2")) {
+      Replication replication = parseReplication(spec);
+      assertThat(replication.toString()).isEqualTo(Replication.simpleStrategy(1).toString());
+    }
+  }
+
   private DataStore mockDataStore(ResultSet resultSet) {
     DataStore dataStore = mock(DataStore.class);
     Keyspace keyspace =
@@ -173,7 +223,6 @@ class SchemaSourceDaoTest {
     Row row = mock(Row.class);
     when(row.getUuid(VERSION_COLUMN_NAME)).thenReturn(versionId);
     when(row.getString(CONTENTS_COLUMN_NAME)).thenReturn(schemaContent);
-
     when(row.getList(LOGS_COLUMN_NAME, TupleValue.class)).thenReturn(logs);
     ResultSet resultSet = mock(ResultSet.class);
     @SuppressWarnings("unchecked")

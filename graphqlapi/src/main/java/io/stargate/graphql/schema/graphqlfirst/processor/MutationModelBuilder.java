@@ -15,11 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
-import graphql.language.Type;
-import graphql.language.TypeName;
+import graphql.language.*;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
@@ -46,5 +42,45 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
     return entities.values().stream()
         .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
         .findFirst();
+  }
+
+  protected EntityModel entityFromDirective(
+      Optional<Directive> cqlDeleteDirective, String name, String directive) throws SkipException {
+    EntityModel entity;
+    String entityName =
+        cqlDeleteDirective
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Mutation %s: if a %s doesn't take an entity input type, "
+                          + "it must indicate the entity name in '@%s.targetEntity'",
+                      name, directive, operationName);
+                  return SkipException.INSTANCE;
+                });
+    entity = entities.get(entityName);
+    if (entity == null) {
+      invalidMapping(
+          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
+          operationName, entityName);
+      throw SkipException.INSTANCE;
+    }
+    return entity;
+  }
+
+  protected boolean computeIfExists(Optional<Directive> directive) {
+    return directive
+        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
+        .orElseGet(
+            () -> {
+              if (operation.getName().endsWith("IfExists")) {
+                info(
+                    "Mutation %s: setting the 'ifExists' flag implicitly "
+                        + "because the name follows the naming convention.",
+                    operationName);
+                return true;
+              }
+              return false;
+            });
   }
 }

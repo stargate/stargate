@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
@@ -96,11 +97,18 @@ class DeleteModelBuilder extends MutationModelBuilder {
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
     } else {
-      entity = entityFromDirective(cqlDeleteDirective);
-      ConditionsModelBuilder.Conditions conditions = buildConditions(entity);
+      entity = entityFromDirective(cqlDeleteDirective, "delete", "cql_delete");
+      ConditionModels conditions =
+          new ConditionModelsBuilder(operation, OperationType.DELETE, entity, entities, context)
+              .build();
       whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();
       validateNoFiltering(whereConditions, entity);
+      if (!ifConditions.isEmpty() && ifExists) {
+        invalidMapping(
+            "Operation %s: can't use @cql_if and ifExists at the same time", operationName);
+        throw SkipException.INSTANCE;
+      }
     }
 
     return new DeleteModel(
@@ -112,45 +120,5 @@ class DeleteModelBuilder extends MutationModelBuilder {
         ifConditions,
         returnType,
         ifExists);
-  }
-
-  private boolean computeIfExists(Optional<Directive> cqlDeleteDirective) {
-    return cqlDeleteDirective
-        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
-        .orElseGet(
-            () -> {
-              if (operation.getName().endsWith("IfExists")) {
-                info(
-                    "Mutation %s: setting the 'ifExists' flag implicitly "
-                        + "because the name follows the naming convention.",
-                    operationName);
-                return true;
-              }
-              return false;
-            });
-  }
-
-  private EntityModel entityFromDirective(Optional<Directive> cqlDeleteDirective)
-      throws SkipException {
-    EntityModel entity;
-    String entityName =
-        cqlDeleteDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Mutation %s: if a delete doesn't take an entity input type, "
-                          + "it must indicate the entity name in '@cql_delete.targetEntity'",
-                      operationName);
-                  return SkipException.INSTANCE;
-                });
-    entity = entities.get(entityName);
-    if (entity == null) {
-      invalidMapping(
-          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
-          operationName, entityName);
-      throw SkipException.INSTANCE;
-    }
-    return entity;
   }
 }
