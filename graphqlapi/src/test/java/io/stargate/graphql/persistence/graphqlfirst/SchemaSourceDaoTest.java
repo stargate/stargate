@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.datastax.oss.driver.api.core.data.TupleValue;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
@@ -39,7 +40,14 @@ class SchemaSourceDaoTest {
     String keyspace = "ns_1";
     UUID versionId = Uuids.timeBased();
     String schemaContent = "some_schema";
-    ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent);
+    List<TupleValue> logs =
+        Arrays.asList(
+            ImmutableTupleType.builder()
+                .parameters(Arrays.asList(Column.Type.Text, Column.Type.Text, Column.Type.Text))
+                .build()
+                .create("message", "type", "location"));
+
+    ResultSet resultSet = mockSchemaResultSet(versionId, schemaContent, logs);
     DataStore dataStore = mockDataStore(resultSet);
     SchemaSourceDao schemaSourceDao = new TestSchemaSourceDao(dataStore);
 
@@ -51,6 +59,10 @@ class SchemaSourceDaoTest {
     assertThat(schema.getKeyspace()).isEqualTo(keyspace);
     assertThat(schema.getVersion()).isEqualTo(versionId);
     assertThat(schema.getDeployDate()).isNotNull();
+    TupleValue tupleValue = schema.getLogs().get(0);
+    assertThat(tupleValue.getString(0)).isEqualTo("message");
+    assertThat(tupleValue.getString(1)).isEqualTo("type");
+    assertThat(tupleValue.getString(2)).isEqualTo("location");
   }
 
   @Test
@@ -153,9 +165,16 @@ class SchemaSourceDaoTest {
   }
 
   private ResultSet mockSchemaResultSet(UUID versionId, String schemaContent) {
+    return mockSchemaResultSet(versionId, schemaContent, Collections.emptyList());
+  }
+
+  private ResultSet mockSchemaResultSet(
+      UUID versionId, String schemaContent, List<TupleValue> logs) {
     Row row = mock(Row.class);
     when(row.getUuid(VERSION_COLUMN_NAME)).thenReturn(versionId);
     when(row.getString(CONTENTS_COLUMN_NAME)).thenReturn(schemaContent);
+
+    when(row.getList(LOGS_COLUMN_NAME, TupleValue.class)).thenReturn(logs);
     ResultSet resultSet = mock(ResultSet.class);
     @SuppressWarnings("unchecked")
     Iterator<Row> iterator = mock(Iterator.class);

@@ -175,6 +175,10 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getGraphqlData(authToken, buildKeyspaceUri(keyspace), graphqlQuery);
   }
 
+  public Object executeSchemaQuery(String graphqlQuery) {
+    return getGraphqlData(authToken, adminUri, graphqlQuery);
+  }
+
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
   public String getKeyspaceError(String keyspace, String graphqlQuery) {
     return getGraphqlError(authToken, buildKeyspaceUri(keyspace), graphqlQuery);

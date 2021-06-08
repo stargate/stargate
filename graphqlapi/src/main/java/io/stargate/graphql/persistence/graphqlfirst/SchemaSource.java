@@ -56,6 +56,10 @@ public class SchemaSource {
         Instant.ofEpochMilli(Uuids.unixTimestamp(version)), ZoneId.systemDefault());
   }
 
+  public List<TupleValue> getLogs() {
+    return logs;
+  }
+
   public String getContents() {
     return contents;
   }

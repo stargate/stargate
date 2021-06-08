@@ -412,6 +412,17 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     assertThat(log.getString(1)).isEqualTo("Info");
     assertThat(log.getString(2)).isEqualTo("1:1"); // location
 
-    // todo add a test using /schemas query
+    Object o =
+        CLIENT.executeSchemaQuery(
+            String.format(
+                "{\n"
+                    + "  schemas(keyspace: \"%s\") {\n"
+                    + "    version\n"
+                    + "    contents\n"
+                    + "    logs { item0, item1, item2 } \n"
+                    + "  }\n"
+                    + "}",
+                keyspace));
+    System.out.println(o);
   }
 }
