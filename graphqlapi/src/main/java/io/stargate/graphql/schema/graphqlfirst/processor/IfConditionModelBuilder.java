@@ -33,7 +33,7 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase {
 
   @Override
   protected String getDirectiveName() {
-    return "cql_if";
+    return CqlDirectives.IF;
   }
 
   @Override
@@ -41,11 +41,13 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase {
     // The CQL IF works only for regular columns (non PK, CK)
     if (field.isPartitionKey()) {
       invalidMapping(
-          "@cql_if is not supported for partition keys (field %s)", field.getGraphqlName());
+          "Operation %s: @%s is not supported for partition keys (field %s)",
+          operationName, CqlDirectives.IF, field.getGraphqlName());
     }
     if (field.isClusteringColumn()) {
       invalidMapping(
-          "@cql_if is not supported for clustering keys (field %s)", field.getGraphqlName());
+          "Operation %s: @%s is not supported for clustering keys (field %s)",
+          operationName, CqlDirectives.IF, field.getGraphqlName());
     } else {
       checkValidForRegularColumn(predicate, field);
     }

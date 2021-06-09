@@ -36,7 +36,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
 
   @Override
   protected String getDirectiveName() {
-    return "cql_where";
+    return CqlDirectives.WHERE;
   }
 
   @Override

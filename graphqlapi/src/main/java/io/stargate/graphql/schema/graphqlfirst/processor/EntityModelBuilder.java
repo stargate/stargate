@@ -58,11 +58,13 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
 
   @Override
   EntityModel build() throws SkipException {
-    Optional<Directive> cqlEntityDirective = DirectiveHelper.getDirective("cql_entity", type);
+    Optional<Directive> cqlEntityDirective =
+        DirectiveHelper.getDirective(CqlDirectives.ENTITY, type);
     String cqlName = providedCqlNameOrDefault(cqlEntityDirective);
     EntityModel.Target target = providedTargetOrDefault(cqlEntityDirective);
     Optional<String> inputTypeName =
-        DirectiveHelper.getDirective("cql_input", type).map(this::providedInputNameOrDefault);
+        DirectiveHelper.getDirective(CqlDirectives.INPUT, type)
+            .map(this::providedInputNameOrDefault);
 
     List<FieldModel> partitionKey = new ArrayList<>();
     List<FieldModel> clusteringColumns = new ArrayList<>();
@@ -103,8 +105,8 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
           invalidMapping(
               "%s must have at least one partition key field "
                   + "(use scalar type ID, Uuid or TimeUuid for the first field, "
-                  + "or annotate your fields with @cql_column(partitionKey: true))",
-              graphqlName);
+                  + "or annotate your fields with @%s(%s: true))",
+              graphqlName, CqlDirectives.COLUMN, CqlDirectives.COLUMN_PARTITION_KEY);
           throw SkipException.INSTANCE;
         }
         tableCqlSchema =
@@ -144,27 +146,28 @@ public class EntityModelBuilder extends ModelBuilderBase<EntityModel> {
 
   private String providedCqlNameOrDefault(Optional<Directive> cqlEntityDirective) {
     return cqlEntityDirective
-        .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
+        .flatMap(d -> DirectiveHelper.getStringArgument(d, CqlDirectives.ENTITY_NAME, context))
         .orElse(graphqlName);
   }
 
   private EntityModel.Target providedTargetOrDefault(Optional<Directive> cqlEntityDirective) {
     return cqlEntityDirective
         .flatMap(
-            d -> DirectiveHelper.getEnumArgument(d, "target", EntityModel.Target.class, context))
+            d ->
+                DirectiveHelper.getEnumArgument(
+                    d, CqlDirectives.ENTITY_TARGET, EntityModel.Target.class, context))
         .orElse(EntityModel.Target.TABLE);
   }
 
   private String providedInputNameOrDefault(Directive cqlInputDirective) {
     Optional<String> maybeName =
-        DirectiveHelper.getStringArgument(cqlInputDirective, "name", context);
+        DirectiveHelper.getStringArgument(cqlInputDirective, CqlDirectives.INPUT_NAME, context);
     if (maybeName.isPresent()) {
       return maybeName.get();
     } else {
       info(
-          "%1$s: using '%1$sInput' as the input type name since @cql_input doesn't "
-              + "have an argument",
-          graphqlName);
+          "%1$s: using '%1$sInput' as the input type name since @%2$s doesn't have an argument",
+          graphqlName, CqlDirectives.INPUT);
       return graphqlName + "Input";
     }
   }
