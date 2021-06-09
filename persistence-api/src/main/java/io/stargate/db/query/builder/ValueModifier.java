@@ -20,6 +20,10 @@ public abstract class ValueModifier {
     return of(columnName, Value.of(value));
   }
 
+  public static ValueModifier increment(String columnName, Object value) {
+    return of(columnName, Value.of(value), Operation.INCREMENT);
+  }
+
   public static ValueModifier marker(String columnName) {
     return of(columnName, Value.marker());
   }

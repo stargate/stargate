@@ -30,6 +30,7 @@ public class UpdateModel extends MutationModel {
   private final ReturnType returnType;
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifExists;
+  private final Optional<IncrementModel> incrementModel;
 
   public UpdateModel(
       String parentTypeName,
@@ -40,7 +41,8 @@ public class UpdateModel extends MutationModel {
       Optional<String> entityArgumentName,
       ReturnType returnType,
       Optional<ResponsePayloadModel> responsePayload,
-      boolean ifExists) {
+      boolean ifExists,
+      Optional<IncrementModel> incrementModel) {
     super(parentTypeName, field);
     this.entity = entity;
     this.whereConditions = whereConditions;
@@ -49,6 +51,7 @@ public class UpdateModel extends MutationModel {
     this.returnType = returnType;
     this.responsePayload = responsePayload;
     this.ifExists = ifExists;
+    this.incrementModel = incrementModel;
   }
 
   public EntityModel getEntity() {
@@ -77,6 +80,10 @@ public class UpdateModel extends MutationModel {
 
   public Optional<ResponsePayloadModel> getResponsePayload() {
     return responsePayload;
+  }
+
+  public Optional<IncrementModel> getIncrementModel() {
+    return incrementModel;
   }
 
   @Override

@@ -15,11 +15,13 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static io.stargate.graphql.schema.graphqlfirst.processor.IncrementModelBuilder.CQL_INCREMENT;
+
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
-import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
+import io.stargate.graphql.schema.graphqlfirst.processor.DirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
@@ -82,6 +84,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         entityFromFirstArgument.map(__ -> firstArgument.getName());
     List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
+    Optional<IncrementModel> incrementModel; // only one column can be incremented by one query
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -92,14 +95,16 @@ class UpdateModelBuilder extends MutationModelBuilder {
       entity = entityFromFirstArgument.get();
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
+      incrementModel = Optional.empty();
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", "cql_update");
-      ConditionModels conditions =
-          new ConditionModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
+      DirectiveModels directives =
+          new DirectiveModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
               .build();
-      whereConditions = conditions.getWhereConditions();
-      ifConditions = conditions.getIfConditions();
+      whereConditions = directives.getWhereConditions();
+      ifConditions = directives.getIfConditions();
       validate(whereConditions, ifConditions, ifExists, entity);
+      incrementModel = getAndValidate(directives.getIncrementModel());
     }
 
     Optional<ResponsePayloadModel> responsePayload =
@@ -116,7 +121,26 @@ class UpdateModelBuilder extends MutationModelBuilder {
         entityArgumentName,
         returnType,
         responsePayload,
-        ifExists);
+        ifExists,
+        incrementModel);
+  }
+
+  private Optional<IncrementModel> getAndValidate(List<IncrementModel> incrementModel)
+      throws SkipException {
+
+    if (incrementModel.size() > 1) {
+      invalidMapping(
+          "The %s directive can be set only on one field, but it was set on %s fields.",
+          CQL_INCREMENT, incrementModel.size());
+      throw SkipException.INSTANCE;
+    }
+
+    if (incrementModel.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        incrementModel.get(0)); // there should be only one field with the CQL_INCREMENT directive
   }
 
   private void validate(

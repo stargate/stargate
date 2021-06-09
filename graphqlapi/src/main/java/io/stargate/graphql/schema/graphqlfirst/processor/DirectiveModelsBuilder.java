@@ -22,7 +22,7 @@ import graphql.language.InputValueDefinition;
 import java.util.Map;
 import java.util.Optional;
 
-class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
+class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
 
   /** The type of query, which determines how conditions are collected. */
   enum OperationType {
@@ -32,13 +32,15 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
     DELETE,
     /**
      * cql_where or no directive on PK field => WHERE, cql_where on regular field => error, no
-     * directive on regular field => ignore, cql_if => IF.
+     * directive on regular field => ignore, cql_if => IF. cql_increment is allowed on the update as
+     * the only one non-pk field.
      */
     UPDATE,
   }
 
   private static final String CQL_WHERE = "cql_where";
   private static final String CQL_IF = "cql_if";
+  private static final String CQL_INCREMENT = "cql_increment";
 
   private final FieldDefinition operation;
   private final String operationName;
@@ -46,7 +48,7 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
   private final EntityModel entity;
   private final Map<String, EntityModel> entities;
 
-  ConditionModelsBuilder(
+  DirectiveModelsBuilder(
       FieldDefinition operation,
       OperationType operationType,
       EntityModel entity,
@@ -61,29 +63,43 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
   }
 
   @Override
-  ConditionModels build() throws SkipException {
+  DirectiveModels build() throws SkipException {
     ImmutableList.Builder<ConditionModel> ifConditions = ImmutableList.builder();
     ImmutableList.Builder<ConditionModel> whereConditions = ImmutableList.builder();
+    ImmutableList.Builder<IncrementModel> incrementModels = ImmutableList.builder();
+
     boolean foundErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
 
-      if (hasDirective(inputValue, "cql_pagingState")) {
+      if (DirectiveHelper.hasDirective(inputValue, "cql_pagingState")) {
         // It's a technical field that does not represent a condition
         continue;
       }
 
-      boolean hasWhereDirective = hasDirective(inputValue, CQL_WHERE);
-      boolean hasIfDirective = hasDirective(inputValue, CQL_IF);
+      boolean hasWhereDirective = DirectiveHelper.hasDirective(inputValue, CQL_WHERE);
+      boolean hasIfDirective = DirectiveHelper.hasDirective(inputValue, CQL_IF);
+      boolean hasCqlIncrementDirective = DirectiveHelper.hasDirective(inputValue, CQL_INCREMENT);
 
       if (hasWhereDirective && hasIfDirective) {
-        invalidMapping(
-            "Operation %s: can't set both @%s and @%s on argument %s",
-            operationName, CQL_WHERE, CQL_IF, inputValue.getName());
+        reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_IF);
         foundErrors = true;
         continue;
       }
 
-      Optional<FieldModel> maybeField = findField(inputValue, hasIfDirective);
+      if (hasWhereDirective && hasCqlIncrementDirective) {
+        reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_INCREMENT);
+        foundErrors = true;
+        continue;
+      }
+
+      if (hasIfDirective && hasCqlIncrementDirective) {
+        reportTwoAnnotationsSet(inputValue, CQL_IF, CQL_INCREMENT);
+        foundErrors = true;
+        continue;
+      }
+
+      Optional<FieldModel> maybeField =
+          findField(inputValue, hasIfDirective, hasCqlIncrementDirective);
       if (!maybeField.isPresent()) {
         foundErrors = true;
         continue;
@@ -91,6 +107,8 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
       FieldModel field = maybeField.get();
 
       boolean isWhereCondition;
+      boolean isCqlIncrement = false;
+
       switch (operationType) {
         case SELECT:
           if (hasIfDirective) {
@@ -108,9 +126,12 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
         case UPDATE:
           if (field.isPrimaryKey()) {
             if (hasIfDirective) {
-              invalidMapping(
-                  "Mutation %s: @%s is not allowed on primary key fields (%s)",
-                  operationName, CQL_IF, inputValue.getName());
+              reportInvalidMapping(inputValue, CQL_IF);
+              foundErrors = true;
+              continue;
+            }
+            if (hasCqlIncrementDirective) {
+              reportInvalidMapping(inputValue, CQL_INCREMENT);
               foundErrors = true;
               continue;
             }
@@ -123,7 +144,7 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
               foundErrors = true;
               continue;
             }
-            if (!hasIfDirective) {
+            if (!hasIfDirective && !hasCqlIncrementDirective) {
               // Ignore non-annotated regular field (it's an update value, not a condition)
               continue;
             }
@@ -139,6 +160,10 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
             new WhereConditionModelBuilder(
                     inputValue, operationName, entity, field, entities, context)
                 .build());
+      } else if (hasCqlIncrementDirective) {
+        incrementModels.add(
+            new IncrementModelBuilder(inputValue, operationName, entity, field, entities, context)
+                .build());
       } else {
         ifConditions.add(
             new IfConditionModelBuilder(inputValue, operationName, entity, field, entities, context)
@@ -148,16 +173,34 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
     if (foundErrors) {
       throw SkipException.INSTANCE;
     }
-    return new ConditionModels(ifConditions.build(), whereConditions.build());
+    return new DirectiveModels(
+        ifConditions.build(), whereConditions.build(), incrementModels.build());
   }
 
-  private boolean hasDirective(InputValueDefinition inputValue, String directive) {
-    return DirectiveHelper.getDirective(directive, inputValue).isPresent();
+  private void reportTwoAnnotationsSet(
+      InputValueDefinition inputValue, String firstDirective, String secondDirective) {
+    invalidMapping(
+        "Operation %s: can't set both @%s and @%s on argument %s",
+        operationName, firstDirective, secondDirective, inputValue.getName());
   }
 
-  private Optional<FieldModel> findField(InputValueDefinition inputValue, boolean hasIfDirective) {
-    Optional<Directive> directive =
-        DirectiveHelper.getDirective(hasIfDirective ? CQL_IF : CQL_WHERE, inputValue);
+  private void reportInvalidMapping(InputValueDefinition inputValue, String directiveName) {
+    invalidMapping(
+        "Mutation %s: @%s is not allowed on primary key fields (%s)",
+        operationName, directiveName, inputValue.getName());
+  }
+
+  private Optional<FieldModel> findField(
+      InputValueDefinition inputValue, boolean hasIfDirective, boolean hasCqlIncrementDirective) {
+    String directiveName;
+    if (hasIfDirective) {
+      directiveName = CQL_IF;
+    } else if (hasCqlIncrementDirective) {
+      directiveName = CQL_INCREMENT;
+    } else {
+      directiveName = CQL_WHERE;
+    }
+    Optional<Directive> directive = DirectiveHelper.getDirective(directiveName, inputValue);
     String fieldName =
         directive
             .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))

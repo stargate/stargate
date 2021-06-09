@@ -293,6 +293,28 @@ directive @cql_if (
 ) on ARGUMENT_DEFINITION
 
 """
+Annotates a parameter to indicate that it will be incremented.
+It is supported on the counter, set and list types.
+
+This is only allowed for update mutations.
+"""
+directive @cql_increment (
+
+    """
+    The name of the field that the condition applies to (if absent, it will be the name of the
+    argument).
+    """
+    field: String
+
+    """
+    Specifies whether the value should be appended or prepended.
+    It applies only to list and set collections. The default is false, meaning that the value will be appended.
+    """
+    prepend: Boolean = false
+
+) on ARGUMENT_DEFINITION
+
+"""
 Indicates that a type represents a "payload" object that will be used as the argument or return
 type of a GraphQL operation. Such objects  are NOT mapped to a CQL table.
 """

@@ -79,8 +79,14 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
-    Collection<ValueModifier> modifiers =
-        buildModifiers(entityModel, keyspace, hasArgument, getArgument);
+    Collection<ValueModifier> modifiers;
+    if (model.getIncrementModel().isPresent()) {
+      modifiers =
+          buildIncrementModifiers(
+              model.getIncrementModel().get(), keyspace, hasArgument, getArgument);
+    } else {
+      modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
+    }
 
     AbstractBound<?> query =
         dataStore
@@ -137,6 +143,27 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
       }
       return response;
     }
+  }
+
+  private Collection<ValueModifier> buildIncrementModifiers(
+      IncrementModel incrementModel,
+      Keyspace keyspace,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument) {
+    List<ValueModifier> modifiers = new ArrayList<>();
+    FieldModel column = incrementModel.getField();
+
+    if (hasArgument.test(incrementModel.getArgumentName())) {
+      Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
+      modifiers.add(
+          ValueModifier.increment(
+              column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
+    }
+    if (modifiers.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Input object must have at least one non-PK field set for an update");
+    }
+    return modifiers;
   }
 
   private Collection<ValueModifier> buildModifiers(
