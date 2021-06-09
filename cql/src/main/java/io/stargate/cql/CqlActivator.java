@@ -22,11 +22,14 @@ import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
+import java.io.File;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.jetbrains.annotations.Nullable;
 
 public class CqlActivator extends BaseActivator {
@@ -95,13 +98,20 @@ public class CqlActivator extends BaseActivator {
 
       Integer cqlPort = Integer.getInteger("stargate.cql_port", 9042);
 
-      Config c = new Config();
+      Config c;
+      String cassandraConfigPath = System.getProperty("stargate.unsafe.cassandra_config_path", "");
+      if (cassandraConfigPath.isEmpty()) {
+        c = new Config();
+      } else {
+        File configFile = new File(cassandraConfigPath);
+        c = new YamlConfigurationLoader().loadConfig(configFile.toURI().toURL());
+      }
 
       c.rpc_address = listenAddress;
       c.native_transport_port = cqlPort;
 
       return c;
-    } catch (UnknownHostException e) {
+    } catch (UnknownHostException | MalformedURLException e) {
       throw new RuntimeException(e);
     }
   }
