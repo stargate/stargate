@@ -1308,6 +1308,7 @@ public abstract class PersistenceTest {
         .build()
         .execute()
         .join();
+    dataStore.waitForSchemaAgreement();
     Table theTable = dataStore.schema().keyspace(keyspace).table(table);
     assertThat(theTable.comment()).isEqualTo("This is a table");
 
@@ -1319,6 +1320,7 @@ public abstract class PersistenceTest {
         .build()
         .execute()
         .join();
+    dataStore.waitForSchemaAgreement();
 
     theTable = dataStore.schema().keyspace(keyspace).table(table);
     assertThat(theTable.comment()).isEqualTo("This is still a table");
