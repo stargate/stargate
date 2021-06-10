@@ -27,14 +27,13 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.util.Arrays;
-import java.util.Collections;
 
 @ExtendWith(CqlSessionExtension.class)
 public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
@@ -70,9 +69,9 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
             + "  c: Counter\n"
             + "}\n"
             + "type ListCounters @cql_input {\n"
-          + "  k: Int! @cql_column(partitionKey: true)\n"
-          + "  l: [Int]\n"
-                + "}\n"
+            + "  k: Int! @cql_column(partitionKey: true)\n"
+            + "  l: [Int]\n"
+            + "}\n"
             + "type Query { counters(k: Int!): Counters }\n"
             + "type Mutation {\n"
             + " updateCountersIncrement(\n"
@@ -80,16 +79,16 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
             + "    cInc: Int @cql_increment(field: \"c\")\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"Counters\")\n"
-             + "  appendList(\n"
-             + "    k: Int\n"
-             + "    l: [Int] @cql_increment\n"
-             + "  ): Boolean\n"
-             + "@cql_update(targetEntity: \"ListCounters\")\n"
-            //            + "  \n"
-            //            + "  prependList(\n"
-            //            + "    k: Int\n"
-            //            + "    l: [Int] @cql_increment(prepend: true)\n"
-            //            + "  )\n"
+            + "  appendList(\n"
+            + "    k: Int\n"
+            + "    l: [Int] @cql_increment\n"
+            + "  ): Boolean\n"
+            + "@cql_update(targetEntity: \"ListCounters\")\n"
+            + "  prependList(\n"
+            + "    k: Int\n"
+            + "    l: [Int] @cql_increment(prepend: true)\n"
+            + "  ): Boolean\n"
+            + "@cql_update(targetEntity: \"ListCounters\")\n"
             //            + "  \n"
             //            + "  appendSet(\n"
             //            + "    k: Int\n"
@@ -101,6 +100,7 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
   @BeforeEach
   public void cleanupData() {
     SESSION.execute("truncate table \"Counters\"");
+    SESSION.execute("truncate table \"ListCounters\"");
   }
 
   @Test
@@ -128,21 +128,35 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
   @DisplayName("Should update a list field using append operation")
   public void testUpdateListAppend() {
     // when
-    Object response =
-            CLIENT.executeKeyspaceQuery(
-                    KEYSPACE, "mutation { appendList(k: 1, l: 2) }");
+    Object response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { appendList(k: 1, l: 2) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
-    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Collections.singletonList(2));
+    assertThat(getListCounterRow(1).getList("l", Integer.class))
+        .isEqualTo(Collections.singletonList(2));
 
     // when
-    response =
-            CLIENT.executeKeyspaceQuery(
-                    KEYSPACE, "mutation { appendList(k: 1, l: 10) }");
+    response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { appendList(k: 1, l: 10) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
     assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Arrays.asList(2, 10));
   }
 
+  @Test
+  @DisplayName("Should update a list field using prepend operation")
+  public void testUpdateListPrepend() {
+    // when
+    Object response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { prependList(k: 1, l: 2) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.prependList")).isTrue();
+    assertThat(getListCounterRow(1).getList("l", Integer.class))
+        .isEqualTo(Collections.singletonList(2));
+
+    // when
+    response = CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { prependList(k: 1, l: 10) }");
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.prependList")).isTrue();
+    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Arrays.asList(10, 2));
+  }
 }

@@ -155,9 +155,16 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
 
     if (hasArgument.test(incrementModel.getArgumentName())) {
       Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
-      modifiers.add(
-          ValueModifier.increment(
-              column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
+      if (incrementModel.isPrepend()) {
+        modifiers.add(
+            ValueModifier.prepend(
+                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
+      } else {
+        // the increment handles both increment and append
+        modifiers.add(
+            ValueModifier.increment(
+                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
+      }
     }
     if (modifiers.isEmpty()) {
       throw new IllegalArgumentException(

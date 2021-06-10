@@ -107,7 +107,6 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
       FieldModel field = maybeField.get();
 
       boolean isWhereCondition;
-      boolean isCqlIncrement = false;
 
       switch (operationType) {
         case SELECT:
