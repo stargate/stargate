@@ -21,6 +21,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
@@ -40,7 +41,7 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
   private static String KEYSPACE;
 
   private static Row getCounterRow(int k) {
-    ResultSet resultSet = SESSION.execute("SELECT * FROM \"Counter\" WHERE k = ? ", k);
+    ResultSet resultSet = SESSION.execute("SELECT * FROM \"Counters\" WHERE k = ? ", k);
     return resultSet.one();
   }
 
@@ -54,25 +55,24 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
     KEYSPACE = keyspaceId.asInternal();
     CLIENT.deploySchema(
         KEYSPACE,
-        "type Counter @cql_input {\n"
+        "type Counters @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
-            + "  c: counter\n"
+            + "  c: Counter\n"
             + "}\n"
-            + "type Query { counter(k: Int!): Counter }\n"
-            + "type UpdateCounterResponse @cql_payload {\n"
+            + "type Query { counters(k: Int!): Counters }\n"
+            + "type UpdateCountersResponse @cql_payload {\n"
             + "  applied: Boolean\n"
-            + "  counter: Counter!\n"
             + "}\n"
             + "type Mutation {\n"
-            + " updateCounter(\n"
-            + "   counter: CounterInput! "
-            + "  ): UpdateCounterResponse\n"
-            + "@cql_update(targetEntity: \"Counter\")\n"
-            + " updateCounterIncrement(\n"
+            + " updateCounters(\n"
+            + "   counter: CountersInput! "
+            + "  ): UpdateCountersResponse\n"
+            + "@cql_update(targetEntity: \"Counters\")\n"
+            + " updateCountersIncrement(\n"
             + "    k: Int\n"
             + "    cInc: Int @cql_increment(field: \"c\")\n"
             + "  ): Boolean\n"
-            + "@cql_update(targetEntity: \"Counter\")\n"
+            + "@cql_update(targetEntity: \"Counters\")\n"
             //            + "  \n"
             //            + "  appendList(\n"
             //            + "    k: Int\n"
@@ -93,22 +93,28 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
 
   @BeforeEach
   public void cleanupData() {
-    SESSION.execute("truncate table \"Counter\"");
+    SESSION.execute("truncate table \"Counters\"");
   }
 
   @Test
   @DisplayName("Should update a counter field using increment operation")
   public void testUpdateCounterIncrement() {
-    // given
-    updateCounter(1, 10);
-
     // when
     Object response =
-        CLIENT.executeKeyspaceQuery(KEYSPACE, "mutation { updateCounterIncrement(k: 1, cInc: 2) }");
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateCounterIncrement")).isTrue();
-    assertThat(getCounterRow(1).getInt("c")).isEqualTo(12);
+    assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(2);
+
+    // when
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateCountersIncrement(k: 1, cInc: 10) }");
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(12);
   }
 
   private void updateCounter(int pk1, int c) {
@@ -117,7 +123,7 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
             KEYSPACE,
             String.format(
                 "mutation {\n"
-                    + "  result: updateCounter(counter: {k: %s, c: %s}) \n "
+                    + "  result: updateCounters(counter: {k: %s, c: %s}) \n "
                     + "{ applied }\n"
                     + "}",
                 pk1, c));
