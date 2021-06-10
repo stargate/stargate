@@ -58,8 +58,12 @@ public abstract class Table extends AbstractTable {
         .name(name)
         .columns(columns)
         .indexes(indexes)
-        .comment("")
         .build();
+  }
+
+  @Value.Default
+  public String comment() {
+    return "";
   }
 
   @Override
