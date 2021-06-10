@@ -56,6 +56,36 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "prepend", context))
             .orElse(PREPEND_DEFAULT);
 
+    validate(field, prepend);
     return new IncrementModel(field, prepend, inputValue.getName());
+  }
+
+  protected void validate(FieldModel field, boolean prepend) throws SkipException {
+    if (field.isPartitionKey() || field.isClusteringColumn()) {
+      invalidMapping(
+          "Operation %s: directive %s is not supported for partition/clustering key field %s.",
+          operationName, CQL_INCREMENT, field.getGraphqlName());
+      throw SkipException.INSTANCE;
+    } else {
+      checkValidForRegularColumn(field, prepend);
+    }
+  }
+
+  private void checkValidForRegularColumn(FieldModel field, boolean prepend) throws SkipException {
+    if (prepend) {
+      checkArgumentIsAList(field);
+    }
+  }
+
+  private void checkArgumentIsAList(FieldModel field) throws SkipException {
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), inputValue, entity, field, entities, operationName);
+    if (!(fieldInputType instanceof ListType)) {
+      invalidMapping(
+          "Operation %s: the %s directive with prepend = true cannot be used with argument %s "
+              + "because it is not a list",
+          operationName, CQL_INCREMENT, inputValue.getName());
+      throw SkipException.INSTANCE;
+    }
   }
 }

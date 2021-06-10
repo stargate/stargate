@@ -68,7 +68,8 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
   protected void checkArgumentIsSameAs(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
 
     if (!argumentType.isEqualTo(fieldInputType)) {
       invalidMapping(
@@ -82,27 +83,11 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
     }
   }
 
-  protected Type<?> toInput(
-      Type<?> fieldType, InputValueDefinition inputValue, EntityModel entity, FieldModel field)
-      throws SkipException {
-    try {
-      return TypeHelper.toInput(TypeHelper.unwrapNonNull(fieldType), entities);
-    } catch (IllegalArgumentException e) {
-      invalidMapping(
-          "Operation %s: can't infer expected input type for %s (matching %s.%s) because %s",
-          operationName,
-          inputValue.getName(),
-          entity.getGraphqlName(),
-          field.getGraphqlName(),
-          e.getMessage());
-      throw SkipException.INSTANCE;
-    }
-  }
-
   protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
     Type<?> expectedArgumentType = newListType(fieldInputType).build();
 
     if (!argumentType.isEqualTo(expectedArgumentType)) {

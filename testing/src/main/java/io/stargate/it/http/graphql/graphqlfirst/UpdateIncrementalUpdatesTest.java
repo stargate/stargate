@@ -89,11 +89,6 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
             + "    l: [Int] @cql_increment(prepend: true)\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"ListCounters\")\n"
-            //            + "  \n"
-            //            + "  appendSet(\n"
-            //            + "    k: Int\n"
-            //            + "    s: [Int] @cql_increment\n"
-            //            + "  )"
             + "}");
   }
 

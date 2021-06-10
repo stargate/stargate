@@ -15,7 +15,7 @@
  */
 package io.stargate.it.http.graphql.graphqlfirst;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
+public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
   private static GraphqlFirstClient CLIENT;
   private static String KEYSPACE;
 
@@ -42,68 +42,61 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName(
-      "Should fail when deploying schema with a field annotated with both cql_if and cql_where")
-  public void shouldFailToDeploySchemaWithAFieldAnnotatedWithBothCqlIfAndCqlWhere() {
+  @DisplayName("Should fail when deploying schema with a pk field annotated with cql_increment")
+  public void shouldFailToDeploySchemaWithAPKFieldAnnotatedWithCqlIncrement() {
     // given, when
     Map<String, Object> errors =
         CLIENT
             .getDeploySchemaErrors(
                 KEYSPACE,
                 null,
-                "type Foo @cql_input {\n"
-                    + "  pk: Int! @cql_column(partitionKey: true)\n"
-                    + "  v: Int\n"
-                    + " "
+                "type Counters @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  c: Counter\n"
                     + "}\n"
-                    + "type DeleteFooResult @cql_payload {\n"
-                    + "  applied: Boolean\n"
-                    + "}\n"
-                    + "type Query {\n"
-                    + "  foo(pk: Int!): Foo\n"
-                    + "}\n"
-                    + "type DeleteFooResponse @cql_payload {\n"
-                    + "  applied: Boolean"
-                    + "}\n"
+                    + "type Query { counters(k: Int!): Counters }\n"
                     + "type Mutation {\n"
-                    + "  deleteFooWhereAndIfOnTheSameField(\n"
-                    + "pk: Int\n"
-                    + "v: Int @cql_if(field: \"v\", predicate: GT) @cql_where(field: \"v\" predicate: GT)\n"
-                    + "): Boolean\n"
-                    + "    @cql_delete(targetEntity: \"Foo\")\n"
+                    + " updateCountersIncrement(\n"
+                    + "    k: Int @cql_increment\n"
+                    + "    cInc: Int\n"
+                    + "  ): Boolean\n"
+                    + "@cql_update(targetEntity: \"Counters\")\n"
                     + "}")
             .get(0);
 
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Operation deleteFooWhereAndIfOnTheSameField: can't set both @cql_where and @cql_if on argument v");
+            "Mutation updateCountersIncrement: @cql_increment is not allowed on primary key fields (k)");
   }
 
   @Test
-  @DisplayName("Should fail when deploying schema with a SELECT query field annotated with cql_if")
-  public void shouldFailToDeploySchemaWithASelectQueryFieldAnnotatedWithCqlIf() {
+  @DisplayName(
+      "Should fail when deploying schema with a cql_increment prepend=true on non-collection field")
+  public void shouldFailToDeploySchemaWithACqlIncrementPrependTrueOnANonCollectionField() {
     // given, when
     Map<String, Object> errors =
         CLIENT
             .getDeploySchemaErrors(
                 KEYSPACE,
                 null,
-                "type Foo @cql_input {\n"
-                    + "  pk: Int! @cql_column(partitionKey: true)\n"
-                    + "  v: Int\n"
-                    + " "
+                "type Counters @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  c: Counter\n"
                     + "}\n"
-                    + "type DeleteFooResult @cql_payload {\n"
-                    + "  applied: Boolean\n"
-                    + "}\n"
-                    + "type Query {\n"
-                    + "  foo(pk: Int! @cql_if(field: \"v\", predicate: EQ)): Foo\n"
-                    + "}\n")
+                    + "type Query { counters(k: Int!): Counters }\n"
+                    + "type Mutation {\n"
+                    + " updateCountersIncrement(\n"
+                    + "    k: Int \n"
+                    + "    cInc: Int @cql_increment(field: \"c\", prepend: true)\n"
+                    + "  ): Boolean\n"
+                    + "@cql_update(targetEntity: \"Counters\")\n"
+                    + "}")
             .get(0);
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("Operation foo: @cql_if is not allowed on query arguments (pk)");
+        .contains(
+            "Operation updateCountersIncrement: the cql_increment directive with prepend = true cannot be used with argument cInc because it is not a list");
   }
 }

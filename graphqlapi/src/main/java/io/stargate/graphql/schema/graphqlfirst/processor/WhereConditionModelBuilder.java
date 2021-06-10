@@ -130,7 +130,8 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
   private void checkArgumentIsElementOf(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
     if (!(fieldInputType instanceof ListType)) {
       invalidMapping(
           "Operation %s: CONTAINS predicate cannot be used with argument %s "
