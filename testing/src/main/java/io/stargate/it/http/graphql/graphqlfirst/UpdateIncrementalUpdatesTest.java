@@ -33,6 +33,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 @ExtendWith(CqlSessionExtension.class)
 public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
 
@@ -45,6 +48,11 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
     return resultSet.one();
   }
 
+  private static Row getListCounterRow(int k) {
+    ResultSet resultSet = SESSION.execute("SELECT * FROM \"ListCounters\" WHERE k = ? ", k);
+    return resultSet.one();
+  }
+
   @BeforeAll
   public static void setup(
       StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
@@ -53,31 +61,30 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
         new GraphqlFirstClient(
             cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
     KEYSPACE = keyspaceId.asInternal();
+    // we need a dedicated table for counter because:
+    // "Cannot mix counter and non counter columns in the same table"
     CLIENT.deploySchema(
         KEYSPACE,
         "type Counters @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
             + "  c: Counter\n"
             + "}\n"
+            + "type ListCounters @cql_input {\n"
+          + "  k: Int! @cql_column(partitionKey: true)\n"
+          + "  l: [Int]\n"
+                + "}\n"
             + "type Query { counters(k: Int!): Counters }\n"
-            + "type UpdateCountersResponse @cql_payload {\n"
-            + "  applied: Boolean\n"
-            + "}\n"
             + "type Mutation {\n"
-            + " updateCounters(\n"
-            + "   counter: CountersInput! "
-            + "  ): UpdateCountersResponse\n"
-            + "@cql_update(targetEntity: \"Counters\")\n"
             + " updateCountersIncrement(\n"
             + "    k: Int\n"
             + "    cInc: Int @cql_increment(field: \"c\")\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"Counters\")\n"
-            //            + "  \n"
-            //            + "  appendList(\n"
-            //            + "    k: Int\n"
-            //            + "    l: [Int] @cql_increment\n"
-            //            + "  )\n"
+             + "  appendList(\n"
+             + "    k: Int\n"
+             + "    l: [Int] @cql_increment\n"
+             + "  ): Boolean\n"
+             + "@cql_update(targetEntity: \"ListCounters\")\n"
             //            + "  \n"
             //            + "  prependList(\n"
             //            + "    k: Int\n"
@@ -117,19 +124,25 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
     assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(12);
   }
 
-  private void updateCounter(int pk1, int c) {
+  @Test
+  @DisplayName("Should update a list field using append operation")
+  public void testUpdateListAppend() {
+    // when
     Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            String.format(
-                "mutation {\n"
-                    + "  result: updateCounters(counter: {k: %s, c: %s}) \n "
-                    + "{ applied }\n"
-                    + "}",
-                pk1, c));
+            CLIENT.executeKeyspaceQuery(
+                    KEYSPACE, "mutation { appendList(k: 1, l: 2) }");
 
-    // Should have generated an id
-    Boolean id = JsonPath.read(response, "$.result.applied");
-    assertThat(id).isTrue();
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
+    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Collections.singletonList(2));
+
+    // when
+    response =
+            CLIENT.executeKeyspaceQuery(
+                    KEYSPACE, "mutation { appendList(k: 1, l: 10) }");
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
+    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Arrays.asList(2, 10));
   }
+
 }
