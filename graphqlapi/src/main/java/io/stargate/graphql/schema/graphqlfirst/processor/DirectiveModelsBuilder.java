@@ -80,21 +80,10 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
       boolean hasIfDirective = DirectiveHelper.hasDirective(inputValue, CQL_IF);
       boolean hasCqlIncrementDirective = DirectiveHelper.hasDirective(inputValue, CQL_INCREMENT);
 
-      if (hasWhereDirective && hasIfDirective) {
-        reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_IF);
-        foundErrors = true;
-        continue;
-      }
-
-      if (hasWhereDirective && hasCqlIncrementDirective) {
-        reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_INCREMENT);
-        foundErrors = true;
-        continue;
-      }
-
-      if (hasIfDirective && hasCqlIncrementDirective) {
-        reportTwoAnnotationsSet(inputValue, CQL_IF, CQL_INCREMENT);
-        foundErrors = true;
+      foundErrors =
+          validateIfHasErrors(
+              inputValue, hasWhereDirective, hasIfDirective, hasCqlIncrementDirective);
+      if (foundErrors) {
         continue;
       }
 
@@ -174,6 +163,28 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
     }
     return new DirectiveModels(
         ifConditions.build(), whereConditions.build(), incrementModels.build());
+  }
+
+  private boolean validateIfHasErrors(
+      InputValueDefinition inputValue,
+      boolean hasWhereDirective,
+      boolean hasIfDirective,
+      boolean hasCqlIncrementDirective) {
+    if (hasWhereDirective && hasIfDirective) {
+      reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_IF);
+      return true;
+    }
+
+    if (hasWhereDirective && hasCqlIncrementDirective) {
+      reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_INCREMENT);
+      return true;
+    }
+
+    if (hasIfDirective && hasCqlIncrementDirective) {
+      reportTwoAnnotationsSet(inputValue, CQL_IF, CQL_INCREMENT);
+      return true;
+    }
+    return false;
   }
 
   private void reportTwoAnnotationsSet(
