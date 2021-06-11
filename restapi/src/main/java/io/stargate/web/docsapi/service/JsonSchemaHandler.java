@@ -60,15 +60,14 @@ public class JsonSchemaHandler {
       writeSchemaToCollection(db, namespace, collection, wrappedSchema.toString());
       ImmutableKeyspaceAndTable info =
           ImmutableKeyspaceAndTable.builder().keyspace(namespace).table(collection).build();
-      schemasPerCollection.put(info, schema);
+      schemasPerCollection.remove(info);
       return resp;
     } else {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID);
     }
   }
 
-  private String getRawJsonSchemaForCollection(
-      DocumentDB db, String namespace, String collection) {
+  private String getRawJsonSchemaForCollection(DocumentDB db, String namespace, String collection) {
     String comment = db.schema().keyspace(namespace).table(collection).comment();
     return comment.isEmpty() ? null : comment;
   }
@@ -92,7 +91,7 @@ public class JsonSchemaHandler {
    */
   private void writeSchemaToCollection(
       DocumentDB db, String namespace, String collection, String schemaData) {
-    db.builder().alter().table(namespace, collection).withComment(schemaData).build().execute();
+    db.writeJsonSchemaToCollection(namespace, collection, schemaData);
   }
 
   public JsonNode getCachedJsonSchema(DocumentDB db, String namespace, String collection) {
@@ -102,7 +101,8 @@ public class JsonSchemaHandler {
     return schemasPerCollection.computeIfAbsent(
         info,
         ksAndTable -> {
-          String schemaStr = getRawJsonSchemaForCollection(db, ksAndTable.getKeyspace(), ksAndTable.getTable());
+          String schemaStr =
+              getRawJsonSchemaForCollection(db, ksAndTable.getKeyspace(), ksAndTable.getTable());
           if (schemaStr == null) {
             return null;
           }
