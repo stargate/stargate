@@ -120,6 +120,28 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
   }
 
   @Test
+  @DisplayName(
+      "Should update(decrement) a counter field using increment operation with negative value")
+  public void testUpdateCounterDecrementUsingNegativeValue() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(2);
+
+    // when
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateCountersIncrement(k: 1, cInc: -1) }");
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(1);
+  }
+
+  @Test
   @DisplayName("Should update a list field using append operation")
   public void testUpdateListAppend() {
     // when
