@@ -26,7 +26,6 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
   private final ProcessingContext context;
 
   private static final boolean PREPEND_DEFAULT = false;
-  public static final String CQL_INCREMENT = "cql_increment";
   private final String operationName;
   private final InputValueDefinition inputValue;
 
@@ -49,7 +48,8 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
   @Override
   IncrementModel build() throws SkipException {
 
-    Optional<Directive> directive = DirectiveHelper.getDirective(CQL_INCREMENT, inputValue);
+    Optional<Directive> directive =
+        DirectiveHelper.getDirective(CqlDirectives.INCREMENT, inputValue);
 
     boolean prepend =
         directive
@@ -64,7 +64,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
     if (field.isPartitionKey() || field.isClusteringColumn()) {
       invalidMapping(
           "Operation %s: directive %s is not supported for partition/clustering key field %s.",
-          operationName, CQL_INCREMENT, field.getGraphqlName());
+          operationName, CqlDirectives.INCREMENT, field.getGraphqlName());
       throw SkipException.INSTANCE;
     } else {
       checkValidForRegularColumn(field, prepend);
@@ -84,7 +84,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
       invalidMapping(
           "Operation %s: the %s directive with prepend = true cannot be used with argument %s "
               + "because it is not a list",
-          operationName, CQL_INCREMENT, inputValue.getName());
+          operationName, CqlDirectives.INCREMENT, inputValue.getName());
       throw SkipException.INSTANCE;
     }
   }

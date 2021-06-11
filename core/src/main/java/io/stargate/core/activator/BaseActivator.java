@@ -17,7 +17,12 @@ package io.stargate.core.activator;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
@@ -256,6 +261,23 @@ public abstract class BaseActivator implements BundleActivator {
    */
   protected void stopService() {
     // no-op
+  }
+
+  /**
+   * Creates a throw away data directory for Stargate's ephemeral files. It can be overridden using
+   * the system property {@code "stargate.basedir"} which can be useful on systems where the
+   * temporary directory is periodically cleaned.
+   *
+   * @return A file handle to the base directory.
+   * @throws IOException if the base directory is invalid or unable to be created.
+   */
+  protected File getBaseDir() throws IOException {
+    String baseDir = System.getProperty("stargate.basedir");
+    if (baseDir == null || baseDir.isEmpty()) {
+      return Files.createTempDirectory("stargate-" + activatorName).toFile();
+    } else {
+      return Files.createDirectories(Paths.get(baseDir, "stargate-" + activatorName)).toFile();
+    }
   }
 
   /**

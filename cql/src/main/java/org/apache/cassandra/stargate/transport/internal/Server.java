@@ -700,11 +700,15 @@ public class Server implements CassandraDaemon.Server {
       if (logger.isTraceEnabled())
         logger.trace("Topology changed event : {}, {}", endpoint, event.change);
 
-      LatestEvent prev = latestEvents.get(endpoint);
-      if (prev == null || prev.topology != event.change) {
-        LatestEvent ret =
-            latestEvents.put(endpoint, LatestEvent.forTopologyChange(event.change, prev));
-        if (ret == prev) send(endpoint, event);
+      if (event.headerFilter != null) {
+        send(endpoint, event);
+      } else {
+        LatestEvent prev = latestEvents.get(endpoint);
+        if (prev == null || prev.topology != event.change) {
+          LatestEvent ret =
+              latestEvents.put(endpoint, LatestEvent.forTopologyChange(event.change, prev));
+          if (ret == prev) send(endpoint, event);
+        }
       }
     }
 
@@ -712,11 +716,15 @@ public class Server implements CassandraDaemon.Server {
       if (logger.isTraceEnabled())
         logger.trace("Status changed event : {}, {}", endpoint, event.status);
 
-      LatestEvent prev = latestEvents.get(endpoint);
-      if (prev == null || prev.status != event.status) {
-        LatestEvent ret =
-            latestEvents.put(endpoint, LatestEvent.forStatusChange(event.status, null));
-        if (ret == prev) send(endpoint, event);
+      if (event.headerFilter != null) {
+        send(endpoint, event);
+      } else {
+        LatestEvent prev = latestEvents.get(endpoint);
+        if (prev == null || prev.status != event.status) {
+          LatestEvent ret =
+              latestEvents.put(endpoint, LatestEvent.forStatusChange(event.status, null));
+          if (ret == prev) send(endpoint, event);
+        }
       }
     }
 

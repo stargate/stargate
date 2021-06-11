@@ -17,6 +17,7 @@ package io.stargate.core.activator;
 
 import static io.stargate.core.activator.BaseActivator.ServicePointer.create;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,11 +29,17 @@ import static org.mockito.Mockito.when;
 
 import io.stargate.core.activator.BaseActivator.LazyServicePointer;
 import io.stargate.core.activator.BaseActivator.ServicePointer;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -518,6 +525,93 @@ class BaseActivatorTest {
             any(TestServiceNoDependencies.class),
             eq(EMPTY_PROPERTIES));
     assertThat(activator.started).isTrue();
+  }
+
+  @Nested
+  public class BaseDir {
+
+    public class TestPersistenceActivator extends BaseActivator {
+
+      public TestPersistenceActivator() {
+        super("test-activator");
+      }
+
+      @Override
+      protected List<ServicePointer<?>> dependencies() {
+        return null;
+      }
+    }
+
+    @Test
+    public void happyPathTemp() throws IOException {
+      BaseActivator activator = new TestPersistenceActivator();
+      File baseDir = activator.getBaseDir();
+      assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+      assertThat(Files.isWritable(baseDir.toPath())).isTrue();
+    }
+
+    @Test
+    public void happyPathSystemProperty() throws IOException {
+      try {
+        Path temp = Files.createTempDirectory("persist-test");
+        Path full = Paths.get(temp.toString(), "name-from-system-property");
+        System.setProperty("stargate.basedir", full.toString());
+        BaseActivator activator = new TestPersistenceActivator();
+        File baseDir = activator.getBaseDir();
+        assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+        assertThat(Files.isWritable(baseDir.toPath())).isTrue();
+        assertThat(baseDir.toPath())
+            .isEqualTo(Paths.get(full.toString(), "stargate-test-activator"));
+      } finally {
+        System.clearProperty("stargate.basedir");
+      }
+    }
+
+    @Test
+    public void pathAlreadyExists() throws IOException {
+      try {
+        Path temp = Files.createTempDirectory("persist-test");
+        Path full = Paths.get(temp.toString(), "name-from-system-property");
+
+        // Create an existing directory, which is okay
+        Files.createDirectory(full);
+        assertThat(Files.isDirectory(full)).isTrue();
+
+        System.setProperty("stargate.basedir", full.toString());
+        BaseActivator activator = new TestPersistenceActivator();
+        File baseDir = activator.getBaseDir();
+        assertThat(Files.isDirectory(baseDir.toPath())).isTrue();
+        assertThat(Files.isWritable(baseDir.toPath())).isTrue();
+        assertThat(baseDir.toPath())
+            .isEqualTo(Paths.get(full.toString(), "stargate-test-activator"));
+      } finally {
+        System.clearProperty("stargate.basedir");
+      }
+    }
+
+    @Test
+    public void pathAlreadyExistsButIsAFile() throws IOException {
+      try {
+        Path temp = Files.createTempDirectory("persist-test");
+        Path full = Paths.get(temp.toString(), "name-from-system-property");
+
+        // Create an existing file, which will cause a failure
+        Files.createFile(full);
+        assertThat(Files.isRegularFile(full)).isTrue();
+
+        System.setProperty("stargate.basedir", full.toString());
+        BaseActivator activator = new TestPersistenceActivator();
+
+        assertThatThrownBy(
+                () -> {
+                  File baseDir = activator.getBaseDir();
+                  assertThat(baseDir).isNotNull(); // Never reached
+                })
+            .isInstanceOf(IOException.class);
+      } finally {
+        System.clearProperty("stargate.basedir");
+      }
+    }
   }
 
   @SuppressWarnings("unchecked")

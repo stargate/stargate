@@ -46,7 +46,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
 
   @Override
   MutationModel build() throws SkipException {
-    Optional<Directive> cqlDeleteDirective = DirectiveHelper.getDirective("cql_delete", operation);
+    Optional<Directive> cqlDeleteDirective =
+        DirectiveHelper.getDirective(CqlDirectives.DELETE, operation);
     boolean ifExists = computeIfExists(cqlDeleteDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
@@ -97,7 +98,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
     } else {
-      entity = entityFromDirective(cqlDeleteDirective, "delete", "cql_delete");
+      entity = entityFromDirective(cqlDeleteDirective, "delete", CqlDirectives.DELETE);
       DirectiveModels conditions =
           new DirectiveModelsBuilder(operation, OperationType.DELETE, entity, entities, context)
               .build();
@@ -106,7 +107,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
       validateNoFiltering(whereConditions, entity);
       if (!ifConditions.isEmpty() && ifExists) {
         invalidMapping(
-            "Operation %s: can't use @cql_if and ifExists at the same time", operationName);
+            "Operation %s: can't use @%s and %s at the same time",
+            operationName, CqlDirectives.IF, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS);
         throw SkipException.INSTANCE;
       }
     }

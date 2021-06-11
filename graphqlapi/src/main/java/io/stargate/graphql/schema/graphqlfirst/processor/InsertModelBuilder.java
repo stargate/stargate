@@ -87,17 +87,20 @@ class InsertModelBuilder extends MutationModelBuilder {
   private boolean computeIfNotExists() {
     // If the directive is set, it always takes precedence
     Optional<Boolean> fromDirective =
-        DirectiveHelper.getDirective("cql_insert", operation)
-            .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifNotExists", context));
+        DirectiveHelper.getDirective(CqlDirectives.INSERT, operation)
+            .flatMap(
+                d ->
+                    DirectiveHelper.getBooleanArgument(
+                        d, CqlDirectives.INSERT_IF_NOT_EXISTS, context));
     if (fromDirective.isPresent()) {
       return fromDirective.get();
     }
     // Otherwise, try the naming convention
     if (operation.getName().endsWith("IfNotExists")) {
       info(
-          "Mutation %s: setting the 'ifNotExists' flag implicitly "
+          "Mutation %s: setting the '%s' flag implicitly "
               + "because the name follows the naming convention.",
-          operationName);
+          operationName, CqlDirectives.INSERT_IF_NOT_EXISTS);
       return true;
     }
     return false;

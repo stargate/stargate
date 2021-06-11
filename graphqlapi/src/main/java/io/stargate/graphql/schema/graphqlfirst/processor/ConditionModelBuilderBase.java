@@ -57,7 +57,10 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
     Optional<Directive> directive = DirectiveHelper.getDirective(getDirectiveName(), argument);
     Predicate predicate =
         directive
-            .flatMap(d -> DirectiveHelper.getEnumArgument(d, "predicate", Predicate.class, context))
+            .flatMap(
+                d ->
+                    DirectiveHelper.getEnumArgument(
+                        d, CqlDirectives.WHERE_OR_IF_PREDICATE, Predicate.class, context))
             .orElse(Predicate.EQ);
 
     validate(field, predicate);

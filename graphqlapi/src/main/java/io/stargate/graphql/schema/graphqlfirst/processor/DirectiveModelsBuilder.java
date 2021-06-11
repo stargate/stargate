@@ -38,10 +38,6 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
     UPDATE,
   }
 
-  private static final String CQL_WHERE = "cql_where";
-  private static final String CQL_IF = "cql_if";
-  private static final String CQL_INCREMENT = "cql_increment";
-
   private final FieldDefinition operation;
   private final String operationName;
   private final OperationType operationType;
@@ -71,14 +67,15 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
     boolean foundErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
 
-      if (DirectiveHelper.hasDirective(inputValue, "cql_pagingState")) {
+      if (DirectiveHelper.hasDirective(inputValue, CqlDirectives.PAGING_STATE)) {
         // It's a technical field that does not represent a condition
         continue;
       }
 
-      boolean hasWhereDirective = DirectiveHelper.hasDirective(inputValue, CQL_WHERE);
-      boolean hasIfDirective = DirectiveHelper.hasDirective(inputValue, CQL_IF);
-      boolean hasCqlIncrementDirective = DirectiveHelper.hasDirective(inputValue, CQL_INCREMENT);
+      boolean hasWhereDirective = DirectiveHelper.hasDirective(inputValue, CqlDirectives.WHERE);
+      boolean hasIfDirective = DirectiveHelper.hasDirective(inputValue, CqlDirectives.IF);
+      boolean hasCqlIncrementDirective =
+          DirectiveHelper.hasDirective(inputValue, CqlDirectives.INCREMENT);
 
       foundErrors =
           validateIfHasErrors(
@@ -102,7 +99,7 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
           if (hasIfDirective) {
             invalidMapping(
                 "Operation %s: @%s is not allowed on query arguments (%s)",
-                operationName, CQL_IF, inputValue.getName());
+                operationName, CqlDirectives.IF, inputValue.getName());
             foundErrors = true;
             continue;
           }
@@ -114,12 +111,12 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
         case UPDATE:
           if (field.isPrimaryKey()) {
             if (hasIfDirective) {
-              reportInvalidMapping(inputValue, CQL_IF);
+              reportInvalidMapping(inputValue, CqlDirectives.IF);
               foundErrors = true;
               continue;
             }
             if (hasCqlIncrementDirective) {
-              reportInvalidMapping(inputValue, CQL_INCREMENT);
+              reportInvalidMapping(inputValue, CqlDirectives.INCREMENT);
               foundErrors = true;
               continue;
             }
@@ -128,7 +125,7 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
             if (hasWhereDirective) {
               invalidMapping(
                   "Mutation %s: @%s is only allowed on primary key fields for updates (%s)",
-                  operationName, CQL_WHERE, inputValue.getName());
+                  operationName, CqlDirectives.WHERE, inputValue.getName());
               foundErrors = true;
               continue;
             }
@@ -171,17 +168,17 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
       boolean hasIfDirective,
       boolean hasCqlIncrementDirective) {
     if (hasWhereDirective && hasIfDirective) {
-      reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_IF);
+      reportTwoAnnotationsSet(inputValue, CqlDirectives.WHERE, CqlDirectives.IF);
       return true;
     }
 
     if (hasWhereDirective && hasCqlIncrementDirective) {
-      reportTwoAnnotationsSet(inputValue, CQL_WHERE, CQL_INCREMENT);
+      reportTwoAnnotationsSet(inputValue, CqlDirectives.WHERE, CqlDirectives.INCREMENT);
       return true;
     }
 
     if (hasIfDirective && hasCqlIncrementDirective) {
-      reportTwoAnnotationsSet(inputValue, CQL_IF, CQL_INCREMENT);
+      reportTwoAnnotationsSet(inputValue, CqlDirectives.IF, CqlDirectives.INCREMENT);
       return true;
     }
     return false;
@@ -204,16 +201,19 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
       InputValueDefinition inputValue, boolean hasIfDirective, boolean hasCqlIncrementDirective) {
     String directiveName;
     if (hasIfDirective) {
-      directiveName = CQL_IF;
+      directiveName = CqlDirectives.IF;
     } else if (hasCqlIncrementDirective) {
-      directiveName = CQL_INCREMENT;
+      directiveName = CqlDirectives.INCREMENT;
     } else {
-      directiveName = CQL_WHERE;
+      directiveName = CqlDirectives.WHERE;
     }
     Optional<Directive> directive = DirectiveHelper.getDirective(directiveName, inputValue);
     String fieldName =
         directive
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
+            .flatMap(
+                d ->
+                    DirectiveHelper.getStringArgument(
+                        d, CqlDirectives.WHERE_OR_IF_OR_INCREMENT_FIELD, context))
             .orElse(inputValue.getName());
     Optional<FieldModel> result =
         entity.getAllColumns().stream()

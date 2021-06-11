@@ -44,11 +44,14 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
   QueryModel build() throws SkipException {
 
-    Optional<Directive> cqlSelectDirective = DirectiveHelper.getDirective("cql_select", operation);
+    Optional<Directive> cqlSelectDirective =
+        DirectiveHelper.getDirective(CqlDirectives.SELECT, operation);
     Optional<Integer> limit =
-        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "limit", context));
+        cqlSelectDirective.flatMap(
+            d -> DirectiveHelper.getIntArgument(d, CqlDirectives.SELECT_LIMIT, context));
     Optional<Integer> pageSize =
-        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "pageSize", context));
+        cqlSelectDirective.flatMap(
+            d -> DirectiveHelper.getIntArgument(d, CqlDirectives.SELECT_PAGE_SIZE, context));
 
     ReturnType returnType = getReturnType("Query " + operationName);
     EntityModel entity =
@@ -87,8 +90,8 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
       if (isPagingState(inputValue)) {
         if (result.isPresent()) {
           invalidMapping(
-              "Query %s: @cql_pagingState can be used on at most one argument (found %s and %s)",
-              operationName, result.get(), inputValue.getName());
+              "Query %s: @%s can be used on at most one argument (found %s and %s)",
+              operationName, CqlDirectives.PAGING_STATE, result.get(), inputValue.getName());
           throw SkipException.INSTANCE;
         }
         result = Optional.of(inputValue.getName());
@@ -98,7 +101,8 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
   }
 
   private boolean isPagingState(InputValueDefinition inputValue) throws SkipException {
-    boolean hasDirective = DirectiveHelper.getDirective("cql_pagingState", inputValue).isPresent();
+    boolean hasDirective =
+        DirectiveHelper.getDirective(CqlDirectives.PAGING_STATE, inputValue).isPresent();
     if (!hasDirective) {
       return false;
     }
@@ -106,8 +110,11 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
     if (!(type instanceof TypeName)
         || !((TypeName) type).getName().equals(Scalars.GraphQLString.getName())) {
       invalidMapping(
-          "Query %s: argument %s annotated with @cql_pagingState must have type %s",
-          operationName, inputValue.getName(), Scalars.GraphQLString.getName());
+          "Query %s: argument %s annotated with @%s must have type %s",
+          operationName,
+          inputValue.getName(),
+          CqlDirectives.PAGING_STATE,
+          Scalars.GraphQLString.getName());
       throw SkipException.INSTANCE;
     }
     return true;

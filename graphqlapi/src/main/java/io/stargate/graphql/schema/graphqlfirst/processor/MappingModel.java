@@ -36,7 +36,7 @@ public class MappingModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(MappingModel.class);
   private static final Predicate<ObjectTypeDefinition> IS_RESPONSE_PAYLOAD =
-      t -> DirectiveHelper.getDirective("cql_payload", t).isPresent();
+      t -> DirectiveHelper.getDirective(CqlDirectives.PAYLOAD, t).isPresent();
 
   private final Map<String, EntityModel> entities;
   private final Map<String, ResponsePayloadModel> responses;
