@@ -58,11 +58,11 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
   @Override
   IndexModel build() throws SkipException {
     String indexName =
-        DirectiveHelper.getStringArgument(cqlIndexDirective, "name", context)
+        DirectiveHelper.getStringArgument(cqlIndexDirective, CqlDirectives.INDEX_NAME, context)
             .orElse(parentCqlName + '_' + columnCqlName + "_idx");
 
     Optional<String> indexClass =
-        DirectiveHelper.getStringArgument(cqlIndexDirective, "class", context);
+        DirectiveHelper.getStringArgument(cqlIndexDirective, CqlDirectives.INDEX_CLASS, context);
 
     // Some persistence backends default to SAI when no class is specified:
     if (!indexClass.isPresent() && !context.getPersistence().supportsSecondaryIndex()) {
@@ -71,8 +71,8 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
         // case:
         invalidMapping(
             "%s: the persistence backend does not support regular secondary indexes nor SAI, "
-                + "indexes that don't specify indexClass can't be mapped",
-            messagePrefix);
+                + "indexes that don't specify %s can't be mapped",
+            messagePrefix, CqlDirectives.INDEX_CLASS);
         throw SkipException.INSTANCE;
       }
       info(
@@ -83,12 +83,13 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
     }
 
     CollectionIndexingType indexingType =
-        DirectiveHelper.getEnumArgument(cqlIndexDirective, "target", IndexTarget.class, context)
+        DirectiveHelper.getEnumArgument(
+                cqlIndexDirective, CqlDirectives.INDEX_TARGET, IndexTarget.class, context)
             .filter(this::validateTarget)
             .map(IndexTarget::toIndexingType)
             .orElse(cqlType.isCollection() ? VALUES_INDEXING_TYPE : NO_INDEXING_TYPE);
     Map<String, String> indexOptions =
-        DirectiveHelper.getStringArgument(cqlIndexDirective, "options", context)
+        DirectiveHelper.getStringArgument(cqlIndexDirective, CqlDirectives.INDEX_OPTIONS, context)
             .flatMap(this::convertOptions)
             .orElse(Collections.emptyMap());
 

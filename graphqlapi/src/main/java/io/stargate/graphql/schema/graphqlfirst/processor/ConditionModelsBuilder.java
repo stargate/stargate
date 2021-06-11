@@ -37,9 +37,6 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
     UPDATE,
   }
 
-  private static final String CQL_WHERE = "cql_where";
-  private static final String CQL_IF = "cql_if";
-
   private final FieldDefinition operation;
   private final String operationName;
   private final OperationType operationType;
@@ -67,18 +64,18 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
     boolean foundErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
 
-      if (hasDirective(inputValue, "cql_pagingState")) {
+      if (hasDirective(inputValue, CqlDirectives.PAGING_STATE)) {
         // It's a technical field that does not represent a condition
         continue;
       }
 
-      boolean hasWhereDirective = hasDirective(inputValue, CQL_WHERE);
-      boolean hasIfDirective = hasDirective(inputValue, CQL_IF);
+      boolean hasWhereDirective = hasDirective(inputValue, CqlDirectives.WHERE);
+      boolean hasIfDirective = hasDirective(inputValue, CqlDirectives.IF);
 
       if (hasWhereDirective && hasIfDirective) {
         invalidMapping(
             "Operation %s: can't set both @%s and @%s on argument %s",
-            operationName, CQL_WHERE, CQL_IF, inputValue.getName());
+            operationName, CqlDirectives.WHERE, CqlDirectives.IF, inputValue.getName());
         foundErrors = true;
         continue;
       }
@@ -96,7 +93,7 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
           if (hasIfDirective) {
             invalidMapping(
                 "Operation %s: @%s is not allowed on query arguments (%s)",
-                operationName, CQL_IF, inputValue.getName());
+                operationName, CqlDirectives.IF, inputValue.getName());
             foundErrors = true;
             continue;
           }
@@ -110,7 +107,7 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
             if (hasIfDirective) {
               invalidMapping(
                   "Mutation %s: @%s is not allowed on primary key fields (%s)",
-                  operationName, CQL_IF, inputValue.getName());
+                  operationName, CqlDirectives.IF, inputValue.getName());
               foundErrors = true;
               continue;
             }
@@ -119,7 +116,7 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
             if (hasWhereDirective) {
               invalidMapping(
                   "Mutation %s: @%s is only allowed on primary key fields for updates (%s)",
-                  operationName, CQL_WHERE, inputValue.getName());
+                  operationName, CqlDirectives.WHERE, inputValue.getName());
               foundErrors = true;
               continue;
             }
@@ -157,10 +154,12 @@ class ConditionModelsBuilder extends ModelBuilderBase<ConditionModels> {
 
   private Optional<FieldModel> findField(InputValueDefinition inputValue, boolean hasIfDirective) {
     Optional<Directive> directive =
-        DirectiveHelper.getDirective(hasIfDirective ? CQL_IF : CQL_WHERE, inputValue);
+        DirectiveHelper.getDirective(
+            hasIfDirective ? CqlDirectives.IF : CqlDirectives.WHERE, inputValue);
     String fieldName =
         directive
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "field", context))
+            .flatMap(
+                d -> DirectiveHelper.getStringArgument(d, CqlDirectives.WHERE_OR_IF_FIELD, context))
             .orElse(inputValue.getName());
     Optional<FieldModel> result =
         entity.getAllColumns().stream()

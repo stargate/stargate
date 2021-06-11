@@ -64,13 +64,6 @@ import java.util.stream.Collectors;
 
 public class SchemaProcessor {
 
-  private static final TypeDefinitionRegistry CQL_DIRECTIVES =
-      new SchemaParser()
-          .parse(
-              new InputStreamReader(
-                  SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
-                  StandardCharsets.UTF_8));
-
   private static final TypeDefinitionRegistry FEDERATION_DIRECTIVES =
       new SchemaParser()
           .parse(
@@ -176,7 +169,7 @@ public class SchemaProcessor {
       finalizeKeyDirectives(registry, mappingModel);
       stubQueryTypeIfNeeded(registry, mappingModel);
     }
-    registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
+    registry = registry.merge(CqlDirectives.ALL_AS_REGISTRY); // Stargate's own CQL directives
 
     RuntimeWiring.Builder runtimeWiring =
         RuntimeWiring.newRuntimeWiring()
@@ -324,7 +317,7 @@ public class SchemaProcessor {
               @Override
               public TraversalControl visitGraphQLEnumType(
                   GraphQLEnumType node, TraverserContext<GraphQLSchemaElement> context) {
-                if (CQL_DIRECTIVES
+                if (CqlDirectives.ALL_AS_REGISTRY
                     .getType(node.getName())
                     .filter(t -> t instanceof EnumTypeDefinition)
                     .isPresent()) {
@@ -336,7 +329,9 @@ public class SchemaProcessor {
               @Override
               public TraversalControl visitGraphQLDirective(
                   GraphQLDirective node, TraverserContext<GraphQLSchemaElement> context) {
-                if (CQL_DIRECTIVES.getDirectiveDefinition(node.getName()).isPresent()) {
+                if (CqlDirectives.ALL_AS_REGISTRY
+                    .getDirectiveDefinition(node.getName())
+                    .isPresent()) {
                   TreeTransformerUtil.deleteNode(context);
                 }
                 return TraversalControl.CONTINUE;

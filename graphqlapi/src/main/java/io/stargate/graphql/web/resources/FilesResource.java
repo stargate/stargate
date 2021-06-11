@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.web.resources;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Charsets;
-import com.google.common.io.Resources;
 import graphql.schema.idl.SchemaPrinter;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
@@ -30,10 +28,9 @@ import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.graphqlfirst.AdminSchemaBuilder;
+import io.stargate.graphql.schema.graphqlfirst.processor.CqlDirectives;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.RequestToHeadersMapper;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -162,21 +159,13 @@ public class FilesResource {
   }
 
   private static String buildDirectivesResponse() {
-    try {
-      StringBuilder result =
-          new StringBuilder(
-              Resources.toString(
-                  Resources.getResource(FilesResource.class, "/schemafirst/cql_directives.graphql"),
-                  Charsets.UTF_8));
+    StringBuilder result = new StringBuilder(CqlDirectives.ALL_AS_STRING);
 
-      result.append('\n');
-      SchemaPrinter schemaPrinter = new SchemaPrinter();
-      for (CqlScalar cqlScalar : CqlScalar.values()) {
-        result.append(schemaPrinter.print(cqlScalar.getGraphqlType()));
-      }
-      return result.toString();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    result.append('\n');
+    SchemaPrinter schemaPrinter = new SchemaPrinter();
+    for (CqlScalar cqlScalar : CqlScalar.values()) {
+      result.append(schemaPrinter.print(cqlScalar.getGraphqlType()));
     }
+    return result.toString();
   }
 }

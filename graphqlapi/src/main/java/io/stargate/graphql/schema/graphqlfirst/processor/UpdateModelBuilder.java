@@ -41,7 +41,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
 
   @Override
   MutationModel build() throws SkipException {
-    Optional<Directive> cqlUpdateDirective = DirectiveHelper.getDirective("cql_update", operation);
+    Optional<Directive> cqlUpdateDirective =
+        DirectiveHelper.getDirective(CqlDirectives.UPDATE, operation);
     boolean ifExists = computeIfExists(cqlUpdateDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
@@ -93,7 +94,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
     } else {
-      entity = entityFromDirective(cqlUpdateDirective, "update", "cql_update");
+      entity = entityFromDirective(cqlUpdateDirective, "update", CqlDirectives.UPDATE);
       ConditionModels conditions =
           new ConditionModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
               .build();
@@ -136,7 +137,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
       ensureNoInConditions(whereConditions);
       if (ifExists) {
         invalidMapping(
-            "Operation %s: can't use @cql_if and ifExists at the same time", operationName);
+            "Operation %s: can't use @%s and %s at the same time",
+            operationName, CqlDirectives.IF, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS);
         throw SkipException.INSTANCE;
       }
     }
@@ -147,8 +149,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
       if (whereCondition.getPredicate() == Predicate.IN) {
         invalidMapping(
             "Operation %s: IN predicates on primary key fields are not allowed "
-                + "if there are @cql_if conditions (%s)",
-            operationName, whereCondition.getArgumentName());
+                + "if there are @%s conditions (%s)",
+            operationName, CqlDirectives.IF, whereCondition.getArgumentName());
         throw SkipException.INSTANCE;
       }
     }

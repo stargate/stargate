@@ -70,9 +70,9 @@ public class MutationModelFactory {
    * explicit directive, or otherwise from a set of predefined name prefixes.
    */
   private enum Kind {
-    INSERT(InsertModelBuilder::new, "cql_insert", "insert", "create"),
-    UPDATE(UpdateModelBuilder::new, "cql_update", "update"),
-    DELETE(DeleteModelBuilder::new, "cql_delete", "delete", "remove"),
+    INSERT(InsertModelBuilder::new, CqlDirectives.INSERT, "insert", "create"),
+    UPDATE(UpdateModelBuilder::new, CqlDirectives.UPDATE, "update"),
+    DELETE(DeleteModelBuilder::new, CqlDirectives.DELETE, "delete", "remove"),
     ;
 
     private final BuilderProvider builderProvider;

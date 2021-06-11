@@ -49,20 +49,23 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
     EntityModel entity;
     String entityName =
         cqlDeleteDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
+            .flatMap(
+                d ->
+                    DirectiveHelper.getStringArgument(
+                        d, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY, context))
             .orElseThrow(
                 () -> {
                   invalidMapping(
                       "Mutation %s: if a %s doesn't take an entity input type, "
-                          + "it must indicate the entity name in '@%s.targetEntity'",
-                      name, directive, operationName);
+                          + "it must indicate the entity name in '@%s.%s'",
+                      operationName, name, directive, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY);
                   return SkipException.INSTANCE;
                 });
     entity = entities.get(entityName);
     if (entity == null) {
       invalidMapping(
-          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
-          operationName, entityName);
+          "Mutation %s: unknown entity %s (from '@%s.%s')",
+          operationName, entityName, directive, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY);
       throw SkipException.INSTANCE;
     }
     return entity;
@@ -70,14 +73,17 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
 
   protected boolean computeIfExists(Optional<Directive> directive) {
     return directive
-        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
+        .flatMap(
+            d ->
+                DirectiveHelper.getBooleanArgument(
+                    d, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS, context))
         .orElseGet(
             () -> {
               if (operation.getName().endsWith("IfExists")) {
                 info(
-                    "Mutation %s: setting the 'ifExists' flag implicitly "
+                    "Mutation %s: setting the '%s' flag implicitly "
                         + "because the name follows the naming convention.",
-                    operationName);
+                    operationName, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS);
                 return true;
               }
               return false;
