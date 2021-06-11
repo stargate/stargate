@@ -20,6 +20,7 @@ import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.DeleteFetcher;
 import java.util.List;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class DeleteModel extends MutationModel {
 
@@ -38,8 +39,10 @@ public class DeleteModel extends MutationModel {
       List<ConditionModel> whereConditions,
       List<ConditionModel> ifConditions,
       ReturnType returnType,
-      boolean ifExists) {
-    super(parentTypeName, field);
+      boolean ifExists,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel) {
+    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
     this.whereConditions = whereConditions;

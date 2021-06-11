@@ -23,6 +23,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 class UpdateModelBuilder extends MutationModelBuilder {
@@ -117,7 +118,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
         entityArgumentName,
         returnType,
         responsePayload,
-        ifExists);
+        ifExists,
+        getConsistencyLevel(cqlUpdateDirective),
+        getSerialConsistencyLevel(cqlUpdateDirective));
   }
 
   private void validate(

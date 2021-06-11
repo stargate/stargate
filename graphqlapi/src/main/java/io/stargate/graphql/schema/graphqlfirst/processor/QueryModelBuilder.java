@@ -27,6 +27,7 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
@@ -52,6 +53,11 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
     Optional<Integer> pageSize =
         cqlSelectDirective.flatMap(
             d -> DirectiveHelper.getIntArgument(d, CqlDirectives.SELECT_PAGE_SIZE, context));
+    Optional<ConsistencyLevel> consistencyLevel =
+        cqlSelectDirective.flatMap(
+            d ->
+                DirectiveHelper.getEnumArgument(
+                    d, CqlDirectives.SELECT_CONSISTENCY_LEVEL, ConsistencyLevel.class, context));
 
     ReturnType returnType = getReturnType("Query " + operationName);
     EntityModel entity =
@@ -81,6 +87,7 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
         pagingStateArgumentName,
         limit,
         pageSize,
+        consistencyLevel,
         returnType);
   }
 

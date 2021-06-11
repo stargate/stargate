@@ -20,6 +20,7 @@ import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.QueryFetcher;
 import java.util.List;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryModel extends OperationModel {
 
@@ -33,6 +34,7 @@ public class QueryModel extends OperationModel {
   private final Optional<String> pagingStateArgumentName;
   private final Optional<Integer> limit;
   private final Optional<Integer> pageSize;
+  private final Optional<ConsistencyLevel> consistencyLevel;
   private final ReturnType returnType;
 
   QueryModel(
@@ -43,6 +45,7 @@ public class QueryModel extends OperationModel {
       Optional<String> pagingStateArgumentName,
       Optional<Integer> limit,
       Optional<Integer> pageSize,
+      Optional<ConsistencyLevel> consistencyLevel,
       ReturnType returnType) {
     super(parentTypeName, field);
     this.entity = entity;
@@ -50,6 +53,7 @@ public class QueryModel extends OperationModel {
     this.pagingStateArgumentName = pagingStateArgumentName;
     this.limit = limit;
     this.pageSize = pageSize;
+    this.consistencyLevel = consistencyLevel;
     this.returnType = returnType;
   }
 
@@ -75,6 +79,10 @@ public class QueryModel extends OperationModel {
 
   public Optional<Integer> getPageSize() {
     return pageSize;
+  }
+
+  public Optional<ConsistencyLevel> getConsistencyLevel() {
+    return consistencyLevel;
   }
 
   public ReturnType getReturnType() {

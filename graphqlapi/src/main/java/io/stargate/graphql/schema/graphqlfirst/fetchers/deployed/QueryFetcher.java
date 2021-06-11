@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryFetcher extends DeployedFetcher<Object> {
 
@@ -49,16 +51,34 @@ public class QueryFetcher extends DeployedFetcher<Object> {
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws UnauthorizedException {
-    Keyspace keyspace = dataStore.schema().keyspace(model.getEntity().getKeyspaceName());
-
+  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
     Optional<ByteBuffer> pagingState =
         model
             .getPagingStateArgumentName()
             .filter(environment::containsArgument)
             .map(name -> BLOB_COERCING.parseValue(environment.<String>getArgument(name)));
+    int pageSize = model.getPageSize().orElse(DEFAULT_PAGE_SIZE);
+    ConsistencyLevel consistencyLevel = model.getConsistencyLevel().orElse(DEFAULT_CONSISTENCY);
+
+    if (!pagingState.isPresent()
+        && pageSize == DEFAULT_PAGE_SIZE
+        && consistencyLevel == DEFAULT_CONSISTENCY) {
+      return DEFAULT_PARAMETERS;
+    } else {
+      return DEFAULT_PARAMETERS
+          .toBuilder()
+          .pagingState(pagingState)
+          .pageSize(pageSize)
+          .consistencyLevel(consistencyLevel)
+          .build();
+    }
+  }
+
+  @Override
+  protected Object get(
+      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      throws UnauthorizedException {
+    Keyspace keyspace = dataStore.schema().keyspace(model.getEntity().getKeyspaceName());
 
     ReturnType returnType = model.getReturnType();
 
@@ -74,9 +94,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
         query(
             model.getEntity(),
             whereConditions,
-            pagingState,
             model.getLimit(),
-            model.getPageSize(),
             dataStore,
             environment.getContext());
     Object entityData =

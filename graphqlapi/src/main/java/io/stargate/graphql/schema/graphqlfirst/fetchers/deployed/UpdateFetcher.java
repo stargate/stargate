@@ -37,13 +37,10 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class UpdateFetcher extends DeployedFetcher<Object> {
-
-  private final UpdateModel model;
+public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
 
   public UpdateFetcher(UpdateModel model, MappingModel mappingModel) {
-    super(mappingModel);
-    this.model = model;
+    super(model, mappingModel);
   }
 
   @Override
@@ -103,7 +100,7 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    ResultSet resultSet = executeUnchecked(query, dataStore);
 
     boolean responseContainsEntity =
         model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
