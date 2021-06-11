@@ -37,6 +37,21 @@ public abstract class Table extends AbstractTable {
   }
 
   public static Table create(
+      String keyspace,
+      String name,
+      Iterable<Column> columns,
+      Iterable<Index> indexes,
+      String comment) {
+    return ImmutableTable.builder()
+        .keyspace(keyspace)
+        .name(name)
+        .columns(columns)
+        .indexes(indexes)
+        .comment(comment)
+        .build();
+  }
+
+  public static Table create(
       String keyspace, String name, Iterable<Column> columns, Iterable<Index> indexes) {
     return ImmutableTable.builder()
         .keyspace(keyspace)
@@ -44,6 +59,11 @@ public abstract class Table extends AbstractTable {
         .columns(columns)
         .indexes(indexes)
         .build();
+  }
+
+  @Value.Default
+  public String comment() {
+    return "";
   }
 
   @Override
@@ -73,6 +93,9 @@ public abstract class Table extends AbstractTable {
       tableBuilder.append(
           indexes().stream().map(idx -> "    " + idx.toString()).collect(Collectors.joining("\n")));
       tableBuilder.append("\n");
+    }
+    if (!comment().isEmpty()) {
+      tableBuilder.append("\n  Table '").append(name).append("' comment: " + comment());
     }
     tableBuilder.append("\n");
     return tableBuilder.toString();
