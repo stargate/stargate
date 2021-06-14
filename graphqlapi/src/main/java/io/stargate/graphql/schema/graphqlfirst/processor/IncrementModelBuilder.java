@@ -15,14 +15,21 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
+import graphql.language.TypeName;
+import graphql.schema.GraphQLScalarType;
+import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
 
+  public static final String COUNTER_TYPE_NAME = "counter";
   private final EntityModel entity;
   private final FieldModel field;
   private final Map<String, EntityModel> entities;
@@ -30,17 +37,17 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
 
   private static final boolean PREPEND_DEFAULT = false;
   private final String operationName;
-  private final InputValueDefinition inputValue;
+  private final InputValueDefinition argument;
 
   public IncrementModelBuilder(
-      InputValueDefinition inputValue,
+      InputValueDefinition argument,
       String operationName,
       EntityModel entity,
       FieldModel field,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(context, inputValue.getSourceLocation());
-    this.inputValue = inputValue;
+    super(context, argument.getSourceLocation());
+    this.argument = argument;
     this.operationName = operationName;
     this.entity = entity;
     this.field = field;
@@ -51,8 +58,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
   @Override
   IncrementModel build() throws SkipException {
 
-    Optional<Directive> directive =
-        DirectiveHelper.getDirective(CqlDirectives.INCREMENT, inputValue);
+    Optional<Directive> directive = DirectiveHelper.getDirective(CqlDirectives.INCREMENT, argument);
 
     boolean prepend =
         directive
@@ -60,7 +66,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
             .orElse(PREPEND_DEFAULT);
 
     validate(field, prepend);
-    return new IncrementModel(field, prepend, inputValue.getName());
+    return new IncrementModel(field, prepend, argument.getName());
   }
 
   protected void validate(FieldModel field, boolean prepend) throws SkipException {
@@ -75,6 +81,19 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
   }
 
   private void checkValidForRegularColumn(FieldModel field, boolean prepend) throws SkipException {
+
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
+    // it is non-list type
+    if (fieldInputType instanceof TypeName) {
+      String typeName = ((TypeName) fieldInputType).getName();
+      if (typeName.equalsIgnoreCase(COUNTER_TYPE_NAME)) {
+        // counter graph-ql field can be BIGINT or INT
+        checkArgumentIsAnyOfTypes(
+            Arrays.asList(CqlScalar.BIGINT.getGraphqlType(), Scalars.GraphQLInt));
+      }
+    }
+
     if (prepend) {
       checkArgumentIsAList(field);
     }
@@ -82,12 +101,39 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
 
   private void checkArgumentIsAList(FieldModel field) throws SkipException {
     Type<?> fieldInputType =
-        toInput(field.getGraphqlType(), inputValue, entity, field, entities, operationName);
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
     if (!(fieldInputType instanceof ListType)) {
       invalidMapping(
           "Operation %s: the %s directive with prepend = true cannot be used with argument %s "
               + "because it is not a list",
-          operationName, CqlDirectives.INCREMENT, inputValue.getName());
+          operationName, CqlDirectives.INCREMENT, argument.getName());
+      throw SkipException.INSTANCE;
+    }
+  }
+
+  protected void checkArgumentIsAnyOfTypes(List<GraphQLScalarType> scalarTypes)
+      throws SkipException {
+
+    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
+
+    boolean hasProperType =
+        scalarTypes.stream()
+            .anyMatch(
+                type -> {
+                  if (argumentType instanceof TypeName) {
+                    return type.getName().equals(((TypeName) argumentType).getName());
+                  }
+                  return false;
+                });
+
+    if (!hasProperType) {
+      invalidMapping(
+          "Operation %s: expected argument %s to have one of the types: %s to match %s.%s",
+          operationName,
+          argument.getName(),
+          scalarTypes.stream().map(GraphQLScalarType::getName).collect(Collectors.toList()),
+          entity.getGraphqlName(),
+          field.getGraphqlName());
       throw SkipException.INSTANCE;
     }
   }
