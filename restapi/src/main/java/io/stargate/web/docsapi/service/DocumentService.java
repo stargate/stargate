@@ -2,10 +2,12 @@ package io.stargate.web.docsapi.service;
 
 import static io.stargate.web.docsapi.dao.DocumentDB.MAX_DEPTH;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -59,6 +61,7 @@ public class DocumentService {
   private JsonConverter jsonConverterService;
   private ObjectMapper mapper;
   private DocsSchemaChecker schemaChecker;
+  private JsonSchemaHandler jsonSchemaHandler;
 
   @Inject
   public DocumentService(
@@ -66,12 +69,14 @@ public class DocumentService {
       ObjectMapper mapper,
       JsonConverter jsonConverterService,
       DocsApiConfiguration docsApiConfiguration,
-      DocsSchemaChecker schemaChecker) {
+      DocsSchemaChecker schemaChecker,
+      JsonSchemaHandler jsonSchemaHandler) {
     this.timeSource = timeSource;
     this.mapper = mapper;
     this.jsonConverterService = jsonConverterService;
     this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
+    this.jsonSchemaHandler = jsonSchemaHandler;
   }
 
   /*
@@ -401,9 +406,8 @@ public class DocumentService {
       boolean isJson,
       Map<String, String> headers,
       ExecutionContext context)
-      throws UnauthorizedException {
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
-
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
     boolean created = db.maybeCreateTable(keyspace, collection);
@@ -412,6 +416,13 @@ public class DocumentService {
     if (created) {
       db = dbFactory.getDocDataStoreForToken(authToken, headers);
       db.maybeCreateTableIndexes(keyspace, collection);
+    }
+
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
+    if (schema != null && path.isEmpty()) {
+      jsonSchemaHandler.validate(schema, payload);
+    } else if (schema != null) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
     }
 
     schemaChecker.checkValidity(keyspace, collection, db);

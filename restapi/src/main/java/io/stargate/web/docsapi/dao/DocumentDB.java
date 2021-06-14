@@ -167,6 +167,17 @@ public class DocumentDB {
     return dataStore.schema();
   }
 
+  public void writeJsonSchemaToCollection(String namespace, String collection, String schemaData) {
+    this.builder()
+        .alter()
+        .table(namespace, collection)
+        .withComment(schemaData)
+        .build()
+        .execute()
+        .join();
+    this.dataStore.waitForSchemaAgreement();
+  }
+
   /**
    * Creates the table described by @param tableName, in keyspace @keyspaceName, if it doesn't
    * already exist.

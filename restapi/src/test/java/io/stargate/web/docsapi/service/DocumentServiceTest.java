@@ -32,6 +32,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap.Builder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -111,6 +112,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private final JsonConverter converter = new JsonConverter(mapper, config);
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
+  @Mock private JsonSchemaHandler jsonSchemaHandler;
   @Mock private AuthenticationService authenticationService;
   @Mock private AuthorizationService authorizationService;
   @Mock private DataStoreFactory dataStoreFactory;
@@ -152,7 +154,9 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     db = new Db(authenticationService, authorizationService, dataStoreFactory);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
-    service = new DocumentService(timeSource, mapper, converter, config, schemaChecker);
+    service =
+        new DocumentService(
+            timeSource, mapper, converter, config, schemaChecker, jsonSchemaHandler);
     resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
   }
 
@@ -612,7 +616,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathRoot() throws UnauthorizedException {
+  void testPutAtPathRoot()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
         .returningNothing();
 
@@ -660,7 +665,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathNested() throws UnauthorizedException {
+  void testPutAtPathNested()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
     withQuery(
             table,
             "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?",
@@ -696,7 +702,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathPatch() throws UnauthorizedException {
+  void testPutAtPathPatch()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
     String insert =
         "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
     withQuery(table, insert, fillParams(70, "id3", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
