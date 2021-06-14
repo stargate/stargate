@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.core.Response;
+import org.apache.http.HttpStatus;
 
 public class GraphqlFirstClient extends GraphqlClient {
 
@@ -76,8 +77,8 @@ public class GraphqlFirstClient extends GraphqlClient {
    */
   public List<Map<String, Object>> getDeploySchemaErrors(
       String keyspace, String expectedVersion, String contents) {
-    return getGraphqlErrors(
-        authToken, adminUri, buildDeploySchemaQuery(keyspace, expectedVersion, false, contents));
+    String query = buildDeploySchemaQuery(keyspace, expectedVersion, false, contents);
+    return getGraphqlErrors(authToken, adminUri, query, HttpStatus.SC_OK);
   }
 
   /**
@@ -94,7 +95,10 @@ public class GraphqlFirstClient extends GraphqlClient {
   public String getDeploySchemaError(
       String keyspace, String expectedVersion, boolean force, String contents) {
     return getGraphqlError(
-        authToken, adminUri, buildDeploySchemaQuery(keyspace, expectedVersion, force, contents));
+        authToken,
+        adminUri,
+        buildDeploySchemaQuery(keyspace, expectedVersion, force, contents),
+        HttpStatus.SC_OK);
   }
 
   private String buildDeploySchemaQuery(
@@ -119,7 +123,10 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   public String getUndeploySchemaError(String keyspace, String expectedVersion, boolean force) {
     return getGraphqlError(
-        authToken, adminUri, buildUndeploySchemaQuery(keyspace, expectedVersion, force));
+        authToken,
+        adminUri,
+        buildUndeploySchemaQuery(keyspace, expectedVersion, force),
+        HttpStatus.SC_OK);
   }
 
   public String getUndeploySchemaError(String keyspace, String expectedVersion) {
@@ -177,7 +184,7 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
   public String getKeyspaceError(String keyspace, String graphqlQuery) {
-    return getGraphqlError(authToken, buildKeyspaceUri(keyspace), graphqlQuery);
+    return getGraphqlError(authToken, buildKeyspaceUri(keyspace), graphqlQuery, HttpStatus.SC_OK);
   }
 
   private String buildSchemaFileUri(String keyspace, String version) {

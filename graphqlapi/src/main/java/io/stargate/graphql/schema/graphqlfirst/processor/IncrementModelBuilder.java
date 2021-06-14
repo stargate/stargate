@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.schema.GraphQLScalarType;
@@ -64,36 +65,55 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "prepend", context))
             .orElse(PREPEND_DEFAULT);
 
-    validate(field);
+    validate(field, prepend);
     return new IncrementModel(field, prepend, argument.getName());
   }
 
-  protected void validate(FieldModel field) throws SkipException {
+  protected void validate(FieldModel field, boolean prepend) throws SkipException {
     if (field.isPartitionKey() || field.isClusteringColumn()) {
       invalidMapping(
           "Operation %s: directive %s is not supported for partition/clustering key field %s.",
           operationName, CqlDirectives.INCREMENT, field.getGraphqlName());
       throw SkipException.INSTANCE;
     } else {
-      checkValidForRegularColumn(field);
+      checkValidForRegularColumn(field, prepend);
     }
   }
 
-  private void checkValidForRegularColumn(FieldModel field) throws SkipException {
+  private void checkValidForRegularColumn(FieldModel field, boolean prepend) throws SkipException {
 
     Type<?> fieldInputType =
         toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
     // if it is non-list type
     if (fieldInputType instanceof TypeName) {
-      String typeName = ((TypeName) fieldInputType).getName();
-      if (typeName.equalsIgnoreCase(COUNTER_TYPE_NAME)) {
-        // counter graph-ql field can be BIGINT or INT
-        checkArgumentIsAnyOfTypes(
-            Arrays.asList(CqlScalar.BIGINT.getGraphqlType(), Scalars.GraphQLInt));
-      }
+      validateCounter((TypeName) fieldInputType);
+      validatePrepend(field, prepend);
     } else {
       // otherwise it must be a list
       checkArgumentIsListOf(argument, entity, entities, operationName, field);
+    }
+  }
+
+  private void validateCounter(TypeName fieldInputType) throws SkipException {
+    String typeName = fieldInputType.getName();
+    if (typeName.equalsIgnoreCase(COUNTER_TYPE_NAME)) {
+      // counter graph-ql field can be BIGINT or INT
+      checkArgumentIsAnyOfTypes(
+          Arrays.asList(CqlScalar.BIGINT.getGraphqlType(), Scalars.GraphQLInt));
+    }
+  }
+
+  private void validatePrepend(FieldModel field, boolean prepend) throws SkipException {
+    if (prepend) {
+      Type<?> fieldInputType =
+          toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
+      if (!(fieldInputType instanceof ListType)) {
+        invalidMapping(
+            "Operation %s: the %s directive with prepend = true cannot be used with argument %s "
+                + "because it is not a list",
+            operationName, CqlDirectives.INCREMENT, argument.getName());
+        throw SkipException.INSTANCE;
+      }
     }
   }
 

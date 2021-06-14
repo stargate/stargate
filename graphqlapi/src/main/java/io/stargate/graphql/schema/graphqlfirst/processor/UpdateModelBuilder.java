@@ -23,6 +23,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.DirectiveModelsBuilder.
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 class UpdateModelBuilder extends MutationModelBuilder {
@@ -121,7 +122,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
         returnType,
         responsePayload,
         ifExists,
-        incrementModel);
+        incrementModel,
+        getConsistencyLevel(cqlUpdateDirective),
+        getSerialConsistencyLevel(cqlUpdateDirective));
   }
 
   private Optional<IncrementModel> getAndValidate(List<IncrementModel> incrementModel)

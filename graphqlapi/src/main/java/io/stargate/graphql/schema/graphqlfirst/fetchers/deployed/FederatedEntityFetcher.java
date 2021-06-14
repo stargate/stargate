@@ -81,15 +81,7 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
             representation::get,
             entityModel::validateNoFiltering,
             keyspace);
-    ResultSet resultSet =
-        query(
-            entityModel,
-            whereConditions,
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            dataStore,
-            context);
+    ResultSet resultSet = query(entityModel, whereConditions, Optional.empty(), dataStore, context);
     Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
     return FederatedEntity.wrap(entityModel, entity);
   }

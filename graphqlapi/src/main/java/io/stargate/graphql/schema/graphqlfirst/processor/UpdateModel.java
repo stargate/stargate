@@ -20,6 +20,7 @@ import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.UpdateFetcher;
 import java.util.List;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class UpdateModel extends MutationModel {
 
@@ -42,8 +43,10 @@ public class UpdateModel extends MutationModel {
       ReturnType returnType,
       Optional<ResponsePayloadModel> responsePayload,
       boolean ifExists,
-      Optional<IncrementModel> incrementModel) {
-    super(parentTypeName, field);
+      Optional<IncrementModel> incrementModel,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel) {
+    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.whereConditions = whereConditions;
     this.ifConditions = ifConditions;

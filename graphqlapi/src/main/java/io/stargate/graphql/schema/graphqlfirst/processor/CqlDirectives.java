@@ -37,6 +37,7 @@ import graphql.schema.idl.SchemaPrinter;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.stargate.db.query.Predicate;
 import java.util.Set;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
  * Builds all the GraphQL directives that can be used in a deployed schema to customize the CQL
@@ -246,9 +247,21 @@ public class CqlDirectives {
           .validLocations(OBJECT, INPUT_OBJECT)
           .build();
 
+  private static final GraphQLEnumType QUERY_CONSISTENCY_ENUM =
+      newEnum()
+          .name("QueryConsistency")
+          .description("The consistency level of the CQL SELECT generated for a query.")
+          .value(ConsistencyLevel.LOCAL_ONE.name())
+          .value(ConsistencyLevel.LOCAL_QUORUM.name())
+          .value(ConsistencyLevel.ALL.name())
+          .value(ConsistencyLevel.SERIAL.name())
+          .value(ConsistencyLevel.LOCAL_SERIAL.name())
+          .build();
+
   public static final String SELECT = "cql_select";
   public static final String SELECT_LIMIT = "limit";
   public static final String SELECT_PAGE_SIZE = "pageSize";
+  public static final String SELECT_CONSISTENCY_LEVEL = "consistencyLevel";
 
   private static final GraphQLDirective SELECT_DIRECTIVE =
       newDirective()
@@ -283,7 +296,30 @@ public class CqlDirectives {
                           + "Then the page state returned by each query can be reinjected into the "
                           + "next query to get the next page.")
                   .build())
+          .argument(
+              newArgument()
+                  .name(SELECT_CONSISTENCY_LEVEL)
+                  .type(QUERY_CONSISTENCY_ENUM)
+                  .description("The consistency level to use.")
+                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
+                  .build())
           .validLocation(FIELD_DEFINITION)
+          .build();
+
+  private static final GraphQLEnumType MUTATION_CONSISTENCY_ENUM =
+      newEnum()
+          .name("MutationConsistency")
+          .description("The consistency level of the CQL query generated for a mutation.")
+          .value(ConsistencyLevel.LOCAL_ONE.name())
+          .value(ConsistencyLevel.LOCAL_QUORUM.name())
+          .value(ConsistencyLevel.ALL.name())
+          .build();
+  private static final GraphQLEnumType SERIAL_CONSISTENCY_ENUM =
+      newEnum()
+          .name("SerialConsistency")
+          .description("The serial consistency level of the CQL query generated for a mutation.")
+          .value(ConsistencyLevel.SERIAL.name())
+          .value(ConsistencyLevel.LOCAL_SERIAL.name())
           .build();
 
   public static final String INSERT = "cql_insert";
@@ -292,6 +328,8 @@ public class CqlDirectives {
   public static final String UPDATE_OR_DELETE_TARGET_ENTITY = "targetEntity";
   public static final String UPDATE_OR_DELETE_IF_EXISTS = "ifExists";
   public static final String DELETE = "cql_delete";
+  public static final String MUTATION_CONSISTENCY_LEVEL = "consistencyLevel";
+  public static final String MUTATION_SERIAL_CONSISTENCY_LEVEL = "serialConsistency";
 
   private static final GraphQLDirective INSERT_DIRECTIVE =
       newDirective()
@@ -318,6 +356,20 @@ public class CqlDirectives {
                           + "the operation. It should not be used casually.\n"
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfNotExists`.")
+                  .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_CONSISTENCY_LEVEL)
+                  .type(MUTATION_CONSISTENCY_ENUM)
+                  .description("The consistency level to use.")
+                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
+                  .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
+                  .type(SERIAL_CONSISTENCY_ENUM)
+                  .description("The serial consistency level to use.")
+                  .defaultValue(ConsistencyLevel.SERIAL.name())
                   .build())
           .validLocation(FIELD_DEFINITION)
           .build();
@@ -357,6 +409,20 @@ public class CqlDirectives {
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfExists`.")
                   .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_CONSISTENCY_LEVEL)
+                  .type(MUTATION_CONSISTENCY_ENUM)
+                  .description("The consistency level to use.")
+                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
+                  .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
+                  .type(SERIAL_CONSISTENCY_ENUM)
+                  .description("The serial consistency level to use.")
+                  .defaultValue(ConsistencyLevel.SERIAL.name())
+                  .build())
           .validLocation(FIELD_DEFINITION)
           .build();
 
@@ -395,6 +461,20 @@ public class CqlDirectives {
                           + "the operation. It should not be used casually.\n"
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfExists`.")
+                  .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_CONSISTENCY_LEVEL)
+                  .type(MUTATION_CONSISTENCY_ENUM)
+                  .description("The consistency level to use.")
+                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
+                  .build())
+          .argument(
+              newArgument()
+                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
+                  .type(SERIAL_CONSISTENCY_ENUM)
+                  .description("The serial consistency level to use.")
+                  .defaultValue(ConsistencyLevel.SERIAL.name())
                   .build())
           .validLocation(FIELD_DEFINITION)
           .build();

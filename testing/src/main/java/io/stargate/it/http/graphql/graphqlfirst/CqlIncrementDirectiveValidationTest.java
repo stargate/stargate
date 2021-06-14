@@ -155,7 +155,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("Operation query: @cql_increment is not allowed on query arguments (k)");
+        .contains("Operation counters: @cql_increment is not allowed on query arguments (k)");
   }
 
   @Test

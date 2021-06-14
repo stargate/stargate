@@ -18,6 +18,7 @@ package io.stargate.it.http.graphql.cqlfirst;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.http.graphql.GraphqlClient;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 
 public class CqlFirstClient extends GraphqlClient {
 
@@ -36,9 +37,18 @@ public class CqlFirstClient extends GraphqlClient {
     return getGraphqlData(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
   }
 
-  /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
+  /**
+   * Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error, and assuming
+   * status code 200.s
+   */
   public String getDmlQueryError(CqlIdentifier keyspaceId, String graphqlQuery) {
-    return getGraphqlError(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery);
+    return getDmlQueryError(keyspaceId, graphqlQuery, HttpStatus.SC_OK);
+  }
+
+  /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */
+  public String getDmlQueryError(
+      CqlIdentifier keyspaceId, String graphqlQuery, int expectedStatus) {
+    return getGraphqlError(authToken, buildKeyspaceUrl(keyspaceId), graphqlQuery, expectedStatus);
   }
 
   /** Executes a GraphQL query in {@code graphql-schema}, expecting a successful response. */
@@ -50,10 +60,12 @@ public class CqlFirstClient extends GraphqlClient {
    * Executes a GraphQL query in {@code graphql-schema}, expecting a <b>single</b> GraphQL error.
    */
   public String getDdlQueryError(String query) {
-    return getGraphqlError(authToken, dmlUrl, query);
+    return getGraphqlError(authToken, dmlUrl, query, HttpStatus.SC_OK);
   }
 
   private String buildKeyspaceUrl(CqlIdentifier keyspaceId) {
-    return String.format("http://%s:8080/graphql/%s", host, urlEncode(keyspaceId.asInternal()));
+    return (keyspaceId == null)
+        ? String.format("http://%s:8080/graphql", host)
+        : String.format("http://%s:8080/graphql/%s", host, urlEncode(keyspaceId.asInternal()));
   }
 }

@@ -43,17 +43,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
-
-  private final InsertModel model;
+public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Object>> {
 
   public InsertFetcher(InsertModel model, MappingModel mappingModel) {
-    super(mappingModel);
-    this.model = model;
+    super(model, mappingModel);
   }
 
   @Override
@@ -101,7 +97,7 @@ public class InsertFetcher extends DeployedFetcher<Map<String, Object>> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
+    ResultSet resultSet = executeUnchecked(query, dataStore);
 
     if (responseContainsEntity) {
       Map<String, Object> entityData;

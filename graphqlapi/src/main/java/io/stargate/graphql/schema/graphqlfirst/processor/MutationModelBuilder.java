@@ -24,6 +24,7 @@ import graphql.language.TypeName;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationModel> {
 
@@ -93,5 +94,22 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
               }
               return false;
             });
+  }
+
+  protected Optional<ConsistencyLevel> getConsistencyLevel(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getEnumArgument(
+                d, CqlDirectives.MUTATION_CONSISTENCY_LEVEL, ConsistencyLevel.class, context));
+  }
+
+  protected Optional<ConsistencyLevel> getSerialConsistencyLevel(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getEnumArgument(
+                d,
+                CqlDirectives.MUTATION_SERIAL_CONSISTENCY_LEVEL,
+                ConsistencyLevel.class,
+                context));
   }
 }

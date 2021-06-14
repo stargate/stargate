@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
@@ -39,16 +40,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {
-      "CREATE TABLE IF NOT EXISTS list_test (k text, v list<text>, PRIMARY KEY(k))",
-      "CREATE TABLE IF NOT EXISTS set_test (k text, v set<text>, PRIMARY KEY(k))",
-      "CREATE TABLE IF NOT EXISTS map_test (k text, v map<text, int>, PRIMARY KEY(k))",
-      "CREATE TABLE IF NOT EXISTS tuple_test (k text, v tuple<text, int, uuid>, PRIMARY KEY(k))",
+      "CREATE TYPE udt (f1 int, f2 text, f3 uuid)",
+      "CREATE TABLE IF NOT EXISTS udt_test (k text, v udt, PRIMARY KEY(k))",
     })
-public class CollectionsTest extends GrpcIntegrationTest {
+public class UdtTest extends GrpcIntegrationTest {
 
   @ParameterizedTest
-  @MethodSource("collectionValues")
-  public void collections(Value collection, String tableName, @TestKeyspace CqlIdentifier keyspace)
+  @MethodSource("udtValues")
+  public void udts(Value udt, String tableName, @TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
 
@@ -58,7 +57,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
                 String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
                 queryParameters(keyspace),
                 Values.of("a"),
-                collection));
+                udt));
     assertThat(response).isNotNull();
 
     response =
@@ -72,35 +71,22 @@ public class CollectionsTest extends GrpcIntegrationTest {
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("a"));
-    assertThat(rs.getRows(0).getValues(1)).isEqualTo(collection);
+    assertThat(rs.getRows(0).getValues(1)).isEqualTo(udt);
   }
 
-  public static Stream<Arguments> collectionValues() {
+  public static Stream<Arguments> udtValues() {
     return Stream.of(
-        Arguments.of(Values.of(Values.of("a"), Values.of("b"), Values.of("c")), "list_test"),
-        Arguments.of(Values.of(Values.of("a"), Values.of("b"), Values.of("c")), "set_test"),
         Arguments.of(
-            Values.of(
-                Values.of("a"), Values.of(1),
-                Values.of("b"), Values.of(2),
-                Values.of("c"), Values.of(3)),
-            "map_test"),
-        Arguments.of(Values.of(Values.of("a")), "tuple_test"),
-        Arguments.of(Values.of(Values.of("a"), Values.of(1)), "tuple_test"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.of(1), Values.of(UUID.randomUUID())), "tuple_test"),
-        Arguments.of(
-            Values.of(Values.NULL, Values.of(1), Values.of(UUID.randomUUID())), "tuple_test"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.NULL, Values.of(UUID.randomUUID())), "tuple_test"),
-        Arguments.of(Values.of(Values.of("a"), Values.of(1), Values.NULL), "tuple_test"),
-        Arguments.of(Values.of(Values.NULL, Values.NULL, Values.NULL), "tuple_test"));
+            Values.udtOf(
+                ImmutableMap.of(
+                    "f1", Values.of(1), "f2", Values.of("a"), "f3", Values.of(UUID.randomUUID()))),
+            "udt_test"));
   }
 
   @ParameterizedTest
   @MethodSource("emptyValues")
-  public void emptyCollections(
-      Value collection, Value expected, String tableName, @TestKeyspace CqlIdentifier keyspace)
+  public void emptyUdts(
+      Value udt, Value expected, String tableName, @TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
 
@@ -110,7 +96,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
                 String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
                 queryParameters(keyspace),
                 Values.of("b"),
-                collection));
+                udt));
     assertThat(response).isNotNull();
 
     response =
@@ -129,23 +115,26 @@ public class CollectionsTest extends GrpcIntegrationTest {
 
   public static Stream<Arguments> emptyValues() {
     return Stream.of(
-        Arguments.of(Values.of(), Values.NULL, "list_test"),
-        Arguments.of(Values.NULL, Values.NULL, "list_test"),
-        Arguments.of(Values.of(), Values.NULL, "set_test"),
-        Arguments.of(Values.NULL, Values.NULL, "set_test"),
-        Arguments.of(Values.of(), Values.NULL, "map_test"),
-        Arguments.of(Values.NULL, Values.NULL, "map_test"),
-        Arguments.of(Values.of(), Values.of(), "tuple_test"),
-        Arguments.of(Values.NULL, Values.NULL, "tuple_test"));
+        Arguments.of(Values.udtOf(ImmutableMap.of()), Values.NULL, "udt_test"),
+        Arguments.of(
+            Values.udtOf(ImmutableMap.of("f1", Values.NULL, "f2", Values.NULL, "f3", Values.NULL)),
+            Values.NULL,
+            "udt_test"),
+        Arguments.of(
+            Values.udtOf(ImmutableMap.of("f1", Values.of(1))),
+            Values.udtOf(ImmutableMap.of("f1", Values.of(1), "f2", Values.NULL, "f3", Values.NULL)),
+            "udt_test"),
+        Arguments.of(
+            Values.udtOf(ImmutableMap.of("f2", Values.of("abc"))),
+            Values.udtOf(
+                ImmutableMap.of("f1", Values.NULL, "f2", Values.of("abc"), "f3", Values.NULL)),
+            "udt_test"));
   }
 
   @ParameterizedTest
   @MethodSource("invalidValues")
-  public void invalidCollections(
-      Value collection,
-      String tableName,
-      String expectedMessage,
-      @TestKeyspace CqlIdentifier keyspace) {
+  public void invalidUdts(
+      Value udt, String tableName, String expectedMessage, @TestKeyspace CqlIdentifier keyspace) {
     StargateBlockingStub stub = stubWithCallCredentials();
 
     assertThatThrownBy(
@@ -156,7 +145,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
                           String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
                           queryParameters(keyspace),
                           Values.of("b"),
-                          collection));
+                          udt));
               assertThat(response).isNotNull();
             })
         .isInstanceOf(StatusRuntimeException.class)
@@ -166,44 +155,8 @@ public class CollectionsTest extends GrpcIntegrationTest {
   public static Stream<Arguments> invalidValues() {
     return Stream.of(
         Arguments.of(
-            Values.of(Values.of(1)),
-            "list_test",
-            "Invalid argument at position 2: Expected string type"),
-        Arguments.of(
-            Values.of(Values.NULL),
-            "list_test",
-            "Invalid argument at position 2: null is not supported inside lists"),
-        Arguments.of(
-            Values.of(Values.of(1)),
-            "set_test",
-            "Invalid argument at position 2: Expected string type"),
-        Arguments.of(
-            Values.of(Values.NULL),
-            "set_test",
-            "Invalid argument at position 2: null is not supported inside sets"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.of("b")),
-            "map_test",
-            "Invalid argument at position 2: Expected integer type"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.of(1), Values.of("b")),
-            "map_test",
-            "Invalid argument at position 2: Expected an even number of elements"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.NULL),
-            "map_test",
-            "Invalid argument at position 2: null is not supported inside maps"),
-        Arguments.of(
-            Values.of(Values.NULL, Values.NULL),
-            "map_test",
-            "Invalid argument at position 2: null is not supported inside maps"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.of(1), Values.of(2)),
-            "tuple_test",
-            "Invalid argument at position 2: Expected UUID type"),
-        Arguments.of(
-            Values.of(Values.of("a"), Values.of(1), Values.of(UUID.randomUUID()), Values.of("b")),
-            "tuple_test",
-            "Invalid argument at position 2: Too many tuple fields. Expected 3, but received 4"));
+            Values.udtOf(ImmutableMap.of("f1", Values.of("string_instead_of_int"))),
+            "udt_test",
+            "Invalid argument at position 2: Expected integer type"));
   }
 }

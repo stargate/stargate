@@ -1296,6 +1296,37 @@ public abstract class PersistenceTest {
   }
 
   @Test
+  public void testTableCommentSelect() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("graph", Boolean, PartitionKey)
+        .column("name", Column.Type.Text)
+        .withComment("This is a table")
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+    Table theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.comment()).isEqualTo("This is a table");
+
+    dataStore
+        .queryBuilder()
+        .alter()
+        .table(keyspace, table)
+        .withComment("This is still a table")
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+
+    theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.comment()).isEqualTo("This is still a table");
+  }
+
+  @Test
   public void testInsertWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore

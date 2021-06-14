@@ -254,10 +254,10 @@ class DirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
       BuildState buildState,
       InputValueDefinition inputValue,
       String cqlDirective,
-      String operationName) {
+      String queryType) {
     invalidMapping(
         "Operation %s: @%s is not allowed on %s arguments (%s)",
-        operationName, cqlDirective, operationName, inputValue.getName());
+        operationName, cqlDirective, queryType, inputValue.getName());
     buildState.setFoundErrors();
   }
 

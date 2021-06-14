@@ -68,14 +68,9 @@ public class DmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    String defaultKeyspaceName = graphqlCache.getDefaultKeyspaceName();
-    if (defaultKeyspaceName == null) {
-      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
-    } else {
-      GraphQL graphql = getGraphql(defaultKeyspaceName, httpRequest, asyncResponse);
-      if (graphql != null) {
-        get(query, operationName, variables, graphql, httpRequest, asyncResponse);
-      }
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
+    if (graphql != null) {
+      get(query, operationName, variables, graphql, httpRequest, asyncResponse);
     }
   }
 
@@ -103,7 +98,7 @@ public class DmlResource extends GraphqlResourceBase {
       @Context HttpServletRequest httpRequest,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphql(graphqlCache.getDefaultKeyspaceName(), httpRequest, asyncResponse);
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
     if (graphql != null) {
       postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse);
     }
@@ -133,7 +128,7 @@ public class DmlResource extends GraphqlResourceBase {
       @HeaderParam("X-Cassandra-Token") String token,
       @Suspended AsyncResponse asyncResponse) {
 
-    GraphQL graphql = getGraphql(graphqlCache.getDefaultKeyspaceName(), httpRequest, asyncResponse);
+    GraphQL graphql = getDefaultGraphql(httpRequest, asyncResponse);
     if (graphql != null) {
       postGraphql(query, graphql, httpRequest, asyncResponse);
     }
@@ -192,6 +187,16 @@ public class DmlResource extends GraphqlResourceBase {
           "Unexpected error while accessing keyspace: " + e.getMessage(),
           asyncResponse);
       return null;
+    }
+  }
+
+  private GraphQL getDefaultGraphql(HttpServletRequest httpRequest, AsyncResponse asyncResponse) {
+    String defaultKeyspaceName = graphqlCache.getDefaultKeyspaceName();
+    if (defaultKeyspaceName == null) {
+      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
+      return null;
+    } else {
+      return getGraphql(defaultKeyspaceName, httpRequest, asyncResponse);
     }
   }
 }
