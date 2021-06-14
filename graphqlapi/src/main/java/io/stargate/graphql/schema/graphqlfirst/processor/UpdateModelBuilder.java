@@ -84,7 +84,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         entityFromFirstArgument.map(__ -> firstArgument.getName());
     List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
-    Optional<IncrementModel> incrementModel; // only one column can be incremented by one query
+    List<IncrementModel> incrementModels;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -95,7 +95,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       entity = entityFromFirstArgument.get();
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
-      incrementModel = Optional.empty();
+      incrementModels = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", CqlDirectives.UPDATE);
       ArgumentDirectiveModels directives =
@@ -104,7 +104,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       whereConditions = directives.getWhereConditions();
       ifConditions = directives.getIfConditions();
       validate(whereConditions, ifConditions, ifExists, entity);
-      incrementModel = getAndValidate(directives.getIncrementModels());
+      incrementModels = directives.getIncrementModels();
     }
 
     Optional<ResponsePayloadModel> responsePayload =
@@ -122,27 +122,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
         returnType,
         responsePayload,
         ifExists,
-        incrementModel,
+        incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
         getSerialConsistencyLevel(cqlUpdateDirective));
-  }
-
-  private Optional<IncrementModel> getAndValidate(List<IncrementModel> incrementModel)
-      throws SkipException {
-
-    if (incrementModel.size() > 1) {
-      invalidMapping(
-          "The %s directive can be set only on one field, but it was set on %s fields.",
-          CqlDirectives.INCREMENT, incrementModel.size());
-      throw SkipException.INSTANCE;
-    }
-
-    if (incrementModel.isEmpty()) {
-      return Optional.empty();
-    }
-
-    return Optional.of(
-        incrementModel.get(0)); // there should be only one field with the CQL_INCREMENT directive
   }
 
   private void validate(

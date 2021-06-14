@@ -67,6 +67,7 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
         "type Counters @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
             + "  c: Counter\n"
+            + "  c2: Counter\n"
             + "}\n"
             + "type ListCounters @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
@@ -77,6 +78,12 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
             + " updateCountersIncrement(\n"
             + "    k: Int\n"
             + "    cInc: Int @cql_increment(field: \"c\")\n"
+            + "  ): Boolean\n"
+            + "@cql_update(targetEntity: \"Counters\")\n"
+            + " updateTwoCountersIncrement(\n"
+            + "    k: Int\n"
+            + "    cInc: Int @cql_increment(field: \"c\")\n"
+            + "    cInc2: Int @cql_increment(field: \"c2\")\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"Counters\")\n"
             + "  appendList(\n"
@@ -117,6 +124,31 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
     assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(12);
+  }
+
+  @Test
+  @DisplayName("Should update two counters field using increment operation")
+  public void testUpdateTwoCountersIncrement() {
+    // when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateTwoCountersIncrement(k: 1, cInc: 2, cInc2: 4) }");
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateTwoCountersIncrement")).isTrue();
+    Row row = getCounterRow(1);
+    assertThat(row.get("c", TypeCodecs.COUNTER)).isEqualTo(2);
+    assertThat(getCounterRow(1).get("c2", TypeCodecs.COUNTER)).isEqualTo(4);
+
+    // when
+    response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE, "mutation { updateTwoCountersIncrement(k: 1, cInc: 10, cInc2: 12) }");
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateTwoCountersIncrement")).isTrue();
+    row = getCounterRow(1);
+    assertThat(row.get("c", TypeCodecs.COUNTER)).isEqualTo(12);
+    assertThat(row.get("c2", TypeCodecs.COUNTER)).isEqualTo(16);
   }
 
   @Test

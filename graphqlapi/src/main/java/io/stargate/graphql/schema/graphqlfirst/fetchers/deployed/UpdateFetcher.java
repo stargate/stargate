@@ -79,10 +79,9 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
     Collection<ValueModifier> modifiers;
-    if (model.getIncrementModel().isPresent()) {
+    if (!model.getIncrementModel().isEmpty()) {
       modifiers =
-          buildIncrementModifiers(
-              model.getIncrementModel().get(), keyspace, hasArgument, getArgument);
+          buildIncrementModifiers(model.getIncrementModel(), keyspace, hasArgument, getArgument);
     } else {
       modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
     }
@@ -145,28 +144,31 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
   }
 
   private Collection<ValueModifier> buildIncrementModifiers(
-      IncrementModel incrementModel,
+      List<IncrementModel> incrementModels,
       Keyspace keyspace,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument) {
     List<ValueModifier> modifiers = new ArrayList<>();
-    FieldModel column = incrementModel.getField();
 
-    if (hasArgument.test(incrementModel.getArgumentName())) {
-      Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
-      Modification.Operation operation =
-          incrementModel.isPrepend()
-              ? Modification.Operation.PREPEND
-              : Modification.Operation.APPEND; // handles both increment and append
-      modifiers.add(
-          ValueModifier.of(
-              column.getCqlName(),
-              Value.of(toCqlValue(graphqlValue, column.getCqlType(), keyspace)),
-              operation));
-    }
-    if (modifiers.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Input object must have at least one non-PK field set for an update");
+    for (IncrementModel incrementModel : incrementModels) {
+      FieldModel column = incrementModel.getField();
+
+      if (hasArgument.test(incrementModel.getArgumentName())) {
+        Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
+        Modification.Operation operation =
+            incrementModel.isPrepend()
+                ? Modification.Operation.PREPEND
+                : Modification.Operation.APPEND; // handles both increment and append
+        modifiers.add(
+            ValueModifier.of(
+                column.getCqlName(),
+                Value.of(toCqlValue(graphqlValue, column.getCqlType(), keyspace)),
+                operation));
+      }
+      if (modifiers.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Input object must have at least one non-PK field set for an update");
+      }
     }
     return modifiers;
   }

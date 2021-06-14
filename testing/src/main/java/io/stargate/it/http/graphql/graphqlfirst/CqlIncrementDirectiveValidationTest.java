@@ -101,36 +101,6 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should fail when deploying schema with a cql_increment on more than one field")
-  public void shouldFailToDeploySchemaWithACqlIncrementOnMoreThanOneField() {
-    // given, when
-    Map<String, Object> errors =
-        CLIENT
-            .getDeploySchemaErrors(
-                KEYSPACE,
-                null,
-                "type Counters @cql_input {\n"
-                    + "  k: Int! @cql_column(partitionKey: true)\n"
-                    + "  c: Counter\n"
-                    + "}\n"
-                    + "type Query { counters(k: Int!): Counters }\n"
-                    + "type Mutation {\n"
-                    + " updateCountersIncrement(\n"
-                    + "    k: Int \n"
-                    + "    cInc: Int @cql_increment(field: \"c\")\n"
-                    + "    cInc2: Int @cql_increment(field: \"c\")\n"
-                    + "  ): Boolean\n"
-                    + "@cql_update(targetEntity: \"Counters\")\n"
-                    + "}")
-            .get(0);
-
-    // then
-    assertThat(getMappingErrors(errors))
-        .contains(
-            "The cql_increment directive can be set only on one field, but it was set on 2 fields.");
-  }
-
-  @Test
   @DisplayName("Should fail when deploying schema with cql_increment on a query field.")
   public void shouldFailToDeploySchemaWithIncrementOnQueryField() {
     // given, when
