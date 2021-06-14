@@ -138,7 +138,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
     }
     Type<?> expectedArgumentType = ((ListType) fieldInputType).getType();
 
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
+    if (!TypeHelper.deepEquals(argumentType, expectedArgumentType)) {
       invalidMapping(
           "Operation %s: expected argument %s to have type %s to match element type of %s.%s",
           operationName,
