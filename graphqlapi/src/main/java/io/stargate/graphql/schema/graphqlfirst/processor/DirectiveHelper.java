@@ -15,7 +15,15 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import graphql.language.*;
+import graphql.language.Argument;
+import graphql.language.BooleanValue;
+import graphql.language.Directive;
+import graphql.language.DirectivesContainer;
+import graphql.language.EnumValue;
+import graphql.language.InputValueDefinition;
+import graphql.language.IntValue;
+import graphql.language.StringValue;
+import graphql.language.Value;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -28,6 +36,10 @@ class DirectiveHelper {
       return Optional.of(container.getDirectives(name).get(0));
     }
     return Optional.empty();
+  }
+
+  public static boolean hasDirective(InputValueDefinition inputValue, String directive) {
+    return getDirective(directive, inputValue).isPresent();
   }
 
   static Optional<String> getStringArgument(
@@ -116,9 +128,5 @@ class DirectiveHelper {
 
   private DirectiveHelper() {
     // hide constructor for utility class
-  }
-
-  public static boolean hasDirective(InputValueDefinition inputValue, String directive) {
-    return DirectiveHelper.getDirective(directive, inputValue).isPresent();
   }
 }

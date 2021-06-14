@@ -404,7 +404,7 @@ public class CqlDirectives {
   public static final String INCREMENT = "cql_increment";
   public static final String WHERE_OR_IF_OR_INCREMENT_FIELD = "field";
   public static final String WHERE_OR_IF_PREDICATE = "predicate";
-  public static final String PREPEND = "prepend";
+  public static final String INCREMENT_PREPEND = "prepend";
 
   private static final GraphQLEnumType PREDICATE_ENUM =
       newEnum()
@@ -454,17 +454,17 @@ public class CqlDirectives {
                   .name(WHERE_OR_IF_OR_INCREMENT_FIELD)
                   .type(Scalars.GraphQLString)
                   .description(
-                      "The name of the field that the condition applies to (if absent, it will be "
+                      "The name of the field that the increment applies to (if absent, it will be "
                           + "the name of the argument).")
                   .build())
           .argument(
               newArgument()
-                  .name(PREPEND)
+                  .name(INCREMENT_PREPEND)
                   .type(Scalars.GraphQLBoolean)
                   .defaultValue(false)
                   .description(
                       "Specifies whether the value should be appended or prepended.\n"
-                          + "It applies only to list and set collections. The default is false, meaning that the value will be appended.")
+                          + "It applies only to list. The default is false, meaning that the value will be appended.")
                   .build())
           .validLocation(ARGUMENT_DEFINITION)
           .build();

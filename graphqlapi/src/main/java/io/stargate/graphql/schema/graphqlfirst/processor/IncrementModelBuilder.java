@@ -15,7 +15,10 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import graphql.language.*;
+import graphql.language.Directive;
+import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
+import graphql.language.Type;
 import java.util.*;
 
 public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {

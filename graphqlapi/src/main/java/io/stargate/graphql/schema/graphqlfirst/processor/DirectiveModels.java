@@ -9,15 +9,15 @@ public class DirectiveModels {
 
   private final List<ConditionModel> ifConditions;
   private final List<ConditionModel> whereConditions;
-  private final List<IncrementModel> incrementModel;
+  private final List<IncrementModel> incrementModels;
 
   public DirectiveModels(
       List<ConditionModel> ifConditions,
       List<ConditionModel> whereConditions,
-      List<IncrementModel> incrementModel) {
+      List<IncrementModel> incrementModels) {
     this.ifConditions = ifConditions;
     this.whereConditions = whereConditions;
-    this.incrementModel = incrementModel;
+    this.incrementModels = incrementModels;
   }
 
   public List<ConditionModel> getIfConditions() {
@@ -28,7 +28,7 @@ public class DirectiveModels {
     return whereConditions;
   }
 
-  public List<IncrementModel> getIncrementModel() {
-    return incrementModel;
+  public List<IncrementModel> getIncrementModels() {
+    return incrementModels;
   }
 }

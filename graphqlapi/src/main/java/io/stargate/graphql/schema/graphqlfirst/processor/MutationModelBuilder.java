@@ -15,7 +15,12 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import graphql.language.*;
+import graphql.language.Directive;
+import graphql.language.FieldDefinition;
+import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
+import graphql.language.Type;
+import graphql.language.TypeName;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;

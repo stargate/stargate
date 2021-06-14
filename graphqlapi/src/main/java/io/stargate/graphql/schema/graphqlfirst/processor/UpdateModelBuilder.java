@@ -103,7 +103,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       whereConditions = directives.getWhereConditions();
       ifConditions = directives.getIfConditions();
       validate(whereConditions, ifConditions, ifExists, entity);
-      incrementModel = getAndValidate(directives.getIncrementModel());
+      incrementModel = getAndValidate(directives.getIncrementModels());
     }
 
     Optional<ResponsePayloadModel> responsePayload =
