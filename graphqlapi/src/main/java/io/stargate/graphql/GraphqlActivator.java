@@ -43,7 +43,7 @@ public class GraphqlActivator extends BaseActivator {
   private static final String AUTH_IDENTIFIER =
       System.getProperty("stargate.auth_id", "AuthTableBasedService");
   private static final boolean ENABLE_GRAPHQL_FIRST =
-      Boolean.getBoolean("stargate.enable_graphql_first");
+      Boolean.getBoolean("stargate.graphql_first.enabled");
 
   private ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
