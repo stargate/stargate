@@ -129,4 +129,59 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
         .contains(
             "The cql_increment directive can be set only on one field, but it was set on 2 fields.");
   }
+
+  @Test
+  @DisplayName("Should fail when deploying schema with cql_increment on a query field.")
+  public void shouldFailToDeploySchemaWithIncrementOnQueryField() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type Counters @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  c: Counter\n"
+                    + "}\n"
+                    + "type Query { counters(k: Int! @cql_increment): Counters }\n"
+                    + "type Mutation {\n"
+                    + " updateCountersIncrement(\n"
+                    + "    k: Int\n"
+                    + "    cInc: Int\n"
+                    + "  ): Boolean\n"
+                    + "@cql_update(targetEntity: \"Counters\")\n"
+                    + "}")
+            .get(0);
+
+    // then
+    assertThat(getMappingErrors(errors))
+        .contains("Operation query: @cql_increment is not allowed on query arguments (k)");
+  }
+
+  @Test
+  @DisplayName("Should fail when deploying schema with cql_increment on a delete field.")
+  public void shouldFailToDeploySchemaWithIncrementOnDeleteField() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type Counters @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  c: Counter\n"
+                    + "}\n"
+                    + "type Query { counters(k: Int!): Counters }\n"
+                    + "type Mutation {\n"
+                    + " delete(\n"
+                    + "    k: Int @cql_increment\n"
+                    + "  ): Boolean\n"
+                    + "@cql_delete(targetEntity: \"Counters\")\n"
+                    + "}")
+            .get(0);
+
+    // then
+    assertThat(getMappingErrors(errors))
+        .contains("Operation delete: @cql_increment is not allowed on delete arguments (k)");
+  }
 }

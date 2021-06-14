@@ -95,16 +95,22 @@ class DirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
       switch (operationType) {
         case SELECT:
           if (hasIfDirective) {
-            invalidMapping(
-                "Operation %s: @%s is not allowed on query arguments (%s)",
-                operationName, CqlDirectives.IF, inputValue.getName());
-            buildState.setFoundErrors();
+            queryNotAllowed(buildState, inputValue, CqlDirectives.IF);
+            continue;
+          }
+          if (hasCqlIncrementDirective) {
+            queryNotAllowed(buildState, inputValue, CqlDirectives.INCREMENT);
             continue;
           }
           buildState.setWhereCondition();
           break;
         case DELETE:
           buildState.setWhereCondition(!hasIfDirective);
+
+          if (hasCqlIncrementDirective) {
+            deleteNotAllowed(buildState, inputValue, CqlDirectives.INCREMENT);
+            continue;
+          }
           break;
         case UPDATE:
           if (!handleUpdateAndReturnStatus(
@@ -232,6 +238,27 @@ class DirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
     invalidMapping(
         "Mutation %s: @%s is not allowed on primary key fields (%s)",
         operationName, directiveName, inputValue.getName());
+  }
+
+  private void deleteNotAllowed(
+      BuildState buildState, InputValueDefinition inputValue, String cqlDirective) {
+    operationNotAllowed(buildState, inputValue, cqlDirective, "delete");
+  }
+
+  private void queryNotAllowed(
+      BuildState buildState, InputValueDefinition inputValue, String cqlDirective) {
+    operationNotAllowed(buildState, inputValue, cqlDirective, "query");
+  }
+
+  private void operationNotAllowed(
+      BuildState buildState,
+      InputValueDefinition inputValue,
+      String cqlDirective,
+      String operationName) {
+    invalidMapping(
+        "Operation %s: @%s is not allowed on %s arguments (%s)",
+        operationName, cqlDirective, operationName, inputValue.getName());
+    buildState.setFoundErrors();
   }
 
   private Optional<FieldModel> findField(
