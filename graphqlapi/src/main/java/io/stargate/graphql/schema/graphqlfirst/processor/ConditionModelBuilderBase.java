@@ -15,8 +15,6 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static graphql.language.ListType.newListType;
-
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
@@ -83,24 +81,6 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
           entity.getGraphqlName(),
           field.getGraphqlName());
       throw SkipException.INSTANCE;
-    }
-  }
-
-  protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
-
-    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType =
-        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
-    Type<?> expectedArgumentType = newListType(fieldInputType).build();
-
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(expectedArgumentType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
     }
   }
 }

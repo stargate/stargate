@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static graphql.language.ListType.newListType;
+
 import com.google.errorprone.annotations.FormatMethod;
 import graphql.language.InputValueDefinition;
 import graphql.language.SourceLocation;
@@ -73,6 +75,30 @@ abstract class ModelBuilderBase<ModelT> {
           field.getGraphqlName(),
           e.getMessage());
       throw SkipException.INSTANCE;
+    }
+  }
+
+  protected void checkArgumentIsListOf(
+      InputValueDefinition argument,
+      EntityModel entity,
+      Map<String, EntityModel> entities,
+      String operationName,
+      FieldModel field)
+      throws SkipException {
+
+    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
+    Type<?> fieldInputType =
+        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
+    Type<?> expectedArgumentType = newListType(fieldInputType).build();
+
+    if (!argumentType.isEqualTo(expectedArgumentType)) {
+      invalidMapping(
+          "Operation %s: expected argument %s to have type %s to match %s.%s",
+          operationName,
+          argument.getName(),
+          TypeHelper.format(expectedArgumentType),
+          entity.getGraphqlName(),
+          field.getGraphqlName());
     }
   }
 }
