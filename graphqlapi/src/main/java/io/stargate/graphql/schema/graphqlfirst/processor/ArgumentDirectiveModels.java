@@ -3,15 +3,16 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import java.util.List;
 
 /**
- * Holds all CQL conditions (WHERE and IF) that were inferred for a particular GraphQL operation.
+ * Holds all CQL arguments including conditions (WHERE and IF) that were inferred for a particular
+ * GraphQL operation and increments.
  */
-public class DirectiveModels {
+public class ArgumentDirectiveModels {
 
   private final List<ConditionModel> ifConditions;
   private final List<ConditionModel> whereConditions;
   private final List<IncrementModel> incrementModels;
 
-  public DirectiveModels(
+  public ArgumentDirectiveModels(
       List<ConditionModel> ifConditions,
       List<ConditionModel> whereConditions,
       List<IncrementModel> incrementModels) {

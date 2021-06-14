@@ -67,7 +67,7 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                 });
 
     Optional<String> pagingStateArgumentName = findPagingState();
-    DirectiveModels conditions =
+    ArgumentDirectiveModels conditions =
         new DirectiveModelsBuilder(operation, OperationType.SELECT, entity, entities, context)
             .build();
     List<ConditionModel> whereConditions = conditions.getWhereConditions();

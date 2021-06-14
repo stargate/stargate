@@ -22,7 +22,7 @@ import graphql.language.InputValueDefinition;
 import java.util.Map;
 import java.util.Optional;
 
-class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
+class DirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
 
   /** The type of query, which determines how conditions are collected. */
   enum OperationType {
@@ -59,7 +59,7 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
   }
 
   @Override
-  DirectiveModels build() throws SkipException {
+  ArgumentDirectiveModels build() throws SkipException {
     ImmutableList.Builder<ConditionModel> ifConditions = ImmutableList.builder();
     ImmutableList.Builder<ConditionModel> whereConditions = ImmutableList.builder();
     ImmutableList.Builder<IncrementModel> incrementModels = ImmutableList.builder();
@@ -133,7 +133,7 @@ class DirectiveModelsBuilder extends ModelBuilderBase<DirectiveModels> {
     if (buildState.isFoundErrors()) {
       throw SkipException.INSTANCE;
     }
-    return new DirectiveModels(
+    return new ArgumentDirectiveModels(
         ifConditions.build(), whereConditions.build(), incrementModels.build());
   }
 

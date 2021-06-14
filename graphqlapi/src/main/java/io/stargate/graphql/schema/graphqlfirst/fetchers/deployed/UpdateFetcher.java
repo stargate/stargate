@@ -25,8 +25,10 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.Modification;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.*;
@@ -155,16 +157,15 @@ public class UpdateFetcher extends DeployedFetcher<Object> {
 
     if (hasArgument.test(incrementModel.getArgumentName())) {
       Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
-      if (incrementModel.isPrepend()) {
-        modifiers.add(
-            ValueModifier.prepend(
-                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      } else {
-        // the increment handles both increment and append
-        modifiers.add(
-            ValueModifier.increment(
-                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      }
+      Modification.Operation operation =
+          incrementModel.isPrepend()
+              ? Modification.Operation.PREPEND
+              : Modification.Operation.APPEND; // handles both increment and append
+      modifiers.add(
+          ValueModifier.of(
+              column.getCqlName(),
+              Value.of(toCqlValue(graphqlValue, column.getCqlType(), keyspace)),
+              operation));
     }
     if (modifiers.isEmpty()) {
       throw new IllegalArgumentException(

@@ -99,7 +99,7 @@ class DeleteModelBuilder extends MutationModelBuilder {
       ifConditions = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlDeleteDirective, "delete", CqlDirectives.DELETE);
-      DirectiveModels conditions =
+      ArgumentDirectiveModels conditions =
           new DirectiveModelsBuilder(operation, OperationType.DELETE, entity, entities, context)
               .build();
       whereConditions = conditions.getWhereConditions();

@@ -97,7 +97,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       incrementModel = Optional.empty();
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", CqlDirectives.UPDATE);
-      DirectiveModels directives =
+      ArgumentDirectiveModels directives =
           new DirectiveModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
               .build();
       whereConditions = directives.getWhereConditions();
