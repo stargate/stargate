@@ -79,9 +79,9 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
     Collection<ValueModifier> modifiers;
-    if (!model.getIncrementalModels().isEmpty()) {
+    if (!model.getIncrementModels().isEmpty()) {
       modifiers =
-          buildIncrementModifiers(model.getIncrementalModels(), keyspace, hasArgument, getArgument);
+          buildIncrementModifiers(model.getIncrementModels(), keyspace, hasArgument, getArgument);
     } else {
       modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
     }
