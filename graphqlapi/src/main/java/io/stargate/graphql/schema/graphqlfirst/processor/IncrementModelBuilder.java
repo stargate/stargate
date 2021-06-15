@@ -129,16 +129,12 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
       throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-
-    boolean hasProperType =
-        scalarTypes.stream()
-            .anyMatch(
-                type -> {
-                  if (argumentType instanceof TypeName) {
-                    return type.getName().equals(((TypeName) argumentType).getName());
-                  }
-                  return false;
-                });
+    boolean hasProperType = false;
+    if (argumentType instanceof TypeName) {
+      String argumentTypeName = ((TypeName) argumentType).getName();
+      hasProperType =
+          scalarTypes.stream().anyMatch(type -> type.getName().equals(argumentTypeName));
+    }
 
     if (!hasProperType) {
       invalidMapping(
