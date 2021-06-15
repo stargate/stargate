@@ -22,7 +22,7 @@ import graphql.language.InputValueDefinition;
 import java.util.Map;
 import java.util.Optional;
 
-class ArgumentsDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
+class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
 
   /** The type of query, which determines how conditions are collected. */
   enum OperationType {
@@ -44,7 +44,7 @@ class ArgumentsDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirective
   private final EntityModel entity;
   private final Map<String, EntityModel> entities;
 
-  ArgumentsDirectiveModelsBuilder(
+  ArgumentDirectiveModelsBuilder(
       FieldDefinition operation,
       OperationType operationType,
       EntityModel entity,
