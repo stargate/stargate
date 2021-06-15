@@ -92,6 +92,7 @@ class InsertModelBuilder extends MutationModelBuilder {
         ifNotExists,
         getConsistencyLevel(cqlInsertDirective),
         getSerialConsistencyLevel(cqlInsertDirective),
+        getTtl(cqlInsertDirective),
         returnType);
   }
 

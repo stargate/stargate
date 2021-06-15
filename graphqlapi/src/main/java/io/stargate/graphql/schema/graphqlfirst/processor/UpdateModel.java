@@ -32,6 +32,7 @@ public class UpdateModel extends MutationModel {
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifExists;
   private final List<IncrementModel> incrementModels;
+  private final Optional<Integer> ttl;
 
   public UpdateModel(
       String parentTypeName,
@@ -45,7 +46,8 @@ public class UpdateModel extends MutationModel {
       boolean ifExists,
       List<IncrementModel> incrementModels,
       Optional<ConsistencyLevel> consistencyLevel,
-      Optional<ConsistencyLevel> serialConsistencyLevel) {
+      Optional<ConsistencyLevel> serialConsistencyLevel,
+      Optional<Integer> ttl) {
     super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.whereConditions = whereConditions;
@@ -55,6 +57,7 @@ public class UpdateModel extends MutationModel {
     this.responsePayload = responsePayload;
     this.ifExists = ifExists;
     this.incrementModels = incrementModels;
+    this.ttl = ttl;
   }
 
   public EntityModel getEntity() {
@@ -87,6 +90,10 @@ public class UpdateModel extends MutationModel {
 
   public List<IncrementModel> getIncrementModels() {
     return incrementModels;
+  }
+
+  public Optional<Integer> getTtl() {
+    return ttl;
   }
 
   @Override

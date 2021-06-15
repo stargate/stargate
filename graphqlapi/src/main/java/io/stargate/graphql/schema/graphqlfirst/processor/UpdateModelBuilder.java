@@ -125,7 +125,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
         ifExists,
         incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
-        getSerialConsistencyLevel(cqlUpdateDirective));
+        getSerialConsistencyLevel(cqlUpdateDirective),
+        getTtl(cqlUpdateDirective));
   }
 
   private void validate(

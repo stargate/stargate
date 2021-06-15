@@ -27,6 +27,7 @@ import static graphql.schema.GraphQLSchema.newSchema;
 
 import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
+import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLFieldDefinition;
@@ -330,6 +331,35 @@ public class CqlDirectives {
   public static final String DELETE = "cql_delete";
   public static final String MUTATION_CONSISTENCY_LEVEL = "consistencyLevel";
   public static final String MUTATION_SERIAL_CONSISTENCY_LEVEL = "serialConsistency";
+  public static final String UPDATE_OR_INSERT_TTL = "ttl";
+
+  private static final GraphQLArgument MUTATION_CONSISTENCY_LEVEL_ARGUMENT =
+      newArgument()
+          .name(MUTATION_CONSISTENCY_LEVEL)
+          .type(MUTATION_CONSISTENCY_ENUM)
+          .description("The consistency level to use.")
+          .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
+          .build();
+
+  private static final GraphQLArgument MUTATION_SERIAL_CONSISTENCY_LEVEL_ARGUMENT =
+      newArgument()
+          .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
+          .type(SERIAL_CONSISTENCY_ENUM)
+          .description("The serial consistency level to use.")
+          .defaultValue(ConsistencyLevel.SERIAL.name())
+          .build();
+
+  private static final GraphQLArgument UPDATE_OR_INSERT_TTL_ARGUMENT =
+      newArgument()
+          .name(UPDATE_OR_INSERT_TTL)
+          .type(Scalars.GraphQLString)
+          .description(
+              "The TTL to use.\n"
+                  + "If this is a raw integer, it will be interpreted as a number of seconds. "
+                  + "Otherwise, it must be a valid ISO-8601 duration string (note that the "
+                  + "minimum granularity is seconds, so if the duration has a nanosecond part it "
+                  + "will be truncated). The value must be between 0 and 2^31- 1 (both included).")
+          .build();
 
   private static final GraphQLDirective INSERT_DIRECTIVE =
       newDirective()
@@ -357,20 +387,9 @@ public class CqlDirectives {
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfNotExists`.")
                   .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_CONSISTENCY_LEVEL)
-                  .type(MUTATION_CONSISTENCY_ENUM)
-                  .description("The consistency level to use.")
-                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
-                  .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
-                  .type(SERIAL_CONSISTENCY_ENUM)
-                  .description("The serial consistency level to use.")
-                  .defaultValue(ConsistencyLevel.SERIAL.name())
-                  .build())
+          .argument(MUTATION_CONSISTENCY_LEVEL_ARGUMENT)
+          .argument(MUTATION_SERIAL_CONSISTENCY_LEVEL_ARGUMENT)
+          .argument(UPDATE_OR_INSERT_TTL_ARGUMENT)
           .validLocation(FIELD_DEFINITION)
           .build();
 
@@ -409,20 +428,9 @@ public class CqlDirectives {
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfExists`.")
                   .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_CONSISTENCY_LEVEL)
-                  .type(MUTATION_CONSISTENCY_ENUM)
-                  .description("The consistency level to use.")
-                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
-                  .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
-                  .type(SERIAL_CONSISTENCY_ENUM)
-                  .description("The serial consistency level to use.")
-                  .defaultValue(ConsistencyLevel.SERIAL.name())
-                  .build())
+          .argument(MUTATION_CONSISTENCY_LEVEL_ARGUMENT)
+          .argument(MUTATION_SERIAL_CONSISTENCY_LEVEL_ARGUMENT)
+          .argument(UPDATE_OR_INSERT_TTL_ARGUMENT)
           .validLocation(FIELD_DEFINITION)
           .build();
 
@@ -462,20 +470,8 @@ public class CqlDirectives {
                           + "By convention, this flag will be set automatically if the mutation "
                           + "name ends with `IfExists`.")
                   .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_CONSISTENCY_LEVEL)
-                  .type(MUTATION_CONSISTENCY_ENUM)
-                  .description("The consistency level to use.")
-                  .defaultValue(ConsistencyLevel.LOCAL_QUORUM.name())
-                  .build())
-          .argument(
-              newArgument()
-                  .name(MUTATION_SERIAL_CONSISTENCY_LEVEL)
-                  .type(SERIAL_CONSISTENCY_ENUM)
-                  .description("The serial consistency level to use.")
-                  .defaultValue(ConsistencyLevel.SERIAL.name())
-                  .build())
+          .argument(MUTATION_CONSISTENCY_LEVEL_ARGUMENT)
+          .argument(MUTATION_SERIAL_CONSISTENCY_LEVEL_ARGUMENT)
           .validLocation(FIELD_DEFINITION)
           .build();
 
