@@ -21,7 +21,7 @@ import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import io.stargate.graphql.schema.graphqlfirst.processor.DirectiveModelsBuilder.OperationType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentsDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
@@ -74,7 +74,8 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
     Optional<String> pagingStateArgumentName = findPagingState();
     ArgumentDirectiveModels conditions =
-        new DirectiveModelsBuilder(operation, OperationType.SELECT, entity, entities, context)
+        new ArgumentsDirectiveModelsBuilder(
+                operation, OperationType.SELECT, entity, entities, context)
             .build();
     List<ConditionModel> whereConditions = conditions.getWhereConditions();
     validateNoFiltering(whereConditions, entity);

@@ -183,4 +183,33 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
         .contains(
             "Operation update: expected argument cInc to have one of the types: [BigInt, Int] to match Counters.c");
   }
+
+  @Test
+  @DisplayName("Should fail when deploying schema with cql_increment on non Int or BigInt field.")
+  public void shouldFailToDeploySchemaWithIncrementOnNotCounterField() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type Counters @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  c: Int\n"
+                    + "}\n"
+                    + "type Query { counters(k: Int!): Counters }\n"
+                    + "type Mutation {\n"
+                    + " update(\n"
+                    + "    k: Int\n"
+                    + "    cInc: String @cql_increment(field: \"c\")\n"
+                    + "  ): Boolean\n"
+                    + "@cql_update(targetEntity: \"Counters\")\n"
+                    + "}")
+            .get(0);
+
+    // then
+    assertThat(getMappingErrors(errors))
+        .contains(
+            "Operation update: expected argument cInc to have type: counter to match Counters.c");
+  }
 }

@@ -100,6 +100,14 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
       // counter graph-ql field can be BIGINT or INT
       checkArgumentIsAnyOfTypes(
           Arrays.asList(CqlScalar.BIGINT.getGraphqlType(), Scalars.GraphQLInt));
+    } else {
+      invalidMapping(
+          "Operation %s: expected argument %s to have type: %s to match %s.%s",
+          operationName,
+          argument.getName(),
+          COUNTER_TYPE_NAME,
+          entity.getGraphqlName(),
+          field.getGraphqlName());
     }
   }
 

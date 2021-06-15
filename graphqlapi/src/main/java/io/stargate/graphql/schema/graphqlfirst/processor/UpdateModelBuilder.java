@@ -19,7 +19,7 @@ import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
-import io.stargate.graphql.schema.graphqlfirst.processor.DirectiveModelsBuilder.OperationType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentsDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
@@ -99,7 +99,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", CqlDirectives.UPDATE);
       ArgumentDirectiveModels directives =
-          new DirectiveModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
+          new ArgumentsDirectiveModelsBuilder(
+                  operation, OperationType.UPDATE, entity, entities, context)
               .build();
       whereConditions = directives.getWhereConditions();
       ifConditions = directives.getIfConditions();

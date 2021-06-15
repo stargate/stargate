@@ -85,7 +85,7 @@ public class UpdateModel extends MutationModel {
     return responsePayload;
   }
 
-  public List<IncrementModel> getIncrementModel() {
+  public List<IncrementModel> getIncrementalModels() {
     return incrementModels;
   }
 
