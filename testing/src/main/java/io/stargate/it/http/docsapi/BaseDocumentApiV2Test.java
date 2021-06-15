@@ -1148,70 +1148,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
-  public void testFullCollectionSearchFilterNesting() throws IOException {
-    JsonNode fullObj1 =
-        OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
-    JsonNode fullObj2 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
-    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
-    RestUtils.put(authToken, collectionPath + "/cool-search-id-2", fullObj2.toString(), 200);
-
-    // Any filter on full collection search should only match the level of nesting of the where
-    // clause
-    String r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
-            200);
-
-    String expected = "{\"cool-search-id-2\":{\"value\":\"a\"}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
-
-    r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
-            200);
-
-    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
-
-    r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"a\"}}&raw=true",
-            200);
-
-    expected = "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
-  }
-
-  @Test
-  public void testFullCollectionSearchProfile() throws IOException {
-    JsonNode fullObj1 =
-        OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
-    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
-
-    String r =
-        RestUtils.get(
-            authToken,
-            hostWithPort
-                + "/v2/namespaces/"
-                + keyspace
-                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=false&profile=true",
-            200);
-    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
-  }
-
-  @Test
   public void testSearchIn() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -1570,6 +1506,394 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
       assertThat(responseBody1.findValue(keyName)).isNull();
     }
   }
+
+  @Test
+  public void createCollection() throws IOException {
+    String tableName = "tb_createTable_" + System.currentTimeMillis();
+
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\" : \"" + tableName + "\"}",
+        201);
+  }
+
+  @Test
+  public void createExistingCollection() throws IOException {
+    // second post fails with 409
+    String tableName = "tb_createTable_" + System.currentTimeMillis();
+
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\" : \"" + tableName + "\"}",
+        201);
+
+    String response =
+        RestUtils.post(
+            authToken,
+            hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+            "{\"name\" : \"" + tableName + "\"}",
+            409);
+
+    assertThat(response)
+        .isEqualTo(
+            "{\"description\":\"Create failed: collection "
+                + tableName
+                + " already exists.\",\"code\":409}");
+  }
+
+  ///////////////////////////////////////
+  //        Full docs search           //
+  ///////////////////////////////////////
+
+  @Test
+  public void searchSinglePersistenceFilter() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode matchingWrongPath = OBJECT_MAPPER.readTree("{\"someStuff\": {\"value\": \"a\"}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wrong-path", matchingWrongPath.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchMultiPersistenceFilter() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchSingleInMemoryFilter() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"value\": {\"$in\": [\"a\", \"b\"]}}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"value\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchMultiInMemoryFilter() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\", \"n\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$in\": [5]}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchMixedFilters() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\", \"n\": { \"value\": 10}}");
+    JsonNode nonMatching2 = OBJECT_MAPPER.readTree("{\"value\": \"c\", \"n\": { \"value\": 5}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching2", nonMatching2.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$gt\": 0, \"$lt\": 10}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathMatching() throws IOException {
+    JsonNode fullObj1 =
+        OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
+    JsonNode fullObj2 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/cool-search-id-2", fullObj2.toString(), 200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}&raw=true",
+            200);
+
+    String expected =
+        "{\"cool-search-id\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathSegmentMatching() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"n\": { \"value\": 5}}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"m\": { \"value\": 8}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"x\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"n,m.value\": {\"$gte\": 5}}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"n\":{\"value\":5}},\"matching2\":{\"m\":{\"value\":8}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathWildcardsMatching() throws Exception {
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"b\"}}&raw=true",
+            200);
+
+    String expected =
+        "{\"wild-card\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathWildcardsInMemoryMatching() throws Exception {
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$in\": [\"b\"]}}&raw=true",
+            200);
+
+    String expected =
+        "{\"wild-card\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathWildcardsCandidatesMatching() throws Exception {
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}&raw=true",
+            200);
+
+    String expected =
+        "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathWildcardsCandidatesInMemoryMatching() throws Exception {
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}&raw=true",
+            200);
+
+    String expected =
+        "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchPathWildcardsExists() throws Exception {
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}&raw=true",
+            200);
+
+    String expected =
+        "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchArrayPathMatching() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": [{ \"n\": { \"value\": 5} }]}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": [{ \"n\": { \"value\": 10} }]}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value.[0].n.value\": {\"$eq\": 5}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":[{\"n\":{\"value\":5}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchWithProfile() throws IOException {
+    JsonNode fullObj1 =
+        OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj1.toString(), 200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}}&raw=false&profile=true",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
+  }
+
+  // below are tests before move to the reactive search service, keeping for more safety
 
   @Test
   public void testGetFullDocMultiFilter() throws IOException {
@@ -2071,42 +2395,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
-  }
-
-  @Test
-  public void createCollection() throws IOException {
-    String tableName = "tb_createTable_" + System.currentTimeMillis();
-
-    RestUtils.post(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-        "{\"name\" : \"" + tableName + "\"}",
-        201);
-  }
-
-  @Test
-  public void createExistingCollection() throws IOException {
-    // second post fails with 409
-    String tableName = "tb_createTable_" + System.currentTimeMillis();
-
-    RestUtils.post(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-        "{\"name\" : \"" + tableName + "\"}",
-        201);
-
-    String response =
-        RestUtils.post(
-            authToken,
-            hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-            "{\"name\" : \"" + tableName + "\"}",
-            409);
-
-    assertThat(response)
-        .isEqualTo(
-            "{\"description\":\"Create failed: collection "
-                + tableName
-                + " already exists.\",\"code\":409}");
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
