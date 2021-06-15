@@ -15,27 +15,33 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
-import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import graphql.schema.GraphQLScalarType;
+import graphql.schema.idl.TypeUtil;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
 
-  public static final String COUNTER_TYPE_NAME = "counter";
+  // The types that we allow for an argument that represents an increment to a counter:
+  private static final List<String> COUNTER_INCREMENT_TYPES =
+      ImmutableList.of(
+          Scalars.GraphQLInt.getName(),
+          CqlScalar.BIGINT.getGraphqlType().getName(),
+          CqlScalar.COUNTER.getGraphqlType().getName());
+  private static final boolean PREPEND_DEFAULT = false;
+
   private final EntityModel entity;
   private final FieldModel field;
   private final Map<String, EntityModel> entities;
   private final ProcessingContext context;
 
-  private static final boolean PREPEND_DEFAULT = false;
   private final String operationName;
   private final InputValueDefinition argument;
 
@@ -75,76 +81,66 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
           "Operation %s: directive %s is not supported for partition/clustering key field %s.",
           operationName, CqlDirectives.INCREMENT, field.getGraphqlName());
       throw SkipException.INSTANCE;
-    } else {
-      checkValidForRegularColumn(field, prepend);
     }
-  }
-
-  private void checkValidForRegularColumn(FieldModel field, boolean prepend) throws SkipException {
 
     Type<?> fieldInputType =
         toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
-    // if it is non-list type
-    if (fieldInputType instanceof TypeName) {
-      validateCounter((TypeName) fieldInputType);
-      validatePrepend(field, prepend);
-    } else {
-      // otherwise it must be a list
-      checkArgumentIsListOf(argument, entity, entities, operationName, field);
-    }
-  }
 
-  private void validateCounter(TypeName fieldInputType) throws SkipException {
-    String typeName = fieldInputType.getName();
-    if (typeName.equalsIgnoreCase(COUNTER_TYPE_NAME)) {
-      // counter graph-ql field can be BIGINT or INT
-      checkArgumentIsAnyOfTypes(
-          Arrays.asList(CqlScalar.BIGINT.getGraphqlType(), Scalars.GraphQLInt));
-    } else {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type: %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          COUNTER_TYPE_NAME,
-          entity.getGraphqlName(),
-          field.getGraphqlName());
-    }
-  }
-
-  private void validatePrepend(FieldModel field, boolean prepend) throws SkipException {
-    if (prepend) {
-      Type<?> fieldInputType =
-          toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
-      if (!(fieldInputType instanceof ListType)) {
+    if (isCounter(fieldInputType)) {
+      if (prepend) {
+        failOnInvalidPrepend();
+      }
+      if (!argumentIsValidCounterIncrementType()) {
         invalidMapping(
-            "Operation %s: the %s directive with prepend = true cannot be used with argument %s "
-                + "because it is not a list",
-            operationName, CqlDirectives.INCREMENT, argument.getName());
+            "Operation %s: expected argument %s to have a valid counter increment type (one of: %s)",
+            operationName, argument.getName(), Joiner.on(", ").join(COUNTER_INCREMENT_TYPES));
         throw SkipException.INSTANCE;
       }
+    } else if (TypeUtil.isList(fieldInputType)) {
+      if (field.getCqlType().isSet() && prepend) {
+        failOnInvalidPrepend();
+      }
+      Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
+      if (!TypeHelper.deepEquals(argumentType, fieldInputType)) {
+        invalidMapping(
+            "Operation %s: expected argument %s to have type: %s to match %s.%s",
+            operationName,
+            argument.getName(),
+            TypeHelper.format(fieldInputType),
+            entity.getGraphqlName(),
+            field.getGraphqlName());
+        throw SkipException.INSTANCE;
+      }
+    } else {
+      invalidMapping(
+          "Operation %s: @%s can only be applied to counter or collection fields",
+          operationName, CqlDirectives.INCREMENT);
+      throw SkipException.INSTANCE;
     }
   }
 
-  protected void checkArgumentIsAnyOfTypes(List<GraphQLScalarType> scalarTypes)
-      throws SkipException {
+  private boolean isCounter(Type<?> type) {
+    return type instanceof TypeName
+        && CqlScalar.COUNTER.getGraphqlType().getName().equals(((TypeName) type).getName());
+  }
 
+  private void failOnInvalidPrepend() throws SkipException {
+    invalidMapping(
+        "Operation %s: @%s.%s can only be applied to list fields",
+        operationName, CqlDirectives.INCREMENT, CqlDirectives.INCREMENT_PREPEND);
+    throw SkipException.INSTANCE;
+  }
+
+  private boolean argumentIsValidCounterIncrementType() {
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    boolean hasProperType = false;
     if (argumentType instanceof TypeName) {
       String argumentTypeName = ((TypeName) argumentType).getName();
-      hasProperType =
-          scalarTypes.stream().anyMatch(type -> type.getName().equals(argumentTypeName));
+      for (String allowedTypeName : COUNTER_INCREMENT_TYPES) {
+        if (argumentTypeName.equals(allowedTypeName)) {
+          return true;
+        }
+      }
     }
-
-    if (!hasProperType) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have one of the types: %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          scalarTypes.stream().map(GraphQLScalarType::getName).collect(Collectors.toList()),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
-      throw SkipException.INSTANCE;
-    }
+    return false;
   }
 }
