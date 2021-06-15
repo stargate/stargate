@@ -104,36 +104,4 @@ public class TypeCheckValidationTest extends GraphqlFirstTestBase {
         .contains(
             "Operation updateUser: expected argument v to have a list of [Int] type to match User.v");
   }
-
-  @Test
-  @DisplayName("Should fail when deploying schema with a list field whereas it expects a non-list.")
-  public void shouldFailToDeploySchemaWithAListFieldWhereasItExpectsNonList() {
-    Map<String, Object> errors =
-        CLIENT
-            .getDeploySchemaErrors(
-                KEYSPACE,
-                null,
-                "type User @cql_input {\n"
-                    + "  pk: Int! @cql_column(partitionKey: true)\n"
-                    + "  v: Int\n"
-                    + "}\n"
-                    + "type Query { user(pk: Int!): User }\n"
-                    + "type UpdateUserResponse @cql_payload {\n"
-                    + "  applied: Boolean\n"
-                    + "  user: User!\n"
-                    + "}\n"
-                    + "type Mutation {\n"
-                    + "  updateUser(\n"
-                    + ""
-                    + "pk: Int\n"
-                    + "v: [Int] @cql_if(field: \"v\", predicate: IN)\n"
-                    + "): UpdateUserResponse @cql_update(targetEntity: \"User\")\n"
-                    + "}")
-            .get(0);
-
-    // then
-    assertThat(getMappingErrors(errors))
-        .contains(
-            "Operation updateUser: the field User.v should be a list of Int type but it is not a list.");
-  }
 }

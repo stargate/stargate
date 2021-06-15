@@ -112,17 +112,6 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
       throw SkipException.INSTANCE;
     }
 
-    // the field on the type should be a list, but it is not
-    if (!(fieldInputType instanceof ListType)) {
-      invalidMapping(
-          "Operation %s: the field %s.%s should be a list of %s type but it is not a list.",
-          operationName,
-          entity.getGraphqlName(),
-          field.getGraphqlName(),
-          TypeHelper.format(fieldInputType));
-      throw SkipException.INSTANCE;
-    }
-
     Type<?> innerListArgumentType = ((ListType) argumentType).getType();
     // inner types of type's field and mutation's argument not match
     if (!innerListArgumentType.isEqualTo(fieldInputType)) {
