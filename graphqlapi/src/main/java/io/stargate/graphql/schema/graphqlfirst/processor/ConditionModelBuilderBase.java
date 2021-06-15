@@ -15,10 +15,9 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static graphql.language.ListType.newListType;
-
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
+import graphql.language.ListType;
 import graphql.language.Type;
 import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
@@ -106,16 +105,39 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
     Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
-    Type<?> expectedArgumentType = newListType(fieldInputType).build();
 
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(expectedArgumentType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
+    // the mutation argument should be a list, but it is not
+    if (!(argumentType instanceof ListType)) {
+      expectedListMessage(field, fieldInputType);
+      throw SkipException.INSTANCE;
     }
+
+    // the field on the type should be a list, but it is not
+    if (!(fieldInputType instanceof ListType)) {
+      invalidMapping(
+          "Operation %s: the field %s.%s should be a list of %s type but it is not a list.",
+          operationName,
+          entity.getGraphqlName(),
+          field.getGraphqlName(),
+          TypeHelper.format(fieldInputType));
+      throw SkipException.INSTANCE;
+    }
+
+    Type<?> innerListArgumentType = ((ListType) argumentType).getType();
+    // inner types of type's field and mutation's argument not match
+    if (!innerListArgumentType.isEqualTo(fieldInputType)) {
+      expectedListMessage(field, fieldInputType);
+      throw SkipException.INSTANCE;
+    }
+  }
+
+  private void expectedListMessage(FieldModel field, Type<?> fieldInputType) {
+    invalidMapping(
+        "Operation %s: expected argument %s to have a list of %s type to match %s.%s",
+        operationName,
+        argument.getName(),
+        TypeHelper.format(fieldInputType),
+        entity.getGraphqlName(),
+        field.getGraphqlName());
   }
 }

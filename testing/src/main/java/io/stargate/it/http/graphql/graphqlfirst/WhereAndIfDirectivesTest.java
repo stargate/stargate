@@ -22,7 +22,6 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -106,14 +105,5 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains("Operation foo: @cql_if is not allowed on query arguments (pk)");
-  }
-
-  @SuppressWarnings("unchecked")
-  private String getMappingErrors(Map<String, Object> errors) {
-    Map<String, Object> value =
-        ((Map<String, List<Map<String, Object>>>) errors.get("extensions"))
-            .get("mappingErrors")
-            .get(0);
-    return (String) value.get("message");
   }
 }
