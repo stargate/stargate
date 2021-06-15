@@ -15,28 +15,26 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
+import java.util.Optional;
 
 class WhereConditionModelBuilder extends ConditionModelBuilderBase {
 
   WhereConditionModelBuilder(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(argument, operationName, entity, field, entities, context);
-  }
-
-  @Override
-  protected String getDirectiveName() {
-    return CqlDirectives.WHERE;
+    super(argument, directive, entity, field, operationName, entities, context);
   }
 
   @Override

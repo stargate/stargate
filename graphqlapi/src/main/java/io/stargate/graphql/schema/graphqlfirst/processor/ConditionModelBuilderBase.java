@@ -30,22 +30,20 @@ public abstract class ConditionModelBuilderBase
 
   protected ConditionModelBuilderBase(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(argument, operationName, entity, field, entities, context);
+    super(argument, directive, entity, field, operationName, entities, context);
   }
-
-  protected abstract String getDirectiveName();
 
   protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
 
   @Override
   protected ConditionModel build() throws SkipException {
 
-    Optional<Directive> directive = DirectiveHelper.getDirective(getDirectiveName(), argument);
     Predicate predicate =
         directive
             .flatMap(

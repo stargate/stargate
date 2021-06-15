@@ -15,30 +15,35 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import graphql.language.Type;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
+import java.util.Optional;
 
 public abstract class ArgumentDirectiveModelBuilderBase<ModelT> extends ModelBuilderBase<ModelT> {
   protected final InputValueDefinition argument;
-  protected final String operationName;
+  protected final Optional<Directive> directive;
   protected final EntityModel entity;
   protected final FieldModel field;
+  protected final String operationName;
   protected final Map<String, EntityModel> entities;
 
   protected ArgumentDirectiveModelBuilderBase(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
     super(context, argument.getSourceLocation());
     this.argument = argument;
-    this.operationName = operationName;
+    this.directive = directive;
     this.entity = entity;
     this.field = field;
+    this.operationName = operationName;
     this.entities = entities;
   }
 

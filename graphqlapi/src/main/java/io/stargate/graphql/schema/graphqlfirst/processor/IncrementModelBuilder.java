@@ -39,19 +39,17 @@ public class IncrementModelBuilder extends ArgumentDirectiveModelBuilderBase<Inc
 
   public IncrementModelBuilder(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(argument, operationName, entity, field, entities, context);
+    super(argument, directive, entity, field, operationName, entities, context);
   }
 
   @Override
   IncrementModel build() throws SkipException {
-
-    Optional<Directive> directive = DirectiveHelper.getDirective(CqlDirectives.INCREMENT, argument);
-
     boolean prepend =
         directive
             .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "prepend", context))

@@ -16,11 +16,14 @@
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveModels> {
 
@@ -60,218 +63,86 @@ class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveM
 
   @Override
   ArgumentDirectiveModels build() throws SkipException {
-    ImmutableList.Builder<ConditionModel> ifConditions = ImmutableList.builder();
+
     ImmutableList.Builder<ConditionModel> whereConditions = ImmutableList.builder();
-    ImmutableList.Builder<IncrementModel> incrementModels = ImmutableList.builder();
+    ImmutableList.Builder<ConditionModel> ifConditions = ImmutableList.builder();
+    ImmutableList.Builder<IncrementModel> increments = ImmutableList.builder();
 
-    BuildState buildState = new BuildState();
+    boolean hasErrors = false;
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-
-      if (DirectiveHelper.hasDirective(inputValue, CqlDirectives.PAGING_STATE)) {
-        // It's a technical field that does not represent a condition
-        continue;
+      try {
+        buildArgument(inputValue, whereConditions, ifConditions, increments);
+      } catch (SkipException e) {
+        // We'll fail eventually, but keep processing other arguments in case there are more errors
+        // to report
+        hasErrors = true;
       }
-
-      boolean hasWhereDirective = DirectiveHelper.hasDirective(inputValue, CqlDirectives.WHERE);
-      boolean hasIfDirective = DirectiveHelper.hasDirective(inputValue, CqlDirectives.IF);
-      boolean hasCqlIncrementDirective =
-          DirectiveHelper.hasDirective(inputValue, CqlDirectives.INCREMENT);
-
-      buildState.setFoundErrors(
-          validateIfHasErrors(
-              inputValue, hasWhereDirective, hasIfDirective, hasCqlIncrementDirective));
-      if (buildState.foundErrors) {
-        continue;
-      }
-
-      Optional<FieldModel> maybeField =
-          findField(inputValue, hasIfDirective, hasCqlIncrementDirective);
-      if (!maybeField.isPresent()) {
-        buildState.setFoundErrors();
-        continue;
-      }
-      FieldModel field = maybeField.get();
-
-      switch (operationType) {
-        case SELECT:
-          if (hasIfDirective) {
-            queryNotAllowed(buildState, inputValue, CqlDirectives.IF);
-            continue;
-          }
-          if (hasCqlIncrementDirective) {
-            queryNotAllowed(buildState, inputValue, CqlDirectives.INCREMENT);
-            continue;
-          }
-          buildState.setWhereCondition();
-          break;
-        case DELETE:
-          buildState.setWhereCondition(!hasIfDirective);
-
-          if (hasCqlIncrementDirective) {
-            deleteNotAllowed(buildState, inputValue, CqlDirectives.INCREMENT);
-            continue;
-          }
-          break;
-        case UPDATE:
-          if (!handleUpdateAndReturnStatus(
-              buildState,
-              inputValue,
-              hasWhereDirective,
-              hasIfDirective,
-              hasCqlIncrementDirective,
-              field)) {
-            continue;
-          }
-          break;
-        default:
-          throw new AssertionError();
-      }
-
-      buildDirectives(
-          ifConditions,
-          whereConditions,
-          incrementModels,
-          buildState,
-          inputValue,
-          hasCqlIncrementDirective,
-          field);
     }
-    if (buildState.isFoundErrors()) {
+    if (hasErrors) {
       throw SkipException.INSTANCE;
     }
     return new ArgumentDirectiveModels(
-        ifConditions.build(), whereConditions.build(), incrementModels.build());
+        ifConditions.build(), whereConditions.build(), increments.build());
   }
 
-  private void buildDirectives(
-      ImmutableList.Builder<ConditionModel> ifConditions,
+  private void buildArgument(
+      InputValueDefinition inputValue,
       ImmutableList.Builder<ConditionModel> whereConditions,
-      ImmutableList.Builder<IncrementModel> incrementModels,
-      BuildState buildState,
-      InputValueDefinition inputValue,
-      boolean hasCqlIncrementDirective,
-      FieldModel field)
+      ImmutableList.Builder<ConditionModel> ifConditions,
+      ImmutableList.Builder<IncrementModel> increments)
       throws SkipException {
-    if (buildState.isWhereCondition()) {
-      whereConditions.add(
-          new WhereConditionModelBuilder(
-                  inputValue, operationName, entity, field, entities, context)
-              .build());
-    } else if (hasCqlIncrementDirective) {
-      incrementModels.add(
-          new IncrementModelBuilder(inputValue, operationName, entity, field, entities, context)
-              .build());
-    } else {
-      ifConditions.add(
-          new IfConditionModelBuilder(inputValue, operationName, entity, field, entities, context)
-              .build());
+
+    Set<Directive> directives =
+        collectDirectives(
+            inputValue,
+            CqlDirectives.PAGING_STATE,
+            CqlDirectives.WHERE,
+            CqlDirectives.IF,
+            CqlDirectives.INCREMENT);
+    if (directives.size() > 1) {
+      reportTooManyDirectives(directives, inputValue);
+      throw SkipException.INSTANCE;
+    }
+
+    Optional<Directive> directive = directives.stream().findFirst();
+    if (is(directive, CqlDirectives.PAGING_STATE)) {
+      // It's a technical field that does not represent a condition, ignore it
+      return;
+    }
+
+    FieldModel field = findField(inputValue, directive);
+
+    switch (operationType) {
+      case SELECT:
+        buildSelectArgument(inputValue, directive, field, whereConditions);
+        break;
+      case DELETE:
+        buildDeleteArgument(inputValue, directive, field, whereConditions, ifConditions);
+        break;
+      case UPDATE:
+        buildUpdateArgument(
+            inputValue, directive, field, whereConditions, ifConditions, increments);
+        break;
+      default:
+        throw new AssertionError("Unknown operation type " + operationType);
     }
   }
 
-  // returns true if the update was handled, otherwise false
-  private boolean handleUpdateAndReturnStatus(
-      BuildState buildState,
-      InputValueDefinition inputValue,
-      boolean hasWhereDirective,
-      boolean hasIfDirective,
-      boolean hasCqlIncrementDirective,
-      FieldModel field) {
-    if (field.isPrimaryKey()) {
-      if (hasIfDirective) {
-        reportInvalidMapping(inputValue, CqlDirectives.IF);
-        buildState.setFoundErrors();
-        return false;
-      }
-      if (hasCqlIncrementDirective) {
-        reportInvalidMapping(inputValue, CqlDirectives.INCREMENT);
-        buildState.setFoundErrors();
-        return false;
-      }
-      buildState.setWhereCondition();
-    } else {
-      if (hasWhereDirective) {
-        invalidMapping(
-            "Mutation %s: @%s is only allowed on primary key fields for updates (%s)",
-            operationName, CqlDirectives.WHERE, inputValue.getName());
-        buildState.setFoundErrors();
-        return false;
-      }
-      if (!hasIfDirective && !hasCqlIncrementDirective) {
-        // Ignore non-annotated regular field (it's an update value, not a condition)
-        return false;
-      }
-      buildState.setWhereCondition(false);
+  private Set<Directive> collectDirectives(
+      InputValueDefinition inputValue, String... directiveNames) {
+    ImmutableSet.Builder<Directive> result = ImmutableSet.builder();
+    for (String directiveName : directiveNames) {
+      DirectiveHelper.getDirective(directiveName, inputValue).ifPresent(result::add);
     }
-    return true;
+    return result.build();
   }
 
-  private boolean validateIfHasErrors(
-      InputValueDefinition inputValue,
-      boolean hasWhereDirective,
-      boolean hasIfDirective,
-      boolean hasCqlIncrementDirective) {
-    if (hasWhereDirective && hasIfDirective) {
-      reportTwoAnnotationsSet(inputValue, CqlDirectives.WHERE, CqlDirectives.IF);
-      return true;
-    }
-
-    if (hasWhereDirective && hasCqlIncrementDirective) {
-      reportTwoAnnotationsSet(inputValue, CqlDirectives.WHERE, CqlDirectives.INCREMENT);
-      return true;
-    }
-
-    if (hasIfDirective && hasCqlIncrementDirective) {
-      reportTwoAnnotationsSet(inputValue, CqlDirectives.IF, CqlDirectives.INCREMENT);
-      return true;
-    }
-    return false;
+  private boolean is(Optional<Directive> directive, String directiveName) {
+    return directive.filter(d -> d.getName().equals(directiveName)).isPresent();
   }
 
-  private void reportTwoAnnotationsSet(
-      InputValueDefinition inputValue, String firstDirective, String secondDirective) {
-    invalidMapping(
-        "Operation %s: can't set both @%s and @%s on argument %s",
-        operationName, firstDirective, secondDirective, inputValue.getName());
-  }
-
-  private void reportInvalidMapping(InputValueDefinition inputValue, String directiveName) {
-    invalidMapping(
-        "Mutation %s: @%s is not allowed on primary key fields (%s)",
-        operationName, directiveName, inputValue.getName());
-  }
-
-  private void deleteNotAllowed(
-      BuildState buildState, InputValueDefinition inputValue, String cqlDirective) {
-    operationNotAllowed(buildState, inputValue, cqlDirective, "delete");
-  }
-
-  private void queryNotAllowed(
-      BuildState buildState, InputValueDefinition inputValue, String cqlDirective) {
-    operationNotAllowed(buildState, inputValue, cqlDirective, "query");
-  }
-
-  private void operationNotAllowed(
-      BuildState buildState,
-      InputValueDefinition inputValue,
-      String cqlDirective,
-      String queryType) {
-    invalidMapping(
-        "Operation %s: @%s is not allowed on %s arguments (%s)",
-        operationName, cqlDirective, queryType, inputValue.getName());
-    buildState.setFoundErrors();
-  }
-
-  private Optional<FieldModel> findField(
-      InputValueDefinition inputValue, boolean hasIfDirective, boolean hasCqlIncrementDirective) {
-    String directiveName;
-    if (hasIfDirective) {
-      directiveName = CqlDirectives.IF;
-    } else if (hasCqlIncrementDirective) {
-      directiveName = CqlDirectives.INCREMENT;
-    } else {
-      directiveName = CqlDirectives.WHERE;
-    }
-    Optional<Directive> directive = DirectiveHelper.getDirective(directiveName, inputValue);
+  private FieldModel findField(InputValueDefinition inputValue, Optional<Directive> directive)
+      throws SkipException {
     String fieldName =
         directive
             .flatMap(
@@ -279,45 +150,117 @@ class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveM
                     DirectiveHelper.getStringArgument(
                         d, CqlDirectives.WHERE_OR_IF_OR_INCREMENT_FIELD, context))
             .orElse(inputValue.getName());
-    Optional<FieldModel> result =
-        entity.getAllColumns().stream()
-            .filter(f -> f.getGraphqlName().equals(fieldName))
-            .findFirst();
-    if (!result.isPresent()) {
-      invalidMapping(
-          "Operation %s: could not find field %s in type %s",
-          operationName, fieldName, entity.getGraphqlName());
-    }
-    return result;
+    return entity.getAllColumns().stream()
+        .filter(f -> f.getGraphqlName().equals(fieldName))
+        .findFirst()
+        .orElseThrow(
+            () -> {
+              invalidMapping(
+                  "Operation %s: could not find field %s in type %s",
+                  operationName, fieldName, entity.getGraphqlName());
+              return SkipException.INSTANCE;
+            });
   }
 
-  static class BuildState {
+  private void buildSelectArgument(
+      InputValueDefinition inputValue,
+      Optional<Directive> directive,
+      FieldModel field,
+      ImmutableList.Builder<ConditionModel> whereConditions)
+      throws SkipException {
 
-    private boolean foundErrors = false;
-    private boolean isWhereCondition = false;
-
-    public boolean isFoundErrors() {
-      return foundErrors;
+    if (is(directive, CqlDirectives.IF) || is(directive, CqlDirectives.INCREMENT)) {
+      reportDirectiveNotAllowed(inputValue, directive, "SELECT arguments");
     }
 
-    public void setFoundErrors() {
-      this.foundErrors = true;
+    whereConditions.add(newWhereCondition(inputValue, directive, field));
+  }
+
+  private void buildDeleteArgument(
+      InputValueDefinition inputValue,
+      Optional<Directive> directive,
+      FieldModel field,
+      ImmutableList.Builder<ConditionModel> whereConditions,
+      ImmutableList.Builder<ConditionModel> ifConditions)
+      throws SkipException {
+
+    if (is(directive, CqlDirectives.INCREMENT)) {
+      reportDirectiveNotAllowed(inputValue, directive, "DELETE arguments");
     }
 
-    public void setFoundErrors(boolean foundErrors) {
-      this.foundErrors = foundErrors;
+    if (is(directive, CqlDirectives.IF)) {
+      ifConditions.add(newIfCondition(inputValue, directive, field));
+    } else {
+      whereConditions.add(newWhereCondition(inputValue, directive, field));
     }
+  }
 
-    public boolean isWhereCondition() {
-      return isWhereCondition;
+  private void buildUpdateArgument(
+      InputValueDefinition inputValue,
+      Optional<Directive> directive,
+      FieldModel field,
+      ImmutableList.Builder<ConditionModel> whereConditions,
+      ImmutableList.Builder<ConditionModel> ifConditions,
+      ImmutableList.Builder<IncrementModel> increments)
+      throws SkipException {
+    if (field.isPrimaryKey()) {
+      if (is(directive, CqlDirectives.IF) || is(directive, CqlDirectives.INCREMENT)) {
+        reportDirectiveNotAllowed(inputValue, directive, "UPDATE primary key arguments");
+        throw SkipException.INSTANCE;
+      }
+      whereConditions.add(newWhereCondition(inputValue, directive, field));
+    } else {
+      if (is(directive, CqlDirectives.WHERE)) {
+        reportDirectiveNotAllowed(inputValue, directive, "UPDATE non-primary key arguments");
+        throw SkipException.INSTANCE;
+      } else if (is(directive, CqlDirectives.IF)) {
+        ifConditions.add(newIfCondition(inputValue, directive, field));
+      } else if (is(directive, CqlDirectives.INCREMENT)) {
+        increments.add(newIncrement(inputValue, directive, field));
+      }
+      // otherwise it's an update value (non-annotated regular field), not a condition => ignore it
     }
+  }
 
-    public void setWhereCondition(boolean whereCondition) {
-      isWhereCondition = whereCondition;
-    }
+  private ConditionModel newWhereCondition(
+      InputValueDefinition inputValue, Optional<Directive> directive, FieldModel field)
+      throws SkipException {
+    return new WhereConditionModelBuilder(
+            inputValue, directive, entity, field, operationName, entities, context)
+        .build();
+  }
 
-    public void setWhereCondition() {
-      isWhereCondition = true;
-    }
+  private ConditionModel newIfCondition(
+      InputValueDefinition inputValue, Optional<Directive> directive, FieldModel field)
+      throws SkipException {
+    return new IfConditionModelBuilder(
+            inputValue, directive, entity, field, operationName, entities, context)
+        .build();
+  }
+
+  private IncrementModel newIncrement(
+      InputValueDefinition inputValue, Optional<Directive> directive, FieldModel field)
+      throws SkipException {
+    return new IncrementModelBuilder(
+            inputValue, directive, entity, field, operationName, entities, context)
+        .build();
+  }
+
+  private void reportTooManyDirectives(Set<Directive> directives, InputValueDefinition inputValue) {
+    invalidMapping(
+        "Operation %s: argument %s can only use one of %s",
+        operationName,
+        inputValue.getName(),
+        directives.stream().map(d -> "@" + d.getName()).collect(Collectors.joining(",")));
+  }
+
+  private void reportDirectiveNotAllowed(
+      InputValueDefinition inputValue,
+      Optional<Directive> directive,
+      String inputValueDescription) {
+    assert directive.isPresent();
+    invalidMapping(
+        "Operation %s: @%s is not allowed on %s (%s)",
+        operationName, directive.get().getName(), inputValueDescription, inputValue.getName());
   }
 }
