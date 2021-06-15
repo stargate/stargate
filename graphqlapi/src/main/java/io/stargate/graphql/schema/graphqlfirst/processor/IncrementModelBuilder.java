@@ -27,7 +27,7 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.*;
 
-public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
+public class IncrementModelBuilder extends ArgumentDirectiveModelBuilderBase<IncrementModel> {
 
   // The types that we allow for an argument that represents an increment to a counter:
   private static final List<String> COUNTER_INCREMENT_TYPES =
@@ -37,14 +37,6 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
           CqlScalar.COUNTER.getGraphqlType().getName());
   private static final boolean PREPEND_DEFAULT = false;
 
-  private final EntityModel entity;
-  private final FieldModel field;
-  private final Map<String, EntityModel> entities;
-  private final ProcessingContext context;
-
-  private final String operationName;
-  private final InputValueDefinition argument;
-
   public IncrementModelBuilder(
       InputValueDefinition argument,
       String operationName,
@@ -52,13 +44,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
       FieldModel field,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(context, argument.getSourceLocation());
-    this.argument = argument;
-    this.operationName = operationName;
-    this.entity = entity;
-    this.field = field;
-    this.entities = entities;
-    this.context = context;
+    super(argument, operationName, entity, field, entities, context);
   }
 
   @Override
@@ -83,8 +69,7 @@ public class IncrementModelBuilder extends ModelBuilderBase<IncrementModel> {
       throw SkipException.INSTANCE;
     }
 
-    Type<?> fieldInputType =
-        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
+    Type<?> fieldInputType = fieldInputType();
 
     if (isCounter(fieldInputType)) {
       if (prepend) {

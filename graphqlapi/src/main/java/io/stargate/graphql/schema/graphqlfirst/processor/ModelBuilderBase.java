@@ -15,14 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static graphql.language.ListType.newListType;
-
 import com.google.errorprone.annotations.FormatMethod;
-import graphql.language.InputValueDefinition;
 import graphql.language.SourceLocation;
-import graphql.language.Type;
-import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
-import java.util.Map;
 
 abstract class ModelBuilderBase<ModelT> {
 
@@ -54,51 +48,5 @@ abstract class ModelBuilderBase<ModelT> {
   @FormatMethod
   protected void invalidSyntax(String format, Object... arguments) {
     context.addError(location, ProcessingErrorType.InvalidSyntax, format, arguments);
-  }
-
-  protected Type<?> toInput(
-      Type<?> fieldType,
-      InputValueDefinition inputValue,
-      EntityModel entity,
-      FieldModel field,
-      Map<String, EntityModel> entities,
-      String operationName)
-      throws SkipException {
-    try {
-      return TypeHelper.toInput(TypeHelper.unwrapNonNull(fieldType), entities);
-    } catch (IllegalArgumentException e) {
-      invalidMapping(
-          "Operation %s: can't infer expected input type for %s (matching %s.%s) because %s",
-          operationName,
-          inputValue.getName(),
-          entity.getGraphqlName(),
-          field.getGraphqlName(),
-          e.getMessage());
-      throw SkipException.INSTANCE;
-    }
-  }
-
-  protected void checkArgumentIsListOf(
-      InputValueDefinition argument,
-      EntityModel entity,
-      Map<String, EntityModel> entities,
-      String operationName,
-      FieldModel field)
-      throws SkipException {
-
-    Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType =
-        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
-    Type<?> expectedArgumentType = newListType(fieldInputType).build();
-
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
-      invalidMapping(
-          "Operation %s: expected argument %s to have type %s to match %s.%s",
-          operationName,
-          argument.getName(),
-          TypeHelper.format(expectedArgumentType),
-          entity.getGraphqlName(),
-          field.getGraphqlName());
-    }
   }
 }

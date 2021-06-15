@@ -65,7 +65,7 @@ class IfConditionModelBuilder extends ConditionModelBuilderBase {
         checkArgumentIsSameAs(field);
         break;
       case IN:
-        checkArgumentIsListOf(argument, entity, entities, operationName, field);
+        checkArgumentIsListOf(field);
         break;
       default:
         invalidMapping(

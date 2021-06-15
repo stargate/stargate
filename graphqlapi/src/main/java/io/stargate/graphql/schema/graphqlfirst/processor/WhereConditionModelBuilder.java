@@ -58,7 +58,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
         checkArgumentIsSameAs(field);
         break;
       case IN:
-        checkArgumentIsListOf(argument, entity, entities, operationName, field);
+        checkArgumentIsListOf(field);
         break;
       default:
         invalidMapping(
@@ -80,7 +80,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
         checkArgumentIsSameAs(field);
         break;
       case IN:
-        checkArgumentIsListOf(argument, entity, entities, operationName, field);
+        checkArgumentIsListOf(field);
         break;
       default:
         invalidMapping(
@@ -112,7 +112,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
           checkArgumentIsSameAs(field);
           break;
         case IN:
-          checkArgumentIsListOf(argument, entity, entities, operationName, field);
+          checkArgumentIsListOf(field);
           break;
         case CONTAINS:
           checkArgumentIsElementOf(field);
@@ -130,8 +130,7 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
   private void checkArgumentIsElementOf(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType =
-        toInput(field.getGraphqlType(), argument, entity, field, entities, operationName);
+    Type<?> fieldInputType = fieldInputType();
     if (!(fieldInputType instanceof ListType)) {
       invalidMapping(
           "Operation %s: CONTAINS predicate cannot be used with argument %s "
