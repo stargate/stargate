@@ -77,7 +77,7 @@ public final class CnfResolver {
     And<FilterExpression> andExpression = (And<FilterExpression>) expression;
     List<Expression<FilterExpression>> children = andExpression.getChildren();
 
-    UserOrderWeightResolver weightResolver = new UserOrderWeightResolver(children);
+    UserOrderWeightResolver weightResolver = UserOrderWeightResolver.of();
 
     // try to get the next persistence resolver
     return nextPersistenceResolver(expression, children, weightResolver, context, parent)

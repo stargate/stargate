@@ -66,7 +66,7 @@ class BaseResolverTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       DocumentsResolver result = BaseResolver.resolve(expression, context);
 
@@ -78,7 +78,7 @@ class BaseResolverTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       DocumentsResolver result = BaseResolver.resolve(expression, context, candidatesResolver);
 
@@ -101,7 +101,7 @@ class BaseResolverTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition = ImmutableStringCondition.of(NeFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       DocumentsResolver result = BaseResolver.resolve(expression, context);
 
@@ -113,7 +113,7 @@ class BaseResolverTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition = ImmutableStringCondition.of(NeFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       DocumentsResolver result = BaseResolver.resolve(expression, context, candidatesResolver);
 
@@ -137,8 +137,8 @@ class BaseResolverTest {
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition1 = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
       BaseCondition condition2 = ImmutableStringCondition.of(LtFilterOperation.of(), "find-me");
-      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1);
-      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2);
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1, 0);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2, 1);
 
       DocumentsResolver result = BaseResolver.resolve(And.of(expression1, expression2), context);
 

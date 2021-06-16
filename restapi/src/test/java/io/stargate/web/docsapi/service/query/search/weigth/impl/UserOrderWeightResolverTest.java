@@ -21,12 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import com.bpodgursky.jbool_expressions.Expression;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +35,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class UserOrderWeightResolverTest {
+
+  UserOrderWeightResolver resolver = UserOrderWeightResolver.of();
 
   @Nested
   class Compare {
@@ -62,12 +62,11 @@ class UserOrderWeightResolverTest {
 
     @Test
     public void singleHappyPath() {
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2);
+      when(e1.getOrderIndex()).thenReturn(0);
+      when(e2.getOrderIndex()).thenReturn(1);
 
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      FilterExpression result = userOrderWeightResolver.single().apply(e1, e2);
-      FilterExpression resultReversed = userOrderWeightResolver.single().apply(e2, e1);
+      FilterExpression result = resolver.single().apply(e1, e2);
+      FilterExpression resultReversed = resolver.single().apply(e2, e1);
 
       assertThat(result).isEqualTo(e1);
       assertThat(resultReversed).isEqualTo(e1);
@@ -76,42 +75,25 @@ class UserOrderWeightResolverTest {
     @Test
     public void singleSuperRespected() {
       when(condition2.isPersistenceCondition()).thenReturn(true);
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2);
 
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      FilterExpression result = userOrderWeightResolver.single().apply(e1, e2);
-      FilterExpression resultReversed = userOrderWeightResolver.single().apply(e2, e1);
+      FilterExpression result = resolver.single().apply(e1, e2);
+      FilterExpression resultReversed = resolver.single().apply(e2, e1);
 
       assertThat(result).isEqualTo(e2);
       assertThat(resultReversed).isEqualTo(e2);
     }
 
     @Test
-    public void singleNotFound() {
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2);
-
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      FilterExpression result = userOrderWeightResolver.single().apply(e1, e3);
-      FilterExpression resultReversed = userOrderWeightResolver.single().apply(e3, e1);
-
-      assertThat(result).isEqualTo(e1);
-      assertThat(resultReversed).isEqualTo(e1);
-    }
-
-    @Test
     public void collectionHappyPath() {
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2, e3);
+      when(e1.getOrderIndex()).thenReturn(0);
+      when(e2.getOrderIndex()).thenReturn(1);
+      when(e3.getOrderIndex()).thenReturn(2);
 
       List<FilterExpression> c1 = Arrays.asList(e1, e2);
       List<FilterExpression> c2 = Arrays.asList(e2, e3);
 
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      Collection<FilterExpression> result = userOrderWeightResolver.collection().apply(c1, c2);
-      Collection<FilterExpression> resultReversed =
-          userOrderWeightResolver.collection().apply(c2, c1);
+      Collection<FilterExpression> result = resolver.collection().apply(c1, c2);
+      Collection<FilterExpression> resultReversed = resolver.collection().apply(c2, c1);
 
       assertThat(result).isEqualTo(c1);
       assertThat(resultReversed).isEqualTo(c1);
@@ -120,36 +102,15 @@ class UserOrderWeightResolverTest {
     @Test
     public void collectionSuperRespected() {
       when(condition3.isPersistenceCondition()).thenReturn(true);
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2, e3);
 
       List<FilterExpression> c1 = Arrays.asList(e1, e2);
       List<FilterExpression> c2 = Arrays.asList(e2, e3);
 
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      Collection<FilterExpression> result = userOrderWeightResolver.collection().apply(c1, c2);
-      Collection<FilterExpression> resultReversed =
-          userOrderWeightResolver.collection().apply(c2, c1);
+      Collection<FilterExpression> result = resolver.collection().apply(c1, c2);
+      Collection<FilterExpression> resultReversed = resolver.collection().apply(c2, c1);
 
       assertThat(result).isEqualTo(c2);
       assertThat(resultReversed).isEqualTo(c2);
-    }
-
-    @Test
-    public void collectionNotFoundElement() {
-      List<Expression<FilterExpression>> filterExpressions = Arrays.asList(e1, e2);
-
-      List<FilterExpression> c1 = Arrays.asList(e3, e2);
-      List<FilterExpression> c2 = Collections.singletonList(e3);
-
-      UserOrderWeightResolver userOrderWeightResolver =
-          new UserOrderWeightResolver(filterExpressions);
-      Collection<FilterExpression> result = userOrderWeightResolver.collection().apply(c1, c2);
-      Collection<FilterExpression> resultReversed =
-          userOrderWeightResolver.collection().apply(c2, c1);
-
-      assertThat(result).isEqualTo(c1);
-      assertThat(resultReversed).isEqualTo(c1);
     }
   }
 }

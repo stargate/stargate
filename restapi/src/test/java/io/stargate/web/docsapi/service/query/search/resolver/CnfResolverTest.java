@@ -20,7 +20,6 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bpodgursky.jbool_expressions.And;
-import com.bpodgursky.jbool_expressions.Expression;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -38,7 +37,6 @@ import io.stargate.web.docsapi.service.query.search.resolver.impl.AllFiltersReso
 import io.stargate.web.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
 import java.util.Collections;
-import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,8 +54,8 @@ class CnfResolverTest {
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition1 = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
       BaseCondition condition2 = ImmutableStringCondition.of(LtFilterOperation.of(), "find-me");
-      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1);
-      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2);
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1, 0);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2, 1);
 
       DocumentsResolver result = CnfResolver.resolve(And.of(expression1, expression2), context);
 
@@ -70,14 +68,13 @@ class CnfResolverTest {
       FilterPath filterPath1 = ImmutableFilterPath.of(Collections.singletonList("b"));
       FilterPath filterPath2 = ImmutableFilterPath.of(Collections.singletonList("a"));
       BaseCondition condition = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
-      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, condition);
-      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition);
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, condition, 0);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition, 1);
 
       And<FilterExpression> and = And.of(expression1, expression2);
       DocumentsResolver result = CnfResolver.resolve(and, context);
 
       // ensure not reordering
-      List<Expression<FilterExpression>> children = and.getChildren();
       assertThat(result)
           .isInstanceOfSatisfying(
               AllFiltersResolver.class,
@@ -90,7 +87,7 @@ class CnfResolverTest {
                           assertThat(r)
                               .extracting("queryBuilder")
                               .extracting("filterPath")
-                              .isEqualTo(((FilterExpression) children.get(0)).getFilterPath());
+                              .isEqualTo(filterPath1);
                         });
                 assertThat(allOf)
                     .extracting("candidatesFilters")
@@ -102,7 +99,7 @@ class CnfResolverTest {
                           assertThat(f)
                               .extracting("queryBuilder")
                               .extracting("filterPath")
-                              .isEqualTo(((FilterExpression) children.get(1)).getFilterPath());
+                              .isEqualTo(filterPath2);
                         });
               });
     }
@@ -115,14 +112,13 @@ class CnfResolverTest {
       BaseCondition condition =
           ImmutableGenericCondition.of(
               InFilterOperation.of(), Collections.singletonList("find-me"), false);
-      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, condition);
-      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition);
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, condition, 0);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition, 1);
 
       And<FilterExpression> and = And.of(expression1, expression2);
       DocumentsResolver result = CnfResolver.resolve(and, context);
 
       // ensure not reordering
-      List<Expression<FilterExpression>> children = and.getChildren();
       assertThat(result)
           .isInstanceOfSatisfying(
               AllFiltersResolver.class,
@@ -135,7 +131,7 @@ class CnfResolverTest {
                           assertThat(r)
                               .extracting("queryBuilder")
                               .extracting("filterPath")
-                              .isEqualTo(((FilterExpression) children.get(0)).getFilterPath());
+                              .isEqualTo(filterPath1);
                         });
                 assertThat(allOf)
                     .extracting("candidatesFilters")
@@ -147,7 +143,7 @@ class CnfResolverTest {
                           assertThat(f)
                               .extracting("queryBuilder")
                               .extracting("filterPath")
-                              .isEqualTo(((FilterExpression) children.get(1)).getFilterPath());
+                              .isEqualTo(filterPath2);
                         });
               });
     }
@@ -163,11 +159,11 @@ class CnfResolverTest {
           ImmutableGenericCondition.of(
               InFilterOperation.of(), Collections.singletonList("find-me"), false);
       FilterExpression expression1 =
-          ImmutableFilterExpression.of(filterPath1, persistenceCondition);
+          ImmutableFilterExpression.of(filterPath1, persistenceCondition, 0);
       FilterExpression expression2 =
-          ImmutableFilterExpression.of(filterPath2, persistenceCondition);
-      FilterExpression expression3 = ImmutableFilterExpression.of(filterPath1, memoryCondition);
-      FilterExpression expression4 = ImmutableFilterExpression.of(filterPath2, memoryCondition);
+          ImmutableFilterExpression.of(filterPath2, persistenceCondition, 1);
+      FilterExpression expression3 = ImmutableFilterExpression.of(filterPath1, memoryCondition, 2);
+      FilterExpression expression4 = ImmutableFilterExpression.of(filterPath2, memoryCondition, 3);
 
       DocumentsResolver result =
           CnfResolver.resolve(And.of(expression1, expression2, expression3, expression4), context);
@@ -175,7 +171,7 @@ class CnfResolverTest {
       // |
       // | -> persistence candidates (1 exp)
       // | | -> persistence filters (1 exp)
-      // | -> in-memory filters (2 exp)
+      // | -> in-memory filters (2 exp)O
 
       assertThat(result)
           .isInstanceOfSatisfying(

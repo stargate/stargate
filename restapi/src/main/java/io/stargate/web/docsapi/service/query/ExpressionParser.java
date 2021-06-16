@@ -26,7 +26,6 @@ import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,9 +69,8 @@ public class ExpressionParser {
       return Literal.getTrue();
     }
 
-    // otherwise combine with and (respect the order) and simplify only
-    Expression<FilterExpression>[] array = parse.toArray(new Expression[parse.size()]);
-    And<FilterExpression> and = And.of(array, Comparator.comparingInt(parse::indexOf));
+    // otherwise combine with and simplify only
+    And<FilterExpression> and = And.of(parse);
     return RuleSet.simplify(and);
   }
 
@@ -88,6 +86,7 @@ public class ExpressionParser {
       List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     List<Expression<FilterExpression>> expressions = new ArrayList<>();
 
+    int index = 0;
     Iterator<Map.Entry<String, JsonNode>> fields = filterJson.fields();
     while (fields.hasNext()) {
       Map.Entry<String, JsonNode> field = fields.next();
@@ -97,7 +96,7 @@ public class ExpressionParser {
           conditionProvider.getConditions(field.getValue(), numericBooleans);
       for (BaseCondition fieldCondition : fieldConditions) {
         ImmutableFilterExpression expression =
-            ImmutableFilterExpression.of(filterPath, fieldCondition);
+            ImmutableFilterExpression.of(filterPath, fieldCondition, index++);
         expressions.add(expression);
       }
     }

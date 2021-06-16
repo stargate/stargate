@@ -59,8 +59,8 @@ public class FilterExpressionTest {
     public void happyPath() {
       Expression<FilterExpression> expression =
           And.of(
-              ImmutableFilterExpression.of(filterPath, condition),
-              ImmutableFilterExpression.of(filterPath, condition2));
+              ImmutableFilterExpression.of(filterPath, condition, 0),
+              ImmutableFilterExpression.of(filterPath, condition2, 1));
 
       Set<FilterExpression> filterExpressions = new HashSet<>();
       expression.collectK(filterExpressions, Integer.MAX_VALUE);
@@ -92,7 +92,7 @@ public class FilterExpressionTest {
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(true);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(document);
 
       assertThat(result).isTrue();
@@ -130,7 +130,7 @@ public class FilterExpressionTest {
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(true);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(document);
 
       assertThat(result).isTrue();
@@ -156,7 +156,7 @@ public class FilterExpressionTest {
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(false);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(document);
 
       assertThat(result).isFalse();
@@ -194,7 +194,7 @@ public class FilterExpressionTest {
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(false);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(document);
 
       assertThat(result).isFalse();
@@ -231,7 +231,7 @@ public class FilterExpressionTest {
                   ""));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(document);
 
       assertThat(result).isTrue();
@@ -259,7 +259,7 @@ public class FilterExpressionTest {
                   ""));
       when(condition.test(row)).thenReturn(true);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();
@@ -284,7 +284,7 @@ public class FilterExpressionTest {
                   ""));
       when(condition.test(row)).thenReturn(true);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();
@@ -309,7 +309,7 @@ public class FilterExpressionTest {
                   ""));
       when(condition.test(row)).thenReturn(true);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();
@@ -334,7 +334,7 @@ public class FilterExpressionTest {
                   ""));
       when(condition.test(row)).thenReturn(false);
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isFalse();
@@ -348,7 +348,7 @@ public class FilterExpressionTest {
       Row row =
           MapBackedRow.of(TABLE, ImmutableMap.of(QueryConstants.LEAF_COLUMN_NAME, "whatever"));
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();
@@ -369,7 +369,7 @@ public class FilterExpressionTest {
                   QueryConstants.P_COLUMN_NAME.apply(1),
                   "more"));
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();
@@ -392,7 +392,7 @@ public class FilterExpressionTest {
                   QueryConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
 
       assertThat(result).isTrue();

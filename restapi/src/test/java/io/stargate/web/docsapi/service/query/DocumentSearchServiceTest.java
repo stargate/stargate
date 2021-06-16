@@ -81,7 +81,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
@@ -216,7 +216,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
@@ -320,7 +320,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
-      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";

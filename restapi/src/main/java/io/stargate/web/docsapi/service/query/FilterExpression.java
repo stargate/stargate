@@ -50,6 +50,10 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   @Value.Parameter
   public abstract BaseCondition getCondition();
 
+  /** @return Returns the order index of this filter expression given by the user. */
+  @Value.Parameter
+  public abstract int getOrderIndex();
+
   /** @return Returns human-readable description of this expression. */
   public String getDescription() {
     BaseCondition condition = getCondition();

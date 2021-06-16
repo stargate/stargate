@@ -75,6 +75,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                 assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
@@ -107,19 +108,27 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               And.class,
               a -> {
-                assertThat(a.getChildren()).hasSize(2);
-                assertThat(a.getChildren().get(0))
-                    .isInstanceOfSatisfying(
-                        FilterExpression.class,
-                        first -> {
-                          assertThat(first.getFilterPath().getField()).isEqualTo("b");
-                        });
-                assertThat(a.getChildren().get(1))
-                    .isInstanceOfSatisfying(
-                        FilterExpression.class,
-                        first -> {
-                          assertThat(first.getFilterPath().getField()).isEqualTo("a");
-                        });
+                List<?> children = a.getChildren();
+                assertThat(children)
+                    .hasSize(2)
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    FilterExpression.class,
+                                    first -> {
+                                      assertThat(first.getOrderIndex()).isZero();
+                                      assertThat(first.getFilterPath().getField()).isEqualTo("b");
+                                    }))
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    FilterExpression.class,
+                                    second -> {
+                                      assertThat(second.getOrderIndex()).isOne();
+                                      assertThat(second.getFilterPath().getField()).isEqualTo("a");
+                                    }));
               });
     }
   }
@@ -142,6 +151,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                 assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
@@ -174,6 +184,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                 assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
@@ -206,6 +217,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                 assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
@@ -239,6 +251,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
                 assertThat(c.getFilterPath().getParentPath()).containsExactly("my", "filter");
                 assertThat(c.getCondition())
@@ -273,6 +286,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
                 assertThat(c.getFilterPath().getParentPath())
                     .containsExactly("my", "filters", "[000002]");
@@ -308,6 +322,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
                 assertThat(c.getFilterPath().getParentPath())
                     .containsExactly("my", "filters", "[1],[2]");
@@ -345,6 +360,7 @@ class ExpressionParserIntTest {
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
+                assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
                 assertThat(c.getFilterPath().getParentPath())
                     .containsExactly("first", "second", "my", "*");
@@ -386,6 +402,7 @@ class ExpressionParserIntTest {
                       .isInstanceOfSatisfying(
                           FilterExpression.class,
                           c -> {
+                            assertThat(c.getOrderIndex()).isZero();
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                             assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
@@ -411,6 +428,7 @@ class ExpressionParserIntTest {
                       .isInstanceOfSatisfying(
                           FilterExpression.class,
                           c -> {
+                            assertThat(c.getOrderIndex()).isOne();
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                             assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
@@ -451,6 +469,7 @@ class ExpressionParserIntTest {
                       .isInstanceOfSatisfying(
                           FilterExpression.class,
                           c -> {
+                            assertThat(c.getOrderIndex()).isZero();
                             assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                             assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())
@@ -476,6 +495,7 @@ class ExpressionParserIntTest {
                       .isInstanceOfSatisfying(
                           FilterExpression.class,
                           c -> {
+                            assertThat(c.getOrderIndex()).isOne();
                             assertThat(c.getFilterPath().getField()).isEqualTo("myOtherField");
                             assertThat(c.getFilterPath().getParentPath()).isEmpty();
                             assertThat(c.getCondition())

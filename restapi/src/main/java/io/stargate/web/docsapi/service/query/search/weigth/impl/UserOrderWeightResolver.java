@@ -17,19 +17,17 @@
 
 package io.stargate.web.docsapi.service.query.search.weigth.impl;
 
-import com.bpodgursky.jbool_expressions.Expression;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.search.weigth.ExpressionWeightResolver;
 import java.util.Collection;
-import java.util.List;
 
 /** The {@link ExpressionWeightResolver} that respects the user oder of the expressions. */
 public class UserOrderWeightResolver implements ExpressionWeightResolver<FilterExpression> {
 
-  private final List<Expression<FilterExpression>> order;
+  private static final UserOrderWeightResolver INSTANCE = new UserOrderWeightResolver();
 
-  public UserOrderWeightResolver(List<Expression<FilterExpression>> order) {
-    this.order = order;
+  public static UserOrderWeightResolver of() {
+    return INSTANCE;
   }
 
   /** {@inheritDoc} */
@@ -39,7 +37,7 @@ public class UserOrderWeightResolver implements ExpressionWeightResolver<FilterE
     if (defaultCompare != 0) {
       return defaultCompare;
     } else {
-      return Integer.compare(indexOrMax(order, o1), indexOrMax(order, o2));
+      return Integer.compare(o1.getOrderIndex(), o2.getOrderIndex());
     }
   }
 
@@ -50,30 +48,14 @@ public class UserOrderWeightResolver implements ExpressionWeightResolver<FilterE
     if (defaultCompare != 0) {
       return defaultCompare;
     } else {
-      return Integer.compare(lowestIndexOrMax(order, c1), lowestIndexOrMax(order, c2));
+      return Integer.compare(lowestIndex(c1), lowestIndex(c2));
     }
   }
 
-  private int indexOrMax(List<Expression<FilterExpression>> order, Expression<FilterExpression> e) {
-    int index = order.indexOf(e);
-    if (index < 0) {
-      return Integer.MAX_VALUE;
-    } else {
-      return index;
-    }
-  }
-
-  private int lowestIndexOrMax(
-      List<Expression<FilterExpression>> order, Collection<FilterExpression> collection) {
-    int index = Integer.MAX_VALUE;
-    for (FilterExpression e : collection) {
-      int current = indexOrMax(order, e);
-      if (current == 0) {
-        return 0;
-      } else if (current > 0 && current < index) {
-        index = current;
-      }
-    }
-    return index;
+  private int lowestIndex(Collection<FilterExpression> collection) {
+    return collection.stream()
+        .mapToInt(FilterExpression::getOrderIndex)
+        .min()
+        .orElse(Integer.MAX_VALUE);
   }
 }
