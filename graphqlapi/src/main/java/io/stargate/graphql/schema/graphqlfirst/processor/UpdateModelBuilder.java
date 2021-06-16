@@ -19,7 +19,7 @@ import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
-import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import java.util.*;
@@ -84,6 +84,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         entityFromFirstArgument.map(__ -> firstArgument.getName());
     List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
+    List<IncrementModel> incrementModels;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -94,14 +95,17 @@ class UpdateModelBuilder extends MutationModelBuilder {
       entity = entityFromFirstArgument.get();
       whereConditions = entity.getPrimaryKeyWhereConditions();
       ifConditions = Collections.emptyList();
+      incrementModels = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlUpdateDirective, "update", CqlDirectives.UPDATE);
-      ConditionModels conditions =
-          new ConditionModelsBuilder(operation, OperationType.UPDATE, entity, entities, context)
+      ArgumentDirectiveModels directives =
+          new ArgumentDirectiveModelsBuilder(
+                  operation, OperationType.UPDATE, entity, entities, context)
               .build();
-      whereConditions = conditions.getWhereConditions();
-      ifConditions = conditions.getIfConditions();
+      whereConditions = directives.getWhereConditions();
+      ifConditions = directives.getIfConditions();
       validate(whereConditions, ifConditions, ifExists, entity);
+      incrementModels = directives.getIncrementModels();
     }
 
     Optional<ResponsePayloadModel> responsePayload =
@@ -119,6 +123,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         returnType,
         responsePayload,
         ifExists,
+        incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
         getSerialConsistencyLevel(cqlUpdateDirective));
   }

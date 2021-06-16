@@ -25,8 +25,10 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.Modification;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.*;
@@ -76,8 +78,13 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
-    Collection<ValueModifier> modifiers =
-        buildModifiers(entityModel, keyspace, hasArgument, getArgument);
+    Collection<ValueModifier> modifiers;
+    if (!model.getIncrementModels().isEmpty()) {
+      modifiers =
+          buildIncrementModifiers(model.getIncrementModels(), keyspace, hasArgument, getArgument);
+    } else {
+      modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
+    }
 
     AbstractBound<?> query =
         dataStore
@@ -134,6 +141,36 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
       }
       return response;
     }
+  }
+
+  private Collection<ValueModifier> buildIncrementModifiers(
+      List<IncrementModel> incrementModels,
+      Keyspace keyspace,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument) {
+    List<ValueModifier> modifiers = new ArrayList<>();
+
+    for (IncrementModel incrementModel : incrementModels) {
+      FieldModel column = incrementModel.getField();
+
+      if (hasArgument.test(incrementModel.getArgumentName())) {
+        Object graphqlValue = getArgument.apply(incrementModel.getArgumentName());
+        Modification.Operation operation =
+            incrementModel.isPrepend()
+                ? Modification.Operation.PREPEND
+                : Modification.Operation.APPEND; // handles both increment and append
+        modifiers.add(
+            ValueModifier.of(
+                column.getCqlName(),
+                Value.of(toCqlValue(graphqlValue, column.getCqlType(), keyspace)),
+                operation));
+      }
+      if (modifiers.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Input object must have at least one non-PK field set for an update");
+      }
+    }
+    return modifiers;
   }
 
   private Collection<ValueModifier> buildModifiers(

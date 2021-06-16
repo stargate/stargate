@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
-import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModelsBuilder.OperationType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
@@ -99,8 +99,9 @@ class DeleteModelBuilder extends MutationModelBuilder {
       ifConditions = Collections.emptyList();
     } else {
       entity = entityFromDirective(cqlDeleteDirective, "delete", CqlDirectives.DELETE);
-      ConditionModels conditions =
-          new ConditionModelsBuilder(operation, OperationType.DELETE, entity, entities, context)
+      ArgumentDirectiveModels conditions =
+          new ArgumentDirectiveModelsBuilder(
+                  operation, OperationType.DELETE, entity, entities, context)
               .build();
       whereConditions = conditions.getWhereConditions();
       ifConditions = conditions.getIfConditions();

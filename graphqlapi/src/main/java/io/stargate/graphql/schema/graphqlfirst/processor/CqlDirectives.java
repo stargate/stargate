@@ -481,8 +481,10 @@ public class CqlDirectives {
 
   public static final String WHERE = "cql_where";
   public static final String IF = "cql_if";
-  public static final String WHERE_OR_IF_FIELD = "field";
+  public static final String INCREMENT = "cql_increment";
+  public static final String WHERE_OR_IF_OR_INCREMENT_FIELD = "field";
   public static final String WHERE_OR_IF_PREDICATE = "predicate";
+  public static final String INCREMENT_PREPEND = "prepend";
 
   private static final GraphQLEnumType PREDICATE_ENUM =
       newEnum()
@@ -504,7 +506,7 @@ public class CqlDirectives {
               "Annotates a parameter to customize the WHERE condition that is generated from it.")
           .argument(
               newArgument()
-                  .name(WHERE_OR_IF_FIELD)
+                  .name(WHERE_OR_IF_OR_INCREMENT_FIELD)
                   .type(Scalars.GraphQLString)
                   .description(
                       "The name of the field that the condition applies to (if absent, it will be "
@@ -516,6 +518,33 @@ public class CqlDirectives {
                   .type(PREDICATE_ENUM)
                   .defaultValue(Predicate.EQ.name())
                   .description("The predicate to use for the condition.")
+                  .build())
+          .validLocation(ARGUMENT_DEFINITION)
+          .build();
+
+  private static final GraphQLDirective INCREMENT_DIRECTIVE =
+      newDirective()
+          .name(INCREMENT)
+          .description(
+              "Annotates a parameter to indicate that it will be incremented.\n"
+                  + "It is supported on the counter, set and list types.\n"
+                  + "This is only allowed for update mutations.")
+          .argument(
+              newArgument()
+                  .name(WHERE_OR_IF_OR_INCREMENT_FIELD)
+                  .type(Scalars.GraphQLString)
+                  .description(
+                      "The name of the field that the increment applies to (if absent, it will be "
+                          + "the name of the argument).")
+                  .build())
+          .argument(
+              newArgument()
+                  .name(INCREMENT_PREPEND)
+                  .type(Scalars.GraphQLBoolean)
+                  .defaultValue(false)
+                  .description(
+                      "Specifies whether the value should be appended or prepended.\n"
+                          + "It applies only to list. The default is false, meaning that the value will be appended.")
                   .build())
           .validLocation(ARGUMENT_DEFINITION)
           .build();
@@ -542,7 +571,7 @@ public class CqlDirectives {
                   + "This is only allowed for delete and update mutations.")
           .argument(
               newArgument()
-                  .name(WHERE_OR_IF_FIELD)
+                  .name(WHERE_OR_IF_OR_INCREMENT_FIELD)
                   .type(Scalars.GraphQLString)
                   .description(
                       "The name of the field that the condition applies to (if absent, it will be "
@@ -586,6 +615,7 @@ public class CqlDirectives {
             .additionalDirective(DELETE_DIRECTIVE)
             .additionalDirective(WHERE_DIRECTIVE)
             .additionalDirective(IF_DIRECTIVE)
+            .additionalDirective(INCREMENT_DIRECTIVE)
             .query(dummyQueryType)
             .build();
 

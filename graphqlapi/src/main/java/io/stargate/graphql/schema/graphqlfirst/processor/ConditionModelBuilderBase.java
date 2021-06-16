@@ -25,36 +25,25 @@ import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.Map;
 import java.util.Optional;
 
-public abstract class ConditionModelBuilderBase extends ModelBuilderBase<ConditionModel> {
-  protected final InputValueDefinition argument;
-  protected final String operationName;
-  protected final EntityModel entity;
-  private final FieldModel field;
-  protected final Map<String, EntityModel> entities;
+public abstract class ConditionModelBuilderBase
+    extends ArgumentDirectiveModelBuilderBase<ConditionModel> {
 
   protected ConditionModelBuilderBase(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(context, argument.getSourceLocation());
-    this.argument = argument;
-    this.operationName = operationName;
-    this.entity = entity;
-    this.field = field;
-    this.entities = entities;
+    super(argument, directive, entity, field, operationName, entities, context);
   }
-
-  protected abstract String getDirectiveName();
 
   protected abstract void validate(FieldModel field, Predicate predicate) throws SkipException;
 
   @Override
   protected ConditionModel build() throws SkipException {
 
-    Optional<Directive> directive = DirectiveHelper.getDirective(getDirectiveName(), argument);
     Predicate predicate =
         directive
             .flatMap(
@@ -71,7 +60,7 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
   protected void checkArgumentIsSameAs(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> fieldInputType = fieldInputType();
 
     if (!argumentType.isEqualTo(fieldInputType)) {
       invalidMapping(
@@ -85,27 +74,10 @@ public abstract class ConditionModelBuilderBase extends ModelBuilderBase<Conditi
     }
   }
 
-  protected Type<?> toInput(
-      Type<?> fieldType, InputValueDefinition inputValue, EntityModel entity, FieldModel field)
-      throws SkipException {
-    try {
-      return TypeHelper.toInput(TypeHelper.unwrapNonNull(fieldType), entities);
-    } catch (IllegalArgumentException e) {
-      invalidMapping(
-          "Operation %s: can't infer expected input type for %s (matching %s.%s) because %s",
-          operationName,
-          inputValue.getName(),
-          entity.getGraphqlName(),
-          field.getGraphqlName(),
-          e.getMessage());
-      throw SkipException.INSTANCE;
-    }
-  }
-
   protected void checkArgumentIsListOf(FieldModel field) throws SkipException {
 
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
-    Type<?> fieldInputType = toInput(field.getGraphqlType(), argument, entity, field);
+    Type<?> fieldInputType = fieldInputType();
     Type<?> expectedArgumentType = newListType(fieldInputType).build();
 
     if (!argumentType.isEqualTo(expectedArgumentType)) {

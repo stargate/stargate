@@ -15,25 +15,23 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.InputValueDefinition;
 import io.stargate.db.query.Predicate;
 import java.util.Map;
+import java.util.Optional;
 
 class IfConditionModelBuilder extends ConditionModelBuilderBase {
 
   IfConditionModelBuilder(
       InputValueDefinition argument,
-      String operationName,
+      Optional<Directive> directive,
       EntityModel entity,
       FieldModel field,
+      String operationName,
       Map<String, EntityModel> entities,
       ProcessingContext context) {
-    super(argument, operationName, entity, field, entities, context);
-  }
-
-  @Override
-  protected String getDirectiveName() {
-    return CqlDirectives.IF;
+    super(argument, directive, entity, field, operationName, entities, context);
   }
 
   @Override

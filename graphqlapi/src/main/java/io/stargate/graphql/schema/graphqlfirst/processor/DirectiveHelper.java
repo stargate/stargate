@@ -20,6 +20,7 @@ import graphql.language.BooleanValue;
 import graphql.language.Directive;
 import graphql.language.DirectivesContainer;
 import graphql.language.EnumValue;
+import graphql.language.InputValueDefinition;
 import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
@@ -35,6 +36,10 @@ class DirectiveHelper {
       return Optional.of(container.getDirectives(name).get(0));
     }
     return Optional.empty();
+  }
+
+  public static boolean hasDirective(InputValueDefinition inputValue, String directive) {
+    return getDirective(directive, inputValue).isPresent();
   }
 
   static Optional<String> getStringArgument(
