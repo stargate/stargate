@@ -71,4 +71,34 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
         .contains(
             "Query updateWithWriteTimestamp: @cql_timestamp can be used on at most one argument (found write_timestamp and write_timestamp2)");
   }
+
+  @Test
+  @DisplayName("Should fail when deploying schema with a @cql_timestamp directive not proper type")
+  public void shouldFailToDeploySchemaWithCqlTimestampDirectiveNotProperType() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type User @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  v: Int\n"
+                    + "}\n"
+                    + "type Query { users(k: Int!): User }\n"
+                    + "type Mutation {\n"
+                    + " updateWithWriteTimestamp(\n"
+                    + "    k: Int\n"
+                    + "    v: Int\n"
+                    + "    write_timestamp: Int @cql_timestamp\n"
+                    + "  ): Boolean\n"
+                    + "@cql_update(targetEntity: \"User\")\n"
+                    + "}")
+            .get(0);
+
+    // then
+    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+        .contains(
+            "Query updateWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have type String");
+  }
 }

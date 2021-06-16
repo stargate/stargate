@@ -16,9 +16,11 @@
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.FieldDefinition;
+import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
+import graphql.schema.GraphQLScalarType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityListReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
@@ -89,5 +91,40 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
       invalidMapping("Operation %s: %s", operationName, maybeError.get());
       throw SkipException.INSTANCE;
     }
+  }
+
+  protected Optional<String> findFieldNameWithDirective(
+      String directiveName, GraphQLScalarType expectedType) throws SkipException {
+    Optional<String> result = Optional.empty();
+    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
+      if (isDirective(inputValue, directiveName, expectedType)) {
+        if (result.isPresent()) {
+          invalidMapping(
+              "Query %s: @%s can be used on at most one argument (found %s and %s)",
+              operationName, directiveName, result.get(), inputValue.getName());
+          throw SkipException.INSTANCE;
+        }
+        result = Optional.of(inputValue.getName());
+      }
+    }
+    return result;
+  }
+
+  private boolean isDirective(
+      InputValueDefinition inputValue, String directiveName, GraphQLScalarType expectedType)
+      throws SkipException {
+    boolean hasDirective = DirectiveHelper.getDirective(directiveName, inputValue).isPresent();
+    if (!hasDirective) {
+      return false;
+    }
+    Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
+    if (!(type instanceof TypeName)
+        || !((TypeName) type).getName().equals(expectedType.getName())) {
+      invalidMapping(
+          "Query %s: argument %s annotated with @%s must have type %s",
+          operationName, inputValue.getName(), directiveName, expectedType.getName());
+      throw SkipException.INSTANCE;
+    }
+    return true;
   }
 }
