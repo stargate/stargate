@@ -77,7 +77,7 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Operation deleteFooWhereAndIfOnTheSameField: can't set both @cql_where and @cql_if on argument v");
+            "Operation deleteFooWhereAndIfOnTheSameField: argument v can only use one of @cql_where,@cql_if");
   }
 
   @Test
@@ -104,6 +104,6 @@ public class WhereAndIfDirectivesTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("Operation foo: @cql_if is not allowed on query arguments (pk)");
+        .contains("Operation foo: @cql_if is not allowed on SELECT arguments (pk)");
   }
 }
