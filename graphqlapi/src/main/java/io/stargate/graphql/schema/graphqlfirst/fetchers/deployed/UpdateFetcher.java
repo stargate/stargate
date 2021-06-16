@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
+import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import io.stargate.auth.Scope;
@@ -34,12 +35,17 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.*;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
+
+  @SuppressWarnings("unchecked")
+  private static final Coercing<Long, String> BIG_INT_COERCING =
+      CqlScalar.BIGINT.getGraphqlType().getCoercing();
 
   public UpdateFetcher(UpdateModel model, MappingModel mappingModel) {
     super(model, mappingModel);
@@ -86,10 +92,17 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
       modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
     }
 
+    Optional<Long> timestamp =
+        model
+            .getCqlTimestampArgumentName()
+            .filter(hasArgument)
+            .map(name -> BIG_INT_COERCING.parseValue(environment.<String>getArgument(name)));
+
     AbstractBound<?> query =
         dataStore
             .queryBuilder()
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
+            .timestamp(timestamp.orElse(null))
             .value(modifiers)
             .where(whereConditions)
             .ifs(ifConditions)

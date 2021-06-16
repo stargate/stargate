@@ -1,0 +1,93 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.stargate.it.http.graphql.graphqlfirst;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.jayway.jsonpath.JsonPath;
+import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.RestUtils;
+import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Objects;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@ExtendWith(CqlSessionExtension.class)
+public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
+
+  private static CqlSession SESSION;
+  private static GraphqlFirstClient CLIENT;
+  private static String KEYSPACE;
+
+  private static Long getUserWriteTimestamp(int k) {
+    ResultSet resultSet = SESSION.execute("SELECT writetime(v) FROM \"User\" WHERE k = ? ", k);
+    return Objects.requireNonNull(resultSet.one()).getLong(0);
+  }
+
+  @BeforeAll
+  public static void setup(
+      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+    SESSION = session;
+    CLIENT =
+        new GraphqlFirstClient(
+            cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
+    KEYSPACE = keyspaceId.asInternal();
+    CLIENT.deploySchema(
+        KEYSPACE,
+        "type User @cql_input {\n"
+            + "  k: Int! @cql_column(partitionKey: true)\n"
+            + "  v: Int\n"
+            + "}\n"
+            + "type Query { users(k: Int!): User }\n"
+            + "type Mutation {\n"
+            + " updateWithWriteTimestamp(\n"
+            + "    k: Int\n"
+            + "    v: Int\n"
+            + "    write_timestamp: String @cql_timestamp\n"
+            + "  ): Boolean\n"
+            + "@cql_update(targetEntity: \"User\")\n"
+            + "}");
+  }
+
+  @BeforeEach
+  public void cleanupData() {
+    SESSION.execute("truncate table \"User\"");
+  }
+
+  @Test
+  @DisplayName("Should update user with write timestamp using @cql_timestamp directive")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirective() {
+    // when
+    Long writeTimestamp = 100_000L;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
+                writeTimestamp));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
+  }
+}

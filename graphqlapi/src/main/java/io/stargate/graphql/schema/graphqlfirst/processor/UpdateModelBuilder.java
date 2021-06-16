@@ -15,13 +15,17 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import graphql.language.Type;
+import graphql.language.TypeName;
 import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.*;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -85,6 +89,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
     List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
     List<IncrementModel> incrementModels;
+
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -108,6 +113,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
       incrementModels = directives.getIncrementModels();
     }
 
+    Optional<String> cqlTimestampArgumentName = findCqlTimestamp();
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
             .filter(ResponsePayloadModel.class::isInstance)
@@ -125,7 +131,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
         ifExists,
         incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
-        getSerialConsistencyLevel(cqlUpdateDirective));
+        getSerialConsistencyLevel(cqlUpdateDirective),
+        cqlTimestampArgumentName);
   }
 
   private void validate(
@@ -162,5 +169,45 @@ class UpdateModelBuilder extends MutationModelBuilder {
         throw SkipException.INSTANCE;
       }
     }
+  }
+
+  private Optional<String> findCqlTimestamp() throws SkipException {
+    Optional<String> result = Optional.empty();
+    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
+      if (isCqlTimestamp(inputValue)) {
+        if (result.isPresent()) {
+          invalidMapping(
+              "Query %s: @%s can be used on at most one argument (found %s and %s)",
+              operationName, CqlDirectives.TIMESTAMP, result.get(), inputValue.getName());
+          throw SkipException.INSTANCE;
+        }
+        result = Optional.of(inputValue.getName());
+      }
+    }
+    return result;
+  }
+
+  private boolean isCqlTimestamp(InputValueDefinition inputValue) throws SkipException {
+    boolean hasDirective =
+        DirectiveHelper.getDirective(CqlDirectives.TIMESTAMP, inputValue).isPresent();
+    if (!hasDirective) {
+      return false;
+    }
+    Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
+    if (!(type instanceof TypeName)
+        || !((TypeName) type)
+            .getName()
+            .equals(
+                Scalars.GraphQLString
+                    .getName())) { // GraphQLString will be coerced to BigInteger (Long)
+      invalidMapping(
+          "Query %s: argument %s annotated with @%s must have type %s",
+          operationName,
+          inputValue.getName(),
+          CqlDirectives.TIMESTAMP,
+          Scalars.GraphQLString.getName());
+      throw SkipException.INSTANCE;
+    }
+    return true;
   }
 }
