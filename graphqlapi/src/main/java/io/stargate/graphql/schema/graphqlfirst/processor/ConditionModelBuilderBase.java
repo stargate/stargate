@@ -62,7 +62,7 @@ public abstract class ConditionModelBuilderBase
     Type<?> argumentType = TypeHelper.unwrapNonNull(argument.getType());
     Type<?> fieldInputType = fieldInputType();
 
-    if (!argumentType.isEqualTo(fieldInputType)) {
+    if (!TypeHelper.deepEquals(argumentType, fieldInputType)) {
       invalidMapping(
           "Operation %s: expected argument %s to have type %s to match %s.%s",
           operationName,
@@ -80,7 +80,7 @@ public abstract class ConditionModelBuilderBase
     Type<?> fieldInputType = fieldInputType();
     Type<?> expectedArgumentType = newListType(fieldInputType).build();
 
-    if (!argumentType.isEqualTo(expectedArgumentType)) {
+    if (!TypeHelper.deepEquals(argumentType, expectedArgumentType)) {
       invalidMapping(
           "Operation %s: expected argument %s to have type %s to match %s.%s",
           operationName,
