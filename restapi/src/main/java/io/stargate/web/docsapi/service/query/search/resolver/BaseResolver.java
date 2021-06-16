@@ -58,14 +58,16 @@ public final class BaseResolver {
       return parent;
     }
 
+    // execute cnf optimization
+    Expression<FilterExpression> cnf = RuleSet.toCNF(expression);
+
+    // since this will simplify as well, check if we have And
     // if we have And proceed to the CNF resolver
-    if (And.EXPR_TYPE.equals(expression.getExprType())) {
-      Expression<FilterExpression> cnfExpression = RuleSet.toCNF(expression);
-      return CnfResolver.resolve(cnfExpression, context, parent);
+    if (And.EXPR_TYPE.equals(cnf.getExprType())) {
+      return CnfResolver.resolve(cnf, context, parent);
     } else {
       // otherwise wrap to And and forward to the CNF
-      And<FilterExpression> and = And.of(expression);
-      return CnfResolver.resolve(and, context, parent);
+      return CnfResolver.resolve(And.of(cnf), context, parent);
     }
   }
 }
