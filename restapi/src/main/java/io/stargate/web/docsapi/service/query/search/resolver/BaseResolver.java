@@ -17,6 +17,7 @@
 
 package io.stargate.web.docsapi.service.query.search.resolver;
 
+import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
@@ -57,13 +58,14 @@ public final class BaseResolver {
       return parent;
     }
 
-    // if we have only one Filter expression, then to SingleExpression resolver
-    if (FilterExpression.EXPR_TYPE.equals(expression.getExprType())) {
-      return SingleExpressionResolver.resolve((FilterExpression) expression, context, parent);
+    // if we have And proceed to the CNF resolver
+    if (And.EXPR_TYPE.equals(expression.getExprType())) {
+      Expression<FilterExpression> cnfExpression = RuleSet.toCNF(expression);
+      return CnfResolver.resolve(cnfExpression, context, parent);
+    } else {
+      // otherwise wrap to And and forward to the CNF
+      And<FilterExpression> and = And.of(expression);
+      return CnfResolver.resolve(and, context, parent);
     }
-
-    // for now in every other case go for the CNF resolver
-    Expression<FilterExpression> cnfExpression = RuleSet.toCNF(expression);
-    return CnfResolver.resolve(cnfExpression, context, parent);
   }
 }

@@ -55,6 +55,11 @@ public class DocumentSearchService {
     // if we have true immediately, means we can only do full search
     if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
 
+      // for the sake of correctness make sure we don't have have false
+      if (Literal.getFalse().equals(expression)) {
+        return Flowable.empty();
+      }
+
       // fetch docs, no need to populate as all rows are taken
       return fullSearch(
               queryExecutor,

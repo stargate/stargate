@@ -31,15 +31,23 @@ import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondi
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOperation;
+import io.stargate.web.docsapi.service.query.filter.operation.impl.NeFilterOperation;
+import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.InMemoryCandidatesFilter;
+import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.PersistenceCandidatesFilter;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.AllFiltersResolver;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
 import java.util.Collections;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class BaseResolverTest {
+
+  @Mock DocumentsResolver candidatesResolver;
 
   @Nested
   class Resolve {
@@ -54,7 +62,7 @@ class BaseResolverTest {
     }
 
     @Test
-    public void singleExpression() {
+    public void singleExpressionPersistenceNoCandidates() {
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
@@ -63,6 +71,64 @@ class BaseResolverTest {
       DocumentsResolver result = BaseResolver.resolve(expression, context);
 
       assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
+    }
+
+    @Test
+    public void singleExpressionPersistenceCandidates() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+
+      DocumentsResolver result = BaseResolver.resolve(expression, context, candidatesResolver);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              AllFiltersResolver.class,
+              allOf -> {
+                assertThat(allOf)
+                    .hasFieldOrPropertyWithValue("candidatesResolver", candidatesResolver);
+                assertThat(allOf)
+                    .extracting("candidatesFilters")
+                    .asList()
+                    .singleElement()
+                    .isInstanceOf(PersistenceCandidatesFilter.class);
+              });
+    }
+
+    @Test
+    public void singleExpressionInMemoryNoCandidates() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition = ImmutableStringCondition.of(NeFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+
+      DocumentsResolver result = BaseResolver.resolve(expression, context);
+
+      assertThat(result).isInstanceOf(InMemoryDocumentsResolver.class);
+    }
+
+    @Test
+    public void singleExpressionInMemoryCandidates() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition = ImmutableStringCondition.of(NeFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition);
+
+      DocumentsResolver result = BaseResolver.resolve(expression, context, candidatesResolver);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              AllFiltersResolver.class,
+              allOf -> {
+                assertThat(allOf)
+                    .hasFieldOrPropertyWithValue("candidatesResolver", candidatesResolver);
+                assertThat(allOf)
+                    .extracting("candidatesFilters")
+                    .asList()
+                    .singleElement()
+                    .isInstanceOf(InMemoryCandidatesFilter.class);
+              });
     }
 
     @Test
