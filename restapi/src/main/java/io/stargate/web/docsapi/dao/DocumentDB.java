@@ -613,6 +613,40 @@ public class DocumentDB {
   }
 
   /**
+   * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
+   * using the @param vars provided, all in one batch.
+   */
+  public void deleteManyThenInsertBatch(
+      String keyspace,
+      String table,
+      List<String> keys,
+      List<Object[]> vars,
+      List<String> pathToDelete,
+      long microsSinceEpoch,
+      ExecutionContext context)
+      throws UnauthorizedException {
+
+    List<BoundQuery> queries = new ArrayList<>(keys.size() + vars.size());
+    keys.forEach(
+        key ->
+            queries.add(
+                getPrefixDeleteStatement(
+                    keyspace, table, key, microsSinceEpoch - 1, pathToDelete)));
+
+    for (Object[] values : vars) {
+      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
+    }
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+
+    executeBatch(queries, context);
+  }
+
+  /**
    * Performs a delete of all the rows that match exactly the @param path, deletes all array paths,
    * and then does an insert using the @param vars provided, all in one batch.
    */

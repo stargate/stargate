@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.io.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -395,6 +396,109 @@ public class DocumentService {
       bindVariableList.add(bindMap.values().toArray());
     }
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
+  }
+
+  private String convertToJsonPtr(String path) {
+    return "/" + path.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1");
+  }
+
+  public List<String> writeManyDocs(
+      String authToken,
+      String keyspace,
+      String collection,
+      InputStream payload,
+      Optional<String> idPath,
+      Db dbFactory,
+      Map<String, String> headers)
+      throws IOException, UnauthorizedException {
+
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
+    JsonSurfer surfer = JsonSurferGson.INSTANCE;
+
+    boolean created = db.maybeCreateTable(keyspace, collection);
+    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
+    // but we can force the permissions refetch by logging in again.
+    if (created) {
+      db = dbFactory.getDocDataStoreForToken(authToken, headers);
+      db.maybeCreateTableIndexes(keyspace, collection);
+    }
+    List<String> idsWritten = new ArrayList<>();
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(payload, "UTF-8"))) {
+      Iterator<String> iter = reader.lines().iterator();
+      ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+      int chunkIndex = 0;
+      final int CHUNK_SIZE = 250;
+      while (iter.hasNext()) {
+        chunkIndex++;
+        Map<String, String> docsInChunk = new LinkedHashMap<>();
+        while (docsInChunk.size() < CHUNK_SIZE && iter.hasNext()) {
+          String doc = iter.next();
+          JsonNode json = mapper.readTree(doc);
+
+          String docId = UUID.randomUUID().toString();
+          if (idPath.isPresent()) {
+            String docsPath = convertToJsonPtr(idPath.get());
+            if (!json.at(docsPath).isTextual()) {
+              throw new IllegalArgumentException(
+                  String.format(
+                      "Json Document %s requires a String value at the path %s, found %s"
+                          + "\nBatch %d failed, %d writes were successful. Repeated requests are "
+                          + "idempotent if the same `idPath` is defined.",
+                      doc,
+                      idPath,
+                      json.at(docsPath).toString(),
+                      chunkIndex,
+                      (chunkIndex - 1) * CHUNK_SIZE));
+            }
+            docId = json.requiredAt(docsPath).asText();
+          }
+          docsInChunk.put(docId, doc);
+        }
+
+        // Write the chunk of (at most) 250 documents by firing a single batch with the row inserts
+        List<Object[]> bindVariableList = new ArrayList<>();
+        DocumentDB finalDb = db;
+        List<String> ids =
+            docsInChunk.entrySet().stream()
+                .map(
+                    data -> {
+                      bindVariableList.addAll(
+                          shredJson(
+                                  surfer,
+                                  finalDb,
+                                  Collections.emptyList(),
+                                  data.getKey(),
+                                  data.getValue(),
+                                  false)
+                              .left);
+                      return data.getKey();
+                    })
+                .collect(Collectors.toList());
+
+        long now = timeSource.currentTimeMicros();
+        try {
+          db.deleteManyThenInsertBatch(
+              keyspace,
+              collection,
+              ids,
+              bindVariableList,
+              Collections.emptyList(),
+              now,
+              context.nested("ASYNC INSERT"));
+        } catch (Exception e) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_WRITE_BATCH_FAILED,
+              String.format(
+                  "Batch %d failed to write, %d document writes were successful. Repeated requests are "
+                      + "idempotent if the same `idPath` is defined. If not, you should remove "
+                      + "the first %d created elements from your initial request to avoid duplication.",
+                  chunkIndex, (chunkIndex - 1) * CHUNK_SIZE, (chunkIndex - 1) * CHUNK_SIZE));
+        }
+
+        idsWritten.addAll(ids);
+      }
+    }
+    return idsWritten;
   }
 
   public void putAtPath(
