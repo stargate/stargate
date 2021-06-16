@@ -67,7 +67,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Mutation updateCountersIncrement: @cql_increment is not allowed on primary key fields (k)");
+            "Operation updateCountersIncrement: @cql_increment is not allowed on UPDATE primary key arguments (k)");
   }
 
   @Test
@@ -97,7 +97,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Operation updateCountersIncrement: the cql_increment directive with prepend = true cannot be used with argument cInc because it is not a list");
+            "Operation updateCountersIncrement: @cql_increment.prepend can only be applied to list fields");
   }
 
   @Test
@@ -125,7 +125,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("Operation counters: @cql_increment is not allowed on query arguments (k)");
+        .contains("Operation counters: @cql_increment is not allowed on SELECT arguments (k)");
   }
 
   @Test
@@ -152,7 +152,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(getMappingErrors(errors))
-        .contains("Operation delete: @cql_increment is not allowed on delete arguments (k)");
+        .contains("Operation delete: @cql_increment is not allowed on DELETE arguments (k)");
   }
 
   @Test
@@ -181,7 +181,7 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Operation update: expected argument cInc to have one of the types: [BigInt, Int] to match Counters.c");
+            "Operation update: expected argument cInc to have a valid counter increment type (one of: Int, BigInt, Counter)");
   }
 
   @Test
@@ -210,6 +210,6 @@ public class CqlIncrementDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     assertThat(getMappingErrors(errors))
         .contains(
-            "Operation update: expected argument cInc to have type: counter to match Counters.c");
+            "Operation update: @cql_increment can only be applied to counter or collection fields");
   }
 }
