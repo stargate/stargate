@@ -139,7 +139,9 @@ public abstract class GraphQlTestBase {
 
     when(context.getSubject()).thenReturn(authenticationSubject);
     when(context.getAuthorizationService()).thenReturn(authorizationService);
-    when(context.getDataStoreFactory()).thenReturn(dataStoreFactory);
+
+    // TODO adapt this:
+    //    when(context.getDataStoreFactory()).thenReturn(dataStoreFactory);
 
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }

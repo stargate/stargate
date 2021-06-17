@@ -20,14 +20,12 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
@@ -35,11 +33,9 @@ import javax.servlet.http.HttpServletRequest;
 
 public class StargateGraphqlContext {
 
-  private final HttpServletRequest request;
   private final AuthenticationSubject subject;
   private final DataStore dataStore;
   private final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
   private final Persistence persistence;
   private final GraphqlCache graphqlCache;
 
@@ -54,14 +50,11 @@ public class StargateGraphqlContext {
   public StargateGraphqlContext(
       HttpServletRequest request,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
       Persistence persistence,
       GraphqlCache graphqlCache) {
-    this.request = request;
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
     this.dataStore = (DataStore) request.getAttribute(AuthenticationFilter.DATA_STORE_KEY);
     this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
     this.persistence = persistence;
     this.graphqlCache = graphqlCache;
     if (this.subject == null) {
@@ -74,20 +67,12 @@ public class StargateGraphqlContext {
     return subject;
   }
 
-  public Map<String, String> getAllHeaders() {
-    return RequestToHeadersMapper.getAllHeaders(request);
-  }
-
   public BatchContext getBatchContext() {
     return batchContext;
   }
 
   public AuthorizationService getAuthorizationService() {
     return authorizationService;
-  }
-
-  public DataStoreFactory getDataStoreFactory() {
-    return dataStoreFactory;
   }
 
   public DataStore getDataStore() {
