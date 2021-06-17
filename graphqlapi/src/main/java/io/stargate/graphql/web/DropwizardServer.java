@@ -111,25 +111,7 @@ public class DropwizardServer extends Application<Configuration> {
             new AbstractBinder() {
               @Override
               protected void configure() {
-                bind(authenticationService).to(AuthenticationService.class);
-              }
-            });
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
                 bind(authorizationService).to(AuthorizationService.class);
-              }
-            });
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(dataStoreFactory).to(DataStoreFactory.class);
               }
             });
 
