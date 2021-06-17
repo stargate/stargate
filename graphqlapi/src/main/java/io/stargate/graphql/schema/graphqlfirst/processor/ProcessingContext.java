@@ -20,9 +20,7 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
@@ -66,9 +64,7 @@ class ProcessingContext {
     return persistence;
   }
 
-  /**
-   * @see SchemaProcessor#SchemaProcessor(AuthorizationService, DataStoreFactory, boolean, boolean)
-   */
+  /** @see SchemaProcessor#SchemaProcessor(Persistence, boolean) */
   public boolean isPersisted() {
     return isPersisted;
   }
