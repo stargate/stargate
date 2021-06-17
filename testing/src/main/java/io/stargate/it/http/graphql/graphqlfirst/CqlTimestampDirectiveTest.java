@@ -168,4 +168,40 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestampInt.applied")).isTrue();
     assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp.longValue());
   }
+
+  @Test
+  @DisplayName(
+      "Should update user with write timestamp using @cql_timestamp directive with a negative value")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveNegativeValue() {
+    // when
+    Long writeTimestampNanos = -1L;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
+                writeTimestampNanos));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestampNanos);
+  }
+
+  @Test
+  @DisplayName(
+      "Should update user with write timestamp using @cql_timestamp directive with a Long.MAX_VALUE.")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveLongMaxValue() {
+    // when
+    Long writeTimestampNanos = Long.MAX_VALUE;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
+                writeTimestampNanos));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestampNanos);
+  }
 }
