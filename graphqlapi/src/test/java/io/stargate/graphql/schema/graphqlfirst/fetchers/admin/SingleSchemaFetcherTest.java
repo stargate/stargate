@@ -48,8 +48,7 @@ class SingleSchemaFetcherTest {
     DataStore dataStore = mockDataStore(keyspace);
 
     // when
-    SchemaSource result =
-        singleSchemaFetcher.get(dataFetchingEnvironment, dataStore, mockContext());
+    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext());
 
     // then
     assertThat(result).isSameAs(schemaSource);
@@ -71,8 +70,7 @@ class SingleSchemaFetcherTest {
     DataStore dataStore = mockDataStore(keyspace);
 
     // when
-    SchemaSource result =
-        singleSchemaFetcher.get(dataFetchingEnvironment, dataStore, mockContext());
+    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext());
 
     // then
     assertThat(result).isSameAs(schemaSource);

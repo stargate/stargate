@@ -21,7 +21,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.builder.AbstractBound;
@@ -47,8 +46,7 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();

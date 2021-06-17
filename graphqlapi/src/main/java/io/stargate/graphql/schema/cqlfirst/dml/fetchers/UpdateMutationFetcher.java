@@ -7,7 +7,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Modification;
@@ -31,7 +30,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
 
   @Override
   protected BoundQuery buildQuery(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     boolean ifExists =
         environment.containsArgument("ifExists")
@@ -39,7 +38,8 @@ public class UpdateMutationFetcher extends MutationFetcher {
             && (Boolean) environment.getArgument("ifExists");
 
     BoundQuery query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .update(table.keyspace(), table.name())
             .ttl(getTTL(environment))

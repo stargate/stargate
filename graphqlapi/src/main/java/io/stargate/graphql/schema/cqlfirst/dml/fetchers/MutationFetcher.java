@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
@@ -37,7 +36,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
   @Override
   protected CompletableFuture<Map<String, Object>> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
+      DataFetchingEnvironment environment, StargateGraphqlContext context) {
     BoundQuery query = null;
     Exception buildException = null;
 
@@ -46,7 +45,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      query = buildQuery(environment, dataStore, context);
+      query = buildQuery(environment, context);
     } catch (Exception e) {
       buildException = e;
     }
@@ -55,7 +54,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
       // There are more than one mutation in @atomic operation
-      return executeAsPartOfBatch(environment, dataStore, query, buildException, operation);
+      return executeAsPartOfBatch(environment, query, buildException, operation);
     }
 
     if (buildException != null) {
@@ -78,7 +77,6 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
   private CompletableFuture<Map<String, Object>> executeAsPartOfBatch(
       DataFetchingEnvironment environment,
-      DataStore dataStore,
       BoundQuery query,
       Exception buildException,
       OperationDefinition operation) {
@@ -120,6 +118,5 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
   }
 
   protected abstract BoundQuery buildQuery(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception;
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
 }

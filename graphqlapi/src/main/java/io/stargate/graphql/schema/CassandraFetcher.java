@@ -3,7 +3,6 @@ package io.stargate.graphql.schema;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -23,11 +22,14 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
   @Override
   public final ResultT get(DataFetchingEnvironment environment) throws Exception {
+
+    // Small convenience: subclasses could just call environment.getContext() directly, but they'd
+    // have to cast every time
     StargateGraphqlContext context = environment.getContext();
-    return get(environment, context.getDataStore(), context);
+
+    return get(environment, context);
   }
 
   protected abstract ResultT get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception;
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
 }

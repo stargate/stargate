@@ -23,7 +23,6 @@ import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
@@ -45,7 +44,7 @@ public abstract class BulkMutationFetcher
 
   @Override
   protected CompletableFuture<List<Map<String, Object>>> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
+      DataFetchingEnvironment environment, StargateGraphqlContext context) {
     List<BoundQuery> queries = new ArrayList<>();
     Exception buildException = null;
 
@@ -54,7 +53,7 @@ public abstract class BulkMutationFetcher
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      queries = buildQueries(environment, dataStore, context);
+      queries = buildQueries(environment, context);
     } catch (Exception e) {
       buildException = e;
     }
@@ -145,6 +144,5 @@ public abstract class BulkMutationFetcher
   }
 
   protected abstract List<BoundQuery> buildQueries(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception;
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
 }

@@ -19,7 +19,6 @@ import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
@@ -76,8 +75,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     Keyspace keyspace =
         context.getDataStore().schema().keyspace(model.getEntity().getKeyspaceName());

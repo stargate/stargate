@@ -52,9 +52,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
 
   @Override
   protected Map<String, Object> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception {
-    BoundQuery query = buildQuery(environment, dataStore);
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception {
+    BoundQuery query = buildQuery(environment, context.getDataStore());
 
     ResultSet resultSet =
         context

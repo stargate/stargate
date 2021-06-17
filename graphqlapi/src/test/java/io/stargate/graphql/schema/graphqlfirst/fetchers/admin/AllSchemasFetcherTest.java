@@ -54,7 +54,7 @@ class AllSchemasFetcherTest {
     when(context.getSubject()).thenReturn(subject);
 
     // when
-    List<SchemaSource> result = allSchemasFetcher.get(dataFetchingEnvironment, dataStore, context);
+    List<SchemaSource> result = allSchemasFetcher.get(dataFetchingEnvironment, context);
 
     // then
     assertThat(result).containsExactly(schemaSource1, schemaSource2);

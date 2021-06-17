@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import com.apollographql.federation.graphqljava._Entity;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
@@ -49,7 +48,7 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
 
   @Override
   protected List<FederatedEntity> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     List<FederatedEntity> result = new ArrayList<>();

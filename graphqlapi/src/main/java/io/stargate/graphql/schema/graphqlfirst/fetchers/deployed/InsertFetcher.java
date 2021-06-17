@@ -21,7 +21,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
@@ -55,7 +54,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
   @Override
   protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -70,7 +69,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
             .flatMap(ResponsePayloadModel::getEntityField)
             .map(EntityField::getName)
             .orElse(null);
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
