@@ -120,6 +120,14 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
+    return fullFillResponse(dataStore, selectionSet, isLwt, query);
+  }
+
+  private Object fullFillResponse(
+      DataStore dataStore,
+      DataFetchingFieldSelectionSet selectionSet,
+      boolean isLwt,
+      AbstractBound<?> query) {
     ResultSet resultSet = executeUnchecked(query, dataStore);
 
     boolean responseContainsEntity =
@@ -182,30 +190,6 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
         throw new IllegalArgumentException(
             "Input object must have at least one non-PK field set for an update");
       }
-    }
-    return modifiers;
-  }
-
-  private Collection<ValueModifier> buildModifiers(
-      EntityModel entityModel,
-      Keyspace keyspace,
-      Predicate<String> hasArgument,
-      Function<String, Object> getArgument) {
-
-    List<ValueModifier> modifiers = new ArrayList<>();
-    for (FieldModel column : entityModel.getRegularColumns()) {
-      String graphqlName = column.getGraphqlName();
-
-      if (hasArgument.test(graphqlName)) {
-        Object graphqlValue = getArgument.apply(graphqlName);
-        modifiers.add(
-            ValueModifier.set(
-                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      }
-    }
-    if (modifiers.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Input object must have at least one non-PK field set for an update");
     }
     return modifiers;
   }

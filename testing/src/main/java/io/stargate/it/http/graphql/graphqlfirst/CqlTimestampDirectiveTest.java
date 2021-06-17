@@ -59,6 +59,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "  v: Int\n"
             + "}\n"
             + "type Query { users(k: Int!): User }\n"
+            + "type InsertUserResponse @cql_payload {\n"
+            + "  applied: Boolean!\n"
+            + "  user: User!\n"
+            + "}\n"
             + "type Mutation {\n"
             + " updateWithWriteTimestamp(\n"
             + "    k: Int\n"
@@ -66,6 +70,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "    write_timestamp: String @cql_timestamp\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"User\")\n"
+            + "  insertWithWriteTimestamp(\n"
+            + "    user: UserInput!\n"
+            + "    write_timestamp: String @cql_timestamp\n"
+            + "): InsertUserResponse @cql_insert\n"
             + "}");
   }
 
@@ -88,6 +96,25 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
+  }
+
+  @Test
+  @DisplayName("Should insert user with write timestamp using @cql_timestamp directive")
+  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirective() {
+    // when
+    Long writeTimestamp = 100_000L;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
+                    + " applied, user { k, v } }\n"
+                    + "}",
+                writeTimestamp));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestamp.applied")).isTrue();
     assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
   }
 }

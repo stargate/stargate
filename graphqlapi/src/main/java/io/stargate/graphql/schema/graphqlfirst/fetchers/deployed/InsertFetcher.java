@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
+import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import io.stargate.auth.Scope;
@@ -38,15 +39,21 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.En
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Object>> {
+
+  @SuppressWarnings("unchecked")
+  private static final Coercing<Long, String> BIG_INT_COERCING =
+      CqlScalar.BIGINT.getGraphqlType().getCoercing();
 
   public InsertFetcher(InsertModel model, MappingModel mappingModel) {
     super(model, mappingModel);
@@ -78,12 +85,19 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
             .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
             .collect(Collectors.toList());
 
+    Optional<Long> timestamp =
+        model
+            .getCqlTimestampArgumentName()
+            .filter(environment::containsArgument)
+            .map(name -> BIG_INT_COERCING.parseValue(environment.<String>getArgument(name)));
+
     AbstractBound<?> query =
         dataStore
             .queryBuilder()
             .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
             .ifNotExists(isLwt)
+            .timestamp(timestamp.orElse(null))
             .build()
             .bind();
 
