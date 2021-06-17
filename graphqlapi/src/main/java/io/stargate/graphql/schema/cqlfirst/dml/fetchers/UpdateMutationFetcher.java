@@ -10,8 +10,10 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.Modification;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
@@ -83,7 +85,13 @@ public class UpdateMutationFetcher extends MutationFetcher {
       Column column = dbColumnGetter.getColumn(table, entry.getKey());
       if (!(table.partitionKeyColumns().contains(column)
           || table.clusteringKeyColumns().contains(column))) {
-        assignments.add(ValueModifier.set(column.name(), toDBValue(column, entry.getValue())));
+        Modification.Operation operation =
+            column.type() == Column.Type.Counter
+                ? Modification.Operation.INCREMENT
+                : Modification.Operation.SET;
+        assignments.add(
+            ValueModifier.of(
+                column.name(), Value.of(toDBValue(column, entry.getValue())), operation));
       }
     }
     return assignments;
