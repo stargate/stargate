@@ -70,9 +70,20 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "    write_timestamp: String @cql_timestamp\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"User\")\n"
+            + " updateWithWriteTimestampInt(\n"
+            + "    k: Int\n"
+            + "    v: Int\n"
+            + "    write_timestamp: Int @cql_timestamp\n"
+            + "  ): Boolean\n"
+            + "@cql_update(targetEntity: \"User\")\n"
             + "  insertWithWriteTimestamp(\n"
             + "    user: UserInput!\n"
             + "    write_timestamp: String @cql_timestamp\n"
+            + "): InsertUserResponse @cql_insert\n"
+            + "@cql_update(targetEntity: \"User\")\n"
+            + "  insertWithWriteTimestampInt(\n"
+            + "    user: UserInput!\n"
+            + "    write_timestamp: Int @cql_timestamp\n"
             + "): InsertUserResponse @cql_insert\n"
             + "}");
   }
@@ -83,8 +94,9 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should update user with write timestamp using @cql_timestamp directive")
-  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirective() {
+  @DisplayName(
+      "Should update user with write timestamp using @cql_timestamp directive with a Long value")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveLong() {
     // when
     Long writeTimestamp = 100_000L;
     Object response =
@@ -100,8 +112,27 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should insert user with write timestamp using @cql_timestamp directive")
-  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirective() {
+  @DisplayName(
+      "Should update user with write timestamp using @cql_timestamp directive with an Int value")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveInt() {
+    // when
+    Number writeTimestamp = 100_000;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { updateWithWriteTimestampInt(k: 1, v: 100, write_timestamp: %s ) }",
+                writeTimestamp.intValue()));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestampInt")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp.longValue());
+  }
+
+  @Test
+  @DisplayName(
+      "Should insert user with write timestamp using @cql_timestamp directive with a Long value")
+  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveLong() {
     // when
     Long writeTimestamp = 100_000L;
     Object response =
@@ -116,5 +147,25 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestamp.applied")).isTrue();
     assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
+  }
+
+  @Test
+  @DisplayName(
+      "Should insert user with write timestamp using @cql_timestamp directive with an Int value")
+  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveInt() {
+    // when
+    Number writeTimestamp = 100_000L;
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            String.format(
+                "mutation { insertWithWriteTimestampInt(user: { k: 1, v: 100 }, write_timestamp: %s ) { \n"
+                    + " applied, user { k, v } }\n"
+                    + "}",
+                writeTimestamp.intValue()));
+
+    // then
+    assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestampInt.applied")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp.longValue());
   }
 }

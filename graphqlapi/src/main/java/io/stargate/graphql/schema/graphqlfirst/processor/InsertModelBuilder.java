@@ -20,6 +20,7 @@ import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,7 +84,8 @@ class InsertModelBuilder extends MutationModelBuilder {
 
     // we are using GraphQLString because it will be coerced to BigInteger (Long)
     Optional<String> cqlTimestampArgumentName =
-        findFieldNameWithDirective(CqlDirectives.TIMESTAMP, Scalars.GraphQLString);
+        findFieldNameWithDirective(
+            CqlDirectives.TIMESTAMP, Arrays.asList(Scalars.GraphQLString, Scalars.GraphQLInt));
 
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)

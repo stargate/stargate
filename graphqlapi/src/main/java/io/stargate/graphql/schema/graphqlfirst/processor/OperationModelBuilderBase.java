@@ -25,9 +25,11 @@ import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityLi
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 abstract class OperationModelBuilderBase<T extends OperationModel> extends ModelBuilderBase<T> {
 
@@ -95,9 +97,14 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
 
   protected Optional<String> findFieldNameWithDirective(
       String directiveName, GraphQLScalarType expectedType) throws SkipException {
+    return findFieldNameWithDirective(directiveName, Collections.singletonList(expectedType));
+  }
+
+  protected Optional<String> findFieldNameWithDirective(
+      String directiveName, List<GraphQLScalarType> expectedTypes) throws SkipException {
     Optional<String> result = Optional.empty();
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (isDirective(inputValue, directiveName, expectedType)) {
+      if (isDirective(inputValue, directiveName, expectedTypes)) {
         if (result.isPresent()) {
           invalidMapping(
               "Query %s: @%s can be used on at most one argument (found %s and %s)",
@@ -111,20 +118,42 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
   }
 
   private boolean isDirective(
-      InputValueDefinition inputValue, String directiveName, GraphQLScalarType expectedType)
+      InputValueDefinition inputValue, String directiveName, List<GraphQLScalarType> expectedTypes)
       throws SkipException {
     boolean hasDirective = DirectiveHelper.getDirective(directiveName, inputValue).isPresent();
     if (!hasDirective) {
       return false;
     }
     Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
-    if (!(type instanceof TypeName)
-        || !((TypeName) type).getName().equals(expectedType.getName())) {
-      invalidMapping(
-          "Query %s: argument %s annotated with @%s must have type %s",
-          operationName, inputValue.getName(), directiveName, expectedType.getName());
-      throw SkipException.INSTANCE;
+    boolean typeMatchFound = false;
+    for (GraphQLScalarType expectedType : expectedTypes) {
+      if (type instanceof TypeName && ((TypeName) type).getName().equals(expectedType.getName())) {
+        typeMatchFound = true;
+        break;
+      }
+    }
+    if (!typeMatchFound) {
+      handleTypeMismatch(inputValue, directiveName, expectedTypes);
     }
     return true;
+  }
+
+  private void handleTypeMismatch(
+      InputValueDefinition inputValue, String directiveName, List<GraphQLScalarType> expectedTypes)
+      throws SkipException {
+    if (expectedTypes.size() == 1) {
+      invalidMapping(
+          "Query %s: argument %s annotated with @%s must have type %s",
+          operationName, inputValue.getName(), directiveName, expectedTypes.get(0).getName());
+    } else {
+      invalidMapping(
+          "Query %s: argument %s annotated with @%s must have one of the types %s",
+          operationName, inputValue.getName(), directiveName, mapToNames(expectedTypes));
+    }
+    throw SkipException.INSTANCE;
+  }
+
+  private List<String> mapToNames(List<GraphQLScalarType> expectedTypes) {
+    return expectedTypes.stream().map(GraphQLScalarType::getName).collect(Collectors.toList());
   }
 }
