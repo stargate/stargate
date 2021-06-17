@@ -17,7 +17,7 @@ package io.stargate.graphql.web.resources;
 
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
-import io.stargate.auth.AuthenticationSubject;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import io.stargate.graphql.web.models.GraphqlJsonBody;
 import java.util.regex.Pattern;
@@ -168,7 +168,7 @@ public class DmlResource extends GraphqlResourceBase {
       GraphQL graphql =
           graphqlCache.getDml(
               keyspaceName,
-              (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY),
+              (DataStore) httpRequest.getAttribute(AuthenticationFilter.DATA_STORE_KEY),
               RequestToHeadersMapper.getAllHeaders(httpRequest));
       if (graphql == null) {
         replyWithGraphqlError(
