@@ -49,6 +49,12 @@ public abstract class NotInFilterOperation extends InFilterOperation {
 
   /** {@inheritDoc} */
   @Override
+  public boolean isEvaluateOnMissingFields() {
+    return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public boolean test(List<?> filterValue, String dbValue) {
     return !super.test(filterValue, dbValue);
   }

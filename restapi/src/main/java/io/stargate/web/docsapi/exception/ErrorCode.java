@@ -84,8 +84,19 @@ public enum ErrorCode {
   DOCS_API_PUT_PAYLOAD_INVALID(
       Response.Status.BAD_REQUEST, "A put operation failed due to the invalid payload."),
 
+  DOCS_API_SEARCH_WHERE_JSON_INVALID(
+      Response.Status.BAD_REQUEST,
+      "The `where` parameter expects a valid JSON object representing search criteria."),
+
+  DOCS_API_SEARCH_FIELDS_JSON_INVALID(
+      Response.Status.BAD_REQUEST,
+      "The `fields` parameter expects a valid JSON array containing field names."),
+
   DOCS_API_SEARCH_FILTER_INVALID(
       Response.Status.BAD_REQUEST, "A filter operation and value resolved as invalid."),
+
+  DOCS_API_SEARCH_ARRAY_PATH_INVALID(
+      Response.Status.BAD_REQUEST, "An invalid array path value was provided."),
 
   DOCS_API_SEARCH_OBJECT_REQUIRED(
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),

@@ -1,23 +1,18 @@
 package io.stargate.web.docsapi.service;
 
-import static io.stargate.web.docsapi.dao.DocumentDB.MAX_DEPTH;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableTransformer;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
@@ -34,6 +29,7 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
+import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.resources.Db;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -797,24 +793,15 @@ public class DocumentService {
     return docsResult;
   }
 
-  @VisibleForTesting
-  void addRowsToMap(Map<String, List<Row>> rowsByDoc, List<Row> rows) {
-    for (Row row : rows) {
-      String key = row.getString("key");
-      List<Row> rowsAtKey = rowsByDoc.getOrDefault(key, new ArrayList<>());
-      rowsAtKey.add(row);
-      rowsByDoc.put(key, rowsAtKey);
-    }
-  }
-
   private boolean fieldMatchesRowPath(Row row, String field) {
-    String rowPath = getFieldPathFromRow(row);
+    String rowPath = getFieldPathFromRow(row, DocumentServiceUtils.maxFieldDepth(field));
     return rowPath.startsWith(field)
         && (rowPath.substring(field.length()).isEmpty()
             || rowPath.substring(field.length()).startsWith("."));
   }
 
-  private void addToJsonMap(
+  // todo move to the json converter
+  public void addToJsonMap(
       DocumentDB db, ObjectNode docsResult, List<RawDocument> docs, List<String> fields) {
     for (RawDocument doc : docs) {
       List<Row> rows;
@@ -831,130 +818,6 @@ public class DocumentService {
           doc.id(),
           jsonConverterService.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()));
     }
-  }
-
-  /**
-   * This method gets all the rows for @param Paginator#dbPageSize documents, by fetching result
-   * sets sequentially and stringing them together. This is NOT expected to perform well for large
-   * documents.
-   */
-  public JsonNode getFullDocuments(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<String> fields,
-      Paginator paginator,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    ObjectNode docsResult = mapper.createObjectNode();
-
-    List<RawDocument> docs =
-        db.executeSelect(
-                keyspace,
-                collection,
-                ImmutableList.of(),
-                docsApiConfiguration.getSearchPageSize(),
-                paginator.getCurrentDbPageState(),
-                nestedAllDocs(context))
-            .take(paginator.docPageSize)
-            .toList()
-            .blockingGet();
-
-    paginator.setDocumentPageState(docs);
-
-    addToJsonMap(db, docsResult, docs, fields);
-
-    return docsResult;
-  }
-
-  /**
-   * This method gets all the rows for @param limit documents, by fetching result sets sequentially
-   * and stringing them together. After getting all the data out, it will pare down the document to
-   * just the relevant result set, while maintaining page state. This is expected to be even more
-   * intensive than getFullDocuments.
-   */
-  public JsonNode getFullDocumentsFiltered(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<FilterCondition> filters,
-      List<String> fields,
-      Paginator paginator,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    List<FilterCondition> inCassandraFilters =
-        filters.stream()
-            .filter(f -> !FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
-            .collect(Collectors.toList());
-    List<FilterCondition> inMemoryFilters =
-        filters.stream()
-            .filter(f -> FilterOp.LIMITED_SUPPORT_FILTERS.contains(f.getFilterOp()))
-            .collect(Collectors.toList());
-
-    if (inCassandraFilters.isEmpty()) {
-      return searchWithOnlyInMemoryFilters(
-          db, keyspace, collection, inMemoryFilters, fields, paginator, context);
-    }
-    return searchUsingCassandraFilters(
-        db, keyspace, collection, inCassandraFilters, inMemoryFilters, fields, paginator, context);
-  }
-
-  private JsonNode searchUsingCassandraFilters(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<FilterCondition> inCassandraFilters,
-      List<FilterCondition> inMemoryFilters,
-      List<String> fields,
-      Paginator paginator,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    ObjectNode docsResult = mapper.createObjectNode();
-
-    Flowable<RawDocument> candidates =
-        getCandidatesForPage(db, keyspace, collection, inCassandraFilters, paginator, context);
-
-    ExecutionContext populateCtx = nestedPopulate(context);
-
-    List<RawDocument> docs =
-        candidates
-            .concatMapSingle(
-                d -> {
-                  // TODO: revisit fetching doc rows in batches using IN on `key`
-                  BuiltCondition keyPredicate = BuiltCondition.of("key", Predicate.EQ, d.id());
-                  return d.populateFrom(
-                      db.executeSelect(
-                          keyspace,
-                          collection,
-                          ImmutableList.of(keyPredicate),
-                          // We have to use a non-zero page size here in case the whole doc does not
-                          // fit into one page because C* will ignore paging state on subsequent
-                          // requests if the page size is <= 0.
-                          // TODO: use a separate page size parameter for populating queries?
-                          docsApiConfiguration.getSearchPageSize(),
-                          null,
-                          populateCtx));
-                })
-            .compose(filterInMemory(db, inMemoryFilters, context))
-            .take(paginator.docPageSize)
-            .toList()
-            .blockingGet();
-
-    paginator.setDocumentPageState(docs);
-
-    addToJsonMap(db, docsResult, docs, fields);
-
-    return docsResult;
-  }
-
-  private ExecutionContext nested(ExecutionContext context, FilterCondition filter) {
-    return context.nested(
-        "FILTER: "
-            + filter.getFullFieldPath()
-            + " "
-            + filter.getFilterOp()
-            + " "
-            + filter.getValue());
   }
 
   private ExecutionContext nestedInMemory(ExecutionContext context, FilterCondition filter) {
@@ -976,108 +839,8 @@ public class DocumentService {
                 .collect(Collectors.joining(" AND ")));
   }
 
-  private ExecutionContext nestedAllDocs(ExecutionContext context) {
-    return context.nested("LoadAllDocuments");
-  }
-
   private ExecutionContext nestedPopulate(ExecutionContext context) {
     return context.nested("LoadProperties");
-  }
-
-  private Flowable<RawDocument> getCandidatesForPage(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<FilterCondition> inCassandraFilters,
-      Paginator paginator,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    db.authorizeSelect(keyspace, collection);
-
-    Iterator<FilterCondition> it = inCassandraFilters.iterator();
-    FilterCondition pagingCondition = it.next(); // assume at least one condition
-
-    AbstractBound<?> mainQuery =
-        db.builder()
-            .select()
-            .column("key")
-            .column("leaf")
-            .from(keyspace, collection)
-            .where(buildConditions(pagingCondition, db.treatBooleansAsNumeric()))
-            .allowFiltering()
-            .build()
-            .bind();
-
-    Flowable<RawDocument> docs =
-        db.executeSelect(
-            mainQuery,
-            docsApiConfiguration.getSearchPageSize(),
-            paginator.getCurrentDbPageState(),
-            nested(context, pagingCondition));
-
-    while (it.hasNext()) {
-      FilterCondition nestedCondition = it.next();
-      ExecutionContext nestedCtx = nested(context, nestedCondition);
-
-      // chain the other filters as nested queries
-      docs =
-          docs.concatMap(
-              d -> {
-                BuiltCondition keyCondition = BuiltCondition.of("key", Predicate.EQ, d.id());
-
-                AbstractBound<?> nestedQuery =
-                    db.builder()
-                        .select()
-                        .column("key")
-                        .column("leaf")
-                        .from(keyspace, collection)
-                        .where(keyCondition)
-                        .where(buildConditions(nestedCondition, db.treatBooleansAsNumeric()))
-                        .limit(1)
-                        .allowFiltering()
-                        .build()
-                        .bind();
-
-                // If the nested query finds any docs, return the input doc to preserve
-                // the paging order of the main query.
-                // Note: use page size larger than the query limit to make sure the backend
-                // paginator is exhausted on the first page.
-                return db.executeSelect(nestedQuery, 2, null, nestedCtx).take(1).map(nested -> d);
-              });
-    }
-
-    return docs;
-  }
-
-  private JsonNode searchWithOnlyInMemoryFilters(
-      DocumentDB db,
-      String keyspace,
-      String collection,
-      List<FilterCondition> inMemoryFilters,
-      List<String> fields,
-      Paginator paginator,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    ObjectNode docsResult = mapper.createObjectNode();
-
-    List<RawDocument> docs =
-        db.executeSelect(
-                keyspace,
-                collection,
-                ImmutableList.of(),
-                docsApiConfiguration.getSearchPageSize(),
-                paginator.getCurrentDbPageState(),
-                nestedAllDocs(context))
-            .compose(filterInMemory(db, inMemoryFilters, context))
-            .take(paginator.docPageSize)
-            .toList()
-            .blockingGet();
-
-    paginator.setDocumentPageState(docs);
-
-    addToJsonMap(db, docsResult, docs, fields);
-
-    return docsResult;
   }
 
   private void collectNestedElementConditions(List<BuiltCondition> predicates, List<String> path) {
@@ -1101,22 +864,6 @@ public class DocumentService {
         predicates.add(BuiltCondition.of("p" + i, Predicate.IN, segmentsList));
       }
     }
-  }
-
-  private List<BuiltCondition> buildConditions(
-      FilterCondition condition, boolean booleanAsNumeric) {
-    List<BuiltCondition> predicates = new ArrayList<>();
-    collectNestedElementConditions(predicates, condition.getPath());
-    collectFieldConditions(predicates, condition);
-
-    // The next path element must match empty-string
-    int next = condition.getPath().size() + 1;
-    if (next < MAX_DEPTH) {
-      predicates.add(BuiltCondition.of("p" + next, Predicate.EQ, ""));
-    }
-
-    collectValueConditions(predicates, condition, booleanAsNumeric);
-    return predicates;
   }
 
   private void collectFieldConditions(List<BuiltCondition> predicates, FilterCondition condition) {
@@ -1159,9 +906,9 @@ public class DocumentService {
     return s.toString();
   }
 
-  private String getFieldPathFromRow(Row row) {
+  private String getFieldPathFromRow(Row row, long maxDepth) {
     List<String> path = new ArrayList<>();
-    for (int i = 0; i < docsApiConfiguration.getMaxDepth(); i++) {
+    for (int i = 0; i < maxDepth; i++) {
       String value = row.getString("p" + i);
       if (value.isEmpty()) {
         break;
