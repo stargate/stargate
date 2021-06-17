@@ -45,10 +45,9 @@ class SingleSchemaFetcherTest {
     SingleSchemaFetcher singleSchemaFetcher = new SingleSchemaFetcher((ds) -> schemaSourceDao);
 
     DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(keyspace);
-    DataStore dataStore = mockDataStore(keyspace);
 
     // when
-    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext());
+    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext(keyspace));
 
     // then
     assertThat(result).isSameAs(schemaSource);
@@ -67,10 +66,9 @@ class SingleSchemaFetcherTest {
 
     DataFetchingEnvironment dataFetchingEnvironment =
         mockDataFetchingEnvironment(keyspace, version.toString());
-    DataStore dataStore = mockDataStore(keyspace);
 
     // when
-    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext());
+    SchemaSource result = singleSchemaFetcher.get(dataFetchingEnvironment, mockContext(keyspace));
 
     // then
     assertThat(result).isSameAs(schemaSource);
@@ -96,12 +94,14 @@ class SingleSchemaFetcherTest {
     return dataStore;
   }
 
-  private StargateGraphqlContext mockContext() {
+  private StargateGraphqlContext mockContext(String keyspace) {
     StargateGraphqlContext context = mock(StargateGraphqlContext.class);
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     AuthenticationSubject subject = mock(AuthenticationSubject.class);
+    DataStore dataStore = mockDataStore(keyspace);
     when(context.getAuthorizationService()).thenReturn(authorizationService);
     when(context.getSubject()).thenReturn(subject);
+    when(context.getDataStore()).thenReturn(dataStore);
     return context;
   }
 }

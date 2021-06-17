@@ -45,13 +45,14 @@ class AllSchemasFetcherTest {
     AllSchemasFetcher allSchemasFetcher = new AllSchemasFetcher((ds) -> schemaSourceDao);
 
     DataFetchingEnvironment dataFetchingEnvironment = mockDataFetchingEnvironment(keyspace);
-    DataStore dataStore = mockDataStore(keyspace);
 
     StargateGraphqlContext context = mock(StargateGraphqlContext.class);
     AuthorizationService authorizationService = mock(AuthorizationService.class);
     AuthenticationSubject subject = mock(AuthenticationSubject.class);
+    DataStore dataStore = mockDataStore(keyspace);
     when(context.getAuthorizationService()).thenReturn(authorizationService);
     when(context.getSubject()).thenReturn(subject);
+    when(context.getDataStore()).thenReturn(dataStore);
 
     // when
     List<SchemaSource> result = allSchemasFetcher.get(dataFetchingEnvironment, context);

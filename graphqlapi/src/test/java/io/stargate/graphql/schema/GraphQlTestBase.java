@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -17,14 +16,11 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.TypedValue.Codec;
@@ -38,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,21 +48,18 @@ import org.mockito.junit.jupiter.MockitoSettings;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = LENIENT)
 public abstract class GraphQlTestBase {
+
   protected GraphQL graphQl;
   protected GraphQLSchema graphQlSchema;
-  @Mock protected AuthenticationService authenticationService;
   @Mock protected AuthorizationService authorizationService;
   @Mock protected ResultSet resultSet;
   @Mock private AuthenticationSubject authenticationSubject;
-  @Mock protected DataStoreFactory dataStoreFactory;
+  @Mock protected DataStore dataStore;
 
   @Captor private ArgumentCaptor<BoundQuery> queryCaptor;
   @Captor protected ArgumentCaptor<Callable<ResultSet>> actionCaptor;
   @Captor private ArgumentCaptor<List<BoundQuery>> batchCaptor;
-  @Captor protected ArgumentCaptor<DataStoreOptions> dataStoreOptionsCaptor;
-
-  // Stores the parameters of the last batch execution
-  protected Parameters batchParameters;
+  @Captor protected ArgumentCaptor<UnaryOperator<Parameters>> parametersModifierCaptor;
 
   @BeforeEach
   public void setupEnvironment() {
@@ -81,33 +75,19 @@ public abstract class GraphQlTestBase {
               anyString(),
               any(),
               eq(SourceAPI.GRAPHQL)))
-          .then(
-              i -> {
-                return actionCaptor.getValue().call();
-              });
-      when(dataStoreFactory.create(
-              argThat(u -> u.name().equals(roleName)), dataStoreOptionsCaptor.capture()))
-          .then(
-              i -> {
-                DataStore dataStore = mock(DataStore.class);
-                when(dataStore.queryBuilder())
-                    .thenReturn(new QueryBuilder(schema, Codec.testCodec(), dataStore));
-                when(dataStore.execute(queryCaptor.capture()))
-                    .thenReturn(CompletableFuture.completedFuture(resultSet));
+          .then(i -> actionCaptor.getValue().call());
 
-                // Batches use multiple data store instances, one per each mutation
-                // We need to capture the parameters provided at dataStore creation
-                DataStoreOptions dataStoreOptions = i.getArgument(1, DataStoreOptions.class);
-                when(dataStore.batch(batchCaptor.capture()))
-                    .then(
-                        batchInvoke -> {
-                          batchParameters = dataStoreOptions.defaultParameters();
-                          return CompletableFuture.completedFuture(mock(ResultSet.class));
-                        });
+      when(dataStore.queryBuilder())
+          .thenAnswer(i -> new QueryBuilder(schema, Codec.testCodec(), dataStore));
+      when(dataStore.execute(queryCaptor.capture()))
+          .thenReturn(CompletableFuture.completedFuture(resultSet));
+      when(dataStore.execute(queryCaptor.capture(), parametersModifierCaptor.capture()))
+          .thenReturn(CompletableFuture.completedFuture(resultSet));
+      when(dataStore.batch(batchCaptor.capture(), parametersModifierCaptor.capture()))
+          .thenReturn(CompletableFuture.completedFuture(mock(ResultSet.class)));
 
-                when(dataStore.schema()).thenReturn(schema);
-                return dataStore;
-              });
+      when(dataStore.schema()).thenReturn(schema);
+
     } catch (Exception e) {
       fail("Unexpected exception while mocking dataStore", e);
     }
@@ -139,9 +119,7 @@ public abstract class GraphQlTestBase {
 
     when(context.getSubject()).thenReturn(authenticationSubject);
     when(context.getAuthorizationService()).thenReturn(authorizationService);
-
-    // TODO adapt this:
-    //    when(context.getDataStoreFactory()).thenReturn(dataStoreFactory);
+    when(context.getDataStore()).thenReturn(dataStore);
 
     return graphQl.execute(ExecutionInput.newExecutionInput(query).context(context).build());
   }
@@ -160,6 +138,14 @@ public abstract class GraphQlTestBase {
 
   public List<String> getCapturedBatchQueriesString() {
     return batchCaptor.getValue().stream().map(this::queryString).collect(Collectors.toList());
+  }
+
+  /** The effective parameters of the last {@code dataStore.query|batch} call. */
+  protected Parameters getCapturedParameters() {
+    UnaryOperator<Parameters> parametersModifier = parametersModifierCaptor.getValue();
+    return parametersModifier == null
+        ? CassandraFetcher.DEFAULT_PARAMETERS
+        : parametersModifier.apply(CassandraFetcher.DEFAULT_PARAMETERS);
   }
 
   /**
