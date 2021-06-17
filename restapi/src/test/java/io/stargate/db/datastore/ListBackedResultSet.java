@@ -16,6 +16,7 @@
 package io.stargate.db.datastore;
 
 import io.stargate.db.PagingPosition;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import java.nio.ByteBuffer;
@@ -102,5 +103,10 @@ public class ListBackedResultSet implements ResultSet {
   @Override
   public ByteBuffer makePagingState(PagingPosition position) {
     return paginator.pagingState(position, currentPage);
+  }
+
+  @Override
+  public RowDecorator makeRowDecorator() {
+    throw new UnsupportedOperationException();
   }
 }

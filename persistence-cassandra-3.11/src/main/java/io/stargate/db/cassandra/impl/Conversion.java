@@ -27,6 +27,7 @@ import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.TableName;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -169,12 +170,17 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
-  public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    CFMetaData cfm =
-        Schema.instance.getCFMetaData(pos.tableName().keyspace(), pos.tableName().name());
+  public static CFMetaData toCFMetaData(TableName tableName) {
+    CFMetaData cfm = Schema.instance.getCFMetaData(tableName.keyspace(), tableName.name());
     if (cfm == null) {
-      throw new IllegalStateException("Table not found: " + pos.tableName().name());
+      throw new IllegalStateException("Table not found: " + tableName.name());
     }
+
+    return cfm;
+  }
+
+  public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
+    CFMetaData cfm = toCFMetaData(pos.tableName());
 
     Object[] pkValues =
         cfm.partitionKeyColumns().stream()

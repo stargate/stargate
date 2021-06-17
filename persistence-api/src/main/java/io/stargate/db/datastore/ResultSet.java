@@ -16,6 +16,7 @@
 package io.stargate.db.datastore;
 
 import io.stargate.db.PagingPosition;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -84,6 +85,12 @@ public interface ResultSet extends Iterable<Row> {
     }
 
     @Override
+    public RowDecorator makeRowDecorator() {
+      throw new UnsupportedOperationException(
+          "Obtaining partition key comparators from an empty result set is not supported");
+    }
+
+    @Override
     public boolean waitedForSchemaAgreement() {
       return waitedForSchemaAgreement;
     }
@@ -135,6 +142,14 @@ public interface ResultSet extends Iterable<Row> {
    * returned this {@link ResultSet}.
    */
   ByteBuffer makePagingState(PagingPosition position);
+
+  /**
+   * Makes a new {@link RowDecorator} for the table providing columns in this results set.
+   *
+   * @throws IllegalArgumentException if none or more than one table is referenced by this result
+   *     set.
+   */
+  RowDecorator makeRowDecorator();
 
   /** Returns true of this request waited for schema agreement. */
   default boolean waitedForSchemaAgreement() {
