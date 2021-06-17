@@ -80,7 +80,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
             .collect(Collectors.toList());
 
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
@@ -98,7 +99,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
 
     if (responseContainsEntity) {
       Map<String, Object> entityData;

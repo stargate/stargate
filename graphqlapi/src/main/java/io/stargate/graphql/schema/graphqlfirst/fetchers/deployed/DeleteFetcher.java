@@ -52,7 +52,7 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
 
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
@@ -77,7 +77,8 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .delete()
             .from(entityModel.getKeyspaceName(), entityModel.getCqlName())
@@ -97,7 +98,7 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
     boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
 
     ReturnType returnType = model.getReturnType();

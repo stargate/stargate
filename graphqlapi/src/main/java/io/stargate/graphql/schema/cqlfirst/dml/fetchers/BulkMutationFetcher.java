@@ -22,6 +22,7 @@ import static java.util.stream.Stream.concat;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
@@ -32,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,15 +77,17 @@ public abstract class BulkMutationFetcher
     }
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
+    UnaryOperator<Parameters> parameters = buildParameters(environment);
     for (int i = 0; i < queries.size(); i++) {
       int finalI = i;
       // Execute as a single statement
       if (containsDirective(operation, ASYNC_DIRECTIVE)) {
-        results.add(executeAsyncAccepted(dataStore, queries.get(i), values.get(finalI)));
+        results.add(executeAsyncAccepted(queries.get(i), values.get(finalI), parameters, context));
       } else {
         results.add(
-            dataStore
-                .execute(queries.get(i))
+            context
+                .getDataStore()
+                .execute(queries.get(i), parameters)
                 .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
       }
     }

@@ -87,7 +87,8 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
     }
 
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
@@ -107,7 +108,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
 
     boolean responseContainsEntity =
         model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();

@@ -65,12 +65,14 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     }
 
     if (containsDirective(operation, ASYNC_DIRECTIVE)) {
-      return executeAsyncAccepted(dataStore, query, environment.getArgument("value"));
+      return executeAsyncAccepted(
+          query, environment.getArgument("value"), buildParameters(environment), context);
     }
 
     // Execute as a single statement
-    return dataStore
-        .execute(query)
+    return context
+        .getDataStore()
+        .execute(query, buildParameters(environment))
         .thenApply(rs -> toMutationResult(rs, environment.getArgument("value")));
   }
 

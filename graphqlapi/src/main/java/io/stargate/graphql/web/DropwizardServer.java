@@ -142,7 +142,9 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(FrameworkUtil.getBundle(GraphqlActivator.class)).to(Bundle.class);
               }
             });
-    environment.jersey().register(new AuthenticationFilter(authenticationService));
+    environment
+        .jersey()
+        .register(new AuthenticationFilter(authenticationService, dataStoreFactory));
     environment
         .jersey()
         .register(

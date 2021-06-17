@@ -36,6 +36,7 @@ public class StargateGraphqlContext {
 
   private final HttpServletRequest request;
   private final AuthenticationSubject subject;
+  private final DataStore dataStore;
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final Persistence persistence;
@@ -57,6 +58,7 @@ public class StargateGraphqlContext {
       GraphqlCache graphqlCache) {
     this.request = request;
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
+    this.dataStore = (DataStore) request.getAttribute(AuthenticationFilter.DATA_STORE_KEY);
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.persistence = persistence;
@@ -85,6 +87,10 @@ public class StargateGraphqlContext {
 
   public DataStoreFactory getDataStoreFactory() {
     return dataStoreFactory;
+  }
+
+  public DataStore getDataStore() {
+    return dataStore;
   }
 
   public Persistence getPersistence() {
