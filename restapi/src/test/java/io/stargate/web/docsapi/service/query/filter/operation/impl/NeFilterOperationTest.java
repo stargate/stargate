@@ -27,28 +27,28 @@ import org.junit.jupiter.api.Test;
 
 class NeFilterOperationTest {
 
-  NeFilterOperation eq = NeFilterOperation.of();
+  NeFilterOperation ne = NeFilterOperation.of();
 
   @Nested
   class FilterTest {
 
     @Test
     public void stringEquals() {
-      boolean result = eq.test("filterValue", "filterValue");
+      boolean result = ne.test("filterValue", "filterValue");
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void stringNotEquals() {
-      boolean result = eq.test("filterValue", "dbValue");
+      boolean result = ne.test("filterValue", "dbValue");
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void stringNotEqualsNull() {
-      boolean result = eq.test("filterValue", null);
+      boolean result = ne.test("filterValue", null);
 
       assertThat(result).isTrue();
     }
@@ -57,7 +57,7 @@ class NeFilterOperationTest {
     public void booleanEquals() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = eq.test(value, value);
+      boolean result = ne.test(value, value);
 
       assertThat(result).isFalse();
     }
@@ -66,7 +66,7 @@ class NeFilterOperationTest {
     public void booleanNotEquals() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = eq.test(value, !value);
+      boolean result = ne.test(value, !value);
 
       assertThat(result).isTrue();
     }
@@ -75,42 +75,42 @@ class NeFilterOperationTest {
     public void booleanNotEqualsNull() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = eq.test(value, null);
+      boolean result = ne.test(value, null);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numberEquals() {
-      boolean result = eq.test(22d, 22d);
+      boolean result = ne.test(22d, 22d);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numberEqualsDifferentTypes() {
-      boolean result = eq.test(22, 22d);
+      boolean result = ne.test(22, 22d);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersNotEquals() {
-      boolean result = eq.test(22d, 23d);
+      boolean result = ne.test(22d, 23d);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNotEqualsDifferentTypes() {
-      boolean result = eq.test(22L, 22.01);
+      boolean result = ne.test(22L, 22.01);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNotEqualsNull() {
-      boolean result = eq.test(22, null);
+      boolean result = ne.test(22, null);
 
       assertThat(result).isTrue();
     }
@@ -121,7 +121,7 @@ class NeFilterOperationTest {
 
     @Test
     public void correct() {
-      Optional<Predicate> result = eq.getQueryPredicate();
+      Optional<Predicate> result = ne.getQueryPredicate();
 
       assertThat(result).isEmpty();
     }
@@ -132,9 +132,20 @@ class NeFilterOperationTest {
 
     @Test
     public void correct() {
-      FilterOperationCode result = eq.getOpCode();
+      FilterOperationCode result = ne.getOpCode();
 
       assertThat(result).isEqualTo(FilterOperationCode.NE);
+    }
+  }
+
+  @Nested
+  class IsEvaluateOnMissingFields {
+
+    @Test
+    public void evaluate() {
+      boolean result = ne.isEvaluateOnMissingFields();
+
+      assertThat(result).isTrue();
     }
   }
 }

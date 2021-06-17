@@ -46,6 +46,12 @@ public abstract class NeFilterOperation implements ComparingValueFilterOperation
 
   /** {@inheritDoc} */
   @Override
+  public boolean isEvaluateOnMissingFields() {
+    return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public boolean isSatisfied(int compareValue) {
     return compareValue != 0;
   }

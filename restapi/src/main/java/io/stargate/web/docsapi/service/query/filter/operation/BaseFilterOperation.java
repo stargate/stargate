@@ -27,4 +27,13 @@ public interface BaseFilterOperation {
 
   /** @return Mirrored persistence predicate, if one exists. */
   Optional<Predicate> getQueryPredicate();
+
+  /**
+   * Return <code>false</code> by default, sub-classes can override.
+   *
+   * @return if this filter operation should also evaluate on the missing field.
+   */
+  default boolean isEvaluateOnMissingFields() {
+    return false;
+  }
 }

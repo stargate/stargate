@@ -16,8 +16,10 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import io.stargate.web.docsapi.dao.DocumentDB;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 /** Contains path information for a filter operation. */
@@ -34,6 +36,18 @@ public interface FilterPath {
     if (null == fullPath || fullPath.isEmpty()) {
       throw new IllegalArgumentException("Filter path to a field must not be empty.");
     }
+  }
+
+  /**
+   * @return Returns if the given path is fixed, meaning it does not contain any wildcards (globs).
+   */
+  @Value.Lazy
+  default boolean isFixed() {
+    return getParentPath().stream()
+        .noneMatch(
+            p ->
+                Objects.equals(p, DocumentDB.GLOB_VALUE)
+                    || Objects.equals(p, DocumentDB.GLOB_ARRAY_VALUE));
   }
 
   /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */

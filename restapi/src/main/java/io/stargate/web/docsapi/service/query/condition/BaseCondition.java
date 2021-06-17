@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.query.condition;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -35,6 +36,15 @@ public interface BaseCondition extends Predicate<Row> {
 
   /** @return Returns persistence built condition, if this condition supports database querying. */
   Optional<BuiltCondition> getBuiltCondition();
+
+  /** @return Returns filter operation code used by this condition. */
+  FilterOperationCode getFilterOperationCode();
+
+  /** @return Returns the query value. */
+  Object getQueryValue();
+
+  /** @return if condition evaluates on the missing fields */
+  boolean isEvaluateOnMissingFields();
 
   /**
    * Resolves {@link String} value from the document {@link Row}.

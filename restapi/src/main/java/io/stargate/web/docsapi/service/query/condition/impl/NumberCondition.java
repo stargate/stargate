@@ -20,6 +20,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -53,6 +54,18 @@ public abstract class NumberCondition implements BaseCondition {
                     QueryConstants.DOUBLE_VALUE_COLUMN_NAME,
                     predicate,
                     getQueryValue().doubleValue()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public FilterOperationCode getFilterOperationCode() {
+    return getFilterOperation().getOpCode();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isEvaluateOnMissingFields() {
+    return getFilterOperation().isEvaluateOnMissingFields();
   }
 
   /** {@inheritDoc} */
