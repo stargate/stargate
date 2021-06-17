@@ -17,6 +17,7 @@ package io.stargate.graphql.web;
 
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -27,9 +28,9 @@ import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 import javax.servlet.http.HttpServletRequest;
 
 public class StargateGraphqlContext {
@@ -109,7 +110,8 @@ public class StargateGraphqlContext {
     private final List<BoundQuery> queries = new ArrayList<>();
     private int operationCount;
     private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
-    private AtomicReference<DataStore> dataStore = new AtomicReference<>();
+    private final AtomicReference<UnaryOperator<Parameters>> parametersModifier =
+        new AtomicReference<>();
 
     public CompletableFuture<ResultSet> getExecutionFuture() {
       return executionFuture;
@@ -141,13 +143,14 @@ public class StargateGraphqlContext {
       return operationCount;
     }
 
-    /** Sets the data store and returns whether it was already set */
-    public boolean setDataStore(DataStore dataStore) {
-      return this.dataStore.getAndSet(dataStore) != null;
+    /** Sets the parameters to use for the batch and returns whether they were already set. */
+    public boolean setParametersModifier(UnaryOperator<Parameters> parametersModifier) {
+      return this.parametersModifier.getAndSet(parametersModifier) != null;
     }
 
-    public Optional<DataStore> getDataStore() {
-      return Optional.ofNullable(this.dataStore.get());
+    public UnaryOperator<Parameters> getParametersModifier() {
+      UnaryOperator<Parameters> savedParameters = this.parametersModifier.get();
+      return savedParameters == null ? UnaryOperator.identity() : savedParameters;
     }
   }
 }

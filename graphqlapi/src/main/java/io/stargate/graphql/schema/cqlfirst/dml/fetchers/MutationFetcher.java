@@ -55,7 +55,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
       // There are more than one mutation in @atomic operation
-      return executeAsBatch(environment, dataStore, query, buildException, operation);
+      return executeAsPartOfBatch(environment, dataStore, query, buildException, operation);
     }
 
     if (buildException != null) {
@@ -76,7 +76,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
         .thenApply(rs -> toMutationResult(rs, environment.getArgument("value")));
   }
 
-  private CompletableFuture<Map<String, Object>> executeAsBatch(
+  private CompletableFuture<Map<String, Object>> executeAsPartOfBatch(
       DataFetchingEnvironment environment,
       DataStore dataStore,
       BoundQuery query,
@@ -87,12 +87,11 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
-      // Users should specify query options once in the batch
-      boolean dataStoreAlreadySet = batchContext.setDataStore(dataStore);
+      boolean parametersAlreadySet =
+          batchContext.setParametersModifier(buildParameters(environment));
 
-      if (dataStoreAlreadySet) {
-        // DataStore can be set at most once.
-        // The instance that should be used should contain the user options (if any).
+      // Users should specify query options only once in the batch
+      if (parametersAlreadySet) {
         buildException =
             new GraphQLException(
                 "options can only de defined once in an @atomic mutation selection");
@@ -102,9 +101,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       batchContext.setExecutionResult(buildException);
     } else if (batchContext.add(query) == selections) {
       // All the statements were added successfully and this is the last selection
-      // Use the dataStore containing the options
-      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      batchContext.setExecutionResult(
+          context
+              .getDataStore()
+              .batch(batchContext.getQueries(), batchContext.getParametersModifier()));
     }
 
     if (containsDirective(operation, ASYNC_DIRECTIVE)) {

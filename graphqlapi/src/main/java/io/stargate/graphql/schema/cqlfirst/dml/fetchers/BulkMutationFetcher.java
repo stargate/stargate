@@ -62,7 +62,7 @@ public abstract class BulkMutationFetcher
 
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
-      return executeAsBatch(environment, dataStore, queries, buildException, operation);
+      return executeAsPartOfBatch(environment, queries, buildException, operation);
     }
 
     if (buildException != null) {
@@ -94,9 +94,8 @@ public abstract class BulkMutationFetcher
     return convert(results);
   }
 
-  private CompletableFuture<List<Map<String, Object>>> executeAsBatch(
+  private CompletableFuture<List<Map<String, Object>>> executeAsPartOfBatch(
       DataFetchingEnvironment environment,
-      DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException,
       OperationDefinition operation) {
@@ -105,12 +104,11 @@ public abstract class BulkMutationFetcher
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
-      // Users should specify query options once in the batch
-      boolean dataStoreAlreadySet = batchContext.setDataStore(dataStore);
+      boolean parametersAlreadySet =
+          batchContext.setParametersModifier(buildParameters(environment));
 
-      if (dataStoreAlreadySet) {
-        // DataStore can be set at most once.
-        // The instance that should be used should contain the user options (if any).
+      // Users should specify query options only once in the batch
+      if (parametersAlreadySet) {
         buildException =
             new GraphQLException(
                 "options can only de defined once in an @atomic mutation selection");
@@ -121,9 +119,10 @@ public abstract class BulkMutationFetcher
       batchContext.setExecutionResult(buildException);
     } else if (batchContext.add(queries) == selections) {
       // All the statements were added successfully and this is the last selection
-      // Use the dataStore containing the options
-      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      batchContext.setExecutionResult(
+          context
+              .getDataStore()
+              .batch(batchContext.getQueries(), batchContext.getParametersModifier()));
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");
