@@ -118,7 +118,7 @@ class ResourceTagsProviderTest {
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("status", "200"))
           .contains(Tag.of("uri", "/base/target/uri"));
-      verify(delegate).httpLongRequestTags(requestEvent);
+      verify(delegate).httpRequestTags(requestEvent);
       verifyNoMoreInteractions(delegate);
     }
 
