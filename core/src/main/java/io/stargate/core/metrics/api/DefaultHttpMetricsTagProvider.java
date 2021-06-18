@@ -60,6 +60,12 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
 
   public static class Config {
 
+    private final Collection<String> whitelistedHeaderNames;
+
+    public Config(Collection<String> whitelistedHeaderNames) {
+      this.whitelistedHeaderNames = whitelistedHeaderNames;
+    }
+
     public static Config fromSystemProps() {
       try {
         String property = System.getProperty("stargate.metrics.http_server_requests_header_tags");
@@ -74,12 +80,6 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
       } catch (Exception e) {
         return new Config(Collections.emptyList());
       }
-    }
-
-    private final Collection<String> whitelistedHeaderNames;
-
-    public Config(Collection<String> whitelistedHeaderNames) {
-      this.whitelistedHeaderNames = whitelistedHeaderNames;
     }
   }
 }
