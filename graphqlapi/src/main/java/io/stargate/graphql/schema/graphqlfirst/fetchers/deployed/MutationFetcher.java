@@ -17,17 +17,8 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.Parameters;
-import io.stargate.db.query.builder.ValueModifier;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MutationModel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** An INSERT, UPDATE or DELETE mutation. */
@@ -56,29 +47,5 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
           .serialConsistencyLevel(serialConsistencyLevel)
           .build();
     }
-  }
-
-  protected Collection<ValueModifier> buildModifiers(
-      EntityModel entityModel,
-      Keyspace keyspace,
-      Predicate<String> hasArgument,
-      Function<String, Object> getArgument) {
-
-    List<ValueModifier> modifiers = new ArrayList<>();
-    for (FieldModel column : entityModel.getRegularColumns()) {
-      String graphqlName = column.getGraphqlName();
-
-      if (hasArgument.test(graphqlName)) {
-        Object graphqlValue = getArgument.apply(graphqlName);
-        modifiers.add(
-            ValueModifier.set(
-                column.getCqlName(), toCqlValue(graphqlValue, column.getCqlType(), keyspace)));
-      }
-    }
-    if (modifiers.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Input object must have at least one non-PK field set for an update");
-    }
-    return modifiers;
   }
 }
