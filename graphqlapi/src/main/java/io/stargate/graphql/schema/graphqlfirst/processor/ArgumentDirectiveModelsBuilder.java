@@ -106,13 +106,8 @@ class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveM
     }
 
     Optional<Directive> directive = directives.stream().findFirst();
-    if (is(directive, CqlDirectives.PAGING_STATE)) {
+    if (is(directive, CqlDirectives.PAGING_STATE) || is(directive, CqlDirectives.TIMESTAMP)) {
       // It's a technical field that does not represent a condition, ignore it
-      return;
-    }
-
-    if (is(directive, CqlDirectives.TIMESTAMP)) {
-      // It's a technical field, ignore it, it will be handled later
       return;
     }
 

@@ -104,7 +104,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
       String directiveName, List<GraphQLScalarType> expectedTypes) throws SkipException {
     Optional<String> result = Optional.empty();
     for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (isDirective(inputValue, directiveName, expectedTypes)) {
+      if (hasDirectiveAndType(inputValue, directiveName, expectedTypes)) {
         if (result.isPresent()) {
           invalidMapping(
               "Query %s: @%s can be used on at most one argument (found %s and %s)",
@@ -117,7 +117,7 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     return result;
   }
 
-  private boolean isDirective(
+  private boolean hasDirectiveAndType(
       InputValueDefinition inputValue, String directiveName, List<GraphQLScalarType> expectedTypes)
       throws SkipException {
     boolean hasDirective = DirectiveHelper.getDirective(directiveName, inputValue).isPresent();
