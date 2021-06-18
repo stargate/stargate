@@ -237,6 +237,28 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
     assertThat(getUserWriteTimestamp(1)).isNotEqualTo(writeTimestamp);
   }
 
+  @Test
+  @DisplayName("Should fail insert user with write timestamp incorrect format")
+  public void shouldFailToInsertUserWithWriteTimestampIncorrectFormat() {
+    // given
+    String writeZonedDateTime = "abc";
+
+    // when
+    String response =
+        CLIENT.getKeyspaceError(
+            KEYSPACE,
+            String.format(
+                "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
+                    + " applied, user { k, v } }\n"
+                    + "}",
+                writeZonedDateTime));
+
+    // then
+    assertThat(response)
+        .isEqualTo(
+            "Exception while fetching data (/insertWithWriteTimestamp) : Can't parse Timeout 'abc' (expected a BigInteger or ISO_ZONED_DATE_TIME string)");
+  }
+
   private long toExpectedMicroseconds(String writeZonedDateTime) {
     ZonedDateTime dateTime = ZonedDateTime.parse(writeZonedDateTime);
     return dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;

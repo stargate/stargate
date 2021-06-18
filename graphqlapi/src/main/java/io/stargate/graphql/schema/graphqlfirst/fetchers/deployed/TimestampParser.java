@@ -34,13 +34,15 @@ public class TimestampParser {
     try {
       microseconds = BIG_INT_COERCING.parseValue(spec);
     } catch (CoercingParseLiteralException e) {
-      ZonedDateTime dateTime = ZonedDateTime.parse(spec);
-      microseconds = dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
-    } catch (DateTimeParseException e2) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Can't parse Timeout '%s' (expected a BigInteger or ISO_ZONED_DATE_TIME string)",
-              spec));
+      try {
+        ZonedDateTime dateTime = ZonedDateTime.parse(spec);
+        microseconds = dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
+      } catch (DateTimeParseException e2) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Can't parse Timeout '%s' (expected a BigInteger or ISO_ZONED_DATE_TIME string)",
+                spec));
+      }
     }
     return microseconds;
   }
