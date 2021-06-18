@@ -1,8 +1,11 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.schema.Coercing;
+import graphql.schema.CoercingParseLiteralException;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.graphql.schema.scalars.CqlScalar;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 public class TimestampParser {
@@ -18,13 +21,27 @@ public class TimestampParser {
             name -> {
               Object argument = environment.getArgument(name);
               if (argument instanceof String) {
-                return BIG_INT_COERCING.parseValue(environment.<String>getArgument(name));
-              } else if (argument instanceof Integer) {
-                return new Long(environment.<Integer>getArgument(name));
+                return parseString(environment.getArgument(name));
               } else {
                 throw new IllegalStateException(
-                    "The supported types for a timestamp value are String and Integer.");
+                    "The supported type for a timestamp value is String.");
               }
             });
+  }
+
+  private static long parseString(String spec) {
+    long microseconds;
+    try {
+      microseconds = BIG_INT_COERCING.parseValue(spec);
+    } catch (CoercingParseLiteralException e) {
+      ZonedDateTime dateTime = ZonedDateTime.parse(spec);
+      microseconds = dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
+    } catch (DateTimeParseException e2) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Can't parse Timeout '%s' (expected a BigInteger or ISO_ZONED_DATE_TIME string)",
+              spec));
+    }
+    return microseconds;
   }
 }

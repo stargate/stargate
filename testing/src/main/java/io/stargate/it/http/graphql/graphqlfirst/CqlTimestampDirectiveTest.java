@@ -25,6 +25,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,21 +71,11 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "    write_timestamp: String @cql_timestamp\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"User\")\n"
-            + " updateWithWriteTimestampInt(\n"
-            + "    k: Int\n"
-            + "    v: Int\n"
-            + "    write_timestamp: Int @cql_timestamp\n"
-            + "  ): Boolean\n"
-            + "@cql_update(targetEntity: \"User\")\n"
             + "  insertWithWriteTimestamp(\n"
             + "    user: UserInput!\n"
             + "    write_timestamp: String @cql_timestamp\n"
             + "): InsertUserResponse @cql_insert\n"
             + "@cql_update(targetEntity: \"User\")\n"
-            + "  insertWithWriteTimestampInt(\n"
-            + "    user: UserInput!\n"
-            + "    write_timestamp: Int @cql_timestamp\n"
-            + "): InsertUserResponse @cql_insert\n"
             + "  insertWithSecondParameterIgnored(\n"
             + "    user: UserInput!\n"
             + "    write_timestamp: String\n"
@@ -101,8 +92,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
   @DisplayName(
       "Should update user with write timestamp using @cql_timestamp directive with a Long value")
   public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveLong() {
-    // when
+    // given
     Long writeTimestamp = 100_000L;
+
+    // when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
@@ -117,28 +110,32 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
 
   @Test
   @DisplayName(
-      "Should update user with write timestamp using @cql_timestamp directive with an Int value")
-  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveInt() {
+      "Should update user with write timestamp using @cql_timestamp directive with a ZonedDateTime value")
+  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveZonedDateTime() {
+    // given
+    String writeZonedDateTime = "2021-01-10T10:15:30+01:00[Europe/Paris]";
+
     // when
-    Number writeTimestamp = 100_000;
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
             String.format(
-                "mutation { updateWithWriteTimestampInt(k: 1, v: 100, write_timestamp: %s ) }",
-                writeTimestamp.intValue()));
+                "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
+                writeZonedDateTime));
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestampInt")).isTrue();
-    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp.longValue());
+    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(toExpectedMicroseconds(writeZonedDateTime));
   }
 
   @Test
   @DisplayName(
       "Should insert user with write timestamp using @cql_timestamp directive with a Long value")
   public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveLong() {
-    // when
+    // given
     Long writeTimestamp = 100_000L;
+
+    // when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
@@ -155,30 +152,34 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
 
   @Test
   @DisplayName(
-      "Should insert user with write timestamp using @cql_timestamp directive with an Int value")
-  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveInt() {
+      "Should insert user with write timestamp using @cql_timestamp directive with a ZonedDateTime value")
+  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveZonedDateTime() {
+    // given
+    String writeZonedDateTime = "2021-01-10T10:15:30+01:00[Europe/Paris]";
+
     // when
-    Number writeTimestamp = 100_000L;
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
             String.format(
-                "mutation { insertWithWriteTimestampInt(user: { k: 1, v: 100 }, write_timestamp: %s ) { \n"
+                "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
                     + " applied, user { k, v } }\n"
                     + "}",
-                writeTimestamp.intValue()));
+                writeZonedDateTime));
 
     // then
-    assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestampInt.applied")).isTrue();
-    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp.longValue());
+    assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestamp.applied")).isTrue();
+    assertThat(getUserWriteTimestamp(1)).isEqualTo(toExpectedMicroseconds(writeZonedDateTime));
   }
 
   @Test
   @DisplayName(
       "Should update user with write timestamp using @cql_timestamp directive with a negative value")
   public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveNegativeValue() {
-    // when
+    // given
     Long writeTimestampNanos = -1L;
+
+    // when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
@@ -195,8 +196,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
   @DisplayName(
       "Should update user with write timestamp using @cql_timestamp directive with a Long.MAX_VALUE.")
   public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveLongMaxValue() {
-    // when
+    // given
     Long writeTimestampNanos = Long.MAX_VALUE;
+
+    // when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
@@ -214,8 +217,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
       "Should update user without write timestamp when passing 2nd parameter without the @cql_timestamp directive.")
   public void
       shouldUpdateUserWithoutWriteTimestampWhenPassingSecondParameterWithoutTheCqlTimestamp() {
-    // when
+    // given
     Long writeTimestamp = 100_000L;
+
+    // when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
@@ -230,5 +235,10 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
         .isTrue();
     // the writeTimestamp argument is not used, the default will be taken
     assertThat(getUserWriteTimestamp(1)).isNotEqualTo(writeTimestamp);
+  }
+
+  private long toExpectedMicroseconds(String writeZonedDateTime) {
+    ZonedDateTime dateTime = ZonedDateTime.parse(writeZonedDateTime);
+    return dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
   }
 }

@@ -86,6 +86,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
       modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
     }
 
+    // we are supporting BigInt (coerced from GraphQLString) and GraphQLString for ISO date format
     Optional<Long> timestamp =
         TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
     AbstractBound<?> query =

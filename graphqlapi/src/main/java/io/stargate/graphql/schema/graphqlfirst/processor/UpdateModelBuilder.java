@@ -110,10 +110,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
       incrementModels = directives.getIncrementModels();
     }
 
-    // we are using GraphQLString because it will be coerced to BigInteger (Long) or Int
+    // we are supporting BigInt and GraphQLString for ISO date format
     Optional<String> cqlTimestampArgumentName =
-        findFieldNameWithDirective(
-            CqlDirectives.TIMESTAMP, Arrays.asList(Scalars.GraphQLString, Scalars.GraphQLInt));
+        findFieldNameWithDirective(CqlDirectives.TIMESTAMP, Scalars.GraphQLString);
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
             .filter(ResponsePayloadModel.class::isInstance)
