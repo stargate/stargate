@@ -21,6 +21,7 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.ImmutableParameters.Builder;
 import io.stargate.db.Parameters;
@@ -54,7 +55,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -208,8 +208,7 @@ public class RowResource {
         () -> {
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = ByteBufferUtils.fromBase64UrlParam(pageStateParam);
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
@@ -256,7 +255,7 @@ public class RowResource {
 
           String newPagingState =
               r.getPagingState() != null
-                  ? Base64.getEncoder().encodeToString(r.getPagingState().array())
+                  ? ByteBufferUtils.toBase64ForUrl(r.getPagingState())
                   : null;
           return Response.status(Response.Status.OK)
               .entity(new Rows(rows.size(), newPagingState, rows))
@@ -299,8 +298,7 @@ public class RowResource {
         () -> {
           ByteBuffer pageState = null;
           if (queryModel.getPageState() != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(queryModel.getPageState());
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = ByteBufferUtils.fromBase64UrlParam(queryModel.getPageState());
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
@@ -395,7 +393,7 @@ public class RowResource {
 
           String newPagingState =
               r.getPagingState() != null
-                  ? Base64.getEncoder().encodeToString(r.getPagingState().array())
+                  ? ByteBufferUtils.toBase64ForUrl(r.getPagingState())
                   : null;
           return Response.status(Response.Status.OK)
               .entity(new Rows(rows.size(), newPagingState, rows))

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.ImmutableParameters.Builder;
 import io.stargate.db.Parameters;
@@ -52,7 +53,6 @@ import io.swagger.annotations.ApiResponses;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -159,8 +159,7 @@ public class RowsResource {
 
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = ByteBufferUtils.fromBase64UrlParam(pageStateParam);
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
@@ -237,8 +236,7 @@ public class RowsResource {
         () -> {
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = ByteBufferUtils.fromBase64UrlParam(pageStateParam);
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
@@ -313,8 +311,7 @@ public class RowsResource {
         () -> {
           ByteBuffer pageState = null;
           if (pageStateParam != null) {
-            byte[] decodedBytes = Base64.getDecoder().decode(pageStateParam);
-            pageState = ByteBuffer.wrap(decodedBytes);
+            pageState = ByteBufferUtils.fromBase64UrlParam(pageStateParam);
           }
 
           int pageSize = DEFAULT_PAGE_SIZE;
@@ -692,9 +689,7 @@ public class RowsResource {
     List<Map<String, Object>> rows =
         r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
     String newPagingState =
-        r.getPagingState() != null
-            ? Base64.getEncoder().encodeToString(r.getPagingState().array())
-            : null;
+        r.getPagingState() != null ? ByteBufferUtils.toBase64ForUrl(r.getPagingState()) : null;
     return raw ? rows : new GetResponseWrapper(rows.size(), newPagingState, rows);
   }
 
