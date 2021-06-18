@@ -1,0 +1,112 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package io.stargate.metrics.jersey;
+
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.jersey2.server.JerseyTagsProvider;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import javax.ws.rs.core.MultivaluedMap;
+import org.glassfish.jersey.server.ExtendedUriInfo;
+import org.glassfish.jersey.server.monitoring.RequestEvent;
+
+/** {@link JerseyTagsProvider} that can extract path params as tags. */
+public class PathParametersTagsProvider implements JerseyTagsProvider {
+
+  private final Config config;
+
+  public PathParametersTagsProvider() {
+    this(Config.fromSystemProps());
+  }
+
+  public PathParametersTagsProvider(Config config) {
+    this.config = config;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Iterable<Tag> httpRequestTags(RequestEvent event) {
+    if (config.matchNone) {
+      return Collections.emptyList();
+    }
+
+    return pathParamTags(event);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
+    if (config.matchNone) {
+      return Collections.emptyList();
+    }
+
+    return pathParamTags(event);
+  }
+
+  private Iterable<Tag> pathParamTags(RequestEvent event) {
+    ExtendedUriInfo uriInfo = event.getUriInfo();
+    MultivaluedMap<String, String> pathParameters = uriInfo.getPathParameters(true);
+
+    return pathParameters.entrySet().stream()
+        .filter(e -> config.matchAll || config.matchParams.contains(e.getKey()))
+        .map(e -> Tag.of(e.getKey(), String.join(",", e.getValue())))
+        .collect(Collectors.toList());
+  }
+
+  // simple configuration, default based on the
+  // stargate.metrics.http_server_requests_path_param_tags
+  public static class Config {
+
+    public static Config fromSystemProps() {
+      boolean matchAll = false;
+      boolean matchNone = false;
+      Collection<String> matchParams = Collections.emptyList();
+
+      try {
+        String property =
+            System.getProperty("stargate.metrics.http_server_requests_path_param_tags");
+        if (null == property || property.length() == 0) {
+          matchNone = true;
+        } else if (Objects.equals(property, "*")) {
+          matchAll = true;
+        } else {
+          matchParams = Arrays.asList(property.split(","));
+        }
+      } catch (Exception e) {
+        matchNone = true;
+      }
+
+      return new Config(matchAll, matchNone, matchParams);
+    }
+
+    private final boolean matchAll;
+
+    private final boolean matchNone;
+
+    private final Collection<String> matchParams;
+
+    public Config(boolean matchAll, boolean matchNone, Collection<String> matchParams) {
+      this.matchAll = matchAll;
+      this.matchNone = matchNone;
+      this.matchParams = matchParams;
+    }
+  }
+}

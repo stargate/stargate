@@ -20,6 +20,7 @@ import io.micrometer.jersey2.server.MetricsApplicationEventListener;
 import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
+import java.util.Collections;
 
 public class ResourceMetricsEventListener extends MetricsApplicationEventListener {
 
@@ -27,7 +28,10 @@ public class ResourceMetricsEventListener extends MetricsApplicationEventListene
       Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider, String module) {
     super(
         metrics.getMeterRegistry(),
-        new ResourceTagsProvider(httpMetricsTagProvider, metrics.tagsForModule(module)),
+        new ResourceTagsProvider(
+            httpMetricsTagProvider,
+            metrics.tagsForModule(module),
+            Collections.singleton(new PathParametersTagsProvider())),
         StargateMetricConstants.METRIC_HTTP_SERVER_REQUESTS,
         true);
   }

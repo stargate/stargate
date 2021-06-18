@@ -49,6 +49,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
         TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
         TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER);
     builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
+    builder.putSystemProperties(
+        "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
   }
 
   @BeforeAll
@@ -136,6 +138,49 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                     .contains(String.format("status=\"%d\"", status))
                     .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                     .contains("quantile=\"0.99\""));
+  }
+
+  @Test
+  public void graphqlApiHttpRequestMetricsWithKeyspacePathParam() throws IOException {
+    // call the rest api path with target header
+    String path = String.format("%s:8080/graphql/someKeyspace", host);
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    Request request =
+        new Request.Builder()
+            .url(path)
+            .post(RequestBody.create(new byte[] {}))
+            .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
+            .build();
+
+    int status = execute(client, request);
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith("http_server_requests"))
+            .collect(Collectors.toList());
+
+    assertThat(lines)
+        .anySatisfy(
+            metric ->
+                assertThat(metric)
+                    .contains("method=\"POST\"")
+                    .contains("module=\"graphqlapi\"")
+                    .contains("uri=\"/graphql/{keyspaceName}\"")
+                    .contains(String.format("status=\"%d\"", status))
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.95\"")
+                    .contains("keyspaceName=\"someKeyspace\""))
+        .anySatisfy(
+            metric ->
+                assertThat(metric)
+                    .contains("method=\"POST\"")
+                    .contains("module=\"graphqlapi\"")
+                    .contains("uri=\"/graphql/{keyspaceName}\"")
+                    .contains(String.format("status=\"%d\"", status))
+                    .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                    .contains("quantile=\"0.99\"")
+                    .contains("keyspaceName=\"someKeyspace\""));
   }
 
   @Test
