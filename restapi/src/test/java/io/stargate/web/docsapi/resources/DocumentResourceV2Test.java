@@ -300,7 +300,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = "{\"a\": {\"$eq\": \"b\"}}";
     String fields = "[\"a\"]";
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -335,7 +334,7 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             true,
