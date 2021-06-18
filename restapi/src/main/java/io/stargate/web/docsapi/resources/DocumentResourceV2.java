@@ -29,12 +29,16 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -178,6 +182,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
@@ -199,7 +204,10 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -248,6 +256,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
@@ -272,7 +281,10 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -321,6 +333,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}")
@@ -342,7 +355,10 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -392,6 +408,7 @@ public class DocumentResourceV2 {
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
   @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
@@ -416,7 +433,10 @@ public class DocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -586,7 +606,8 @@ public class DocumentResourceV2 {
               value = "the max number of results to return, if `where` is defined.",
               defaultValue = "100")
           @QueryParam("page-size")
-          int pageSizeParam,
+          @Min(value = 1, message = "the minimum number of results to return is one")
+          Integer pageSizeParam,
       @ApiParam(
               value = "Cassandra page state, used for pagination on consecutive requests",
               required = false)
@@ -599,10 +620,6 @@ public class DocumentResourceV2 {
           Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
-    if (pageSizeParam <= 0) {
-      pageSizeParam = 100; // enforce the declared parameter default
-    }
-
     return getDocPath(
         headers,
         ui,
@@ -674,7 +691,8 @@ public class DocumentResourceV2 {
               value = "the max number of results to return, if `where` is defined",
               defaultValue = "100")
           @QueryParam("page-size")
-          int pageSizeParam,
+          @Min(value = 1, message = "the minimum number of results to return is one")
+          Integer pageSizeParam,
       @ApiParam(
               value = "Cassandra page state, used for pagination on consecutive requests",
               required = false)
@@ -687,14 +705,9 @@ public class DocumentResourceV2 {
           Boolean profile,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request) {
-    if (pageSizeParam <= 0) {
-      pageSizeParam = 100; // enforce the declared parameter default
-    }
-
-    int finalPageSizeParam = pageSizeParam;
-
     return handle(
         () -> {
+          int pageSize = Optional.ofNullable(pageSizeParam).orElse(100);
           Map<String, String> allHeaders = getAllHeaders(request);
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
@@ -753,7 +766,7 @@ public class DocumentResourceV2 {
             logger.debug(json);
             return Response.ok(json).build();
           } else {
-            final Paginator paginator = new Paginator(pageStateParam, finalPageSizeParam);
+            final Paginator paginator = new Paginator(pageStateParam, pageSize);
             JsonNode result =
                 documentService.searchDocumentsV2(
                     db, namespace, collection, filters, selectionList, id, paginator, context);

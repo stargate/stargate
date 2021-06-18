@@ -181,6 +181,7 @@ public class NamespacesResource {
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 409, message = "Conflict", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
   public Response createNamespace(

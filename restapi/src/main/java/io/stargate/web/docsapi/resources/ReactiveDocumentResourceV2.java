@@ -5,7 +5,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import io.reactivex.rxjava3.core.Single;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
@@ -19,8 +18,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
@@ -91,7 +93,11 @@ public class ReactiveDocumentResourceV2 {
               value = "the max number of documents to return, max " + DocumentDB.MAX_PAGE_SIZE,
               defaultValue = "1")
           @QueryParam("page-size")
-          int pageSizeParam,
+          @Min(value = 1, message = "the minimum number of documents to return is one")
+          @Max(
+              value = DocumentDB.MAX_PAGE_SIZE,
+              message = "the max number of documents to return is " + DocumentDB.MAX_PAGE_SIZE)
+          Integer pageSizeParam,
       @ApiParam(
               value = "Cassandra page state, used for pagination on consecutive requests",
               required = false)
@@ -107,15 +113,8 @@ public class ReactiveDocumentResourceV2 {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
-    if (pageSizeParam > DocumentDB.MAX_PAGE_SIZE) {
-      asyncResponse.resume(ErrorCode.DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED.toResponse());
-      return;
-    }
-
-    // enforce the declared parameter default
-    int effectivePageSize = pageSizeParam <= 0 ? 1 : pageSizeParam;
-    final Paginator paginator = new Paginator(pageStateParam, effectivePageSize);
-
+    int pageSize = Optional.ofNullable(pageSizeParam).orElse(1);
+    final Paginator paginator = new Paginator(pageStateParam, pageSize);
     // init sequence
     Single.fromCallable(
             () -> {
