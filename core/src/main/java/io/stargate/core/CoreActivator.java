@@ -2,6 +2,7 @@ package io.stargate.core;
 
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.metrics.api.DefaultHttpMetricsTagProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
@@ -28,16 +29,14 @@ public class CoreActivator extends BaseActivator {
     MetricsImpl metricsImpl = new MetricsImpl();
 
     List<ServiceAndProperties> services = new ArrayList<>();
-    services.add(new ServiceAndProperties(metricsImpl, Metrics.class, null));
-    services.add(new ServiceAndProperties(metricsImpl, MetricsScraper.class, null));
-    services.add(
-        new ServiceAndProperties(new HealthCheckRegistry(), HealthCheckRegistry.class, null));
+    services.add(new ServiceAndProperties(metricsImpl, Metrics.class));
+    services.add(new ServiceAndProperties(metricsImpl, MetricsScraper.class));
+    services.add(new ServiceAndProperties(new HealthCheckRegistry(), HealthCheckRegistry.class));
 
     // register default http tag provider if we are not using any special one
     if (null == HTTP_TAG_PROVIDER_ID) {
-      services.add(
-          new ServiceAndProperties(
-              HttpMetricsTagProvider.DEFAULT, HttpMetricsTagProvider.class, null));
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider();
+      services.add(new ServiceAndProperties(provider, HttpMetricsTagProvider.class));
     }
 
     return services;

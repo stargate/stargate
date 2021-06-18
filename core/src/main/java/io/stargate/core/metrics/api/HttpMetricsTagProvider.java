@@ -20,26 +20,14 @@ import io.micrometer.core.instrument.Tags;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Provides extra micrometer {@link Tags} for user requests coming from the HTTP.
- *
- * <p>Note that each method implementation must always return constant amount of tags regardless of
- * the input.
- */
+/** Provides extra micrometer {@link Tags} for user requests coming from the HTTP. */
 public interface HttpMetricsTagProvider {
-
-  /** Returns default interface implementation, which returns empty tags for all methods. */
-  HttpMetricsTagProvider DEFAULT = new HttpMetricsTagProvider() {};
 
   /**
    * Returns tags for a HTTP request, usually extracted from the given headers.
    *
-   * <p>Note that the implementation must return constant amount of tags for any input.
-   *
    * @param headers HTTP Headers
    * @return Tags
    */
-  default Tags getRequestTags(Map<String, List<String>> headers) {
-    return Tags.empty();
-  }
+  Tags getRequestTags(Map<String, List<String>> headers);
 }
