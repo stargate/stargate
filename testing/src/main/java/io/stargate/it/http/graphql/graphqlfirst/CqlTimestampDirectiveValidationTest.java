@@ -134,7 +134,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     AssertionsForClassTypes.assertThat(getMappingErrors(errors))
         .contains(
-            "Query updateWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have one of the types [String, Int]");
+            "Query updateWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have type String");
   }
 
   @Test
@@ -167,6 +167,6 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
     // then
     AssertionsForClassTypes.assertThat(getMappingErrors(errors))
         .contains(
-            "Query insertWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have one of the types [String, Int]");
+            "Query insertWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have type String");
   }
 }
