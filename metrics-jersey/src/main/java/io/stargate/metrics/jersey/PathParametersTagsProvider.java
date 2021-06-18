@@ -75,6 +75,18 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
   // stargate.metrics.http_server_requests_path_param_tags
   public static class Config {
 
+    private final boolean matchAll;
+
+    private final boolean matchNone;
+
+    private final Collection<String> matchParams;
+
+    public Config(boolean matchAll, boolean matchNone, Collection<String> matchParams) {
+      this.matchAll = matchAll;
+      this.matchNone = matchNone;
+      this.matchParams = matchParams;
+    }
+
     public static Config fromSystemProps() {
       boolean matchAll = false;
       boolean matchNone = false;
@@ -95,18 +107,6 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
       }
 
       return new Config(matchAll, matchNone, matchParams);
-    }
-
-    private final boolean matchAll;
-
-    private final boolean matchNone;
-
-    private final Collection<String> matchParams;
-
-    public Config(boolean matchAll, boolean matchNone, Collection<String> matchParams) {
-      this.matchAll = matchAll;
-      this.matchNone = matchNone;
-      this.matchParams = matchParams;
     }
   }
 }
