@@ -19,10 +19,11 @@ package io.stargate.metrics.jersey;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
+import io.stargate.core.metrics.StargateMetricConstants;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
 import org.glassfish.jersey.server.ExtendedUriInfo;
@@ -44,7 +45,7 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
-    if (config.matchNone) {
+    if (config.whitelistedPathParams.isEmpty()) {
       return Collections.emptyList();
     }
 
@@ -54,7 +55,7 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
-    if (config.matchNone) {
+    if (config.whitelistedPathParams.isEmpty()) {
       return Collections.emptyList();
     }
 
@@ -65,9 +66,12 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
     ExtendedUriInfo uriInfo = event.getUriInfo();
     MultivaluedMap<String, String> pathParameters = uriInfo.getPathParameters(true);
 
-    return pathParameters.entrySet().stream()
-        .filter(e -> config.matchAll || config.whitelistedPathParams.contains(e.getKey()))
-        .map(e -> Tag.of(e.getKey(), String.join(",", e.getValue())))
+    return config.whitelistedPathParams.stream()
+        .map(
+            param ->
+                Optional.ofNullable(pathParameters.get(param))
+                    .map(values -> Tag.of(param, String.join(",", values)))
+                    .orElseGet(() -> Tag.of(param, StargateMetricConstants.UNKNOWN)))
         .collect(Collectors.toList());
   }
 
@@ -94,10 +98,8 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
       if (null == value || value.length() == 0) {
         return new Config(Collections.emptyList());
       } else {
-        matchParams = Arrays.asList(value.split(","));
+        return new Config(Arrays.asList(value.split(",")));
       }
-
-      return new Config(matchParams);
     }
   }
 }

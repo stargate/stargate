@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Tag;
-import java.util.Arrays;
 import javax.ws.rs.core.MultivaluedHashMap;
 import org.glassfish.jersey.server.ExtendedUriInfo;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
@@ -80,37 +79,35 @@ class PathParametersTagsProviderTest {
     }
 
     @Test
-    public void matchAll() {
+    public void handleMissing() {
       MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
       paramMap.putSingle("k1", "v1");
-      paramMap.put("k2", Arrays.asList("v2", "v3"));
+      paramMap.putSingle("k2", "v2");
       when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
 
       PathParametersTagsProvider.Config config =
-          PathParametersTagsProvider.Config.fromPropertyValue("*");
+          PathParametersTagsProvider.Config.fromPropertyValue("k3");
       PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
-      assertThat(result).hasSize(2).contains(Tag.of("k1", "v1")).contains(Tag.of("k2", "v2,v3"));
-    }
-
-    @Test
-    public void matchAllButEmpty() {
-      MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
-      when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
-
-      PathParametersTagsProvider.Config config =
-          PathParametersTagsProvider.Config.fromPropertyValue("*");
-      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
-      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
-
-      assertThat(result).isEmpty();
+      assertThat(result).hasSize(1).contains(Tag.of("k3", "unknown"));
     }
 
     @Test
     public void matchNothing() {
       PathParametersTagsProvider.Config config =
           PathParametersTagsProvider.Config.fromPropertyValue(null);
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
+      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
+
+      assertThat(result).isEmpty();
+      verifyNoInteractions(requestEvent);
+    }
+
+    @Test
+    public void matchNothingEmptyPropString() {
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue("");
       PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
