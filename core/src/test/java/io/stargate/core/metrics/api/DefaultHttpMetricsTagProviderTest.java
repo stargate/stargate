@@ -36,20 +36,14 @@ class DefaultHttpMetricsTagProviderTest {
   @Nested
   class GetRequestTags {
 
-    @BeforeEach
-    @AfterEach
-    public void clearProperty() {
-      System.clearProperty("stargate.metrics.http_server_requests_header_tags");
-    }
-
     @Test
     public void happyPath() {
-      System.setProperty("stargate.metrics.http_server_requests_header_tags", "header1");
       Map<String, List<String>> headers = new HashMap<>();
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider();
+      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString("header1");
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 
       assertThat(result).containsOnly(Tag.of("header1", "value1"));
@@ -57,16 +51,16 @@ class DefaultHttpMetricsTagProviderTest {
 
     @Test
     public void caseIrrelevant() {
-      System.setProperty("stargate.metrics.http_server_requests_header_tags", "HEADER1,header2");
       Map<String, List<String>> headers = new HashMap<>();
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("Header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider();
+      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString("HEADER1,header2");
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 
       assertThat(result)
-          .containsOnly(Tag.of("header1", "value1"), Tag.of("Header2", "value1,value2"));
+          .containsOnly(Tag.of("header1", "value1"), Tag.of("header2", "value1,value2"));
     }
 
     @Test
@@ -75,7 +69,8 @@ class DefaultHttpMetricsTagProviderTest {
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider();
+      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString(null);
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 
       assertThat(result).isEmpty();

@@ -52,7 +52,7 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
       Tag[] collect =
           headers.entrySet().stream()
               .filter(e -> whitelist.contains(e.getKey().toLowerCase()))
-              .map(e -> Tag.of(e.getKey(), String.join(",", e.getValue())))
+              .map(e -> Tag.of(e.getKey().toLowerCase(), String.join(",", e.getValue())))
               .toArray(Tag[]::new);
       return Tags.of(collect);
     }
@@ -63,16 +63,24 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
     private final Collection<String> whitelistedHeaderNames;
 
     public Config(Collection<String> whitelistedHeaderNames) {
-      this.whitelistedHeaderNames = whitelistedHeaderNames;
+      if (null == whitelistedHeaderNames) {
+        this.whitelistedHeaderNames = Collections.emptyList();
+      } else {
+        this.whitelistedHeaderNames = whitelistedHeaderNames;
+      }
     }
 
     public static Config fromSystemProps() {
-      try {
         String property = System.getProperty("stargate.metrics.http_server_requests_header_tags");
-        if (null != property) {
-          String[] headers = property.split(",");
+        return fromPropertyString(property);
+    }
+
+    public static Config fromPropertyString(String value) {
+      try {
+        if (null != value) {
+          String[] headers = value.split(",");
           List<String> lowercaseHeaders =
-              Arrays.stream(headers).map(String::toLowerCase).collect(Collectors.toList());
+                  Arrays.stream(headers).map(String::toLowerCase).collect(Collectors.toList());
           return new Config(lowercaseHeaders);
         } else {
           return new Config(Collections.emptyList());
