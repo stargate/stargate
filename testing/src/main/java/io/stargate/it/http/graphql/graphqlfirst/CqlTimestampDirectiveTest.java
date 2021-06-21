@@ -68,7 +68,7 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + " updateWithWriteTimestamp(\n"
             + "    k: Int\n"
             + "    v: Int\n"
-            + "    write_timestamp: String @cql_timestamp\n"
+            + "    write_timestamp: BigInt @cql_timestamp\n"
             + "  ): Boolean\n"
             + "@cql_update(targetEntity: \"User\")\n"
             + "  insertWithWriteTimestamp(\n"
@@ -78,7 +78,7 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "@cql_update(targetEntity: \"User\")\n"
             + "  insertWithSecondParameterIgnored(\n"
             + "    user: UserInput!\n"
-            + "    write_timestamp: String\n"
+            + "    write_timestamp: BigInt\n"
             + "): InsertUserResponse @cql_insert\n"
             + "}");
   }
@@ -105,48 +105,6 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
-    assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
-  }
-
-  @Test
-  @DisplayName(
-      "Should update user with write timestamp using @cql_timestamp directive with a ZonedDateTime value")
-  public void shouldUpdateUserWithWriteTimestampUsingCqlTimestampDirectiveZonedDateTime() {
-    // given
-    String writeZonedDateTime = "2021-01-10T10:15:30+01:00[Europe/Paris]";
-
-    // when
-    Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            String.format(
-                "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
-                writeZonedDateTime));
-
-    // then
-    assertThat(JsonPath.<Boolean>read(response, "$.updateWithWriteTimestamp")).isTrue();
-    assertThat(getUserWriteTimestamp(1)).isEqualTo(toExpectedMicroseconds(writeZonedDateTime));
-  }
-
-  @Test
-  @DisplayName(
-      "Should insert user with write timestamp using @cql_timestamp directive with a Long value")
-  public void shouldInsertUserWithWriteTimestampUsingCqlTimestampDirectiveLong() {
-    // given
-    Long writeTimestamp = 100_000L;
-
-    // when
-    Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            String.format(
-                "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
-                    + " applied, user { k, v } }\n"
-                    + "}",
-                writeTimestamp));
-
-    // then
-    assertThat(JsonPath.<Boolean>read(response, "$.insertWithWriteTimestamp.applied")).isTrue();
     assertThat(getUserWriteTimestamp(1)).isEqualTo(writeTimestamp);
   }
 
@@ -256,7 +214,7 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
     // then
     assertThat(response)
         .isEqualTo(
-            "Exception while fetching data (/insertWithWriteTimestamp) : Can't parse Timeout 'abc' (expected a BigInteger or ISO_ZONED_DATE_TIME string)");
+            "Exception while fetching data (/insertWithWriteTimestamp) : Can't parse Timeout 'abc' (expected an ISO 8601 zoned date time string)");
   }
 
   private long toExpectedMicroseconds(String writeZonedDateTime) {

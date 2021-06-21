@@ -1,17 +1,11 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import graphql.schema.Coercing;
-import graphql.schema.CoercingParseLiteralException;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 public class TimestampParser {
-  @SuppressWarnings("unchecked")
-  private static final Coercing<Long, String> BIG_INT_COERCING =
-      CqlScalar.BIGINT.getGraphqlType().getCoercing();
 
   public static Optional<Long> parse(
       Optional<String> cqlTimestampArgumentName, DataFetchingEnvironment environment) {
@@ -20,30 +14,25 @@ public class TimestampParser {
         .map(
             name -> {
               Object argument = environment.getArgument(name);
-              if (argument instanceof String) {
-                return parseString(environment.getArgument(name));
+              if (argument instanceof Long) {
+                return (Long) argument;
+              } else if (argument instanceof String) {
+                return parseString(((String) argument));
               } else {
-                throw new IllegalStateException(
-                    "The supported type for a timestamp value is String.");
+                // Can't happen per the types allowed for the argument
+                throw new AssertionError("Unexpected timestamp type");
               }
             });
   }
 
   private static long parseString(String spec) {
-    long microseconds;
     try {
-      microseconds = BIG_INT_COERCING.parseValue(spec);
-    } catch (CoercingParseLiteralException e) {
-      try {
-        ZonedDateTime dateTime = ZonedDateTime.parse(spec);
-        microseconds = dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
-      } catch (DateTimeParseException e2) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Can't parse Timeout '%s' (expected a BigInteger or ISO_ZONED_DATE_TIME string)",
-                spec));
-      }
+      ZonedDateTime dateTime = ZonedDateTime.parse(spec);
+      return dateTime.toEpochSecond() * 1_000_000 + dateTime.getNano() / 1000;
+    } catch (DateTimeParseException e2) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Can't parse Timeout '%s' (expected an ISO 8601 zoned date time string)", spec));
     }
-    return microseconds;
   }
 }

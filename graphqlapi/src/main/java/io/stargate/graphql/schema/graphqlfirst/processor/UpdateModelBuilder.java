@@ -23,6 +23,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.*;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -110,9 +111,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
       incrementModels = directives.getIncrementModels();
     }
 
-    // we are supporting BigInt and GraphQLString for ISO date format
     Optional<String> cqlTimestampArgumentName =
-        findFieldNameWithDirective(CqlDirectives.TIMESTAMP, Scalars.GraphQLString);
+        findFieldNameWithDirective(
+            CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
             .filter(ResponsePayloadModel.class::isInstance)
