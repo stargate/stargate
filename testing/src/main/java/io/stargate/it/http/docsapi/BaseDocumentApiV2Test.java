@@ -709,8 +709,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
       String docId = iter.next().textValue();
       resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
       respBody = OBJECT_MAPPER.readTree(resp);
-      assertThat(respBody.at("id")).isNotNull();
-      assertThat(respBody.at("b")).isNotNull();
+      assertThat(respBody.at("/id")).isNotNull();
+      assertThat(respBody.at("/b")).isNotNull();
     }
   }
 
@@ -735,8 +735,8 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
       assertThat(docId).isEqualTo(expectedIds.get(i++));
       resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
       respBody = OBJECT_MAPPER.readTree(resp);
-      assertThat(respBody.at("id")).isNotNull();
-      assertThat(respBody.at("b")).isNotNull();
+      assertThat(respBody.at("/id")).isNotNull();
+      assertThat(respBody.at("/b")).isNotNull();
     }
   }
 
@@ -747,9 +747,9 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.post(authToken, collectionPath + "/batch?id-path=no.good.path", body, 400);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
-    assertThat(respBody.requiredAt("description"))
+    assertThat(respBody.requiredAt("/description").asText())
         .isEqualTo(
-            "Server error: Json Document {\\\"id\\\": \\\"a\\\", \\\"a\\\":\\\"b\\\"} requires a String value at the path /id, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
+            "Json Document {\"id\": [\"a\"], \"a\":\"b\"} requires a String value at the path no.good.path, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
   }
 
   @Test

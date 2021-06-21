@@ -842,6 +842,24 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         authToken, keyspace.name(), table.name(), in, Optional.of("a"), db, Collections.emptyMap());
   }
 
+  @Test
+  void testWriteManyDocs_invalidIdPath() {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("{\"a\":\"b\"}".getBytes(StandardCharsets.UTF_8));
+    assertThatThrownBy(
+            () ->
+                service.writeManyDocs(
+                    authToken,
+                    keyspace.name(),
+                    table.name(),
+                    in,
+                    Optional.of("no.good"),
+                    db,
+                    Collections.emptyMap()))
+        .hasMessage(
+            "Json Document {\"a\":\"b\"} requires a String value at the path no.good, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
+  }
+
   @Nested
   class Profiling {
 

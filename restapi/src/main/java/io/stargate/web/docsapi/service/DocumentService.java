@@ -440,7 +440,7 @@ public class DocumentService {
             String docsPath = convertToJsonPtr(idPath.get());
             if (!json.at(docsPath).isTextual()) {
               throw new ErrorCodeRuntimeException(
-                  ErrorCode.DOCS_API_WRITE_BATCH_FAILED,
+                  ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
                   String.format(
                       "Json Document %s requires a String value at the path %s, found %s."
                           + " Batch %d failed, %d writes were successful. Repeated requests are "
