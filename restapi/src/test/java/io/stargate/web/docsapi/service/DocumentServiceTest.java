@@ -241,7 +241,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             path,
             where,
             fields,
-            0,
+            null,
             null,
             profile,
             false,
@@ -260,7 +260,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             path,
             where,
             fields,
-            0,
+            null,
             null,
             false,
             true, // raw

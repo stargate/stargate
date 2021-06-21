@@ -307,6 +307,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*.\",\"code\":400}");
+
+    resp = RestUtils.put(authToken, collectionPath + "/1", "", 422);
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: payload must not be empty.\",\"code\":422}");
   }
 
   @Test
@@ -623,6 +628,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
+
+    r = RestUtils.put(authToken, collectionPath + "/1/quiz/sport", "", 422);
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: payload must not be empty.\",\"code\":422}");
   }
 
   @Test
@@ -875,6 +885,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
+
+    r = RestUtils.patch(authToken, collectionPath + "/1/quiz/sport", "", 422);
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: payload must not be empty.\",\"code\":422}");
   }
 
   @Test
@@ -1370,6 +1385,11 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(r)
         .contains(
             "{\"description\":\"Selecting fields is not allowed without `where`.\",\"code\":400}");
+
+    r = RestUtils.get(authToken, collectionPath + "/cool-search-id?page-size=0", 400);
+    assertThat(r)
+        .contains(
+            "{\"description\":\"Request invalid: the minimum number of results to return is one.\",\"code\":400}");
   }
 
   @Test
@@ -2099,6 +2119,23 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
   }
 
+  @Test
+  public void searchInvalidPageSize() throws IOException {
+    RestUtils.put(authToken, collectionPath + "/dummy", "{\"k\":\"v\"}", 200);
+
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=-1", 400);
+
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: the minimum number of documents to return is one.\",\"code\":400}");
+
+    r = RestUtils.get(authToken, collectionPath + "?page-size=21", 400);
+
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: the max number of documents to return is 20.\",\"code\":400}");
+  }
+
   // below are tests before move to the reactive search service, keeping for more safety
 
   @Test
@@ -2591,16 +2628,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     docsSeen.add(key);
     assertThat(docsSeen.size()).isEqualTo(2);
     assertThat(docsSeen.containsAll(ImmutableList.of("2", "3"))).isTrue();
-  }
-
-  @Test
-  public void testInvalidFullDocPageSize() throws IOException {
-    RestUtils.post(authToken, collectionPath, "{\"doc\" : \"doc\"}", 201);
-
-    String r = RestUtils.get(authToken, collectionPath + "?page-size=21", 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The parameter `page-size` is limited to 20.\",\"code\":400}");
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {
