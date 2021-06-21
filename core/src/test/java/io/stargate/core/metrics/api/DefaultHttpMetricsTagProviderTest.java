@@ -90,5 +90,19 @@ class DefaultHttpMetricsTagProviderTest {
 
       assertThat(result).isEmpty();
     }
+
+    @Test
+    public void collectNothingEmptyConfigString() {
+      Map<String, List<String>> headers = new HashMap<>();
+      headers.put("header1", Collections.singletonList("value1"));
+      headers.put("header2", Arrays.asList("value1", "value2"));
+
+      DefaultHttpMetricsTagProvider.Config config =
+          DefaultHttpMetricsTagProvider.Config.fromPropertyString("");
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
+      Tags result = provider.getRequestTags(headers);
+
+      assertThat(result).isEmpty();
+    }
   }
 }

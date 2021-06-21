@@ -87,7 +87,7 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
 
     public static Config fromPropertyString(String value) {
       try {
-        if (null != value) {
+        if (null != value && value.length() > 0) {
           String[] headers = value.split(",");
           List<String> lowercaseHeaders =
               Arrays.stream(headers).map(String::toLowerCase).collect(Collectors.toList());
