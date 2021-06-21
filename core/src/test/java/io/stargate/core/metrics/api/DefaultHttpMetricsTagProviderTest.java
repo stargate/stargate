@@ -26,8 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +40,8 @@ class DefaultHttpMetricsTagProviderTest {
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString("header1");
+      DefaultHttpMetricsTagProvider.Config config =
+          DefaultHttpMetricsTagProvider.Config.fromPropertyString("header1");
       DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 
@@ -55,7 +54,8 @@ class DefaultHttpMetricsTagProviderTest {
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("Header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString("HEADER1,header2");
+      DefaultHttpMetricsTagProvider.Config config =
+          DefaultHttpMetricsTagProvider.Config.fromPropertyString("HEADER1,header2");
       DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 
@@ -64,12 +64,27 @@ class DefaultHttpMetricsTagProviderTest {
     }
 
     @Test
+    public void missingHeaderAsUnknown() {
+      Map<String, List<String>> headers = new HashMap<>();
+      headers.put("header1", Collections.singletonList("value1"));
+      headers.put("header2", Arrays.asList("value1", "value2"));
+
+      DefaultHttpMetricsTagProvider.Config config =
+          DefaultHttpMetricsTagProvider.Config.fromPropertyString("otherHeader");
+      DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
+      Tags result = provider.getRequestTags(headers);
+
+      assertThat(result).containsOnly(Tag.of("otherheader", "unknown"));
+    }
+
+    @Test
     public void collectNothing() {
       Map<String, List<String>> headers = new HashMap<>();
       headers.put("header1", Collections.singletonList("value1"));
       headers.put("header2", Arrays.asList("value1", "value2"));
 
-      DefaultHttpMetricsTagProvider.Config config = DefaultHttpMetricsTagProvider.Config.fromPropertyString(null);
+      DefaultHttpMetricsTagProvider.Config config =
+          DefaultHttpMetricsTagProvider.Config.fromPropertyString(null);
       DefaultHttpMetricsTagProvider provider = new DefaultHttpMetricsTagProvider(config);
       Tags result = provider.getRequestTags(headers);
 

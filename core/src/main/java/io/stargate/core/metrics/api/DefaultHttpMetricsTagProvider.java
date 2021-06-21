@@ -19,11 +19,13 @@ package io.stargate.core.metrics.api;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.stargate.core.metrics.StargateMetricConstants;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -49,11 +51,19 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
     if (null == whitelist || whitelist.isEmpty()) {
       return Tags.empty();
     } else {
+      // note that we need to return same set of tags
+      // this is why we iterate white list and try to find header value
       Tag[] collect =
-          headers.entrySet().stream()
-              .filter(e -> whitelist.contains(e.getKey().toLowerCase()))
-              .map(e -> Tag.of(e.getKey().toLowerCase(), String.join(",", e.getValue())))
+          whitelist.stream()
+              .map(
+                  header ->
+                      headers.entrySet().stream()
+                          .filter(e -> Objects.equals(header, e.getKey().toLowerCase()))
+                          .findAny()
+                          .map(e -> Tag.of(header, String.join(",", e.getValue())))
+                          .orElseGet(() -> Tag.of(header, StargateMetricConstants.UNKNOWN)))
               .toArray(Tag[]::new);
+
       return Tags.of(collect);
     }
   }
@@ -71,8 +81,8 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
     }
 
     public static Config fromSystemProps() {
-        String property = System.getProperty("stargate.metrics.http_server_requests_header_tags");
-        return fromPropertyString(property);
+      String property = System.getProperty("stargate.metrics.http_server_requests_header_tags");
+      return fromPropertyString(property);
     }
 
     public static Config fromPropertyString(String value) {
@@ -80,7 +90,7 @@ public class DefaultHttpMetricsTagProvider implements HttpMetricsTagProvider {
         if (null != value) {
           String[] headers = value.split(",");
           List<String> lowercaseHeaders =
-                  Arrays.stream(headers).map(String::toLowerCase).collect(Collectors.toList());
+              Arrays.stream(headers).map(String::toLowerCase).collect(Collectors.toList());
           return new Config(lowercaseHeaders);
         } else {
           return new Config(Collections.emptyList());

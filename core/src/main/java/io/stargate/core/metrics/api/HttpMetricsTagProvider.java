@@ -26,6 +26,9 @@ public interface HttpMetricsTagProvider {
   /**
    * Returns tags for a HTTP request, usually extracted from the given headers.
    *
+   * <p><b>IMPORTANT:</b> that the implementation must return constant amount of tags for any input.
+   * Prometheus does not allow different tags from the single process.
+   *
    * @param headers HTTP Headers
    * @return Tags
    */

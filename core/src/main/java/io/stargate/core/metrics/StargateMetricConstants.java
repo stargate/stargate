@@ -31,5 +31,5 @@ public class StargateMetricConstants {
   public static final String UNKNOWN = "unknown";
 
   // unknown tag instances
-  public static final Tag TAG_MODULE_UNKNOWN = Tag.of(MODULE_KEY, "unknown");
+  public static final Tag TAG_MODULE_UNKNOWN = Tag.of(MODULE_KEY, UNKNOWN);
 }
