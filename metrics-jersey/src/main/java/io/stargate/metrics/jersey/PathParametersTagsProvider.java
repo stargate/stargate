@@ -66,7 +66,7 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
     MultivaluedMap<String, String> pathParameters = uriInfo.getPathParameters(true);
 
     return pathParameters.entrySet().stream()
-        .filter(e -> config.matchAll || config.matchParams.contains(e.getKey()))
+        .filter(e -> config.matchAll || config.whitelistedPathParams.contains(e.getKey()))
         .map(e -> Tag.of(e.getKey(), String.join(",", e.getValue())))
         .collect(Collectors.toList());
   }
@@ -75,16 +75,14 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
   // stargate.metrics.http_server_requests_path_param_tags
   public static class Config {
 
-    private final boolean matchAll;
+    private final Collection<String> whitelistedPathParams;
 
-    private final boolean matchNone;
-
-    private final Collection<String> matchParams;
-
-    public Config(boolean matchAll, boolean matchNone, Collection<String> matchParams) {
-      this.matchAll = matchAll;
-      this.matchNone = matchNone;
-      this.matchParams = matchParams;
+    public Config(Collection<String> whitelistedPathParams) {
+      if (null == whitelistedPathParams) {
+        this.whitelistedPathParams = Collections.emptyList();
+      } else {
+        this.whitelistedPathParams = whitelistedPathParams;
+      }
     }
 
     public static Config fromSystemProps() {
@@ -93,19 +91,13 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
     }
 
     public static Config fromPropertyValue(String value) {
-      boolean matchAll = false;
-      boolean matchNone = false;
-      Collection<String> matchParams = Collections.emptyList();
-
       if (null == value || value.length() == 0) {
-        matchNone = true;
-      } else if (Objects.equals(value, "*")) {
-        matchAll = true;
+        return new Config(Collections.emptyList());
       } else {
         matchParams = Arrays.asList(value.split(","));
       }
 
-      return new Config(matchAll, matchNone, matchParams);
+      return new Config(matchParams);
     }
   }
 }
