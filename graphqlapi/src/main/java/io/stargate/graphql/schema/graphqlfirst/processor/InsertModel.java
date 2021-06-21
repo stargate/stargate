@@ -28,6 +28,7 @@ public class InsertModel extends MutationModel {
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifNotExists;
   private final ReturnType returnType;
+  private final boolean isList;
 
   InsertModel(
       String parentTypeName,
@@ -38,13 +39,15 @@ public class InsertModel extends MutationModel {
       boolean ifNotExists,
       Optional<ConsistencyLevel> consistencyLevel,
       Optional<ConsistencyLevel> serialConsistencyLevel,
-      ReturnType returnType) {
+      ReturnType returnType,
+      boolean isList) {
     super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
     this.responsePayload = responsePayload;
     this.ifNotExists = ifNotExists;
     this.returnType = returnType;
+    this.isList = isList;
   }
 
   public EntityModel getEntity() {
@@ -65,6 +68,10 @@ public class InsertModel extends MutationModel {
 
   public ReturnType getReturnType() {
     return returnType;
+  }
+
+  public boolean isList() {
+    return isList;
   }
 
   @Override

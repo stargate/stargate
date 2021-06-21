@@ -66,15 +66,21 @@ class InsertModelBuilder extends MutationModelBuilder {
                       operationName);
                   return SkipException.INSTANCE;
                 });
+    boolean isList = isList(input);
 
-    // Validate return type: must be the entity itself, or a wrapper payload
+    // Validate return type: must be the entity itself, or a wrapper payload, or a list of entities
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (!returnType.isEntityList()
-        && !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
+    if (!returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
         && returnType != OperationModel.SimpleReturnType.BOOLEAN) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
-              + "single instance of it or Boolean.",
+              + "single instance of it or Boolean,or a list of entities.",
+          operationName, entity.getGraphqlName());
+    }
+
+    if (isList && !returnType.isEntityList()) {
+      invalidMapping(
+          "Mutation %s: invalid return type. For bulk inserts, expected list of %s. ",
           operationName, entity.getGraphqlName());
     }
 
@@ -92,7 +98,8 @@ class InsertModelBuilder extends MutationModelBuilder {
         ifNotExists,
         getConsistencyLevel(cqlInsertDirective),
         getSerialConsistencyLevel(cqlInsertDirective),
-        returnType);
+        returnType,
+        isList);
   }
 
   private boolean computeIfNotExists(Optional<Directive> cqlInsertDirective) {

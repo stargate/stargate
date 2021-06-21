@@ -40,9 +40,12 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.Te
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,69 +74,85 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
             .map(EntityField::getName)
             .orElse(null);
     Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
-    Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
-    Map<String, Object> response = new LinkedHashMap<>();
-    Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
-    Collection<ValueModifier> modifiers =
-        cqlValues.entrySet().stream()
-            .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
-            .collect(Collectors.toList());
-
-    AbstractBound<?> query =
-        dataStore
-            .queryBuilder()
-            .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .value(modifiers)
-            .ifNotExists(isLwt)
-            .build()
-            .bind();
-
-    context
-        .getAuthorizationService()
-        .authorizeDataWrite(
-            context.getSubject(),
-            entityModel.getKeyspaceName(),
-            entityModel.getCqlName(),
-            TypedKeyValue.forDML((BoundDMLQuery) query),
-            Scope.MODIFY,
-            SourceAPI.GRAPHQL);
-
-    ResultSet resultSet = executeUnchecked(query, dataStore);
-
-    if (responseContainsEntity) {
-      Map<String, Object> entityData;
-      if (entityPrefixInReponse == null) {
-        entityData = response;
-      } else {
-        entityData = new LinkedHashMap<>();
-        response.put(entityPrefixInReponse, entityData);
-      }
-      copyInputDataToEntity(input, cqlValues, entityData, entityModel);
-    }
-
-    boolean applied;
-    if (isLwt) {
-      Row row = resultSet.one();
-      applied = row.getBoolean("[applied]");
-      if (!applied && responseContainsEntity) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> entityData =
-            (entityPrefixInReponse == null)
-                ? response
-                : (Map<String, Object>) response.get(entityPrefixInReponse);
-        assert entityData != null;
-        copyRowToEntity(row, entityData, model.getEntity());
-      }
+    List<Map<String, Object>> inputs;
+    List<Map<String, Object>> responses = new ArrayList<>();
+    if (model.isList()) {
+      inputs = environment.getArgument(model.getEntityArgumentName());
     } else {
-      applied = true;
+      inputs = Collections.singletonList(environment.getArgument(model.getEntityArgumentName()));
     }
-    if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
-      response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
+
+    boolean applied = false;
+    for (Map<String, Object> input : inputs) {
+      Map<String, Object> response = new LinkedHashMap<>();
+      Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
+      Collection<ValueModifier> modifiers =
+          cqlValues.entrySet().stream()
+              .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
+              .collect(Collectors.toList());
+
+      AbstractBound<?> query =
+          dataStore
+              .queryBuilder()
+              .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
+              .value(modifiers)
+              .ifNotExists(isLwt)
+              .build()
+              .bind();
+
+      context
+          .getAuthorizationService()
+          .authorizeDataWrite(
+              context.getSubject(),
+              entityModel.getKeyspaceName(),
+              entityModel.getCqlName(),
+              TypedKeyValue.forDML((BoundDMLQuery) query),
+              Scope.MODIFY,
+              SourceAPI.GRAPHQL);
+
+      ResultSet resultSet = executeUnchecked(query, dataStore);
+
+      if (responseContainsEntity) {
+        Map<String, Object> entityData;
+        if (entityPrefixInReponse == null) {
+          entityData = response;
+        } else {
+          entityData = new LinkedHashMap<>();
+          response.put(entityPrefixInReponse, entityData);
+        }
+        copyInputDataToEntity(input, cqlValues, entityData, entityModel);
+      }
+
+      if (isLwt) {
+        Row row = resultSet.one();
+        applied = row.getBoolean("[applied]");
+        if (!applied && responseContainsEntity) {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> entityData =
+              (entityPrefixInReponse == null)
+                  ? response
+                  : (Map<String, Object>) response.get(entityPrefixInReponse);
+          assert entityData != null;
+          copyRowToEntity(row, entityData, model.getEntity());
+        }
+      } else {
+        applied = true;
+      }
+      if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
+        response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
+      }
+      responses.add(response);
     }
-    if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
+
+    if (model.isList()) {
+      // this is a bulk insert, return a list of responses
+      return responses;
+    } else if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
+      // there must be only one response, return last applied
       return applied;
     } else {
-      return response;
+      // there is only one response
+      return responses.get(0);
     }
   }
 
