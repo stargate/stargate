@@ -44,7 +44,6 @@ class PathParametersTagsProviderTest {
   @BeforeEach
   public void mockEvent() {
     lenient().when(requestEvent.getUriInfo()).thenReturn(extendedUriInfo);
-    System.clearProperty("stargate.metrics.http_server_requests_path_param_tags");
   }
 
   @Nested
@@ -52,13 +51,14 @@ class PathParametersTagsProviderTest {
 
     @Test
     public void matchSpecific() {
-      System.setProperty("stargate.metrics.http_server_requests_path_param_tags", "k2");
       MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
       paramMap.putSingle("k1", "v1");
       paramMap.putSingle("k2", "v2");
       when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
 
-      PathParametersTagsProvider provider = new PathParametersTagsProvider();
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue("k2");
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).hasSize(1).contains(Tag.of("k2", "v2"));
@@ -66,13 +66,14 @@ class PathParametersTagsProviderTest {
 
     @Test
     public void matchSpecificMultiple() {
-      System.setProperty("stargate.metrics.http_server_requests_path_param_tags", "k1,k2");
       MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
       paramMap.putSingle("k1", "v1");
       paramMap.putSingle("k2", "v2");
       when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
 
-      PathParametersTagsProvider provider = new PathParametersTagsProvider();
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue("k1,k2");
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).hasSize(2).contains(Tag.of("k1", "v1")).contains(Tag.of("k2", "v2"));
@@ -80,13 +81,14 @@ class PathParametersTagsProviderTest {
 
     @Test
     public void matchAll() {
-      System.setProperty("stargate.metrics.http_server_requests_path_param_tags", "*");
       MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
       paramMap.putSingle("k1", "v1");
       paramMap.put("k2", Arrays.asList("v2", "v3"));
       when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
 
-      PathParametersTagsProvider provider = new PathParametersTagsProvider();
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue("*");
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).hasSize(2).contains(Tag.of("k1", "v1")).contains(Tag.of("k2", "v2,v3"));
@@ -94,11 +96,12 @@ class PathParametersTagsProviderTest {
 
     @Test
     public void matchAllButEmpty() {
-      System.setProperty("stargate.metrics.http_server_requests_path_param_tags", "*");
       MultivaluedHashMap<String, String> paramMap = new MultivaluedHashMap<>();
       when(extendedUriInfo.getPathParameters(true)).thenReturn(paramMap);
 
-      PathParametersTagsProvider provider = new PathParametersTagsProvider();
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue("*");
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).isEmpty();
@@ -106,7 +109,9 @@ class PathParametersTagsProviderTest {
 
     @Test
     public void matchNothing() {
-      PathParametersTagsProvider provider = new PathParametersTagsProvider();
+      PathParametersTagsProvider.Config config =
+          PathParametersTagsProvider.Config.fromPropertyValue(null);
+      PathParametersTagsProvider provider = new PathParametersTagsProvider(config);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).isEmpty();

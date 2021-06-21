@@ -88,22 +88,21 @@ public class PathParametersTagsProvider implements JerseyTagsProvider {
     }
 
     public static Config fromSystemProps() {
+      String property = System.getProperty("stargate.metrics.http_server_requests_path_param_tags");
+      return fromPropertyValue(property);
+    }
+
+    public static Config fromPropertyValue(String value) {
       boolean matchAll = false;
       boolean matchNone = false;
       Collection<String> matchParams = Collections.emptyList();
 
-      try {
-        String property =
-            System.getProperty("stargate.metrics.http_server_requests_path_param_tags");
-        if (null == property || property.length() == 0) {
-          matchNone = true;
-        } else if (Objects.equals(property, "*")) {
-          matchAll = true;
-        } else {
-          matchParams = Arrays.asList(property.split(","));
-        }
-      } catch (Exception e) {
+      if (null == value || value.length() == 0) {
         matchNone = true;
+      } else if (Objects.equals(value, "*")) {
+        matchAll = true;
+      } else {
+        matchParams = Arrays.asList(value.split(","));
       }
 
       return new Config(matchAll, matchNone, matchParams);
