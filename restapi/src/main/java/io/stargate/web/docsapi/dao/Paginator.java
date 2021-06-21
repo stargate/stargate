@@ -1,8 +1,23 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.web.docsapi.dao;
 
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.web.docsapi.service.RawDocument;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.List;
 
 /**
@@ -24,8 +39,7 @@ public class Paginator {
     docPageSize = pageSize;
 
     if (pageState != null) {
-      byte[] decodedBytes = Base64.getDecoder().decode(pageState);
-      this.currentPageState = ByteBuffer.wrap(decodedBytes);
+      this.currentPageState = ByteBufferUtils.fromBase64UrlParam(pageState);
     }
   }
 
@@ -44,7 +58,7 @@ public class Paginator {
       RawDocument lastDoc = docs.get(docs.size() - 1);
       ByteBuffer byteBuffer = lastDoc.makePagingState();
       if (null != byteBuffer) {
-        return Base64.getEncoder().encodeToString(byteBuffer.array());
+        return ByteBufferUtils.toBase64ForUrl(byteBuffer);
       }
     }
     return null;
@@ -55,7 +69,7 @@ public class Paginator {
       return null;
     }
 
-    return Base64.getEncoder().encodeToString(currentPageState.array());
+    return ByteBufferUtils.toBase64ForUrl(currentPageState);
   }
 
   public void clearDocumentPageState() {
