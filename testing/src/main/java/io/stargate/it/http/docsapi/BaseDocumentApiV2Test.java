@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Resources;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -21,7 +22,9 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
+import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -690,6 +693,63 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp =
         RestUtils.post(authToken, collectionPath + "?profile=true", fullObj.toString(), 201);
     assertThat(OBJECT_MAPPER.readTree(resp).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
+  public void testWriteManyDocs() throws IOException {
+    // Create documents using multiExample that creates random ID's
+    URL url = Resources.getResource("multiExample.jl");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch", body, 201);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(27);
+    Iterator<JsonNode> iter = documentIds.iterator();
+    while (iter.hasNext()) {
+      String docId = iter.next().textValue();
+      resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
+      respBody = OBJECT_MAPPER.readTree(resp);
+      assertThat(respBody.at("id")).isNotNull();
+      assertThat(respBody.at("b")).isNotNull();
+    }
+  }
+
+  @Test
+  public void testWriteManyDocsWithIdPath() throws IOException {
+    // Create documents using multiExample that sets the document ID's using a particular path in
+    // the document.
+    URL url = Resources.getResource("multiExample.jl");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(27);
+    Iterator<JsonNode> iter = documentIds.iterator();
+    List<String> expectedIds =
+        ImmutableList.of(
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
+            "r", "s", "t", "u", "v", "w", "x", "y", "z", "aa");
+    int i = 0;
+    while (iter.hasNext()) {
+      String docId = iter.next().textValue();
+      assertThat(docId).isEqualTo(expectedIds.get(i++));
+      resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
+      respBody = OBJECT_MAPPER.readTree(resp);
+      assertThat(respBody.at("id")).isNotNull();
+      assertThat(respBody.at("b")).isNotNull();
+    }
+  }
+
+  @Test
+  public void testWriteManyDocsInvalidPath() throws IOException {
+    URL url = Resources.getResource("multiExample.jl");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp =
+        RestUtils.post(authToken, collectionPath + "/batch?id-path=no.good.path", body, 400);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    assertThat(respBody.requiredAt("description"))
+        .isEqualTo(
+            "Server error: Json Document {\\\"id\\\": \\\"a\\\", \\\"a\\\":\\\"b\\\"} requires a String value at the path /id, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
   }
 
   @Test

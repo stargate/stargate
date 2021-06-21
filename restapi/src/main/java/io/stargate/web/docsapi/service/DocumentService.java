@@ -439,13 +439,14 @@ public class DocumentService {
           if (idPath.isPresent()) {
             String docsPath = convertToJsonPtr(idPath.get());
             if (!json.at(docsPath).isTextual()) {
-              throw new IllegalArgumentException(
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_WRITE_BATCH_FAILED,
                   String.format(
-                      "Json Document %s requires a String value at the path %s, found %s"
-                          + "\nBatch %d failed, %d writes were successful. Repeated requests are "
+                      "Json Document %s requires a String value at the path %s, found %s."
+                          + " Batch %d failed, %d writes were successful. Repeated requests are "
                           + "idempotent if the same `idPath` is defined.",
                       doc,
-                      idPath,
+                      idPath.get(),
                       json.at(docsPath).toString(),
                       chunkIndex,
                       (chunkIndex - 1) * CHUNK_SIZE));
