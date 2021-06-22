@@ -230,6 +230,18 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private <T> DocumentResponseWrapper<T> getDocPath(
       String id, String where, String fields, List<PathSegment> path, boolean profile)
       throws JsonProcessingException {
+    return getDocPath(id, where, fields, path, null, null, profile);
+  }
+
+  private <T> DocumentResponseWrapper<T> getDocPath(
+      String id,
+      String where,
+      String fields,
+      List<PathSegment> path,
+      Integer pageSize,
+      String pageState,
+      boolean profile)
+      throws JsonProcessingException {
     return unwrap(
         resource.getDocPath(
             headers,
@@ -241,8 +253,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             path,
             where,
             fields,
-            null,
-            null,
+            pageSize,
+            pageState,
             profile,
             false,
             request));
@@ -319,7 +331,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 id,
                 null,
                 null,
-                0,
+                null,
                 null,
                 false,
                 false,
@@ -340,6 +352,73 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     assertThat(r.getDocumentId()).isEqualTo(id);
     assertThat(r.getPageState()).isNull();
     assertThat(r.getData()).isEqualTo(m("x", 1, "y", 2));
+  }
+
+  @Test
+  void testGetDocPathPaged() throws JsonProcessingException {
+    final String id = "id1";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "c1", "x"),
+            row(id, 1.0, "a", "b", "c1", "y"),
+            row(id, 2.0, "a", "b", "c2"),
+            row(id, 3.0, "a", "b", "c3", "x"),
+            row(id, 3.0, "a", "b", "c3", "y"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(
+                m("a", m("b", m("c1", m("x", 1, "y", 1)))), m("a", m("b", m("c2", 2)))));
+
+    r =
+        getDocPath(
+            id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, r.getPageState(), false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("c3", m("x", 3, "y", 3))))));
+  }
+
+  @Test
+  void testGetDocPathPagedArray() throws JsonProcessingException {
+    final String id = "id1";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "[000000]", "x"),
+            row(id, 1.0, "a", "b", "[000000]", "y"),
+            row(id, 2.0, "a", "b", "[000001]", "z"),
+            row(id, 3.0, "a", "b", "[000002]", "x"),
+            row(id, 3.0, "a", "b", "[000002]", "y"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(
+                m("a", m("b", m("[0]", m("x", 1, "y", 1)))), m("a", m("b", m("[1]", m("z", 2))))));
+
+    r =
+        getDocPath(
+            id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, r.getPageState(), false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(ImmutableList.of(m("a", m("b", m("[2]", m("x", 3, "y", 3))))));
   }
 
   @Test
@@ -718,7 +797,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                   id,
                   null,
                   null,
-                  0,
+                  null,
                   null,
                   true,
                   false,

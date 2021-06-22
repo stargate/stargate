@@ -748,7 +748,9 @@ public class DocumentResourceV2 {
           ExecutionContext context = ExecutionContext.create(profile);
 
           JsonNode node;
-          if (filters.isEmpty()) {
+          // Fetch the whole doc at the specified path only if the request does not have an explicit
+          // page size. Otherwise, produce paginated results for child data at the specified path.
+          if (filters.isEmpty() && pageSizeParam == null) {
             node = documentService.getJsonAtPath(db, namespace, collection, id, path, context);
             if (node == null) {
               return Response.status(Response.Status.NOT_FOUND).build();
@@ -769,7 +771,15 @@ public class DocumentResourceV2 {
             final Paginator paginator = new Paginator(pageStateParam, pageSize);
             JsonNode result =
                 documentService.searchDocumentsV2(
-                    db, namespace, collection, filters, selectionList, id, paginator, context);
+                    db,
+                    namespace,
+                    collection,
+                    path,
+                    filters,
+                    selectionList,
+                    id,
+                    paginator,
+                    context);
 
             if (result == null) {
               return Response.noContent().build();

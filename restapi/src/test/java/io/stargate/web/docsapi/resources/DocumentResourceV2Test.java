@@ -216,7 +216,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
 
     ObjectNode mockedReturn = mapper.createObjectNode();
@@ -237,7 +236,7 @@ public class DocumentResourceV2Test {
             id,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             true,
@@ -257,7 +256,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -280,7 +278,7 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             true,
@@ -311,6 +309,7 @@ public class DocumentResourceV2Test {
                 anyObject(),
                 anyString(),
                 anyString(),
+                anyList(),
                 anyList(),
                 anyList(),
                 anyString(),
@@ -354,7 +353,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -377,7 +375,7 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             false,
@@ -400,7 +398,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -420,7 +417,7 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             false,
@@ -437,7 +434,7 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
             true,

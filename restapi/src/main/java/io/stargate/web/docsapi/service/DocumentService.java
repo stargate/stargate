@@ -702,6 +702,7 @@ public class DocumentService {
       DocumentDB db,
       String keyspace,
       String collection,
+      List<PathSegment> pathPrefix,
       List<FilterCondition> filters,
       List<String> fields,
       String documentId,
@@ -709,8 +710,15 @@ public class DocumentService {
       ExecutionContext context)
       throws UnauthorizedException {
     db.authorizeSelect(keyspace, collection);
-    FilterCondition first = filters.get(0);
-    List<String> path = first.getPath();
+    List<String> path;
+    if (filters.isEmpty()) {
+      path =
+          pathPrefix.stream()
+              .map(seg -> convertArrayPath(seg.getPath()))
+              .collect(Collectors.toList());
+    } else {
+      path = filters.get(0).getPath();
+    }
 
     List<BuiltCondition> conditions = new ArrayList<>();
     conditions.add(BuiltCondition.of("key", Predicate.EQ, documentId));
@@ -718,7 +726,8 @@ public class DocumentService {
     int dbPageSize;
     List<FilterCondition> inMemoryFilters;
     ExecutionContext mainContext;
-    if (fields.isEmpty()) {
+    if (fields.isEmpty() && !filters.isEmpty()) {
+      FilterCondition first = filters.get(0);
       conditions.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
 
       // Assume all filters apply to the same row - this is expected to be enforced by callers
@@ -764,7 +773,7 @@ public class DocumentService {
             .bind();
 
     // Use `key` plus some of the clustering columns (path elements) for grouping query results
-    int keyDepth = first.getPath().size() + 1; // +1 for the partition key
+    int keyDepth = path.size() + 1; // +1 for the partition key
     List<RawDocument> docs =
         db.executeSelect(
                 keyDepth, mainQuery, dbPageSize, paginator.getCurrentDbPageState(), mainContext)
