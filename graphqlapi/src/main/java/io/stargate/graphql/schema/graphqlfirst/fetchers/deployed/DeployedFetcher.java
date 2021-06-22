@@ -26,7 +26,7 @@ import graphql.schema.GraphQLScalarType;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundSelect;
@@ -36,7 +36,10 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
-import io.stargate.graphql.schema.graphqlfirst.processor.*;
+import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.StargateGraphqlContext;
@@ -50,6 +53,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /** Base class for fetchers that handle the queries from a user's deployed schema. */
@@ -241,12 +245,13 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       EntityModel entity,
       List<BuiltCondition> whereConditions,
       Optional<Integer> limit,
-      DataStore dataStore,
+      UnaryOperator<Parameters> parametersModifier,
       StargateGraphqlContext context)
       throws UnauthorizedException {
 
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .select()
             .column(
@@ -261,7 +266,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       return context
           .getAuthorizationService()
           .authorizedDataRead(
-              () -> executeUnchecked(query, dataStore),
+              () -> executeUnchecked(query, parametersModifier, context),
               context.getSubject(),
               entity.getKeyspaceName(),
               entity.getCqlName(),
@@ -316,9 +321,12 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
   }
 
-  protected ResultSet executeUnchecked(AbstractBound<?> query, DataStore dataStore) {
+  protected ResultSet executeUnchecked(
+      AbstractBound<?> query,
+      UnaryOperator<Parameters> parametersModifier,
+      StargateGraphqlContext context) {
     try {
-      return dataStore.execute(query).get();
+      return context.getDataStore().execute(query, parametersModifier).get();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (ExecutionException e) {

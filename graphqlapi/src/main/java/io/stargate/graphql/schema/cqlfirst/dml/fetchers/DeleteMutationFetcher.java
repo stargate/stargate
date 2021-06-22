@@ -5,7 +5,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
@@ -20,7 +19,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
 
   @Override
   protected BoundQuery buildQuery(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     boolean ifExists =
@@ -29,7 +28,8 @@ public class DeleteMutationFetcher extends MutationFetcher {
             && (Boolean) environment.getArgument("ifExists");
 
     BoundQuery bound =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .delete()
             .from(table.keyspace(), table.name())

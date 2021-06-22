@@ -21,12 +21,15 @@ import io.micrometer.core.instrument.Tags;
 import io.micrometer.jersey2.server.JerseyTags;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
+import java.util.Collection;
+import java.util.Collections;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.ContainerResponse;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
 /**
- * Tag provider for the Jersey HTTP request.
+ * The main tag provider for the Jersey HTTP request. Can contain other delegating providers as
+ * well.
  *
  * @see RequestEvent
  * @see io.micrometer.jersey2.server.DefaultJerseyTagsProvider
@@ -37,9 +40,19 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
 
   private final Tags defaultTags;
 
+  private final Collection<JerseyTagsProvider> delegateProviders;
+
   public ResourceTagsProvider(HttpMetricsTagProvider httpMetricsTagProvider, Tags defaultTags) {
+    this(httpMetricsTagProvider, defaultTags, Collections.emptyList());
+  }
+
+  public ResourceTagsProvider(
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      Tags defaultTags,
+      Collection<JerseyTagsProvider> delegateProviders) {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.defaultTags = defaultTags;
+    this.delegateProviders = delegateProviders;
   }
 
   /** {@inheritDoc} */
@@ -48,11 +61,18 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
     // adds method, uri, status, default and request tags
     ContainerResponse response = event.getContainerResponse();
     ContainerRequest request = event.getContainerRequest();
+    Tags result = defaultTags;
 
+    // resolve delegates
+    for (JerseyTagsProvider delegate : delegateProviders) {
+      result = result.and(delegate.httpRequestTags(event));
+    }
+
+    // then from the HttpMetricsTagProvider
     Tags requestTags =
         httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
 
-    return defaultTags
+    return result
         .and(requestTags)
         .and(JerseyTags.method(request), JerseyTags.uri(event), JerseyTags.status(response));
   }
@@ -62,12 +82,17 @@ public class ResourceTagsProvider implements JerseyTagsProvider {
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
     // adds method, uri, default and request tags
     ContainerRequest containerRequest = event.getContainerRequest();
+    Tags result = defaultTags;
 
+    // resolve delegates
+    for (JerseyTagsProvider delegate : delegateProviders) {
+      result = result.and(delegate.httpLongRequestTags(event));
+    }
+
+    // then from the HttpMetricsTagProvider
     Tags requestTags =
         httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
 
-    return defaultTags
-        .and(requestTags)
-        .and(JerseyTags.method(containerRequest), JerseyTags.uri(event));
+    return result.and(requestTags).and(JerseyTags.method(containerRequest), JerseyTags.uri(event));
   }
 }

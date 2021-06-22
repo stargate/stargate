@@ -17,7 +17,6 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -39,10 +38,12 @@ import java.util.Map;
 public abstract class DdlQueryFetcher extends CassandraFetcher<Boolean> {
 
   @Override
-  protected Boolean get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Boolean get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws Exception {
-    dataStore.execute(buildQuery(environment, dataStore.queryBuilder(), context).bind()).get();
+    context
+        .getDataStore()
+        .execute(buildQuery(environment, context.getDataStore().queryBuilder(), context).bind())
+        .get();
     return true;
   }
 

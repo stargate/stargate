@@ -16,23 +16,18 @@
 package io.stargate.graphql.web.resources;
 
 import graphql.schema.idl.SchemaPrinter;
-import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.graphqlfirst.AdminSchemaBuilder;
 import io.stargate.graphql.schema.graphqlfirst.processor.CqlDirectives;
 import io.stargate.graphql.schema.scalars.CqlScalar;
-import io.stargate.graphql.web.RequestToHeadersMapper;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -64,18 +59,11 @@ public class FilesResource {
   private static final Logger LOG = LoggerFactory.getLogger(FilesResource.class);
   private static final String DIRECTIVES_RESPONSE = buildDirectivesResponse();
 
-  private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
-  private final DataStoreFactory dataStoreFactory;
 
   @Inject
-  public FilesResource(
-      AuthenticationService authenticationService,
-      AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
-    this.authenticationService = authenticationService;
+  public FilesResource(AuthorizationService authorizationService) {
     this.authorizationService = authorizationService;
-    this.dataStoreFactory = dataStoreFactory;
   }
 
   @GET
@@ -114,9 +102,8 @@ public class FilesResource {
     }
 
     try {
-      Map<String, String> headers = RequestToHeadersMapper.getAllHeaders(httpRequest);
       AuthenticationSubject authenticationSubject =
-          authenticationService.validateToken(token, headers);
+          (AuthenticationSubject) httpRequest.getAttribute(AuthenticationFilter.SUBJECT_KEY);
       authorizationService.authorizeSchemaRead(
           authenticationSubject,
           Collections.singletonList(SchemaSourceDao.KEYSPACE_NAME),
@@ -125,9 +112,7 @@ public class FilesResource {
           ResourceKind.TABLE);
 
       DataStore dataStore =
-          dataStoreFactory.create(
-              authenticationSubject.asUser(),
-              DataStoreOptions.builder().putAllCustomProperties(headers).build());
+          (DataStore) httpRequest.getAttribute(AuthenticationFilter.DATA_STORE_KEY);
       SchemaSource schemaSource =
           new SchemaSourceDao(dataStore)
               .getSingleVersion(keyspace, Optional.ofNullable(versionUuid));
