@@ -34,12 +34,12 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import java.util.ArrayList;
+import io.stargate.web.docsapi.service.query.QueryConstants;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -107,8 +107,9 @@ public class ReactiveDocumentService {
           authorizationService.authorizeDataRead(
               authenticationSubject, namespace, collection, SourceAPI.REST);
 
-          // needed for lambda
-          List<String> fieldsFinal = fieldsResolved;
+          // split into field paths once and reuse
+          List<String[]> fieldPaths =
+              fieldsResolved.stream().map(f -> f.split("\\.")).collect(Collectors.toList());
 
           // call the search service
           return searchService
@@ -124,7 +125,7 @@ public class ReactiveDocumentService {
                   rawDocuments -> {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
-                    ObjectNode docsResult = createJsonMap(db, rawDocuments, fieldsFinal);
+                    ObjectNode docsResult = createJsonMap(db, rawDocuments, fieldPaths);
                     return new DocumentResponseWrapper<JsonNode>(
                         null, state, docsResult, context.toProfile());
                   })
@@ -138,16 +139,20 @@ public class ReactiveDocumentService {
         });
   }
 
-  public ObjectNode createJsonMap(DocumentDB db, List<RawDocument> docs, List<String> fields) {
+  public ObjectNode createJsonMap(
+      DocumentDB db, List<RawDocument> docs, List<String[]> fieldPaths) {
     ObjectNode docsResult = objectMapper.createObjectNode();
 
     for (RawDocument doc : docs) {
       // filter needed rows only
       List<Row> rows = doc.rows();
-      if (!fields.isEmpty()) {
+      if (!fieldPaths.isEmpty()) {
         rows =
             doc.rows().stream()
-                .filter(row -> fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field)))
+                .filter(
+                    row ->
+                        fieldPaths.stream()
+                            .anyMatch(fieldPath -> fieldMatchesRowPath(row, fieldPath)))
                 .collect(Collectors.toList());
       }
 
@@ -159,22 +164,14 @@ public class ReactiveDocumentService {
     return docsResult;
   }
 
-  private boolean fieldMatchesRowPath(Row row, String field) {
-    String rowPath = getFieldPathFromRow(row, DocumentServiceUtils.maxFieldDepth(field));
-    return rowPath.startsWith(field)
-        && (rowPath.substring(field.length()).isEmpty()
-            || rowPath.substring(field.length()).startsWith("."));
-  }
-
-  private String getFieldPathFromRow(Row row, long maxDepth) {
-    List<String> path = new ArrayList<>();
-    for (int i = 0; i < maxDepth; i++) {
-      String value = row.getString("p" + i);
-      if (value == null || value.isEmpty()) {
-        break;
+  private boolean fieldMatchesRowPath(Row row, String[] fieldPath) {
+    for (int i = 0; i < fieldPath.length; i++) {
+      String nextP = QueryConstants.P_COLUMN_NAME.apply(i);
+      if (!Objects.equals(fieldPath[i], row.getString(nextP))) {
+        return false;
       }
-      path.add(value);
     }
-    return String.join(".", path);
+
+    return true;
   }
 }
