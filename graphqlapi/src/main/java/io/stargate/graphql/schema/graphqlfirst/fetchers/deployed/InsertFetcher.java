@@ -53,8 +53,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
