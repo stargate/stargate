@@ -74,11 +74,12 @@ class InsertModelBuilder extends MutationModelBuilder {
 
     // Validate return type: must be the entity itself, or a wrapper payload
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (returnType.isEntityList()
-        || !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()) {
+    if (!returnType.isEntityList()
+        && !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
+        && returnType != OperationModel.SimpleReturnType.BOOLEAN) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
-              + "single instance of it.",
+              + "single instance of it or Boolean.",
           operationName, entity.getGraphqlName());
     }
 
@@ -99,6 +100,8 @@ class InsertModelBuilder extends MutationModelBuilder {
         ifNotExists,
         getConsistencyLevel(cqlInsertDirective),
         getSerialConsistencyLevel(cqlInsertDirective),
+        getTtl(cqlInsertDirective),
+        returnType,
         cqlTimestampArgumentName);
   }
 

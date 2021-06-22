@@ -20,7 +20,7 @@ import javax.inject.Inject;
 
 /** Service that handles attaching and fetching JSON schemas to/from Documents API collections. */
 public class JsonSchemaHandler {
-  private ObjectMapper mapper;
+  private final ObjectMapper mapper;
   private final JsonSchemaFactory schemaFactory = JsonSchemaFactory.byDefault();
   private final ConcurrentHashMap<ImmutableKeyspaceAndTable, JsonNode> schemasPerCollection =
       new ConcurrentHashMap<>();
@@ -43,10 +43,7 @@ public class JsonSchemaHandler {
 
   private JsonSchemaResponse reportToResponse(JsonNode schema, ProcessingReport report) {
     JsonSchemaResponse resp = new JsonSchemaResponse(schema);
-    report.forEach(
-        msg -> {
-          resp.addMessage(msg.getLogLevel(), msg.getMessage());
-        });
+    report.forEach(msg -> resp.addMessage(msg.getLogLevel(), msg.getMessage()));
     return resp;
   }
 
@@ -85,9 +82,9 @@ public class JsonSchemaHandler {
   /**
    * Attaches a comment to the given C* table that represents a JSON schema.
    *
-   * @param namespace
-   * @param collection
-   * @param schemaData
+   * @param namespace The namespace containing the collection to be altered
+   * @param collection The collection to be altered by adding the JSON schema as a comment
+   * @param schemaData The JSON schema to add as a comment to the table
    */
   private void writeSchemaToCollection(
       DocumentDB db, String namespace, String collection, String schemaData) {
@@ -116,14 +113,7 @@ public class JsonSchemaHandler {
 
   public void validate(JsonNode schema, String value)
       throws ProcessingException, JsonProcessingException {
-    JsonNode jsonValue = mapper.readTree(value);
-    ProcessingReport result = schemaFactory.getValidator().validate(schema, jsonValue);
-    if (!result.isSuccess()) {
-      List<String> messages = new ArrayList<>();
-      result.forEach(msg -> messages.add(msg.getMessage()));
-      throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Invalid JSON: " + messages.toString());
-    }
+    validate(schema, mapper.readTree(value));
   }
 
   public void validate(JsonNode schema, JsonNode jsonValue) throws ProcessingException {

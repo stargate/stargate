@@ -33,6 +33,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
@@ -47,14 +48,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Object>> {
+public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
   public InsertFetcher(InsertModel model, MappingModel mappingModel) {
     super(model, mappingModel);
   }
 
   @Override
-  protected Map<String, Object> get(
+  protected Object get(
       DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
@@ -88,6 +89,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
             .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
             .ifNotExists(isLwt)
+            .ttl(model.getTtl().orElse(null))
             .timestamp(timestamp.orElse(null))
             .build()
             .bind();
@@ -134,7 +136,11 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
     if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
       response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
     }
-    return response;
+    if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
+      return applied;
+    } else {
+      return response;
+    }
   }
 
   private Map<String, Object> buildCqlValues(

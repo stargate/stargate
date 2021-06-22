@@ -1,6 +1,9 @@
 package io.stargate.web.docsapi.service;
 
 import io.dropwizard.setup.Environment;
+import io.stargate.web.docsapi.service.query.DocumentSearchService;
+import io.stargate.web.docsapi.service.query.ExpressionParser;
+import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 
 public class DocsApiComponentsBinder extends AbstractBinder {
@@ -20,5 +23,9 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bindAsContract(DocumentService.class);
     bindAsContract(CollectionService.class);
     bindAsContract(JsonSchemaHandler.class);
+    bindAsContract(ExpressionParser.class);
+    bindAsContract(ConditionParser.class);
+    bindAsContract(DocumentSearchService.class);
+    bindAsContract(ReactiveDocumentService.class);
   }
 }

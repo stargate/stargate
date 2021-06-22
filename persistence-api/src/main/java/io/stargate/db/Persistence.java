@@ -18,6 +18,7 @@ package io.stargate.db;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -236,5 +237,8 @@ public interface Persistence {
      * @see Parameters#pagingState()
      */
     ByteBuffer makePagingState(PagingPosition position, Parameters parameters);
+
+    /** Makes a new {@link RowDecorator} for the given table. */
+    RowDecorator makeRowDecorator(TableName table);
   }
 }

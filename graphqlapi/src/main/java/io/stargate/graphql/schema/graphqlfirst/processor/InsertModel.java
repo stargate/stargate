@@ -28,6 +28,8 @@ public class InsertModel extends MutationModel {
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifNotExists;
   private final Optional<String> cqlTimestampArgumentName;
+  private final Optional<Integer> ttl;
+  private final ReturnType returnType;
 
   InsertModel(
       String parentTypeName,
@@ -38,12 +40,16 @@ public class InsertModel extends MutationModel {
       boolean ifNotExists,
       Optional<ConsistencyLevel> consistencyLevel,
       Optional<ConsistencyLevel> serialConsistencyLevel,
+      Optional<Integer> ttl,
+      ReturnType returnType,
       Optional<String> cqlTimestampArgumentName) {
     super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
     this.responsePayload = responsePayload;
     this.ifNotExists = ifNotExists;
+    this.ttl = ttl;
+    this.returnType = returnType;
     this.cqlTimestampArgumentName = cqlTimestampArgumentName;
   }
 
@@ -65,6 +71,14 @@ public class InsertModel extends MutationModel {
 
   public Optional<String> getCqlTimestampArgumentName() {
     return cqlTimestampArgumentName;
+  }
+
+  public Optional<Integer> getTtl() {
+    return ttl;
+  }
+
+  public ReturnType getReturnType() {
+    return returnType;
   }
 
   @Override

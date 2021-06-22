@@ -132,6 +132,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
         getSerialConsistencyLevel(cqlUpdateDirective),
+        getTtl(cqlUpdateDirective),
         cqlTimestampArgumentName);
   }
 

@@ -31,6 +31,22 @@ public class ByteBufferUtils {
     return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
   }
 
+  public static String toBase64ForUrl(ByteBuffer buffer) {
+    return Base64.getUrlEncoder().encodeToString(getArray(buffer));
+  }
+
+  public static ByteBuffer fromBase64UrlParam(String base64) {
+    // TODO: remove support for legacy use cases when they are no longer relevant
+    if (base64.chars().anyMatch(c -> c == '/' || c == '+' || c == ' ')) {
+      // Fix legacy strings that got broken by decoding `+` at HTTP level
+      base64 = base64.replace(' ', '+');
+      // Use the decoder compatible with the encoder previously used for URL params
+      return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
+    }
+
+    return ByteBuffer.wrap(Base64.getUrlDecoder().decode(base64));
+  }
+
   /**
    * Extract the content of the provided {@code ByteBuffer} as a byte array.
    *
