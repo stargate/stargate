@@ -17,10 +17,13 @@
 package io.stargate.metrics.jersey;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.jersey2.server.JerseyTagsProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import java.util.Collections;
 import javax.ws.rs.core.MultivaluedMap;
@@ -49,6 +52,8 @@ class ResourceTagsProviderTest {
   @Mock ContainerRequest containerRequest;
 
   @Mock ExtendedUriInfo extendedUriInfo;
+
+  @Mock JerseyTagsProvider delegate;
 
   @BeforeEach
   public void mockEvent() {
@@ -84,6 +89,37 @@ class ResourceTagsProviderTest {
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("status", "200"))
           .contains(Tag.of("uri", "/base/target/uri"));
+    }
+
+    @Test
+    public void happyPathWithDelegates() {
+      Tags defaultTags = Tags.of("default", "true");
+      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
+      headers.putSingle("some", "header");
+
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("GET");
+      when(containerRequest.getHeaders()).thenReturn(headers);
+      when(containerResponse.getStatus()).thenReturn(200);
+      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
+      when(delegate.httpRequestTags(requestEvent)).thenReturn(Tags.of("delegate", "present"));
+
+      ResourceTagsProvider resourceTagsProvider =
+          new ResourceTagsProvider(
+              httpMetricsTagProvider, defaultTags, Collections.singletonList(delegate));
+      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
+
+      assertThat(result)
+          .containsAll(defaultTags)
+          .contains(Tag.of("extra", "true"))
+          .contains(Tag.of("delegate", "present"))
+          .contains(Tag.of("method", "GET"))
+          .contains(Tag.of("status", "200"))
+          .contains(Tag.of("uri", "/base/target/uri"));
+      verify(delegate).httpRequestTags(requestEvent);
+      verifyNoMoreInteractions(delegate);
     }
 
     @Test
@@ -137,6 +173,38 @@ class ResourceTagsProviderTest {
           .contains(Tag.of("extra", "true"))
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("uri", "/base/target/uri"));
+    }
+
+    @Test
+    public void happyPathWithDelegate() {
+      Tags defaultTags = Tags.of("default", "true");
+      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
+      headers.putSingle("some", "header");
+
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("GET");
+      when(containerRequest.getHeaders()).thenReturn(headers);
+      when(containerResponse.getStatus()).thenReturn(200);
+      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
+      when(delegate.httpLongRequestTags(requestEvent))
+          .thenReturn(Tags.of("delegate1", "present", "delegate2", "present"));
+
+      ResourceTagsProvider resourceTagsProvider =
+          new ResourceTagsProvider(
+              httpMetricsTagProvider, defaultTags, Collections.singletonList(delegate));
+      Iterable<Tag> result = resourceTagsProvider.httpLongRequestTags(requestEvent);
+
+      assertThat(result)
+          .containsAll(defaultTags)
+          .contains(Tag.of("extra", "true"))
+          .contains(Tag.of("delegate1", "present"))
+          .contains(Tag.of("delegate2", "present"))
+          .contains(Tag.of("method", "GET"))
+          .contains(Tag.of("uri", "/base/target/uri"));
+      verify(delegate).httpLongRequestTags(requestEvent);
+      verifyNoMoreInteractions(delegate);
     }
   }
 }
