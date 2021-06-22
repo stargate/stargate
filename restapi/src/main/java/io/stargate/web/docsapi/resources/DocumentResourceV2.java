@@ -5,6 +5,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
@@ -210,6 +211,7 @@ public class DocumentResourceV2 {
       @ApiParam(
               value = "A JSON Lines payload where each line is a document to write",
               required = true)
+          @NonNull
           InputStream payload,
       @ApiParam(
               value =

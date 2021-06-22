@@ -402,6 +402,24 @@ public class DocumentService {
     return "/" + path.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1");
   }
 
+  private DocumentDB maybeCreateTableAndIndexes(
+      Db dbFactory,
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      Map<String, String> headers,
+      String authToken)
+      throws UnauthorizedException {
+    boolean created = db.maybeCreateTable(keyspace, collection);
+    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
+    // but we can force the permissions refetch by logging in again.
+    if (created) {
+      db = dbFactory.getDocDataStoreForToken(authToken, headers);
+      db.maybeCreateTableIndexes(keyspace, collection);
+    }
+    return db;
+  }
+
   public List<String> writeManyDocs(
       String authToken,
       String keyspace,
@@ -415,17 +433,12 @@ public class DocumentService {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
-    boolean created = db.maybeCreateTable(keyspace, collection);
-    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
-    // but we can force the permissions refetch by logging in again.
-    if (created) {
-      db = dbFactory.getDocDataStoreForToken(authToken, headers);
-      db.maybeCreateTableIndexes(keyspace, collection);
-    }
+    db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
     List<String> idsWritten = new ArrayList<>();
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(payload, "UTF-8"))) {
       Iterator<String> iter = reader.lines().iterator();
       ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
+      String docsPath = convertToJsonPtr(idPath.get());
       int chunkIndex = 0;
       final int CHUNK_SIZE = 250;
       while (iter.hasNext()) {
@@ -437,7 +450,6 @@ public class DocumentService {
 
           String docId = UUID.randomUUID().toString();
           if (idPath.isPresent()) {
-            String docsPath = convertToJsonPtr(idPath.get());
             if (!json.at(docsPath).isTextual()) {
               throw new ErrorCodeRuntimeException(
                   ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
@@ -518,13 +530,7 @@ public class DocumentService {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
-    boolean created = db.maybeCreateTable(keyspace, collection);
-    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
-    // but we can force the permissions refetch by logging in again.
-    if (created) {
-      db = dbFactory.getDocDataStoreForToken(authToken, headers);
-      db.maybeCreateTableIndexes(keyspace, collection);
-    }
+    db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
 
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
     if (schema != null && path.isEmpty()) {

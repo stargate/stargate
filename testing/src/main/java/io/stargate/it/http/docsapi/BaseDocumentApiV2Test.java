@@ -741,6 +741,23 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testWriteManyDocsOverwrite() throws IOException {
+    // Create documents using multiExample that sets the document ID's using a particular path in
+    // the document, overwriting pre-existing data.
+    RestUtils.put(authToken, collectionPath + "/aa", "{\"start\":\"value\"}", 200);
+    URL url = Resources.getResource("multiExample.jl");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(27);
+
+    resp = RestUtils.get(authToken, collectionPath + "/aa", 200);
+    respBody = OBJECT_MAPPER.readTree(resp);
+    assertThat(respBody).isEqualTo(OBJECT_MAPPER.readTree("{\"id\": [\"aa\"], \"b\":\"c\"}"));
+  }
+
+  @Test
   public void testWriteManyDocsInvalidPath() throws IOException {
     URL url = Resources.getResource("multiExample.jl");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
