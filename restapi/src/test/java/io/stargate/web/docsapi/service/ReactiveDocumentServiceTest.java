@@ -122,7 +122,7 @@ class ReactiveDocumentServiceTest {
       when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
           .thenReturn(fieldList);
       when(searchService.searchDocuments(
-              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+              queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
@@ -174,7 +174,7 @@ class ReactiveDocumentServiceTest {
       when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
           .thenReturn(fieldList);
       when(searchService.searchDocuments(
-              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+              queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
@@ -226,7 +226,7 @@ class ReactiveDocumentServiceTest {
       when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
           .thenReturn(fieldList);
       when(searchService.searchDocuments(
-              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+              queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
@@ -273,7 +273,7 @@ class ReactiveDocumentServiceTest {
       when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
           .thenReturn(fieldList);
       when(searchService.searchDocuments(
-              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+              queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(Flowable.empty());
 
       Single<DocumentResponseWrapper<? extends JsonNode>> result =
@@ -305,13 +305,7 @@ class ReactiveDocumentServiceTest {
       byte[] pageState = RandomUtils.nextBytes(64);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.searchDocuments(
-              queryExecutor,
-              namespace,
-              collection,
-              Literal.getTrue(),
-              Collections.emptyList(),
-              paginator,
-              context))
+              queryExecutor, namespace, collection, Literal.getTrue(), paginator, context))
           .thenReturn(docs);
       when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
 

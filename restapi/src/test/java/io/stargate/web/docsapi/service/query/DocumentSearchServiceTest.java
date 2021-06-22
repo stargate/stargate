@@ -38,7 +38,6 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import java.util.Arrays;
-import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -117,7 +116,6 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
-              Collections.emptyList(),
               paginator,
               context);
 
@@ -243,7 +241,6 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
-              Collections.emptyList(),
               paginator,
               context);
 
@@ -342,7 +339,6 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
-              Collections.emptyList(),
               paginator,
               context);
 
@@ -407,7 +403,6 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               KEYSPACE_NAME,
               COLLECTION_NAME,
               Literal.getTrue(),
-              Collections.emptyList(),
               paginator,
               context);
 

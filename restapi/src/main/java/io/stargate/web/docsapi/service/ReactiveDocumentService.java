@@ -113,13 +113,7 @@ public class ReactiveDocumentService {
           // call the search service
           return searchService
               .searchDocuments(
-                  db.getQueryExecutor(),
-                  namespace,
-                  collection,
-                  expression,
-                  fieldsResolved,
-                  paginator,
-                  context)
+                  db.getQueryExecutor(), namespace, collection, expression, paginator, context)
 
               // collect and make sure it's not empty
               .toList()
