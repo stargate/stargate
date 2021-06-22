@@ -17,13 +17,14 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.OptionalLong;
+import java.util.OptionalInt;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -93,8 +94,8 @@ public final class DocumentServiceUtils {
    * @param field field
    * @return max depth
    */
-  public static long maxFieldDepth(String field) {
-    return field.chars().filter(c -> c == '.').count() + 1;
+  public static int maxFieldDepth(String field) {
+    return field.chars().filter(c -> c == '.').map(e -> 1).sum() + 1;
   }
 
   /**
@@ -103,7 +104,52 @@ public final class DocumentServiceUtils {
    * @param fields fields
    * @return max depth or empty if no fields
    */
-  public static OptionalLong maxFieldsDepth(Collection<String> fields) {
-    return fields.stream().mapToLong(DocumentServiceUtils::maxFieldDepth).max();
+  public static OptionalInt maxFieldsDepth(Collection<String> fields) {
+    return fields.stream().mapToInt(DocumentServiceUtils::maxFieldDepth).max();
+  }
+
+  /**
+   * Simple utility to return a string value from doc api {@link Row}.
+   *
+   * @param row Row
+   * @return String or null if a row column {@value QueryConstants#STRING_VALUE_COLUMN_NAME) is null.
+   */
+  public static String getStringFromRow(Row row) {
+    return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)
+        ? null
+        : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+  }
+
+  /**
+   * Simple utility to return a double value from doc api {@link Row}.
+   *
+   * @param row Row
+   * @return String or null if a row column {@value QueryConstants#DOUBLE_VALUE_COLUMN_NAME) is null.
+   */
+  public static Double getDoubleFromRow(Row row) {
+    return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
+        ? null
+        : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
+  }
+
+  /**
+   * Simple utility to return boolean value from doc api {@link Row} based on number booleans value.
+   *
+   * @param row Row
+   * @param numericBooleans Consider booleans as numeric
+   * @return True, False or null if a row column {@value QueryConstants#BOOLEAN_VALUE_COLUMN_NAME) is null.
+   */
+  public static Boolean getBooleanFromRow(Row row, boolean numericBooleans) {
+    boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+    if (nullValue) {
+      return null;
+    } else {
+      if (numericBooleans) {
+        byte value = row.getByte(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        return value != 0;
+      } else {
+        return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+      }
+    }
   }
 }

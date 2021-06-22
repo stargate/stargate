@@ -18,11 +18,11 @@
 package io.stargate.web.docsapi.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -37,6 +38,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.ByteBufferUtils;
+import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -46,6 +48,7 @@ import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -70,6 +73,8 @@ class ReactiveDocumentServiceTest {
 
   @Mock DocumentService documentService;
 
+  @Mock JsonConverter jsonConverter;
+
   @Mock DocumentDB documentDB;
 
   @Mock QueryExecutor queryExecutor;
@@ -80,12 +85,15 @@ class ReactiveDocumentServiceTest {
 
   @Mock RawDocument rawDocument;
 
+  @Mock Row row;
+
   @Mock AuthenticationSubject authSubject;
 
   @BeforeEach
   public void init() {
     reactiveDocumentService =
-        new ReactiveDocumentService(expressionParser, searchService, documentService, objectMapper);
+        new ReactiveDocumentService(
+            expressionParser, searchService, documentService, jsonConverter, objectMapper);
     lenient().when(documentDB.getAuthorizationService()).thenReturn(authService);
     lenient().when(documentDB.getAuthenticationSubject()).thenReturn(authSubject);
   }
@@ -95,13 +103,15 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void happyPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode documentNode = objectMapper.createObjectNode();
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       String fields = "[\"myField\"]";
-      List<String> fieldList = Collections.singletonList("muField");
+      List<String> fieldList = Collections.singletonList("myField");
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
@@ -114,6 +124,12 @@ class ReactiveDocumentServiceTest {
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, fieldList, paginator, context))
           .thenReturn(docs);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(eq(Collections.singletonList(row)), eq(false), anyBoolean());
+      when(row.getString("p0")).thenReturn("myField");
+      when(rawDocument.id()).thenReturn(documentId);
+      when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
       when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
 
       Single<DocumentResponseWrapper<? extends JsonNode>> result =
@@ -125,7 +141,8 @@ class ReactiveDocumentServiceTest {
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
-                assertThat(wrapper.getData()).isNotNull();
+                assertThat(wrapper.getData()).hasSize(1);
+                assertThat(wrapper.getData().findValue(documentId)).isEqualTo(documentNode);
                 assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
                 assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
                     .isEqualTo(pageState);
@@ -133,9 +150,109 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(documentService)
-          .addToJsonMap(
-              eq(documentDB), any(), eq(Collections.singletonList(rawDocument)), eq(fieldList));
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+    }
+
+    @Test
+    public void happyPathFieldNotMatched() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      ExecutionContext context = ExecutionContext.create(true);
+      Paginator paginator = new Paginator(null, 1);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String where = "{}";
+      String fields = "[\"myField\"]";
+      List<String> fieldList = Collections.singletonList("myField");
+      byte[] pageState = RandomUtils.nextBytes(64);
+      Flowable<RawDocument> docs = Flowable.just(rawDocument);
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+      when(expressionParser.constructFilterExpression(
+              Collections.emptyList(), objectMapper.readTree(where), true))
+          .thenReturn(expression);
+      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
+          .thenReturn(fieldList);
+      when(searchService.searchDocuments(
+              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+          .thenReturn(docs);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(eq(Collections.emptyList()), eq(false), anyBoolean());
+      when(row.getString("p0")).thenReturn("someField");
+      when(rawDocument.id()).thenReturn(documentId);
+      when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
+      when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
+
+      Single<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.findDocuments(
+              documentDB, namespace, collection, where, fields, paginator, context);
+
+      result
+          .test()
+          .assertValue(
+              wrapper -> {
+                assertThat(wrapper.getDocumentId()).isNull();
+                assertThat(wrapper.getData()).hasSize(1);
+                assertThat(wrapper.getData().findValue(documentId)).isEqualTo(documentNode);
+                assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+                assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
+                    .isEqualTo(pageState);
+                return true;
+              })
+          .assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+    }
+
+    @Test
+    public void happyPathNoFields() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      ExecutionContext context = ExecutionContext.create(true);
+      Paginator paginator = new Paginator(null, 1);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String where = "{}";
+      String fields = "[]";
+      List<String> fieldList = Collections.emptyList();
+      byte[] pageState = RandomUtils.nextBytes(64);
+      Flowable<RawDocument> docs = Flowable.just(rawDocument);
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+      when(expressionParser.constructFilterExpression(
+              Collections.emptyList(), objectMapper.readTree(where), true))
+          .thenReturn(expression);
+      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
+          .thenReturn(fieldList);
+      when(searchService.searchDocuments(
+              queryExecutor, namespace, collection, expression, fieldList, paginator, context))
+          .thenReturn(docs);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(eq(Arrays.asList(row, row)), eq(false), anyBoolean());
+      when(rawDocument.id()).thenReturn(documentId);
+      when(rawDocument.rows()).thenReturn(Arrays.asList(row, row));
+      when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
+
+      Single<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.findDocuments(
+              documentDB, namespace, collection, where, fields, paginator, context);
+
+      result
+          .test()
+          .assertValue(
+              wrapper -> {
+                assertThat(wrapper.getDocumentId()).isNull();
+                assertThat(wrapper.getData()).hasSize(1);
+                assertThat(wrapper.getData().findValue(documentId)).isEqualTo(documentNode);
+                assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+                assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
+                    .isEqualTo(pageState);
+                return true;
+              })
+          .assertComplete();
+
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
     }
 
@@ -175,7 +292,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(documentService, never()).addToJsonMap(any(), any(), any(), any());
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
     }
 
@@ -216,12 +332,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(documentService)
-          .addToJsonMap(
-              eq(documentDB),
-              any(),
-              eq(Collections.singletonList(rawDocument)),
-              eq(Collections.emptyList()));
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
     }
 
@@ -252,7 +362,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void whereJsonException() throws Exception {
+    public void whereJsonException() {
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
@@ -277,7 +387,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void fieldsJsonException() throws Exception {
+    public void fieldsJsonException() {
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
       String namespace = RandomStringUtils.randomAlphanumeric(16);

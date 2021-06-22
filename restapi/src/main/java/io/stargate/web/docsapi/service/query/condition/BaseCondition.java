@@ -18,7 +18,7 @@ package io.stargate.web.docsapi.service.query.condition;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -53,9 +53,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default String getString(Row row) {
-    return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)
-        ? null
-        : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+    return DocumentServiceUtils.getStringFromRow(row);
   }
 
   /**
@@ -65,9 +63,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default Double getDouble(Row row) {
-    return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
-        ? null
-        : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
+    return DocumentServiceUtils.getDoubleFromRow(row);
   }
 
   /**
@@ -78,16 +74,6 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default Boolean getBoolean(Row row, boolean numericBooleans) {
-    boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-    if (nullValue) {
-      return null;
-    } else {
-      if (numericBooleans) {
-        byte value = row.getByte(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-        return value != 0;
-      } else {
-        return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
-      }
-    }
+    return DocumentServiceUtils.getBooleanFromRow(row, numericBooleans);
   }
 }
