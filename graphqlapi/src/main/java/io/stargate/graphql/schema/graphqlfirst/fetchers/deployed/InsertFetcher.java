@@ -97,6 +97,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
               .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
               .value(modifiers)
               .ifNotExists(isLwt)
+              .ttl(model.getTtl().orElse(null))
               .build()
               .bind();
 

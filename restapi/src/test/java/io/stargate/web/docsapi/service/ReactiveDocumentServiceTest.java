@@ -36,6 +36,7 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -45,7 +46,6 @@ import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -127,7 +127,8 @@ class ReactiveDocumentServiceTest {
                 assertThat(wrapper.getDocumentId()).isNull();
                 assertThat(wrapper.getData()).isNotNull();
                 assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
-                assertThat(Base64.getDecoder().decode(wrapper.getPageState())).isEqualTo(pageState);
+                assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
+                    .isEqualTo(pageState);
                 return true;
               })
           .assertComplete();
@@ -209,7 +210,8 @@ class ReactiveDocumentServiceTest {
                 assertThat(wrapper.getDocumentId()).isNull();
                 assertThat(wrapper.getData()).isNotNull();
                 assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
-                assertThat(Base64.getDecoder().decode(wrapper.getPageState())).isEqualTo(pageState);
+                assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
+                    .isEqualTo(pageState);
                 return true;
               })
           .assertComplete();
