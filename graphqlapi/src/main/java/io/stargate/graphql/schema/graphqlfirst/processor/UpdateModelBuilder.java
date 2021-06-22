@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
@@ -22,6 +23,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.*;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -85,6 +87,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
     List<ConditionModel> whereConditions;
     List<ConditionModel> ifConditions;
     List<IncrementModel> incrementModels;
+
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -108,6 +111,9 @@ class UpdateModelBuilder extends MutationModelBuilder {
       incrementModels = directives.getIncrementModels();
     }
 
+    Optional<String> cqlTimestampArgumentName =
+        findFieldNameWithDirective(
+            CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
             .filter(ResponsePayloadModel.class::isInstance)
@@ -126,7 +132,8 @@ class UpdateModelBuilder extends MutationModelBuilder {
         incrementModels,
         getConsistencyLevel(cqlUpdateDirective),
         getSerialConsistencyLevel(cqlUpdateDirective),
-        getTtl(cqlUpdateDirective));
+        getTtl(cqlUpdateDirective),
+        cqlTimestampArgumentName);
   }
 
   private void validate(

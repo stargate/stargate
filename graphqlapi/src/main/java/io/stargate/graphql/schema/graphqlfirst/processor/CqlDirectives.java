@@ -481,6 +481,7 @@ public class CqlDirectives {
   public static final String WHERE_OR_IF_OR_INCREMENT_FIELD = "field";
   public static final String WHERE_OR_IF_PREDICATE = "predicate";
   public static final String INCREMENT_PREPEND = "prepend";
+  public static final String TIMESTAMP = "cql_timestamp";
 
   private static final GraphQLEnumType PREDICATE_ENUM =
       newEnum()
@@ -583,6 +584,18 @@ public class CqlDirectives {
           .validLocation(ARGUMENT_DEFINITION)
           .build();
 
+  private static final GraphQLDirective TIMESTAMP_DIRECTIVE =
+      newDirective()
+          .name(TIMESTAMP)
+          .description(
+              "Annotates a parameter to indicate that it will be used as a write timestamp for this row."
+                  + "This is only allowed for insert and update mutations. The parameter can be "
+                  + "either a `BigInt` (that represents a number of microseconds since the epoch), "
+                  + "or a `String` (that represents an ISO-8601 zoned date time, e.g. "
+                  + "`2007-12-03T10:15:30+01:00`).")
+          .validLocation(ARGUMENT_DEFINITION)
+          .build();
+
   public static final String ALL_AS_STRING;
   public static final TypeDefinitionRegistry ALL_AS_REGISTRY;
 
@@ -612,6 +625,7 @@ public class CqlDirectives {
             .additionalDirective(WHERE_DIRECTIVE)
             .additionalDirective(IF_DIRECTIVE)
             .additionalDirective(INCREMENT_DIRECTIVE)
+            .additionalDirective(TIMESTAMP_DIRECTIVE)
             .query(dummyQueryType)
             .build();
 

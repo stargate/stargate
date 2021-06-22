@@ -23,7 +23,6 @@ import graphql.language.FieldDefinition;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
-import graphql.language.ScalarTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
@@ -185,14 +184,6 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
         CqlScalar cqlScalar = maybeCqlScalar.get();
         // Remember that we'll need to add the scalar to the RuntimeWiring
         context.getUsedCqlScalars().add(cqlScalar);
-        // Add the scalar to the schema definition. Normally it's not there because users are not
-        // required to declare it explicitly, but if it is it's not a problem.
-        if (!typeRegistry.scalars().containsKey(typeName)) {
-          typeRegistry.add(
-              ScalarTypeDefinition.newScalarTypeDefinition()
-                  .name(cqlScalar.getGraphqlType().getName())
-                  .build());
-        }
         return cqlScalar.getCqlType();
       }
 
