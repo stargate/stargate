@@ -76,10 +76,6 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
             + "    write_timestamp: String @cql_timestamp\n"
             + "): InsertUserResponse @cql_insert\n"
             + "@cql_update(targetEntity: \"User\")\n"
-            + "  insertWithSecondParameterIgnored(\n"
-            + "    user: UserInput!\n"
-            + "    write_timestamp: BigInt\n"
-            + "): InsertUserResponse @cql_insert\n"
             + "}");
   }
 

@@ -169,4 +169,37 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
         .contains(
             "Query insertWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have one of the types [String, BigInt]");
   }
+
+  @Test
+  @DisplayName(
+      "Should fail when deploying INSERT schema with two arguments, none with the @cql_timestamp annotation")
+  public void shouldFailToDeployInsertSchemaWithTwoArgumentsNoneWithTheCqlTimestampAnnotation() {
+    // given, when
+    Map<String, Object> errors =
+        CLIENT
+            .getDeploySchemaErrors(
+                KEYSPACE,
+                null,
+                "type User @cql_input {\n"
+                    + "  k: Int! @cql_column(partitionKey: true)\n"
+                    + "  v: Int\n"
+                    + "}\n"
+                    + "type InsertUserResponse @cql_payload {\n"
+                    + "  applied: Boolean!\n"
+                    + "  user: User!\n"
+                    + "}\n"
+                    + "type Query { users(k: Int!): User }\n"
+                    + "type Mutation {\n"
+                    + "  insertWithSecondParameterNotAnnotated(\n"
+                    + "    user: UserInput!\n"
+                    + "    write_timestamp: BigInt\n"
+                    + "): InsertUserResponse @cql_insert\n"
+                    + "}")
+            .get(0);
+
+    // then
+    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+        .contains(
+            "Mutation insertWithSecondParameterNotAnnotated: if you provided two arguments, the second one must be annotated with cql_timestamp directive.");
+  }
 }

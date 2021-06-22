@@ -86,6 +86,11 @@ class InsertModelBuilder extends MutationModelBuilder {
     Optional<String> cqlTimestampArgumentName =
         findFieldNameWithDirective(
             CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
+    if (inputs.size() == 2 && !cqlTimestampArgumentName.isPresent()) {
+      invalidMapping(
+          "Mutation %s: if you provided two arguments, the second one must be annotated with %s directive.",
+          operationName, CqlDirectives.TIMESTAMP);
+    }
 
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
