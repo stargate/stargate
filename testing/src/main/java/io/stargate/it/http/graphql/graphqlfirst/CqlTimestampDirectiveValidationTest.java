@@ -15,13 +15,14 @@
  */
 package io.stargate.it.http.graphql.graphqlfirst;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Query updateWithWriteTimestamp: @cql_timestamp can be used on at most one argument (found write_timestamp and write_timestamp2)");
   }
@@ -101,7 +102,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Mutation insertWithWriteTimestamp: inserts can't have more than two arguments: entity input and optionally a value with cql_timestamp directive");
   }
@@ -132,7 +133,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Query updateWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have one of the types [String, BigInt]");
   }
@@ -165,7 +166,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Query insertWithWriteTimestamp: argument write_timestamp annotated with @cql_timestamp must have one of the types [String, BigInt]");
   }
@@ -198,7 +199,7 @@ public class CqlTimestampDirectiveValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Mutation insertWithSecondParameterNotAnnotated: if you provided two arguments, the second one must be annotated with cql_timestamp directive.");
   }

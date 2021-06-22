@@ -589,7 +589,10 @@ public class CqlDirectives {
           .name(TIMESTAMP)
           .description(
               "Annotates a parameter to indicate that it will be used as a write timestamp for this row."
-                  + "This is only allowed for insert and update mutations. It must be a long value.")
+                  + "This is only allowed for insert and update mutations. The parameter can be "
+                  + "either a `BigInt` (that represents a number of microseconds since the epoch), "
+                  + "or a `String` (that represents an ISO-8601 zoned date time, e.g. "
+                  + "`2007-12-03T10:15:30+01:00`).")
           .validLocation(ARGUMENT_DEFINITION)
           .build();
 
