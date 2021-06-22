@@ -27,7 +27,6 @@ import io.stargate.auth.AuthenticationSubject;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Keyspace;
@@ -61,7 +60,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
       Boolean.getBoolean("stargate.graphql.default_keyspace.disabled");
 
   private final Persistence persistence;
-  private final DataStoreFactory dataStoreFactory;
   private final boolean enableGraphqlFirst;
 
   private final GraphQL ddlGraphql;
@@ -72,7 +70,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
   public GraphqlCache(
       Persistence persistence, DataStoreFactory dataStoreFactory, boolean enableGraphqlFirst) {
     this.persistence = persistence;
-    this.dataStoreFactory = dataStoreFactory;
     this.enableGraphqlFirst = enableGraphqlFirst;
 
     this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
@@ -90,11 +87,9 @@ public class GraphqlCache implements KeyspaceChangeListener {
     return schemaFirstAdminGraphql;
   }
 
-  public GraphQL getDml(
-      String keyspaceName, AuthenticationSubject subject, Map<String, String> headers)
+  public GraphQL getDml(String keyspaceName, DataStore dataStore, Map<String, String> headers)
       throws Exception {
 
-    DataStore dataStore = buildUserDatastore(subject, headers);
     SchemaSource latestSource =
         enableGraphqlFirst ? new SchemaSourceDao(dataStore).getLatestVersion(keyspaceName) : null;
 
@@ -129,9 +124,8 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
   public void putDml(
       String keyspaceName, SchemaSource newSource, GraphQL graphql, AuthenticationSubject subject) {
-    Map<String, String> headers = subject.customProperties();
-    DataStore dataStore = buildUserDatastore(subject, headers);
-    String decoratedKeyspaceName = persistence.decorateKeyspaceName(keyspaceName, headers);
+    String decoratedKeyspaceName =
+        persistence.decorateKeyspaceName(keyspaceName, subject.customProperties());
 
     LOG.trace(
         "Putting new schema version: {} for {}", newSource.getVersion(), decoratedKeyspaceName);
@@ -141,12 +135,6 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
   public String getDefaultKeyspaceName() {
     return defaultKeyspace;
-  }
-
-  private DataStore buildUserDatastore(AuthenticationSubject subject, Map<String, String> headers) {
-    DataStoreOptions dataStoreOptions =
-        DataStoreOptions.builder().putAllCustomProperties(headers).build();
-    return dataStoreFactory.create(subject.asUser(), dataStoreOptions);
   }
 
   private static GraphQL newGraphql(GraphQLSchema schema) {

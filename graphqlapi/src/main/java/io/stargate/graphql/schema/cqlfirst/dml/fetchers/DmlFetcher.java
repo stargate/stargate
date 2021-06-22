@@ -8,7 +8,6 @@ import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
@@ -19,12 +18,14 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,36 +42,37 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
-  @Override
-  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
+  protected UnaryOperator<Parameters> buildParameters(DataFetchingEnvironment environment) {
     Map<String, Object> options = environment.getArgument("options");
     if (options == null) {
-      return DEFAULT_PARAMETERS;
+      return UnaryOperator.identity();
     }
 
-    ImmutableParameters.Builder builder = Parameters.builder().from(DEFAULT_PARAMETERS);
+    return parameters -> {
+      ImmutableParameters.Builder builder = Parameters.builder().from(parameters);
 
-    Object consistency = options.get("consistency");
-    if (consistency != null) {
-      builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
-    }
+      Object consistency = options.get("consistency");
+      if (consistency != null) {
+        builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
+      }
 
-    Object serialConsistency = options.get("serialConsistency");
-    if (serialConsistency != null) {
-      builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
-    }
+      Object serialConsistency = options.get("serialConsistency");
+      if (serialConsistency != null) {
+        builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
+      }
 
-    Object pageSize = options.get("pageSize");
-    if (pageSize != null) {
-      builder.pageSize((Integer) pageSize);
-    }
+      Object pageSize = options.get("pageSize");
+      if (pageSize != null) {
+        builder.pageSize((Integer) pageSize);
+      }
 
-    Object pageState = options.get("pageState");
-    if (pageState != null) {
-      builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
-    }
+      Object pageState = options.get("pageState");
+      if (pageState != null) {
+        builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
+      }
 
-    return builder.build();
+      return builder.build();
+    };
   }
 
   protected List<BuiltCondition> buildConditions(
@@ -179,9 +181,13 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * accepted=true without waiting for the result.
    */
   protected CompletableFuture<Map<String, Object>> executeAsyncAccepted(
-      DataStore dataStore, BoundQuery query, Object originalValue) {
-    dataStore
-        .execute(query)
+      BoundQuery query,
+      Object originalValue,
+      UnaryOperator<Parameters> parameters,
+      StargateGraphqlContext context) {
+    context
+        .getDataStore()
+        .execute(query, parameters)
         .whenComplete(
             (r, throwable) -> {
               if (throwable != null) {

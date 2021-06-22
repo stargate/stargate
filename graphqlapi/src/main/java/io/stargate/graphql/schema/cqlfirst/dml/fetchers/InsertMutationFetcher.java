@@ -23,7 +23,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.ValueModifier;
@@ -43,7 +42,7 @@ public class InsertMutationFetcher extends MutationFetcher {
 
   @Override
   protected BoundQuery buildQuery(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     boolean ifNotExists =
         environment.containsArgument("ifNotExists")
@@ -51,7 +50,8 @@ public class InsertMutationFetcher extends MutationFetcher {
             && (Boolean) environment.getArgument("ifNotExists");
 
     BoundQuery query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .insertInto(table.keyspace(), table.name())
             .value(buildInsertValues(environment))
