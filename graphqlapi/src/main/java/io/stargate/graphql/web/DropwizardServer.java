@@ -54,7 +54,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final boolean enableGraphqlFirst;
-  private final boolean disableGraphqlPlayground;
+  private final boolean enableGraphqlPlayground;
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private volatile Server jettyServer;
@@ -67,7 +67,7 @@ public class DropwizardServer extends Application<Configuration> {
       HttpMetricsTagProvider httpMetricsTagProvider,
       DataStoreFactory dataStoreFactory,
       boolean enableGraphqlFirst,
-      boolean disableGraphqlPlayground) {
+      boolean enableGraphqlPlayground) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
@@ -75,7 +75,7 @@ public class DropwizardServer extends Application<Configuration> {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.dataStoreFactory = dataStoreFactory;
     this.enableGraphqlFirst = enableGraphqlFirst;
-    this.disableGraphqlPlayground = disableGraphqlPlayground;
+    this.enableGraphqlPlayground = enableGraphqlPlayground;
   }
 
   /**
@@ -140,7 +140,7 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
 
-    if (!disableGraphqlPlayground) {
+    if (enableGraphqlPlayground) {
       environment.jersey().register(PlaygroundResource.class);
     }
 

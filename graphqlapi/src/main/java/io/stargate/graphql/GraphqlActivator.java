@@ -44,8 +44,8 @@ public class GraphqlActivator extends BaseActivator {
       System.getProperty("stargate.auth_id", "AuthTableBasedService");
   private static final boolean ENABLE_GRAPHQL_FIRST =
       Boolean.getBoolean("stargate.graphql_first.enabled");
-  private static final boolean DISABLE_GRAPHQL_PLAYGROUND =
-      Boolean.getBoolean("stargate.graphql_playground.disabled");
+  private static final boolean ENABLE_GRAPHQL_PLAYGROUND =
+      !Boolean.getBoolean("stargate.graphql_playground.disabled");
 
   private ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
@@ -108,7 +108,7 @@ public class GraphqlActivator extends BaseActivator {
                 httpTagProvider.get(),
                 dataStoreFactory.get(),
                 ENABLE_GRAPHQL_FIRST,
-                DISABLE_GRAPHQL_PLAYGROUND);
+                ENABLE_GRAPHQL_PLAYGROUND);
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
         graphqlHealthCheck.healthy = true;
