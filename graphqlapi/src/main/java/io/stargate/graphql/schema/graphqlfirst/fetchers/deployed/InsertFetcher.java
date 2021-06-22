@@ -21,7 +21,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
@@ -33,6 +32,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.InsertModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
@@ -46,15 +46,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Object>> {
+public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
   public InsertFetcher(InsertModel model, MappingModel mappingModel) {
     super(model, mappingModel);
   }
 
   @Override
-  protected Map<String, Object> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -69,7 +68,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
             .flatMap(ResponsePayloadModel::getEntityField)
             .map(EntityField::getName)
             .orElse(null);
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
     Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
     Map<String, Object> response = new LinkedHashMap<>();
     Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
@@ -79,11 +78,13 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
             .collect(Collectors.toList());
 
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .value(modifiers)
             .ifNotExists(isLwt)
+            .ttl(model.getTtl().orElse(null))
             .build()
             .bind();
 
@@ -97,7 +98,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
 
     if (responseContainsEntity) {
       Map<String, Object> entityData;
@@ -129,7 +130,11 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Map<String, Obje
     if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
       response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
     }
-    return response;
+    if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
+      return applied;
+    } else {
+      return response;
+    }
   }
 
   private Map<String, Object> buildCqlValues(

@@ -7,11 +7,13 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Rows;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
+import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -249,6 +251,11 @@ class PersistenceBackedResultSet implements ResultSet {
   @Override
   public ByteBuffer makePagingState(PagingPosition position) {
     return connection.makePagingState(position, parameters);
+  }
+
+  @Override
+  public RowDecorator makeRowDecorator() {
+    return connection.makeRowDecorator(TableName.of(columns));
   }
 
   @Override

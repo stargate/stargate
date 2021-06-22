@@ -38,15 +38,16 @@ public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
   }
 
   @Override
-  protected SchemaSource get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected SchemaSource get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws Exception {
-    String keyspace = getKeyspace(environment, dataStore);
+    String keyspace = getKeyspace(environment, context.getDataStore());
     Optional<UUID> version =
         Optional.ofNullable((String) environment.getArgument("version")).map(UUID::fromString);
 
     authorize(context, keyspace);
 
-    return schemaSourceDaoProvider.apply(dataStore).getSingleVersion(keyspace, version);
+    return schemaSourceDaoProvider
+        .apply(context.getDataStore())
+        .getSingleVersion(keyspace, version);
   }
 }

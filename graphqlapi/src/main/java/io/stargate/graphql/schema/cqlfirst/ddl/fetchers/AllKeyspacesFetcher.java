@@ -19,7 +19,6 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
@@ -34,9 +33,9 @@ public class AllKeyspacesFetcher extends CassandraFetcher<List<KeyspaceDto>> {
 
   @Override
   protected List<KeyspaceDto> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
+      DataFetchingEnvironment environment, StargateGraphqlContext context) {
 
-    return dataStore.schema().keyspaces().stream()
+    return context.getDataStore().schema().keyspaces().stream()
         .filter(
             keyspace -> {
               try {

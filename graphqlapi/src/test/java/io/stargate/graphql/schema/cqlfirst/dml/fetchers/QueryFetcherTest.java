@@ -76,7 +76,7 @@ public class QueryFetcherTest extends DmlTestBase {
       String graphQlOperation, Parameters expectedParameters) {
     ExecutionResult result = executeGraphQl(graphQlOperation);
     assertThat(result.getErrors()).isEmpty();
-    assertThat(dataStoreOptionsCaptor.getValue().defaultParameters()).isEqualTo(expectedParameters);
+    assertThat(getCapturedParameters()).isEqualTo(expectedParameters);
   }
 
   @ParameterizedTest

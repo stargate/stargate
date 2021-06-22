@@ -22,7 +22,7 @@ import static java.util.stream.Stream.concat;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.db.datastore.DataStore;
+import io.stargate.db.Parameters;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,7 +44,7 @@ public abstract class BulkMutationFetcher
 
   @Override
   protected CompletableFuture<List<Map<String, Object>>> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context) {
+      DataFetchingEnvironment environment, StargateGraphqlContext context) {
     List<BoundQuery> queries = new ArrayList<>();
     Exception buildException = null;
 
@@ -52,7 +53,7 @@ public abstract class BulkMutationFetcher
       // buildStatement() could throw an unchecked exception.
       // As the statement might be part of a batch, we need to make sure the
       // batched operation completes.
-      queries = buildQueries(environment, dataStore, context);
+      queries = buildQueries(environment, context);
     } catch (Exception e) {
       buildException = e;
     }
@@ -60,7 +61,7 @@ public abstract class BulkMutationFetcher
 
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
         && operation.getSelectionSet().getSelections().size() > 1) {
-      return executeAsBatch(environment, dataStore, queries, buildException, operation);
+      return executeAsPartOfBatch(environment, queries, buildException, operation);
     }
 
     if (buildException != null) {
@@ -75,24 +76,25 @@ public abstract class BulkMutationFetcher
     }
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
+    UnaryOperator<Parameters> parameters = buildParameters(environment);
     for (int i = 0; i < queries.size(); i++) {
       int finalI = i;
       // Execute as a single statement
       if (containsDirective(operation, ASYNC_DIRECTIVE)) {
-        results.add(executeAsyncAccepted(dataStore, queries.get(i), values.get(finalI)));
+        results.add(executeAsyncAccepted(queries.get(i), values.get(finalI), parameters, context));
       } else {
         results.add(
-            dataStore
-                .execute(queries.get(i))
+            context
+                .getDataStore()
+                .execute(queries.get(i), parameters)
                 .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
       }
     }
     return convert(results);
   }
 
-  private CompletableFuture<List<Map<String, Object>>> executeAsBatch(
+  private CompletableFuture<List<Map<String, Object>>> executeAsPartOfBatch(
       DataFetchingEnvironment environment,
-      DataStore dataStore,
       List<BoundQuery> queries,
       Exception buildException,
       OperationDefinition operation) {
@@ -101,12 +103,11 @@ public abstract class BulkMutationFetcher
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
-      // Users should specify query options once in the batch
-      boolean dataStoreAlreadySet = batchContext.setDataStore(dataStore);
+      boolean parametersAlreadySet =
+          batchContext.setParametersModifier(buildParameters(environment));
 
-      if (dataStoreAlreadySet) {
-        // DataStore can be set at most once.
-        // The instance that should be used should contain the user options (if any).
+      // Users should specify query options only once in the batch
+      if (parametersAlreadySet) {
         buildException =
             new GraphQLException(
                 "options can only de defined once in an @atomic mutation selection");
@@ -117,9 +118,10 @@ public abstract class BulkMutationFetcher
       batchContext.setExecutionResult(buildException);
     } else if (batchContext.add(queries) == selections) {
       // All the statements were added successfully and this is the last selection
-      // Use the dataStore containing the options
-      DataStore batchDataStore = batchContext.getDataStore().orElse(dataStore);
-      batchContext.setExecutionResult(batchDataStore.batch(batchContext.getQueries()));
+      batchContext.setExecutionResult(
+          context
+              .getDataStore()
+              .batch(batchContext.getQueries(), batchContext.getParametersModifier()));
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");
@@ -142,6 +144,5 @@ public abstract class BulkMutationFetcher
   }
 
   protected abstract List<BoundQuery> buildQueries(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception;
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
 }

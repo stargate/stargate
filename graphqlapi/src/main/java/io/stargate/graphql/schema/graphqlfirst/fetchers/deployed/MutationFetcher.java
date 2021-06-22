@@ -19,6 +19,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.Parameters;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MutationModel;
+import java.util.function.UnaryOperator;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** An INSERT, UPDATE or DELETE mutation. */
@@ -32,20 +33,20 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
     this.model = model;
   }
 
-  @Override
-  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
+  protected UnaryOperator<Parameters> buildParameters(DataFetchingEnvironment environment) {
     ConsistencyLevel consistencyLevel = model.getConsistencyLevel().orElse(DEFAULT_CONSISTENCY);
     ConsistencyLevel serialConsistencyLevel =
         model.getSerialConsistencyLevel().orElse(DEFAULT_SERIAL_CONSISTENCY);
     if (consistencyLevel == DEFAULT_CONSISTENCY
         && serialConsistencyLevel == DEFAULT_SERIAL_CONSISTENCY) {
-      return DEFAULT_PARAMETERS;
+      return UnaryOperator.identity();
     } else {
-      return DEFAULT_PARAMETERS
-          .toBuilder()
-          .consistencyLevel(consistencyLevel)
-          .serialConsistencyLevel(serialConsistencyLevel)
-          .build();
+      return parameters ->
+          parameters
+              .toBuilder()
+              .consistencyLevel(consistencyLevel)
+              .serialConsistencyLevel(serialConsistencyLevel)
+              .build();
     }
   }
 }

@@ -25,13 +25,16 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import io.stargate.db.query.builder.AbstractBound;
+import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
+import io.stargate.web.rx.RxUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /** Executes pre-built document queries, groups document rows and manages document pagination. */
 public class QueryExecutor {
@@ -44,13 +47,13 @@ public class QueryExecutor {
   }
 
   public Flowable<RawDocument> queryDocs(
-      AbstractBound<?> query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
+      BoundQuery query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
     return queryDocs(1, query, pageSize, pagingState, context);
   }
 
   public Flowable<RawDocument> queryDocs(
       int keyDepth,
-      AbstractBound<?> query,
+      BoundQuery query,
       int pageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
@@ -77,42 +80,34 @@ public class QueryExecutor {
         .map(Accumulator::toDoc);
   }
 
-  public Flowable<ResultSet> execute(AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
+  public Flowable<ResultSet> execute(BoundQuery query, int pageSize, ByteBuffer pagingState) {
     return fetchPage(query, pageSize, pagingState)
         .compose( // Expand BREADTH_FIRST to reduce the number of "proactive" page requests
             FlowableTransformers.expand(
                 rs -> fetchNext(rs, pageSize, query), ExpandStrategy.BREADTH_FIRST, 1));
   }
 
-  private Flowable<ResultSet> fetchPage(
-      AbstractBound<?> query, int pageSize, ByteBuffer pagingState) {
-    return Single.<ResultSet>create(
-            emitter ->
-                dataStore
-                    .execute(
-                        query,
-                        p -> {
-                          ImmutableParameters.Builder builder = p.toBuilder();
-                          builder.pageSize(pageSize);
-                          if (pagingState != null) {
-                            builder.pagingState(pagingState);
-                          }
-                          return builder.build();
-                        })
-                    .whenComplete(
-                        (rows, t) -> {
-                          if (t != null) {
-                            emitter.onError(t);
-                          } else {
-                            emitter.onSuccess(rows);
-                          }
-                        }))
+  private Flowable<ResultSet> fetchPage(BoundQuery query, int pageSize, ByteBuffer pagingState) {
+    Supplier<CompletableFuture<ResultSet>> supplier =
+        () ->
+            dataStore.execute(
+                query,
+                p -> {
+                  ImmutableParameters.Builder builder = p.toBuilder();
+                  builder.pageSize(pageSize);
+                  if (pagingState != null) {
+                    builder.pagingState(pagingState);
+                  }
+                  return builder.build();
+                });
+
+    return RxUtils.singleFromFuture(supplier)
         .toFlowable()
         .compose(FlowableConnectOnRequest.with()) // separate subscription from query execution
         .take(1);
   }
 
-  private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, AbstractBound<?> query) {
+  private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, BoundQuery query) {
     ByteBuffer nextPagingState = rs.getPagingState();
     if (nextPagingState == null) {
       return Flowable.empty();
@@ -122,7 +117,7 @@ public class QueryExecutor {
   }
 
   private Iterable<Accumulator> seeds(
-      AbstractBound<?> query, ResultSet rs, List<Column> keyColumns, ExecutionContext context) {
+      BoundQuery query, ResultSet rs, List<Column> keyColumns, ExecutionContext context) {
     List<Row> rows = rs.currentPageRows();
     context.traceCqlResult(query, rows.size());
     List<Accumulator> seeds = new ArrayList<>(rows.size());
@@ -135,6 +130,10 @@ public class QueryExecutor {
       seeds.add(new Accumulator(id, docKey.build(), rs, row));
     }
     return seeds;
+  }
+
+  public DataStore getDataStore() {
+    return dataStore;
   }
 
   private class Accumulator {

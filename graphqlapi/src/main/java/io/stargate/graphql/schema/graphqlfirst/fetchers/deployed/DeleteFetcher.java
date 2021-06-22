@@ -21,7 +21,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.builder.AbstractBound;
@@ -47,12 +46,11 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
 
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
@@ -77,7 +75,8 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .delete()
             .from(entityModel.getKeyspaceName(), entityModel.getCqlName())
@@ -97,7 +96,7 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, dataStore);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
     boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
 
     ReturnType returnType = model.getReturnType();

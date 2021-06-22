@@ -4,6 +4,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.limiter.RateLimitingDecision;
 import io.stargate.db.limiter.RateLimitingManager;
 import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -178,6 +179,11 @@ public class RateLimitingPersistence implements Persistence {
     @Override
     public ByteBuffer makePagingState(PagingPosition position, Parameters parameters) {
       return connection.makePagingState(position, parameters);
+    }
+
+    @Override
+    public RowDecorator makeRowDecorator(TableName table) {
+      return connection.makeRowDecorator(table);
     }
   }
 }

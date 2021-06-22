@@ -20,12 +20,10 @@ import io.stargate.db.ImmutablePagingPosition.Builder;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.QualifiedSchemaEntity;
+import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -64,25 +62,7 @@ public interface PagingPosition {
 
   @Value.Lazy
   default TableName tableName() {
-    Set<TableName> tables =
-        currentRow().keySet().stream()
-            .map(
-                column ->
-                    ImmutableTableName.builder()
-                        .keyspace(Objects.requireNonNull(column.keyspace()))
-                        .name(Objects.requireNonNull(column.table()))
-                        .build())
-            .collect(Collectors.toSet());
-
-    if (tables.isEmpty()) {
-      throw new IllegalArgumentException("Missing table information in custom paging request.");
-    }
-
-    if (tables.size() > 1) {
-      throw new IllegalArgumentException("Too many tables are referenced: " + tables);
-    }
-
-    return tables.iterator().next();
+    return TableName.of(currentRow().keySet());
   }
 
   default ByteBuffer requiredValue(String columnName) {
@@ -141,7 +121,4 @@ public interface PagingPosition {
     /** Paging is resumed from the row following the {@link #currentRow() reference row}. */
     NEXT_ROW,
   }
-
-  @Value.Immutable
-  interface TableName extends QualifiedSchemaEntity {}
 }

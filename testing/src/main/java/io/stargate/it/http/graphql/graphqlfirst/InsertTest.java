@@ -56,6 +56,7 @@ public class InsertTest extends GraphqlFirstTestBase {
             + "}\n"
             + "type Mutation {\n"
             + "  insertUser(user: UserInput!): User\n"
+            + "  insertUserReturnBoolean(user: UserInput!): Boolean\n"
             + "  persistUser(user: UserInput!): User @cql_insert\n"
             + "  insertUser2(user: UserInput!): InsertUserResponse\n"
             + "  insertUserIfNotExists(user: UserInput!): InsertUserResponse\n"
@@ -67,6 +68,21 @@ public class InsertTest extends GraphqlFirstTestBase {
   @DisplayName("Should map simple insert")
   public void testSimpleInsert() {
     testSimpleInsert("insertUser");
+  }
+
+  @Test
+  @DisplayName("Should map simple insert return boolean")
+  public void testSimpleInsertReturnBoolean() {
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation {\n"
+                + "  result: insertUserReturnBoolean(user: {name: \"Ada Lovelace\", username: \"@ada\"})\n"
+                + "}");
+
+    // Should have generated an id
+    Boolean applied = JsonPath.<Boolean>read(response, "$.result");
+    assertThat(applied).isTrue();
   }
 
   @Test

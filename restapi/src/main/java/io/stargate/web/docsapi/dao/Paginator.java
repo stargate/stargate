@@ -1,8 +1,23 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.web.docsapi.dao;
 
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.web.docsapi.service.RawDocument;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.List;
 
 /**
@@ -24,9 +39,29 @@ public class Paginator {
     docPageSize = pageSize;
 
     if (pageState != null) {
-      byte[] decodedBytes = Base64.getDecoder().decode(pageState);
-      this.currentPageState = ByteBuffer.wrap(decodedBytes);
+      this.currentPageState = ByteBufferUtils.fromBase64UrlParam(pageState);
     }
+  }
+
+  /**
+   * Utility to make the external paging state from docs, without side effects in {@link Paginator}.
+   *
+   * @param paginator Paginator
+   * @param docs document
+   * @return String to serve to external
+   */
+  public static String makeExternalPagingState(Paginator paginator, List<RawDocument> docs) {
+    // If we have less docs than the page requires, this means there's no point requesting the
+    // next page. Note that in this case the last doc in the list _may_ have an internal paging
+    // state. This may happen if some docs are filtered in memory after fetching from persistence.
+    if (docs.size() >= paginator.docPageSize) {
+      RawDocument lastDoc = docs.get(docs.size() - 1);
+      ByteBuffer byteBuffer = lastDoc.makePagingState();
+      if (null != byteBuffer) {
+        return ByteBufferUtils.toBase64ForUrl(byteBuffer);
+      }
+    }
+    return null;
   }
 
   public String makeExternalPagingState() {
@@ -34,7 +69,7 @@ public class Paginator {
       return null;
     }
 
-    return Base64.getEncoder().encodeToString(currentPageState.array());
+    return ByteBufferUtils.toBase64ForUrl(currentPageState);
   }
 
   public void clearDocumentPageState() {

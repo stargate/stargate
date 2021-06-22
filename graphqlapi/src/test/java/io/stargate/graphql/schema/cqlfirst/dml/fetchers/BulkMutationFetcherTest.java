@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import graphql.ExecutionResult;
 import graphql.GraphQLError;
+import io.stargate.db.Parameters;
 import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.SampleKeyspaces;
 import io.stargate.graphql.schema.cqlfirst.dml.DmlTestBase;
@@ -84,11 +85,9 @@ public class BulkMutationFetcherTest extends DmlTestBase {
     };
 
     assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
-    assertThat(batchParameters)
-        .extracting(p -> p.consistencyLevel())
+    assertThat(getCapturedParameters())
+        .extracting(Parameters::consistencyLevel)
         .isEqualTo(ConsistencyLevel.valueOf(cl));
-
-    batchParameters = null;
 
     // Test with options in second position
     result =
@@ -103,8 +102,8 @@ public class BulkMutationFetcherTest extends DmlTestBase {
                 cl));
     assertThat(result.getErrors()).isEmpty();
     assertThat(getCapturedBatchQueriesString()).containsExactly(queries);
-    assertThat(batchParameters)
-        .extracting(p -> p.consistencyLevel(), p -> p.serialConsistencyLevel().get())
+    assertThat(getCapturedParameters())
+        .extracting(Parameters::consistencyLevel, p -> p.serialConsistencyLevel().get())
         .containsExactly(ConsistencyLevel.valueOf(cl), ConsistencyLevel.LOCAL_SERIAL);
   }
 

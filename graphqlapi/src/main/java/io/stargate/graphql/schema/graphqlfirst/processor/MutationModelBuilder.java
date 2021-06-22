@@ -22,6 +22,8 @@ import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -111,5 +113,40 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
                 CqlDirectives.MUTATION_SERIAL_CONSISTENCY_LEVEL,
                 ConsistencyLevel.class,
                 context));
+  }
+
+  protected Optional<Integer> getTtl(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getStringArgument(d, CqlDirectives.UPDATE_OR_INSERT_TTL, context)
+                .flatMap(this::parseTtl));
+  }
+
+  private Optional<Integer> parseTtl(String spec) {
+    long seconds;
+    try {
+      seconds = Long.parseLong(spec);
+    } catch (NumberFormatException e) {
+      try {
+        Duration duration = Duration.parse(spec);
+        seconds = duration.getSeconds();
+        if (duration.getNano() != 0) {
+          warn(
+              "Mutation %s: TTL's minimum granularity is seconds, "
+                  + "the nanosecond part will be ignored",
+              operationName);
+        }
+      } catch (DateTimeParseException e2) {
+        invalidMapping(
+            "Mutation %s: can't parse TTL '%s' (expected an integer or ISO-8601 duration string)",
+            operationName, spec);
+        return Optional.empty();
+      }
+    }
+    if (seconds < 0 || seconds > Integer.MAX_VALUE) {
+      invalidMapping("Mutation %s: TTL must between 0 and 2^31 - 1 seconds", operationName);
+      return Optional.empty();
+    }
+    return Optional.of((int) seconds);
   }
 }
