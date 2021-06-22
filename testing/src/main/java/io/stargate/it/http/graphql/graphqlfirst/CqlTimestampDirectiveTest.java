@@ -167,31 +167,6 @@ public class CqlTimestampDirectiveTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName(
-      "Should update user without write timestamp when passing 2nd parameter without the @cql_timestamp directive.")
-  public void
-      shouldUpdateUserWithoutWriteTimestampWhenPassingSecondParameterWithoutTheCqlTimestamp() {
-    // given
-    Long writeTimestamp = 100_000L;
-
-    // when
-    Object response =
-        CLIENT.executeKeyspaceQuery(
-            KEYSPACE,
-            String.format(
-                "mutation { insertWithSecondParameterIgnored(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
-                    + " applied, user { k, v } }\n"
-                    + "}",
-                writeTimestamp));
-
-    // then
-    assertThat(JsonPath.<Boolean>read(response, "$.insertWithSecondParameterIgnored.applied"))
-        .isTrue();
-    // the writeTimestamp argument is not used, the default will be taken
-    assertThat(getUserWriteTimestamp(1)).isNotEqualTo(writeTimestamp);
-  }
-
-  @Test
   @DisplayName("Should fail insert user with write timestamp incorrect format")
   public void shouldFailToInsertUserWithWriteTimestampIncorrectFormat() {
     // given
