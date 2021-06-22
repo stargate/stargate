@@ -90,6 +90,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
         dataStore
             .queryBuilder()
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
+            .ttl(model.getTtl().orElse(null))
             .value(modifiers)
             .where(whereConditions)
             .ifs(ifConditions)
