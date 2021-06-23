@@ -466,7 +466,6 @@ public class DocumentService {
         docs.put(docId, json.toString());
       }
 
-      // Write the chunk of (at most) 250 documents by firing a single batch with the row inserts
       List<Object[]> bindVariableList = new ArrayList<>();
       DocumentDB finalDb = db;
       List<String> ids =

@@ -87,7 +87,7 @@ public class DocumentResourceV2Test {
         documentResourceV2.writeManyDocs(
             headers, ui, authToken, keyspace, collection, payload, null, false, httpServletRequest);
 
-    assertThat(r.getStatus()).isEqualTo(201);
+    assertThat(r.getStatus()).isEqualTo(202);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
   }
 

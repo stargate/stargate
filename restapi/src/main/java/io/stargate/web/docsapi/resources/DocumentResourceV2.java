@@ -236,9 +236,7 @@ public class DocumentResourceV2 {
                   context,
                   getAllHeaders(request));
 
-          return Response.created(
-                  URI.create(
-                      String.format("/v2/namespaces/%s/collections/%s", namespace, collection)))
+          return Response.accepted()
               .entity(
                   mapper.writeValueAsString(new MultiDocsResponse(idsCreated, context.toProfile())))
               .build();

@@ -700,7 +700,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     // Create documents using multiExample that creates random ID's
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
-    String resp = RestUtils.post(authToken, collectionPath + "/batch", body, 201);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch", body, 202);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
@@ -720,7 +720,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     // the document.
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
-    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 202);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
@@ -747,7 +747,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/aa", "{\"start\":\"value\"}", 200);
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
-    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 202);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
