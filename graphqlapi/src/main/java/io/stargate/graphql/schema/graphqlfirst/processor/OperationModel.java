@@ -81,6 +81,42 @@ public abstract class OperationModel {
     }
   }
 
+  public static class ResponsePayloadModelListReturnType extends EntityReturnTypeBase {
+    private final ResponsePayloadModel responsePayloadModel;
+
+    protected ResponsePayloadModelListReturnType(ResponsePayloadModel responsePayloadModel) {
+      super(responsePayloadModel.getEntity().orElse(null));
+      this.responsePayloadModel = responsePayloadModel;
+    }
+
+    public ResponsePayloadModel getResponsePayloadModel() {
+      return responsePayloadModel;
+    }
+
+    @Override
+    public boolean isEntityList() {
+      return true;
+    }
+  }
+
+  public static class SimpleListReturnType implements ReturnType {
+    private final SimpleReturnType simpleReturnType;
+
+    public SimpleListReturnType(SimpleReturnType simpleReturnType) {
+      this.simpleReturnType = simpleReturnType;
+    }
+
+    @Override
+    public Optional<EntityModel> getEntity() {
+      return Optional.empty();
+    }
+
+    @Override
+    public boolean isEntityList() {
+      return true;
+    }
+  }
+
   public enum SimpleReturnType implements ReturnType {
     BOOLEAN(Scalars.GraphQLBoolean.getName()),
     ;

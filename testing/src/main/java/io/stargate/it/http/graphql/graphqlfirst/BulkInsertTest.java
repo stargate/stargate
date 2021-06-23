@@ -61,6 +61,8 @@ public class BulkInsertTest extends GraphqlFirstTestBase {
             + "}\n"
             + "type Mutation {\n"
             + "  bulkInsertUsers(users: [UserInput!]): [User]\n"
+            + "  bulkInsertUsersCustom(users: [UserInput!]): [InsertUserResponse]\n"
+            + "  bulkInsertUsersBoolean(users: [UserInput!]): [Boolean]\n"
             + "}");
   }
 
@@ -70,25 +72,22 @@ public class BulkInsertTest extends GraphqlFirstTestBase {
   }
 
   @Test
-  @DisplayName("Should map two inserts in one graphQL statement")
-  public void testBulkInsert() {
+  @DisplayName("Should map two inserts in one graphQL statement, returning list of entities")
+  public void testBulkInsertReturnListOfEntities() {
     // given, when
     Object response =
         CLIENT.executeKeyspaceQuery(
             KEYSPACE,
-            String.format(
-                "mutation {\n"
-                    + "%s (users: [\n"
-                    + " { name: \"Ada Lovelace\", username: \"@ada\" },\n"
-                    + " { name: \"Alan Turing\", username: \"@alan\"}\n"
-                    + "]) \n"
-                    + "{ \n"
-                    + "id, name, username }\n"
-                    + "}",
-                "bulkInsertUsers"));
+            "mutation {\n"
+                + "bulkInsertUsers (users: [\n"
+                + " { name: \"Ada Lovelace\", username: \"@ada\"},\n"
+                + " { name: \"Alan Turing\", username: \"@alan\"}\n"
+                + "]) \n"
+                + "{ \n"
+                + "id, name, username }\n"
+                + "}");
 
     // then
-    System.out.println(response);
     assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsers[0].id")))
         .doesNotThrowAnyException();
     assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsers[1].id")))
@@ -101,6 +100,72 @@ public class BulkInsertTest extends GraphqlFirstTestBase {
     name = JsonPath.read(response, "$.bulkInsertUsers[1].name");
     assertThat(name).isEqualTo("Alan Turing");
     username = JsonPath.read(response, "$.bulkInsertUsers[1].username");
+    assertThat(username).isEqualTo("@alan");
+  }
+
+  @Test
+  @DisplayName("Should map two inserts in one graphQL statement, returning list of custom payloads")
+  public void testBulkInsertReturnListOfCustomPayloads() {
+    // given, when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation {\n"
+                + "bulkInsertUsersCustom (users: [\n"
+                + " { name: \"Ada Lovelace\", username: \"@ada\"},\n"
+                + " { name: \"Alan Turing\", username: \"@alan\"}\n"
+                + "]) { \n"
+                + "    applied"
+                + "    user { id, name, username }\n"
+                + "   }\n"
+                + "}");
+
+    // then
+    assertThatCode(
+            () -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersCustom[0].user.id")))
+        .doesNotThrowAnyException();
+    assertThatCode(
+            () -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersCustom[1].user.id")))
+        .doesNotThrowAnyException();
+
+    String name = JsonPath.read(response, "$.bulkInsertUsersCustom[0].user.name");
+    assertThat(name).isEqualTo("Ada Lovelace");
+    String username = JsonPath.read(response, "$.bulkInsertUsersCustom[0].user.username");
+    assertThat(username).isEqualTo("@ada");
+    name = JsonPath.read(response, "$.bulkInsertUsersCustom[1].user.name");
+    assertThat(name).isEqualTo("Alan Turing");
+    username = JsonPath.read(response, "$.bulkInsertUsersCustom[1].user.username");
+    assertThat(username).isEqualTo("@alan");
+  }
+
+  @Test
+  @DisplayName("Should map two inserts in one graphQL statement, returning list of booleans")
+  public void testBulkInsertReturnListOfBooleans() {
+    // given, when
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation {\n"
+                + "bulkInsertUsersBoolean (users: [\n"
+                + " { name: \"Ada Lovelace\", username: \"@ada\" },\n"
+                + " { name: \"Alan Turing\", username: \"@alan\"}\n"
+                + "]) \n"
+                + "}");
+
+    // then
+    System.out.println(response);
+    assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersBoolean[0].id")))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersBoolean[1].id")))
+        .doesNotThrowAnyException();
+
+    String name = JsonPath.read(response, "$.bulkInsertUsersBoolean[0].name");
+    assertThat(name).isEqualTo("Ada Lovelace");
+    String username = JsonPath.read(response, "$.bulkInsertUsersBoolean[0].username");
+    assertThat(username).isEqualTo("@ada");
+    name = JsonPath.read(response, "$.bulkInsertUsersBoolean[1].name");
+    assertThat(name).isEqualTo("Alan Turing");
+    username = JsonPath.read(response, "$.bulkInsertUsersBoolean[1].username");
     assertThat(username).isEqualTo("@alan");
   }
 }
