@@ -110,7 +110,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
               Scope.MODIFY,
               SourceAPI.GRAPHQL);
 
-      ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+      ResultSet resultSet = executeUnchecked(query, buildParameters(), context);
 
       // handle response
       Object response;

@@ -96,7 +96,7 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(), context);
     boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
 
     ReturnType returnType = model.getReturnType();

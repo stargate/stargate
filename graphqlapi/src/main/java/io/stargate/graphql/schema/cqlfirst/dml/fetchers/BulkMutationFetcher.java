@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,17 +75,18 @@ public abstract class BulkMutationFetcher
     }
 
     List<CompletableFuture<Map<String, Object>>> results = new ArrayList<>(values.size());
-    UnaryOperator<Parameters> parameters = buildParameters(environment);
+    Parameters parameters = buildParameters(environment);
     for (int i = 0; i < queries.size(); i++) {
       int finalI = i;
       // Execute as a single statement
       if (containsDirective(operation, ASYNC_DIRECTIVE)) {
-        results.add(executeAsyncAccepted(queries.get(i), values.get(finalI), parameters, context));
+        results.add(
+            executeAsyncAccepted(queries.get(i), values.get(finalI), __ -> parameters, context));
       } else {
         results.add(
             context
                 .getDataStore()
-                .execute(queries.get(i), parameters)
+                .execute(queries.get(i), __ -> parameters)
                 .thenApply(rs -> toMutationResult(rs, values.get(finalI))));
       }
     }
@@ -103,8 +103,7 @@ public abstract class BulkMutationFetcher
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
-      boolean parametersAlreadySet =
-          batchContext.setParametersModifier(buildParameters(environment));
+      boolean parametersAlreadySet = batchContext.setParameters(buildParameters(environment));
 
       // Users should specify query options only once in the batch
       if (parametersAlreadySet) {
@@ -121,7 +120,7 @@ public abstract class BulkMutationFetcher
       batchContext.setExecutionResult(
           context
               .getDataStore()
-              .batch(batchContext.getQueries(), batchContext.getParametersModifier()));
+              .batch(batchContext.getQueries(), __ -> batchContext.getParameters()));
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");

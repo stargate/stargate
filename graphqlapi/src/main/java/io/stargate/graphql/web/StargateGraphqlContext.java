@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.UnaryOperator;
 import javax.servlet.http.HttpServletRequest;
 
 public class StargateGraphqlContext {
@@ -96,8 +95,7 @@ public class StargateGraphqlContext {
     private final List<BoundQuery> queries = new ArrayList<>();
     private int operationCount;
     private final CompletableFuture<List<Row>> executionFuture = new CompletableFuture<>();
-    private final AtomicReference<UnaryOperator<Parameters>> parametersModifier =
-        new AtomicReference<>();
+    private final AtomicReference<Parameters> parameters = new AtomicReference<>();
 
     public CompletableFuture<List<Row>> getExecutionFuture() {
       return executionFuture;
@@ -129,14 +127,13 @@ public class StargateGraphqlContext {
       return operationCount;
     }
 
-    /** Sets the parameters to use for the batch and returns whether they were already set. */
-    public boolean setParametersModifier(UnaryOperator<Parameters> parametersModifier) {
-      return this.parametersModifier.getAndSet(parametersModifier) != null;
+    /** Sets the parameters to use for the batch, if they weren't already set. */
+    public boolean setParameters(Parameters newParameters) {
+      return parameters.compareAndSet(null, newParameters);
     }
 
-    public UnaryOperator<Parameters> getParametersModifier() {
-      UnaryOperator<Parameters> savedParameters = this.parametersModifier.get();
-      return savedParameters == null ? UnaryOperator.identity() : savedParameters;
+    public Parameters getParameters() {
+      return parameters.get();
     }
   }
 }

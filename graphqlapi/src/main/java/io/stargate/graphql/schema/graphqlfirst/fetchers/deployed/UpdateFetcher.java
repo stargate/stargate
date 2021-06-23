@@ -111,7 +111,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+    ResultSet resultSet = executeUnchecked(query, buildParameters(), context);
 
     boolean responseContainsEntity =
         model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();

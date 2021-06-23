@@ -43,37 +43,35 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
-  protected UnaryOperator<Parameters> buildParameters(DataFetchingEnvironment environment) {
+  protected Parameters buildParameters(DataFetchingEnvironment environment) {
     Map<String, Object> options = environment.getArgument("options");
     if (options == null) {
-      return UnaryOperator.identity();
+      return DEFAULT_PARAMETERS;
     }
 
-    return parameters -> {
-      ImmutableParameters.Builder builder = Parameters.builder().from(parameters);
+    ImmutableParameters.Builder builder = DEFAULT_PARAMETERS.toBuilder();
 
-      Object consistency = options.get("consistency");
-      if (consistency != null) {
-        builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
-      }
+    Object consistency = options.get("consistency");
+    if (consistency != null) {
+      builder.consistencyLevel(ConsistencyLevel.valueOf((String) consistency));
+    }
 
-      Object serialConsistency = options.get("serialConsistency");
-      if (serialConsistency != null) {
-        builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
-      }
+    Object serialConsistency = options.get("serialConsistency");
+    if (serialConsistency != null) {
+      builder.serialConsistencyLevel(ConsistencyLevel.valueOf((String) serialConsistency));
+    }
 
-      Object pageSize = options.get("pageSize");
-      if (pageSize != null) {
-        builder.pageSize((Integer) pageSize);
-      }
+    Object pageSize = options.get("pageSize");
+    if (pageSize != null) {
+      builder.pageSize((Integer) pageSize);
+    }
 
-      Object pageState = options.get("pageState");
-      if (pageState != null) {
-        builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
-      }
+    Object pageState = options.get("pageState");
+    if (pageState != null) {
+      builder.pagingState(ByteBuffer.wrap(Base64.getDecoder().decode((String) pageState)));
+    }
 
-      return builder.build();
-    };
+    return builder.build();
   }
 
   protected List<BuiltCondition> buildConditions(
