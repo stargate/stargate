@@ -53,6 +53,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.Db;
@@ -832,20 +833,27 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   @Test
   void testWriteManyDocs() throws UnauthorizedException, IOException {
     ByteArrayInputStream in =
-        new ByteArrayInputStream("{\"a\":\"b\"}".getBytes(StandardCharsets.UTF_8));
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
     now.set(200);
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 199L, "b")
         .returningNothing();
     withQuery(table, insert, fillParams(70, "b", "a", SEPARATOR, "a", "b", null, null, 200L))
         .returningNothing();
     service.writeManyDocs(
-        authToken, keyspace.name(), table.name(), in, Optional.of("a"), db, Collections.emptyMap());
+        authToken,
+        keyspace.name(),
+        table.name(),
+        in,
+        Optional.of("a"),
+        db,
+        ExecutionContext.NOOP_CONTEXT,
+        Collections.emptyMap());
   }
 
   @Test
   void testWriteManyDocs_invalidIdPath() {
     ByteArrayInputStream in =
-        new ByteArrayInputStream("{\"a\":\"b\"}".getBytes(StandardCharsets.UTF_8));
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
     assertThatThrownBy(
             () ->
                 service.writeManyDocs(
@@ -855,9 +863,10 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                     in,
                     Optional.of("no.good"),
                     db,
+                    ExecutionContext.NOOP_CONTEXT,
                     Collections.emptyMap()))
         .hasMessage(
-            "Json Document {\"a\":\"b\"} requires a String value at the path no.good, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
+            "Json Document {\"a\":\"b\"} requires a String value at the path no.good, found . Batch write failed.");
   }
 
   @Nested
@@ -1000,7 +1009,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    void putDoc() throws UnauthorizedException, JsonProcessingException {
+    void putDoc() throws JsonProcessingException {
       when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
 
       String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
@@ -1028,6 +1037,43 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                           .description("ASYNC INSERT")
                           // row count for DELETE is not known
                           .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void putManyDocs() throws JsonProcessingException {
+      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
+      withQuery(table, delete, 199L, "123").returningNothing();
+      withQuery(table, delete, 199L, "234").returningNothing();
+      withQuery(table, insert, fillParams(70, "123", "a", SEPARATOR, "a", "123", null, null, 200L))
+          .returningNothing();
+      withQuery(table, insert, fillParams(70, "234", "a", SEPARATOR, "a", "234", null, null, 200L))
+          .returningNothing();
+
+      now.set(200);
+      Response r =
+          resource.writeManyDocs(
+              headers,
+              uriInfo,
+              authToken,
+              keyspace.name(),
+              table.name(),
+              new ByteArrayInputStream("[{\"a\":\"123\"},{\"a\":\"234\"}]".getBytes()),
+              "a",
+              true,
+              request);
+      @SuppressWarnings("unchecked")
+      MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
+      assertThat(mdr.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC INSERT")
+                          // row count for DELETE is not known
+                          .addQueries(QueryInfo.of(insert, 2, 2), QueryInfo.of(delete, 2, 0))
                           .build())
                   .build());
     }

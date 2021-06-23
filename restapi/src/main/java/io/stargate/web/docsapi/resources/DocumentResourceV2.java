@@ -208,9 +208,7 @@ public class DocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      @ApiParam(
-              value = "A JSON Lines payload where each line is a document to write",
-              required = true)
+      @ApiParam(value = "A JSON array where each element is a document to write", required = true)
           @NonNull
           InputStream payload,
       @ApiParam(
@@ -219,12 +217,14 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("id-path")
           String idPath,
+      @QueryParam("profile") Boolean profile,
       @Context HttpServletRequest request) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
     // And returns it as a Location header/in JSON body
     logger.debug("Batch Write: Collection = {}", collection);
     return handle(
         () -> {
+          ExecutionContext context = ExecutionContext.create(profile);
           List<String> idsCreated =
               documentService.writeManyDocs(
                   authToken,
@@ -233,12 +233,14 @@ public class DocumentResourceV2 {
                   payload,
                   Optional.ofNullable(idPath),
                   dbFactory,
+                  context,
                   getAllHeaders(request));
 
           return Response.created(
                   URI.create(
                       String.format("/v2/namespaces/%s/collections/%s", namespace, collection)))
-              .entity(mapper.writeValueAsString(new MultiDocsResponse(idsCreated)))
+              .entity(
+                  mapper.writeValueAsString(new MultiDocsResponse(idsCreated, context.toProfile())))
               .build();
         });
   }

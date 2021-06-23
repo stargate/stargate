@@ -1,6 +1,8 @@
 package io.stargate.web.docsapi.service;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -398,8 +400,9 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
-  private String convertToJsonPtr(String path) {
-    return "/" + path.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1");
+  private Optional<String> convertToJsonPtr(Optional<String> path) {
+    return path.map(
+        p -> "/" + p.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1"));
   }
 
   private DocumentDB maybeCreateTableAndIndexes(
@@ -427,6 +430,7 @@ public class DocumentService {
       InputStream payload,
       Optional<String> idPath,
       Db dbFactory,
+      ExecutionContext context,
       Map<String, String> headers)
       throws IOException, UnauthorizedException {
 
@@ -435,81 +439,68 @@ public class DocumentService {
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
     List<String> idsWritten = new ArrayList<>();
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(payload, "UTF-8"))) {
-      Iterator<String> iter = reader.lines().iterator();
-      ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
-      String docsPath = convertToJsonPtr(idPath.get());
-      int chunkIndex = 0;
-      final int CHUNK_SIZE = 250;
-      while (iter.hasNext()) {
-        chunkIndex++;
-        Map<String, String> docsInChunk = new LinkedHashMap<>();
-        while (docsInChunk.size() < CHUNK_SIZE && iter.hasNext()) {
-          String doc = iter.next();
-          JsonNode json = mapper.readTree(doc);
+    try (JsonParser jsonParser = mapper.getFactory().createParser(payload)) {
+      Optional<String> docsPath = convertToJsonPtr(idPath);
 
-          String docId = UUID.randomUUID().toString();
-          if (idPath.isPresent()) {
-            if (!json.at(docsPath).isTextual()) {
-              throw new ErrorCodeRuntimeException(
-                  ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
-                  String.format(
-                      "Json Document %s requires a String value at the path %s, found %s."
-                          + " Batch %d failed, %d writes were successful. Repeated requests are "
-                          + "idempotent if the same `idPath` is defined.",
-                      doc,
-                      idPath.get(),
-                      json.at(docsPath).toString(),
-                      chunkIndex,
-                      (chunkIndex - 1) * CHUNK_SIZE));
-            }
-            docId = json.requiredAt(docsPath).asText();
-          }
-          docsInChunk.put(docId, doc);
-        }
-
-        // Write the chunk of (at most) 250 documents by firing a single batch with the row inserts
-        List<Object[]> bindVariableList = new ArrayList<>();
-        DocumentDB finalDb = db;
-        List<String> ids =
-            docsInChunk.entrySet().stream()
-                .map(
-                    data -> {
-                      bindVariableList.addAll(
-                          shredJson(
-                                  surfer,
-                                  finalDb,
-                                  Collections.emptyList(),
-                                  data.getKey(),
-                                  data.getValue(),
-                                  false)
-                              .left);
-                      return data.getKey();
-                    })
-                .collect(Collectors.toList());
-
-        long now = timeSource.currentTimeMicros();
-        try {
-          db.deleteManyThenInsertBatch(
-              keyspace,
-              collection,
-              ids,
-              bindVariableList,
-              Collections.emptyList(),
-              now,
-              context.nested("ASYNC INSERT"));
-        } catch (Exception e) {
-          throw new ErrorCodeRuntimeException(
-              ErrorCode.DOCS_API_WRITE_BATCH_FAILED,
-              String.format(
-                  "Batch %d failed to write, %d document writes were successful. Repeated requests are "
-                      + "idempotent if the same `idPath` is defined. If not, you should remove "
-                      + "the first %d created elements from your initial request to avoid duplication.",
-                  chunkIndex, (chunkIndex - 1) * CHUNK_SIZE, (chunkIndex - 1) * CHUNK_SIZE));
-        }
-
-        idsWritten.addAll(ids);
+      Map<String, String> docs = new LinkedHashMap<>();
+      if (jsonParser.nextToken() != JsonToken.START_ARRAY) {
+        throw new IllegalArgumentException("Payload must be an array.");
       }
+
+      while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+        JsonNode json = mapper.readTree(jsonParser);
+        String docId;
+        if (idPath.isPresent()) {
+          if (!json.at(docsPath.get()).isTextual()) {
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
+                String.format(
+                    "Json Document %s requires a String value at the path %s, found %s."
+                        + " Batch write failed.",
+                    json, idPath.get(), json.at(docsPath.get()).toString()));
+          }
+          docId = json.requiredAt(docsPath.get()).asText();
+        } else {
+          docId = UUID.randomUUID().toString();
+        }
+        docs.put(docId, json.toString());
+      }
+
+      // Write the chunk of (at most) 250 documents by firing a single batch with the row inserts
+      List<Object[]> bindVariableList = new ArrayList<>();
+      DocumentDB finalDb = db;
+      List<String> ids =
+          docs.entrySet().stream()
+              .map(
+                  data -> {
+                    bindVariableList.addAll(
+                        shredJson(
+                                surfer,
+                                finalDb,
+                                Collections.emptyList(),
+                                data.getKey(),
+                                data.getValue(),
+                                false)
+                            .left);
+                    return data.getKey();
+                  })
+              .collect(Collectors.toList());
+
+      long now = timeSource.currentTimeMicros();
+      try {
+        db.deleteManyThenInsertBatch(
+            keyspace,
+            collection,
+            ids,
+            bindVariableList,
+            Collections.emptyList(),
+            now,
+            context.nested("ASYNC INSERT"));
+      } catch (Exception e) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_FAILED);
+      }
+
+      idsWritten.addAll(ids);
     }
     return idsWritten;
   }

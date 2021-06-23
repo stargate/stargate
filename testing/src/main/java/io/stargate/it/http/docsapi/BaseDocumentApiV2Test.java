@@ -698,7 +698,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testWriteManyDocs() throws IOException {
     // Create documents using multiExample that creates random ID's
-    URL url = Resources.getResource("multiExample.jl");
+    URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
     String resp = RestUtils.post(authToken, collectionPath + "/batch", body, 201);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
@@ -718,7 +718,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   public void testWriteManyDocsWithIdPath() throws IOException {
     // Create documents using multiExample that sets the document ID's using a particular path in
     // the document.
-    URL url = Resources.getResource("multiExample.jl");
+    URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
     String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
@@ -745,28 +745,28 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     // Create documents using multiExample that sets the document ID's using a particular path in
     // the document, overwriting pre-existing data.
     RestUtils.put(authToken, collectionPath + "/aa", "{\"start\":\"value\"}", 200);
-    URL url = Resources.getResource("multiExample.jl");
+    URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
     String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id.[0]", body, 201);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
 
-    resp = RestUtils.get(authToken, collectionPath + "/aa", 200);
+    resp = RestUtils.get(authToken, collectionPath + "/aa?raw=true", 200);
     respBody = OBJECT_MAPPER.readTree(resp);
-    assertThat(respBody).isEqualTo(OBJECT_MAPPER.readTree("{\"id\": [\"aa\"], \"b\":\"c\"}"));
+    assertThat(respBody).isEqualTo(OBJECT_MAPPER.readTree("{\"id\":[\"aa\"], \"b\":\"c\"}"));
   }
 
   @Test
   public void testWriteManyDocsInvalidPath() throws IOException {
-    URL url = Resources.getResource("multiExample.jl");
+    URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
     String resp =
         RestUtils.post(authToken, collectionPath + "/batch?id-path=no.good.path", body, 400);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     assertThat(respBody.requiredAt("/description").asText())
         .isEqualTo(
-            "Json Document {\"id\": [\"a\"], \"a\":\"b\"} requires a String value at the path no.good.path, found . Batch 1 failed, 0 writes were successful. Repeated requests are idempotent if the same `idPath` is defined.");
+            "Json Document {\"id\":[\"a\"],\"a\":\"b\"} requires a String value at the path no.good.path, found . Batch write failed.");
   }
 
   @Test
