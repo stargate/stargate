@@ -22,7 +22,6 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
@@ -32,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /** The search query builder that creates all needed predicates for a {@link FilterPath}. */
 public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
@@ -87,20 +85,15 @@ public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
           predicates.add(
               BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.GT, ""));
         } else {
-          String convertedPath = DocumentServiceUtils.convertArrayPath(pathSegment);
           predicates.add(
-              BuiltCondition.of(
-                  QueryConstants.P_COLUMN_NAME.apply(i), Predicate.EQ, convertedPath));
+              BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.EQ, pathSegment));
         }
       } else {
-        // left pad any array segments to 6 places
-        List<String> segmentsList =
-            Arrays.stream(pathSegmentSplit)
-                .map(DocumentServiceUtils::convertArrayPath)
-                .collect(Collectors.toList());
-
         predicates.add(
-            BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.IN, segmentsList));
+            BuiltCondition.of(
+                QueryConstants.P_COLUMN_NAME.apply(i),
+                Predicate.IN,
+                Arrays.asList(pathSegmentSplit)));
       }
     }
 

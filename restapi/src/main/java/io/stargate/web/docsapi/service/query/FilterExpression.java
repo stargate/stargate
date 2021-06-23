@@ -24,6 +24,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -161,8 +162,16 @@ public abstract class FilterExpression extends Expression<FilterExpression>
         return false;
       }
 
-      // if not equal, fail
-      if (!Objects.equals(path, target)) {
+      boolean pathSegment = target.contains(",");
+      // if we have the path segment, we need to check if any matches
+      if (pathSegment) {
+        boolean noneMatch =
+            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
+        if (noneMatch) {
+          return false;
+        }
+      } else if (!Objects.equals(path, target)) {
+        // if not equal, fail
         return false;
       }
     }

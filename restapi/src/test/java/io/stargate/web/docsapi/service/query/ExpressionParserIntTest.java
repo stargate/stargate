@@ -325,7 +325,7 @@ class ExpressionParserIntTest {
                 assertThat(c.getOrderIndex()).isZero();
                 assertThat(c.getFilterPath().getField()).isEqualTo("field");
                 assertThat(c.getFilterPath().getParentPath())
-                    .containsExactly("my", "filters", "[1],[2]");
+                    .containsExactly("my", "filters", "[000001],[000002]");
                 assertThat(c.getCondition())
                     .isInstanceOfSatisfying(
                         StringCondition.class,

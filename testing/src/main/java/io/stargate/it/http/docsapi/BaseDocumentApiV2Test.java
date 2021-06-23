@@ -1779,6 +1779,30 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void searchPathSegmentInMemoryMatching() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"n\": { \"value\": 5}}");
+    JsonNode nonMatching1 = OBJECT_MAPPER.readTree("{\"m\": { \"value\": 8}}");
+    JsonNode nonMatching2 = OBJECT_MAPPER.readTree("{\"x\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching1", nonMatching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching2", nonMatching2.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"n,m.value\": {\"$in\": [5]}}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
   public void searchPathWildcardsMatching() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -1973,6 +1997,36 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     String expected =
         "{\"matching1\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]},\"matching2\":{\"value\":[{\"n\":{\"value\":10}},{\"n\":{\"value\":3}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchArrayPathSegmentInMemoryMatching() throws Exception {
+    JsonNode matching1 =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}");
+    JsonNode nonMatching1 =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": [{ \"n\": { \"value\": 10} }, { \"n\": { \"value\": 3} }]}");
+    JsonNode nonMatching2 =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": [{ \"n\": { \"value\": 10} },{ \"n\": { \"value\": 20} },{ \"n\": { \"value\": 2} }]}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching1", nonMatching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching2", nonMatching2.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"value.[0],[1].n.value\": {\"$in\": [8]}}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
