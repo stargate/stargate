@@ -75,6 +75,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
     List<Map<String, Object>> inputs;
     List<Map<String, Object>> responses = new ArrayList<>();
+    // needed if the return type is a List of Booleans
+    List<Boolean> appliedList = new ArrayList<>();
     if (model.isList()) {
       inputs = environment.getArgument(model.getEntityArgumentName());
     } else {
@@ -131,6 +133,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       if (isLwt) {
         Row row = resultSet.one();
         applied = row.getBoolean("[applied]");
+        appliedList.add(applied);
         if (!applied && responseContainsEntity) {
           @SuppressWarnings("unchecked")
           Map<String, Object> entityData =
@@ -141,7 +144,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
           copyRowToEntity(row, entityData, model.getEntity());
         }
       } else {
-        applied = true;
+        appliedList.add(true);
       }
       if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
         response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
@@ -150,14 +153,25 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     }
 
     if (model.isList()) {
-      // this is a bulk insert, return a list of responses
-      return responses;
+      return returnListOfResponses(responses, appliedList);
     } else if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
-      // there must be only one response, return last applied
-      return applied;
+      // there must be only one response, return last (and only) applied
+      return appliedList.get(0);
     } else {
       // there is only one response
       return responses.get(0);
+    }
+  }
+
+  private List<?> returnListOfResponses(
+      List<Map<String, Object>> responses, List<Boolean> appliedList) {
+    // this is a bulk insert, return a list of responses
+    if (model.getReturnType() instanceof OperationModel.SimpleListReturnType) {
+      // return list of booleans
+      return appliedList;
+    } else {
+      // return list of entityModels or CustomPayloads
+      return responses;
     }
   }
 

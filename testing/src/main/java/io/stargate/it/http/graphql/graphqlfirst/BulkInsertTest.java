@@ -153,19 +153,7 @@ public class BulkInsertTest extends GraphqlFirstTestBase {
                 + "}");
 
     // then
-    System.out.println(response);
-    assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersBoolean[0].id")))
-        .doesNotThrowAnyException();
-    assertThatCode(() -> UUID.fromString(JsonPath.read(response, "$.bulkInsertUsersBoolean[1].id")))
-        .doesNotThrowAnyException();
-
-    String name = JsonPath.read(response, "$.bulkInsertUsersBoolean[0].name");
-    assertThat(name).isEqualTo("Ada Lovelace");
-    String username = JsonPath.read(response, "$.bulkInsertUsersBoolean[0].username");
-    assertThat(username).isEqualTo("@ada");
-    name = JsonPath.read(response, "$.bulkInsertUsersBoolean[1].name");
-    assertThat(name).isEqualTo("Alan Turing");
-    username = JsonPath.read(response, "$.bulkInsertUsersBoolean[1].username");
-    assertThat(username).isEqualTo("@alan");
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertUsersBoolean[0]")).isTrue();
+    assertThat(JsonPath.<Boolean>read(response, "$.bulkInsertUsersBoolean[1]")).isTrue();
   }
 }
