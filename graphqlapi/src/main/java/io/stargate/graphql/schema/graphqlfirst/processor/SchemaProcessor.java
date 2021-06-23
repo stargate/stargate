@@ -30,6 +30,7 @@ import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.ScalarTypeDefinition;
 import graphql.language.StringValue;
 import graphql.language.Type;
 import graphql.language.TypeName;
@@ -176,8 +177,13 @@ public class SchemaProcessor {
             .codeRegistry(buildCodeRegistry(mappingModel))
             .scalar(_FieldSet.type);
     for (CqlScalar cqlScalar : cqlScalars) {
+      registry.add(
+          ScalarTypeDefinition.newScalarTypeDefinition()
+              .name(cqlScalar.getGraphqlType().getName())
+              .build());
       runtimeWiring.scalar(cqlScalar.getGraphqlType());
     }
+
     GraphQLSchema schema =
         new SchemaGenerator()
             .makeExecutableSchema(

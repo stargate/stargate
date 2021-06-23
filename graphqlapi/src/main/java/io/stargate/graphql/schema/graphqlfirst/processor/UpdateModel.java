@@ -33,6 +33,7 @@ public class UpdateModel extends MutationModel {
   private final boolean ifExists;
   private final List<IncrementModel> incrementModels;
   private final Optional<Integer> ttl;
+  private final Optional<String> cqlTimestampArgumentName;
 
   public UpdateModel(
       String parentTypeName,
@@ -47,7 +48,8 @@ public class UpdateModel extends MutationModel {
       List<IncrementModel> incrementModels,
       Optional<ConsistencyLevel> consistencyLevel,
       Optional<ConsistencyLevel> serialConsistencyLevel,
-      Optional<Integer> ttl) {
+      Optional<Integer> ttl,
+      Optional<String> cqlTimestampArgumentName) {
     super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.whereConditions = whereConditions;
@@ -58,6 +60,7 @@ public class UpdateModel extends MutationModel {
     this.ifExists = ifExists;
     this.incrementModels = incrementModels;
     this.ttl = ttl;
+    this.cqlTimestampArgumentName = cqlTimestampArgumentName;
   }
 
   public EntityModel getEntity() {
@@ -94,6 +97,10 @@ public class UpdateModel extends MutationModel {
 
   public Optional<Integer> getTtl() {
     return ttl;
+  }
+
+  public Optional<String> getCqlTimestampArgumentName() {
+    return cqlTimestampArgumentName;
   }
 
   @Override

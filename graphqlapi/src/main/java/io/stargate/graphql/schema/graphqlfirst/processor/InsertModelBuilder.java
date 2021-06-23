@@ -15,10 +15,12 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,7 +42,8 @@ class InsertModelBuilder extends MutationModelBuilder {
   @Override
   InsertModel build() throws SkipException {
 
-    Optional<Directive> cqlInsertDirective = DirectiveHelper.getDirective("cql_insert", operation);
+    Optional<Directive> cqlInsertDirective =
+        DirectiveHelper.getDirective(CqlDirectives.INSERT, operation);
     boolean ifNotExists = computeIfNotExists(cqlInsertDirective);
 
     // Validate inputs: must be a single entity argument
@@ -51,8 +54,10 @@ class InsertModelBuilder extends MutationModelBuilder {
           operationName);
       throw SkipException.INSTANCE;
     }
-    if (inputs.size() > 1) {
-      invalidMapping("Mutation %s: inserts can't have more than one argument", operationName);
+    if (inputs.size() > 2) {
+      invalidMapping(
+          "Mutation %s: inserts can't have more than two arguments: entity input and optionally a value with %s directive",
+          operationName, CqlDirectives.TIMESTAMP);
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
@@ -84,6 +89,15 @@ class InsertModelBuilder extends MutationModelBuilder {
           operationName, entity.getGraphqlName());
     }
 
+    Optional<String> cqlTimestampArgumentName =
+        findFieldNameWithDirective(
+            CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
+    if (inputs.size() == 2 && !cqlTimestampArgumentName.isPresent()) {
+      invalidMapping(
+          "Mutation %s: if you provided two arguments, the second one must be annotated with %s directive.",
+          operationName, CqlDirectives.TIMESTAMP);
+    }
+
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
             .filter(ResponsePayloadModel.class::isInstance)
@@ -100,6 +114,7 @@ class InsertModelBuilder extends MutationModelBuilder {
         getSerialConsistencyLevel(cqlInsertDirective),
         getTtl(cqlInsertDirective),
         returnType,
+        cqlTimestampArgumentName,
         isList);
   }
 

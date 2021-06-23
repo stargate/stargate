@@ -84,12 +84,16 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
       modifiers = buildModifiers(entityModel, keyspace, hasArgument, getArgument);
     }
 
+    // we are supporting BigInt and GraphQLString for ISO date format
+    Optional<Long> timestamp =
+        TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
     AbstractBound<?> query =
         context
             .getDataStore()
             .queryBuilder()
             .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .ttl(model.getTtl().orElse(null))
+            .timestamp(timestamp.orElse(null))
             .value(modifiers)
             .where(whereConditions)
             .ifs(ifConditions)

@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -89,6 +90,9 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
               .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
               .collect(Collectors.toList());
 
+      Optional<Long> timestamp =
+          TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
+
       AbstractBound<?> query =
           context
               .getDataStore()
@@ -97,6 +101,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
               .value(modifiers)
               .ifNotExists(isLwt)
               .ttl(model.getTtl().orElse(null))
+              .timestamp(timestamp.orElse(null))
               .build()
               .bind();
 

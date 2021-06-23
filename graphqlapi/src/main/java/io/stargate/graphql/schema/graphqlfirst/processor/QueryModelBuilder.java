@@ -18,12 +18,8 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
-import graphql.language.Type;
-import graphql.language.TypeName;
 import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
-import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,7 +68,8 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                   return SkipException.INSTANCE;
                 });
 
-    Optional<String> pagingStateArgumentName = findPagingState();
+    Optional<String> pagingStateArgumentName =
+        findFieldNameWithDirective(CqlDirectives.PAGING_STATE, Scalars.GraphQLString);
     ArgumentDirectiveModels conditions =
         new ArgumentDirectiveModelsBuilder(
                 operation, OperationType.SELECT, entity, entities, context)
@@ -90,41 +87,5 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
         pageSize,
         consistencyLevel,
         returnType);
-  }
-
-  private Optional<String> findPagingState() throws SkipException {
-    Optional<String> result = Optional.empty();
-    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (isPagingState(inputValue)) {
-        if (result.isPresent()) {
-          invalidMapping(
-              "Query %s: @%s can be used on at most one argument (found %s and %s)",
-              operationName, CqlDirectives.PAGING_STATE, result.get(), inputValue.getName());
-          throw SkipException.INSTANCE;
-        }
-        result = Optional.of(inputValue.getName());
-      }
-    }
-    return result;
-  }
-
-  private boolean isPagingState(InputValueDefinition inputValue) throws SkipException {
-    boolean hasDirective =
-        DirectiveHelper.getDirective(CqlDirectives.PAGING_STATE, inputValue).isPresent();
-    if (!hasDirective) {
-      return false;
-    }
-    Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
-    if (!(type instanceof TypeName)
-        || !((TypeName) type).getName().equals(Scalars.GraphQLString.getName())) {
-      invalidMapping(
-          "Query %s: argument %s annotated with @%s must have type %s",
-          operationName,
-          inputValue.getName(),
-          CqlDirectives.PAGING_STATE,
-          Scalars.GraphQLString.getName());
-      throw SkipException.INSTANCE;
-    }
-    return true;
   }
 }

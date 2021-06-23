@@ -98,14 +98,15 @@ class ArgumentDirectiveModelsBuilder extends ModelBuilderBase<ArgumentDirectiveM
             CqlDirectives.PAGING_STATE,
             CqlDirectives.WHERE,
             CqlDirectives.IF,
-            CqlDirectives.INCREMENT);
+            CqlDirectives.INCREMENT,
+            CqlDirectives.TIMESTAMP);
     if (directives.size() > 1) {
       reportTooManyDirectives(directives, inputValue);
       throw SkipException.INSTANCE;
     }
 
     Optional<Directive> directive = directives.stream().findFirst();
-    if (is(directive, CqlDirectives.PAGING_STATE)) {
+    if (is(directive, CqlDirectives.PAGING_STATE) || is(directive, CqlDirectives.TIMESTAMP)) {
       // It's a technical field that does not represent a condition, ignore it
       return;
     }
