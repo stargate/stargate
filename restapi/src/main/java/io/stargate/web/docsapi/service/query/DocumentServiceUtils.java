@@ -20,10 +20,12 @@ package io.stargate.web.docsapi.service.query;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class DocumentServiceUtils {
@@ -32,7 +34,30 @@ public final class DocumentServiceUtils {
 
   private DocumentServiceUtils() {}
 
+  /**
+   * Converts given path to an array one if needed:
+   *
+   * <ol>
+   *   <li>[1] - converted to [000001]
+   *   <li>[0],[1] - converted to [000000],[000001]
+   *   <li>[*] - not converted
+   *   <li>anyPath - not converted
+   * </ol>
+   *
+   * @param path filter or filed path
+   * @return Converted to represent expected path in DB, keeping the segmentation.
+   */
   public static String convertArrayPath(String path) {
+    if (path.contains(",")) {
+      return Arrays.stream(path.split(","))
+          .map(DocumentServiceUtils::convertSingleArrayPath)
+          .collect(Collectors.joining(","));
+    } else {
+      return convertSingleArrayPath(path);
+    }
+  }
+
+  private static String convertSingleArrayPath(String path) {
     // check if we have array path
     if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
       String innerPath = path.substring(1, path.length() - 1);

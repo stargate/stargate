@@ -174,7 +174,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentArrayPathSplit() {
-      List<String> path = Arrays.asList("path", "[0],[1],[2]", "field");
+      List<String> path = Arrays.asList("path", "[000000],[000001],[000002]", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);

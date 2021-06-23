@@ -343,6 +343,32 @@ public class FilterExpressionTest {
     }
 
     @Test
+    public void conditionFalsePathSegment() {
+      ImmutableFilterPath filterPath =
+          ImmutableFilterPath.of(Arrays.asList("parent,other", "field"));
+      Row row =
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "field",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "parent",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "field",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  ""));
+      when(condition.test(row)).thenReturn(false);
+
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
+      boolean result = expression.test(row);
+
+      assertThat(result).isFalse();
+      verify(condition).test(row);
+      verifyNoMoreInteractions(condition);
+    }
+
+    @Test
     public void pathNotMatchingLeafDoesNotMatchField() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       Row row =
