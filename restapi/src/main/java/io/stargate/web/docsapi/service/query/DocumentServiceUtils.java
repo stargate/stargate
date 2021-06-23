@@ -44,7 +44,7 @@ public final class DocumentServiceUtils {
    *   <li>anyPath - not converted
    * </ol>
    *
-   * @param path filter or filed path
+   * @param path single filter or field path
    * @return Converted to represent expected path in DB, keeping the segmentation.
    */
   public static String convertArrayPath(String path) {
