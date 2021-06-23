@@ -34,12 +34,12 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
+import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -47,7 +47,6 @@ public class ReactiveDocumentService {
 
   @Inject ExpressionParser expressionParser;
   @Inject DocumentSearchService searchService;
-  @Inject DocumentService documentService;
   @Inject JsonConverter jsonConverter;
   @Inject ObjectMapper objectMapper;
 
@@ -56,12 +55,10 @@ public class ReactiveDocumentService {
   public ReactiveDocumentService(
       ExpressionParser expressionParser,
       DocumentSearchService searchService,
-      DocumentService documentService,
       JsonConverter jsonConverter,
       ObjectMapper objectMapper) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
-    this.documentService = documentService;
     this.jsonConverter = jsonConverter;
     this.objectMapper = objectMapper;
   }
@@ -91,11 +88,11 @@ public class ReactiveDocumentService {
             }
           }
 
-          List<String> fieldsResolved = Collections.emptyList();
+          Collection<List<String>> fieldPaths = Collections.emptyList();
           if (null != fields) {
             try {
               JsonNode fieldsNode = objectMapper.readTree(fields);
-              fieldsResolved = documentService.convertToSelectionList(fieldsNode);
+              fieldPaths = DocumentServiceUtils.convertFieldsToPaths(fieldsNode);
             } catch (JsonProcessingException ex) {
               throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
             }
@@ -107,9 +104,8 @@ public class ReactiveDocumentService {
           authorizationService.authorizeDataRead(
               authenticationSubject, namespace, collection, SourceAPI.REST);
 
-          // split into field paths once and reuse
-          List<String[]> fieldPaths =
-              fieldsResolved.stream().map(f -> f.split("\\.")).collect(Collectors.toList());
+          // needed for lambda
+          Collection<List<String>> fieldPathsFinal = fieldPaths;
 
           // call the search service
           return searchService
@@ -125,7 +121,7 @@ public class ReactiveDocumentService {
                   rawDocuments -> {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
-                    ObjectNode docsResult = createJsonMap(db, rawDocuments, fieldPaths);
+                    ObjectNode docsResult = createJsonMap(db, rawDocuments, fieldPathsFinal);
                     return new DocumentResponseWrapper<JsonNode>(
                         null, state, docsResult, context.toProfile());
                   })
@@ -140,7 +136,7 @@ public class ReactiveDocumentService {
   }
 
   public ObjectNode createJsonMap(
-      DocumentDB db, List<RawDocument> docs, List<String[]> fieldPaths) {
+      DocumentDB db, List<RawDocument> docs, Collection<List<String>> fieldPaths) {
     ObjectNode docsResult = objectMapper.createObjectNode();
 
     for (RawDocument doc : docs) {
@@ -152,7 +148,8 @@ public class ReactiveDocumentService {
                 .filter(
                     row ->
                         fieldPaths.stream()
-                            .anyMatch(fieldPath -> fieldMatchesRowPath(row, fieldPath)))
+                            .anyMatch(
+                                fieldPath -> DocumentServiceUtils.isRowOnPath(row, fieldPath)))
                 .collect(Collectors.toList());
       }
 
@@ -162,16 +159,5 @@ public class ReactiveDocumentService {
     }
 
     return docsResult;
-  }
-
-  private boolean fieldMatchesRowPath(Row row, String[] fieldPath) {
-    for (int i = 0; i < fieldPath.length; i++) {
-      String nextP = QueryConstants.P_COLUMN_NAME.apply(i);
-      if (!Objects.equals(fieldPath[i], row.getString(nextP))) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }

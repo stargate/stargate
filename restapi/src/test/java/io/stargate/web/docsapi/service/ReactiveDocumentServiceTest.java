@@ -50,7 +50,6 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,8 +70,6 @@ class ReactiveDocumentServiceTest {
 
   @Mock DocumentSearchService searchService;
 
-  @Mock DocumentService documentService;
-
   @Mock JsonConverter jsonConverter;
 
   @Mock DocumentDB documentDB;
@@ -92,8 +89,7 @@ class ReactiveDocumentServiceTest {
   @BeforeEach
   public void init() {
     reactiveDocumentService =
-        new ReactiveDocumentService(
-            expressionParser, searchService, documentService, jsonConverter, objectMapper);
+        new ReactiveDocumentService(expressionParser, searchService, jsonConverter, objectMapper);
     lenient().when(documentDB.getAuthorizationService()).thenReturn(authService);
     lenient().when(documentDB.getAuthenticationSubject()).thenReturn(authSubject);
   }
@@ -111,7 +107,6 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       String fields = "[\"myField\"]";
-      List<String> fieldList = Collections.singletonList("myField");
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
@@ -119,8 +114,6 @@ class ReactiveDocumentServiceTest {
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
-      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
-          .thenReturn(fieldList);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
@@ -163,7 +156,6 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       String fields = "[\"myField\"]";
-      List<String> fieldList = Collections.singletonList("myField");
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
@@ -171,8 +163,6 @@ class ReactiveDocumentServiceTest {
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
-      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
-          .thenReturn(fieldList);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
@@ -215,7 +205,6 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       String fields = "[]";
-      List<String> fieldList = Collections.emptyList();
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
@@ -223,8 +212,6 @@ class ReactiveDocumentServiceTest {
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
-      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
-          .thenReturn(fieldList);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(docs);
@@ -264,14 +251,11 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       String fields = "[\"myField\"]";
-      List<String> fieldList = Collections.singletonList("muField");
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
-      when(documentService.convertToSelectionList(objectMapper.readTree(fields)))
-          .thenReturn(fieldList);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
           .thenReturn(Flowable.empty());

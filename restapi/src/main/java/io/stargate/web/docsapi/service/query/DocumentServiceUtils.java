@@ -17,14 +17,16 @@
 
 package io.stargate.web.docsapi.service.query;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
-import java.util.OptionalInt;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -89,23 +91,36 @@ public final class DocumentServiceUtils {
   }
 
   /**
-   * Calculates max depth for a field.
+   * Returns the collection of paths that are represented by each JsonNode in the #fieldsJson.
    *
-   * @param field field
-   * @return max depth
+   * <p>For each field a list of strings representing the path is returned. Note that for each path
+   * member, {@link #convertArrayPath(String)} will be called.
+   *
+   * @param fieldsJson array json node
+   * @return collection of paths representing all fields
    */
-  public static int maxFieldDepth(String field) {
-    return field.chars().filter(c -> c == '.').map(e -> 1).sum() + 1;
-  }
+  public static Collection<List<String>> convertFieldsToPaths(JsonNode fieldsJson) {
+    if (!fieldsJson.isArray()) {
+      String msg = String.format("`fields` must be a JSON array, found %s", fieldsJson);
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
+    }
 
-  /**
-   * Calculates max depth for a collection of fields.
-   *
-   * @param fields fields
-   * @return max depth or empty if no fields
-   */
-  public static OptionalInt maxFieldsDepth(Collection<String> fields) {
-    return fields.stream().mapToInt(DocumentServiceUtils::maxFieldDepth).max();
+    Collection<List<String>> results = new ArrayList<>();
+    for (JsonNode value : fieldsJson) {
+      if (!value.isTextual()) {
+        String msg = String.format("Each field must be a string, found %s", value);
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
+      }
+      String fieldValue = value.asText();
+      List<String> fieldPath =
+          Arrays.stream(fieldValue.split("\\."))
+              .map(DocumentServiceUtils::convertArrayPath)
+              .collect(Collectors.toList());
+
+      results.add(fieldPath);
+    }
+
+    return results;
   }
 
   /**
@@ -151,5 +166,55 @@ public final class DocumentServiceUtils {
         return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
       }
     }
+  }
+
+  /**
+   * Tests if the given row is on the path, where path is defined by the iterable of strings.
+   *
+   * <p>This checks:
+   *
+   * <ol>
+   *   <li>ignores globs in #pathIterable
+   *   <li>handles correctly path segments in #pathIterable (f.e. ['first,second', 'value']) will
+   *       match row on `first.value` or `second.value`
+   *   <li>
+   * </ol>
+   *
+   * @param row Row
+   * @param pathIterable path as iterable strings
+   * @return
+   */
+  public static boolean isRowOnPath(Row row, Iterable<String> pathIterable) {
+    int p = 0;
+    for (String target : pathIterable) {
+      int index = p++;
+
+      // skip any target path that is wildcard
+      if (Objects.equals(target, DocumentDB.GLOB_VALUE)
+          || Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
+        continue;
+      }
+
+      // check that row has the request path depth
+      String path = row.getString(QueryConstants.P_COLUMN_NAME.apply(index));
+      if (null != path && path.length() == 0) {
+        return false;
+      }
+
+      boolean pathSegment = target.contains(",");
+      // if we have the path segment, we need to check if any matches
+      if (pathSegment) {
+        boolean noneMatch =
+            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
+        if (noneMatch) {
+          return false;
+        }
+      } else if (!Objects.equals(path, target)) {
+        // if not equal, fail
+        return false;
+      }
+    }
+
+    return true;
   }
 }
