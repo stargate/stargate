@@ -18,11 +18,12 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import io.stargate.db.Parameters;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MutationModel;
+import java.util.concurrent.CompletionStage;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** An INSERT, UPDATE or DELETE mutation. */
 public abstract class MutationFetcher<MutationModelT extends MutationModel, ResultT>
-    extends DeployedFetcher<ResultT> {
+    extends DeployedFetcher<CompletionStage<ResultT>> {
 
   protected final MutationModelT model;
 

@@ -39,6 +39,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.Te
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
@@ -57,7 +60,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
   }
 
   @Override
-  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected CompletionStage<Object> get(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -129,10 +133,10 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       responses.add(response);
     }
     if (model.isList()) {
-      return responses;
+      return CompletableFuture.completedFuture(responses);
     } else {
       // there is only one response - entity or applied
-      return responses.get(0);
+      return CompletableFuture.completedFuture(responses.get(0));
     }
   }
 

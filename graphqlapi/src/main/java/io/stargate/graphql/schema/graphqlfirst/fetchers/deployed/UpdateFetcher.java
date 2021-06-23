@@ -35,6 +35,8 @@ import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleRe
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -45,7 +47,8 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
   }
 
   @Override
-  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected CompletionStage<Object> get(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -128,7 +131,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
     }
 
     if (model.getReturnType() == SimpleReturnType.BOOLEAN) {
-      return applied;
+      return CompletableFuture.completedFuture(applied);
     } else {
       Map<String, Object> response = new LinkedHashMap<>();
       if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
@@ -143,7 +146,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
                 .orElseThrow(AssertionError::new);
         response.put(prefix, entityData);
       }
-      return response;
+      return CompletableFuture.completedFuture(response);
     }
   }
 

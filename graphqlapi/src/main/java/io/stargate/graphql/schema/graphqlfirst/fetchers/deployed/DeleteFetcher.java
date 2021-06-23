@@ -37,6 +37,8 @@ import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
@@ -46,7 +48,8 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
   }
 
   @Override
-  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected CompletionStage<Object> get(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     EntityModel entityModel = model.getEntity();
@@ -101,13 +104,14 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
 
     ReturnType returnType = model.getReturnType();
     if (returnType == SimpleReturnType.BOOLEAN) {
-      return applied;
+      return CompletableFuture.completedFuture(applied);
     } else {
       ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
       if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
-        return ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied);
+        return CompletableFuture.completedFuture(
+            ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied));
       } else {
-        return Collections.emptyMap();
+        return CompletableFuture.completedFuture(Collections.emptyMap());
       }
     }
   }
