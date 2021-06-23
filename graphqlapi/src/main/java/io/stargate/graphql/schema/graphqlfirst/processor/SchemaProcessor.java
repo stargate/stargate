@@ -22,7 +22,10 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
 import graphql.language.Argument;
+import graphql.language.Description;
 import graphql.language.Directive;
+import graphql.language.DirectiveDefinition;
+import graphql.language.DirectiveLocation;
 import graphql.language.EnumTypeDefinition;
 import graphql.language.FieldDefinition;
 import graphql.language.InputObjectTypeDefinition;
@@ -51,6 +54,7 @@ import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntity;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntityFetcher;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
@@ -71,6 +75,15 @@ public class SchemaProcessor {
               new InputStreamReader(
                   SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
                   StandardCharsets.UTF_8));
+
+  private static final DirectiveDefinition ATOMIC_DIRECTIVE =
+      DirectiveDefinition.newDirectiveDefinition()
+          .name(SchemaConstants.ATOMIC_DIRECTIVE)
+          .description(
+              new Description(
+                  "Instructs the server to apply the mutations in a LOGGED batch", null, false))
+          .directiveLocation(DirectiveLocation.newDirectiveLocation().name("MUTATION").build())
+          .build();
 
   private final Persistence persistence;
   private final boolean isPersisted;
@@ -171,6 +184,9 @@ public class SchemaProcessor {
       stubQueryTypeIfNeeded(registry, mappingModel);
     }
     registry = registry.merge(CqlDirectives.ALL_AS_REGISTRY); // Stargate's own CQL directives
+
+    // Unlike the schema directives, this one is used in queries, and therefore stays at runtime
+    registry.add(ATOMIC_DIRECTIVE);
 
     RuntimeWiring.Builder runtimeWiring =
         RuntimeWiring.newRuntimeWiring()
