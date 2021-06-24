@@ -63,9 +63,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
     EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
-    boolean responseContainsEntity =
-        !model.getResponsePayload().isPresent()
-            || model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+    boolean responseContainsEntity = isEntityReturnType() || isPayloadModelReturnType();
+
     String entityPrefixInReponse =
         model
             .getResponsePayload()
@@ -162,6 +161,15 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       // there is only one response
       return responses.get(0);
     }
+  }
+
+  private boolean isPayloadModelReturnType() {
+    return model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+  }
+
+  private boolean isEntityReturnType() {
+    return model.getReturnType() instanceof OperationModel.EntityReturnType
+        || model.getReturnType() instanceof OperationModel.EntityListReturnType;
   }
 
   private List<?> returnListOfResponses(
