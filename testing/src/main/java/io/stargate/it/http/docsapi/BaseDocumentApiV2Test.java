@@ -1381,11 +1381,6 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         .contains(
             "{\"description\":\"When selecting `fields`, the field referenced by `where` must be in the selection.\",\"code\":400}");
 
-    r = RestUtils.get(authToken, collectionPath + "/cool-search-id?fields=[\"b\"]", 400);
-    assertThat(r)
-        .contains(
-            "{\"description\":\"Selecting fields is not allowed without `where`.\",\"code\":400}");
-
     r = RestUtils.get(authToken, collectionPath + "/cool-search-id?page-size=0", 400);
     assertThat(r)
         .contains(

@@ -527,6 +527,107 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .isEqualTo("[{\"a\":{\"d\":{\"c\":3,\"z\":true}}},{\"a\":{\"f\":{\"c\":100}}}]");
   }
 
+  @Test
+  void testGetDocPathPlainFields() throws JsonProcessingException {
+    final String id = "id2";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ?"), id, "a", "d")
+        .returning(
+            ImmutableList.of(
+                row(id, 3.0, "a", "d", "c"),
+                row(id, true, "a", "d", "z"),
+                row(id, "zz", "a", "d", "y")));
+
+    DocumentResponseWrapper<Map<String, ?>> r =
+        getDocPath(id, null, "[\"c\", \"z\"]", ImmutableList.of(p("a"), p("d")));
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("c", 3, "z", true));
+
+    // selecting missing field results in no docs found
+    assertThat(
+            resource
+                .getDocPath(
+                    headers,
+                    uriInfo,
+                    authToken,
+                    keyspace.name(),
+                    table.name(),
+                    id,
+                    ImmutableList.of(p("a"), p("d")),
+                    null,
+                    "[\"x\"]",
+                    null,
+                    null,
+                    false,
+                    false,
+                    request)
+                .getStatus())
+        .isEqualTo(Status.NOT_FOUND.getStatusCode());
+
+    withQuery(table, selectAll("WHERE key = ?"), id)
+        .returning(ImmutableList.of(row(id, 3.0, "x"), row(id, true, "y"), row(id, "zz", "z")));
+
+    r = getDocPath(id, null, "[\"x\", \"z\"]", ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("x", 3, "z", "zz"));
+  }
+
+  @Test
+  void testGetDocPathPlainFieldsPaged() throws JsonProcessingException {
+    final String id = "id2";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ? ALLOW FILTERING"), id, "a", "b")
+        .returning(
+            ImmutableList.of(
+                row(id, 3.0, "a", "b", "c1"),
+                row(id, true, "a", "b", "c2"),
+                row(id, "zz", "a", "b", "d")));
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, "[\"c1\", \"d\"]", ImmutableList.of(p("a"), p("b")), 1, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("c1", 3, "d", "zz")))));
+  }
+
+  @Test
+  void testGetDocPathPlainFieldsPagedArray() throws JsonProcessingException {
+    final String id = "id2";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "[000000]", "x"),
+            row(id, 1.0, "a", "b", "[000000]", "y"),
+            row(id, 2.0, "a", "b", "[000001]", "z"),
+            row(id, 3.0, "a", "b", "[000002]", "x"),
+            row(id, 3.0, "a", "b", "[000002]", "y"),
+            row(id, 3.0, "a", "b", "[000002]", "z"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(
+            id, null, "[\"x\", \"z\"]", ImmutableList.of(p("a"), p("b"), p("[*]")), 1, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("[0]", m("x", 1))))));
+
+    r =
+        getDocPath(
+            id,
+            null,
+            "[\"x\", \"z\"]",
+            ImmutableList.of(p("a"), p("b"), p("[*]")),
+            1,
+            r.getPageState(),
+            false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("[1]", m("z", 2))))));
+  }
+
   private Object[] params(Object... params) {
     return params;
   }
