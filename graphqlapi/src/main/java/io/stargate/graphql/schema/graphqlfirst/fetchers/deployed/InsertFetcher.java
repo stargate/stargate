@@ -143,16 +143,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       Map<String, Object> input,
       Map<String, Object> cqlValues,
       DataFetchingFieldSelectionSet selectionSet) {
-    Map<String, Object> response = new LinkedHashMap<>();
-
-    Map<String, Object> entityData;
-    if (entityPrefixInResponse == null) {
-      entityData = response;
-    } else {
-      entityData = new LinkedHashMap<>();
-      response.put(entityPrefixInResponse, entityData);
-    }
-    copyInputDataToEntity(input, cqlValues, entityData, model.getEntity());
+    Map<String, Object> response =
+        copyInputDataToResponse(entityPrefixInResponse, input, cqlValues);
 
     boolean applied;
     if (isLwt) {
@@ -182,16 +174,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       String entityPrefixInResponse,
       Map<String, Object> input,
       Map<String, Object> cqlValues) {
-    Map<String, Object> response = new LinkedHashMap<>();
-
-    Map<String, Object> entityData;
-    if (entityPrefixInResponse == null) {
-      entityData = response;
-    } else {
-      entityData = new LinkedHashMap<>();
-      response.put(entityPrefixInResponse, entityData);
-    }
-    copyInputDataToEntity(input, cqlValues, entityData, model.getEntity());
+    Map<String, Object> response =
+        copyInputDataToResponse(entityPrefixInResponse, input, cqlValues);
 
     if (isLwt) {
       Row row = resultSet.one();
@@ -217,6 +201,20 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     }
   }
 
+  private Map<String, Object> copyInputDataToResponse(
+      String entityPrefixInResponse, Map<String, Object> input, Map<String, Object> cqlValues) {
+    Map<String, Object> response = new LinkedHashMap<>();
+    Map<String, Object> entityData;
+    if (entityPrefixInResponse == null) {
+      entityData = response;
+    } else {
+      entityData = new LinkedHashMap<>();
+      response.put(entityPrefixInResponse, entityData);
+    }
+    copyInputDataToResponse(input, cqlValues, entityData, model.getEntity());
+    return response;
+  }
+
   // returns true if the return type is a boolean or [boolean]
   private boolean isBooleanReturnType() {
     OperationModel.ReturnType returnType = model.getReturnType();
@@ -234,18 +232,6 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
   private boolean isEntityReturnType() {
     return model.getReturnType() instanceof OperationModel.EntityReturnType
         || model.getReturnType() instanceof OperationModel.EntityListReturnType;
-  }
-
-  private List<?> returnListOfResponses(
-      List<Map<String, Object>> responses, List<Boolean> appliedList) {
-    // this is a bulk insert, return a list of responses
-    if (model.getReturnType() instanceof OperationModel.SimpleListReturnType) {
-      // return list of booleans
-      return appliedList;
-    } else {
-      // return list of entityModels or CustomPayloads
-      return responses;
-    }
   }
 
   private Map<String, Object> buildCqlValues(
@@ -286,7 +272,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
    * Copy all input arguments to the response (they might get overridden later if the query turned
    * out to be a failed LWT).
    */
-  private void copyInputDataToEntity(
+  private void copyInputDataToResponse(
       Map<String, Object> input,
       Map<String, Object> cqlValues,
       Map<String, Object> entityData,
