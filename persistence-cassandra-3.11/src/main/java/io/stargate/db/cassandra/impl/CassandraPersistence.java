@@ -489,7 +489,7 @@ public class CassandraPersistence
           original.isInternal
               ? ClientState.forInternalCalls()
               : ClientState.forExternalCalls(original.getRemoteAddress());
-      clone.login(clone.getUser());
+      clone.login(original.getUser());
       if (original.isNoCompactMode()) {
         clone.setNoCompactMode();
       }
