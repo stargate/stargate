@@ -83,8 +83,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       inputs = Collections.singletonList(environment.getArgument(model.getEntityArgumentName()));
     }
 
-    boolean applied = false;
     for (Map<String, Object> input : inputs) {
+      boolean applied;
       Map<String, Object> response = new LinkedHashMap<>();
       Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
       Collection<ValueModifier> modifiers =
@@ -144,6 +144,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
           copyRowToEntity(row, entityData, model.getEntity());
         }
       } else {
+        applied = true;
         appliedList.add(true);
       }
       if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
