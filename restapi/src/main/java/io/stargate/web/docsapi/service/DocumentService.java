@@ -32,16 +32,20 @@ import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.io.*;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -450,7 +454,7 @@ public class DocumentService {
       while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
         JsonNode json = mapper.readTree(jsonParser);
         String docId;
-        if (idPath.isPresent()) {
+        if (docsPath.isPresent()) {
           if (!json.at(docsPath.get()).isTextual()) {
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
