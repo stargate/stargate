@@ -18,8 +18,8 @@ package io.stargate.web.docsapi.service.query.condition;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -53,7 +53,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default String getString(Row row) {
-    return DocumentServiceUtils.getStringFromRow(row);
+    return DocsApiUtils.getStringFromRow(row);
   }
 
   /**
@@ -63,7 +63,7 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default Double getDouble(Row row) {
-    return DocumentServiceUtils.getDoubleFromRow(row);
+    return DocsApiUtils.getDoubleFromRow(row);
   }
 
   /**
@@ -74,6 +74,6 @@ public interface BaseCondition extends Predicate<Row> {
    * @return Returns resolved value or <code>null</code>
    */
   default Boolean getBoolean(Row row, boolean numericBooleans) {
-    return DocumentServiceUtils.getBooleanFromRow(row, numericBooleans);
+    return DocsApiUtils.getBooleanFromRow(row, numericBooleans);
   }
 }

@@ -23,6 +23,7 @@ import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -143,7 +144,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
     }
 
     // then as last resort confirm the path is matching
-    return DocumentServiceUtils.isRowOnPath(row, targetPath);
+    return DocsApiUtils.isRowOnPath(row, targetPath);
   }
 
   // below is Expression relevant implementation that targets this

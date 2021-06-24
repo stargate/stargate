@@ -28,7 +28,7 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -989,9 +989,9 @@ public class DocumentService {
   }
 
   private boolean allFiltersMatch(Row row, List<FilterCondition> filters, boolean numericBooleans) {
-    String textValue = DocumentServiceUtils.getStringFromRow(row);
-    Boolean boolValue = DocumentServiceUtils.getBooleanFromRow(row, numericBooleans);
-    Double dblValue = DocumentServiceUtils.getDoubleFromRow(row);
+    String textValue = DocsApiUtils.getStringFromRow(row);
+    Boolean boolValue = DocsApiUtils.getBooleanFromRow(row, numericBooleans);
+    Double dblValue = DocsApiUtils.getDoubleFromRow(row);
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
         if (textValue == null && boolValue == null && dblValue == null) {

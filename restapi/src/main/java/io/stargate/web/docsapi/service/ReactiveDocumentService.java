@@ -34,9 +34,9 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -92,7 +92,7 @@ public class ReactiveDocumentService {
           if (null != fields) {
             try {
               JsonNode fieldsNode = objectMapper.readTree(fields);
-              fieldPaths = DocumentServiceUtils.convertFieldsToPaths(fieldsNode);
+              fieldPaths = DocsApiUtils.convertFieldsToPaths(fieldsNode);
             } catch (JsonProcessingException ex) {
               throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
             }
@@ -148,8 +148,7 @@ public class ReactiveDocumentService {
                 .filter(
                     row ->
                         fieldPaths.stream()
-                            .anyMatch(
-                                fieldPath -> DocumentServiceUtils.isRowOnPath(row, fieldPath)))
+                            .anyMatch(fieldPath -> DocsApiUtils.isRowOnPath(row, fieldPath)))
                 .collect(Collectors.toList());
       }
 

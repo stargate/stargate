@@ -15,13 +15,14 @@
  *
  */
 
-package io.stargate.web.docsapi.service.query;
+package io.stargate.web.docsapi.service.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.query.QueryConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,11 +32,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
-public final class DocumentServiceUtils {
+public final class DocsApiUtils {
 
-  private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[[0-9]+\\]");
+  private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
 
-  private DocumentServiceUtils() {}
+  private DocsApiUtils() {}
 
   /**
    * Converts given path to an array one if needed:
@@ -53,7 +54,7 @@ public final class DocumentServiceUtils {
   public static String convertArrayPath(String path) {
     if (path.contains(",")) {
       return Arrays.stream(path.split(","))
-          .map(DocumentServiceUtils::convertSingleArrayPath)
+          .map(DocsApiUtils::convertSingleArrayPath)
           .collect(Collectors.joining(","));
     } else {
       return convertSingleArrayPath(path);
@@ -114,7 +115,7 @@ public final class DocumentServiceUtils {
       String fieldValue = value.asText();
       List<String> fieldPath =
           Arrays.stream(fieldValue.split("\\."))
-              .map(DocumentServiceUtils::convertArrayPath)
+              .map(DocsApiUtils::convertArrayPath)
               .collect(Collectors.toList());
 
       results.add(fieldPath);
@@ -182,23 +183,33 @@ public final class DocumentServiceUtils {
    *
    * @param row Row
    * @param pathIterable path as iterable strings
-   * @return
+   * @return True if row is fully on the given path
    */
   public static boolean isRowOnPath(Row row, Iterable<String> pathIterable) {
     int p = 0;
     for (String target : pathIterable) {
       int index = p++;
-
-      // skip any target path that is wildcard
-      if (Objects.equals(target, DocumentDB.GLOB_VALUE)
-          || Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
-        continue;
-      }
-
       // check that row has the request path depth
       String path = row.getString(QueryConstants.P_COLUMN_NAME.apply(index));
       if (null != path && path.length() == 0) {
         return false;
+      }
+
+      // skip any target path that is wildcard
+      if (Objects.equals(target, DocumentDB.GLOB_VALUE)) {
+        // but make sure this is not an array
+        if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
+          return false;
+        }
+        continue;
+      }
+
+      if (Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
+        // but make sure this is not an normal field
+        if (!ARRAY_PATH_PATTERN.matcher(path).matches()) {
+          return false;
+        }
+        continue;
       }
 
       boolean pathSegment = target.contains(",");

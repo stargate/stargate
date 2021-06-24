@@ -15,7 +15,7 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -243,7 +243,7 @@ public class JsonConverter {
         n = new TextNode(value);
       }
     } else if (!row.isNull("bool_value")) {
-      Boolean booleanFromRow = DocumentServiceUtils.getBooleanFromRow(row, numericBooleans);
+      Boolean booleanFromRow = DocsApiUtils.getBooleanFromRow(row, numericBooleans);
       n = BooleanNode.valueOf(booleanFromRow);
     } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
