@@ -63,9 +63,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
     EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
-    boolean responseContainsEntity = isEntityReturnType() || isPayloadModelReturnType();
-
-    String entityPrefixInReponse =
+    String entityPrefixInResponse =
         model
             .getResponsePayload()
             .flatMap(ResponsePayloadModel::getEntityField)
@@ -73,9 +71,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
             .orElse(null);
     Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
     List<Map<String, Object>> inputs;
-    List<Map<String, Object>> responses = new ArrayList<>();
-    // needed if the return type is a List of Booleans
-    List<Boolean> appliedList = new ArrayList<>();
+    List<Object> responses = new ArrayList<>();
     if (model.isList()) {
       inputs = environment.getArgument(model.getEntityArgumentName());
     } else {
@@ -83,8 +79,6 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     }
 
     for (Map<String, Object> input : inputs) {
-      boolean applied;
-      Map<String, Object> response = new LinkedHashMap<>();
       Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
       Collection<ValueModifier> modifiers =
           cqlValues.entrySet().stream()
@@ -118,49 +112,119 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
       ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
 
-      if (responseContainsEntity) {
-        Map<String, Object> entityData;
-        if (entityPrefixInReponse == null) {
-          entityData = response;
-        } else {
-          entityData = new LinkedHashMap<>();
-          response.put(entityPrefixInReponse, entityData);
-        }
-        copyInputDataToEntity(input, cqlValues, entityData, entityModel);
-      }
-
-      if (isLwt) {
-        Row row = resultSet.one();
-        applied = row.getBoolean("[applied]");
-        appliedList.add(applied);
-        if (!applied && responseContainsEntity) {
-          @SuppressWarnings("unchecked")
-          Map<String, Object> entityData =
-              (entityPrefixInReponse == null)
-                  ? response
-                  : (Map<String, Object>) response.get(entityPrefixInReponse);
-          assert entityData != null;
-          copyRowToEntity(row, entityData, model.getEntity());
-        }
+      // handle response
+      Object response;
+      if (isBooleanReturnType()) {
+        response = buildBooleanResponse(isLwt, resultSet);
+      } else if (isEntityReturnType()) {
+        response = buildEntityResponse(isLwt, resultSet, entityPrefixInResponse, input, cqlValues);
+      } else if (isPayloadModelReturnType()) {
+        response =
+            buildPayloadResponse(
+                isLwt, resultSet, entityPrefixInResponse, input, cqlValues, selectionSet);
       } else {
-        applied = true;
-        appliedList.add(true);
-      }
-      if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
-        response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
+        throw new UnsupportedOperationException(
+            "The Insert operation does not support return type: " + model.getReturnType());
       }
       responses.add(response);
     }
-
     if (model.isList()) {
-      return returnListOfResponses(responses, appliedList);
-    } else if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
-      // there must be only one response, return last (and only) applied
-      return appliedList.get(0);
+      return responses;
     } else {
-      // there is only one response
+      // there is only one response - entity or applied
       return responses.get(0);
     }
+  }
+
+  private Map<String, Object> buildPayloadResponse(
+      boolean isLwt,
+      ResultSet resultSet,
+      String entityPrefixInResponse,
+      Map<String, Object> input,
+      Map<String, Object> cqlValues,
+      DataFetchingFieldSelectionSet selectionSet) {
+    Map<String, Object> response = new LinkedHashMap<>();
+
+    Map<String, Object> entityData;
+    if (entityPrefixInResponse == null) {
+      entityData = response;
+    } else {
+      entityData = new LinkedHashMap<>();
+      response.put(entityPrefixInResponse, entityData);
+    }
+    copyInputDataToEntity(input, cqlValues, entityData, model.getEntity());
+
+    boolean applied;
+    if (isLwt) {
+      Row row = resultSet.one();
+      applied = row.getBoolean("[applied]");
+      if (!applied) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entityDataInner =
+            (entityPrefixInResponse == null)
+                ? response
+                : (Map<String, Object>) response.get(entityPrefixInResponse);
+        assert entityDataInner != null;
+        copyRowToEntity(row, entityDataInner, model.getEntity());
+      }
+    } else {
+      applied = true;
+    }
+    if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
+      response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
+    }
+    return response;
+  }
+
+  private Map<String, Object> buildEntityResponse(
+      boolean isLwt,
+      ResultSet resultSet,
+      String entityPrefixInResponse,
+      Map<String, Object> input,
+      Map<String, Object> cqlValues) {
+    Map<String, Object> response = new LinkedHashMap<>();
+
+    Map<String, Object> entityData;
+    if (entityPrefixInResponse == null) {
+      entityData = response;
+    } else {
+      entityData = new LinkedHashMap<>();
+      response.put(entityPrefixInResponse, entityData);
+    }
+    copyInputDataToEntity(input, cqlValues, entityData, model.getEntity());
+
+    if (isLwt) {
+      Row row = resultSet.one();
+      if (!row.getBoolean("[applied]")) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entityDataInner =
+            (entityPrefixInResponse == null)
+                ? response
+                : (Map<String, Object>) response.get(entityPrefixInResponse);
+        assert entityDataInner != null;
+        copyRowToEntity(row, entityDataInner, model.getEntity());
+      }
+    }
+    return response;
+  }
+
+  private Boolean buildBooleanResponse(boolean isLwt, ResultSet resultSet) {
+    if (isLwt) {
+      Row row = resultSet.one();
+      return row.getBoolean("[applied]");
+    } else {
+      return true;
+    }
+  }
+
+  // returns true if the return type is a boolean or [boolean]
+  private boolean isBooleanReturnType() {
+    OperationModel.ReturnType returnType = model.getReturnType();
+    return returnType == OperationModel.SimpleReturnType.BOOLEAN
+        || returnType instanceof OperationModel.SimpleListReturnType
+            && ((OperationModel.SimpleListReturnType) returnType)
+                .getSimpleReturnType()
+                .equals(OperationModel.SimpleReturnType.BOOLEAN);
   }
 
   private boolean isPayloadModelReturnType() {
