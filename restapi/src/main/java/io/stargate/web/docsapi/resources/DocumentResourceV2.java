@@ -182,10 +182,10 @@ public class DocumentResourceV2 {
       value = "Write multiple documents in one request",
       notes =
           "Auto-generates an ID for the newly created document if an idPath is not provided as a query parameter. When an idPath is provided, this operation is idempotent.",
-      code = 201)
+      code = 202)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 201, message = "Created", response = WriteDocResponse.class),
+        @ApiResponse(code = 202, message = "Accepted", response = MultiDocsResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
