@@ -302,7 +302,7 @@ public class FilterExpressionTest {
                   QueryConstants.LEAF_COLUMN_NAME,
                   "field",
                   QueryConstants.P_COLUMN_NAME.apply(0),
-                  "parent",
+                  "[000001]",
                   QueryConstants.P_COLUMN_NAME.apply(1),
                   "field",
                   QueryConstants.P_COLUMN_NAME.apply(2),
