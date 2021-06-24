@@ -115,6 +115,10 @@ public abstract class OperationModel {
     public boolean isEntityList() {
       return true;
     }
+
+    public SimpleReturnType getSimpleReturnType() {
+      return simpleReturnType;
+    }
   }
 
   public enum SimpleReturnType implements ReturnType {

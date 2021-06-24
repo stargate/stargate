@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.*;
+
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
@@ -78,8 +80,8 @@ class InsertModelBuilder extends MutationModelBuilder {
     // those types
     ReturnType returnType = getReturnType("Mutation " + operationName);
     if (!returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
-        && returnType != OperationModel.SimpleReturnType.BOOLEAN
-        && !(returnType instanceof OperationModel.SimpleListReturnType)) {
+        && returnType != SimpleReturnType.BOOLEAN
+        && !isSimpleListWithBoolean(returnType)) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
               + "single instance of it or Boolean, or a list of those types.",
@@ -128,6 +130,13 @@ class InsertModelBuilder extends MutationModelBuilder {
         returnType,
         cqlTimestampArgumentName,
         isList);
+  }
+
+  private boolean isSimpleListWithBoolean(ReturnType returnType) {
+    return returnType instanceof SimpleListReturnType
+        && ((SimpleListReturnType) returnType)
+            .getSimpleReturnType()
+            .equals(SimpleReturnType.BOOLEAN);
   }
 
   private boolean computeIfNotExists(Optional<Directive> cqlInsertDirective) {
