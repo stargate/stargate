@@ -277,17 +277,17 @@ class DocsApiUtilsTest {
     public void matchingExact() {
       List<String> path = Arrays.asList("field", "value");
       Row row =
-              MapBackedRow.of(
-                      TABLE,
-                      ImmutableMap.of(
-                              QueryConstants.LEAF_COLUMN_NAME,
-                              "value",
-                              QueryConstants.P_COLUMN_NAME.apply(0),
-                              "field",
-                              QueryConstants.P_COLUMN_NAME.apply(1),
-                              "value",
-                               QueryConstants.P_COLUMN_NAME.apply(2),
-                              ""));
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "value",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "value",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
 
@@ -298,19 +298,19 @@ class DocsApiUtilsTest {
     public void notMatchingExtraDepth() {
       List<String> path = Arrays.asList("field", "value");
       Row row =
-              MapBackedRow.of(
-                      TABLE,
-                      ImmutableMap.of(
-                              QueryConstants.LEAF_COLUMN_NAME,
-                              "value",
-                              QueryConstants.P_COLUMN_NAME.apply(0),
-                              "field",
-                              QueryConstants.P_COLUMN_NAME.apply(1),
-                              "value",
-                              QueryConstants.P_COLUMN_NAME.apply(2),
-                              "value",
-                              QueryConstants.P_COLUMN_NAME.apply(3),
-                              ""));
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "value",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "value",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  "value",
+                  QueryConstants.P_COLUMN_NAME.apply(3),
+                  ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
 
@@ -321,26 +321,25 @@ class DocsApiUtilsTest {
     public void notMatchingWrongField() {
       List<String> path = Arrays.asList("field", "value");
       Row row =
-              MapBackedRow.of(
-                      TABLE,
-                      ImmutableMap.of(
-                              QueryConstants.LEAF_COLUMN_NAME,
-                              "other",
-                              QueryConstants.P_COLUMN_NAME.apply(0),
-                              "field",
-                              QueryConstants.P_COLUMN_NAME.apply(1),
-                              "other",
-                              QueryConstants.P_COLUMN_NAME.apply(2),
-                              ""));
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "other",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "other",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
 
       Assertions.assertThat(result).isFalse();
     }
-
   }
 
-    @Nested
+  @Nested
   class IsRowOnPath {
 
     private final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);

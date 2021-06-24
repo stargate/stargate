@@ -179,7 +179,7 @@ public final class DocsApiUtils {
    *   <li>handles correctly path segments in #pathIterable (f.e. ['first,second', 'value']) will
    *       match row on `first.value` or `second.value`
    *   <li>
-   *   <li>proves that path is not sub-path of row's path</li>
+   *   <li>proves that path is not sub-path of row's path
    * </ol>
    *
    * @param row Row
