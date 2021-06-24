@@ -127,9 +127,24 @@ public class StargateGraphqlContext {
       return operationCount;
     }
 
-    /** Sets the parameters to use for the batch, if they weren't already set. */
+    /**
+     * Sets the parameters to use for the batch.
+     *
+     * @return whether the update succeeded (either the parameters weren't set, or the were already
+     *     set but to the same values)
+     */
     public boolean setParameters(Parameters newParameters) {
-      return parameters.compareAndSet(null, newParameters);
+      while (true) {
+        Parameters currentParameters = this.parameters.get();
+        if (currentParameters == null) {
+          // try to set, but if we race we need to loop to get and compare the new value
+          if (parameters.compareAndSet(null, newParameters)) {
+            return true;
+          }
+        } else {
+          return newParameters.equals(currentParameters);
+        }
+      }
     }
 
     public Parameters getParameters() {

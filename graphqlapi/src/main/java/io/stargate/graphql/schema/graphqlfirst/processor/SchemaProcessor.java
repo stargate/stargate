@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
+import graphql.execution.AsyncExecutionStrategy;
 import graphql.language.Argument;
 import graphql.language.Description;
 import graphql.language.Directive;
@@ -222,7 +223,9 @@ public class SchemaProcessor {
     }
     schema = federationTransformer.build();
 
-    return GraphQL.newGraphQL(schema).build();
+    return GraphQL.newGraphQL(schema)
+        .mutationExecutionStrategy(new AsyncExecutionStrategy())
+        .build();
   }
 
   /**

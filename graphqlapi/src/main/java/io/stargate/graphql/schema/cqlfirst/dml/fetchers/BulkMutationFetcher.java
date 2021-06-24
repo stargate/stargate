@@ -103,10 +103,7 @@ public abstract class BulkMutationFetcher
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null) {
-      boolean parametersAlreadySet = batchContext.setParameters(buildParameters(environment));
-
-      // Users should specify query options only once in the batch
-      if (parametersAlreadySet) {
+      if (!batchContext.setParameters(buildParameters(environment))) {
         buildException =
             new GraphQLException(
                 "options can only de defined once in an @atomic mutation selection");

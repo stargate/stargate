@@ -129,18 +129,6 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
         : toUnappliedBatchResult(rows, originalValue);
   }
 
-  private boolean isAppliedBatch(List<Row> batchRows) {
-    if (batchRows.isEmpty()) {
-      return true;
-    }
-    if (batchRows.size() > 1) {
-      return false;
-    }
-    Row row = batchRows.get(0);
-    return row.columns().stream().map(Column::name).anyMatch("[applied]"::equals)
-        && row.getBoolean("[applied]");
-  }
-
   private Map<String, Object> toUnappliedBatchResult(
       List<Row> rows, final Map<String, Object> originalValue) {
     Map<String, Object> primaryKey =
