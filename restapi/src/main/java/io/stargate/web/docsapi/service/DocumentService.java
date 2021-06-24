@@ -30,7 +30,15 @@ import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -474,6 +482,7 @@ public class DocumentService {
       String collection,
       String id,
       List<PathSegment> path,
+      List<String> fields,
       ExecutionContext context)
       throws UnauthorizedException {
 
@@ -514,11 +523,20 @@ public class DocumentService {
       return null;
     }
     RawDocument rawDoc = docs.get(0);
+    List<Row> rows = rawDoc.rows();
+    boolean filtered = false;
+    if (!fields.isEmpty()) {
+      List<String> convertedPath = convertPath(path);
+      Collection<List<String>> fullFieldPaths = toFullFieldPaths(convertedPath, fields);
+      rows = filterRows(rows, fullFieldPaths);
+      filtered = true;
+    }
+
     DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
     JsonNode result =
-        jsonConverterService.convertToJsonDoc(
-            rawDoc.rows(), collector, false, db.treatBooleansAsNumeric());
-    if (!collector.isEmpty()) {
+        jsonConverterService.convertToJsonDoc(rows, collector, false, db.treatBooleansAsNumeric());
+    // ignore dead leaves in case the rows were pre-filtered
+    if (!collector.isEmpty() && !filtered) {
       logger.info(String.format("Deleting %d dead leaves", collector.getLeaves().size()));
       long now = timeSource.currentTimeMicros();
       db.deleteDeadLeaves(keyspace, collection, id, collector.getLeaves(), context, now);
@@ -591,6 +609,25 @@ public class DocumentService {
     }
 
     return res;
+  }
+
+  private List<String> convertPath(List<PathSegment> path) {
+    return path.stream()
+        .map(pathSeg -> DocsApiUtils.convertArrayPath(pathSeg.getPath()))
+        .collect(Collectors.toList());
+  }
+
+  private Collection<List<String>> toFullFieldPaths(
+      List<String> pathPrefix, List<String> filedNames) {
+    return filedNames.stream()
+        .map(
+            name -> {
+              List<String> fullFieldPath = new ArrayList<>(pathPrefix.size() + 1);
+              fullFieldPath.addAll(pathPrefix);
+              fullFieldPath.add(DocsApiUtils.convertArrayPath(name));
+              return fullFieldPath;
+            })
+        .collect(Collectors.toList());
   }
 
   public List<FilterCondition> convertToFilterOps(
@@ -713,7 +750,7 @@ public class DocumentService {
     if (filters.isEmpty()) {
       path =
           pathPrefix.stream()
-              .map(seg -> convertArrayPath(seg.getPath()))
+              .map(seg -> DocsApiUtils.convertArrayPath(seg.getPath()))
               .collect(Collectors.toList());
     } else {
       path = filters.get(0).getPath();
@@ -790,8 +827,12 @@ public class DocumentService {
     ArrayNode docsResult = mapper.createArrayNode();
 
     for (RawDocument doc : docs) {
-      List<Row> rows = filterToSelectionSet(doc.rows(), fields, path);
-      rows = rows.stream().filter(Objects::nonNull).collect(Collectors.toList());
+      List<Row> rows = doc.rows();
+      if (!fields.isEmpty()) {
+        Collection<List<String>> fullFieldPaths = toFullFieldPaths(path, fields);
+        rows = filterRows(rows, fullFieldPaths);
+      }
+
       JsonNode jsonDoc =
           jsonConverterService.convertToJsonDoc(rows, true, db.treatBooleansAsNumeric());
 
@@ -904,45 +945,13 @@ public class DocumentService {
     return true;
   }
 
-  private List<Row> filterToSelectionSet(
-      List<Row> rows, List<String> fieldNames, List<String> requestedPath) {
-    if (fieldNames.isEmpty()) {
-      return rows;
-    }
-    // The expectation here is that if N rows match the inMemoryFilters,
-    // there will be exactly N * selectionSet.size() rows in this list, and they will
-    // be grouped in order of the rows' path. This means adding in "fluff" empty or null rows
-    // to round out the size of the list when a field doesn't exist.
-    List<Row> normalizedList = new ArrayList<>();
-    Set<String> selectionSet = new HashSet<>(fieldNames);
-    String currentPath = "";
-    int docSize = 0;
-    for (Row row : rows) {
-      String path = getParentPathFromRow(row);
-      if (!currentPath.equals(path)
-          && !currentPath.isEmpty()
-          && PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
-        for (int i = 0; i < selectionSet.size() - docSize; i++) {
-          normalizedList.add(null);
-        }
-        docSize = 0;
-      }
-      currentPath = path;
-
-      if (selectionSet.contains(row.getString("leaf"))
-          && PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
-        normalizedList.add(row);
-        docSize++;
-      }
-    }
-
-    if (PERIOD_PATTERN.split(currentPath).length == requestedPath.size()) {
-      for (int i = 0; i < selectionSet.size() - docSize; i++) {
-        normalizedList.add(null);
-      }
-    }
-
-    return normalizedList;
+  private List<Row> filterRows(List<Row> rows, Collection<List<String>> fullFieldPaths) {
+    return rows.stream()
+        .filter(
+            r ->
+                fullFieldPaths.stream()
+                    .anyMatch(fieldPath -> DocsApiUtils.isRowMatchingPath(r, fieldPath)))
+        .collect(Collectors.toList());
   }
 
   private boolean matchesFilters(

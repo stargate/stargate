@@ -712,15 +712,14 @@ public class DocumentResourceV2 {
           List<FilterCondition> filters = new ArrayList<>();
           List<String> selectionList = new ArrayList<>();
 
+          if (fields != null) {
+            JsonNode fieldsJson = mapper.readTree(fields);
+            selectionList = documentService.convertToSelectionList(fieldsJson);
+          }
+
           if (where != null) {
             JsonNode filterJson = mapper.readTree(where);
             filters = documentService.convertToFilterOps(path, filterJson);
-            if (fields != null) {
-              JsonNode fieldsJson = mapper.readTree(fields);
-              selectionList = documentService.convertToSelectionList(fieldsJson);
-            }
-          } else if (fields != null) {
-            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GET_FIELDS_WITHOUT_WHERE);
           }
 
           if (!filters.isEmpty()) {
@@ -751,7 +750,9 @@ public class DocumentResourceV2 {
           // Fetch the whole doc at the specified path only if the request does not have an explicit
           // page size. Otherwise, produce paginated results for child data at the specified path.
           if (filters.isEmpty() && pageSizeParam == null) {
-            node = documentService.getJsonAtPath(db, namespace, collection, id, path, context);
+            node =
+                documentService.getJsonAtPath(
+                    db, namespace, collection, id, path, selectionList, context);
             if (node == null) {
               return Response.status(Response.Status.NOT_FOUND).build();
             }
