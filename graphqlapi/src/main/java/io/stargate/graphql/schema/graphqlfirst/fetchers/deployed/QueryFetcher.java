@@ -98,7 +98,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
             buildParameters(environment),
             environment.getContext());
     Object entityData =
-        returnType.isEntityList()
+        returnType.isList()
             ? toEntities(resultSet, model.getEntity())
             : toSingleEntity(resultSet, model.getEntity());
 

@@ -57,8 +57,8 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     Type<?> graphqlType = TypeHelper.unwrapNonNull(operation.getType());
 
     if (graphqlType instanceof ListType) {
-      OperationModel.ReturnType entity = toListReturnType((ListType) graphqlType);
-      if (entity != null) return entity;
+      OperationModel.ReturnType listReturnType = toListReturnType((ListType) graphqlType);
+      if (listReturnType != null) return listReturnType;
     } else {
       assert graphqlType instanceof TypeName;
       String typeName = ((TypeName) graphqlType).getName();

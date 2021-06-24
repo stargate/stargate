@@ -43,7 +43,7 @@ public abstract class OperationModel {
   public interface ReturnType {
     Optional<EntityModel> getEntity();
 
-    boolean isEntityList();
+    boolean isList();
   }
 
   public abstract static class EntityReturnTypeBase implements ReturnType {
@@ -65,7 +65,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return false;
     }
   }
@@ -76,7 +76,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return true;
     }
   }
@@ -94,7 +94,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return true;
     }
   }
@@ -112,7 +112,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return true;
     }
 
@@ -140,7 +140,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return false;
     }
 

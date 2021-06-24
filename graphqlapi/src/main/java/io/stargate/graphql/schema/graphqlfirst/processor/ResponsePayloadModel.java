@@ -52,7 +52,7 @@ public class ResponsePayloadModel implements OperationModel.ReturnType {
   }
 
   @Override
-  public boolean isEntityList() {
+  public boolean isList() {
     return getEntityField().map(EntityField::isList).orElse(false);
   }
 

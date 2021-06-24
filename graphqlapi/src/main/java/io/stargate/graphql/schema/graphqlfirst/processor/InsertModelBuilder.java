@@ -88,7 +88,7 @@ class InsertModelBuilder extends MutationModelBuilder {
           operationName, entity.getGraphqlName());
     }
 
-    if (isList && !returnType.isEntityList()) {
+    if (isList && !returnType.isList()) {
       invalidMapping(
           "Mutation %s: invalid return type. For bulk inserts, expected list of %s. ",
           operationName, entity.getGraphqlName());

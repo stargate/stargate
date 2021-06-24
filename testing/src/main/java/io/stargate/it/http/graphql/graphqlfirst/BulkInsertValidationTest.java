@@ -15,13 +15,14 @@
  */
 package io.stargate.it.http.graphql.graphqlfirst;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,7 @@ public class BulkInsertValidationTest extends GraphqlFirstTestBase {
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Mutation bulkInsertUsers: invalid return type. For bulk inserts, expected list of User. ");
   }
