@@ -71,7 +71,6 @@ import javax.ws.rs.core.UriInfo;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -592,7 +591,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  @Disabled // TODO: array globs handling needs to be refactored in DocumentService
   void testGetDocPathPlainFieldsPagedArray() throws JsonProcessingException {
     final String id = "id2";
     ImmutableList<Map<String, Object>> rows =
@@ -621,7 +619,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             id,
             null,
             "[\"x\", \"z\"]",
-            ImmutableList.of(p("a"), p("b"), p("*")),
+            ImmutableList.of(p("a"), p("b"), p("[*]")),
             1,
             r.getPageState(),
             false);

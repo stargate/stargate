@@ -871,10 +871,11 @@ public class DocumentService {
       String[] pathSegmentSplit = path.get(i).split(",");
       if (pathSegmentSplit.length == 1) {
         String pathSegment = pathSegmentSplit[0];
-        if (pathSegment.equals(DocumentDB.GLOB_VALUE)) {
+        if (pathSegment.equals(DocumentDB.GLOB_VALUE)
+            || pathSegment.equals(DocumentDB.GLOB_ARRAY_VALUE)) {
           predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
         } else {
-          String convertedPath = convertArrayPath(pathSegment);
+          String convertedPath = DocsApiUtils.convertArrayPath(pathSegment);
           predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
         }
       } else {
