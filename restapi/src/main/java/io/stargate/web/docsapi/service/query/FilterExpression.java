@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -125,26 +124,8 @@ public abstract class FilterExpression extends Expression<FilterExpression>
 
   // if given row matches the filter path in the
   private boolean matchesFilterPath(Row row) {
-    // TODO should I catch exceptions for missing columns
-
-    // shortcircuit if the field is not matching
-    String field = getFilterPath().getField();
-    String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
-    if (!Objects.equals(field, leaf)) {
-      return false;
-    }
-
     List<String> targetPath = getFilterPath().getPath();
-    int targetPathSize = targetPath.size();
-
-    // shortcircuit if p_n after path is not empty
-    String afterPath = row.getString(QueryConstants.P_COLUMN_NAME.apply(targetPathSize));
-    if (!Objects.equals(afterPath, "")) {
-      return false;
-    }
-
-    // then as last resort confirm the path is matching
-    return DocsApiUtils.isRowOnPath(row, targetPath);
+    return DocsApiUtils.isRowMatchingPath(row, targetPath);
   }
 
   // below is Expression relevant implementation that targets this

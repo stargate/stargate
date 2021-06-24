@@ -170,6 +170,43 @@ public final class DocsApiUtils {
   }
 
   /**
+   * Tests if the given row exactly matches the path, where path is defined by the list of strings.
+   *
+   * <p>This checks:
+   *
+   * <ol>
+   *   <li>ignores globs in #pathIterable
+   *   <li>handles correctly path segments in #pathIterable (f.e. ['first,second', 'value']) will
+   *       match row on `first.value` or `second.value`
+   *   <li>
+   *   <li>proves that path is not sub-path of row's path</li>
+   * </ol>
+   *
+   * @param row Row
+   * @param path path as iterable strings
+   * @return True if row is matching on the given path
+   */
+  public static boolean isRowMatchingPath(Row row, List<String> path) {
+    int targetPathSize = path.size();
+
+    // short-circuit if the field is not matching
+    String field = path.get(targetPathSize - 1);
+    String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
+    if (!Objects.equals(field, leaf)) {
+      return false;
+    }
+
+    // short-circuit if p_n after path is not empty
+    String afterPath = row.getString(QueryConstants.P_COLUMN_NAME.apply(targetPathSize));
+    if (!Objects.equals(afterPath, "")) {
+      return false;
+    }
+
+    // then as last resort confirm the path is matching
+    return DocsApiUtils.isRowOnPath(row, path);
+  }
+
+  /**
    * Tests if the given row is on the path, where path is defined by the iterable of strings.
    *
    * <p>This checks:
