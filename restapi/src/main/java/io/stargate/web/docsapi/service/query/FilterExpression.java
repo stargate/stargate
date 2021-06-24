@@ -21,10 +21,9 @@ import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.db.datastore.Row;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
-import java.util.Arrays;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -145,38 +144,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
     }
 
     // then as last resort confirm the path is matching
-    int p = 0;
-    while (p < targetPathSize) {
-      int index = p++;
-      String target = targetPath.get(index);
-
-      // skip any target path that is wildcard
-      if (Objects.equals(target, DocumentDB.GLOB_VALUE)
-          || Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
-        continue;
-      }
-
-      // check that row has the request path depth
-      String path = row.getString(QueryConstants.P_COLUMN_NAME.apply(index));
-      if (null != path && path.length() == 0) {
-        return false;
-      }
-
-      boolean pathSegment = target.contains(",");
-      // if we have the path segment, we need to check if any matches
-      if (pathSegment) {
-        boolean noneMatch =
-            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
-        if (noneMatch) {
-          return false;
-        }
-      } else if (!Objects.equals(path, target)) {
-        // if not equal, fail
-        return false;
-      }
-    }
-
-    return true;
+    return DocsApiUtils.isRowOnPath(row, targetPath);
   }
 
   // below is Expression relevant implementation that targets this

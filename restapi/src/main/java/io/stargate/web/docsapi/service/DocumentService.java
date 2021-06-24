@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -29,7 +28,7 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
-import io.stargate.web.docsapi.service.query.DocumentServiceUtils;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -802,33 +801,6 @@ public class DocumentService {
     return docsResult;
   }
 
-  private boolean fieldMatchesRowPath(Row row, String field) {
-    String rowPath = getFieldPathFromRow(row, DocumentServiceUtils.maxFieldDepth(field));
-    return rowPath.startsWith(field)
-        && (rowPath.substring(field.length()).isEmpty()
-            || rowPath.substring(field.length()).startsWith("."));
-  }
-
-  // todo move to the json converter
-  public void addToJsonMap(
-      DocumentDB db, ObjectNode docsResult, List<RawDocument> docs, List<String> fields) {
-    for (RawDocument doc : docs) {
-      List<Row> rows;
-      if (fields.isEmpty()) {
-        rows = doc.rows();
-      } else {
-        rows =
-            doc.rows().stream()
-                .filter(row -> fields.stream().anyMatch(field -> fieldMatchesRowPath(row, field)))
-                .collect(Collectors.toList());
-      }
-
-      docsResult.set(
-          doc.id(),
-          jsonConverterService.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric()));
-    }
-  }
-
   private ExecutionContext nestedInMemory(ExecutionContext context, FilterCondition filter) {
     return context.nested(
         "FILTER IN MEMORY: "
@@ -913,18 +885,6 @@ public class DocumentService {
       }
     }
     return s.toString();
-  }
-
-  private String getFieldPathFromRow(Row row, long maxDepth) {
-    List<String> path = new ArrayList<>();
-    for (int i = 0; i < maxDepth; i++) {
-      String value = row.getString("p" + i);
-      if (value.isEmpty()) {
-        break;
-      }
-      path.add(value);
-    }
-    return Joiner.on(".").join(path);
   }
 
   private boolean pathsMatch(String path1, String path2) {
@@ -1028,19 +988,10 @@ public class DocumentService {
                         }));
   }
 
-  private Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
-    if (row.isNull("bool_value")) return null;
-    if (numericBooleans) {
-      byte value = row.getByte(colName);
-      return value != 0;
-    }
-    return row.getBoolean(colName);
-  }
-
   private boolean allFiltersMatch(Row row, List<FilterCondition> filters, boolean numericBooleans) {
-    String textValue = row.isNull("text_value") ? null : row.getString("text_value");
-    Boolean boolValue = getBooleanFromRow(row, "bool_value", numericBooleans);
-    Double dblValue = row.isNull("dbl_value") ? null : row.getDouble("dbl_value");
+    String textValue = DocsApiUtils.getStringFromRow(row);
+    Boolean boolValue = DocsApiUtils.getBooleanFromRow(row, numericBooleans);
+    Double dblValue = DocsApiUtils.getDoubleFromRow(row);
     for (FilterCondition fc : filters) {
       if (fc.getFilterOp() == FilterOp.EXISTS) {
         if (textValue == null && boolValue == null && dblValue == null) {

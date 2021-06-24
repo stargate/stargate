@@ -23,6 +23,7 @@ import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -117,7 +118,7 @@ public class ExpressionParser {
     String[] fieldNamePath = PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
-            .map(DocumentServiceUtils::convertArrayPath)
+            .map(DocsApiUtils::convertArrayPath)
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
@@ -126,7 +127,7 @@ public class ExpressionParser {
               .map(
                   pathSeg -> {
                     String path = pathSeg.getPath();
-                    return DocumentServiceUtils.convertArrayPath(path);
+                    return DocsApiUtils.convertArrayPath(path);
                   })
               .collect(Collectors.toList());
 

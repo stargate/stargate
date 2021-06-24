@@ -35,7 +35,6 @@ import io.stargate.web.docsapi.service.query.search.db.impl.PopulateSearchQueryB
 import io.stargate.web.docsapi.service.query.search.resolver.BaseResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.rx.RxUtils;
-import java.util.Collection;
 import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -48,7 +47,6 @@ public class DocumentSearchService {
       String keyspace,
       String collection,
       Expression<FilterExpression> expression,
-      Collection<String> fields,
       Paginator paginator,
       ExecutionContext context) {
 
@@ -97,14 +95,11 @@ public class DocumentSearchService {
       Paginator paginator,
       ExecutionContext context) {
 
-    // TODO use fields when having them to limit scope of fetched columns
-    //  plus add the p(depth+1) = "" to not fetch rows we don't need
-
     // prepare first (this could be cached for the max depth)
     return RxUtils.singleFromFuture(
             () -> {
-              String[] columns =
-                  QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth());
+              int maxDepth = configuration.getMaxDepth();
+              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
               DataStore dataStore = queryExecutor.getDataStore();
 
@@ -138,18 +133,9 @@ public class DocumentSearchService {
     Single<? extends Query<? extends BoundQuery>> preparedSingle =
         RxUtils.singleFromFuture(
                 () -> {
-                  // TODO make sure that if we have fields, we only fetch max amount of P columns
-                  // needed
-                  //  plus add the p(depth+1) = "" to not fetch rows we don't need
-                  //  fallback to max depth if no fields
-                  //  not possible at the moment, as JsonConverter is not supporting it
-                  // long depth =
-                  // DocumentServiceUtils.maxFieldsDepth(fields).orElse(configuration.getMaxDepth());
-
                   // columns from depth
-                  String[] columns =
-                      QueryConstants.ALL_COLUMNS_NAMES.apply(
-                          Long.valueOf(configuration.getMaxDepth()).intValue());
+                  int maxDepth = configuration.getMaxDepth();
+                  String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
                   // data store need for build and prepare
                   DataStore dataStore = queryExecutor.getDataStore();

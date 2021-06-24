@@ -2174,6 +2174,72 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void searchWithFieldsArrayPath() throws Exception {
+    JsonNode doc =
+        OBJECT_MAPPER.readTree(
+            "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+    RestUtils.put(authToken, collectionPath + "/doc", doc.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&fields=[\"value.[1].m\"]&raw=true",
+            200);
+
+    String expected = "{\"doc\":{\"value\":[null,{\"m\":{\"value\":8}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchWithFieldsArrayGlobSegmentedPath() throws Exception {
+    JsonNode doc =
+        OBJECT_MAPPER.readTree(
+            "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+    RestUtils.put(authToken, collectionPath + "/doc", doc.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&fields=[\"value.[*].m,n\"]&raw=true",
+            200);
+
+    String expected = "{\"doc\":{\"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchWithFieldsDoubleGlob() throws Exception {
+    JsonNode doc =
+        OBJECT_MAPPER.readTree(
+            "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+    RestUtils.put(authToken, collectionPath + "/doc", doc.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&fields=[\"*.[*].n\"]&raw=true",
+            200);
+
+    String expected = "{\"doc\":{\"value\":[{\"n\":{\"value\":5}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
   public void searchInvalidPageSize() throws IOException {
     RestUtils.put(authToken, collectionPath + "/dummy", "{\"k\":\"v\"}", 200);
 

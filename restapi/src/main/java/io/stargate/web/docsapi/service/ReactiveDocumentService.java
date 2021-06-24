@@ -27,6 +27,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
+import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -35,15 +36,18 @@ import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 public class ReactiveDocumentService {
 
   @Inject ExpressionParser expressionParser;
   @Inject DocumentSearchService searchService;
-  @Inject DocumentService documentService;
+  @Inject JsonConverter jsonConverter;
   @Inject ObjectMapper objectMapper;
 
   public ReactiveDocumentService() {}
@@ -51,11 +55,11 @@ public class ReactiveDocumentService {
   public ReactiveDocumentService(
       ExpressionParser expressionParser,
       DocumentSearchService searchService,
-      DocumentService documentService,
+      JsonConverter jsonConverter,
       ObjectMapper objectMapper) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
-    this.documentService = documentService;
+    this.jsonConverter = jsonConverter;
     this.objectMapper = objectMapper;
   }
 
@@ -84,11 +88,11 @@ public class ReactiveDocumentService {
             }
           }
 
-          List<String> fieldsResolved = Collections.emptyList();
+          Collection<List<String>> fieldPaths = Collections.emptyList();
           if (null != fields) {
             try {
               JsonNode fieldsNode = objectMapper.readTree(fields);
-              fieldsResolved = documentService.convertToSelectionList(fieldsNode);
+              fieldPaths = DocsApiUtils.convertFieldsToPaths(fieldsNode);
             } catch (JsonProcessingException ex) {
               throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
             }
@@ -101,18 +105,12 @@ public class ReactiveDocumentService {
               authenticationSubject, namespace, collection, SourceAPI.REST);
 
           // needed for lambda
-          List<String> fieldsFinal = fieldsResolved;
+          Collection<List<String>> fieldPathsFinal = fieldPaths;
 
           // call the search service
           return searchService
               .searchDocuments(
-                  db.getQueryExecutor(),
-                  namespace,
-                  collection,
-                  expression,
-                  fieldsResolved,
-                  paginator,
-                  context)
+                  db.getQueryExecutor(), namespace, collection, expression, paginator, context)
 
               // collect and make sure it's not empty
               .toList()
@@ -123,9 +121,7 @@ public class ReactiveDocumentService {
                   rawDocuments -> {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
-                    ObjectNode docsResult = objectMapper.createObjectNode();
-                    documentService.addToJsonMap(db, docsResult, rawDocuments, fieldsFinal);
-
+                    ObjectNode docsResult = createJsonMap(db, rawDocuments, fieldPathsFinal);
                     return new DocumentResponseWrapper<JsonNode>(
                         null, state, docsResult, context.toProfile());
                   })
@@ -137,5 +133,30 @@ public class ReactiveDocumentService {
                             null, null, emptyNode, context.toProfile());
                       }));
         });
+  }
+
+  public ObjectNode createJsonMap(
+      DocumentDB db, List<RawDocument> docs, Collection<List<String>> fieldPaths) {
+    ObjectNode docsResult = objectMapper.createObjectNode();
+
+    for (RawDocument doc : docs) {
+      // filter needed rows only
+      List<Row> rows = doc.rows();
+      if (!fieldPaths.isEmpty()) {
+        rows =
+            doc.rows().stream()
+                .filter(
+                    row ->
+                        fieldPaths.stream()
+                            .anyMatch(fieldPath -> DocsApiUtils.isRowOnPath(row, fieldPath)))
+                .collect(Collectors.toList());
+      }
+
+      // create document node and set to result
+      JsonNode node = jsonConverter.convertToJsonDoc(rows, false, db.treatBooleansAsNumeric());
+      docsResult.set(doc.id(), node);
+    }
+
+    return docsResult;
   }
 }
