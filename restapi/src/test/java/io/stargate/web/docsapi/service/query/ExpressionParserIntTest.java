@@ -17,14 +17,19 @@
 package io.stargate.web.docsapi.service.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Or;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
@@ -128,6 +133,124 @@ class ExpressionParserIntTest {
                                     second -> {
                                       assertThat(second.getOrderIndex()).isOne();
                                       assertThat(second.getFilterPath().getField()).isEqualTo("a");
+                                    }));
+              });
+    }
+
+    @Test
+    public void complex() {
+      // a & (b | (c & d))
+      ObjectNode root = mapper.createObjectNode();
+      root.set("a", mapper.createObjectNode().put("$eq", "a"));
+      root.set(
+          "$or",
+          mapper
+              .createArrayNode()
+              .add(mapper.createObjectNode().set("b", mapper.createObjectNode().put("$eq", "b")))
+              .add(
+                  mapper
+                      .createObjectNode()
+                      .set(
+                          "$and",
+                          mapper
+                              .createArrayNode()
+                              .add(
+                                  mapper
+                                      .createObjectNode()
+                                      .set("c", mapper.createObjectNode().put("$eq", "c")))
+                              .add(
+                                  mapper
+                                      .createObjectNode()
+                                      .set("d", mapper.createObjectNode().put("$eq", "d"))))));
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              And.class,
+              a -> {
+                List<?> children = a.getChildren();
+                assertThat(children)
+                    .hasSize(2)
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    FilterExpression.class,
+                                    first -> {
+                                      assertThat(first.getOrderIndex()).isZero();
+                                      assertThat(first.getFilterPath().getField()).isEqualTo("a");
+                                    }))
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    Or.class,
+                                    or -> {
+                                      List<?> orChildren = or.getChildren();
+                                      assertThat(orChildren)
+                                          .hasSize(2)
+                                          .anySatisfy(
+                                              or1 ->
+                                                  assertThat(or1)
+                                                      .isInstanceOfSatisfying(
+                                                          FilterExpression.class,
+                                                          second -> {
+                                                            assertThat(second.getOrderIndex())
+                                                                .isOne();
+                                                            assertThat(
+                                                                    second
+                                                                        .getFilterPath()
+                                                                        .getField())
+                                                                .isEqualTo("b");
+                                                          }))
+                                          .anySatisfy(
+                                              or2 ->
+                                                  assertThat(or2)
+                                                      .isInstanceOfSatisfying(
+                                                          And.class,
+                                                          and -> {
+                                                            List<?> andChildren = and.getChildren();
+                                                            assertThat(andChildren)
+                                                                .hasSize(2)
+                                                                .anySatisfy(
+                                                                    and1 ->
+                                                                        assertThat(and1)
+                                                                            .isInstanceOfSatisfying(
+                                                                                FilterExpression
+                                                                                    .class,
+                                                                                third -> {
+                                                                                  assertThat(
+                                                                                          third
+                                                                                              .getOrderIndex())
+                                                                                      .isEqualTo(2);
+                                                                                  assertThat(
+                                                                                          third
+                                                                                              .getFilterPath()
+                                                                                              .getField())
+                                                                                      .isEqualTo(
+                                                                                          "c");
+                                                                                }))
+                                                                .anySatisfy(
+                                                                    and2 ->
+                                                                        assertThat(and2)
+                                                                            .isInstanceOfSatisfying(
+                                                                                FilterExpression
+                                                                                    .class,
+                                                                                fourth -> {
+                                                                                  assertThat(
+                                                                                          fourth
+                                                                                              .getOrderIndex())
+                                                                                      .isEqualTo(3);
+                                                                                  assertThat(
+                                                                                          fourth
+                                                                                              .getFilterPath()
+                                                                                              .getField())
+                                                                                      .isEqualTo(
+                                                                                          "d");
+                                                                                }));
+                                                          }));
                                     }));
               });
     }
@@ -508,6 +631,214 @@ class ExpressionParserIntTest {
                                       assertThat(sc.getQueryValue()).isEqualTo("some-small-value");
                                     });
                           }));
+    }
+
+    @Test
+    public void orCondition() {
+      ArrayNode orConditions = mapper.createArrayNode();
+      orConditions.add(
+          mapper
+              .createObjectNode()
+              .set("myField", mapper.createObjectNode().put("$eq", "some-value")));
+      orConditions.add(
+          mapper
+              .createObjectNode()
+              .set("myOtherField", mapper.createObjectNode().put("$ne", "some-small-value")));
+      ObjectNode root = mapper.createObjectNode();
+      root.set("$or", orConditions);
+
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .hasSize(1)
+          .anySatisfy(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          Or.class,
+                          or -> {
+                            List<?> children = or.getChildren();
+                            assertThat(children)
+                                .hasSize(2)
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f1 -> {
+                                                  assertThat(f1.getOrderIndex()).isZero();
+                                                  assertThat(f1.getFilterPath().getField())
+                                                      .isEqualTo("myField");
+                                                  assertThat(f1.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f1.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .hasValueSatisfying(
+                                                                    builtCondition -> {
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .predicate())
+                                                                          .isEqualTo(Predicate.EQ);
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .value()
+                                                                                  .get())
+                                                                          .isEqualTo("some-value");
+                                                                    });
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(EqFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-value");
+                                                          });
+                                                }))
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f2 -> {
+                                                  assertThat(f2.getOrderIndex()).isOne();
+                                                  assertThat(f2.getFilterPath().getField())
+                                                      .isEqualTo("myOtherField");
+                                                  assertThat(f2.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f2.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .isEmpty();
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(NeFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-small-value");
+                                                          });
+                                                }));
+                          }));
+    }
+
+    @Test
+    public void orNotInArray() {
+      ObjectNode root = mapper.createObjectNode();
+      root.set(
+          "$or",
+          mapper
+              .createObjectNode()
+              .set("myField", mapper.createObjectNode().put("$eq", "some-value")));
+
+      Throwable t = catchThrowable(() -> service.parse(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+
+    @Test
+    public void andCondition() {
+      ArrayNode orConditions = mapper.createArrayNode();
+      orConditions.add(
+          mapper
+              .createObjectNode()
+              .set("myField", mapper.createObjectNode().put("$eq", "some-value")));
+      orConditions.add(
+          mapper
+              .createObjectNode()
+              .set("myOtherField", mapper.createObjectNode().put("$ne", "some-small-value")));
+      ObjectNode root = mapper.createObjectNode();
+      root.set("$and", orConditions);
+
+      List<Expression<FilterExpression>> result =
+          service.parse(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .hasSize(1)
+          .anySatisfy(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          And.class,
+                          and -> {
+                            List<?> children = and.getChildren();
+                            assertThat(children)
+                                .hasSize(2)
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f1 -> {
+                                                  assertThat(f1.getOrderIndex()).isZero();
+                                                  assertThat(f1.getFilterPath().getField())
+                                                      .isEqualTo("myField");
+                                                  assertThat(f1.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f1.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .hasValueSatisfying(
+                                                                    builtCondition -> {
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .predicate())
+                                                                          .isEqualTo(Predicate.EQ);
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .value()
+                                                                                  .get())
+                                                                          .isEqualTo("some-value");
+                                                                    });
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(EqFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-value");
+                                                          });
+                                                }))
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f2 -> {
+                                                  assertThat(f2.getOrderIndex()).isOne();
+                                                  assertThat(f2.getFilterPath().getField())
+                                                      .isEqualTo("myOtherField");
+                                                  assertThat(f2.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f2.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .isEmpty();
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(NeFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-small-value");
+                                                          });
+                                                }));
+                          }));
+    }
+
+    @Test
+    public void andNotInArray() {
+      ObjectNode root = mapper.createObjectNode();
+      root.set(
+          "$and",
+          mapper
+              .createObjectNode()
+              .set("myField", mapper.createObjectNode().put("$eq", "some-value")));
+
+      Throwable t = catchThrowable(() -> service.parse(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
     }
   }
 }

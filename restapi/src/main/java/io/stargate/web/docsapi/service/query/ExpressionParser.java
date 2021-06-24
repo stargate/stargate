@@ -19,23 +19,33 @@ package io.stargate.web.docsapi.service.query;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 public class ExpressionParser {
+
+  private static final String OR_OPERATOR = "$or";
+
+  private static final String AND_OPERATOR = "$and";
 
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
@@ -76,7 +86,8 @@ public class ExpressionParser {
   }
 
   /**
-   * Parses the root filter json node and returns back the list of the expressions found.
+   * Parses the root filter json node and returns back the list of the expressions found on the
+   * first level.
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
@@ -85,24 +96,97 @@ public class ExpressionParser {
    */
   public List<Expression<FilterExpression>> parse(
       List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+    return parse(
+        prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));
+  }
+
+  /**
+   * Parses set of json nodes and returns back the list of the expressions found. Note that
+   * expression in the list contain only first level conditions in each node.
+   *
+   * @param prependedPath Given collection or document path segments
+   * @param nodes JSON nodes to resolve
+   * @param numericBooleans If number booleans should be used when creating conditions.
+   * @param nextIndex index counter for the expressions
+   * @return List of all expressions
+   */
+  private List<Expression<FilterExpression>> parse(
+      List<PathSegment> prependedPath,
+      Iterable<JsonNode> nodes,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
     List<Expression<FilterExpression>> expressions = new ArrayList<>();
 
-    int index = 0;
-    Iterator<Map.Entry<String, JsonNode>> fields = filterJson.fields();
-    while (fields.hasNext()) {
-      Map.Entry<String, JsonNode> field = fields.next();
-      String fieldPath = field.getKey();
-      FilterPath filterPath = getFilterPath(prependedPath, fieldPath);
-      Collection<BaseCondition> fieldConditions =
-          conditionProvider.getConditions(field.getValue(), numericBooleans);
-      for (BaseCondition fieldCondition : fieldConditions) {
-        ImmutableFilterExpression expression =
-            ImmutableFilterExpression.of(filterPath, fieldCondition, index++);
-        expressions.add(expression);
+    // go through all the nodes given
+    for (JsonNode node : nodes) {
+      Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+
+      // until we have more fields left
+      while (fields.hasNext()) {
+        // get field
+        Map.Entry<String, JsonNode> next = fields.next();
+        String fieldOrOp = next.getKey();
+
+        // if $or go for Or operator
+        // if $and go for And operator
+        // otherwise go for the field resolving
+        if (Objects.equals(OR_OPERATOR, fieldOrOp)) {
+          JsonNode orChildrenNode = next.getValue();
+          Or<FilterExpression> or =
+              resolveOr(orChildrenNode, prependedPath, numericBooleans, nextIndex);
+          expressions.add(or);
+        } else if (Objects.equals(AND_OPERATOR, fieldOrOp)) {
+          JsonNode andChildrenNode = next.getValue();
+          And<FilterExpression> and =
+              resolveAnd(andChildrenNode, prependedPath, numericBooleans, nextIndex);
+          expressions.add(and);
+        } else {
+          FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
+          Collection<BaseCondition> fieldConditions =
+              conditionProvider.getConditions(next.getValue(), numericBooleans);
+          for (BaseCondition fieldCondition : fieldConditions) {
+            ImmutableFilterExpression expression =
+                ImmutableFilterExpression.of(
+                    filterPath, fieldCondition, nextIndex.getAndIncrement());
+            expressions.add(expression);
+          }
+        }
       }
     }
 
     return expressions;
+  }
+
+  private Or<FilterExpression> resolveOr(
+      JsonNode node,
+      List<PathSegment> prependedPath,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
+    if (!node.isArray()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $or requires an array json node as value.");
+    }
+
+    List<Expression<FilterExpression>> orConditions =
+        parse(prependedPath, node, numericBooleans, nextIndex);
+    return Or.of(orConditions);
+  }
+
+  private And<FilterExpression> resolveAnd(
+      JsonNode node,
+      List<PathSegment> prependedPath,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
+    if (!node.isArray()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $and requires an array json node as value.");
+    }
+
+    List<Expression<FilterExpression>> orConditions =
+        parse(prependedPath, node, numericBooleans, nextIndex);
+    return And.of(orConditions);
   }
 
   /**
