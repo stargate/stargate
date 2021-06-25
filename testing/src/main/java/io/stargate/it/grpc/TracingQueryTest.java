@@ -80,8 +80,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    // insert queries does not have tracing data
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTracingId()).isNotEmpty();
 
     // when
     response =
@@ -93,8 +92,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    // insert queries does not have tracing data
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTracingId()).isNotEmpty();
 
     // when
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, true)));

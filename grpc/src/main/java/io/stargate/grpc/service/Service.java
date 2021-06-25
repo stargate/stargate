@@ -435,7 +435,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
                     switch (result.kind) {
                       case Void:
-                      case SchemaChange: // Fallthrough intended
+                        responseBuilder.setTracingId(
+                            toByteString(result.getTracingId(), query.getParameters()));
+                        break;
+                      case SchemaChange:
                         break;
                       case Rows:
                         responseBuilder
@@ -446,7 +449,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                                         handler.processResult(
                                             (Rows) result, query.getParameters())))
                             .setTracingId(
-                                toByteBuffer(result.getTracingId(), query.getParameters()));
+                                toByteString(result.getTracingId(), query.getParameters()));
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -469,7 +472,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private ByteString toByteBuffer(UUID tracingId, QueryParameters parameters) {
+  private ByteString toByteString(UUID tracingId, QueryParameters parameters) {
     if (!parameters.getTracing()) {
       return ByteString.EMPTY;
     }

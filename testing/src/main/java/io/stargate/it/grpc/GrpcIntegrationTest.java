@@ -95,7 +95,14 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
   }
 
   protected BatchParameters.Builder batchParameters(CqlIdentifier keyspace) {
-    return BatchParameters.newBuilder().setKeyspace(StringValue.of(keyspace.toString()));
+    return batchParameters(keyspace, false);
+  }
+
+  protected BatchParameters.Builder batchParameters(
+      CqlIdentifier keyspace, boolean tracingEnabled) {
+    return BatchParameters.newBuilder()
+        .setKeyspace(StringValue.of(keyspace.toString()))
+        .setTracing(tracingEnabled);
   }
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
