@@ -436,23 +436,23 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     switch (result.kind) {
                       case Void:
                         // fill tracing id for queries that doesn't return any data (i.e. INSERT)
-                        responseBuilder.setTracingId(
-                            toByteString(
-                                result.getTracingId(), query.getParameters().getTracing()));
+                        handleTraceId(
+                            result.getTracingId(),
+                            query.getParameters().getTracing(),
+                            responseBuilder);
                         break;
                       case SchemaChange:
                         break;
                       case Rows:
-                        responseBuilder
-                            .setResultSet(
-                                Payload.newBuilder()
-                                    .setType(query.getValues().getType())
-                                    .setData(
-                                        handler.processResult(
-                                            (Rows) result, query.getParameters())))
-                            .setTracingId(
-                                toByteString(
-                                    result.getTracingId(), query.getParameters().getTracing()));
+                        responseBuilder.setResultSet(
+                            Payload.newBuilder()
+                                .setType(query.getValues().getType())
+                                .setData(
+                                    handler.processResult((Rows) result, query.getParameters())));
+                        handleTraceId(
+                            result.getTracingId(),
+                            query.getParameters().getTracing(),
+                            responseBuilder);
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -475,12 +475,12 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private ByteString toByteString(UUID tracingId, boolean tracingEnabled) {
-    if (!tracingEnabled) {
-      return ByteString.EMPTY;
+  private void handleTraceId(
+      UUID tracingId, boolean tracingEnabled, Response.Builder responseBuilder) {
+    if (tracingEnabled && tracingId != null) {
+      byte[] bytes = UUIDGen.decompose(tracingId);
+      responseBuilder.setTracingId(ByteString.copyFrom(bytes));
     }
-    byte[] bytes = UUIDGen.decompose(tracingId);
-    return ByteString.copyFrom(bytes);
   }
 
   private void executeBatch(
@@ -500,8 +500,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
-                    responseBuilder.setTracingId(
-                        toByteString(result.getTracingId(), parameters.getTracing()));
+                    handleTraceId(result.getTracingId(), parameters.getTracing(), responseBuilder);
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }
