@@ -83,8 +83,15 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
     return stubWithCallCredentials(authToken);
   }
 
+  protected QueryParameters.Builder queryParameters(
+      CqlIdentifier keyspace, boolean tracingEnabled) {
+    return QueryParameters.newBuilder()
+        .setKeyspace(StringValue.of(keyspace.toString()))
+        .setTracing(tracingEnabled);
+  }
+
   protected QueryParameters.Builder queryParameters(CqlIdentifier keyspace) {
-    return QueryParameters.newBuilder().setKeyspace(StringValue.of(keyspace.toString()));
+    return queryParameters(keyspace, false);
   }
 
   protected BatchParameters.Builder batchParameters(CqlIdentifier keyspace) {

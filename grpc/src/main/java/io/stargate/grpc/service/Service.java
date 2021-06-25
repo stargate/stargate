@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.protobuf.ByteString;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -62,6 +63,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nullable;
@@ -75,6 +77,7 @@ import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
+import org.apache.cassandra.utils.UUIDGen;
 import org.immutables.value.Value;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
@@ -435,11 +438,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                       case SchemaChange: // Fallthrough intended
                         break;
                       case Rows:
-                        responseBuilder.setResultSet(
-                            Payload.newBuilder()
-                                .setType(query.getValues().getType())
-                                .setData(
-                                    handler.processResult((Rows) result, query.getParameters())));
+                        responseBuilder
+                            .setResultSet(
+                                Payload.newBuilder()
+                                    .setType(query.getValues().getType())
+                                    .setData(
+                                        handler.processResult(
+                                            (Rows) result, query.getParameters())))
+                            .setTracingId(
+                                toByteBuffer(result.getTracingId(), query.getParameters()));
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -460,6 +467,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private ByteString toByteBuffer(UUID tracingId, QueryParameters parameters) {
+    if (!parameters.getTracing()) {
+      return ByteString.EMPTY;
+    }
+    byte[] bytes = UUIDGen.decompose(tracingId);
+    return ByteString.copyFrom(bytes);
   }
 
   private void executeBatch(
