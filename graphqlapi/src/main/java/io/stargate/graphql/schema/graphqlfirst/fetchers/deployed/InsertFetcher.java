@@ -117,7 +117,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       if (isBooleanReturnType()) {
         response = buildBooleanResponse(isLwt, resultSet);
       } else if (isEntityReturnType()) {
-        response = buildEntityResponse(isLwt, resultSet, entityPrefixInResponse, input, cqlValues);
+        response = buildEntityResponse(isLwt, resultSet, input, cqlValues);
       } else if (isPayloadModelReturnType()) {
         response =
             buildPayloadResponse(
@@ -143,21 +143,20 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
       Map<String, Object> input,
       Map<String, Object> cqlValues,
       DataFetchingFieldSelectionSet selectionSet) {
-    Map<String, Object> response =
-        copyInputDataToResponse(entityPrefixInResponse, input, cqlValues);
+    Map<String, Object> response = new LinkedHashMap<>();
+    Map<String, Object> entityInResponse = null;
+    if (entityPrefixInResponse != null) {
+      entityInResponse = new LinkedHashMap<>();
+      copyInputDataToResponse(input, cqlValues, entityInResponse);
+      response.put(entityPrefixInResponse, entityInResponse);
+    }
 
     boolean applied;
     if (isLwt) {
       Row row = resultSet.one();
       applied = row.getBoolean("[applied]");
-      if (!applied) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> entityDataInner =
-            (entityPrefixInResponse == null)
-                ? response
-                : (Map<String, Object>) response.get(entityPrefixInResponse);
-        assert entityDataInner != null;
-        copyRowToEntity(row, entityDataInner, model.getEntity());
+      if (!applied && entityPrefixInResponse != null) {
+        copyRowToEntity(row, entityInResponse, model.getEntity());
       }
     } else {
       applied = true;
@@ -171,25 +170,19 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
   private Map<String, Object> buildEntityResponse(
       boolean isLwt,
       ResultSet resultSet,
-      String entityPrefixInResponse,
       Map<String, Object> input,
       Map<String, Object> cqlValues) {
-    Map<String, Object> response =
-        copyInputDataToResponse(entityPrefixInResponse, input, cqlValues);
+
+    Map<String, Object> entityResponse = new LinkedHashMap<>();
+    copyInputDataToResponse(input, cqlValues, entityResponse);
 
     if (isLwt) {
       Row row = resultSet.one();
       if (!row.getBoolean("[applied]")) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> entityDataInner =
-            (entityPrefixInResponse == null)
-                ? response
-                : (Map<String, Object>) response.get(entityPrefixInResponse);
-        assert entityDataInner != null;
-        copyRowToEntity(row, entityDataInner, model.getEntity());
+        copyRowToEntity(row, entityResponse, model.getEntity());
       }
     }
-    return response;
+    return entityResponse;
   }
 
   private Boolean buildBooleanResponse(boolean isLwt, ResultSet resultSet) {
@@ -199,20 +192,6 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     } else {
       return true;
     }
-  }
-
-  private Map<String, Object> copyInputDataToResponse(
-      String entityPrefixInResponse, Map<String, Object> input, Map<String, Object> cqlValues) {
-    Map<String, Object> response = new LinkedHashMap<>();
-    Map<String, Object> entityData;
-    if (entityPrefixInResponse == null) {
-      entityData = response;
-    } else {
-      entityData = new LinkedHashMap<>();
-      response.put(entityPrefixInResponse, entityData);
-    }
-    copyInputDataToResponse(input, cqlValues, entityData, model.getEntity());
-    return response;
   }
 
   // returns true if the return type is a boolean or [boolean]
@@ -273,12 +252,9 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
    * out to be a failed LWT).
    */
   private void copyInputDataToResponse(
-      Map<String, Object> input,
-      Map<String, Object> cqlValues,
-      Map<String, Object> entityData,
-      EntityModel entityModel) {
+      Map<String, Object> input, Map<String, Object> cqlValues, Map<String, Object> entityData) {
 
-    for (FieldModel column : entityModel.getAllColumns()) {
+    for (FieldModel column : model.getEntity().getAllColumns()) {
       String graphqlName = column.getGraphqlName();
       Object graphqlValue;
       if (input.containsKey(graphqlName)) {
