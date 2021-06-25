@@ -435,8 +435,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
                     switch (result.kind) {
                       case Void:
+                        // fill tracing id for queries that doesn't return any data (i.e. INSERT)
                         responseBuilder.setTracingId(
-                            toByteString(result.getTracingId(), query.getParameters()));
+                            toByteString(
+                                result.getTracingId(), query.getParameters().getTracing()));
                         break;
                       case SchemaChange:
                         break;
@@ -449,7 +451,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                                         handler.processResult(
                                             (Rows) result, query.getParameters())))
                             .setTracingId(
-                                toByteString(result.getTracingId(), query.getParameters()));
+                                toByteString(
+                                    result.getTracingId(), query.getParameters().getTracing()));
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -472,8 +475,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private ByteString toByteString(UUID tracingId, QueryParameters parameters) {
-    if (!parameters.getTracing()) {
+  private ByteString toByteString(UUID tracingId, boolean tracingEnabled) {
+    if (!tracingEnabled) {
       return ByteString.EMPTY;
     }
     byte[] bytes = UUIDGen.decompose(tracingId);
@@ -497,6 +500,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
+                    responseBuilder.setTracingId(
+                        toByteString(result.getTracingId(), parameters.getTracing()));
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }

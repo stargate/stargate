@@ -22,6 +22,7 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import org.junit.jupiter.api.Test;
@@ -99,6 +100,46 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getTracingId()).isNotEmpty();
+  }
+
+  @Test
+  public void tracingIdBatchQueryDisabled(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    Response response =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .setParameters(batchParameters(keyspace, false))
+                .build());
+    assertThat(response).isNotNull();
+    assertThat(response.getTracingId()).isEmpty();
+  }
+
+  @Test
+  public void tracingIdBatchQueryEnabled(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    Response response =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .setParameters(batchParameters(keyspace, true))
+                .build());
+    assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
   }
 }
