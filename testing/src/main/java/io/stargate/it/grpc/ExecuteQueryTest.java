@@ -74,6 +74,50 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   }
 
   @Test
+  public void queryAfterSchemaChange(@TestKeyspace CqlIdentifier keyspace)
+      throws InvalidProtocolBufferException {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // Create keyspace, table, and then insert some data
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+                null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+    assertThat(response).isNotNull();
+
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    assertThat(response).isNotNull();
+
+    // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
+    // cache
+    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;", null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+                null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+    assertThat(response).isNotNull();
+
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    assertThat(response).isNotNull();
+  }
+
+  @Test
   public void simpleQueryWithPaging() throws InvalidProtocolBufferException {
     Response response =
         stubWithCallCredentials()

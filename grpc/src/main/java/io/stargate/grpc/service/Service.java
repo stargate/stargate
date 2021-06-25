@@ -70,6 +70,7 @@ import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
 import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
@@ -156,7 +157,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 if (t != null) {
                   handleException(t, responseObserver);
                 } else {
-                  executePrepared(connection, prepared, query, responseObserver);
+                  executePrepared(connection, prepared, query, responseObserver, prepareInfo);
                 }
               });
     } catch (Throwable t) {
@@ -411,7 +412,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection,
       Prepared prepared,
       Query query,
-      StreamObserver<Response> responseObserver) {
+      StreamObserver<Response> responseObserver,
+      PrepareInfo prepareInfo) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
@@ -426,7 +428,22 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .whenComplete(
               (result, t) -> {
                 if (t != null) {
-                  handleException(t, responseObserver);
+                  if (t instanceof PreparedQueryNotFoundException) {
+                    preparedCache.invalidate(prepareInfo);
+
+                    prepareQuery(connection, prepareInfo, parameters.getTracing())
+                        .whenComplete(
+                            (p, t1) -> {
+                              if (t1 != null) {
+                                handleException(t1, responseObserver);
+                              } else {
+                                executePrepared(
+                                    connection, p, query, responseObserver, prepareInfo);
+                              }
+                            });
+                  } else {
+                    handleException(t, responseObserver);
+                  }
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
