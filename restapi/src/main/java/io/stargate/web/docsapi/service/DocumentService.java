@@ -1,6 +1,8 @@
 package io.stargate.web.docsapi.service;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -30,15 +32,20 @@ import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -397,6 +404,110 @@ public class DocumentService {
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
   }
 
+  private Optional<String> convertToJsonPtr(Optional<String> path) {
+    return path.map(
+        p -> "/" + p.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1"));
+  }
+
+  private DocumentDB maybeCreateTableAndIndexes(
+      Db dbFactory,
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      Map<String, String> headers,
+      String authToken)
+      throws UnauthorizedException {
+    boolean created = db.maybeCreateTable(keyspace, collection);
+    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
+    // but we can force the permissions refetch by logging in again.
+    if (created) {
+      db = dbFactory.getDocDataStoreForToken(authToken, headers);
+      db.maybeCreateTableIndexes(keyspace, collection);
+    }
+    return db;
+  }
+
+  public List<String> writeManyDocs(
+      String authToken,
+      String keyspace,
+      String collection,
+      InputStream payload,
+      Optional<String> idPath,
+      Db dbFactory,
+      ExecutionContext context,
+      Map<String, String> headers)
+      throws IOException, UnauthorizedException {
+
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
+    JsonSurfer surfer = JsonSurferGson.INSTANCE;
+
+    db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
+    List<String> idsWritten = new ArrayList<>();
+    try (JsonParser jsonParser = mapper.getFactory().createParser(payload)) {
+      Optional<String> docsPath = convertToJsonPtr(idPath);
+
+      Map<String, String> docs = new LinkedHashMap<>();
+      if (jsonParser.nextToken() != JsonToken.START_ARRAY) {
+        throw new IllegalArgumentException("Payload must be an array.");
+      }
+
+      while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+        JsonNode json = mapper.readTree(jsonParser);
+        String docId;
+        if (docsPath.isPresent()) {
+          if (!json.at(docsPath.get()).isTextual()) {
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH,
+                String.format(
+                    "Json Document %s requires a String value at the path %s, found %s."
+                        + " Batch write failed.",
+                    json, idPath.get(), json.at(docsPath.get()).toString()));
+          }
+          docId = json.requiredAt(docsPath.get()).asText();
+        } else {
+          docId = UUID.randomUUID().toString();
+        }
+        docs.put(docId, json.toString());
+      }
+
+      List<Object[]> bindVariableList = new ArrayList<>();
+      DocumentDB finalDb = db;
+      List<String> ids =
+          docs.entrySet().stream()
+              .map(
+                  data -> {
+                    bindVariableList.addAll(
+                        shredJson(
+                                surfer,
+                                finalDb,
+                                Collections.emptyList(),
+                                data.getKey(),
+                                data.getValue(),
+                                false)
+                            .left);
+                    return data.getKey();
+                  })
+              .collect(Collectors.toList());
+
+      long now = timeSource.currentTimeMicros();
+      try {
+        db.deleteManyThenInsertBatch(
+            keyspace,
+            collection,
+            ids,
+            bindVariableList,
+            Collections.emptyList(),
+            now,
+            context.nested("ASYNC INSERT"));
+      } catch (Exception e) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_FAILED);
+      }
+
+      idsWritten.addAll(ids);
+    }
+    return idsWritten;
+  }
+
   public void putAtPath(
       String authToken,
       String keyspace,
@@ -413,13 +524,7 @@ public class DocumentService {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
-    boolean created = db.maybeCreateTable(keyspace, collection);
-    // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
-    // but we can force the permissions refetch by logging in again.
-    if (created) {
-      db = dbFactory.getDocDataStoreForToken(authToken, headers);
-      db.maybeCreateTableIndexes(keyspace, collection);
-    }
+    db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
 
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
     if (schema != null && path.isEmpty()) {

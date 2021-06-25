@@ -53,13 +53,14 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.Db;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
@@ -82,6 +83,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class DocumentServiceTest extends AbstractDataStoreTest {
 
   private static final Object SEPARATOR = new Object();
+
+  private final String insert =
+      "INSERT INTO test_docs.collection1 (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
 
   protected static final Table table =
       ImmutableTable.builder()
@@ -422,7 +426,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testGetDocPathRaw() throws JsonProcessingException {
+  void testGetDocPathRaw() {
     final String id = "id0";
     withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ?"), id, "a", "c")
         .returning(ImmutableList.of(row(id, 1.0, "a", "c", "x"), row(id, 2.0, "a", "c", "y")));
@@ -662,8 +666,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
         .returningNothing();
 
-    String insert =
-        "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
     withQuery(table, insert, fillParams(70, "id1", "a", SEPARATOR, "a", null, 123.0d, null, 100L))
         .returningNothing();
     withQuery(table, insert, fillParams(70, "id1", "b", SEPARATOR, "b", null, null, true, 100L))
@@ -828,6 +830,45 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .hasMessageContaining("test3");
   }
 
+  @Test
+  void testWriteManyDocs() throws UnauthorizedException, IOException {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
+    now.set(200);
+    withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 199L, "b")
+        .returningNothing();
+    withQuery(table, insert, fillParams(70, "b", "a", SEPARATOR, "a", "b", null, null, 200L))
+        .returningNothing();
+    service.writeManyDocs(
+        authToken,
+        keyspace.name(),
+        table.name(),
+        in,
+        Optional.of("a"),
+        db,
+        ExecutionContext.NOOP_CONTEXT,
+        Collections.emptyMap());
+  }
+
+  @Test
+  void testWriteManyDocs_invalidIdPath() {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
+    assertThatThrownBy(
+            () ->
+                service.writeManyDocs(
+                    authToken,
+                    keyspace.name(),
+                    table.name(),
+                    in,
+                    Optional.of("no.good"),
+                    db,
+                    ExecutionContext.NOOP_CONTEXT,
+                    Collections.emptyMap()))
+        .hasMessage(
+            "Json Document {\"a\":\"b\"} requires a String value at the path no.good, found . Batch write failed.");
+  }
+
   @Nested
   class Profiling {
 
@@ -837,8 +878,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? LIMIT ? ALLOW FILTERING";
     private final String selectByKey = selectAll("WHERE key = ?");
     private final String selectAll = selectAll("");
-    private final String insert =
-        "INSERT INTO test_docs.collection1 (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
     private final String id1 = "id1";
     private final String id2 = "id2";
     private final String id3 = "id3";
@@ -970,7 +1009,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    void putDoc() throws UnauthorizedException, JsonProcessingException {
+    void putDoc() throws JsonProcessingException {
       when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
 
       String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
@@ -998,6 +1037,43 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                           .description("ASYNC INSERT")
                           // row count for DELETE is not known
                           .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void putManyDocs() throws JsonProcessingException {
+      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
+      withQuery(table, delete, 199L, "123").returningNothing();
+      withQuery(table, delete, 199L, "234").returningNothing();
+      withQuery(table, insert, fillParams(70, "123", "a", SEPARATOR, "a", "123", null, null, 200L))
+          .returningNothing();
+      withQuery(table, insert, fillParams(70, "234", "a", SEPARATOR, "a", "234", null, null, 200L))
+          .returningNothing();
+
+      now.set(200);
+      Response r =
+          resource.writeManyDocs(
+              headers,
+              uriInfo,
+              authToken,
+              keyspace.name(),
+              table.name(),
+              new ByteArrayInputStream("[{\"a\":\"123\"},{\"a\":\"234\"}]".getBytes()),
+              "a",
+              true,
+              request);
+      @SuppressWarnings("unchecked")
+      MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
+      assertThat(mdr.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC INSERT")
+                          // row count for DELETE is not known
+                          .addQueries(QueryInfo.of(insert, 2, 2), QueryInfo.of(delete, 2, 0))
                           .build())
                   .build());
     }

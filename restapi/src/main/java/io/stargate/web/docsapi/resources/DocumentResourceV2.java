@@ -5,12 +5,14 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
@@ -25,6 +27,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -169,6 +172,73 @@ public class DocumentResourceV2 {
               .entity(
                   mapper.writeValueAsString(
                       new DocumentResponseWrapper<>(newId, null, null, context.toProfile())))
+              .build();
+        });
+  }
+
+  @POST
+  @ManagedAsync
+  @ApiOperation(
+      value = "Write multiple documents in one request",
+      notes =
+          "Auto-generates an ID for the newly created document if an idPath is not provided as a query parameter. When an idPath is provided, this operation is idempotent.",
+      code = 202)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 202, message = "Accepted", response = MultiDocsResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("collections/{collection-id}/batch")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response writeManyDocs(
+      @Context HttpHeaders headers,
+      @Context UriInfo ui,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "A JSON array where each element is a document to write", required = true)
+          @NonNull
+          InputStream payload,
+      @ApiParam(
+              value =
+                  "The path where an ID could be found in each document. If defined, the value at this path will be used as the ID for each document. Otherwise, a random UUID will be given for each document.",
+              required = false)
+          @QueryParam("id-path")
+          String idPath,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request) {
+    // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
+    // And returns it as a Location header/in JSON body
+    logger.debug("Batch Write: Collection = {}", collection);
+    return handle(
+        () -> {
+          ExecutionContext context = ExecutionContext.create(profile);
+          List<String> idsCreated =
+              documentService.writeManyDocs(
+                  authToken,
+                  namespace,
+                  collection,
+                  payload,
+                  Optional.ofNullable(idPath),
+                  dbFactory,
+                  context,
+                  getAllHeaders(request));
+
+          return Response.accepted()
+              .entity(
+                  mapper.writeValueAsString(new MultiDocsResponse(idsCreated, context.toProfile())))
               .build();
         });
   }

@@ -19,6 +19,7 @@ import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +74,25 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void putDoc_success() throws UnauthorizedException, JsonProcessingException {
+  public void postMultiDoc_success() throws JsonProcessingException {
+    HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
+    UriInfo ui = mock(UriInfo.class);
+    String authToken = "auth_token";
+    String keyspace = "keyspace";
+    String collection = "collection";
+    InputStream payload = mock(InputStream.class);
+
+    Response r =
+        documentResourceV2.writeManyDocs(
+            headers, ui, authToken, keyspace, collection, payload, null, false, httpServletRequest);
+
+    assertThat(r.getStatus()).isEqualTo(202);
+    mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
+  }
+
+  @Test
+  public void putDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
     when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
