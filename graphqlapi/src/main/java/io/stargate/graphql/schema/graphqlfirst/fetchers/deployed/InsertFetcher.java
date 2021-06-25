@@ -39,9 +39,12 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.Te
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
 import io.stargate.graphql.web.StargateGraphqlContext;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,74 +63,100 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
 
     EntityModel entityModel = model.getEntity();
     boolean isLwt = model.ifNotExists();
-    boolean responseContainsEntity =
-        !model.getResponsePayload().isPresent()
-            || model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
-    String entityPrefixInReponse =
+    String entityPrefixInResponse =
         model
             .getResponsePayload()
             .flatMap(ResponsePayloadModel::getEntityField)
             .map(EntityField::getName)
             .orElse(null);
     Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
-    Map<String, Object> input = environment.getArgument(model.getEntityArgumentName());
-    Map<String, Object> response = new LinkedHashMap<>();
-    Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
-    Collection<ValueModifier> modifiers =
-        cqlValues.entrySet().stream()
-            .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
-            .collect(Collectors.toList());
+    List<Map<String, Object>> inputs;
+    List<Object> responses = new ArrayList<>();
+    if (model.isList()) {
+      inputs = environment.getArgument(model.getEntityArgumentName());
+    } else {
+      inputs = Collections.singletonList(environment.getArgument(model.getEntityArgumentName()));
+    }
 
-    Optional<Long> timestamp =
-        TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
+    for (Map<String, Object> input : inputs) {
+      Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
+      Collection<ValueModifier> modifiers =
+          cqlValues.entrySet().stream()
+              .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
+              .collect(Collectors.toList());
 
-    AbstractBound<?> query =
-        context
-            .getDataStore()
-            .queryBuilder()
-            .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .value(modifiers)
-            .ifNotExists(isLwt)
-            .ttl(model.getTtl().orElse(null))
-            .timestamp(timestamp.orElse(null))
-            .build()
-            .bind();
+      Optional<Long> timestamp =
+          TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
 
-    context
-        .getAuthorizationService()
-        .authorizeDataWrite(
-            context.getSubject(),
-            entityModel.getKeyspaceName(),
-            entityModel.getCqlName(),
-            TypedKeyValue.forDML((BoundDMLQuery) query),
-            Scope.MODIFY,
-            SourceAPI.GRAPHQL);
+      AbstractBound<?> query =
+          context
+              .getDataStore()
+              .queryBuilder()
+              .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
+              .value(modifiers)
+              .ifNotExists(isLwt)
+              .ttl(model.getTtl().orElse(null))
+              .timestamp(timestamp.orElse(null))
+              .build()
+              .bind();
 
-    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+      context
+          .getAuthorizationService()
+          .authorizeDataWrite(
+              context.getSubject(),
+              entityModel.getKeyspaceName(),
+              entityModel.getCqlName(),
+              TypedKeyValue.forDML((BoundDMLQuery) query),
+              Scope.MODIFY,
+              SourceAPI.GRAPHQL);
 
-    if (responseContainsEntity) {
-      Map<String, Object> entityData;
-      if (entityPrefixInReponse == null) {
-        entityData = response;
+      ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+
+      // handle response
+      Object response;
+      if (isBooleanReturnType()) {
+        response = buildBooleanResponse(isLwt, resultSet);
+      } else if (isEntityReturnType()) {
+        response = buildEntityResponse(isLwt, resultSet, input, cqlValues);
+      } else if (isPayloadModelReturnType()) {
+        response =
+            buildPayloadResponse(
+                isLwt, resultSet, entityPrefixInResponse, input, cqlValues, selectionSet);
       } else {
-        entityData = new LinkedHashMap<>();
-        response.put(entityPrefixInReponse, entityData);
+        throw new UnsupportedOperationException(
+            "The Insert operation does not support return type: " + model.getReturnType());
       }
-      copyInputDataToEntity(input, cqlValues, entityData, entityModel);
+      responses.add(response);
+    }
+    if (model.isList()) {
+      return responses;
+    } else {
+      // there is only one response - entity or applied
+      return responses.get(0);
+    }
+  }
+
+  private Map<String, Object> buildPayloadResponse(
+      boolean isLwt,
+      ResultSet resultSet,
+      String entityPrefixInResponse,
+      Map<String, Object> input,
+      Map<String, Object> cqlValues,
+      DataFetchingFieldSelectionSet selectionSet) {
+    Map<String, Object> response = new LinkedHashMap<>();
+    Map<String, Object> entityInResponse = null;
+    if (entityPrefixInResponse != null) {
+      entityInResponse = new LinkedHashMap<>();
+      copyInputDataToResponse(input, cqlValues, entityInResponse);
+      response.put(entityPrefixInResponse, entityInResponse);
     }
 
     boolean applied;
     if (isLwt) {
       Row row = resultSet.one();
       applied = row.getBoolean("[applied]");
-      if (!applied && responseContainsEntity) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> entityData =
-            (entityPrefixInReponse == null)
-                ? response
-                : (Map<String, Object>) response.get(entityPrefixInReponse);
-        assert entityData != null;
-        copyRowToEntity(row, entityData, model.getEntity());
+      if (!applied && entityPrefixInResponse != null) {
+        copyRowToEntity(row, entityInResponse, model.getEntity());
       }
     } else {
       applied = true;
@@ -135,11 +164,53 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
     if (selectionSet.contains(TechnicalField.APPLIED.getGraphqlName())) {
       response.put(TechnicalField.APPLIED.getGraphqlName(), applied);
     }
-    if (model.getReturnType() == OperationModel.SimpleReturnType.BOOLEAN) {
-      return applied;
-    } else {
-      return response;
+    return response;
+  }
+
+  private Map<String, Object> buildEntityResponse(
+      boolean isLwt,
+      ResultSet resultSet,
+      Map<String, Object> input,
+      Map<String, Object> cqlValues) {
+
+    Map<String, Object> entityResponse = new LinkedHashMap<>();
+    copyInputDataToResponse(input, cqlValues, entityResponse);
+
+    if (isLwt) {
+      Row row = resultSet.one();
+      if (!row.getBoolean("[applied]")) {
+        copyRowToEntity(row, entityResponse, model.getEntity());
+      }
     }
+    return entityResponse;
+  }
+
+  private Boolean buildBooleanResponse(boolean isLwt, ResultSet resultSet) {
+    if (isLwt) {
+      Row row = resultSet.one();
+      return row.getBoolean("[applied]");
+    } else {
+      return true;
+    }
+  }
+
+  // returns true if the return type is a boolean or [boolean]
+  private boolean isBooleanReturnType() {
+    OperationModel.ReturnType returnType = model.getReturnType();
+    return returnType == OperationModel.SimpleReturnType.BOOLEAN
+        || returnType instanceof OperationModel.SimpleListReturnType
+            && ((OperationModel.SimpleListReturnType) returnType)
+                .getSimpleReturnType()
+                .equals(OperationModel.SimpleReturnType.BOOLEAN);
+  }
+
+  private boolean isPayloadModelReturnType() {
+    return model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+  }
+
+  private boolean isEntityReturnType() {
+    return model.getReturnType() instanceof OperationModel.EntityReturnType
+        || model.getReturnType() instanceof OperationModel.EntityListReturnType;
   }
 
   private Map<String, Object> buildCqlValues(
@@ -180,13 +251,10 @@ public class InsertFetcher extends MutationFetcher<InsertModel, Object> {
    * Copy all input arguments to the response (they might get overridden later if the query turned
    * out to be a failed LWT).
    */
-  private void copyInputDataToEntity(
-      Map<String, Object> input,
-      Map<String, Object> cqlValues,
-      Map<String, Object> entityData,
-      EntityModel entityModel) {
+  private void copyInputDataToResponse(
+      Map<String, Object> input, Map<String, Object> cqlValues, Map<String, Object> entityData) {
 
-    for (FieldModel column : entityModel.getAllColumns()) {
+    for (FieldModel column : model.getEntity().getAllColumns()) {
       String graphqlName = column.getGraphqlName();
       Object graphqlValue;
       if (input.containsKey(graphqlName)) {

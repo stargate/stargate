@@ -23,6 +23,8 @@ import graphql.language.TypeName;
 import graphql.schema.GraphQLScalarType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityListReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.EntityReturnType;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ResponsePayloadModelListReturnType;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleListReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
@@ -55,14 +57,8 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     Type<?> graphqlType = TypeHelper.unwrapNonNull(operation.getType());
 
     if (graphqlType instanceof ListType) {
-      Type<?> elementType = ((ListType) graphqlType).getType();
-      elementType = TypeHelper.unwrapNonNull(elementType);
-      if (elementType instanceof TypeName) {
-        EntityModel entity = entities.get(((TypeName) elementType).getName());
-        if (entity != null) {
-          return new EntityListReturnType(entity);
-        }
-      }
+      OperationModel.ReturnType listReturnType = toListReturnType((ListType) graphqlType);
+      if (listReturnType != null) return listReturnType;
     } else {
       assert graphqlType instanceof TypeName;
       String typeName = ((TypeName) graphqlType).getName();
@@ -85,6 +81,33 @@ abstract class OperationModelBuilderBase<T extends OperationModel> extends Model
     invalidMapping(
         "%s: unsupported return type %s", operationDescription, TypeHelper.format(graphqlType));
     throw SkipException.INSTANCE;
+  }
+
+  private OperationModel.ReturnType toListReturnType(ListType graphqlType) {
+    Type<?> elementType = graphqlType.getType();
+    elementType = TypeHelper.unwrapNonNull(elementType);
+    if (elementType instanceof TypeName) {
+      String typeName = ((TypeName) elementType).getName();
+
+      // handle entity type
+      EntityModel entity = entities.get(typeName);
+      if (entity != null) {
+        return new EntityListReturnType(entity);
+      }
+
+      // handle response payload
+      ResponsePayloadModel payload = responsePayloads.get(typeName);
+      if (payload != null) {
+        return new ResponsePayloadModelListReturnType(payload);
+      }
+
+      // handle simple type
+      SimpleReturnType simple = SimpleReturnType.fromTypeName(typeName);
+      if (simple != null) {
+        return new SimpleListReturnType(simple);
+      }
+    }
+    return null;
   }
 
   protected void validateNoFiltering(List<ConditionModel> whereConditions, EntityModel entity)

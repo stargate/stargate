@@ -30,6 +30,7 @@ public class InsertModel extends MutationModel {
   private final Optional<String> cqlTimestampArgumentName;
   private final Optional<Integer> ttl;
   private final ReturnType returnType;
+  private final boolean isList;
 
   InsertModel(
       String parentTypeName,
@@ -42,7 +43,8 @@ public class InsertModel extends MutationModel {
       Optional<ConsistencyLevel> serialConsistencyLevel,
       Optional<Integer> ttl,
       ReturnType returnType,
-      Optional<String> cqlTimestampArgumentName) {
+      Optional<String> cqlTimestampArgumentName,
+      boolean isList) {
     super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
     this.entity = entity;
     this.entityArgumentName = entityArgumentName;
@@ -51,6 +53,7 @@ public class InsertModel extends MutationModel {
     this.ttl = ttl;
     this.returnType = returnType;
     this.cqlTimestampArgumentName = cqlTimestampArgumentName;
+    this.isList = isList;
   }
 
   public EntityModel getEntity() {
@@ -79,6 +82,10 @@ public class InsertModel extends MutationModel {
 
   public ReturnType getReturnType() {
     return returnType;
+  }
+
+  public boolean isList() {
+    return isList;
   }
 
   @Override

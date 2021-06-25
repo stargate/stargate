@@ -15,10 +15,13 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.*;
+
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ResponsePayloadModelListReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.List;
@@ -71,15 +74,23 @@ class InsertModelBuilder extends MutationModelBuilder {
                       operationName);
                   return SkipException.INSTANCE;
                 });
+    boolean isList = isList(input);
 
-    // Validate return type: must be the entity itself, or a wrapper payload
+    // Validate return type: must be the entity itself, or a wrapper payload, boolean, or a list of
+    // those types
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (!returnType.isEntityList()
-        && !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
-        && returnType != OperationModel.SimpleReturnType.BOOLEAN) {
+    if (!returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
+        && returnType != SimpleReturnType.BOOLEAN
+        && !isSimpleListWithBoolean(returnType)) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
-              + "single instance of it or Boolean.",
+              + "single instance of it or Boolean, or a list of those types.",
+          operationName, entity.getGraphqlName());
+    }
+
+    if (isList && !returnType.isList()) {
+      invalidMapping(
+          "Mutation %s: invalid return type. For bulk inserts, expected list of %s. ",
           operationName, entity.getGraphqlName());
     }
 
@@ -94,8 +105,18 @@ class InsertModelBuilder extends MutationModelBuilder {
 
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
+            .map(
+                r -> {
+                  // if it is a list of response payloads, extract the underlying type
+                  if (r instanceof ResponsePayloadModelListReturnType) {
+                    return ((ResponsePayloadModelListReturnType) returnType)
+                        .getResponsePayloadModel();
+                  }
+                  return r;
+                })
             .filter(ResponsePayloadModel.class::isInstance)
             .map(ResponsePayloadModel.class::cast);
+
     return new InsertModel(
         parentTypeName,
         operation,
@@ -107,7 +128,15 @@ class InsertModelBuilder extends MutationModelBuilder {
         getSerialConsistencyLevel(cqlInsertDirective),
         getTtl(cqlInsertDirective),
         returnType,
-        cqlTimestampArgumentName);
+        cqlTimestampArgumentName,
+        isList);
+  }
+
+  private boolean isSimpleListWithBoolean(ReturnType returnType) {
+    return returnType instanceof SimpleListReturnType
+        && ((SimpleListReturnType) returnType)
+            .getSimpleReturnType()
+            .equals(SimpleReturnType.BOOLEAN);
   }
 
   private boolean computeIfNotExists(Optional<Directive> cqlInsertDirective) {

@@ -43,7 +43,7 @@ public abstract class OperationModel {
   public interface ReturnType {
     Optional<EntityModel> getEntity();
 
-    boolean isEntityList();
+    boolean isList();
   }
 
   public abstract static class EntityReturnTypeBase implements ReturnType {
@@ -65,7 +65,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return false;
     }
   }
@@ -76,8 +76,48 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return true;
+    }
+  }
+
+  public static class ResponsePayloadModelListReturnType extends EntityReturnTypeBase {
+    private final ResponsePayloadModel responsePayloadModel;
+
+    protected ResponsePayloadModelListReturnType(ResponsePayloadModel responsePayloadModel) {
+      super(responsePayloadModel.getEntity().orElse(null));
+      this.responsePayloadModel = responsePayloadModel;
+    }
+
+    public ResponsePayloadModel getResponsePayloadModel() {
+      return responsePayloadModel;
+    }
+
+    @Override
+    public boolean isList() {
+      return true;
+    }
+  }
+
+  public static class SimpleListReturnType implements ReturnType {
+    private final SimpleReturnType simpleReturnType;
+
+    public SimpleListReturnType(SimpleReturnType simpleReturnType) {
+      this.simpleReturnType = simpleReturnType;
+    }
+
+    @Override
+    public Optional<EntityModel> getEntity() {
+      return Optional.empty();
+    }
+
+    @Override
+    public boolean isList() {
+      return true;
+    }
+
+    public SimpleReturnType getSimpleReturnType() {
+      return simpleReturnType;
     }
   }
 
@@ -100,7 +140,7 @@ public abstract class OperationModel {
     }
 
     @Override
-    public boolean isEntityList() {
+    public boolean isList() {
       return false;
     }
 
