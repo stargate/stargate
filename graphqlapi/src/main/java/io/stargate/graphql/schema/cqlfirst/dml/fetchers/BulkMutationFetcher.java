@@ -60,7 +60,7 @@ public abstract class BulkMutationFetcher
     OperationDefinition operation = environment.getOperationDefinition();
 
     if (containsDirective(operation, ATOMIC_DIRECTIVE)
-        && operation.getSelectionSet().getSelections().size() > 1) {
+        && (operation.getSelectionSet().getSelections().size() > 1 || queries.size() > 1)) {
       return executeAsPartOfBatch(environment, queries, buildException, operation);
     }
 
