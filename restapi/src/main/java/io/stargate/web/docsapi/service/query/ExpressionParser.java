@@ -49,11 +49,11 @@ public class ExpressionParser {
 
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
-  private final ConditionParser conditionProvider;
+  private final ConditionParser conditionParser;
 
   @Inject
   public ExpressionParser(ConditionParser predicateProvider) {
-    this.conditionProvider = predicateProvider;
+    this.conditionParser = predicateProvider;
   }
 
   /**
@@ -143,7 +143,7 @@ public class ExpressionParser {
         } else {
           FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
           Collection<BaseCondition> fieldConditions =
-              conditionProvider.getConditions(next.getValue(), numericBooleans);
+              conditionParser.getConditions(next.getValue(), numericBooleans);
           for (BaseCondition fieldCondition : fieldConditions) {
             ImmutableFilterExpression expression =
                 ImmutableFilterExpression.of(
