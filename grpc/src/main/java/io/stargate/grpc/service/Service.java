@@ -435,9 +435,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                       case Void:
                         // fill tracing id for queries that doesn't return any data (i.e. INSERT)
                         handleTraceId(
-                            result.getTracingId(),
-                            query.getParameters().getTracing(),
-                            responseBuilder);
+                            result.getTracingId(), query.getParameters(), responseBuilder);
                         break;
                       case SchemaChange:
                         break;
@@ -448,9 +446,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                                 .setData(
                                     handler.processResult((Rows) result, query.getParameters())));
                         handleTraceId(
-                            result.getTracingId(),
-                            query.getParameters().getTracing(),
-                            responseBuilder);
+                            result.getTracingId(), query.getParameters(), responseBuilder);
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -471,6 +467,16 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private void handleTraceId(
+      UUID tracingId, QueryParameters parameters, Response.Builder responseBuilder) {
+    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+  }
+
+  private void handleTraceId(
+      UUID tracingId, BatchParameters parameters, Response.Builder responseBuilder) {
+    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
   }
 
   private void handleTraceId(
@@ -497,7 +503,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
-                    handleTraceId(result.getTracingId(), parameters.getTracing(), responseBuilder);
+                    handleTraceId(result.getTracingId(), parameters, responseBuilder);
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }
