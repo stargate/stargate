@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.protobuf.ByteString;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -77,7 +76,6 @@ import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
-import org.apache.cassandra.utils.UUIDGen;
 import org.immutables.value.Value;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
@@ -478,8 +476,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private void handleTraceId(
       UUID tracingId, boolean tracingEnabled, Response.Builder responseBuilder) {
     if (tracingEnabled && tracingId != null) {
-      byte[] bytes = UUIDGen.decompose(tracingId);
-      responseBuilder.setTracingId(ByteString.copyFrom(bytes));
+      responseBuilder.setTracingId(tracingId.toString());
     }
   }
 
