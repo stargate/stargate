@@ -92,12 +92,6 @@
       <version>2.0.1</version>
       <scope>compile</scope>
     </dependency>
-      <dependency>
-          <groupId>io.stargate.cql</groupId>
-          <artifactId>cql</artifactId>
-          <version>${project.version}</version>
-          <scope>compile</scope>
-      </dependency>
   </dependencies>
   <build>
     <plugins>
