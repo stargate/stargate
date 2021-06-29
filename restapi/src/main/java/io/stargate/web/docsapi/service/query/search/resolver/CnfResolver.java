@@ -26,6 +26,8 @@ import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.rules.RulesHelper;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -87,9 +89,9 @@ public final class CnfResolver {
                 nextInMemoryResolver(expression, children, weightResolver, context, parent)
                     .orElseThrow(
                         () ->
-                            // this should never happen before we have ors
-                            new RuntimeException(
-                                "Unresolvable expression in the expression tree.")));
+                            // this should happen only if we have ors
+                            new ErrorCodeRuntimeException(
+                                ErrorCode.DOCS_API_SEARCH_OR_NOT_SUPPORTED)));
   }
 
   private static Optional<DocumentsResolver> nextPersistenceResolver(
