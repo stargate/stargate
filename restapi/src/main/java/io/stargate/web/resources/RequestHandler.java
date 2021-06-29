@@ -15,6 +15,7 @@
  */
 package io.stargate.web.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.models.Error;
@@ -58,6 +59,13 @@ public class RequestHandler {
           .entity(
               new Error(
                   "Bad request: " + ire.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
+    } catch (JsonProcessingException jpe) {
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(
+              new Error(
+                  "Unable to process JSON: " + jpe.getMessage(),
+                  Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     } catch (UnauthorizedException uae) {
       logger.info("Role unauthorized for operation", uae);

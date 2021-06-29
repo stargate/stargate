@@ -240,6 +240,13 @@ public class NamespaceResourceIntTest extends BaseOsgiIntegrationTest {
     }
 
     @Test
+    public void malformedPayload() throws IOException {
+      String r = RestUtils.post(authToken, basePath, "{\"malformed\":", 400);
+
+      assertThat(r).isEqualTo("{\"code\":400,\"message\":\"Unable to process JSON\"}");
+    }
+
+    @Test
     public void noNamespaceName() throws IOException {
       String r = RestUtils.post(authToken, basePath, "{}", 422);
 

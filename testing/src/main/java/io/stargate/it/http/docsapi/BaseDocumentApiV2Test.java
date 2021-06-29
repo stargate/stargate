@@ -156,6 +156,33 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testMalformedBadRequest() throws IOException {
+    String malformedJson = "{\"malformed\": ";
+    RestUtils.post(authToken, collectionPath, malformedJson, 400);
+    RestUtils.post(authToken, collectionPath + "/batch", "[" + malformedJson + "]", 400);
+    RestUtils.put(authToken, collectionPath + "/1", malformedJson, 400);
+    RestUtils.patch(authToken, collectionPath + "/1", malformedJson, 400);
+    RestUtils.get(authToken, collectionPath + "/1?where=" + malformedJson, 400);
+    RestUtils.get(
+        authToken,
+        collectionPath
+            + "/1?where={\"a\":{\"$eq\":\"b\"}}&fields=["
+            + malformedJson
+            + "]"
+            + malformedJson,
+        400);
+    RestUtils.get(authToken, collectionPath + "?where=" + malformedJson, 400);
+    RestUtils.get(
+        authToken,
+        collectionPath
+            + "?where={\"a\":{\"$eq\":\"b\"}}&fields=["
+            + malformedJson
+            + "]"
+            + malformedJson,
+        400);
+  }
+
+  @Test
   public void testBasicForms() throws IOException {
     RestUtils.putForm(authToken, collectionPath + "/1", "a=b&b=null&c.b=3.3&d.[0].[2]=true", 200);
 

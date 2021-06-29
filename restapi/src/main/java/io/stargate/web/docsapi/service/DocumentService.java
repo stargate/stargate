@@ -527,7 +527,7 @@ public class DocumentService {
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
 
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
-    if (schema != null && path.isEmpty()) {
+    if (schema != null && path.isEmpty() && isJson) {
       jsonSchemaHandler.validate(schema, payload);
     } else if (schema != null) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
