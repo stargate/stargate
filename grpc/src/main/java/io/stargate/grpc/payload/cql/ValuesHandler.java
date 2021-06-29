@@ -125,7 +125,7 @@ public class ValuesHandler implements PayloadHandler {
   }
 
   @Override
-  public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
+  public ResultSet processResultSet(Rows rows, QueryParameters parameters) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
@@ -158,8 +158,12 @@ public class ValuesHandler implements PayloadHandler {
               .build());
       resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     }
+    return resultSetBuilder.build();
+  }
 
-    return Any.pack(resultSetBuilder.build());
+  @Override
+  public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
+    return Any.pack(processResultSet(rows, parameters));
   }
 
   @Nullable

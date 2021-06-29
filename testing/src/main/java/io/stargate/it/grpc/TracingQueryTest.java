@@ -142,4 +142,52 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
   }
+
+  @Test
+  public void tracingIdNormalQueryEnabledGetTracingData(@TestKeyspace CqlIdentifier keyspace) {
+    // given
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // when
+    Response response =
+        stub.executeQuery(
+            cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace, true)));
+
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    validateTrace(response);
+
+    // when
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES (?, ?)",
+                queryParameters(keyspace, true),
+                Values.of("b"),
+                Values.of(2)));
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    validateTrace(response);
+
+    // when
+    response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, true)));
+
+    // then
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    validateTrace(response);
+  }
+
+  private void validateTrace(Response response) {
+    QueryOuterClass.TraceEvent firstTrace = response.getTraces(0);
+    assertThat(firstTrace.getActivity()).isNotEmpty();
+    assertThat(firstTrace.getSource()).isNotEmpty();
+    assertThat(firstTrace.getSourceElapsed()).isGreaterThan(0);
+    assertThat(firstTrace.getThread()).isNotEmpty();
+  }
 }

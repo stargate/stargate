@@ -199,10 +199,17 @@ message ColumnSpec {
   string name = 2;
 }
 
+message TraceEvent {
+  string activity = 1;
+  string source = 2;
+  int64 source_elapsed = 3;
+  string thread = 4;
+}
 message Response {
   Payload result_set = 1;
   string tracing_id = 2;
   repeated string warnings = 3;
+  repeated TraceEvent traces = 4;
 }
 
 message Unavailable {

@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.protobuf.Any;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -35,12 +36,15 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result;
 import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
+import io.stargate.grpc.Values;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -56,6 +60,7 @@ import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.Unavailable;
 import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -65,6 +70,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
@@ -77,12 +84,18 @@ import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
-
+  private static final Logger log = LoggerFactory.getLogger(Service.class);
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
+  private static final String SYSTEM_TRACES_KEYSPACE = "system_traces";
+  private static final String TRACING_PREPARE_QUERY =
+      "select activity, source, source_elapsed, thread from events where session_id = ?";
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -143,6 +156,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection = newConnection(authenticationSubject.asUser());
       QueryParameters queryParameters = query.getParameters();
 
+      // we could do if(queryParameters.getTracing()), but this is only one prepare query and
+      // complicates the code substantially
+      CompletableFuture<Prepared> tracingPrepareQuery = prepareTracingQuery(connection);
+
       PrepareInfo prepareInfo =
           ImmutablePrepareInfo.builder()
               .keyspace(
@@ -151,7 +168,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               .cql(query.getCql())
               .build();
 
-      prepareQuery(connection, prepareInfo, queryParameters.getTracing())
+      CompletableFuture<Prepared> prepareQuery =
+          prepareQuery(connection, prepareInfo, queryParameters.getTracing());
+
+      prepareQuery
+          .thenCombine(tracingPrepareQuery, PreparedQueryAndTracing::new)
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -163,6 +184,16 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private CompletableFuture<Prepared> prepareTracingQuery(Connection connection) {
+    PrepareInfo prepareInfo =
+        ImmutablePrepareInfo.builder()
+            .keyspace(SYSTEM_TRACES_KEYSPACE)
+            .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
+            .cql(TRACING_PREPARE_QUERY)
+            .build();
+    return prepareQuery(connection, prepareInfo, true);
   }
 
   @Override
@@ -410,7 +441,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private void executePrepared(
       Connection connection,
-      Prepared prepared,
+      PreparedQueryAndTracing prepared,
       Query query,
       StreamObserver<Response> responseObserver) {
     try {
@@ -421,41 +452,60 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       QueryParameters parameters = query.getParameters();
 
-      connection
-          .execute(
-              bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
+      CompletableFuture<Result> queryExecute =
+          connection.execute(
+              bindValues(handler, prepared.preparedQuery, values),
+              makeParameters(parameters),
+              queryStartNanoTime);
+
+      queryExecute
+          .handle(executeQuery(query, responseObserver, handler))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  handleException(t, responseObserver);
+              executeTracingQueryIfNeeded(
+                  connection, responseObserver, parameters, prepared.preparedTracing, handler));
+    } catch (Throwable t) {
+      handleException(t, responseObserver);
+    }
+  }
+
+  @NotNull
+  private BiConsumer<Response.Builder, Throwable> executeTracingQueryIfNeeded(
+      Connection connection,
+      StreamObserver<Response> responseObserver,
+      QueryParameters parameters,
+      Prepared preparedTracing,
+      PayloadHandler handler) {
+    return (responseBuilder, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else if (!parameters.getTracing()) {
+        // tracing is not enabled, fill the response observer immediately
+        Response response = responseBuilder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+      } else {
+        try {
+          long queryStartNanoTime = System.nanoTime();
+
+          CompletableFuture<Result> queryExecute =
+              connection.execute(
+                  bindValues(handler, preparedTracing, cqlPayload(responseBuilder.getTracingId())),
+                  makeTracingParameters(parameters),
+                  queryStartNanoTime);
+
+          queryExecute.whenComplete(
+              (result, throwable) -> {
+                if (throwable != null) {
+                  handleException(throwable, responseObserver);
                 } else {
                   try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    switch (result.kind) {
-                      case Void:
-                        // fill tracing id for queries that doesn't return any data (i.e. INSERT)
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SchemaChange:
-                        break;
-                      case Rows:
-                        responseBuilder.setResultSet(
-                            Payload.newBuilder()
-                                .setType(query.getValues().getType())
-                                .setData(
-                                    handler.processResult((Rows) result, query.getParameters())));
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SetKeyspace:
-                        throw Status.INVALID_ARGUMENT
-                            .withDescription("USE <keyspace> not supported")
-                            .asException();
-                      default:
-                        throw Status.INTERNAL
-                            .withDescription("Unhandled result kind")
-                            .asException();
+                    // for tracing query, the only supported return type are Rows
+                    if (result.kind == Kind.Rows) {
+                      addTraces(parameters, handler, responseBuilder, (Rows) result);
+                    } else {
+                      throw Status.INTERNAL
+                          .withDescription("Unhandled result kind for system_trace query data.")
+                          .asException();
                     }
                     responseObserver.onNext(responseBuilder.build());
                     responseObserver.onCompleted();
@@ -464,9 +514,96 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   }
                 }
               });
-    } catch (Throwable t) {
-      handleException(t, responseObserver);
+
+        } catch (Throwable throwable) {
+          handleException(throwable, responseObserver);
+        }
+      }
+    };
+  }
+
+  private void addTraces(
+      QueryParameters parameters,
+      PayloadHandler handler,
+      Response.Builder responseBuilder,
+      Rows rows)
+      throws Exception {
+    QueryOuterClass.ResultSet resultSet = handler.processResultSet(rows, parameters);
+
+    List<QueryOuterClass.TraceEvent> traceEvents = new ArrayList<>();
+    for (QueryOuterClass.Row row : resultSet.getRowsList()) {
+      traceEvents.add(
+          // we rely on the ordering of data in the row.
+          // It is determined by the columns ordering in the TRACING_PREPARE_QUERY
+          QueryOuterClass.TraceEvent.newBuilder()
+              .setActivity(row.getValues(0).getString())
+              .setSource(inetAddressToString(row.getValues(1)))
+              .setSourceElapsed(row.getValues(2).getInt())
+              .setThread(row.getValues(3).getString())
+              .build());
     }
+    responseBuilder.addAllTraces(traceEvents);
+  }
+
+  private String inetAddressToString(QueryOuterClass.Value value) {
+    byte[] bytes = value.getBytes().toByteArray();
+    if (bytes == null || bytes.length == 0) {
+      return "";
+    }
+
+    try {
+      return InetAddress.getByAddress(bytes).toString();
+    } catch (Exception ex) {
+      log.warn("Problem when getting tracing source value.");
+      return "";
+    }
+  }
+
+  private Payload cqlPayload(String tracingId) {
+    QueryOuterClass.Value tracingIdValue = Values.of(UUID.fromString(tracingId));
+    return Payload.newBuilder()
+        .setType(Payload.Type.CQL)
+        .setData(Any.pack(QueryOuterClass.Values.newBuilder().addValues(tracingIdValue).build()))
+        .build();
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, Response.Builder> executeQuery(
+      Query query, StreamObserver<Response> responseObserver, PayloadHandler handler) {
+    return (result, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else {
+        try {
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          switch (result.kind) {
+            case Void:
+              // fill tracing id for queries that doesn't return any data (i.e. INSERT)
+              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              break;
+            case SchemaChange:
+              break;
+            case Rows:
+              responseBuilder.setResultSet(
+                  Payload.newBuilder()
+                      .setType(query.getValues().getType())
+                      .setData(handler.processResult((Rows) result, query.getParameters())));
+              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              break;
+            case SetKeyspace:
+              throw Status.INVALID_ARGUMENT
+                  .withDescription("USE <keyspace> not supported")
+                  .asException();
+            default:
+              throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          return responseBuilder;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return makeResponseBuilder(result);
+    };
   }
 
   private void handleTraceId(
@@ -561,6 +698,20 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
 
     return builder.tracingRequested(parameters.getTracing()).build();
+  }
+
+  private Parameters makeTracingParameters(QueryParameters parameters) {
+    ImmutableParameters.Builder builder = ImmutableParameters.builder();
+    // only consistency levels can be inherited by tracing query
+    if (parameters.hasConsistency()) {
+      builder.consistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
+    }
+    if (parameters.hasSerialConsistency()) {
+      builder.serialConsistencyLevel(
+          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
+    }
+    return builder.build();
   }
 
   private Parameters makeParameters(BatchParameters parameters) {
@@ -687,6 +838,16 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   }
                 }
               });
+    }
+  }
+
+  private static class PreparedQueryAndTracing {
+    private final Prepared preparedQuery;
+    private final Prepared preparedTracing;
+
+    public PreparedQueryAndTracing(Prepared preparedQuery, Prepared preparedTracing) {
+      this.preparedQuery = preparedQuery;
+      this.preparedTracing = preparedTracing;
     }
   }
 }
