@@ -94,7 +94,7 @@ public class ExpressionParser {
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @return List of all expressions
    */
-  public List<Expression<FilterExpression>> parse(
+  private List<Expression<FilterExpression>> parse(
       List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     return parse(
         prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));

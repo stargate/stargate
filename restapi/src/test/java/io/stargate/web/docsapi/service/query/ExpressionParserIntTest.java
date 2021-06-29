@@ -231,21 +231,16 @@ class ExpressionParserIntTest {
                                     }));
               });
     }
-  }
-
-  @Nested
-  class Parse {
 
     @Test
     public void singleFieldString() throws Exception {
       String json = "{\"myField\": {\"$lt\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -274,11 +269,10 @@ class ExpressionParserIntTest {
       String json = "{\"myField\": {\"$gte\": true}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -307,11 +301,10 @@ class ExpressionParserIntTest {
       String json = "{\"myField\": {\"$lte\": 22}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -339,11 +332,10 @@ class ExpressionParserIntTest {
       String json = "{\"my.filter.field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -372,11 +364,10 @@ class ExpressionParserIntTest {
       String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -406,11 +397,10 @@ class ExpressionParserIntTest {
       String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -443,11 +433,10 @@ class ExpressionParserIntTest {
       PathSegment segment = mock(PathSegment.class);
       when(segment.getPath()).thenReturn("first").thenReturn("second");
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Arrays.asList(segment, segment), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Arrays.asList(segment, segment), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -478,10 +467,12 @@ class ExpressionParserIntTest {
           "{\"myField\": {\"$eq\": \"some-value\", \"$in\": [\"array-one\", \"array-two\"]}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
-      assertThat(result)
+      assertThat(result).isInstanceOf(And.class);
+      List<? extends Expression<?>> children = ((And<?>) result).getChildren();
+      assertThat(children)
           .hasSize(2)
           .anySatisfy(
               e ->
@@ -545,10 +536,12 @@ class ExpressionParserIntTest {
           "{\"myField\": {\"$eq\": \"some-value\"}, \"myOtherField\": {\"$ne\": \"some-small-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
-      assertThat(result)
+      assertThat(result).isInstanceOf(And.class);
+      List<? extends Expression<?>> children = ((And<?>) result).getChildren();
+      assertThat(children)
           .hasSize(2)
           .anySatisfy(
               e ->
@@ -603,12 +596,11 @@ class ExpressionParserIntTest {
           "{\"$or\": [{\"myField\": {\"$eq\": \"some-value\"}}, {\"myOtherField\": {\"$ne\": \"some-small-value\"}}]}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .hasSize(1)
-          .anySatisfy(
+          .satisfies(
               e ->
                   assertThat(e)
                       .isInstanceOfSatisfying(
@@ -682,7 +674,9 @@ class ExpressionParserIntTest {
       String json = "{\"$or\": {\"myField\": {\"$eq\": \"b\"}}}";
       JsonNode root = mapper.readTree(json);
 
-      Throwable t = catchThrowable(() -> service.parse(Collections.emptyList(), root, false));
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -695,12 +689,11 @@ class ExpressionParserIntTest {
           "{\"$and\": [{\"myField\": {\"$eq\": \"some-value\"}}, {\"myOtherField\": {\"$ne\": \"some-small-value\"}}]}";
       JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .hasSize(1)
-          .anySatisfy(
+          .satisfies(
               e ->
                   assertThat(e)
                       .isInstanceOfSatisfying(
@@ -774,7 +767,9 @@ class ExpressionParserIntTest {
       String json = "{\"$and\": {\"myField\": {\"$eq\": \"b\"}}}";
       JsonNode root = mapper.readTree(json);
 
-      Throwable t = catchThrowable(() -> service.parse(Collections.emptyList(), root, false));
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
