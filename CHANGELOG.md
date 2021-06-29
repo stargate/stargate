@@ -1,5 +1,28 @@
 # Changelog
 
+## [v1.0.29](https://github.com/stargate/stargate/tree/v1.0.29) (2021-06-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.28...v1.0.29)
+
+**Fixed bugs:**
+
+- Unable to create materialized view in Stargate 1.0.28 [\#1073](https://github.com/stargate/stargate/issues/1073)
+
+**Closed issues:**
+
+- GraphQL CQL-first: `@atomic` bulk insert should generate a CQL batch [\#1069](https://github.com/stargate/stargate/issues/1069)
+- Refactor in-document get/search code to be aligned with DocumentSearchService [\#1059](https://github.com/stargate/stargate/issues/1059)
+
+**Merged pull requests:**
+
+- Support Materialized View comments [\#1074](https://github.com/stargate/stargate/pull/1074) ([dimas-b](https://github.com/dimas-b))
+- GraphQL CQL-first: generate batch for atomic bulk insert [\#1070](https://github.com/stargate/stargate/pull/1070) ([olim7t](https://github.com/olim7t))
+- gRPC tracing [\#1062](https://github.com/stargate/stargate/pull/1062) ([tomekl007](https://github.com/tomekl007))
+- Bumping version for next release [\#1060](https://github.com/stargate/stargate/pull/1060) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Get the user from the original clientState when cloning [\#1053](https://github.com/stargate/stargate/pull/1053) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add endpoint to write multiple docs [\#1043](https://github.com/stargate/stargate/pull/1043) ([EricBorczuk](https://github.com/EricBorczuk))
+- Support bulk insert [\#1042](https://github.com/stargate/stargate/pull/1042) ([tomekl007](https://github.com/tomekl007))
+
 ## [v1.0.28](https://github.com/stargate/stargate/tree/v1.0.28) (2021-06-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.27...v1.0.28)

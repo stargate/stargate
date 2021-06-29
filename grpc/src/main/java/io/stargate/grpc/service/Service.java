@@ -62,6 +62,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nullable;
@@ -449,7 +450,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
                     switch (result.kind) {
                       case Void:
-                      case SchemaChange: // Fallthrough intended
+                        // fill tracing id for queries that doesn't return any data (i.e. INSERT)
+                        handleTraceId(
+                            result.getTracingId(), query.getParameters(), responseBuilder);
+                        break;
+                      case SchemaChange:
                         break;
                       case Rows:
                         responseBuilder.setResultSet(
@@ -457,6 +462,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                                 .setType(query.getValues().getType())
                                 .setData(
                                     handler.processResult((Rows) result, query.getParameters())));
+                        handleTraceId(
+                            result.getTracingId(), query.getParameters(), responseBuilder);
                         break;
                       case SetKeyspace:
                         throw Status.INVALID_ARGUMENT
@@ -479,6 +486,23 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
+  private void handleTraceId(
+      UUID tracingId, QueryParameters parameters, Response.Builder responseBuilder) {
+    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+  }
+
+  private void handleTraceId(
+      UUID tracingId, BatchParameters parameters, Response.Builder responseBuilder) {
+    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+  }
+
+  private void handleTraceId(
+      UUID tracingId, boolean tracingEnabled, Response.Builder responseBuilder) {
+    if (tracingEnabled && tracingId != null) {
+      responseBuilder.setTracingId(tracingId.toString());
+    }
+  }
+
   private void executeBatch(
       Connection connection,
       io.stargate.db.Batch preparedBatch,
@@ -496,6 +520,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 } else {
                   try {
                     Response.Builder responseBuilder = makeResponseBuilder(result);
+                    handleTraceId(result.getTracingId(), parameters, responseBuilder);
                     if (result.kind != Kind.Void) {
                       throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
                     }

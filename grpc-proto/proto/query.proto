@@ -201,7 +201,7 @@ message ColumnSpec {
 
 message Response {
   Payload result_set = 1;
-  bytes tracing_id = 2;
+  string tracing_id = 2;
   repeated string warnings = 3;
 }
 

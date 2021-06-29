@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import org.apache.cassandra.config.Config;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -50,7 +51,9 @@ class CassandraPersistenceIT extends PersistenceTest {
     }
 
     persistence = new CassandraPersistence();
-    persistence.initialize(makeConfig(baseDir));
+    Config config = makeConfig(baseDir);
+    config.enable_materialized_views = true;
+    persistence.initialize(config);
   }
 
   @AfterAll

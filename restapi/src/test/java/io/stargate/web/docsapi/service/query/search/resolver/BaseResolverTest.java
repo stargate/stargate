@@ -18,9 +18,13 @@
 package io.stargate.web.docsapi.service.query.search.resolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Or;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -155,6 +159,23 @@ class BaseResolverTest {
       DocumentsResolver result = BaseResolver.resolve(And.of(expression1), context);
 
       assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
+    }
+
+    @Test
+    public void orOnSamePath() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition1 = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
+      BaseCondition condition2 = ImmutableStringCondition.of(LtFilterOperation.of(), "find-me");
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1, 0);
+      FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2, 1);
+
+      Throwable t =
+          catchThrowable(() -> BaseResolver.resolve(Or.of(expression1, expression2), context));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OR_NOT_SUPPORTED);
     }
   }
 }

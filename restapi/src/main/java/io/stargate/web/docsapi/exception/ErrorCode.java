@@ -101,6 +101,10 @@ public enum ErrorCode {
   DOCS_API_SEARCH_OBJECT_REQUIRED(
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
 
+  DOCS_API_SEARCH_OR_NOT_SUPPORTED(
+      Response.Status.BAD_REQUEST,
+      "Searching documents with the $or condition is not yet supported."),
+
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,
       "The results as requested must fit in one page, try increasing the `page-size` parameter."),

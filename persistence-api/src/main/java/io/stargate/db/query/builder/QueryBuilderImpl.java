@@ -83,7 +83,7 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "index",
           definedAs =
-              "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from)"
+              "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from withComment?)"
                   + " | (index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? (custom options?)?)))"),
     })
 public class QueryBuilderImpl {
