@@ -15,6 +15,7 @@
  */
 package io.stargate.grpc.service;
 
+import static io.stargate.grpc.service.Service.TRACING_PREPARE_QUERY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -75,6 +76,9 @@ public class ExecuteQueryTest extends BaseServiceTest {
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
     when(connection.prepare(eq(query), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+    // prepare tracing
+    when(connection.prepare(eq(TRACING_PREPARE_QUERY), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))

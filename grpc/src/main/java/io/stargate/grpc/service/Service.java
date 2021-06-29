@@ -94,7 +94,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
   private static final String SYSTEM_TRACES_KEYSPACE = "system_traces";
-  private static final String TRACING_PREPARE_QUERY =
+  public static final String TRACING_PREPARE_QUERY =
       "select activity, source, source_elapsed, thread from events where session_id = ?";
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
@@ -478,8 +478,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return (responseBuilder, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
-      } else if (!parameters.getTracing()) {
-        // tracing is not enabled, fill the response observer immediately
+      } else if (!parameters.getTracing() || responseBuilder.getTracingId().isEmpty()) {
+        // tracing is not enabled or not present, fill the response observer immediately
         Response response = responseBuilder.build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
