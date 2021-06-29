@@ -74,8 +74,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void queryAfterSchemaChange(@TestKeyspace CqlIdentifier keyspace)
-      throws InvalidProtocolBufferException {
+  public void queryAfterSchemaChange() {
     StargateBlockingStub stub = stubWithCallCredentials();
 
     // Create keyspace, table, and then insert some data
