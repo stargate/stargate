@@ -80,6 +80,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.MaterializedView;
 import io.stargate.db.schema.ParameterizedType;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
@@ -663,6 +664,43 @@ public abstract class PersistenceTest {
     assertThat(actualTable.indexes().size()).isEqualTo(expectedTable.indexes().size());
     assertThat(actualTable.index("byD").toString())
         .isEqualTo(expectedTable.index("byD").toString());
+  }
+
+  @Test
+  public void testMaterializedView() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("a", Int, PartitionKey)
+        .column("b", Varchar, Clustering)
+        .withComment("test-comment1")
+        .build()
+        .execute()
+        .join();
+    dataStore
+        .queryBuilder()
+        .create()
+        .materializedView(keyspace, "test_MV")
+        .asSelect()
+        .column("b", PartitionKey)
+        .column("a", Clustering)
+        .from(keyspace, table)
+        .withComment("test-comment2")
+        .build()
+        .execute()
+        .join();
+
+    MaterializedView mv = dataStore.schema().keyspace(keyspace).materializedView("test_MV");
+    assertThat(mv).isNotNull();
+    assertThat(mv.name()).isEqualTo("test_MV");
+    assertThat(mv.comment()).isEqualTo("test-comment2");
+    assertThat(mv.columns()).hasSize(2);
+    assertThat(mv.column("b").kind()).isEqualTo(PartitionKey);
+    assertThat(mv.column("b").type()).isEqualTo(Varchar);
+    assertThat(mv.column("a").kind()).isEqualTo(Clustering);
+    assertThat(mv.column("a").type()).isEqualTo(Int);
   }
 
   @Disabled("Disabling for now since it currently just hangs")
