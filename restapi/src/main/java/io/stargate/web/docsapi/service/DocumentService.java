@@ -172,6 +172,9 @@ public class DocumentService {
       try {
         return shredJson(surfer, db, path, key, trimmed, patching);
       } catch (RuntimeException e) {
+        if (e instanceof ErrorCodeRuntimeException) {
+          throw e;
+        }
         throw new ErrorCodeRuntimeException(
             ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED,
             "Malformed JSON object found during read.",

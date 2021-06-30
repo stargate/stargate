@@ -1414,7 +1414,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
-    RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 500);
+    RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 400);
 
     String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
     assertThat(r)
