@@ -169,7 +169,14 @@ public class DocumentService {
       boolean isJson) {
     String trimmed = payload.trim();
     if (isJson) {
-      return shredJson(surfer, db, path, key, trimmed, patching);
+      try {
+        return shredJson(surfer, db, path, key, trimmed, patching);
+      } catch (RuntimeException e) {
+        throw new ErrorCodeRuntimeException(
+            ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED,
+            "Malformed JSON object found during read.",
+            e);
+      }
     } else {
       return shredForm(db, path, key, trimmed, patching);
     }
@@ -476,15 +483,22 @@ public class DocumentService {
           docs.entrySet().stream()
               .map(
                   data -> {
-                    bindVariableList.addAll(
-                        shredJson(
-                                surfer,
-                                finalDb,
-                                Collections.emptyList(),
-                                data.getKey(),
-                                data.getValue(),
-                                false)
-                            .left);
+                    try {
+                      bindVariableList.addAll(
+                          shredJson(
+                                  surfer,
+                                  finalDb,
+                                  Collections.emptyList(),
+                                  data.getKey(),
+                                  data.getValue(),
+                                  false)
+                              .left);
+                    } catch (RuntimeException e) {
+                      throw new ErrorCodeRuntimeException(
+                          ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED,
+                          "Malformed JSON object found during read.",
+                          e);
+                    }
                     return data.getKey();
                   })
               .collect(Collectors.toList());
