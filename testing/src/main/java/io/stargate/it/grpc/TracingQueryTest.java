@@ -183,6 +183,28 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     validateTrace(response);
   }
 
+  @Test
+  public void tracingIdBatchQueryEnabledGetTracingData(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    Response response =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .setParameters(batchParameters(keyspace, true))
+                .build());
+    assertThat(response).isNotNull();
+    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    validateTrace(response);
+  }
+
   private void validateTrace(Response response) {
     QueryOuterClass.TraceEvent firstTrace = response.getTraces(0);
     assertThat(firstTrace.getActivity()).isNotEmpty();

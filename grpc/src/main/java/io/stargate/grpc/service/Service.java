@@ -156,8 +156,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection = newConnection(authenticationSubject.asUser());
       QueryParameters queryParameters = query.getParameters();
 
-      // we could do if(queryParameters.getTracing()), but this is only one prepare query and
-      // complicates the code substantially
       CompletableFuture<Prepared> tracingPrepareQuery = prepareTracingQuery(connection);
 
       PrepareInfo prepareInfo =
@@ -211,14 +209,18 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       // TODO: Add a limit for the maximum number of queries in a batch? The setting
       // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
 
-      new BatchPreparer(connection, batch)
-          .prepare()
+      CompletableFuture<Prepared> tracingPrepareQuery = prepareTracingQuery(connection);
+      CompletableFuture<io.stargate.db.Batch> batchPrepareQuery =
+          new BatchPreparer(connection, batch).prepare();
+
+      batchPrepareQuery
+          .thenCombine(tracingPrepareQuery, BatchPrepareAndTracing::new)
           .whenComplete(
-              (preparedBatch, t) -> {
+              (prepared, t) -> {
                 if (t != null) {
                   handleException(t, responseObserver);
                 } else {
-                  executeBatch(connection, preparedBatch, batch.getParameters(), responseObserver);
+                  executeBatch(connection, prepared, batch.getParameters(), responseObserver);
                 }
               });
 
@@ -459,7 +461,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               queryStartNanoTime);
 
       queryExecute
-          .handle(executeQuery(query, responseObserver, handler))
+          .handle(handleQuery(query, responseObserver, handler))
           .whenComplete(
               executeTracingQueryIfNeeded(
                   connection, responseObserver, parameters, prepared.preparedTracing, handler));
@@ -568,7 +570,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiFunction<Result, Throwable, Response.Builder> executeQuery(
+  private BiFunction<Result, Throwable, Response.Builder> handleQuery(
       Query query, StreamObserver<Response> responseObserver, PayloadHandler handler) {
     return (result, t) -> {
       if (t != null) {
@@ -625,35 +627,64 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private void executeBatch(
       Connection connection,
-      io.stargate.db.Batch preparedBatch,
+      BatchPrepareAndTracing prepared,
       BatchParameters parameters,
       StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
+      // todo extract CQL from batch
+      PayloadHandler handler = PayloadHandlers.get(Payload.Type.CQL);
+
       connection
-          .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
+          .batch(prepared.batch, makeParameters(parameters), queryStartNanoTime)
+          .handle(handleBatchQuery(parameters, responseObserver))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  handleException(t, responseObserver);
-                } else {
-                  try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    handleTraceId(result.getTracingId(), parameters, responseBuilder);
-                    if (result.kind != Kind.Void) {
-                      throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
-                    }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  toTracingQueryParameters(parameters),
+                  prepared.preparedTracing,
+                  handler));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private QueryParameters toTracingQueryParameters(BatchParameters parameters) {
+    QueryParameters.Builder builder = QueryParameters.newBuilder();
+
+    if (parameters.hasConsistency()) {
+      builder.setConsistency(parameters.getConsistency());
+    }
+
+    if (parameters.hasSerialConsistency()) {
+      builder.setSerialConsistency(parameters.getSerialConsistency());
+    }
+
+    return builder.setTracing(parameters.getTracing()).build();
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, Response.Builder> handleBatchQuery(
+      BatchParameters parameters, StreamObserver<Response> responseObserver) {
+    return (result, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else {
+        try {
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          handleTraceId(result.getTracingId(), parameters, responseBuilder);
+          if (result.kind != Kind.Void) {
+            throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          return responseBuilder;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return makeResponseBuilder(result);
+    };
   }
 
   private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
@@ -847,6 +878,16 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
     public PreparedQueryAndTracing(Prepared preparedQuery, Prepared preparedTracing) {
       this.preparedQuery = preparedQuery;
+      this.preparedTracing = preparedTracing;
+    }
+  }
+
+  private static class BatchPrepareAndTracing {
+    private final io.stargate.db.Batch batch;
+    private final Prepared preparedTracing;
+
+    public BatchPrepareAndTracing(io.stargate.db.Batch batch, Prepared preparedTracing) {
+      this.batch = batch;
       this.preparedTracing = preparedTracing;
     }
   }
