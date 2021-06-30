@@ -176,9 +176,7 @@ public class DocumentService {
           throw e;
         }
         throw new ErrorCodeRuntimeException(
-            ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED,
-            "Malformed JSON object found during read.",
-            e);
+            ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
       }
     } else {
       return shredForm(db, path, key, trimmed, patching);
@@ -462,7 +460,14 @@ public class DocumentService {
       }
 
       while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
-        JsonNode json = mapper.readTree(jsonParser);
+        JsonNode json;
+        try {
+          json = mapper.readTree(jsonParser);
+        } catch (JsonProcessingException e) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_INVALID_JSON_VALUE,
+              "Malformed JSON encountered during batch write.");
+        }
         String docId;
         if (docsPath.isPresent()) {
           if (!json.at(docsPath.get()).isTextual()) {
@@ -498,7 +503,7 @@ public class DocumentService {
                               .left);
                     } catch (RuntimeException e) {
                       throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED,
+                          ErrorCode.DOCS_API_INVALID_JSON_VALUE,
                           "Malformed JSON object found during read.",
                           e);
                     }
@@ -537,7 +542,7 @@ public class DocumentService {
       boolean isJson,
       Map<String, String> headers,
       ExecutionContext context)
-      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+      throws UnauthorizedException, ProcessingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 

@@ -18,7 +18,6 @@
 package io.stargate.web.docsapi.resources.error;
 
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.models.Error;
@@ -48,10 +47,6 @@ public final class ErrorHandler
               new Error(
                   "Role unauthorized for operation: " + throwable.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
-          .build();
-    } else if (throwable instanceof JsonProcessingException) {
-      return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Unable to process JSON", Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     } else if (throwable instanceof NoNodeAvailableException) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)

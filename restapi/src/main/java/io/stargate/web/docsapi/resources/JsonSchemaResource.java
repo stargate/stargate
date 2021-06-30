@@ -1,8 +1,11 @@
 package io.stargate.web.docsapi.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.JsonSchemaResponse;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.JsonSchemaHandler;
@@ -66,7 +69,13 @@ public class JsonSchemaResource {
           DocumentDB db =
               dbFactory.getDocDataStoreForToken(
                   token, RequestToHeadersMapper.getAllHeaders(request));
-          JsonNode schemaRaw = mapper.readTree(payload);
+          JsonNode schemaRaw = null;
+          try {
+            schemaRaw = mapper.readTree(payload);
+          } catch (JsonProcessingException e) {
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, "Malformed JSON schema provided.");
+          }
           schemaChecker.checkValidity(namespace, collection, db);
           JsonSchemaResponse resp =
               jsonSchemaHandler.attachSchemaToCollection(db, namespace, collection, schemaRaw);
