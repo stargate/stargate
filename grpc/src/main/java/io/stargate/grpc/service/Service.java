@@ -15,6 +15,8 @@
  */
 package io.stargate.grpc.service;
 
+import static io.stargate.proto.QueryOuterClass.*;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
@@ -88,6 +90,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
+  public static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -431,7 +434,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
           .handle(handleQuery(query, responseObserver, handler))
           .whenComplete(
-              executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
@@ -439,7 +446,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   @NotNull
   private BiConsumer<Response.Builder, Throwable> executeTracingQueryIfNeeded(
-      Connection connection, StreamObserver<Response> responseObserver, boolean tracingEnabled) {
+      Connection connection,
+      StreamObserver<Response> responseObserver,
+      boolean tracingEnabled,
+      ConsistencyLevel consistencyLevel) {
     return (responseBuilder, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
@@ -450,7 +460,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
         responseObserver.onCompleted();
       } else {
         try {
-          new QueryTracingFetcher(UUID.fromString(responseBuilder.getTracingId()), connection)
+          new QueryTracingFetcher(
+                  UUID.fromString(responseBuilder.getTracingId()), connection, consistencyLevel)
               .fetch()
               .whenComplete(
                   (traces, throwable) -> {
@@ -537,9 +548,29 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
           .handle(handleBatchQuery(parameters, responseObserver))
           .whenComplete(
-              executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
+    }
+  }
+
+  private ConsistencyLevel getTracingConsistency(QueryParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
+    }
+  }
+
+  private ConsistencyLevel getTracingConsistency(BatchParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
     }
   }
 

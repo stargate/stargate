@@ -136,6 +136,7 @@ message QueryParameters {
   google.protobuf.Int64Value timestamp = 7;
   ConsistencyValue serial_consistency = 8;
   google.protobuf.Int32Value now_in_seconds = 9;
+  ConsistencyValue tracing_consistency = 10;
 }
 
 message TypeSpec {
@@ -288,6 +289,7 @@ message BatchParameters {
   google.protobuf.Int64Value timestamp = 4;
   ConsistencyValue serial_consistency = 5;
   google.protobuf.Int32Value now_in_seconds = 6;
+  ConsistencyValue tracing_consistency = 7;
 }
 
 message Batch {
