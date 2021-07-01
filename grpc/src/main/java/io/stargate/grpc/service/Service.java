@@ -82,17 +82,11 @@ import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.immutables.value.Value;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
-  private static final Logger log = LoggerFactory.getLogger(Service.class);
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
-  private static final String SYSTEM_TRACES_KEYSPACE = "system_traces";
-  public static final String TRACING_PREPARE_QUERY =
-      "select activity, source, source_elapsed, thread from events where session_id = ?";
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -468,7 +462,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     if (throwable != null) {
                       handleException(throwable, responseObserver);
                     } else {
-                      responseBuilder.addAllTraces(traces);
+                      responseBuilder.addAllTraceEvents(traces);
                       responseObserver.onNext(responseBuilder.build());
                       responseObserver.onCompleted();
                     }
@@ -618,20 +612,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
 
     return builder.tracingRequested(parameters.getTracing()).build();
-  }
-
-  private Parameters makeTracingParameters(QueryParameters parameters) {
-    ImmutableParameters.Builder builder = ImmutableParameters.builder();
-    // only consistency levels can be inherited by tracing query
-    if (parameters.hasConsistency()) {
-      builder.consistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
-    }
-    if (parameters.hasSerialConsistency()) {
-      builder.serialConsistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
-    }
-    return builder.build();
   }
 
   private Parameters makeParameters(BatchParameters parameters) {

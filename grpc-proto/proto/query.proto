@@ -209,7 +209,7 @@ message Response {
   Payload result_set = 1;
   string tracing_id = 2;
   repeated string warnings = 3;
-  repeated TraceEvent traces = 4;
+  repeated TraceEvent trace_events = 4;
 }
 
 message Unavailable {

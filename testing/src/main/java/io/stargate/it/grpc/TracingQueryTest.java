@@ -156,7 +156,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
 
     // when
@@ -170,7 +170,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
 
     // when
@@ -179,7 +179,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response.hasResultSet()).isTrue();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
   }
 
@@ -201,12 +201,12 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .build());
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTracesList().size()).isGreaterThan(1);
+    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
   }
 
   private void validateTrace(Response response) {
-    QueryOuterClass.TraceEvent firstTrace = response.getTraces(0);
+    QueryOuterClass.TraceEvent firstTrace = response.getTraceEvents(0);
     assertThat(firstTrace.getActivity()).isNotEmpty();
     assertThat(firstTrace.getSource()).isNotEmpty();
     assertThat(firstTrace.getSourceElapsed()).isGreaterThan(0);
