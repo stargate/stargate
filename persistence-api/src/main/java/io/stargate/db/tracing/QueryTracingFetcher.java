@@ -33,23 +33,17 @@ import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryTracingFetcher {
-
+r
   private final UUID tracingId;
-  private final Persistence.Connection connection;
-  private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<List<Row>>();
+  private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<>();
   private static final ConsistencyLevel TRACE_CONSISTENCY = ConsistencyLevel.ONE;
   private static final int REQUEST_TRACE_ATTEMPTS = 5;
   private static final Duration TRACE_INTERVAL = Duration.ofMillis(3);
-  private final Parameters parameters;
   private final ScheduledExecutorService executorService;
-  private final ByteBuffer tracingIdBytes;
   private final PersistenceBackedDataStore persistenceBackedDataStore;
 
   public QueryTracingFetcher(UUID tracingId, Persistence.Connection connection) {
     this.tracingId = tracingId;
-    this.tracingIdBytes = decompose(tracingId);
-    this.connection = connection;
-    this.parameters = createTracingQueryParameters();
     this.executorService = Executors.newSingleThreadScheduledExecutor();
     this.persistenceBackedDataStore =
         new PersistenceBackedDataStore(connection, DataStoreOptions.defaults());
