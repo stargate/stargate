@@ -15,13 +15,11 @@
  */
 package io.stargate.db.tracing;
 
-import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.PersistenceBackedDataStore;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -30,12 +28,10 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryTracingFetcher {
   private final UUID tracingId;
   private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<>();
-  private static final ConsistencyLevel TRACE_CONSISTENCY = ConsistencyLevel.ONE;
   private static final int REQUEST_TRACE_ATTEMPTS = 5;
   private static final Duration TRACE_INTERVAL = Duration.ofMillis(3);
   private final ScheduledExecutorService executorService;
@@ -51,10 +47,6 @@ public class QueryTracingFetcher {
 
   public CompletionStage<List<Row>> fetch() {
     return resultFuture;
-  }
-
-  private Parameters createTracingQueryParameters() {
-    return Parameters.builder().consistencyLevel(TRACE_CONSISTENCY).build();
   }
 
   private void querySession(int remainingAttempts) {
@@ -103,19 +95,6 @@ public class QueryTracingFetcher {
       return true;
     }
     return row.isNull("duration") || row.isNull("started_at");
-  }
-
-  static ByteBuffer decompose(UUID uuid) {
-    long most = uuid.getMostSignificantBits();
-    long least = uuid.getLeastSignificantBits();
-    byte[] b = new byte[16];
-
-    for (int i = 0; i < 8; ++i) {
-      b[i] = (byte) ((int) (most >>> (7 - i) * 8));
-      b[8 + i] = (byte) ((int) (least >>> (7 - i) * 8));
-    }
-
-    return ByteBuffer.wrap(b);
   }
 
   private void queryEvents() {
