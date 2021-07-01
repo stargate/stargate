@@ -67,8 +67,12 @@ public class AllFiltersResolver implements DocumentsResolver {
       String collection,
       Paginator paginator) {
     Flowable<RawDocument> candidates =
-        candidatesResolver.getDocuments(
-            queryExecutor, configuration, keyspace, collection, paginator);
+        candidatesResolver
+            .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+            .doOnNext(
+                e -> {
+                  System.out.println(String.format("Candidate found doc id %s", e.id()));
+                });
 
     Single<List<Pair<? extends Query<? extends BoundQuery>, CandidatesFilter>>>
         queriesToCandidates =
@@ -87,13 +91,20 @@ public class AllFiltersResolver implements DocumentsResolver {
 
                       return pairSingle.toFlowable();
                     })
-                .toList();
+                .toList()
+                .doOnSuccess(l -> System.out.printf("Resolve filters to query pair list %s", l));
 
     return candidates
-        .withLatestFrom(queriesToCandidates.toFlowable(), Pair::of)
+        .withLatestFrom(
+            queriesToCandidates.toFlowable(),
+            (left, right) -> {
+              System.out.printf("Combine %s to %s", left, right);
+              return Pair.of(left, right);
+            })
         .concatMap(
             pair -> {
               RawDocument doc = pair.getLeft();
+              System.out.printf("Candidate filtering for the doc id %s", doc.id());
               List<Maybe<?>> sources =
                   pair.getRight().stream()
                       .map(

@@ -24,9 +24,12 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import io.reactivex.rxjava3.core.BackpressureStrategy;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundQuery;
@@ -44,8 +47,12 @@ import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.CandidatesFilter;
 import io.stargate.web.rx.RxUtils;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -287,5 +294,32 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
           .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
+  }
+
+  @Nested
+  class WithLatestFrom {
+
+    @RepeatedTest(1000)
+    public void withLatestFrom() {
+      Flowable<Integer> integerFlowable = Flowable.just(1, 2, 3);
+      Flowable<Integer> delayedFlowable = Flowable.just(10).delay(1, TimeUnit.SECONDS);
+
+      integerFlowable.withLatestFrom(delayedFlowable, Integer::sum)
+              .test()
+              .assertValueCount(3)
+              .assertComplete();
+    }
+
+    @RepeatedTest(1000)
+    public void combineLatest() {
+      Flowable<Integer> integerFlowable = Flowable.just(1, 2, 3);
+      Single<Integer> delayedSingle = Single.just(10).delay(1, TimeUnit.SECONDS);
+
+      Flowable.combineLatest(integerFlowable, delayedSingle.toFlowable(), Integer::sum)
+              .test()
+              .assertValueCount(3)
+              .assertComplete();
+    }
+
   }
 }

@@ -40,6 +40,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -1874,7 +1875,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void searchPathWildcardsMatching() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -1895,15 +1896,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"b\"}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$eq\": \"b\"}}&profile=true",
             200);
 
     String expected =
         "{\"wild-card\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(OBJECT_MAPPER.readTree(r).get("data"))
+        .as(r)
+        .isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void searchPathWildcardsInMemoryMatching() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -1924,15 +1927,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$in\": [\"b\"]}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$in\": [\"b\"]}}&profile=true",
             200);
 
     String expected =
         "{\"wild-card\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(OBJECT_MAPPER.readTree(r).get("data"))
+        .as(r)
+        .isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void searchPathWildcardsCandidatesMatching() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -1953,15 +1958,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}&profile=true",
             200);
 
     String expected =
         "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(OBJECT_MAPPER.readTree(r).get("data"))
+        .as(r)
+        .isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void searchPathWildcardsCandidatesInMemoryMatching() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -1982,15 +1989,17 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}&profile=true",
             200);
 
     String expected =
         "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(OBJECT_MAPPER.readTree(r).get("data"))
+        .as(r)
+        .isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void searchPathWildcardsExists() throws Exception {
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
     JsonNode wildcardMatching =
@@ -2011,12 +2020,14 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}&raw=true",
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}&profile=true",
             200);
 
     String expected =
         "{\"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}}";
-    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(OBJECT_MAPPER.readTree(r).get("data"))
+        .as(r)
+        .isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
   @Test

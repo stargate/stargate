@@ -77,7 +77,13 @@ public class QueryExecutor {
         .concatWith(Single.just(TERM))
         .scan(Accumulator::combine)
         .filter(Accumulator::isComplete)
-        .map(Accumulator::toDoc);
+        .map(
+            accumulator -> {
+              RawDocument rawDocument = accumulator.toDoc();
+              System.out.printf(
+                  "Accumulating to id %s with rows %s%n", rawDocument.id(), rawDocument.rows());
+              return rawDocument;
+            });
   }
 
   public Flowable<ResultSet> execute(BoundQuery query, int pageSize, ByteBuffer pagingState) {
@@ -119,6 +125,7 @@ public class QueryExecutor {
   private Iterable<Accumulator> seeds(
       BoundQuery query, ResultSet rs, List<Column> keyColumns, ExecutionContext context) {
     List<Row> rows = rs.currentPageRows();
+    System.out.println(rows);
     context.traceCqlResult(query, rows.size());
     List<Accumulator> seeds = new ArrayList<>(rows.size());
     for (Row row : rows) {
