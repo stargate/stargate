@@ -156,17 +156,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               .cql(query.getCql())
               .build();
 
-      CompletableFuture<Prepared> prepareQuery =
-          prepareQuery(connection, prepareInfo, queryParameters.getTracing());
-
-      prepareQuery.whenComplete(
-          (prepared, t) -> {
-            if (t != null) {
-              handleException(t, responseObserver);
-            } else {
-              executePrepared(connection, prepared, query, responseObserver);
-            }
-          });
+      prepareQuery(connection, prepareInfo, queryParameters.getTracing())
+          .whenComplete(
+              (prepared, t) -> {
+                if (t != null) {
+                  handleException(t, responseObserver);
+                } else {
+                  executePrepared(connection, prepared, query, responseObserver);
+                }
+              });
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
@@ -190,11 +188,11 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       new BatchPreparer(connection, batch)
           .prepare()
           .whenComplete(
-              (prepared, t) -> {
+              (preparedBatch, t) -> {
                 if (t != null) {
                   handleException(t, responseObserver);
                 } else {
-                  executeBatch(connection, prepared, batch.getParameters(), responseObserver);
+                  executeBatch(connection, preparedBatch, batch.getParameters(), responseObserver);
                 }
               });
 
@@ -428,13 +426,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       QueryParameters parameters = query.getParameters();
 
-      CompletableFuture<Result> queryExecute =
-          connection.execute(
-              bindValues(handler, prepared, values),
-              makeParameters(parameters),
-              queryStartNanoTime);
-
-      queryExecute
+      connection
+          .execute(
+              bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
           .handle(handleQuery(query, responseObserver, handler))
           .whenComplete(
               executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
@@ -533,14 +527,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private void executeBatch(
       Connection connection,
-      io.stargate.db.Batch batch,
+      io.stargate.db.Batch preparedBatch,
       BatchParameters parameters,
       StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
       connection
-          .batch(batch, makeParameters(parameters), queryStartNanoTime)
+          .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
           .handle(handleBatchQuery(parameters, responseObserver))
           .whenComplete(
               executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
