@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.protobuf.Any;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -41,10 +40,9 @@ import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
-import io.stargate.grpc.Values;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.grpc.tracing.QueryTracingFetcher;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -60,7 +58,6 @@ import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.Unavailable;
 import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -156,8 +153,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection = newConnection(authenticationSubject.asUser());
       QueryParameters queryParameters = query.getParameters();
 
-      CompletableFuture<Prepared> tracingPrepareQuery = prepareTracingQuery(connection);
-
       PrepareInfo prepareInfo =
           ImmutablePrepareInfo.builder()
               .keyspace(
@@ -169,29 +164,17 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       CompletableFuture<Prepared> prepareQuery =
           prepareQuery(connection, prepareInfo, queryParameters.getTracing());
 
-      prepareQuery
-          .thenCombine(tracingPrepareQuery, PreparedQueryAndTracing::new)
-          .whenComplete(
-              (prepared, t) -> {
-                if (t != null) {
-                  handleException(t, responseObserver);
-                } else {
-                  executePrepared(connection, prepared, query, responseObserver);
-                }
-              });
+      prepareQuery.whenComplete(
+          (prepared, t) -> {
+            if (t != null) {
+              handleException(t, responseObserver);
+            } else {
+              executePrepared(connection, prepared, query, responseObserver);
+            }
+          });
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
-  }
-
-  private CompletableFuture<Prepared> prepareTracingQuery(Connection connection) {
-    PrepareInfo prepareInfo =
-        ImmutablePrepareInfo.builder()
-            .keyspace(SYSTEM_TRACES_KEYSPACE)
-            .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
-            .cql(TRACING_PREPARE_QUERY)
-            .build();
-    return prepareQuery(connection, prepareInfo, true);
   }
 
   @Override
@@ -209,12 +192,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       // TODO: Add a limit for the maximum number of queries in a batch? The setting
       // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
 
-      CompletableFuture<Prepared> tracingPrepareQuery = prepareTracingQuery(connection);
-      CompletableFuture<io.stargate.db.Batch> batchPrepareQuery =
-          new BatchPreparer(connection, batch).prepare();
-
-      batchPrepareQuery
-          .thenCombine(tracingPrepareQuery, BatchPrepareAndTracing::new)
+      new BatchPreparer(connection, batch)
+          .prepare()
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -443,7 +422,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private void executePrepared(
       Connection connection,
-      PreparedQueryAndTracing prepared,
+      Prepared prepared,
       Query query,
       StreamObserver<Response> responseObserver) {
     try {
@@ -456,15 +435,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       CompletableFuture<Result> queryExecute =
           connection.execute(
-              bindValues(handler, prepared.preparedQuery, values),
+              bindValues(handler, prepared, values),
               makeParameters(parameters),
               queryStartNanoTime);
 
       queryExecute
           .handle(handleQuery(query, responseObserver, handler))
           .whenComplete(
-              executeTracingQueryIfNeeded(
-                  connection, responseObserver, parameters, prepared.preparedTracing, handler));
+              executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
@@ -472,101 +450,34 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   @NotNull
   private BiConsumer<Response.Builder, Throwable> executeTracingQueryIfNeeded(
-      Connection connection,
-      StreamObserver<Response> responseObserver,
-      QueryParameters parameters,
-      Prepared preparedTracing,
-      PayloadHandler handler) {
+      Connection connection, StreamObserver<Response> responseObserver, boolean tracingEnabled) {
     return (responseBuilder, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
-      } else if (!parameters.getTracing() || responseBuilder.getTracingId().isEmpty()) {
+      } else if (!tracingEnabled || responseBuilder.getTracingId().isEmpty()) {
         // tracing is not enabled or not present, fill the response observer immediately
         Response response = responseBuilder.build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
       } else {
         try {
-          long queryStartNanoTime = System.nanoTime();
-
-          CompletableFuture<Result> queryExecute =
-              connection.execute(
-                  bindValues(handler, preparedTracing, cqlPayload(responseBuilder.getTracingId())),
-                  makeTracingParameters(parameters),
-                  queryStartNanoTime);
-
-          queryExecute.whenComplete(
-              (result, throwable) -> {
-                if (throwable != null) {
-                  handleException(throwable, responseObserver);
-                } else {
-                  try {
-                    // for tracing query, the only supported return type are Rows
-                    if (result.kind == Kind.Rows) {
-                      addTraces(parameters, handler, responseBuilder, (Rows) result);
+          new QueryTracingFetcher(UUID.fromString(responseBuilder.getTracingId()), connection)
+              .fetch()
+              .whenComplete(
+                  (traces, throwable) -> {
+                    if (throwable != null) {
+                      handleException(throwable, responseObserver);
                     } else {
-                      throw Status.INTERNAL
-                          .withDescription("Unhandled result kind for system_trace query data.")
-                          .asException();
+                      responseBuilder.addAllTraces(traces);
+                      responseObserver.onNext(responseBuilder.build());
+                      responseObserver.onCompleted();
                     }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
-
+                  });
         } catch (Throwable throwable) {
           handleException(throwable, responseObserver);
         }
       }
     };
-  }
-
-  private void addTraces(
-      QueryParameters parameters,
-      PayloadHandler handler,
-      Response.Builder responseBuilder,
-      Rows rows)
-      throws Exception {
-    QueryOuterClass.ResultSet resultSet = handler.processResultSet(rows, parameters);
-
-    List<QueryOuterClass.TraceEvent> traceEvents = new ArrayList<>();
-    for (QueryOuterClass.Row row : resultSet.getRowsList()) {
-      traceEvents.add(
-          // we rely on the ordering of data in the row.
-          // It is determined by the columns ordering in the TRACING_PREPARE_QUERY
-          QueryOuterClass.TraceEvent.newBuilder()
-              .setActivity(row.getValues(0).getString())
-              .setSource(inetAddressToString(row.getValues(1)))
-              .setSourceElapsed(row.getValues(2).getInt())
-              .setThread(row.getValues(3).getString())
-              .build());
-    }
-    responseBuilder.addAllTraces(traceEvents);
-  }
-
-  private String inetAddressToString(QueryOuterClass.Value value) {
-    byte[] bytes = value.getBytes().toByteArray();
-    if (bytes == null || bytes.length == 0) {
-      return "";
-    }
-
-    try {
-      return InetAddress.getByAddress(bytes).toString();
-    } catch (Exception ex) {
-      log.warn("Problem when getting tracing source value.");
-      return "";
-    }
-  }
-
-  private Payload cqlPayload(String tracingId) {
-    QueryOuterClass.Value tracingIdValue = Values.of(UUID.fromString(tracingId));
-    return Payload.newBuilder()
-        .setType(Payload.Type.CQL)
-        .setData(Any.pack(QueryOuterClass.Values.newBuilder().addValues(tracingIdValue).build()))
-        .build();
   }
 
   @NotNull
@@ -627,42 +538,20 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private void executeBatch(
       Connection connection,
-      BatchPrepareAndTracing prepared,
+      io.stargate.db.Batch batch,
       BatchParameters parameters,
       StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
-      // todo extract CQL from batch
-      PayloadHandler handler = PayloadHandlers.get(Payload.Type.CQL);
-
       connection
-          .batch(prepared.batch, makeParameters(parameters), queryStartNanoTime)
+          .batch(batch, makeParameters(parameters), queryStartNanoTime)
           .handle(handleBatchQuery(parameters, responseObserver))
           .whenComplete(
-              executeTracingQueryIfNeeded(
-                  connection,
-                  responseObserver,
-                  toTracingQueryParameters(parameters),
-                  prepared.preparedTracing,
-                  handler));
+              executeTracingQueryIfNeeded(connection, responseObserver, parameters.getTracing()));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
-  }
-
-  private QueryParameters toTracingQueryParameters(BatchParameters parameters) {
-    QueryParameters.Builder builder = QueryParameters.newBuilder();
-
-    if (parameters.hasConsistency()) {
-      builder.setConsistency(parameters.getConsistency());
-    }
-
-    if (parameters.hasSerialConsistency()) {
-      builder.setSerialConsistency(parameters.getSerialConsistency());
-    }
-
-    return builder.setTracing(parameters.getTracing()).build();
   }
 
   @NotNull
@@ -869,26 +758,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   }
                 }
               });
-    }
-  }
-
-  private static class PreparedQueryAndTracing {
-    private final Prepared preparedQuery;
-    private final Prepared preparedTracing;
-
-    public PreparedQueryAndTracing(Prepared preparedQuery, Prepared preparedTracing) {
-      this.preparedQuery = preparedQuery;
-      this.preparedTracing = preparedTracing;
-    }
-  }
-
-  private static class BatchPrepareAndTracing {
-    private final io.stargate.db.Batch batch;
-    private final Prepared preparedTracing;
-
-    public BatchPrepareAndTracing(io.stargate.db.Batch batch, Prepared preparedTracing) {
-      this.batch = batch;
-      this.preparedTracing = preparedTracing;
     }
   }
 }
