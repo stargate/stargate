@@ -186,7 +186,6 @@
         <module>config-store-yaml</module>
         <module>rate-limiting-global</module>
         <module>grpc-proto</module>
-        <module>grpc</module>
         <module>metrics-jersey</module>
         <!-- testing last -->
         <module>testing-services</module>
