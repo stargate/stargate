@@ -40,9 +40,10 @@ import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
+import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.tracing.QueryTracingFetcher;
+import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -462,7 +463,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     if (throwable != null) {
                       handleException(throwable, responseObserver);
                     } else {
-                      responseBuilder.addAllTraceEvents(traces);
+                      responseBuilder.addAllTraceEvents(TraceEventsMapper.toTraceEvents(traces));
                       responseObserver.onNext(responseBuilder.build());
                       responseObserver.onCompleted();
                     }
