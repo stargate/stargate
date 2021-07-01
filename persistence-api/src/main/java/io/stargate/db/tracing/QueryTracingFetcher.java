@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryTracingFetcher {
-r
   private final UUID tracingId;
   private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<>();
   private static final ConsistencyLevel TRACE_CONSISTENCY = ConsistencyLevel.ONE;
