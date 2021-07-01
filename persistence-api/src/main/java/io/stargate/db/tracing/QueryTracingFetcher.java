@@ -17,12 +17,12 @@ package io.stargate.db.tracing;
 
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
-import io.stargate.db.Result;
-import io.stargate.db.Result.Rows;
-import io.stargate.db.SimpleStatement;
+import io.stargate.db.datastore.DataStoreOptions;
+import io.stargate.db.datastore.PersistenceBackedDataStore;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.query.Predicate;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -36,13 +36,14 @@ public class QueryTracingFetcher {
 
   private final UUID tracingId;
   private final Persistence.Connection connection;
-  private final CompletableFuture<Rows> resultFuture = new CompletableFuture<>();
+  private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<List<Row>>();
   private static final ConsistencyLevel TRACE_CONSISTENCY = ConsistencyLevel.ONE;
   private static final int REQUEST_TRACE_ATTEMPTS = 5;
   private static final Duration TRACE_INTERVAL = Duration.ofMillis(3);
   private final Parameters parameters;
   private final ScheduledExecutorService executorService;
   private final ByteBuffer tracingIdBytes;
+  private final PersistenceBackedDataStore persistenceBackedDataStore;
 
   public QueryTracingFetcher(UUID tracingId, Persistence.Connection connection) {
     this.tracingId = tracingId;
@@ -50,11 +51,12 @@ public class QueryTracingFetcher {
     this.connection = connection;
     this.parameters = createTracingQueryParameters();
     this.executorService = Executors.newSingleThreadScheduledExecutor();
-
+    this.persistenceBackedDataStore =
+        new PersistenceBackedDataStore(connection, DataStoreOptions.defaults());
     querySession(REQUEST_TRACE_ATTEMPTS);
   }
 
-  public CompletionStage<Rows> fetch() {
+  public CompletionStage<List<Row>> fetch() {
     return resultFuture;
   }
 
@@ -63,59 +65,51 @@ public class QueryTracingFetcher {
   }
 
   private void querySession(int remainingAttempts) {
-    long queryStartNanoTime = System.nanoTime();
-    connection
+    persistenceBackedDataStore
         .execute(
-            new SimpleStatement(
-                "SELECT duration, started_at FROM system_traces.sessions WHERE session_id = ?",
-                Collections.singletonList(tracingIdBytes)),
-            parameters,
-            queryStartNanoTime)
+            persistenceBackedDataStore
+                .queryBuilder()
+                .select()
+                .column("duration", "started_at")
+                .from("system_traces", "sessions")
+                .where("session_id", Predicate.EQ, tracingId)
+                .build()
+                .bind())
         .whenComplete(
             (result, error) -> {
               if (error != null) {
                 resultFuture.completeExceptionally(error);
               } else {
-                if (result.kind == Result.Kind.Rows) {
-                  Rows rows = (Rows) result;
-
-                  if (rowIsNotCorrect(rows.rows)) {
-                    // Trace is incomplete => fail if last try, or schedule retry
-                    if (remainingAttempts == 1) {
-                      resultFuture.completeExceptionally(
-                          new IllegalStateException(
-                              String.format(
-                                  "Trace %s still not complete after %d attempts",
-                                  tracingId, REQUEST_TRACE_ATTEMPTS)));
-                    } else {
-                      executorService.schedule(
-                          () -> querySession(remainingAttempts - 1),
-                          TRACE_INTERVAL.toNanos(),
-                          TimeUnit.NANOSECONDS);
-                    }
+                if (rowIsNotCorrect(result.rows())) {
+                  // Trace is incomplete => fail if last try, or schedule retry
+                  if (remainingAttempts == 1) {
+                    resultFuture.completeExceptionally(
+                        new IllegalStateException(
+                            String.format(
+                                "Trace %s still not complete after %d attempts",
+                                tracingId, REQUEST_TRACE_ATTEMPTS)));
                   } else {
-                    queryEvents();
+                    executorService.schedule(
+                        () -> querySession(remainingAttempts - 1),
+                        TRACE_INTERVAL.toNanos(),
+                        TimeUnit.NANOSECONDS);
                   }
                 } else {
-                  resultFuture.completeExceptionally(
-                      new IllegalStateException(
-                          "Unhandled result kind for system_traces.sessions query result."));
+                  queryEvents();
                 }
               }
             });
   }
 
-  private boolean rowIsNotCorrect(List<List<ByteBuffer>> rows) {
+  private boolean rowIsNotCorrect(List<Row> rows) {
     if (rows.isEmpty()) {
       return true;
     }
-    List<ByteBuffer> row = rows.get(0);
+    Row row = rows.get(0);
     if (row == null) {
       return true;
     }
-    ByteBuffer duration = row.get(0);
-    ByteBuffer startedAt = row.get(1);
-    return duration == null || startedAt == null;
+    return row.isNull("duration") || row.isNull("started_at");
   }
 
   static ByteBuffer decompose(UUID uuid) {
@@ -132,27 +126,21 @@ public class QueryTracingFetcher {
   }
 
   private void queryEvents() {
-    long queryStartNanoTime = System.nanoTime();
-
-    connection
+    persistenceBackedDataStore
         .execute(
-            new SimpleStatement(
-                "select activity, source, source_elapsed, thread from system_traces.events where session_id = ?",
-                Collections.singletonList(tracingIdBytes)),
-            parameters,
-            queryStartNanoTime)
+            persistenceBackedDataStore
+                .queryBuilder()
+                .select()
+                .column("activity", "source", "source_elapsed", "thread")
+                .from("system_traces", "events")
+                .build()
+                .bind())
         .whenComplete(
             (result, error) -> {
               if (error != null) {
                 resultFuture.completeExceptionally(error);
               } else {
-                if (result.kind == Result.Kind.Rows) {
-                  resultFuture.complete((Rows) result);
-                } else {
-                  resultFuture.completeExceptionally(
-                      new IllegalStateException(
-                          "Unhandled result kind for system_traces.events query result."));
-                }
+                resultFuture.complete(result.rows());
               }
             });
   }

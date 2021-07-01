@@ -15,53 +15,31 @@
  */
 package io.stargate.grpc.tracing;
 
-import static io.stargate.grpc.codec.cql.ValueCodec.PROTOCOL_VERSION;
-
-import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import io.stargate.db.Result;
+import io.stargate.db.datastore.Row;
 import io.stargate.proto.QueryOuterClass.TraceEvent;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TraceEventsMapper {
-  private static final Logger log = LoggerFactory.getLogger(TraceEventsMapper.class);
-
-  public static List<TraceEvent> toTraceEvents(Result.Rows rows) {
+  public static List<TraceEvent> toTraceEvents(List<Row> rows) {
 
     List<TraceEvent> traceEvents = new ArrayList<>();
-    for (List<ByteBuffer> row : rows.rows) {
+    for (Row row : rows) {
       traceEvents.add(
-          // we rely on the ordering of data in the row.
-          // It is determined by the columns ordering in the system_traces.events query
           TraceEvent.newBuilder()
-              .setActivity(TypeCodecs.TEXT.decode(row.get(0), PROTOCOL_VERSION))
-              .setSource(inetAddressToString(row.get(1)))
-              .setSourceElapsed(toInt(row))
-              .setThread(TypeCodecs.TEXT.decode(row.get(3), PROTOCOL_VERSION))
+              .setActivity(row.getString("activity"))
+              .setSource(inetAddressToString(row.getInetAddress("source")))
+              .setSourceElapsed(row.getInt("source_elapsed"))
+              .setThread(row.getString("thread"))
               .build());
     }
     return traceEvents;
   }
 
-  private static Integer toInt(List<ByteBuffer> row) {
-    return TypeCodecs.INT.decode(row.get(2), PROTOCOL_VERSION);
-  }
-
-  private static String inetAddressToString(ByteBuffer value) {
-    byte[] bytes = value.array();
-    if (bytes.length == 0) {
+  private static String inetAddressToString(InetAddress value) {
+    if (value == null) {
       return "";
-    }
-
-    try {
-      return InetAddress.getByAddress(bytes).toString();
-    } catch (Exception ex) {
-      log.warn("Problem when getting tracing source value.");
-      return "";
-    }
+    } else return value.toString();
   }
 }
