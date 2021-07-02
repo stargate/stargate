@@ -1446,7 +1446,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where={\"a\": true}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Search entry for field a was expecting a JSON object as input.\",\"code\":400}");
+            "{\"description\":\"Search was expecting a JSON object as input.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1454,41 +1454,40 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             collectionPath + "/cool-search-id?where={\"a\": {\"$exists\": false}}}",
             400);
     assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The operation $exists only supports the value `true`\",\"code\":400}");
+        .isEqualTo("{\"description\":\"$exists only supports the value `true`\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}", 400);
-    assertThat(r).startsWith("{\"description\":\"Invalid operator: exists, valid operators are:");
+    assertThat(r).startsWith("{\"description\":\"Operation exists is not supported.");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": null}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation $eq does not support the provided value null.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": {}}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation $eq does not support the provided value { }.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": []}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation $eq does not support the provided value [ ].\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$in\": 2}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $in was expecting an array\",\"code\":400}");
+            "{\"description\":\"Operation $in does not support the provided value 2.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1545,7 +1544,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             collectionPath
-                + "/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
+                + "/cool-search-id?where={\"quiz.nests.q2.options.[*].this.that.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q2\":{\"options\":{\"[3]\":{\"this\":{\"that\":{\"them\":false}}}}}}}}]";
@@ -1570,7 +1569,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             collectionPath
-                + "/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
+                + "/cool-search-id?where={\"quiz.nests.q2,q3.options.[*].this.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]";

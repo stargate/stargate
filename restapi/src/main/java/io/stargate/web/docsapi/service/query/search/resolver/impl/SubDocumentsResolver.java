@@ -31,7 +31,7 @@ import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.QueryConstants;
-import io.stargate.web.docsapi.service.query.eval.EvalFilterExpression;
+import io.stargate.web.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
@@ -39,6 +39,20 @@ import io.stargate.web.rx.RxUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A document resolver that loads full (sub-)documents on the given sub-path that match an
+ * Expression.
+ *
+ * <p>Note that this resolver has two modes, controlled by the #splitOnSubPathKeys constructor
+ * parameters:
+ *
+ * <ol>
+ *   <li>1. <code>false</code> - there is no split by the keys on the sub-path, effectively the
+ *       whole document on the sub-path is returned
+ *   <li>2. <code>true</code> - there is extra split by the key values in the doc on the sub-path,
+ *       effectively returns document per key
+ * </ol>
+ */
 public class SubDocumentsResolver implements DocumentsResolver {
 
   private final Expression<FilterExpression> expression;
@@ -54,13 +68,22 @@ public class SubDocumentsResolver implements DocumentsResolver {
       String documentId,
       List<String> subDocumentPath,
       ExecutionContext context) {
+    this(expression, documentId, subDocumentPath, context, false);
+  }
+
+  public SubDocumentsResolver(
+      Expression<FilterExpression> expression,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context,
+      boolean splitOnSubPathKeys) {
     this.expression = expression;
     this.context = createContext(context, subDocumentPath);
     this.queryBuilder = new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
     // key depth explained:
     //  - one extra for the document id
-    //  - one extra on size of sub-document path to distinguish ids after sub-document path
-    this.keyDepth = subDocumentPath.size() + 2;
+    //  - one extra on size if we need to split based on keys ids after sub-document path
+    this.keyDepth = subDocumentPath.size() + (splitOnSubPathKeys ? 2 : 1);
   }
 
   @Override
@@ -99,7 +122,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
         .filter(
             document -> {
               Map<String, EvalRule<FilterExpression>> rules = EvalEngine.booleanRules();
-              rules.put(FilterExpression.EXPR_TYPE, new EvalFilterExpression(document));
+              rules.put(FilterExpression.EXPR_TYPE, new RawDocumentEvalRule(document));
               return EvalEngine.evaluate(expression, rules);
             });
   }

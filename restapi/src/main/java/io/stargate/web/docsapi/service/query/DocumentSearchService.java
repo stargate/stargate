@@ -32,6 +32,7 @@ import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.search.db.impl.FullSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.PopulateSearchQueryBuilder;
+import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.BaseResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.SubDocumentsResolver;
@@ -128,9 +129,24 @@ public class DocumentSearchService {
       Paginator paginator,
       ExecutionContext context) {
 
-    // for the sake of correctness make sure we don't have have false
-    if (Literal.getFalse().equals(expression)) {
-      return Flowable.empty();
+    // if we have true immediately, means we can only do full doc fetch
+    if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
+
+      // for the sake of correctness make sure we don't have have false
+      if (Literal.getFalse().equals(expression)) {
+        return Flowable.empty();
+      }
+
+      return fullDocument(
+              queryExecutor,
+              configuration,
+              keyspace,
+              collection,
+              documentId,
+              subDocumentPath,
+              context)
+          // take one, as there can be only one document
+          .take(1);
     }
 
     // create the resolver and return results
@@ -173,6 +189,39 @@ public class DocumentSearchService {
                   configuration.getSearchPageSize(),
                   paginator.getCurrentDbPageState(),
                   context);
+            });
+  }
+
+  public Flowable<RawDocument> fullDocument(
+      QueryExecutor queryExecutor,
+      DocsApiConfiguration configuration,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context) {
+
+    // prepare first
+    return RxUtils.singleFromFuture(
+            () -> {
+              int maxDepth = configuration.getMaxDepth();
+              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+
+              DataStore dataStore = queryExecutor.getDataStore();
+
+              SubDocumentSearchQueryBuilder queryBuilder =
+                  new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
+              BuiltQuery<? extends BoundQuery> query =
+                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
+
+              return dataStore.prepare(query);
+            })
+        .cache()
+        .flatMapPublisher(
+            prepared -> {
+              BoundQuery boundQuery = prepared.bind();
+              return queryExecutor.queryDocs(
+                  boundQuery, configuration.getSearchPageSize(), null, context);
             });
   }
 

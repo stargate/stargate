@@ -44,6 +44,7 @@ import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
@@ -72,6 +73,8 @@ class ReactiveDocumentServiceTest {
 
   @Mock JsonConverter jsonConverter;
 
+  @Mock TimeSource timeSource;
+
   @Mock DocumentDB documentDB;
 
   @Mock QueryExecutor queryExecutor;
@@ -89,7 +92,8 @@ class ReactiveDocumentServiceTest {
   @BeforeEach
   public void init() {
     reactiveDocumentService =
-        new ReactiveDocumentService(expressionParser, searchService, jsonConverter, objectMapper);
+        new ReactiveDocumentService(
+            expressionParser, searchService, jsonConverter, objectMapper, timeSource);
     lenient().when(documentDB.getAuthorizationService()).thenReturn(authService);
     lenient().when(documentDB.getAuthenticationSubject()).thenReturn(authSubject);
   }
@@ -119,7 +123,11 @@ class ReactiveDocumentServiceTest {
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
-          .convertToJsonDoc(eq(Collections.singletonList(row)), eq(false), anyBoolean());
+          .convertToJsonDoc(
+              eq(Collections.singletonList(row)),
+              eq(ImmutableDeadLeafCollector.of()),
+              eq(false),
+              anyBoolean());
       when(row.getString("p0")).thenReturn("myField");
       when(rawDocument.id()).thenReturn(documentId);
       when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
@@ -168,7 +176,11 @@ class ReactiveDocumentServiceTest {
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
-          .convertToJsonDoc(eq(Collections.emptyList()), eq(false), anyBoolean());
+          .convertToJsonDoc(
+              eq(Collections.emptyList()),
+              eq(ImmutableDeadLeafCollector.of()),
+              eq(false),
+              anyBoolean());
       when(row.getString("p0")).thenReturn("someField");
       when(rawDocument.id()).thenReturn(documentId);
       when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
@@ -217,7 +229,11 @@ class ReactiveDocumentServiceTest {
           .thenReturn(docs);
       doReturn(documentNode)
           .when(jsonConverter)
-          .convertToJsonDoc(eq(Arrays.asList(row, row)), eq(false), anyBoolean());
+          .convertToJsonDoc(
+              eq(Arrays.asList(row, row)),
+              eq(ImmutableDeadLeafCollector.of()),
+              eq(false),
+              anyBoolean());
       when(rawDocument.id()).thenReturn(documentId);
       when(rawDocument.rows()).thenReturn(Arrays.asList(row, row));
       when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));

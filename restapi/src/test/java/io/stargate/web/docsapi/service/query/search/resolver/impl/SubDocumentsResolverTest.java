@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.query.search.resolver.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -40,6 +41,7 @@ import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,6 +78,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
 
     @Mock FilterExpression filterExpression2;
 
+    @Mock BaseCondition condition;
+
     @Captor ArgumentCaptor<List<Row>> rowsCaptor;
 
     QueryExecutor queryExecutor;
@@ -89,7 +93,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       when(configuration.getSearchPageSize()).thenReturn(100);
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
       lenient().when(filterExpression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
+      lenient().when(filterExpression.getCondition()).thenReturn(condition);
       lenient().when(filterExpression2.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
+      lenient().when(filterExpression2.getCondition()).thenReturn(condition);
     }
 
     @Test
@@ -99,6 +105,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       List<String> subDocumentPath = Collections.singletonList("parent");
       Paginator paginator = new Paginator(null, pageSize);
       when(filterExpression.test(anyList())).thenReturn(true);
+      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
 
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
@@ -111,7 +118,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                       ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
 
       DocumentsResolver resolver =
-          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
+          new SubDocumentsResolver(
+              filterExpression, documentId, subDocumentPath, executionContext, true);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -174,12 +182,85 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
+    public void happyPathNoSplit() {
+      int pageSize = 1;
+      String documentId = "d123456";
+      List<String> subDocumentPath = Collections.singletonList("parent");
+      Paginator paginator = new Paginator(null, pageSize);
+      when(filterExpression.test(anyList())).thenReturn(true);
+      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
+
+      ValidatingDataStore.QueryAssert queryAssert =
+          withQuery(
+                  TABLE,
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+              .withPageSize(configuration.getSearchPageSize())
+              .returning(
+                  Arrays.asList(
+                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
+                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
+
+      DocumentsResolver resolver =
+          new SubDocumentsResolver(
+              filterExpression, documentId, subDocumentPath, executionContext, false);
+      Flowable<RawDocument> result =
+          resolver.getDocuments(
+              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+
+      result
+          .test()
+          .assertValueAt(
+              0,
+              doc -> {
+                assertThat(doc.id()).isEqualTo("1");
+                assertThat(doc.rows()).hasSize(2);
+                return true;
+              })
+          .assertComplete();
+
+      // one query only
+      queryAssert.assertExecuteCount().isEqualTo(1);
+      verify(filterExpression, times(1)).test(rowsCaptor.capture());
+
+      assertThat(rowsCaptor.getAllValues())
+          .hasSize(1)
+          .anySatisfy(
+              rows ->
+                  assertThat(rows)
+                      .hasSize(2)
+                      .anySatisfy(
+                          row -> {
+                            assertThat(row.getString("p1")).isEqualTo("first");
+                          })
+                      .anySatisfy(
+                          row -> {
+                            assertThat(row.getString("p1")).isEqualTo("second");
+                          }));
+
+      // execution context
+      assertThat(executionContext.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
     public void complexPathWithMoreRows() {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Arrays.asList("*", "reviews");
       Paginator paginator = new Paginator(null, pageSize);
       when(filterExpression.test(anyList())).thenReturn(true);
+      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
 
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
@@ -210,7 +291,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                           "p3",
                           "date")));
       DocumentsResolver resolver =
-          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
+          new SubDocumentsResolver(
+              filterExpression, documentId, subDocumentPath, executionContext, true);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -298,6 +380,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       List<String> subDocumentPath = Collections.singletonList("parent");
       Paginator paginator = new Paginator(null, pageSize);
       when(filterExpression.test(anyList())).thenReturn(true);
+      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
 
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
@@ -314,7 +397,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              true);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -382,6 +466,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       String documentId = "d123456";
       List<String> subDocumentPath = Collections.singletonList("parent");
       Paginator paginator = new Paginator(null, pageSize);
+      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
+      when(filterExpression2.matchesFilterPath(any())).thenReturn(true);
 
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
@@ -398,7 +484,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              true);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -463,7 +550,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              true);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);

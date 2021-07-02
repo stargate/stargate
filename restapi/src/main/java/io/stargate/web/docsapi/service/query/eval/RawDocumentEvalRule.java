@@ -25,16 +25,19 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.util.List;
 import java.util.Map;
 
-/** Evaluates a single FilterExpression against set of rows. */
-public class EvalFilterExpression extends EvalRule<FilterExpression> {
+/**
+ * Evaluates a single FilterExpression against set of rows. Note that this {@link EvalRule} expects
+ * all rows of a document to be provided.
+ */
+public class RawDocumentEvalRule extends EvalRule<FilterExpression> {
 
   private final List<Row> rows;
 
-  public EvalFilterExpression(RawDocument document) {
+  public RawDocumentEvalRule(RawDocument document) {
     this(document.rows());
   }
 
-  public EvalFilterExpression(List<Row> rows) {
+  public RawDocumentEvalRule(List<Row> rows) {
     this.rows = rows;
   }
 
@@ -43,6 +46,17 @@ public class EvalFilterExpression extends EvalRule<FilterExpression> {
   public boolean evaluate(
       Expression<FilterExpression> expression, Map<String, EvalRule<FilterExpression>> rules) {
     FilterExpression filterExpression = (FilterExpression) expression;
-    return filterExpression.test(rows);
+
+    // check if any row matches the filter path and if we should evaluate on missing
+    boolean anyOnPath = rows.stream().anyMatch(filterExpression::matchesFilterPath);
+    boolean evaluateOnMissingFields = filterExpression.getCondition().isEvaluateOnMissingFields();
+
+    // if so do a test, otherwise return false, that means that no row matches the filter path and
+    // condition is not eval on missing
+    if (anyOnPath || evaluateOnMissingFields) {
+      return filterExpression.test(rows);
+    } else {
+      return false;
+    }
   }
 }

@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.query.eval;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -25,8 +26,10 @@ import static org.mockito.Mockito.when;
 import com.bpodgursky.jbool_expressions.eval.EvalEngine;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,22 +37,30 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class EvalFilterExpressionTest {
+class RawDocumentEvalRuleTest {
 
   @Mock FilterExpression expression;
+
+  @Mock BaseCondition baseCondition;
 
   @Mock Row row;
 
   @Nested
   class Evaluate {
 
+    @BeforeEach
+    public void init() {
+      when(expression.getCondition()).thenReturn(baseCondition);
+    }
+
     @Test
     public void evalTrue() {
       List<Row> rows = Collections.singletonList(row);
       when(expression.test(rows)).thenReturn(true);
+      when(expression.matchesFilterPath(any())).thenReturn(true);
       when(expression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
 
-      EvalFilterExpression eval = new EvalFilterExpression(rows);
+      RawDocumentEvalRule eval = new RawDocumentEvalRule(rows);
       boolean result =
           EvalEngine.evaluate(
               expression, Collections.singletonMap(FilterExpression.EXPR_TYPE, eval));
@@ -64,15 +75,51 @@ class EvalFilterExpressionTest {
     public void evalFalse() {
       List<Row> rows = Collections.singletonList(row);
       when(expression.test(rows)).thenReturn(false);
+      when(expression.matchesFilterPath(any())).thenReturn(true);
       when(expression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
 
-      EvalFilterExpression eval = new EvalFilterExpression(rows);
+      RawDocumentEvalRule eval = new RawDocumentEvalRule(rows);
       boolean result =
           EvalEngine.evaluate(
               expression, Collections.singletonMap(FilterExpression.EXPR_TYPE, eval));
 
       assertThat(result).isFalse();
       verify(expression).test(rows);
+      verify(expression).getExprType();
+      verifyNoMoreInteractions(expression);
+    }
+
+    @Test
+    public void evalNotOnPathButEvaluateOnMissingFields() {
+      List<Row> rows = Collections.singletonList(row);
+      when(expression.test(rows)).thenReturn(true);
+      when(expression.matchesFilterPath(any())).thenReturn(false);
+      when(expression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
+      when(baseCondition.isEvaluateOnMissingFields()).thenReturn(true);
+
+      RawDocumentEvalRule eval = new RawDocumentEvalRule(rows);
+      boolean result =
+          EvalEngine.evaluate(
+              expression, Collections.singletonMap(FilterExpression.EXPR_TYPE, eval));
+
+      assertThat(result).isTrue();
+      verify(expression).test(rows);
+      verify(expression).getExprType();
+      verifyNoMoreInteractions(expression);
+    }
+
+    @Test
+    public void notOnPathNotEvaluateOnMissingFields() {
+      List<Row> rows = Collections.singletonList(row);
+      when(expression.matchesFilterPath(any())).thenReturn(false);
+      when(expression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
+
+      RawDocumentEvalRule eval = new RawDocumentEvalRule(rows);
+      boolean result =
+          EvalEngine.evaluate(
+              expression, Collections.singletonMap(FilterExpression.EXPR_TYPE, eval));
+
+      assertThat(result).isFalse();
       verify(expression).getExprType();
       verifyNoMoreInteractions(expression);
     }
