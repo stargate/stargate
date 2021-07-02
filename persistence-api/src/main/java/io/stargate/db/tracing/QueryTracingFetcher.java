@@ -15,6 +15,9 @@
  */
 package io.stargate.db.tracing;
 
+import com.datastax.oss.driver.internal.core.util.concurrent.BlockingOperation;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import io.netty.channel.DefaultEventLoopGroup;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.PersistenceBackedDataStore;
@@ -24,8 +27,8 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -35,17 +38,28 @@ public class QueryTracingFetcher {
   private final CompletableFuture<TracingData> resultFuture = new CompletableFuture<>();
   private static final int REQUEST_TRACE_ATTEMPTS = 5;
   private static final Duration TRACE_INTERVAL = Duration.ofMillis(3);
-  private final ScheduledExecutorService executorService;
   private final PersistenceBackedDataStore persistenceBackedDataStore;
+  private static final ScheduledExecutorService scheduler = createExecutor();
 
   public QueryTracingFetcher(
       UUID tracingId, Persistence.Connection connection, ConsistencyLevel consistencyLevel) {
     this.tracingId = tracingId;
     this.consistencyLevel = consistencyLevel;
-    this.executorService = Executors.newSingleThreadScheduledExecutor();
     this.persistenceBackedDataStore =
         new PersistenceBackedDataStore(connection, DataStoreOptions.defaults());
     querySession(REQUEST_TRACE_ATTEMPTS);
+  }
+
+  private static ScheduledExecutorService createExecutor() {
+    ThreadFactory safeFactory = new BlockingOperation.SafeThreadFactory();
+
+    ThreadFactory adminThreadFactory =
+        new ThreadFactoryBuilder()
+            .setThreadFactory(safeFactory)
+            .setNameFormat("Query-tracing-fetcher-%d")
+            .setDaemon(false)
+            .build();
+    return new DefaultEventLoopGroup(2, adminThreadFactory);
   }
 
   public CompletionStage<TracingData> fetch() {
@@ -79,7 +93,7 @@ public class QueryTracingFetcher {
                                 "Trace %s still not complete after %d attempts",
                                 tracingId, REQUEST_TRACE_ATTEMPTS)));
                   } else {
-                    executorService.schedule(
+                    scheduler.schedule(
                         () -> querySession(remainingAttempts - 1),
                         TRACE_INTERVAL.toNanos(),
                         TimeUnit.NANOSECONDS);
