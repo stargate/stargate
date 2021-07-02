@@ -128,6 +128,13 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
     }
 
     @Test
+    public void malformedPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.post(authToken, getBasePath(keyspace), "{\"malformed\":", 400);
+
+      assertThat(r).isEqualTo("{\"code\":400,\"message\":\"Unable to process JSON\"}");
+    }
+
+    @Test
     public void invalidPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
       // no name in the json
       String payload = "{}";
