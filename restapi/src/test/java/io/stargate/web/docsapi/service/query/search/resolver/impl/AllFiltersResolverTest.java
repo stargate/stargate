@@ -258,13 +258,6 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
     public void noCandidates() {
       withAnySelectFrom(TABLE).returningNothing();
 
-      DataStore datastore = datastore();
-      doAnswer(i -> query1)
-          .when(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      doAnswer(i -> query2)
-          .when(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
       DocumentsResolver candidatesResolver =
           (queryExecutor1, configuration1, keyspace, collection, paginator) -> Flowable.empty();
 
@@ -280,11 +273,6 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
       results.test().assertValueCount(0).assertComplete();
 
       ignorePreparedExecutions();
-
-      verify(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
   }
