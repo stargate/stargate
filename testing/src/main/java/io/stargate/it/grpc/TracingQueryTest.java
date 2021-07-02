@@ -156,7 +156,6 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
 
     // when
@@ -170,7 +169,6 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
 
     // when
@@ -179,7 +177,6 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     // then
     assertThat(response.hasResultSet()).isTrue();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
   }
 
@@ -201,15 +198,21 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .build());
     assertThat(response).isNotNull();
     assertThat(response.getTracingId()).isNotEmpty();
-    assertThat(response.getTraceEventsList().size()).isGreaterThan(1);
     validateTrace(response);
   }
 
   private void validateTrace(Response response) {
-    QueryOuterClass.TraceEvent firstTrace = response.getTraceEvents(0);
-    assertThat(firstTrace.getActivity()).isNotEmpty();
-    assertThat(firstTrace.getSource()).isNotEmpty();
-    assertThat(firstTrace.getSourceElapsed()).isGreaterThan(0);
-    assertThat(firstTrace.getThread()).isNotEmpty();
+    QueryOuterClass.Traces traces = response.getTraces();
+    assertThat(traces.getDuration()).isGreaterThan(0);
+    assertThat(traces.getStartedAt()).isGreaterThan(0);
+    assertThat(traces.getId()).isNotNull();
+
+    assertThat(traces.getEventsList()).isNotEmpty();
+    QueryOuterClass.Traces.Event event = traces.getEvents(0);
+
+    assertThat(event.getActivity()).isNotEmpty();
+    assertThat(event.getSourceElapsed()).isGreaterThan(0);
+    assertThat(event.getThread()).isNotEmpty();
+    assertThat(event.getSource()).isNotEmpty();
   }
 }

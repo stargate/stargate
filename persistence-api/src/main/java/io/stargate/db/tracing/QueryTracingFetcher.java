@@ -21,7 +21,6 @@ import io.stargate.db.datastore.PersistenceBackedDataStore;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Predicate;
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -33,7 +32,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class QueryTracingFetcher {
   private final UUID tracingId;
   private final ConsistencyLevel consistencyLevel;
-  private final CompletableFuture<List<Row>> resultFuture = new CompletableFuture<>();
+  private final CompletableFuture<TracingData> resultFuture = new CompletableFuture<>();
   private static final int REQUEST_TRACE_ATTEMPTS = 5;
   private static final Duration TRACE_INTERVAL = Duration.ofMillis(3);
   private final ScheduledExecutorService executorService;
@@ -49,7 +48,7 @@ public class QueryTracingFetcher {
     querySession(REQUEST_TRACE_ATTEMPTS);
   }
 
-  public CompletionStage<List<Row>> fetch() {
+  public CompletionStage<TracingData> fetch() {
     return resultFuture;
   }
 
@@ -59,7 +58,7 @@ public class QueryTracingFetcher {
             persistenceBackedDataStore
                 .queryBuilder()
                 .select()
-                .column("duration", "started_at")
+                .column("duration", "started_at", "request")
                 .from("system_traces", "sessions")
                 .where("session_id", Predicate.EQ, tracingId)
                 .build()
@@ -70,7 +69,8 @@ public class QueryTracingFetcher {
               if (error != null) {
                 resultFuture.completeExceptionally(error);
               } else {
-                if (rowIsNotCorrect(result.rows())) {
+                Row row = result.one();
+                if (rowIsNotCorrect(row)) {
                   // Trace is incomplete => fail if last try, or schedule retry
                   if (remainingAttempts == 1) {
                     resultFuture.completeExceptionally(
@@ -85,30 +85,26 @@ public class QueryTracingFetcher {
                         TimeUnit.NANOSECONDS);
                   }
                 } else {
-                  queryEvents();
+                  queryEvents(row);
                 }
               }
             });
   }
 
-  private boolean rowIsNotCorrect(List<Row> rows) {
-    if (rows.isEmpty()) {
-      return true;
-    }
-    Row row = rows.get(0);
+  private boolean rowIsNotCorrect(Row row) {
     if (row == null) {
       return true;
     }
     return row.isNull("duration") || row.isNull("started_at");
   }
 
-  private void queryEvents() {
+  private void queryEvents(Row session) {
     persistenceBackedDataStore
         .execute(
             persistenceBackedDataStore
                 .queryBuilder()
                 .select()
-                .column("activity", "source", "source_elapsed", "thread")
+                .column("activity", "source", "source_elapsed", "thread", "event_id")
                 .from("system_traces", "events")
                 .build()
                 .bind(),
@@ -118,7 +114,7 @@ public class QueryTracingFetcher {
               if (error != null) {
                 resultFuture.completeExceptionally(error);
               } else {
-                resultFuture.complete(result.rows());
+                resultFuture.complete(new TracingData(result.rows(), session));
               }
             });
   }

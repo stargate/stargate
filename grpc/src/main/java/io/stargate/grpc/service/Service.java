@@ -468,7 +468,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                     if (throwable != null) {
                       handleException(throwable, responseObserver);
                     } else {
-                      responseBuilder.addAllTraceEvents(TraceEventsMapper.toTraceEvents(traces));
+                      responseBuilder.setTraces(
+                          TraceEventsMapper.toTraceEvents(traces, responseBuilder.getTracingId()));
                       responseObserver.onNext(responseBuilder.build());
                       responseObserver.onCompleted();
                     }

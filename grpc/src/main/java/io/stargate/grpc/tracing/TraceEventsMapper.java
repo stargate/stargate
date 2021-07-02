@@ -16,25 +16,40 @@
 package io.stargate.grpc.tracing;
 
 import io.stargate.db.datastore.Row;
-import io.stargate.proto.QueryOuterClass.TraceEvent;
+import io.stargate.db.tracing.TracingData;
+import io.stargate.proto.QueryOuterClass.Traces;
+import io.stargate.proto.QueryOuterClass.Traces.Event;
 import java.net.InetAddress;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class TraceEventsMapper {
-  public static List<TraceEvent> toTraceEvents(List<Row> rows) {
+  public static Traces toTraceEvents(TracingData tracingData, String tracingId) {
 
-    List<TraceEvent> traceEvents = new ArrayList<>();
-    for (Row row : rows) {
+    List<Event> traceEvents = new ArrayList<>();
+    for (Row row : tracingData.getEvents()) {
+      UUID eventId = row.getUuid("event_id");
+
       traceEvents.add(
-          TraceEvent.newBuilder()
+          Event.newBuilder()
               .setActivity(row.getString("activity"))
               .setSource(inetAddressToString(row.getInetAddress("source")))
               .setSourceElapsed(row.getInt("source_elapsed"))
               .setThread(row.getString("thread"))
+              .setEventId(eventId == null ? "" : eventId.toString())
               .build());
     }
-    return traceEvents;
+
+    Instant startedAt = tracingData.getSessionRow().getInstant("started_at");
+
+    return Traces.newBuilder()
+        .setDuration(tracingData.getSessionRow().getInt("duration"))
+        .setId(tracingId)
+        .addAllEvents(traceEvents)
+        .setStartedAt(startedAt == null ? -1 : startedAt.toEpochMilli())
+        .build();
   }
 
   private static String inetAddressToString(InetAddress value) {
