@@ -158,7 +158,6 @@ public class ValuesHandler implements PayloadHandler {
               .build());
       resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     }
-
     return Any.pack(resultSetBuilder.build());
   }
 

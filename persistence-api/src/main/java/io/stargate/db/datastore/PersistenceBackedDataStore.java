@@ -25,14 +25,14 @@ import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class PersistenceBackedDataStore implements DataStore {
+public class PersistenceBackedDataStore implements DataStore {
   private static final Logger logger = LoggerFactory.getLogger(PersistenceBackedDataStore.class);
 
   private final Persistence.Connection connection;
   private final DataStoreOptions options;
   private final Codec valueCodec;
 
-  PersistenceBackedDataStore(Persistence.Connection connection, DataStoreOptions options) {
+  public PersistenceBackedDataStore(Persistence.Connection connection, DataStoreOptions options) {
     this.connection = connection;
     this.options = options;
     this.valueCodec = new Codec(parameters().protocolVersion(), connection.persistence());

@@ -15,6 +15,8 @@
  */
 package io.stargate.grpc.service;
 
+import static io.stargate.proto.QueryOuterClass.*;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
@@ -35,12 +37,15 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result;
 import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
+import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
+import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -65,6 +70,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
@@ -77,12 +84,13 @@ import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.NotNull;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
-
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
+  public static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -424,49 +432,92 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       connection
           .execute(
               bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
+          .handle(handleQuery(query, responseObserver, handler))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  handleException(t, responseObserver);
-                } else {
-                  try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    switch (result.kind) {
-                      case Void:
-                        // fill tracing id for queries that doesn't return any data (i.e. INSERT)
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SchemaChange:
-                        break;
-                      case Rows:
-                        responseBuilder.setResultSet(
-                            Payload.newBuilder()
-                                .setType(query.getValues().getType())
-                                .setData(
-                                    handler.processResult((Rows) result, query.getParameters())));
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SetKeyspace:
-                        throw Status.INVALID_ARGUMENT
-                            .withDescription("USE <keyspace> not supported")
-                            .asException();
-                      default:
-                        throw Status.INTERNAL
-                            .withDescription("Unhandled result kind")
-                            .asException();
-                    }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  @NotNull
+  private BiConsumer<Response.Builder, Throwable> executeTracingQueryIfNeeded(
+      Connection connection,
+      StreamObserver<Response> responseObserver,
+      boolean tracingEnabled,
+      ConsistencyLevel consistencyLevel) {
+    return (responseBuilder, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else if (!tracingEnabled || responseBuilder.getTracingId().isEmpty()) {
+        // tracing is not enabled or not present, fill the response observer immediately
+        Response response = responseBuilder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+      } else {
+        try {
+          new QueryTracingFetcher(
+                  UUID.fromString(responseBuilder.getTracingId()), connection, consistencyLevel)
+              .fetch()
+              .whenComplete(
+                  (traces, throwable) -> {
+                    if (throwable != null) {
+                      handleException(throwable, responseObserver);
+                    } else {
+                      responseBuilder.setTraces(
+                          TraceEventsMapper.toTraceEvents(traces, responseBuilder.getTracingId()));
+                      responseObserver.onNext(responseBuilder.build());
+                      responseObserver.onCompleted();
+                    }
+                  });
+        } catch (Throwable throwable) {
+          handleException(throwable, responseObserver);
+        }
+      }
+    };
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, Response.Builder> handleQuery(
+      Query query, StreamObserver<Response> responseObserver, PayloadHandler handler) {
+    return (result, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else {
+        try {
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          switch (result.kind) {
+            case Void:
+              // fill tracing id for queries that doesn't return any data (i.e. INSERT)
+              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              break;
+            case SchemaChange:
+              break;
+            case Rows:
+              responseBuilder.setResultSet(
+                  Payload.newBuilder()
+                      .setType(query.getValues().getType())
+                      .setData(handler.processResult((Rows) result, query.getParameters())));
+              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              break;
+            case SetKeyspace:
+              throw Status.INVALID_ARGUMENT
+                  .withDescription("USE <keyspace> not supported")
+                  .asException();
+            default:
+              throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          return responseBuilder;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return makeResponseBuilder(result);
+    };
   }
 
   private void handleTraceId(
@@ -496,27 +547,54 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
+          .handle(handleBatchQuery(parameters, responseObserver))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  handleException(t, responseObserver);
-                } else {
-                  try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    handleTraceId(result.getTracingId(), parameters, responseBuilder);
-                    if (result.kind != Kind.Void) {
-                      throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
-                    }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private ConsistencyLevel getTracingConsistency(QueryParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
+    }
+  }
+
+  private ConsistencyLevel getTracingConsistency(BatchParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
+    }
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, Response.Builder> handleBatchQuery(
+      BatchParameters parameters, StreamObserver<Response> responseObserver) {
+    return (result, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else {
+        try {
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          handleTraceId(result.getTracingId(), parameters, responseBuilder);
+          if (result.kind != Kind.Void) {
+            throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          return responseBuilder;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return makeResponseBuilder(result);
+    };
   }
 
   private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
