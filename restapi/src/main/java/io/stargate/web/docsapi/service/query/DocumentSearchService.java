@@ -153,7 +153,7 @@ public class DocumentSearchService {
 
     // combine
     return candidates
-        .withLatestFrom(preparedSingle.toFlowable(), Pair::of)
+        .concatMapSingle(doc -> preparedSingle.map(prepared -> Pair.of(doc, prepared)))
         .concatMap(
             p -> {
               // bind for this doc id

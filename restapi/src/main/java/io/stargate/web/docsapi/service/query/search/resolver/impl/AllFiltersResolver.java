@@ -87,10 +87,11 @@ public class AllFiltersResolver implements DocumentsResolver {
 
                       return pairSingle.toFlowable();
                     })
-                .toList();
+                .toList()
+                .cache();
 
     return candidates
-        .withLatestFrom(queriesToCandidates.toFlowable(), Pair::of)
+        .concatMapSingle(doc -> queriesToCandidates.map(prepared -> Pair.of(doc, prepared)))
         .concatMap(
             pair -> {
               RawDocument doc = pair.getLeft();
