@@ -46,6 +46,6 @@ public abstract class LtFilterOperation extends NotNullValueFilterOperation {
   /** {@inheritDoc} */
   @Override
   public boolean isSatisfied(int compareValue) {
-    return compareValue > 0;
+    return compareValue < 0;
   }
 }

@@ -54,7 +54,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
       return false;
     }
 
-    int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
+    int compare = STRING_COMPARATOR.compare(dbValue, filterValue);
     return isSatisfied(compare);
   }
 
@@ -65,7 +65,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
     }
 
     // TODO do we wanna have more sophisticated compare for the numbers
-    int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
+    int compare = DOUBLE_COMPARATOR.compare(dbValue, filterValue.doubleValue());
     return isSatisfied(compare);
   }
 
@@ -75,7 +75,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
       return false;
     }
 
-    int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
+    int compare = BOOLEAN_COMPARATOR.compare(dbValue, filterValue);
     return isSatisfied(compare);
   }
 }
