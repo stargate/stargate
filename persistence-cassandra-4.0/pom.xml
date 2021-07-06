@@ -10,12 +10,12 @@
   <artifactId>persistence-cassandra-4.0</artifactId>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <cassandra.version>4.0-beta4</cassandra.version>
+    <cassandra.version>4.0-rc2</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
     -->
-    <cassandra.bundled-driver.version>3.10.0</cassandra.bundled-driver.version>
+    <cassandra.bundled-driver.version>3.11.0</cassandra.bundled-driver.version>
   </properties>
   <dependencies>
     <dependency>
