@@ -41,21 +41,21 @@ class GteFilterOperationTest {
 
     @Test
     public void stringLess() {
-      boolean result = gte.test("filterValue", "aaa");
+      boolean result = gte.test("aaa", "filterValue");
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void stringGreater() {
-      boolean result = gte.test("filterValue", "www");
+      boolean result = gte.test("www", "filterValue");
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void stringNull() {
-      boolean result = gte.test("filterValue", null);
+      boolean result = gte.test(null, "filterValue");
 
       // nulls last
       assertThat(result).isFalse();
@@ -72,21 +72,21 @@ class GteFilterOperationTest {
 
     @Test
     public void booleanLess() {
-      boolean result = gte.test(true, false);
+      boolean result = gte.test(false, true);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void booleanGreater() {
-      boolean result = gte.test(false, true);
+      boolean result = gte.test(true, false);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void booleanNull() {
-      boolean result = gte.test(true, null);
+      boolean result = gte.test(null, true);
 
       assertThat(result).isFalse();
     }
@@ -100,21 +100,21 @@ class GteFilterOperationTest {
 
     @Test
     public void numbersLess() {
-      boolean result = gte.test(22.1d, 22d);
+      boolean result = gte.test(22d, 22.1d);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersGreater() {
-      boolean result = gte.test(21.9d, 22d);
+      boolean result = gte.test(22d, 21.9d);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNull() {
-      boolean result = gte.test(22, null);
+      boolean result = gte.test(null, 22);
 
       assertThat(result).isFalse();
     }

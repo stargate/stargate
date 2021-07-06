@@ -41,14 +41,14 @@ class NeFilterOperationTest {
 
     @Test
     public void stringNotEquals() {
-      boolean result = ne.test("filterValue", "dbValue");
+      boolean result = ne.test("dbValue", "filterValue");
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void stringNotEqualsNull() {
-      boolean result = ne.test("filterValue", null);
+      boolean result = ne.test(null, "filterValue");
 
       assertThat(result).isTrue();
     }
@@ -66,7 +66,7 @@ class NeFilterOperationTest {
     public void booleanNotEquals() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = ne.test(value, !value);
+      boolean result = ne.test(!value, value);
 
       assertThat(result).isTrue();
     }
@@ -75,7 +75,7 @@ class NeFilterOperationTest {
     public void booleanNotEqualsNull() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = ne.test(value, null);
+      boolean result = ne.test(null, value);
 
       assertThat(result).isTrue();
     }
@@ -89,28 +89,28 @@ class NeFilterOperationTest {
 
     @Test
     public void numberEqualsDifferentTypes() {
-      boolean result = ne.test(22, 22d);
+      boolean result = ne.test(22d, 22);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersNotEquals() {
-      boolean result = ne.test(22d, 23d);
+      boolean result = ne.test(23d, 22d);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNotEqualsDifferentTypes() {
-      boolean result = ne.test(22L, 22.01);
+      boolean result = ne.test(22.01, 22L);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNotEqualsNull() {
-      boolean result = ne.test(22, null);
+      boolean result = ne.test(null, 22);
 
       assertThat(result).isTrue();
     }

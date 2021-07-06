@@ -95,7 +95,7 @@ class StringConditionTest {
     public void nullDatabaseValue() {
       String filterValue = RandomStringUtils.randomAlphanumeric(16);
       when(row.isNull("text_value")).thenReturn(true);
-      when(filterOperation.test(filterValue, null)).thenReturn(true);
+      when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableStringCondition condition =
           ImmutableStringCondition.of(filterOperation, filterValue);
@@ -110,7 +110,7 @@ class StringConditionTest {
       String databaseValue = RandomStringUtils.randomAlphanumeric(16);
       when(row.isNull("text_value")).thenReturn(false);
       when(row.getString("text_value")).thenReturn(databaseValue);
-      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+      when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableStringCondition condition =
           ImmutableStringCondition.of(filterOperation, filterValue);

@@ -72,6 +72,6 @@ public abstract class NumberCondition implements BaseCondition {
   @Override
   public boolean test(Row row) {
     Double dbValue = getDouble(row);
-    return getFilterOperation().test(getQueryValue(), dbValue);
+    return getFilterOperation().test(dbValue, getQueryValue());
   }
 }

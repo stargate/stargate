@@ -49,7 +49,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
-  default boolean test(String filterValue, String dbValue) {
+  default boolean test(String dbValue, String filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }
@@ -59,7 +59,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
-  default boolean test(Number filterValue, Double dbValue) {
+  default boolean test(Double dbValue, Number filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }
@@ -70,7 +70,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
-  default boolean test(Boolean filterValue, Boolean dbValue) {
+  default boolean test(Boolean dbValue, Boolean filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }

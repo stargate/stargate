@@ -41,21 +41,21 @@ class LteFilterOperationTest {
 
     @Test
     public void stringLess() {
-      boolean result = lte.test("filterValue", "aaa");
+      boolean result = lte.test("aaa", "filterValue");
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void stringGreater() {
-      boolean result = lte.test("filterValue", "www");
+      boolean result = lte.test("www", "filterValue");
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void stringNull() {
-      boolean result = lte.test("filterValue", null);
+      boolean result = lte.test(null, "filterValue");
 
       // nulls last
       assertThat(result).isFalse();
@@ -72,21 +72,21 @@ class LteFilterOperationTest {
 
     @Test
     public void booleanLess() {
-      boolean result = lte.test(true, false);
+      boolean result = lte.test(false, true);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void booleanGreater() {
-      boolean result = lte.test(false, true);
+      boolean result = lte.test(true, false);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void booleanNull() {
-      boolean result = lte.test(true, null);
+      boolean result = lte.test(null, true);
 
       assertThat(result).isFalse();
     }
@@ -100,21 +100,21 @@ class LteFilterOperationTest {
 
     @Test
     public void numbersLess() {
-      boolean result = lte.test(22.1d, 22d);
+      boolean result = lte.test(22d, 22.1d);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersGreater() {
-      boolean result = lte.test(21.9d, 22d);
+      boolean result = lte.test(22d, 21.9d);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersNull() {
-      boolean result = lte.test(22, null);
+      boolean result = lte.test(null, 22);
 
       assertThat(result).isFalse();
     }

@@ -50,7 +50,7 @@ public abstract class InFilterOperation implements GenericFilterOperation<List<?
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, String dbValue) {
+  public boolean test(String dbValue, List<?> filterValue) {
     // if null, check any is null, avoid .contains(null) as some impl could throw NPE
     if (null == dbValue) {
       return filterValue.stream().anyMatch(Objects::isNull);
@@ -63,7 +63,7 @@ public abstract class InFilterOperation implements GenericFilterOperation<List<?
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, Boolean dbValue) {
+  public boolean test(Boolean dbValue, List<?> filterValue) {
     // if null, check any is null, avoid .contains(null) as some impl could throw NPE
     if (null == dbValue) {
       return filterValue.stream().anyMatch(Objects::isNull);
@@ -76,7 +76,7 @@ public abstract class InFilterOperation implements GenericFilterOperation<List<?
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(List<?> filterValue, Double dbValue) {
+  public boolean test(Double dbValue, List<?> filterValue) {
     // if null, check any is null, avoid .contains(null) as some impl could throw NPE
     if (null == dbValue) {
       return filterValue.stream().anyMatch(Objects::isNull);

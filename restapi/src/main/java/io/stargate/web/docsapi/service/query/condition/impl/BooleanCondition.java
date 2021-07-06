@@ -74,6 +74,6 @@ public abstract class BooleanCondition implements BaseCondition {
   @Override
   public boolean test(Row row) {
     Boolean dbValue = getBoolean(row, isNumericBooleans());
-    return getFilterOperation().test(getQueryValue(), dbValue);
+    return getFilterOperation().test(dbValue, getQueryValue());
   }
 }

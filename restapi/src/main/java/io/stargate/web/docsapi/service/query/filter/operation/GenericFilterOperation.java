@@ -26,32 +26,32 @@ public interface GenericFilterOperation<FV> extends BaseFilterOperation {
   /**
    * Tests the filter value and database {@link String} against this filter operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(FV filterValue, String dbValue);
+  boolean test(String dbValue, FV filterValue);
 
   /**
    * Tests the filter value and database {@link Double} against this filter operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(FV filterValue, Double dbValue);
+  boolean test(Double dbValue, FV filterValue);
 
   /**
    * Tests the filter value and database {@link Boolean} against this filter operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(FV filterValue, Boolean dbValue);
+  boolean test(Boolean dbValue, FV filterValue);
 
   /**
    * Validates if the filter input can be used against this filter operation.
