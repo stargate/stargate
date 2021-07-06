@@ -69,4 +69,78 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
                     cqlRow(Values.of("b"), Values.of(2)),
                     cqlRow(Values.of("c"), Values.of(3)))));
   }
+
+  @Test
+  public void simpleBatchAfterSchemaChange() throws InvalidProtocolBufferException {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // Create keyspace, table, and then insert some data
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+                null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeBatch(
+            Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO ks1.tbl1 (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO ks1.tbl1 (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .build());
+    assertThat(response).isNotNull();
+
+    response = stub.executeQuery(cqlQuery("SELECT * FROM ks1.tbl1", null));
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    assertThat(new HashSet<>(rs.getRowsList()))
+        .isEqualTo(
+            new HashSet<>(
+                Arrays.asList(
+                    cqlRow(Values.of("a"), Values.of(1)),
+                    cqlRow(Values.of("b"), Values.of(2)),
+                    cqlRow(Values.of("c"), Values.of(3)))));
+
+    // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
+    // cache
+    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;", null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+                null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeBatch(
+            Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO ks1.tbl1 (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO ks1.tbl1 (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .build());
+    assertThat(response).isNotNull();
+  }
 }
