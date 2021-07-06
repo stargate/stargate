@@ -40,17 +40,17 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void stringGreater() {
+    public void stringLess() {
       boolean result = gt.test("filterValue", "aaa");
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
-    public void stringLess() {
+    public void stringGreater() {
       boolean result = gt.test("filterValue", "www");
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test
@@ -71,17 +71,17 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void booleanGreater() {
+    public void booleanLess() {
       boolean result = gt.test(true, false);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
-    public void booleanLess() {
+    public void booleanGreater() {
       boolean result = gt.test(false, true);
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test
@@ -99,17 +99,17 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void numbersGreater() {
+    public void numbersLess() {
       boolean result = gt.test(22.1d, 22d);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
-    public void numbersLess() {
+    public void numbersGreater() {
       boolean result = gt.test(21.9d, 22d);
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test

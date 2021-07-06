@@ -40,17 +40,17 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void stringGreater() {
+    public void stringLess() {
       boolean result = lt.test("filterValue", "aaa");
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test
-    public void stringLess() {
+    public void stringGreater() {
       boolean result = lt.test("filterValue", "www");
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
@@ -71,17 +71,17 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void booleanGreater() {
+    public void booleanLess() {
       boolean result = lt.test(true, false);
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test
-    public void booleanLess() {
+    public void booleanGreater() {
       boolean result = lt.test(false, true);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
@@ -99,17 +99,17 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void numbersGreater() {
+    public void numbersLess() {
       boolean result = lt.test(22.1d, 22d);
 
-      assertThat(result).isFalse();
+      assertThat(result).isTrue();
     }
 
     @Test
-    public void numbersLess() {
+    public void numbersGreater() {
       boolean result = lt.test(21.9d, 22d);
 
-      assertThat(result).isTrue();
+      assertThat(result).isFalse();
     }
 
     @Test
