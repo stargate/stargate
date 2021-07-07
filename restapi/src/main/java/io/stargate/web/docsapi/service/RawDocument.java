@@ -17,28 +17,28 @@ package io.stargate.web.docsapi.service;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
-import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 public class RawDocument {
 
   private final String id;
   private final List<String> docKey;
-  private final ResultSet resultSet;
-  private final boolean hasNext;
+  private final Function<ResumeMode, ByteBuffer> pagingState;
   private final List<Row> rows;
 
   public RawDocument(
-      String id, List<String> docKey, ResultSet resultSet, boolean hasNext, List<Row> rows) {
+      String id,
+      List<String> docKey,
+      Function<ResumeMode, ByteBuffer> pagingState,
+      List<Row> rows) {
     this.id = id;
     this.docKey = docKey;
-    this.resultSet = resultSet;
-    this.hasNext = hasNext;
+    this.pagingState = pagingState;
     this.rows = rows;
   }
 
@@ -62,7 +62,7 @@ public class RawDocument {
   }
 
   private RawDocument replaceRows(List<Row> newRows) {
-    return new RawDocument(id, docKey, resultSet, hasNext, newRows);
+    return new RawDocument(id, docKey, pagingState, newRows);
   }
 
   public RawDocument populateFrom(RawDocument doc) {
@@ -76,26 +76,17 @@ public class RawDocument {
   }
 
   public boolean hasPagingState() {
-    return hasNext && !rows.isEmpty();
+    return makePagingState() != null;
   }
 
   public ByteBuffer makePagingState() {
-    if (!hasNext) {
-      return null;
-    }
-
-    if (rows.isEmpty()) {
-      throw new IllegalStateException("Cannot resume paging from an empty document");
-    }
-
-    ResumeMode resumeMode = ResumeMode.NEXT_PARTITION;
+    ResumeMode resumeMode;
     if (docKey.size() > 1) {
       resumeMode = ResumeMode.NEXT_ROW;
+    } else {
+      resumeMode = ResumeMode.NEXT_PARTITION;
     }
 
-    Row lastRow = rows.get(rows.size() - 1);
-
-    return resultSet.makePagingState(
-        PagingPosition.ofCurrentRow(lastRow).resumeFrom(resumeMode).build());
+    return pagingState.apply(resumeMode);
   }
 }

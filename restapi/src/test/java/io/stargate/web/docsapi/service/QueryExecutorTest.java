@@ -28,6 +28,7 @@ import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.ValidatingDataStore.QueryAssert;
+import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltQuery;
@@ -87,11 +88,18 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   private Map<String, Object> row(String id, String p0, Double value) {
-    return ImmutableMap.of("key", id, "p0", p0, "test_value", value);
+    return row(id, p0, "", "", value);
   }
 
-  private Map<String, Object> row(String id, String p0, String p1, Double value) {
-    return ImmutableMap.of("key", id, "p0", p0, "p1", p1, "test_value", value);
+  private Map<String, Object> row(String id, String p0, String p1, String p2, Double value) {
+    return ImmutableMap.<String, Object>builder()
+        .put("key", id)
+        .put("p0", p0)
+        .put("p1", p1)
+        .put("p2", p2)
+        .put("p3", "")
+        .put("test_value", value)
+        .build();
   }
 
   @Test
@@ -115,7 +123,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
                 row("4", "y", 2.0d),
                 row("4", "x", 3.0d),
                 row("5", "x", 3.0d),
-                row("5", "x", 3.0d)));
+                row("5", "y", 3.0d)));
   }
 
   private void withFiveTestDocIds(int pageSize) {
@@ -307,13 +315,13 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .withPageSize(3)
         .returning(
             ImmutableList.of(
-                row("b", "x", "2", 1.0d),
-                row("b", "x", "2", 2.0d),
-                row("b", "x", "2", 3.0d),
-                row("b", "x", "2", 4.0d),
-                row("b", "y", "2", 5.0d),
-                row("b", "y", "3", 6.0d),
-                row("b", "y", "3", 7.0d)));
+                row("b", "x", "2", "f1", 1.0d),
+                row("b", "x", "2", "f2", 2.0d),
+                row("b", "x", "2", "f3", 3.0d),
+                row("b", "x", "2", "f4", 4.0d),
+                row("b", "y", "2", "f1", 5.0d),
+                row("b", "y", "3", "f1", 6.0d),
+                row("b", "y", "3", "f2", 7.0d)));
 
     List<RawDocument> docs =
         executor
@@ -355,15 +363,15 @@ class QueryExecutorTest extends AbstractDataStoreTest {
         .withPageSize(pageSize)
         .returning(
             ImmutableList.of(
-                row("a", "x", "2", 1.0d),
-                row("a", "x", "2", 2.0d),
-                row("a", "x", "2", 3.0d),
-                row("a", "x", "2", 4.0d),
-                row("a", "y", "2", 5.0d),
-                row("a", "y", "2", 6.0d),
-                row("a", "y", "3", 8.0d),
-                row("a", "y", "3", 9.0d),
-                row("a", "y", "4", 10.0d)));
+                row("a", "x", "2", "p1", 1.0d),
+                row("a", "x", "2", "p2", 2.0d),
+                row("a", "x", "2", "p3", 3.0d),
+                row("a", "x", "2", "p4", 4.0d),
+                row("a", "y", "2", "p1", 5.0d),
+                row("a", "y", "2", "p2", 6.0d),
+                row("a", "y", "3", "p1", 8.0d),
+                row("a", "y", "3", "p2", 9.0d),
+                row("a", "y", "4", "p1", 10.0d)));
 
     AbstractBound<?> query =
         datastore()
@@ -413,5 +421,161 @@ class QueryExecutorTest extends AbstractDataStoreTest {
       docs = executor.queryDocs(3, query, pageSize, lastPagingState, context).test().values();
       assertThat(docs).isEmpty();
     }
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
+  void testMergeByDocKey(int pageSize) {
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x1", 1.0d),
+                row("a", "x2", 2.0d),
+                row("c", "x2", 2.0d),
+                row("c", "x3", 2.0d)));
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "y")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x2", 2.0d),
+                row("b", "y1", 1.0d),
+                row("b", "y2", 1.0d),
+                row("d", "z1", 1.0d),
+                row("d", "z2", 2.0d)));
+
+    BuiltQuery<?> query =
+        datastore().queryBuilder().select().star().from(table).where("p0", Predicate.GT).build();
+
+    AbstractBound<?> q1 = query.bind("x");
+    AbstractBound<?> q2 = query.bind("y");
+
+    TestSubscriber<RawDocument> test =
+        executor.queryDocs(ImmutableList.of(q1, q2), pageSize, null, context).test();
+    test.assertNoErrors();
+
+    List<RawDocument> docs = test.values();
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("a", "b", "c", "d");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2");
+    assertThat(docs.get(1).rows()).extracting(r -> r.getString("p0")).contains("y2");
+    assertThat(docs.get(2).rows()).extracting(r -> r.getString("p0")).contains("x2", "x3");
+    assertThat(docs.get(3).rows()).extracting(r -> r.getString("p0")).contains("z1", "z2");
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
+  void testMergeByDocKeyPaged(int pageSize) {
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x1", 1.0d),
+                row("a", "x2", 2.0d),
+                row("b", "x1", 2.0d),
+                row("b", "x3", 2.0d),
+                row("c", "x2", 2.0d),
+                row("d", "x2", 2.0d)));
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "y")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x2", 2.0d),
+                row("a", "x3", 1.0d),
+                row("b", "x2", 1.0d),
+                row("b", "x4", 1.0d),
+                row("d", "x1", 2.0d)));
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "z")
+        .withPageSize(pageSize)
+        .returning(ImmutableList.of(row("c", "x1", 1.0d)));
+
+    BuiltQuery<?> query =
+        datastore().queryBuilder().select().star().from(table).where("p0", Predicate.GT).build();
+
+    List<BoundQuery> queries =
+        ImmutableList.<BoundQuery>builder()
+            .add(query.bind("x"))
+            .add(query.bind("y"))
+            .add(query.bind("z"))
+            .build();
+
+    TestSubscriber<RawDocument> test = executor.queryDocs(queries, pageSize, null, context).test();
+    test.assertNoErrors();
+    List<RawDocument> docs = test.values();
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("a", "b", "c", "d");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2", "x3");
+    assertThat(docs.get(0).makePagingState()).isNotNull();
+
+    test = executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context).test();
+    test.assertNoErrors();
+    docs = test.values();
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("b", "c", "d");
+    assertThat(docs.get(0).rows())
+        .extracting(r -> r.getString("p0"))
+        .contains("x1", "x2", "x3", "x4");
+    assertThat(docs.get(0).makePagingState()).isNotNull();
+
+    test = executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context).test();
+    test.assertNoErrors();
+    docs = test.values();
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("c", "d");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1");
+    assertThat(docs.get(0).makePagingState()).isNotNull();
+
+    test = executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context).test();
+    test.assertNoErrors();
+    docs = test.values();
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("d");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1");
+
+    // See comment in testFullScanFinalPagingState and note that both queries had 1 row in their
+    // result sets during the last execution.
+    boolean shouldHasPagingState = 1 == pageSize;
+    if (!shouldHasPagingState) {
+      assertThat(docs.get(0).makePagingState()).isNull();
+    } else {
+      test = executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context).test();
+      test.assertNoErrors();
+      assertThat(test.values()).isEmpty();
+    }
+  }
+
+  @Test
+  void testExhaustedQueryReExecution() {
+    int pageSize = 1000;
+    QueryAssert q1 =
+        withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
+            .withPageSize(pageSize)
+            .returning(ImmutableList.of(row("a", "x1", 1.0d), row("a", "x2", 2.0d)));
+    QueryAssert q2 =
+        withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "y")
+            .withPageSize(pageSize)
+            .returning(ImmutableList.of(row("b", "x2", 1.0d), row("b", "x4", 2.0d)));
+
+    BuiltQuery<?> query =
+        datastore().queryBuilder().select().star().from(table).where("p0", Predicate.GT).build();
+
+    List<BoundQuery> queries =
+        ImmutableList.<BoundQuery>builder().add(query.bind("x")).add(query.bind("y")).build();
+
+    TestSubscriber<RawDocument> test = executor.queryDocs(queries, pageSize, null, context).test();
+    test.assertNoErrors();
+    List<RawDocument> docs = test.values();
+    assertThat(docs).extracting(RawDocument::id).containsExactly("a", "b");
+    q1.assertExecuteCount().isEqualTo(1);
+    q2.assertExecuteCount().isEqualTo(1);
+
+    test = executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context).test();
+    test.assertNoErrors();
+    docs = test.values();
+    assertThat(docs).extracting(RawDocument::id).containsExactly("b");
+
+    // Note: we exhausted the first query, so there was no need to re-execute it
+    q1.assertExecuteCount().isEqualTo(1);
+    q2.assertExecuteCount().isEqualTo(2);
   }
 }

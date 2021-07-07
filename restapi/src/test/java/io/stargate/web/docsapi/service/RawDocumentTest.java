@@ -19,9 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
-import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.Row;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,8 +37,9 @@ class RawDocumentTest {
   private final String id = "testId";
   private final List<String> key = ImmutableList.of("1", "2");
 
-  @Mock private ResultSet rs1;
-  @Mock private ResultSet rs2;
+  private final Function<ResumeMode, ByteBuffer> somePagingState =
+      resumeMode -> ByteBuffer.allocate(1);
+  @Mock private Function<ResumeMode, ByteBuffer> nullPagingState;
   @Mock private Row row1;
   @Mock private Row row2;
   private List<Row> rows;
@@ -47,11 +50,28 @@ class RawDocumentTest {
   }
 
   @Nested
+  class PagingState {
+    @Test
+    void testNullPagingState() {
+      RawDocument doc = new RawDocument(id, key, nullPagingState, ImmutableList.of());
+      assertThat(doc.hasPagingState()).isFalse();
+      assertThat(doc.makePagingState()).isNull();
+    }
+
+    @Test
+    void testSomePagingState() {
+      RawDocument doc = new RawDocument(id, key, somePagingState, ImmutableList.of());
+      assertThat(doc.hasPagingState()).isTrue();
+      assertThat(doc.makePagingState()).isNotNull();
+    }
+  }
+
+  @Nested
   class Populate {
     @Test
     void testRowsReplacement() {
-      RawDocument doc0 = new RawDocument(id, key, rs1, true, ImmutableList.of());
-      RawDocument doc1 = new RawDocument(id, key, rs2, false, rows);
+      RawDocument doc0 = new RawDocument(id, key, somePagingState, ImmutableList.of());
+      RawDocument doc1 = new RawDocument(id, key, nullPagingState, rows);
 
       List<RawDocument> docs = doc0.populateFrom(Flowable.just(doc1)).test().values();
       assertThat(docs).hasSize(1);
@@ -63,21 +83,21 @@ class RawDocumentTest {
 
     @Test
     void testEmptyRows() {
-      RawDocument doc0 = new RawDocument(id, key, rs1, true, rows);
-      RawDocument doc1 = new RawDocument(id, key, rs2, false, ImmutableList.of());
+      RawDocument doc0 = new RawDocument(id, key, somePagingState, rows);
+      RawDocument doc1 = new RawDocument(id, key, nullPagingState, ImmutableList.of());
 
       List<RawDocument> docs = doc0.populateFrom(Flowable.just(doc1)).test().values();
       assertThat(docs).hasSize(1);
       assertThat(docs).element(0).extracting(RawDocument::id).isEqualTo(id);
       assertThat(docs).element(0).extracting(RawDocument::key).isEqualTo(key);
       assertThat(docs).element(0).extracting(RawDocument::rows).asList().isEmpty();
-      // no data rows -> no paging state
-      assertThat(docs).element(0).extracting(RawDocument::hasPagingState).isEqualTo(false);
+      // the original paging state gets reused
+      assertThat(docs).element(0).extracting(RawDocument::hasPagingState).isEqualTo(true);
     }
 
     @Test
     void testEmptyFlowable() {
-      RawDocument doc0 = new RawDocument(id, key, rs1, true, rows);
+      RawDocument doc0 = new RawDocument(id, key, somePagingState, rows);
 
       List<RawDocument> docs = doc0.populateFrom(Flowable.empty()).test().values();
       assertThat(docs).hasSize(1);
@@ -85,8 +105,8 @@ class RawDocumentTest {
       assertThat(docs).element(0).extracting(RawDocument::key).isEqualTo(key);
       // Populating from an empty result sets yields the same doc ID but no data rows
       assertThat(docs).element(0).extracting(RawDocument::rows).asList().isEmpty();
-      // no data rows -> no paging state
-      assertThat(docs).element(0).extracting(RawDocument::hasPagingState).isEqualTo(false);
+      // the original paging state gets reused
+      assertThat(docs).element(0).extracting(RawDocument::hasPagingState).isEqualTo(true);
     }
   }
 }
