@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.web;
 
+import com.google.common.base.MoreObjects;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;
@@ -23,6 +24,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
+import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
@@ -148,7 +150,7 @@ public class StargateGraphqlContext {
     }
 
     public Parameters getParameters() {
-      return parameters.get();
+      return MoreObjects.firstNonNull(parameters.get(), CassandraFetcher.DEFAULT_PARAMETERS);
     }
   }
 }
