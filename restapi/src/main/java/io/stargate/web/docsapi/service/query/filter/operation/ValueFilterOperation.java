@@ -26,12 +26,12 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    * Tests the filter {@link String} value and database {@link String} against this filter
    * operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(String filterValue, String dbValue);
+  boolean test(String dbValue, String filterValue);
 
   /**
    * Validates if the filter input can be used against this filter operation.
@@ -48,12 +48,12 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    * Tests the filter {@link Number} value and database {@link Double} against this filter
    * operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(Number filterValue, Double dbValue);
+  boolean test(Double dbValue, Number filterValue);
 
   /**
    * Validates if the filter input can be used against this filter operation.
@@ -70,12 +70,12 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    * Tests the filter {@link Boolean} value and database {@link Boolean} against this filter
    * operation.
    *
-   * @param filterValue Filter value, can be <code>null</code>
    * @param dbValue DB value, can be <code>null</code>
+   * @param filterValue Filter value, can be <code>null</code>
    * @return <code>true</code> if the filter value matches the filter, otherwise <code>false
    * </code>
    */
-  boolean test(Boolean filterValue, Boolean dbValue);
+  boolean test(Boolean dbValue, Boolean filterValue);
 
   /**
    * Validates if the filter input can be used against this filter operation.

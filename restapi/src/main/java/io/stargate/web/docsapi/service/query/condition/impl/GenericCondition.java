@@ -86,11 +86,11 @@ public abstract class GenericCondition<V> implements BaseCondition {
 
     // compare against the non-null values, fallback to text compare even if null
     if (null != dbValueBoolean) {
-      return filterOperation.test(queryValue, dbValueBoolean);
+      return filterOperation.test(dbValueBoolean, queryValue);
     } else if (null != dbValueDouble) {
-      return filterOperation.test(queryValue, dbValueDouble);
+      return filterOperation.test(dbValueDouble, queryValue);
     } else {
-      return filterOperation.test(queryValue, dbValueString);
+      return filterOperation.test(dbValueString, queryValue);
     }
   }
 }

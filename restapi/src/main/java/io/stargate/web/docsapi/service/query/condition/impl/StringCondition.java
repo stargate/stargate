@@ -70,6 +70,6 @@ public abstract class StringCondition implements BaseCondition {
   @Override
   public boolean test(Row row) {
     String dbValue = getString(row);
-    return getFilterOperation().test(getQueryValue(), dbValue);
+    return getFilterOperation().test(dbValue, getQueryValue());
   }
 }

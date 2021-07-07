@@ -95,7 +95,7 @@ class NumberConditionTest {
     public void nullDatabaseValue() {
       Number filterValue = RandomUtils.nextLong();
       when(row.isNull("dbl_value")).thenReturn(true);
-      when(filterOperation.test(filterValue, null)).thenReturn(true);
+      when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableNumberCondition condition =
           ImmutableNumberCondition.of(filterOperation, filterValue);
@@ -110,7 +110,7 @@ class NumberConditionTest {
       Double databaseValue = RandomUtils.nextDouble();
       when(row.isNull("dbl_value")).thenReturn(false);
       when(row.getDouble("dbl_value")).thenReturn(databaseValue);
-      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+      when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableNumberCondition condition =
           ImmutableNumberCondition.of(filterOperation, filterValue);

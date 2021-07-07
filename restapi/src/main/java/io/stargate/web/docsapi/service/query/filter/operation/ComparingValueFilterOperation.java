@@ -49,33 +49,33 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
-  default boolean test(String filterValue, String dbValue) {
+  default boolean test(String dbValue, String filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }
 
-    int compare = STRING_COMPARATOR.compare(filterValue, dbValue);
+    int compare = STRING_COMPARATOR.compare(dbValue, filterValue);
     return isSatisfied(compare);
   }
 
   /** {@inheritDoc} */
-  default boolean test(Number filterValue, Double dbValue) {
+  default boolean test(Double dbValue, Number filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }
 
     // TODO do we wanna have more sophisticated compare for the numbers
-    int compare = DOUBLE_COMPARATOR.compare(filterValue.doubleValue(), dbValue);
+    int compare = DOUBLE_COMPARATOR.compare(dbValue, filterValue.doubleValue());
     return isSatisfied(compare);
   }
 
   /** {@inheritDoc} */
-  default boolean test(Boolean filterValue, Boolean dbValue) {
+  default boolean test(Boolean dbValue, Boolean filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
     }
 
-    int compare = BOOLEAN_COMPARATOR.compare(filterValue, dbValue);
+    int compare = BOOLEAN_COMPARATOR.compare(dbValue, filterValue);
     return isSatisfied(compare);
   }
 }

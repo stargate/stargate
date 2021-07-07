@@ -84,7 +84,7 @@ class GenericConditionTest {
       when(row.isNull("bool_value")).thenReturn(true);
       when(row.isNull("text_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(true);
-      when(filterOperation.test(filterValue, (String) null)).thenReturn(true);
+      when(filterOperation.test((String) null, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, filterValue, false);
@@ -100,7 +100,7 @@ class GenericConditionTest {
       when(row.isNull("text_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(true);
       when(row.getBoolean("bool_value")).thenReturn(false);
-      when(filterOperation.test(filterValue, false)).thenReturn(true);
+      when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, filterValue, false);
@@ -117,7 +117,7 @@ class GenericConditionTest {
       when(row.isNull("text_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(true);
       when(row.getByte("bool_value")).thenReturn(byteValue);
-      when(filterOperation.test(filterValue, false)).thenReturn(true);
+      when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, filterValue, true);
@@ -133,7 +133,7 @@ class GenericConditionTest {
       when(row.isNull("text_value")).thenReturn(true);
       when(row.isNull("dbl_value")).thenReturn(false);
       when(row.getDouble("dbl_value")).thenReturn(22d);
-      when(filterOperation.test(filterValue, 22d)).thenReturn(true);
+      when(filterOperation.test(22d, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, filterValue, false);
@@ -149,7 +149,7 @@ class GenericConditionTest {
       when(row.isNull("text_value")).thenReturn(false);
       when(row.isNull("dbl_value")).thenReturn(true);
       when(row.getString("text_value")).thenReturn("Jordan");
-      when(filterOperation.test(filterValue, "Jordan")).thenReturn(true);
+      when(filterOperation.test("Jordan", filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, filterValue, false);
