@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResult<Object>> {
@@ -92,73 +93,96 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       Optional<Long> timestamp =
           TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
 
-      AbstractBound<?> query =
-          context
-              .getDataStore()
-              .queryBuilder()
-              .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
-              .value(modifiers)
-              .ifNotExists(isLwt)
-              .ttl(model.getTtl().orElse(null))
-              .timestamp(timestamp.orElse(null))
-              .build()
-              .bind();
+      AbstractBound<?> query = buildInsertQuery(entityModel, modifiers, timestamp, isLwt, context);
 
       List<TypedKeyValue> primaryKey = TypedKeyValue.forDML((BoundDMLQuery) query);
-      context
-          .getAuthorizationService()
-          .authorizeDataWrite(
-              context.getSubject(),
-              entityModel.getKeyspaceName(),
-              entityModel.getCqlName(),
-              primaryKey,
-              Scope.MODIFY,
-              SourceAPI.GRAPHQL);
+      authorizeInsert(entityModel, primaryKey, context);
 
       queries.add(query);
       primaryKeys.add(primaryKey);
       cqlValuesList.add(cqlValues);
     }
 
-    return new MutationPayload<>(
-        queries,
-        primaryKeys,
-        queryResults -> {
-          DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
-          List<Object> data = new ArrayList<>();
-          int i = 0;
-          for (MutationResult queryResult : queryResults) {
-            if (queryResult instanceof MutationResult.Failure) {
-              // TODO include prefix/better location to better target which input failed
-              result.error(toGraphqlError((MutationResult.Failure) queryResult, environment));
-              data.add(null);
-            } else {
-              if (isBooleanReturnType()) {
-                data.add(queryResult instanceof MutationResult.Applied);
-              } else if (isEntityReturnType()) {
-                data.add(buildEntityResponse(queryResult, inputs.get(i), cqlValuesList.get(i)));
-              } else if (isPayloadModelReturnType()) {
-                data.add(
-                    buildPayloadResponse(
-                        queryResult,
-                        entityPrefixInResponse,
-                        inputs.get(i),
-                        cqlValuesList.get(i),
-                        selectionSet));
-              } else {
-                // Should never happen since the model builder has checked already
-                result.error(
-                    toGraphqlError(
-                        new IllegalArgumentException(
-                            "Unsupported return type: " + model.getReturnType()),
-                        environment));
-                data.add(null);
-              }
-            }
-            i += 1;
+    Function<List<MutationResult>, DataFetcherResult<Object>> resultBuilder =
+        getResultBuilder(selectionSet, entityPrefixInResponse, inputs, cqlValuesList, environment);
+
+    return new MutationPayload<>(queries, primaryKeys, resultBuilder);
+  }
+
+  private AbstractBound<?> buildInsertQuery(
+      EntityModel entityModel,
+      Collection<ValueModifier> modifiers,
+      Optional<Long> timestamp,
+      boolean isLwt,
+      StargateGraphqlContext context) {
+    return context
+        .getDataStore()
+        .queryBuilder()
+        .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
+        .value(modifiers)
+        .ifNotExists(isLwt)
+        .ttl(model.getTtl().orElse(null))
+        .timestamp(timestamp.orElse(null))
+        .build()
+        .bind();
+  }
+
+  private void authorizeInsert(
+      EntityModel entityModel, List<TypedKeyValue> primaryKey, StargateGraphqlContext context)
+      throws UnauthorizedException {
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            entityModel.getKeyspaceName(),
+            entityModel.getCqlName(),
+            primaryKey,
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL);
+  }
+
+  private Function<List<MutationResult>, DataFetcherResult<Object>> getResultBuilder(
+      DataFetchingFieldSelectionSet selectionSet,
+      String entityPrefixInResponse,
+      List<Map<String, Object>> inputs,
+      List<Map<String, Object>> cqlValuesList,
+      DataFetchingEnvironment environment) {
+    return queryResults -> {
+      DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
+      List<Object> data = new ArrayList<>();
+      int i = 0;
+      for (MutationResult queryResult : queryResults) {
+        if (queryResult instanceof MutationResult.Failure) {
+          // TODO include prefix/better location to better target which input failed
+          result.error(toGraphqlError((MutationResult.Failure) queryResult, environment));
+          data.add(null);
+        } else {
+          if (isBooleanReturnType()) {
+            data.add(queryResult instanceof MutationResult.Applied);
+          } else if (isEntityReturnType()) {
+            data.add(buildEntityResponse(queryResult, inputs.get(i), cqlValuesList.get(i)));
+          } else if (isPayloadModelReturnType()) {
+            data.add(
+                buildPayloadResponse(
+                    queryResult,
+                    entityPrefixInResponse,
+                    inputs.get(i),
+                    cqlValuesList.get(i),
+                    selectionSet));
+          } else {
+            // Should never happen since the model builder has checked already
+            result.error(
+                toGraphqlError(
+                    new IllegalArgumentException(
+                        "Unsupported return type: " + model.getReturnType()),
+                    environment));
+            data.add(null);
           }
-          return result.data(model.isList() ? data : data.get(0)).build();
-        });
+        }
+        i += 1;
+      }
+      return result.data(model.isList() ? data : data.get(0)).build();
+    };
   }
 
   private Map<String, Object> buildPayloadResponse(

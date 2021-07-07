@@ -102,12 +102,10 @@ public abstract class BulkMutationFetcher
     StargateGraphqlContext context = environment.getContext();
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
-    if (environment.getArgument("options") != null) {
-      if (!batchContext.setParameters(buildParameters(environment))) {
-        buildException =
-            new GraphQLException(
-                "options can only de defined once in an @atomic mutation selection");
-      }
+    if (environment.getArgument("options") != null
+        && !batchContext.setParameters(buildParameters(environment))) {
+      buildException =
+          new GraphQLException("options can only de defined once in an @atomic mutation selection");
     }
 
     if (buildException != null) {
