@@ -19,11 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
-import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.datastore.Row;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,9 +35,8 @@ class RawDocumentTest {
   private final String id = "testId";
   private final List<String> key = ImmutableList.of("1", "2");
 
-  private final Function<ResumeMode, ByteBuffer> somePagingState =
-      resumeMode -> ByteBuffer.allocate(1);
-  @Mock private Function<ResumeMode, ByteBuffer> nullPagingState;
+  private final PagingStateSupplier somePagingState = resumeMode -> ByteBuffer.allocate(1);
+  @Mock private PagingStateSupplier nullPagingState;
   @Mock private Row row1;
   @Mock private Row row2;
   private List<Row> rows;

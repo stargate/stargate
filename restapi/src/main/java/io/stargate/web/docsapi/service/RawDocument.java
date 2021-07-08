@@ -22,20 +22,16 @@ import io.stargate.db.datastore.Row;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 public class RawDocument {
 
   private final String id;
   private final List<String> docKey;
-  private final Function<ResumeMode, ByteBuffer> pagingState;
+  private final PagingStateSupplier pagingState;
   private final List<Row> rows;
 
   public RawDocument(
-      String id,
-      List<String> docKey,
-      Function<ResumeMode, ByteBuffer> pagingState,
-      List<Row> rows) {
+      String id, List<String> docKey, PagingStateSupplier pagingState, List<Row> rows) {
     this.id = id;
     this.docKey = docKey;
     this.pagingState = pagingState;
@@ -87,6 +83,6 @@ public class RawDocument {
       resumeMode = ResumeMode.NEXT_PARTITION;
     }
 
-    return pagingState.apply(resumeMode);
+    return pagingState.makePagingState(resumeMode);
   }
 }

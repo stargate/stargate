@@ -18,9 +18,22 @@ package io.stargate.web.docsapi.service;
 import io.stargate.db.PagingPosition.ResumeMode;
 import java.nio.ByteBuffer;
 
-public abstract class PagingStateSupplier {
+/**
+ * An abstraction layer for sources of a query paging state.
+ *
+ * <p>In general a paging state may come from:
+ * <li>a byte buffer, which in turn is a paging state returned from the previous query execution
+ *     that was not utilized during the current processing round and hence can be reused "as is"
+ *     regardless of {@link ResumeMode ResumeMode}.
+ * <li>a row that was received from the current (fresh) result set page.
+ */
+public interface PagingStateSupplier {
 
-  public abstract boolean hasPagingState();
+  /** Constructs paging state for the specified {@link ResumeMode ResumeMode}. */
+  ByteBuffer makePagingState(ResumeMode resumeMode);
 
-  public abstract ByteBuffer makePagingState(ResumeMode resumeMode);
+  /** Creates a {@link PagingStateSupplier} for a pre-built, fixed paging state buffer. */
+  static PagingStateSupplier fixed(ByteBuffer pagingState) {
+    return resumeMode -> pagingState;
+  }
 }

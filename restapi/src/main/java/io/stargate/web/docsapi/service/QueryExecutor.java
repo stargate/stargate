@@ -15,6 +15,8 @@
  */
 package io.stargate.web.docsapi.service;
 
+import static io.stargate.web.docsapi.service.CombinedPagingState.EXHAUSTED_PAGE_STATE;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import hu.akarnokd.rxjava3.operators.ExpandStrategy;
@@ -41,7 +43,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -49,7 +50,6 @@ import org.immutables.value.Value;
 /** Executes pre-built document queries, groups document rows and manages document pagination. */
 public class QueryExecutor {
 
-  private static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
   private final Accumulator TERM = new Accumulator();
 
   private final DataStore dataStore;
@@ -310,21 +310,14 @@ public class QueryExecutor {
 
       List<Row> docRows = this.rows.stream().map(DocProperty::row).collect(Collectors.toList());
 
-      PagingStateBuilder pagingStateBuilder = new PagingStateBuilder(pagingState);
+      CombinedPagingState combinedPagingState = new CombinedPagingState(pagingState);
 
-      return new RawDocument(id, docKey, pagingStateBuilder, docRows);
+      return new RawDocument(id, docKey, combinedPagingState, docRows);
     }
 
     private Accumulator complete(PagingStateTracker tracker, Accumulator next) {
       rows.forEach(tracker::track);
       List<PagingStateSupplier> currentPagingState = tracker.slice();
-
-      if (next == null) {
-        if (currentPagingState.stream().noneMatch(PagingStateSupplier::hasPagingState)) {
-          // Force a null paging state on the associated document
-          currentPagingState = NoPagingState.INSTANCE;
-        }
-      }
 
       return new Accumulator(this, currentPagingState, next);
     }
@@ -386,7 +379,7 @@ public class QueryExecutor {
 
     private PagingStateTracker(List<ByteBuffer> initialStates) {
       states = new ArrayList<>(initialStates.size());
-      initialStates.stream().map(PreBuiltPagingState::new).forEach(states::add);
+      initialStates.stream().map(PagingStateSupplier::fixed).forEach(states::add);
     }
 
     private Accumulator combine(Accumulator prev, Accumulator next) {
@@ -394,7 +387,7 @@ public class QueryExecutor {
     }
 
     public void track(DocProperty row) {
-      states.set(row.queryIndex(), new RowPagingState(row));
+      states.set(row.queryIndex(), row);
     }
 
     public List<PagingStateSupplier> slice() {
@@ -402,15 +395,28 @@ public class QueryExecutor {
     }
   }
 
+  /**
+   * Represents individual rows that provide values for document properties.
+   *
+   * <p>This class links a {@link Row} to its source {@link Page} and the {@link #queryIndex()
+   * query} that produced it.
+   */
   @Value.Immutable(lazyhash = true)
-  public abstract static class DocProperty {
+  public abstract static class DocProperty implements PagingStateSupplier {
 
     abstract Page page();
 
     abstract Row row();
 
+    /** Indicates whether the associated row was the last row in its page. */
     abstract boolean lastInPage();
 
+    /**
+     * The index of the query that produced this row in the list of executed queries.
+     *
+     * <p>This index corresponds to the position of the query's paging state in the combined paging
+     * state.
+     */
     abstract int queryIndex();
 
     @Value.Lazy
@@ -422,6 +428,20 @@ public class QueryExecutor {
       return row().getString(column.name());
     }
 
+    @Override
+    public ByteBuffer makePagingState(ResumeMode resumeMode) {
+      // Note: is current row was not the last one in its page the higher-level request may
+      // choose to resume fetching from the next row in current page even if the page itself does
+      // not have a paging state. Therefore, in this case we cannot return EXHAUSTED_PAGE_STATE.
+      if (lastInPage() && page().resultSet().getPagingState() == null) {
+        return EXHAUSTED_PAGE_STATE;
+      }
+
+      return page()
+          .resultSet()
+          .makePagingState(PagingPosition.ofCurrentRow(row()).resumeFrom(resumeMode).build());
+    }
+
     @Value.Lazy
     @Override
     public String toString() {
@@ -429,89 +449,16 @@ public class QueryExecutor {
     }
   }
 
+  /** A thin wrapper around {@link ResultSet} that caches {@link #decorator()} objects. */
   @Value.Immutable(lazyhash = true)
   public abstract static class Page {
 
     abstract ResultSet resultSet();
 
+    /** Lazily initialized and cached {@link RowDecorator}. */
     @Value.Lazy
     RowDecorator decorator() {
       return resultSet().makeRowDecorator();
-    }
-  }
-
-  private static class PreBuiltPagingState extends PagingStateSupplier {
-    private final ByteBuffer pagingState;
-
-    private PreBuiltPagingState(ByteBuffer pagingState) {
-      this.pagingState = pagingState;
-    }
-
-    @Override
-    public boolean hasPagingState() {
-      // An empty paging state means the query was exhausted during previous execution.
-      // A null paging state mean the query was not executed yet.
-      return pagingState == null || pagingState.remaining() > 0;
-    }
-
-    @Override
-    public ByteBuffer makePagingState(ResumeMode resumeMode) {
-      return pagingState;
-    }
-  }
-
-  private static class RowPagingState extends PagingStateSupplier {
-    private final DocProperty row;
-
-    private RowPagingState(DocProperty row) {
-      this.row = row;
-    }
-
-    @Override
-    public boolean hasPagingState() {
-      return row.page().resultSet().getPagingState() != null;
-    }
-
-    @Override
-    public ByteBuffer makePagingState(ResumeMode resumeMode) {
-      if (row.lastInPage() && !hasPagingState()) {
-        return EXHAUSTED_PAGE_STATE;
-      }
-
-      return row.page()
-          .resultSet()
-          .makePagingState(PagingPosition.ofCurrentRow(row.row()).resumeFrom(resumeMode).build());
-    }
-  }
-
-  private static class NoPagingState extends PagingStateSupplier {
-    private static final List<PagingStateSupplier> INSTANCE =
-        Collections.singletonList(new NoPagingState());
-
-    @Override
-    public boolean hasPagingState() {
-      return false;
-    }
-
-    @Override
-    public ByteBuffer makePagingState(ResumeMode resumeMode) {
-      return null;
-    }
-  }
-
-  private static class PagingStateBuilder implements Function<ResumeMode, ByteBuffer> {
-    private final List<PagingStateSupplier> pagingState;
-
-    private PagingStateBuilder(List<PagingStateSupplier> pagingState) {
-      this.pagingState = pagingState;
-    }
-
-    @Override
-    public ByteBuffer apply(ResumeMode resumeMode) {
-      List<ByteBuffer> pagingStateBuffers =
-          pagingState.stream().map(s -> s.makePagingState(resumeMode)).collect(Collectors.toList());
-
-      return CombinedPagingState.serialize(pagingStateBuffers);
     }
   }
 }

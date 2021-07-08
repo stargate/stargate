@@ -16,19 +16,55 @@
 package io.stargate.web.docsapi.service;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import io.stargate.db.PagingPosition.ResumeMode;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * A utility class for combining one or more per-query paging state buffers into one byte buffer.
+ *
+ * <p>It handles the edge cases of {@code null} and {@link #EXHAUSTED_PAGE_STATE "exhausted"} query
+ * states.
  */
-public class CombinedPagingState {
+public class CombinedPagingState implements PagingStateSupplier {
 
-  private CombinedPagingState() {
-    // private constructor to prevent instantiation
+  /**
+   * A special paging state buffer that indicates that the query reach the end of its result set.
+   *
+   * <p>Normally individual queries return a {@code null} paging state when they are exhausted.
+   * However, if case of merging two or more results sets we need to distinguish queries that have
+   * not yet produced any rows (also having a {@code null} initial paging state) from queries that
+   * reach the end of their result sets.
+   */
+  public static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
+
+  private final List<PagingStateSupplier> pagingState;
+
+  CombinedPagingState(List<PagingStateSupplier> pagingState) {
+    this.pagingState = pagingState;
+  }
+
+  public static boolean isExhausted(ByteBuffer pagingState) {
+    return pagingState != null && pagingState.remaining() == 0;
+  }
+
+  @Override
+  public ByteBuffer makePagingState(ResumeMode resumeMode) {
+    List<ByteBuffer> pagingStateBuffers =
+        pagingState.stream().map(s -> s.makePagingState(resumeMode)).collect(Collectors.toList());
+
+    // An empty paging state means the query was exhausted during previous execution.
+    // A null paging state mean the query has not been executed yet.
+    if (pagingStateBuffers.stream().allMatch(CombinedPagingState::isExhausted)) {
+      // Return a null overall paging state if all queries have been exhausted.
+      return null;
+    }
+
+    return CombinedPagingState.serialize(pagingStateBuffers);
   }
 
   public static ByteBuffer serialize(List<ByteBuffer> nestedStates) {
