@@ -21,6 +21,10 @@ import io.stargate.db.schema.Column;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A test implementation of {@link RowDecorator} that assumes partition keys to be {@link String}
+ * values and sorts them alphabetically using the natural order.
+ */
 public class AlphabeticalOrderPartitionKeyDecorator implements RowDecorator {
 
   private final List<Column> partitionKeyColumns;
@@ -32,13 +36,11 @@ public class AlphabeticalOrderPartitionKeyDecorator implements RowDecorator {
 
   @Override
   public <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row) {
-    StringBuilder decorated = new StringBuilder();
-    for (Column column : partitionKeyColumns) {
-      String value = row.getString(column.name());
-      decorated.append(value);
-      decorated.append("|");
-    }
+    String decorated =
+        partitionKeyColumns.stream()
+            .map(column -> row.getString(column.name()))
+            .collect(Collectors.joining("|"));
     //noinspection unchecked
-    return (ComparableKey<T>) new ComparableKey<>(String.class, decorated.toString());
+    return (ComparableKey<T>) new ComparableKey<>(String.class, decorated);
   }
 }
