@@ -24,24 +24,30 @@ public class DocsSchemaChecker {
     }
   }
 
-  public void checkValidity(String keyspace, String table, DocumentDB db) {
+  public boolean checkValidity(String keyspace, String table, DocumentDB db, boolean throwOnFail) {
     ImmutableKeyspaceAndTable keyspaceAndTable =
         ImmutableKeyspaceAndTable.builder().keyspace(keyspace).table(table).build();
     clearCacheOnSchemaChange(db);
-    validatedDocCollections.computeIfAbsent(keyspaceAndTable, ks -> performValidityCheck(ks, db));
+    return validatedDocCollections.computeIfAbsent(
+        keyspaceAndTable, ks -> performValidityCheck(ks, db, throwOnFail));
   }
 
-  private boolean performValidityCheck(ImmutableKeyspaceAndTable keyspaceAndTable, DocumentDB db) {
+  private boolean performValidityCheck(
+      ImmutableKeyspaceAndTable keyspaceAndTable, DocumentDB db, boolean throwOnFail) {
     String keyspace = keyspaceAndTable.getKeyspace();
     String table = keyspaceAndTable.getTable();
     db.tableExists(keyspace, table);
     boolean isDocsTable = db.isDocumentsTable(keyspace, table);
     if (!isDocsTable) {
-      throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION,
-          String.format(
-              "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
-              keyspace, table));
+      if (throwOnFail) {
+        throw new ErrorCodeRuntimeException(
+            ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION,
+            String.format(
+                "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
+                keyspace, table));
+      } else {
+        return false;
+      }
     }
     return true;
   }

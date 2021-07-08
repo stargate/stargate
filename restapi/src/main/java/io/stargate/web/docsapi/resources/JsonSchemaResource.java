@@ -76,7 +76,7 @@ public class JsonSchemaResource {
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, "Malformed JSON schema provided.");
           }
-          schemaChecker.checkValidity(namespace, collection, db);
+          schemaChecker.checkValidity(namespace, collection, db, true);
           JsonSchemaResponse resp =
               jsonSchemaHandler.attachSchemaToCollection(db, namespace, collection, schemaRaw);
           return Response.ok(resp).build();
@@ -115,7 +115,7 @@ public class JsonSchemaResource {
           DocumentDB db =
               dbFactory.getDocDataStoreForToken(
                   token, RequestToHeadersMapper.getAllHeaders(request));
-          schemaChecker.checkValidity(namespace, collection, db);
+          schemaChecker.checkValidity(namespace, collection, db, true);
           JsonSchemaResponse resp =
               jsonSchemaHandler.getJsonSchemaForCollection(db, namespace, collection);
           return Response.ok(resp).build();

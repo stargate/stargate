@@ -5,6 +5,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -13,6 +14,7 @@ import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.docsapi.models.dto.CreateCollection;
 import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
+import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.AuthenticatedDB;
@@ -37,6 +39,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -56,6 +59,7 @@ public class CollectionsResource {
 
   @Inject private Db db;
   @Inject private CollectionService collectionService;
+  @Inject private DocsSchemaChecker schemaChecker;
 
   @GET
   @ApiOperation(value = "List collections in namespace")
@@ -83,13 +87,16 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
-          Collection<Table> tables = authenticatedDB.getTables(namespace);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          Keyspace ks = docDB.schema().keyspace(namespace);
+          if (ks == null) {
+            throw new NotFoundException(String.format("keyspace '%s' not found", namespace));
+          }
+          Collection<Table> tables = ks.tables();
 
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
                   tables.stream().map(SchemaEntity::name).collect(Collectors.toList()),
                   SourceAPI.REST,
@@ -97,6 +104,8 @@ public class CollectionsResource {
 
           List<DocCollection> result =
               tables.stream()
+                  .filter(
+                      table -> schemaChecker.checkValidity(namespace, table.name(), docDB, false))
                   .map(table -> collectionService.getCollectionInfo(table, db))
                   .collect(Collectors.toList());
 
@@ -193,31 +202,25 @@ public class CollectionsResource {
     return RequestHandler.handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   namespace,
                   collection,
                   Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.TABLE);
 
-          Table toDelete =
-              authenticatedDB.getDataStore().schema().keyspace(namespace).table(collection);
-          if (toDelete == null) {
+          Table toDelete = docDB.schema().keyspace(namespace).table(collection);
+          if (toDelete == null
+              || !schemaChecker.checkValidity(namespace, collection, docDB, false)) {
             String msg = String.format("Collection '%s' not found.", collection);
             return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
           }
 
-          collectionService.deleteCollection(
-              namespace,
-              collection,
-              new DocumentDB(
-                  authenticatedDB.getDataStore(),
-                  authenticatedDB.getAuthenticationSubject(),
-                  db.getAuthorizationService()));
+          collectionService.deleteCollection(namespace, collection, docDB);
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
