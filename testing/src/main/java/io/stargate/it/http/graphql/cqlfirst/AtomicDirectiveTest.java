@@ -99,13 +99,15 @@ public class AtomicDirectiveTest extends ApolloTestBase {
                     .name("prod1")
                     .created(now())
                     .build())
+            .productOptions(MutationOptions.builder().consistency(MutationConsistency.ALL).build())
             .orderValue(
                 OrdersInput.builder()
                     .prodName("prod 1")
                     .customerName("cust 1")
                     .description("my description")
                     .build())
-            .options(MutationOptions.builder().consistency(MutationConsistency.ALL).build())
+            .orderOptions(
+                MutationOptions.builder().consistency(MutationConsistency.LOCAL_QUORUM).build())
             .build();
 
     GraphQLTestException ex =
