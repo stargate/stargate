@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import graphql.ExceptionWhileDataFetching;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
+import graphql.language.SourceLocation;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
@@ -222,15 +223,19 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
   }
 
   protected ExceptionWhileDataFetching toGraphqlError(
-      MutationResult.Failure failure, DataFetchingEnvironment environment) {
-    return toGraphqlError(failure.getError(), environment);
+      MutationResult.Failure failure,
+      SourceLocation location,
+      DataFetchingEnvironment environment) {
+    return toGraphqlError(failure.getError(), location, environment);
   }
 
   protected ExceptionWhileDataFetching toGraphqlError(
-      Throwable error, DataFetchingEnvironment environment) {
+      Throwable error, SourceLocation location, DataFetchingEnvironment environment) {
     return new ExceptionWhileDataFetching(
-        environment.getExecutionStepInfo().getPath(),
-        error,
-        environment.getMergedField().getSingleField().getSourceLocation());
+        environment.getExecutionStepInfo().getPath(), error, location);
+  }
+
+  protected SourceLocation getCurrentFieldLocation(DataFetchingEnvironment environment) {
+    return environment.getMergedField().getSingleField().getSourceLocation();
   }
 }

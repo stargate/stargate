@@ -17,6 +17,9 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.google.common.collect.Lists;
 import graphql.execution.DataFetcherResult;
+import graphql.language.Argument;
+import graphql.language.ArrayValue;
+import graphql.language.SourceLocation;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import io.stargate.auth.Scope;
@@ -153,8 +156,11 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       int i = 0;
       for (MutationResult queryResult : queryResults) {
         if (queryResult instanceof MutationResult.Failure) {
-          // TODO include prefix/better location to better target which input failed
-          result.error(toGraphqlError((MutationResult.Failure) queryResult, environment));
+          result.error(
+              toGraphqlError(
+                  (MutationResult.Failure) queryResult,
+                  getInputLocation(i, environment),
+                  environment));
           data.add(null);
         } else {
           if (isBooleanReturnType()) {
@@ -175,6 +181,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
                 toGraphqlError(
                     new IllegalArgumentException(
                         "Unsupported return type: " + model.getReturnType()),
+                    getCurrentFieldLocation(environment),
                     environment));
             data.add(null);
           }
@@ -183,6 +190,24 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       }
       return result.data(model.isList() ? data : data.get(0)).build();
     };
+  }
+
+  /**
+   * Computes the location of the current data being inserted. This allows us to provide a better
+   * location when reporting errors (especially for bulk inserts).
+   */
+  private SourceLocation getInputLocation(int inputIndex, DataFetchingEnvironment environment) {
+    Argument argument =
+        environment.getField().getArguments().stream()
+            .filter(a -> a.getName().equals(model.getEntityArgumentName()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Entity argument should be present"));
+    if (model.isList()) {
+      ArrayValue arrayValue = ((ArrayValue) argument.getValue());
+      return arrayValue.getValues().get(inputIndex).getSourceLocation();
+    } else {
+      return argument.getSourceLocation();
+    }
   }
 
   private Map<String, Object> buildPayloadResponse(

@@ -105,7 +105,11 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, DataFetcherResul
           assert queryResults.size() == 1;
           MutationResult queryResult = queryResults.get(0);
           if (queryResult instanceof MutationResult.Failure) {
-            result.error(toGraphqlError((MutationResult.Failure) queryResult, environment));
+            result.error(
+                toGraphqlError(
+                    (MutationResult.Failure) queryResult,
+                    getCurrentFieldLocation(environment),
+                    environment));
           } else {
             boolean applied = queryResult instanceof MutationResult.Applied;
             ReturnType returnType = model.getReturnType();
