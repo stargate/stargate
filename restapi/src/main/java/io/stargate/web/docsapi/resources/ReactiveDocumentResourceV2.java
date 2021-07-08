@@ -119,7 +119,7 @@ public class ReactiveDocumentResourceV2 {
     Single.fromCallable(
             () -> {
               DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db, true);
+              schemaChecker.checkValidity(namespace, collection, db);
               return db;
             })
         .flatMap(

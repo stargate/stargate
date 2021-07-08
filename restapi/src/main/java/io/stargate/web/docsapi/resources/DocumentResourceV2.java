@@ -824,7 +824,7 @@ public class DocumentResourceV2 {
 
           // check first that namespace and table exist
           DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
-          schemaChecker.checkValidity(namespace, collection, db, true);
+          schemaChecker.checkValidity(namespace, collection, db);
 
           ExecutionContext context = ExecutionContext.create(profile);
 

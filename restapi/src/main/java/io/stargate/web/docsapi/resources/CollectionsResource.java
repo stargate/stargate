@@ -94,6 +94,11 @@ public class CollectionsResource {
           }
           Collection<Table> tables = ks.tables();
 
+          tables =
+              tables.stream()
+                  .filter(table -> schemaChecker.isValid(namespace, table.name(), docDB))
+                  .collect(Collectors.toList());
+
           db.getAuthorizationService()
               .authorizeSchemaRead(
                   docDB.getAuthenticationSubject(),
@@ -104,8 +109,6 @@ public class CollectionsResource {
 
           List<DocCollection> result =
               tables.stream()
-                  .filter(
-                      table -> schemaChecker.checkValidity(namespace, table.name(), docDB, false))
                   .map(table -> collectionService.getCollectionInfo(table, db))
                   .collect(Collectors.toList());
 
@@ -214,8 +217,7 @@ public class CollectionsResource {
                   ResourceKind.TABLE);
 
           Table toDelete = docDB.schema().keyspace(namespace).table(collection);
-          if (toDelete == null
-              || !schemaChecker.checkValidity(namespace, collection, docDB, false)) {
+          if (toDelete == null || !schemaChecker.isValid(namespace, collection, docDB)) {
             String msg = String.format("Collection '%s' not found.", collection);
             return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
           }

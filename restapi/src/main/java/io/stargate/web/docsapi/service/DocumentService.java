@@ -549,7 +549,7 @@ public class DocumentService {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
     }
 
-    schemaChecker.checkValidity(keyspace, collection, db, true);
+    schemaChecker.checkValidity(keyspace, collection, db);
 
     // Left-pad the path segments that represent arrays
     List<String> convertedPath = new ArrayList<>(path.size());

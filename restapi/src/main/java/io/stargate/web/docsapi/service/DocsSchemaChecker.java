@@ -24,31 +24,28 @@ public class DocsSchemaChecker {
     }
   }
 
-  public boolean checkValidity(String keyspace, String table, DocumentDB db, boolean throwOnFail) {
+  public void checkValidity(String keyspace, String table, DocumentDB db) {
+    if (!isValid(keyspace, table, db)) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION,
+          String.format(
+              "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
+              keyspace, table));
+    }
+  }
+
+  public boolean isValid(String keyspace, String table, DocumentDB db) {
     ImmutableKeyspaceAndTable keyspaceAndTable =
         ImmutableKeyspaceAndTable.builder().keyspace(keyspace).table(table).build();
     clearCacheOnSchemaChange(db);
     return validatedDocCollections.computeIfAbsent(
-        keyspaceAndTable, ks -> performValidityCheck(ks, db, throwOnFail));
+        keyspaceAndTable, ks -> performValidityCheck(ks, db));
   }
 
-  private boolean performValidityCheck(
-      ImmutableKeyspaceAndTable keyspaceAndTable, DocumentDB db, boolean throwOnFail) {
+  private boolean performValidityCheck(ImmutableKeyspaceAndTable keyspaceAndTable, DocumentDB db) {
     String keyspace = keyspaceAndTable.getKeyspace();
     String table = keyspaceAndTable.getTable();
     db.tableExists(keyspace, table);
-    boolean isDocsTable = db.isDocumentsTable(keyspace, table);
-    if (!isDocsTable) {
-      if (throwOnFail) {
-        throw new ErrorCodeRuntimeException(
-            ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION,
-            String.format(
-                "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
-                keyspace, table));
-      } else {
-        return false;
-      }
-    }
-    return true;
+    return db.isDocumentsTable(keyspace, table);
   }
 }

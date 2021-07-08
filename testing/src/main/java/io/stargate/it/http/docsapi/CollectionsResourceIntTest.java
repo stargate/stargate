@@ -123,6 +123,11 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
       assertThat(
               session.execute(String.format("drop table \"%s\".not_docs", keyspace)).wasApplied())
           .isTrue();
+      assertThat(
+              session
+                  .execute(String.format("drop table \"%s\".newcollection", keyspace))
+                  .wasApplied())
+          .isTrue();
     }
   }
 
