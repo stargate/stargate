@@ -15,6 +15,8 @@
  */
 package io.stargate.web.docsapi.service;
 
+import static io.stargate.web.docsapi.service.CombinedPagingState.deserialize;
+import static io.stargate.web.docsapi.service.CombinedPagingState.serialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -23,6 +25,7 @@ import io.stargate.core.util.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
@@ -31,30 +34,32 @@ class CombinedPagingStateTest {
   @Test
   void testSingleNestedRoundTrip() {
     ByteBuffer state = ByteBuffer.wrap(new byte[] {1, 2});
-    CombinedPagingState c0 = CombinedPagingState.of(ImmutableList.of(state));
-    CombinedPagingState c1 = CombinedPagingState.deserialize(1, c0.serialize());
-    assertThat(c1.nested()).hasSize(1);
-    assertThat(c1.nested().get(0).array()).isEqualTo(state.array());
+    List<ByteBuffer> combined = deserialize(1, serialize(ImmutableList.of(state)));
+    assertThat(combined).hasSize(1);
+    assertThat(combined.get(0).array()).isEqualTo(state.array());
   }
 
   @Test
   void testSingleNestedShortcut() {
     ByteBuffer state = ByteBuffer.wrap(new byte[] {1, 2});
-    CombinedPagingState c0 = CombinedPagingState.of(ImmutableList.of(state));
-    assertThat(c0.serialize().array()).isEqualTo(state.array());
+    assertThat(serialize(ImmutableList.of(state)))
+        .isNotNull()
+        .extracting(ByteBuffer::array)
+        .isEqualTo(state.array());
   }
 
   @Test
   void testSingleNestedShortcutEmpty() {
     ByteBuffer state = ByteBuffer.wrap(new byte[] {});
-    CombinedPagingState c0 = CombinedPagingState.of(ImmutableList.of(state));
-    assertThat(c0.serialize().array()).isEqualTo(state.array());
+    assertThat(serialize(ImmutableList.of(state)))
+        .isNotNull()
+        .extracting(ByteBuffer::array)
+        .isEqualTo(state.array());
   }
 
   @Test
   void testSingleNestedShortcutNull() {
-    CombinedPagingState c0 = CombinedPagingState.of(Collections.singletonList(null));
-    assertThat(c0.serialize()).isNull();
+    assertThat(serialize(Collections.singletonList(null))).isNull();
   }
 
   @Test
@@ -62,12 +67,11 @@ class CombinedPagingStateTest {
     ByteBuffer s0 = ByteBuffer.wrap(new byte[] {1, 2});
     ByteBuffer s1 = ByteBuffer.wrap(new byte[0]);
     ByteBuffer s2 = ByteBuffer.wrap(new byte[] {-1, -3});
-    CombinedPagingState orig = CombinedPagingState.of(ImmutableList.of(s0, s1, s2));
-    CombinedPagingState state = CombinedPagingState.deserialize(3, orig.serialize());
-    assertThat(state.nested()).hasSize(3);
-    assertThat(ByteBufferUtils.getArray(state.nested().get(0))).isEqualTo(s0.array());
-    assertThat(ByteBufferUtils.getArray(state.nested().get(1))).isEqualTo(s1.array());
-    assertThat(ByteBufferUtils.getArray(state.nested().get(2))).isEqualTo(s2.array());
+    List<ByteBuffer> combined = deserialize(3, serialize(ImmutableList.of(s0, s1, s2)));
+    assertThat(combined).hasSize(3);
+    assertThat(ByteBufferUtils.getArray(combined.get(0))).isEqualTo(s0.array());
+    assertThat(ByteBufferUtils.getArray(combined.get(1))).isEqualTo(s1.array());
+    assertThat(ByteBufferUtils.getArray(combined.get(2))).isEqualTo(s2.array());
   }
 
   @Test
@@ -75,48 +79,44 @@ class CombinedPagingStateTest {
     ByteBuffer s0 = ByteBuffer.wrap(new byte[] {1, 2});
     ByteBuffer s1 = ByteBuffer.wrap(new byte[] {-1, -3});
 
-    CombinedPagingState orig = CombinedPagingState.of(Arrays.asList(s0, null, s1));
-    CombinedPagingState state = CombinedPagingState.deserialize(3, orig.serialize());
-    assertThat(state.nested()).hasSize(3);
-    assertThat(ByteBufferUtils.getArray(state.nested().get(0))).isEqualTo(s0.array());
-    assertThat(state.nested().get(1)).isNull();
-    assertThat(ByteBufferUtils.getArray(state.nested().get(2))).isEqualTo(s1.array());
+    List<ByteBuffer> combined = deserialize(3, serialize(Arrays.asList(s0, null, s1)));
+    assertThat(combined).hasSize(3);
+    assertThat(ByteBufferUtils.getArray(combined.get(0))).isEqualTo(s0.array());
+    assertThat(combined.get(1)).isNull();
+    assertThat(ByteBufferUtils.getArray(combined.get(2))).isEqualTo(s1.array());
 
-    orig = CombinedPagingState.of(Arrays.asList(null, s0, null));
-    state = CombinedPagingState.deserialize(3, orig.serialize());
-    assertThat(state.nested()).hasSize(3);
-    assertThat(state.nested().get(0)).isNull();
-    assertThat(ByteBufferUtils.getArray(state.nested().get(1))).isEqualTo(s0.array());
-    assertThat(state.nested().get(2)).isNull();
+    combined = deserialize(3, serialize(Arrays.asList(null, s0, null)));
+    assertThat(combined).hasSize(3);
+    assertThat(combined.get(0)).isNull();
+    assertThat(ByteBufferUtils.getArray(combined.get(1))).isEqualTo(s0.array());
+    assertThat(combined.get(2)).isNull();
   }
 
   @Test
   void testMultipleNestedRoundTripAllNull() {
-    CombinedPagingState orig = CombinedPagingState.of(Arrays.asList(null, null));
-    assertThat(orig.serialize()).isNull();
+    assertThat(serialize(Arrays.asList(null, null))).isNull();
   }
 
   @Test
   void testNullState() {
-    CombinedPagingState c = CombinedPagingState.deserialize(5, null);
-    assertThat(c.nested()).hasSize(5);
-    assertThat(c.nested()).allMatch(Objects::isNull);
+    List<ByteBuffer> combined = deserialize(5, null);
+    assertThat(combined).hasSize(5);
+    assertThat(combined).allMatch(Objects::isNull);
   }
 
   @Test
   void testExpectedSize() {
     ByteBuffer s = ByteBuffer.wrap(new byte[] {1, 2});
-    CombinedPagingState c1 = CombinedPagingState.of(ImmutableList.of(s, s));
 
-    assertThatThrownBy(() -> CombinedPagingState.deserialize(-111, c1.serialize()))
+    assertThatThrownBy(() -> deserialize(-111, serialize(ImmutableList.of(s, s))))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("-111");
+        .hasMessageContaining("-111"); // invalid expected size
 
-    assertThatThrownBy(() -> CombinedPagingState.deserialize(245, ByteBuffer.wrap(new byte[3])))
+    assertThatThrownBy(() -> deserialize(245, ByteBuffer.wrap(new byte[3])))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("available bytes: 3");
 
-    assertThatThrownBy(() -> CombinedPagingState.deserialize(1345, c1.serialize()))
+    assertThatThrownBy(() -> deserialize(1345, serialize(ImmutableList.of(s, s))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("2") // actual number of sub-states
         .hasMessageContaining("1345"); // expected number of sub-states

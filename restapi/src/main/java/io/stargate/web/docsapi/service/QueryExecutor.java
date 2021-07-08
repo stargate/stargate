@@ -92,7 +92,7 @@ public class QueryExecutor {
     List<Column> idColumns = idColumns(keyDepth, queries);
     Comparator<DocProperty> comparator = rowComparator(queries);
 
-    CombinedPagingState pagingStates = CombinedPagingState.deserialize(queries.size(), pagingState);
+    List<ByteBuffer> pagingStates = CombinedPagingState.deserialize(queries.size(), pagingState);
 
     PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
@@ -150,13 +150,13 @@ public class QueryExecutor {
       List<BoundQuery> queries,
       Comparator<DocProperty> comparator,
       int pageSize,
-      CombinedPagingState pagingState,
+      List<ByteBuffer> pagingState,
       ExecutionContext context) {
     List<Flowable<DocProperty>> flows = new ArrayList<>(queries.size());
     int idx = 0;
     for (BoundQuery query : queries) {
       final int finalIdx = idx++;
-      ByteBuffer queryPagingState = pagingState.nested().get(finalIdx);
+      ByteBuffer queryPagingState = pagingState.get(finalIdx);
       if (queryPagingState != null) {
         queryPagingState = queryPagingState.slice();
       }
@@ -384,9 +384,9 @@ public class QueryExecutor {
   private static class PagingStateTracker {
     private final ArrayList<PagingStateSupplier> states;
 
-    private PagingStateTracker(CombinedPagingState pagingStates) {
-      states = new ArrayList<>(pagingStates.nested().size());
-      pagingStates.nested().stream().map(PreBuiltPagingState::new).forEach(states::add);
+    private PagingStateTracker(List<ByteBuffer> initialStates) {
+      states = new ArrayList<>(initialStates.size());
+      initialStates.stream().map(PreBuiltPagingState::new).forEach(states::add);
     }
 
     private Accumulator combine(Accumulator prev, Accumulator next) {
@@ -511,7 +511,7 @@ public class QueryExecutor {
       List<ByteBuffer> pagingStateBuffers =
           pagingState.stream().map(s -> s.makePagingState(resumeMode)).collect(Collectors.toList());
 
-      return CombinedPagingState.of(pagingStateBuffers).serialize();
+      return CombinedPagingState.serialize(pagingStateBuffers);
     }
   }
 }

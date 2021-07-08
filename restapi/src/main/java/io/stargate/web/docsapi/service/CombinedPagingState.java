@@ -18,22 +18,20 @@ package io.stargate.web.docsapi.service;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A utility class for combining one or more per-query paging state buffers into one byte buffer.
+ */
 public class CombinedPagingState {
 
-  private final List<ByteBuffer> nestedStates;
-
-  private CombinedPagingState(List<ByteBuffer> nestedStates) {
-    this.nestedStates = nestedStates;
+  private CombinedPagingState() {
+    // private constructor to prevent instantiation
   }
 
-  public static CombinedPagingState of(List<ByteBuffer> nestedStates) {
-    return new CombinedPagingState(nestedStates);
-  }
-
-  public ByteBuffer serialize() {
+  public static ByteBuffer serialize(List<ByteBuffer> nestedStates) {
     if (nestedStates.stream().allMatch(Objects::isNull)) {
       return null;
     }
@@ -42,9 +40,9 @@ public class CombinedPagingState {
       return nestedStates.get(0);
     }
 
-    int toAllocate = 4; // size of int for element count
+    int toAllocate = Integer.BYTES; // int for element count
     for (ByteBuffer state : nestedStates) {
-      toAllocate += 4; // size of int for element size
+      toAllocate += Integer.BYTES; // int for element size
       toAllocate += state == null ? 0 : state.remaining();
     }
 
@@ -66,7 +64,16 @@ public class CombinedPagingState {
     return result;
   }
 
-  public static CombinedPagingState deserialize(int expectedSize, ByteBuffer data) {
+  /**
+   * Breaks down a combined paging state into per-query paging state buffers.
+   *
+   * @param expectedSize the expected number of nested paging states. This number servers as
+   *     simplistic sanity check to ensure we have as many queries using the paging states as we
+   *     have nested elements. Also it is used to support rolling upgrades where we have to be able
+   *     to correctly interpret one-element paging states in the old format.
+   * @param data serialized form of the combined paging state
+   */
+  public static List<ByteBuffer> deserialize(int expectedSize, ByteBuffer data) {
     if (expectedSize <= 0) {
       throw new IllegalArgumentException("Invalid paging state size: " + expectedSize);
     }
@@ -77,11 +84,14 @@ public class CombinedPagingState {
         buffers.add(null);
       }
 
-      return of(buffers);
+      return Collections.unmodifiableList(buffers);
     }
 
+    // The special case for one nested element is mostly to support rolling upgrades where older
+    // nodes may be producing one-elelement paging states, while newer (upgraded) nodes might have
+    // to interpret those paging states.
     if (expectedSize == 1) {
-      return of(ImmutableList.of(data));
+      return ImmutableList.of(data);
     }
 
     if (data.remaining() < 4) {
@@ -113,10 +123,6 @@ public class CombinedPagingState {
       nested.add(element);
     }
 
-    return of(nested);
-  }
-
-  public List<ByteBuffer> nested() {
-    return nestedStates;
+    return Collections.unmodifiableList(nested);
   }
 }
