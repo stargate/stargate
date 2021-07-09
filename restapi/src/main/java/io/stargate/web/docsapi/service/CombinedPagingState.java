@@ -130,7 +130,7 @@ public class CombinedPagingState implements PagingStateSupplier {
       return ImmutableList.of(data);
     }
 
-    if (data.remaining() < 4) {
+    if (data.remaining() < Integer.BYTES) {
       throw new IllegalArgumentException(
           String.format(
               "Invalid paging state: unable to read size, available bytes: %d", data.remaining()));
