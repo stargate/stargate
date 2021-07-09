@@ -133,13 +133,30 @@ public class QueryExecutor {
         .map(Accumulator::toDoc);
   }
 
+  /**
+   * Builds a comparator that follows the natural order of rows in document tables, but limited to
+   * the selected clustering columns (i.e., "path" columns).
+   */
   private Comparator<DocProperty> rowComparator(QueryData queries) {
-    Comparator<DocProperty> comparator = Comparator.comparing(DocProperty::comparableKey);
+    List<Comparator<DocProperty>> comparators = new ArrayList<>();
+
+    comparators.add(Comparator.comparing(DocProperty::comparableKey));
+
     for (Column column : queries.docPathColumns()) {
-      comparator = comparator.thenComparing(p -> p.keyValue(column));
+      comparators.add(Comparator.comparing(p -> p.keyValue(column)));
     }
 
-    return comparator;
+    return (p1, p2) -> {
+      // Avoid recursion because the number of "path" columns can be quite large.
+      int result = 0;
+      for (Comparator<DocProperty> comparator : comparators) {
+        result = comparator.compare(p1, p2);
+        if (result != 0) {
+          return result;
+        }
+      }
+      return result;
+    };
   }
 
   private Flowable<DocProperty> execute(
@@ -521,6 +538,9 @@ public class QueryExecutor {
       return selectedColumns().isEmpty() || selectedColumns().contains(column);
     }
 
+    /**
+     * Retrurn the list of columns whose values are used to distinguish one document from another.
+     */
     private List<Column> docIdColumns(int keyDepth) {
       if (keyDepth < table().partitionKeyColumns().size()
           || keyDepth > table().primaryKeyColumns().size()) {
