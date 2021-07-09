@@ -237,6 +237,11 @@ public class QueryExecutor {
     return new Accumulator(id, comparator, docKey.build(), property);
   }
 
+  /**
+   * Converts a single page of results into {@link DocProperty} objects to maintain an association
+   * of rows to their respective {@link ResultSet} objects and queries (the latter is needed for
+   * tracking the combined paging state).
+   */
   private Iterable<DocProperty> properties(
       int queryIndex, BoundQuery query, ResultSet rs, ExecutionContext context) {
     List<Row> rows = rs.currentPageRows();
