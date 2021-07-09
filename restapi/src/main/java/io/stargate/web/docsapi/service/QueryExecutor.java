@@ -254,11 +254,15 @@ public class QueryExecutor {
     private final List<PagingStateSupplier> pagingState;
     private final boolean complete;
     private final Accumulator next;
-    private DocProperty lastRow;
 
     private Accumulator() {
       id = null;
-      rowComparator = null;
+      rowComparator =
+          Comparator.comparing(
+              r -> {
+                throw new IllegalStateException("Cannot append to the terminal element");
+              });
+
       docKey = Collections.emptyList();
       rows = Collections.emptyList();
       pagingState = Collections.emptyList();
@@ -274,7 +278,6 @@ public class QueryExecutor {
       this.id = id;
       this.rowComparator = rowComparator;
       this.docKey = docKey;
-      this.lastRow = seedRow;
       this.rows = new ArrayList<>();
       this.pagingState = Collections.emptyList();
       this.next = null;
@@ -284,13 +287,15 @@ public class QueryExecutor {
     }
 
     private Accumulator(
-        Accumulator complete, List<PagingStateSupplier> pagingState, Accumulator next) {
+        Accumulator complete,
+        List<DocProperty> rows,
+        List<PagingStateSupplier> pagingState,
+        Accumulator next) {
       this.id = complete.id;
       this.rowComparator = complete.rowComparator;
       this.docKey = complete.docKey;
-      this.rows = complete.rows;
+      this.rows = rows;
       this.pagingState = pagingState;
-      this.lastRow = complete.lastRow;
       this.next = next;
       this.complete = true;
     }
@@ -312,12 +317,23 @@ public class QueryExecutor {
     }
 
     private Accumulator complete(PagingStateTracker tracker, Accumulator next) {
-      // Run included rows through the paging state tracker
-      // TODO: handle excluded duplicate rows
-      rows.forEach(tracker::track);
+      // Deduplicate included rows and run them through the paging state tracker.
+      // Note: the `rows` should already be in the order consistent with `rowComparator`.
+      List<DocProperty> finalRows = new ArrayList<>(rows.size());
+      DocProperty last = null;
+      for (DocProperty row : rows) {
+        tracker.track(row);
+
+        if (last == null || rowComparator.compare(last, row) != 0) {
+          finalRows.add(row);
+        }
+
+        last = row;
+      }
+
       List<PagingStateSupplier> currentPagingState = tracker.slice();
 
-      return new Accumulator(this, currentPagingState, next);
+      return new Accumulator(this, finalRows, currentPagingState, next);
     }
 
     private Accumulator end(PagingStateTracker tracker) {
@@ -337,17 +353,7 @@ public class QueryExecutor {
     }
 
     private void append(Accumulator other) {
-      if (rowComparator == null || lastRow == null) {
-        throw new IllegalStateException("Cannot compare");
-      }
-
-      DocProperty otherRow = other.lastRow;
-
-      // Ignore duplicate rows that may come from merged result sets
-      if (rowComparator.compare(lastRow, otherRow) != 0) {
-        rows.add(otherRow);
-        lastRow = otherRow;
-      }
+      rows.addAll(other.rows);
     }
 
     private Accumulator combine(PagingStateTracker tracker, Accumulator buffer) {

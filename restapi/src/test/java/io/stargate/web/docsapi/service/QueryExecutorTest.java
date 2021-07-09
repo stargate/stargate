@@ -633,6 +633,41 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     }
   }
 
+  @ParameterizedTest
+  @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
+  void testMergeResultPaginationWithExcludedRows(int pageSize) {
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x1", 1.0d),
+                row("a", "x2", 2.0d), // this row is duplicated in the second result set
+                row("b", "x1", 3.0d)));
+    withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "y")
+        .withPageSize(pageSize)
+        .returning(
+            ImmutableList.of(
+                row("a", "x2", 2.0d), // note: this is the last row for "a", plus it is a duplicate
+                row("b", "x2", 3.0d)));
+
+    BuiltQuery<?> query =
+        datastore().queryBuilder().select().star().from(table).where("p0", Predicate.GT).build();
+
+    List<BoundQuery> queries =
+        ImmutableList.<BoundQuery>builder().add(query.bind("x")).add(query.bind("y")).build();
+
+    List<RawDocument> docs = values(executor.queryDocs(queries, pageSize, null, context));
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("a", "b");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2");
+    assertThat(docs.get(0).makePagingState()).isNotNull();
+
+    docs = values(executor.queryDocs(queries, pageSize, docs.get(0).makePagingState(), context));
+
+    assertThat(docs).extracting(RawDocument::id).containsExactly("b");
+    assertThat(docs.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2");
+  }
+
   @Test
   void testExhaustedQueryReExecution() {
     int pageSize = 1000;
