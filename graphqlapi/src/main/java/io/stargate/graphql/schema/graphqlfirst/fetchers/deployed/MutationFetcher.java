@@ -96,12 +96,19 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
       DataFetchingEnvironment environment,
       StargateGraphqlContext context) {
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
+
+    if (buildException == null && !batchContext.setParameters(parameters)) {
+      buildException =
+          new GraphQLException(
+              "all the selections in an @atomic mutation must use the same consistency levels");
+    }
+
     if (buildException != null) {
-      batchContext.setExecutionResult(buildException);
-    } else if (!batchContext.setParameters(parameters)) {
       batchContext.setExecutionResult(
           new GraphQLException(
-              "all the selections in an @atomic mutation must use the same consistency levels"));
+              "@atomic mutation aborted because one of the operations failed "
+                  + "(see other errors for details)"));
+      return CompletableFutures.failedFuture(buildException);
     } else {
       int currentSelections = batchContext.add(payload.getQueries());
       // Check if we've processed all operations, e.g. with the example above total=2 and operation1

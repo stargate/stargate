@@ -24,6 +24,8 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +53,9 @@ public class AtomicTest extends GraphqlFirstTestBase {
             + "  k: Int @cql_column(partitionKey: true)\n"
             + "  cc: Int @cql_column(clusteringOrder: ASC)\n"
             + "  v: Int\n"
+            // Add another column but we'll remove it immediately below. This is the trick to have
+            // the ability to make requests fail.
+            + "  v2: Int\n"
             + "}\n"
             + "type InsertFooResponse @cql_payload {\n"
             + "  foo: Foo\n"
@@ -61,10 +66,13 @@ public class AtomicTest extends GraphqlFirstTestBase {
             + "}\n"
             + "type Mutation {\n"
             + "  insertFoo(foo: FooInput): InsertFooResponse\n"
+            + "  insertFooLocalOne(foo: FooInput): InsertFooResponse\n"
+            + "      @cql_insert(consistencyLevel: LOCAL_ONE)\n"
             + "  insertFooIfNotExists(foo: FooInput): InsertFooResponse\n"
             + "  insertFoos(foos: [FooInput]): [InsertFooResponse]\n"
             + "  insertFoosIfNotExists(foos: [FooInput]): [InsertFooResponse]\n"
             + "}\n");
+    SESSION.execute("ALTER TABLE \"Foo\" DROP v2");
   }
 
   @BeforeEach
@@ -271,6 +279,76 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<Integer>read(response, "$.insert2.foo.k")).isEqualTo(1);
     assertThat(JsonPath.<Integer>read(response, "$.insert2.foo.cc")).isEqualTo(1);
     assertThat(JsonPath.<Integer>read(response, "$.insert2.foo.v")).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Should fail when operations don't use the same query parameters")
+  public void failOnDifferentQueryParameters() {
+    // Given
+    String query =
+        "mutation @atomic {\n"
+            + "  insert1: insertFoo(foo: { k: 1, cc: 1, v: 1 }) { applied }\n"
+            + "  insert2: insertFooLocalOne(foo: { k: 1, cc: 2, v: 2 }) { applied }\n"
+            + "  insert3: insertFoo(foo: { k: 1, cc: 3, v: 3 }) { applied }\n"
+            + "}\n";
+
+    // When
+    List<Map<String, Object>> errors = CLIENT.getKeyspaceErrors(KEYSPACE, query);
+
+    // Then
+    assertThat(errors).hasSize(3);
+
+    Map<String, Object> error1 = errors.get(0);
+    assertThat(JsonPath.<List<String>>read(error1, "$.path")).containsOnly("insert1");
+    assertThat(JsonPath.<String>read(error1, "$.message"))
+        .contains(
+            "@atomic mutation aborted because another operation failed (see other errors for details)");
+    Map<String, Object> error2 = errors.get(1);
+
+    assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
+    assertThat(JsonPath.<String>read(error2, "$.message"))
+        .contains("all the selections in an @atomic mutation must use the same consistency levels");
+
+    Map<String, Object> error3 = errors.get(2);
+    assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");
+    assertThat(JsonPath.<String>read(error3, "$.message"))
+        .contains(
+            "@atomic mutation aborted because another operation failed (see other errors for details)");
+  }
+
+  @Test
+  @DisplayName("Should fail all operations if one operation fails before execution")
+  public void failOnOperationError() {
+    // Given
+    String query =
+        "mutation @atomic {\n"
+            + "  insert1: insertFoo(foo: { k: 1, cc: 1, v: 1 }) { applied }\n"
+            // Fails because we dropped column v2 after deploying:
+            + "  insert2: insertFoo(foo: { k: 1, cc: 2, v2: 2 }) { applied }\n"
+            + "  insert3: insertFoo(foo: { k: 1, cc: 3, v: 3 }) { applied }\n"
+            + "}\n";
+
+    // When
+    List<Map<String, Object>> errors = CLIENT.getKeyspaceErrors(KEYSPACE, query);
+
+    // Then
+    assertThat(errors).hasSize(3);
+
+    Map<String, Object> error1 = errors.get(0);
+    assertThat(JsonPath.<List<String>>read(error1, "$.path")).containsOnly("insert1");
+    assertThat(JsonPath.<String>read(error1, "$.message"))
+        .contains(
+            "@atomic mutation aborted because another operation failed (see other errors for details)");
+    Map<String, Object> error2 = errors.get(1);
+
+    assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
+    assertThat(JsonPath.<String>read(error2, "$.message")).contains("Cannot find column v2");
+
+    Map<String, Object> error3 = errors.get(2);
+    assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");
+    assertThat(JsonPath.<String>read(error3, "$.message"))
+        .contains(
+            "@atomic mutation aborted because another operation failed (see other errors for details)");
   }
 
   private long getWriteTime(int k, int cc) {
