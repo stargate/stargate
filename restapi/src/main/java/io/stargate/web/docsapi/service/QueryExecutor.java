@@ -522,7 +522,7 @@ public class QueryExecutor {
 
       if (sets.size() != 1) {
         throw new IllegalArgumentException(
-            "Invalid sets of columns are selected by the provided queries: "
+            "Incompatible sets of columns are selected by the provided queries: "
                 + sets.stream()
                     .map(
                         s ->

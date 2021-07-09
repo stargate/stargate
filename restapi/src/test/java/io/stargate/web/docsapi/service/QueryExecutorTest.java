@@ -767,7 +767,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
                     1,
                     null,
                     context))
-        .hasMessageContaining("Invalid sets of columns are selected by the provided queries")
+        .hasMessageContaining("Incompatible sets of columns are selected by the provided queries")
         .hasMessageContaining("key")
         .hasMessageContaining("p0");
   }
