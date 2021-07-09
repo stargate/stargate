@@ -39,7 +39,7 @@ public class Paginator {
     docPageSize = pageSize;
 
     if (pageState != null) {
-      this.currentPageState = ByteBufferUtils.fromBase64UrlParam(pageState).asReadOnlyBuffer();
+      this.currentPageState = ByteBufferUtils.fromBase64UrlParam(pageState);
     }
   }
 
