@@ -35,6 +35,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Table;
 import io.stargate.web.rx.RxUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -77,6 +79,31 @@ public class QueryExecutor {
     return queryDocs(keyDepth, ImmutableList.of(query), pageSize, pagingState, context);
   }
 
+  /**
+   * Runs the provided queries in parallel and merges their result sets according to the selected
+   * primary key columns, then groups the merged rows into {@link RawDocument} objects according to
+   * {@code keyDepth} primary key values.
+   *
+   * <p>Note: all queries must select the same set of columns from the same table.
+   *
+   * <p>Note: queries may use different {@code WHERE} conditions.
+   *
+   * <p>Note: the queries must select all the partition key columns and zero or more clustering key
+   * columns with the total number of selected key columns equal to the {@code keyDepth} parameter.
+   *
+   * <p>Rows having the same set of value in their selected primary key columns are considered
+   * duplicates and only one of them (in no particular order) will be use in the output of this
+   * method.
+   *
+   * @param keyDepth the number of primary key columns to use for distinguishing documents.
+   * @param queries the queries to run (one or more).
+   * @param pageSize the storage-level page size to use (1 or greater).
+   * @param pagingState the storage-level page state to use (may be {@code null}).
+   * @param context the query execution context for profiling.
+   * @return a flow of documents grouped by the primary key values up to {@code keyDepth} and
+   *     ordered according to the natural Cassandra result set order (ring order on the partition
+   *     key and default order on clustering keys).
+   */
   public Flowable<RawDocument> queryDocs(
       int keyDepth,
       List<BoundQuery> queries,
@@ -89,8 +116,10 @@ public class QueryExecutor {
       throw new IllegalArgumentException("Unsupported page size: " + pageSize);
     }
 
-    List<Column> idColumns = idColumns(keyDepth, queries);
-    Comparator<DocProperty> comparator = rowComparator(queries);
+    QueryData queryData = ImmutableQueryData.builder().queries(queries).build();
+
+    List<Column> idColumns = queryData.docIdColumns(keyDepth);
+    Comparator<DocProperty> comparator = rowComparator(queryData);
 
     List<ByteBuffer> pagingStates = CombinedPagingState.deserialize(queries.size(), pagingState);
 
@@ -104,46 +133,13 @@ public class QueryExecutor {
         .map(Accumulator::toDoc);
   }
 
-  private Comparator<DocProperty> rowComparator(List<BoundQuery> queries) {
-    List<Column> pathColumns = null;
-    for (BoundQuery query : queries) {
-      BuiltSelect select = (BuiltSelect) query.source().query();
-
-      if (pathColumns == null) {
-        pathColumns = select.table().clusteringKeyColumns();
-      }
-    }
-
-    if (pathColumns == null) {
-      throw new IllegalArgumentException("No query provided");
-    }
-
+  private Comparator<DocProperty> rowComparator(QueryData queries) {
     Comparator<DocProperty> comparator = Comparator.comparing(DocProperty::comparableKey);
-    for (Column column : pathColumns) {
+    for (Column column : queries.docPathColumns()) {
       comparator = comparator.thenComparing(p -> p.keyValue(column));
     }
 
     return comparator;
-  }
-
-  private List<Column> idColumns(int keyDepth, List<BoundQuery> queries) {
-    List<Column> idColumns = null;
-    for (BoundQuery query : queries) {
-      BuiltSelect select = (BuiltSelect) query.source().query();
-      if (keyDepth < 1 || keyDepth > select.table().primaryKeyColumns().size()) {
-        throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
-      }
-
-      if (idColumns == null) {
-        idColumns = select.table().primaryKeyColumns().subList(0, keyDepth);
-      }
-    }
-
-    if (idColumns == null) {
-      throw new IllegalArgumentException("No query provided");
-    }
-
-    return idColumns;
   }
 
   private Flowable<DocProperty> execute(
@@ -316,6 +312,8 @@ public class QueryExecutor {
     }
 
     private Accumulator complete(PagingStateTracker tracker, Accumulator next) {
+      // Run included rows through the paging state tracker
+      // TODO: handle excluded duplicate rows
       rows.forEach(tracker::track);
       List<PagingStateSupplier> currentPagingState = tracker.slice();
 
@@ -345,9 +343,10 @@ public class QueryExecutor {
 
       DocProperty otherRow = other.lastRow;
 
-      if (rowComparator.compare(this.lastRow, otherRow) != 0) {
+      // Ignore duplicate rows that may come from merged result sets
+      if (rowComparator.compare(lastRow, otherRow) != 0) {
         rows.add(otherRow);
-        this.lastRow = otherRow;
+        lastRow = otherRow;
       }
     }
 
@@ -459,6 +458,91 @@ public class QueryExecutor {
     @Value.Lazy
     RowDecorator decorator() {
       return resultSet().makeRowDecorator();
+    }
+  }
+
+  /** A helper class for dealing with a list of related queries. */
+  @Value.Immutable(lazyhash = true)
+  public abstract static class QueryData {
+
+    abstract List<BoundQuery> queries();
+
+    @Value.Lazy
+    List<BuiltSelect> selectQueries() {
+      return queries().stream()
+          .map(q -> (BuiltSelect) q.source().query())
+          .collect(Collectors.toList());
+    }
+
+    @Value.Lazy
+    Table table() {
+      Set<Table> tables =
+          selectQueries().stream().map(BuiltSelect::table).collect(Collectors.toSet());
+
+      if (tables.isEmpty()) {
+        throw new IllegalArgumentException("No tables are referenced by the provided queries");
+      }
+
+      if (tables.size() > 1) {
+        throw new IllegalArgumentException(
+            "Too many tables are referenced by the provided queries: "
+                + tables.stream().map(Table::name).collect(Collectors.joining(", ")));
+      }
+
+      return tables.iterator().next();
+    }
+
+    @Value.Lazy
+    Set<Column> selectedColumns() {
+      Set<Set<Column>> sets =
+          selectQueries().stream().map(BuiltSelect::selectedColumns).collect(Collectors.toSet());
+
+      if (sets.size() != 1) {
+        throw new IllegalArgumentException(
+            "Invalid sets of columns are selected by the provided queries: "
+                + sets.stream()
+                    .map(
+                        s ->
+                            s.stream().map(Column::name).collect(Collectors.joining(",", "[", "]")))
+                    .collect(Collectors.joining("; ", "[", "]")));
+      }
+
+      return sets.iterator().next();
+    }
+
+    private boolean isSelected(Column column) {
+      // An empty selection set means `*` (all columns)
+      return selectedColumns().isEmpty() || selectedColumns().contains(column);
+    }
+
+    private List<Column> docIdColumns(int keyDepth) {
+      if (keyDepth < table().partitionKeyColumns().size()
+          || keyDepth > table().primaryKeyColumns().size()) {
+        throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
+      }
+
+      List<Column> idColumns = table().primaryKeyColumns().subList(0, keyDepth);
+
+      idColumns.forEach(
+          column -> {
+            if (!isSelected(column)) {
+              throw new IllegalArgumentException(
+                  "Required identity column is not selected: " + column);
+            }
+          });
+
+      return idColumns;
+    }
+
+    /**
+     * Returns a sub-list of the {@link #table() table's} clustering key columns that are explicitly
+     * selected by the {@link #queries()}.
+     */
+    @Value.Lazy
+    List<Column> docPathColumns() {
+      return table().clusteringKeyColumns().stream()
+          .filter(this::isSelected)
+          .collect(Collectors.toList());
     }
   }
 }
