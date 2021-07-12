@@ -62,7 +62,10 @@ public class CollectionsResource {
   @Inject private DocsSchemaChecker schemaChecker;
 
   @GET
-  @ApiOperation(value = "List collections in namespace")
+  @ApiOperation(
+      value = "List collections in namespace",
+      response = ResponseWrapper.class,
+      responseContainer = "List")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
