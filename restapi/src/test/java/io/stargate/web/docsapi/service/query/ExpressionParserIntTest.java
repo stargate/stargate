@@ -17,6 +17,7 @@
 package io.stargate.web.docsapi.service.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,6 +49,8 @@ import javax.ws.rs.core.PathSegment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 // INT test in terms that it works against components and has no mocks
 // TODO ISE: move to the testing when DI allows
@@ -774,6 +777,44 @@ class ExpressionParserIntTest {
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+  }
+
+  @Nested
+  class ValueTypeCompatibility {
+
+    @ParameterizedTest
+    @CsvSource({
+      "\"string-value\",String,12345,Number",
+      "\"string-value\",String,true,Boolean",
+      "true,Boolean,111.222,Number",
+    })
+    public void incompatibleValueTypes(String json1, String type1, String json2, String type2)
+        throws Exception {
+      String json = String.format("{\"myField\": {\"$eq\": %s, \"$gt\": %s}}", json1, json2);
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
+          .hasMessageContaining(type1)
+          .hasMessageContaining(type2);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"\"string-value\"", "12345", "true"})
+    public void nonSpecificValueType(String jsonValue) throws Exception {
+      String json =
+          String.format(
+              "{\"myField\": {\"$in\": [\"string\", true, 12345], \"$gt\": %s}}", jsonValue);
+      JsonNode root = mapper.readTree(json);
+
+      // Assert that no exception is thrown. Parsing is verified by other tests.
+      // `$in` does not imply a specific value type, therefore it is compatible with specific
+      // `$eq` conditions.
+      assertThat(service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isNotNull();
     }
   }
 }

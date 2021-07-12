@@ -37,6 +37,11 @@ public abstract class NumberCondition implements BaseCondition {
   @Value.Parameter
   public abstract Number getQueryValue();
 
+  @Override
+  public Class<?> getQueryValueType() {
+    return Number.class;
+  }
+
   /** Validates the value against the predicate. */
   @Value.Check
   protected void validate() {

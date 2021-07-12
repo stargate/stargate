@@ -22,6 +22,7 @@ import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCod
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Optional;
 import java.util.function.Predicate;
+import javax.validation.constraints.NotNull;
 
 /** Interface for the base filtering condition. */
 public interface BaseCondition extends Predicate<Row> {
@@ -42,6 +43,18 @@ public interface BaseCondition extends Predicate<Row> {
 
   /** @return Returns the query value. */
   Object getQueryValue();
+
+  /**
+   * Returns the most specific value type implied by this condition.
+   *
+   * <p>Note: if a specific value type is not known, {@code Object.class} should be returned.
+   *
+   * @return the most specific type of value implied by this condition (must not be null).
+   */
+  @NotNull
+  default Class<?> getQueryValueType() {
+    return Object.class;
+  }
 
   /** @return if condition evaluates on the missing fields */
   boolean isEvaluateOnMissingFields();

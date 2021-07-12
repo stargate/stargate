@@ -37,6 +37,11 @@ public abstract class BooleanCondition implements BaseCondition {
   @Value.Parameter
   public abstract Boolean getQueryValue();
 
+  @Override
+  public Class<?> getQueryValueType() {
+    return Boolean.class;
+  }
+
   /** @return If booleans should be considered as numeric values. */
   @Value.Parameter
   public abstract boolean isNumericBooleans();
