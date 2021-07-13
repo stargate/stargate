@@ -83,11 +83,11 @@ public class TablesResource {
   @ApiOperation(
       value = "Get all tables",
       notes = "Retrieve all tables in a specific keyspace.",
-      response = ResponseWrapper.class,
+      response = TableResponse.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
