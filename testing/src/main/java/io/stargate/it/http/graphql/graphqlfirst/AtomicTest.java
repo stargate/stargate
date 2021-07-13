@@ -302,7 +302,7 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<List<String>>read(error1, "$.path")).containsOnly("insert1");
     assertThat(JsonPath.<String>read(error1, "$.message"))
         .contains(
-            "@atomic mutation aborted because another operation failed (see other errors for details)");
+            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
     Map<String, Object> error2 = errors.get(1);
 
     assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
@@ -313,7 +313,7 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");
     assertThat(JsonPath.<String>read(error3, "$.message"))
         .contains(
-            "@atomic mutation aborted because another operation failed (see other errors for details)");
+            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
   }
 
   @Test
@@ -338,7 +338,7 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<List<String>>read(error1, "$.path")).containsOnly("insert1");
     assertThat(JsonPath.<String>read(error1, "$.message"))
         .contains(
-            "@atomic mutation aborted because another operation failed (see other errors for details)");
+            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
     Map<String, Object> error2 = errors.get(1);
 
     assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
@@ -348,7 +348,7 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");
     assertThat(JsonPath.<String>read(error3, "$.message"))
         .contains(
-            "@atomic mutation aborted because another operation failed (see other errors for details)");
+            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
   }
 
   private long getWriteTime(int k, int cc) {
