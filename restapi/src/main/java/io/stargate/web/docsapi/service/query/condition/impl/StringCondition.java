@@ -37,6 +37,11 @@ public abstract class StringCondition implements BaseCondition {
   @Value.Parameter
   public abstract String getQueryValue();
 
+  @Override
+  public Class<?> getQueryValueType() {
+    return String.class;
+  }
+
   /** Validates the value against the predicate. */
   @Value.Check
   protected void validate() {

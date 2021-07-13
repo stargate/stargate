@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -144,6 +145,7 @@ public class ExpressionParser {
           FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
           Collection<BaseCondition> fieldConditions =
               conditionParser.getConditions(next.getValue(), numericBooleans);
+          validateFieldConditions(filterPath, fieldConditions);
           for (BaseCondition fieldCondition : fieldConditions) {
             ImmutableFilterExpression expression =
                 ImmutableFilterExpression.of(
@@ -155,6 +157,26 @@ public class ExpressionParser {
     }
 
     return expressions;
+  }
+
+  private void validateFieldConditions(
+      FilterPath filterPath, Collection<BaseCondition> conditions) {
+    // If some conditions imply specific and different value types it is a user error since each
+    // field can have a value of only one type at a time.
+    // Example: `field GT 1` and `field EQ "string"`
+    Set<? extends Class<?>> specificTypes =
+        conditions.stream()
+            .map(BaseCondition::getQueryValueType)
+            .filter(c -> Object.class != c)
+            .collect(Collectors.toSet());
+    if (specificTypes.size() > 1) {
+      String msg =
+          String.format(
+              "Filter conditions for field '%s' imply incompatible types: %s",
+              filterPath.getField(),
+              specificTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ")));
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+    }
   }
 
   private Or<FilterExpression> resolveOr(
