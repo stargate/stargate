@@ -34,7 +34,7 @@ import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleRe
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -117,11 +117,23 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, DataFetcherResul
               result.data(applied);
             } else {
               ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+              Map<String, Object> data = new LinkedHashMap<>();
               if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
+                data.put(TechnicalField.APPLIED.getGraphqlName(), applied);
                 result.data(ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied));
-              } else {
-                result.data(Collections.emptyMap());
               }
+              if (payload.getEntityField().isPresent()
+                  && (queryResult instanceof MutationResult.NotApplied)) {
+                ((MutationResult.NotApplied) queryResult)
+                    .getRow()
+                    .ifPresent(
+                        row -> {
+                          Map<String, Object> entityData = new LinkedHashMap<>();
+                          copyRowToEntity(row, entityData, model.getEntity());
+                          data.put(payload.getEntityField().get().getName(), entityData);
+                        });
+              }
+              result.data(data);
             }
           }
           return result.build();

@@ -64,7 +64,6 @@ class DeleteModelBuilder extends MutationModelBuilder {
               .filter(f -> f != TechnicalField.APPLIED)
               .map(TechnicalField::getGraphqlName)
               .collect(Collectors.toCollection(HashSet::new));
-      payload.getEntityField().ifPresent(e -> unsupportedFields.add(e.getName()));
       if (!unsupportedFields.isEmpty()) {
         warn(
             "Mutation %s: 'applied' is the only supported field in delete response payloads. Others will always be null (%s).",

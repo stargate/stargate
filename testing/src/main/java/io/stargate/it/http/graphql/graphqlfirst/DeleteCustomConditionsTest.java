@@ -50,16 +50,13 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  v: Int\n"
-            + " "
-            + "}\n"
-            + "type DeleteFooResult @cql_payload {\n"
-            + "  applied: Boolean\n"
             + "}\n"
             + "type Query {\n"
             + "  foo(pk: Int!): Foo\n"
             + "}\n"
             + "type DeleteFooResponse @cql_payload {\n"
-            + "  applied: Boolean"
+            + "  applied: Boolean\n"
+            + "  foo: Foo\n"
             + "}\n"
             + "type Mutation {\n"
             + "  deleteFooGT(\n"
@@ -96,6 +93,11 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
             + "    pk: Int\n"
             + "    vs: [Int] @cql_if(field: \"v\", predicate: IN)\n"
             + "    ): Boolean\n"
+            + "    @cql_delete(targetEntity: \"Foo\")\n"
+            + "  deleteFooWithResponsePayload(\n"
+            + "    pk: Int\n"
+            + "    v: Int @cql_if\n"
+            + "    ): DeleteFooResponse\n"
             + "    @cql_delete(targetEntity: \"Foo\")\n"
             + "}");
   }
@@ -254,5 +256,24 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIN")).isTrue();
     assertThat(exists(1)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Should return conflicting data in payload for failed LWT")
+  public void failedDeleteWithEntityResponse() {
+    // Given
+    insert(1, 1);
+
+    // When
+    Object response =
+        CLIENT.executeKeyspaceQuery(
+            KEYSPACE,
+            "mutation { d: deleteFooWithResponsePayload(pk: 1, v: 42) {\n"
+                + "  applied, foo { v } }\n"
+                + "}");
+
+    // Then
+    assertThat(JsonPath.<Boolean>read(response, "$.d.applied")).isFalse();
+    assertThat(JsonPath.<Integer>read(response, "$.d.foo.v")).isEqualTo(1);
   }
 }
