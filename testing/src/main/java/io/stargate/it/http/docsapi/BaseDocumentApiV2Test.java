@@ -46,7 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
+public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static final String TARGET_COLLECTION = "collection";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final OkHttpClient CLIENT =
