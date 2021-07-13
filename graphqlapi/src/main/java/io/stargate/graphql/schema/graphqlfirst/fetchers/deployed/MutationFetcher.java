@@ -18,6 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import com.google.common.collect.Lists;
 import graphql.ExceptionWhileDataFetching;
 import graphql.GraphQLException;
+import graphql.execution.DataFetcherResult;
 import graphql.language.OperationDefinition;
 import graphql.language.SourceLocation;
 import graphql.schema.DataFetchingEnvironment;
@@ -31,11 +32,16 @@ import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MutationModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.util.CompletableFutures;
 import io.stargate.graphql.web.StargateGraphqlContext;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -244,5 +250,44 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
 
   protected SourceLocation getCurrentFieldLocation(DataFetchingEnvironment environment) {
     return environment.getMergedField().getSingleField().getSourceLocation();
+  }
+
+  protected Function<List<MutationResult>, DataFetcherResult<Object>>
+      getDeleteOrUpdateResultBuilder(DataFetchingEnvironment environment) {
+    return queryResults -> {
+      DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
+      assert queryResults.size() == 1;
+      MutationResult queryResult = queryResults.get(0);
+      if (queryResult instanceof MutationResult.Failure) {
+        result.error(
+            toGraphqlError(
+                (MutationResult.Failure) queryResult,
+                getCurrentFieldLocation(environment),
+                environment));
+      } else {
+        boolean applied = queryResult instanceof MutationResult.Applied;
+        OperationModel.ReturnType returnType = model.getReturnType();
+        if (returnType == OperationModel.SimpleReturnType.BOOLEAN) {
+          result.data(applied);
+        } else {
+          ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+          Map<String, Object> data = new LinkedHashMap<>();
+          if (payload.getTechnicalFields().contains(ResponsePayloadModel.TechnicalField.APPLIED)) {
+            data.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+          }
+          if (payload.getEntityField().isPresent()) {
+            Map<String, Object> entityData = new LinkedHashMap<>();
+            if (queryResult instanceof MutationResult.NotApplied) {
+              ((MutationResult.NotApplied) queryResult)
+                  .getRow()
+                  .ifPresent(row -> copyRowToEntity(row, entityData, model.getEntity()));
+            }
+            data.put(payload.getEntityField().get().getName(), entityData);
+          }
+          result.data(data);
+        }
+      }
+      return result.build();
+    };
   }
 }

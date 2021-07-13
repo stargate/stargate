@@ -23,13 +23,11 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class InsertModel extends MutationModel {
 
-  private final EntityModel entity;
   private final String entityArgumentName;
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifNotExists;
   private final Optional<String> cqlTimestampArgumentName;
   private final Optional<Integer> ttl;
-  private final ReturnType returnType;
   private final boolean isList;
 
   InsertModel(
@@ -45,19 +43,13 @@ public class InsertModel extends MutationModel {
       ReturnType returnType,
       Optional<String> cqlTimestampArgumentName,
       boolean isList) {
-    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
-    this.entity = entity;
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
     this.entityArgumentName = entityArgumentName;
     this.responsePayload = responsePayload;
     this.ifNotExists = ifNotExists;
     this.ttl = ttl;
-    this.returnType = returnType;
     this.cqlTimestampArgumentName = cqlTimestampArgumentName;
     this.isList = isList;
-  }
-
-  public EntityModel getEntity() {
-    return entity;
   }
 
   public String getEntityArgumentName() {
@@ -78,10 +70,6 @@ public class InsertModel extends MutationModel {
 
   public Optional<Integer> getTtl() {
     return ttl;
-  }
-
-  public ReturnType getReturnType() {
-    return returnType;
   }
 
   public boolean isList() {

@@ -56,14 +56,14 @@ class UpdateModelBuilder extends MutationModelBuilder {
       throw SkipException.INSTANCE;
     }
 
+    ResponsePayloadModel payload = null;
     if (returnType instanceof ResponsePayloadModel) {
-      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+      payload = (ResponsePayloadModel) returnType;
       Set<String> unsupportedFields =
           payload.getTechnicalFields().stream()
               .filter(f -> f != ResponsePayloadModel.TechnicalField.APPLIED)
               .map(ResponsePayloadModel.TechnicalField::getGraphqlName)
               .collect(Collectors.toCollection(HashSet::new));
-      payload.getEntityField().ifPresent(e -> unsupportedFields.add(e.getName()));
       if (!unsupportedFields.isEmpty()) {
         warn(
             "Mutation %s: 'applied' is the only supported field in update response payloads. Others will always be null (%s).",
@@ -114,10 +114,6 @@ class UpdateModelBuilder extends MutationModelBuilder {
     Optional<String> cqlTimestampArgumentName =
         findFieldNameWithDirective(
             CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
-    Optional<ResponsePayloadModel> responsePayload =
-        Optional.of(returnType)
-            .filter(ResponsePayloadModel.class::isInstance)
-            .map(ResponsePayloadModel.class::cast);
 
     return new UpdateModel(
         parentTypeName,
@@ -127,7 +123,7 @@ class UpdateModelBuilder extends MutationModelBuilder {
         ifConditions,
         entityArgumentName,
         returnType,
-        responsePayload,
+        Optional.ofNullable(payload),
         ifExists,
         incrementModels,
         getConsistencyLevel(cqlUpdateDirective),

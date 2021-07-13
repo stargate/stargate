@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
@@ -29,12 +28,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.DeleteModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
-import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -97,34 +91,6 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, DataFetcherResul
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    return new MutationPayload<>(
-        query,
-        primaryKey,
-        queryResults -> {
-          DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
-          assert queryResults.size() == 1;
-          MutationResult queryResult = queryResults.get(0);
-          if (queryResult instanceof MutationResult.Failure) {
-            result.error(
-                toGraphqlError(
-                    (MutationResult.Failure) queryResult,
-                    getCurrentFieldLocation(environment),
-                    environment));
-          } else {
-            boolean applied = queryResult instanceof MutationResult.Applied;
-            ReturnType returnType = model.getReturnType();
-            if (returnType == SimpleReturnType.BOOLEAN) {
-              result.data(applied);
-            } else {
-              ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
-              if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
-                result.data(ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied));
-              } else {
-                result.data(Collections.emptyMap());
-              }
-            }
-          }
-          return result.build();
-        });
+    return new MutationPayload<>(query, primaryKey, getDeleteOrUpdateResultBuilder(environment));
   }
 }
