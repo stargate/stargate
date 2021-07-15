@@ -83,14 +83,47 @@ public class DocumentDBTest {
 
   @Test
   public void containsIllegalChars() {
-    assertThat(DocumentDB.containsIllegalChars("[")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("]")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(",")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(".")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\'")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("*")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("a[b")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\"")).isFalse();
+    // first some positive matches
+    for (String str : new String[] {
+            // first, single forbidden character
+            "[", "]", ",", ".", "\'", "*",
+            // then longer
+            "a[b", "stuff]", "a[b]", "a, b", "dot.ted.notation",
+            "'quoted'", "foo*",
+    }) {
+      assertThat(DocumentDB.containsIllegalChars(str))
+              .withFailMessage("For input String: %s", str)
+              .isTrue();
+    }
+
+    // but also some negative ones
+    for (String str : new String[] {
+            "a", "3", "foobar", "-1259", "path/to/somewhere", "\"quoted\""
+    }) {
+      assertThat(DocumentDB.containsIllegalChars(str))
+              .withFailMessage("For input String: %s", str)
+              .isFalse();
+    }
+  }
+
+  @Test
+  public void replaceIllegalChars() {
+    // First actual replacements
+    assertThat(DocumentDB.replaceIllegalChars("a[1]")).isEqualTo("a_1_");
+    assertThat(DocumentDB.replaceIllegalChars("dot.ted")).isEqualTo("dot_ted");
+    assertThat(DocumentDB.replaceIllegalChars(".001")).isEqualTo("_001");
+    assertThat(DocumentDB.replaceIllegalChars("a,b,c")).isEqualTo("a_b_c");
+    assertThat(DocumentDB.replaceIllegalChars("word*")).isEqualTo("word_");
+    assertThat(DocumentDB.replaceIllegalChars("a.1,b.2,*")).isEqualTo("a_1_b_2__");
+
+    // then cases that should remain as-is:
+    for (String str : new String[] {
+            "a", "abc", "999", "-1259", "path/to/somewhere", "\"quoted\""
+    }) {
+      assertThat(DocumentDB.replaceIllegalChars(str))
+              .withFailMessage("Input String that should remain the same: %s", str)
+              .isEqualTo(str);
+    }
   }
 
   @Test
