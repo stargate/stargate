@@ -307,36 +307,36 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidKeyPut() throws IOException {
-    JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are not allowed\" }");
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"bracketedarraypaths[100]\": \"are not allowed\" }");
 
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
+  }
 
-    obj = OBJECT_MAPPER.readTree("{ \"commas,\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,.\",\"code\":400}");
+  @Test
+  public void testEscapableKeyPut() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are allowed\" }");
 
-    obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods..\",\"code\":400}");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
-    obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'.\",\"code\":400}");
+    obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are allowed\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
-    obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*.\",\"code\":400}");
+    obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are allowed\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
+
+    obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are allowed\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
     resp = RestUtils.put(authToken, collectionPath + "/1", "", 422);
     assertThat(resp)

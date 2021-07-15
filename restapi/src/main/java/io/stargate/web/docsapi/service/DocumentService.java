@@ -191,11 +191,11 @@ public class DocumentService {
               "$..*",
               (v, parsingContext) -> {
                 String fieldName = parsingContext.getCurrentFieldName();
-                if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
+                if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "The characters %s are not permitted in JSON field names, invalid field %s.",
-                          DocumentDB.getForbiddenCharactersMessage(), fieldName);
+                          "Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field %s.",
+                          fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
@@ -342,20 +342,12 @@ public class DocumentService {
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
         boolean isArrayElement = fieldName.startsWith("[") && fieldName.endsWith("]");
-        if (!isArrayElement) {
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          fieldName = DocumentDB.replaceIllegalChars(fieldName);
-        }
         if (isArrayElement) {
           if (i == 0 && patching) {
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
           }
 
           String innerPath = fieldName.substring(1, fieldName.length() - 1);
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
           int idx = 0;
           try {
@@ -735,17 +727,19 @@ public class DocumentService {
   private List<String> convertPath(List<PathSegment> path) {
     return path.stream()
         .map(pathSeg -> DocsApiUtils.convertArrayPath(pathSeg.getPath()))
+        .map(pathSeg -> DocsApiUtils.convertUnicodeCodePoints(pathSeg))
         .collect(Collectors.toList());
   }
 
   private Collection<List<String>> toFullFieldPaths(
-      List<String> pathPrefix, List<String> filedNames) {
-    return filedNames.stream()
+      List<String> pathPrefix, List<String> fieldNames) {
+    return fieldNames.stream()
         .map(
             name -> {
               List<String> fullFieldPath = new ArrayList<>(pathPrefix.size() + 1);
               fullFieldPath.addAll(pathPrefix);
-              fullFieldPath.add(DocsApiUtils.convertArrayPath(name));
+              fullFieldPath.add(
+                  DocsApiUtils.convertUnicodeCodePoints(DocsApiUtils.convertArrayPath(name)));
               return fullFieldPath;
             })
         .collect(Collectors.toList());
@@ -872,6 +866,7 @@ public class DocumentService {
       path =
           pathPrefix.stream()
               .map(seg -> DocsApiUtils.convertArrayPath(seg.getPath()))
+              .map(seg -> DocsApiUtils.convertUnicodeCodePoints(seg))
               .collect(Collectors.toList());
     } else {
       path = filters.get(0).getPath();
@@ -997,6 +992,7 @@ public class DocumentService {
           predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
         } else {
           String convertedPath = DocsApiUtils.convertArrayPath(pathSegment);
+          convertedPath = DocsApiUtils.convertUnicodeCodePoints(convertedPath);
           predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
         }
       } else {

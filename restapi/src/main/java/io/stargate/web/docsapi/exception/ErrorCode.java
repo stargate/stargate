@@ -16,7 +16,6 @@
 
 package io.stargate.web.docsapi.exception;
 
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.models.Error;
 import javax.ws.rs.core.MediaType;
@@ -50,9 +49,7 @@ public enum ErrorCode {
 
   DOCS_API_GENERAL_INVALID_FIELD_NAME(
       Response.Status.BAD_REQUEST,
-      String.format(
-          "The characters %s are not permitted in JSON field names.",
-          DocumentDB.getForbiddenCharactersMessage())),
+      String.format("Array paths with brackets are not permitted in JSON field names.")),
 
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,

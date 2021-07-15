@@ -3,7 +3,6 @@ package io.stargate.web.docsapi.dao;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -34,6 +33,7 @@ import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -41,10 +41,11 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
-  private static final List<Character> forbiddenCharacters;
   private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
+  private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("\\[[0-9]+\\]");
+  private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\u");
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final int MAX_PAGE_SIZE = 20;
@@ -102,8 +103,6 @@ public class DocumentDB {
     allColumnTypes.add(Type.Boolean);
     allColumns.add(Column.create("bool_value", Type.Boolean));
 
-    forbiddenCharacters = ImmutableList.of('[', ']', ',', '.', '\'', '*');
-
     if (MAX_ARRAY_LENGTH > 1000000) {
       throw new IllegalStateException(
           "stargate.document_max_array_len cannot be greater than 1000000.");
@@ -145,20 +144,8 @@ public class DocumentDB {
     return !dataStore.supportsSecondaryIndex();
   }
 
-  public static List<String> getForbiddenCharactersMessage() {
-    return forbiddenCharacters.stream().map(ch -> "`" + ch + "`").collect(Collectors.toList());
-  }
-
-  public static boolean containsIllegalChars(String x) {
-    return forbiddenCharacters.stream().anyMatch(ch -> x.indexOf(ch) >= 0);
-  }
-
-  public static String replaceIllegalChars(String x) {
-    String newStr = x;
-    for (Character y : forbiddenCharacters) {
-      newStr = newStr.replace(y, '_');
-    }
-    return newStr;
+  public static boolean containsIllegalSequences(String x) {
+    return ARRAY_INDEX_PATTERN.matcher(x).matches() || UNICODE_ESCAPE_PATTERN.matcher(x).matches();
   }
 
   public static List<Column> allColumns() {
