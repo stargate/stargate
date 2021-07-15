@@ -37,10 +37,11 @@ public class JsonSchemaResource {
   @ManagedAsync
   @ApiOperation(
       value =
-          "Assign a JSON schema to a collection. This will erase any schema that already exists.")
+          "Assign a JSON schema to a collection. This will erase any schema that already exists.",
+      response = JsonSchemaResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
@@ -85,10 +86,10 @@ public class JsonSchemaResource {
 
   @GET
   @ManagedAsync
-  @ApiOperation(value = "Get a JSON schema from a collection")
+  @ApiOperation(value = "Get a JSON schema from a collection", response = JsonSchemaResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 404, message = "Not found", response = Error.class),

@@ -64,11 +64,11 @@ public class CollectionsResource {
   @GET
   @ApiOperation(
       value = "List collections in namespace",
-      response = ResponseWrapper.class,
+      response = DocCollection.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = DocCollection.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
@@ -233,11 +233,12 @@ public class CollectionsResource {
   @POST
   @ApiOperation(
       value = "Upgrade a collection in a namespace",
+      response = DocCollection.class,
       notes =
           "WARNING: This endpoint is expected to cause some down-time for the collection you choose.")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = DocCollection.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Collection not found", response = Error.class),

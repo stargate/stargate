@@ -96,11 +96,11 @@ public class UserDefinedTypesResource {
   @ApiOperation(
       value = "Get all user defined types (UDT). ",
       notes = "Retrieve all user defined types (UDT) in a specific keyspace.",
-      response = ResponseWrapper.class,
+      response = UserDefinedTypeResponse.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = UserDefinedTypeResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Keyspace has not been found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
