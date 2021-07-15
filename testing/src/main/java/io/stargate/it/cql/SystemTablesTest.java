@@ -15,6 +15,7 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -39,6 +40,9 @@ class SystemTablesTest extends BaseOsgiIntegrationTest {
                 SimpleStatement.builder("SELECT * FROM system.local").setNode(localNode).build())
             .one();
     assertThat(localRow).isNotNull();
+    assertThat(localRow.getInetAddress("rpc_address"))
+        .isEqualTo(
+            localNode.getBroadcastRpcAddress().map(InetSocketAddress::getAddress).orElse(null));
     assertThat(localRow.getInetAddress("listen_address")).isEqualTo(getNodeAddress(localNode));
     assertThat(localRow.getSet("tokens", String.class)).hasSizeGreaterThan(1);
 

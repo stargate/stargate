@@ -55,7 +55,7 @@ public class StargateSystemKeyspace {
     local.setPartitioner(DatabaseDescriptor.getPartitioner().getClass().getName());
     local.setBroadcastAddress(FBUtilities.getBroadcastAddress());
     local.setListenAddress(FBUtilities.getLocalAddress());
-    local.setNativeAddress(DatabaseDescriptor.getNativeTransportAddress());
+    local.setNativeAddress(FBUtilities.getNativeTransportBroadcastAddress());
     local.setNativePort(DatabaseDescriptor.getNativeTransportPort());
     local.setNativePortSsl(DatabaseDescriptor.getNativeTransportPortSSL());
     local.setStoragePort(DatabaseDescriptor.getStoragePort());
