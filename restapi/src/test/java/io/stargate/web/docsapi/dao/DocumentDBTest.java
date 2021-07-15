@@ -84,25 +84,36 @@ public class DocumentDBTest {
   @Test
   public void containsIllegalChars() {
     // first some positive matches
-    for (String str : new String[] {
-            // first, single forbidden character
-            "[", "]", ",", ".", "\'", "*",
-            // then longer
-            "a[b", "stuff]", "a[b]", "a, b", "dot.ted.notation",
-            "'quoted'", "foo*",
-    }) {
+    for (String str :
+        new String[] {
+          // first, single forbidden character
+          // NOTE: UGH formatter forces these on separate lines :(
+          "[",
+          "]",
+          ",",
+          ".",
+          "\'",
+          "*",
+          // then longer
+          "a[b",
+          "stuff]",
+          "a[b]",
+          "a, b",
+          "dot.ted.notation",
+          "'quoted'",
+          "foo*",
+        }) {
       assertThat(DocumentDB.containsIllegalChars(str))
-              .withFailMessage("For input String: %s", str)
-              .isTrue();
+          .withFailMessage("For input String: %s", str)
+          .isTrue();
     }
 
     // but also some negative ones
-    for (String str : new String[] {
-            "a", "3", "foobar", "-1259", "path/to/somewhere", "\"quoted\""
-    }) {
+    for (String str :
+        new String[] {"a", "3", "foobar", "-1259", "path/to/somewhere", "\"quoted\""}) {
       assertThat(DocumentDB.containsIllegalChars(str))
-              .withFailMessage("For input String: %s", str)
-              .isFalse();
+          .withFailMessage("For input String: %s", str)
+          .isFalse();
     }
   }
 
@@ -117,12 +128,11 @@ public class DocumentDBTest {
     assertThat(DocumentDB.replaceIllegalChars("a.1,b.2,*")).isEqualTo("a_1_b_2__");
 
     // then cases that should remain as-is:
-    for (String str : new String[] {
-            "a", "abc", "999", "-1259", "path/to/somewhere", "\"quoted\""
-    }) {
+    for (String str :
+        new String[] {"a", "abc", "999", "-1259", "path/to/somewhere", "\"quoted\""}) {
       assertThat(DocumentDB.replaceIllegalChars(str))
-              .withFailMessage("Input String that should remain the same: %s", str)
-              .isEqualTo(str);
+          .withFailMessage("Input String that should remain the same: %s", str)
+          .isEqualTo(str);
     }
   }
 
