@@ -38,6 +38,7 @@ public final class DocsApiUtils {
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
+  private static final Pattern UNICODE_POINT_PATTERN = Pattern.compile("[0-9a-fA-F]{4}");
 
   private DocsApiUtils() {}
 
@@ -62,6 +63,37 @@ public final class DocsApiUtils {
     } else {
       return convertSingleArrayPath(path);
     }
+  }
+
+  /**
+   * Converts any literal unicode points into their actual character. E.g. if the input string is
+   * literally abc\u002E123, this function returns abc.123 This allows a user to use unicode escape
+   * sequence in where filters when it would otherwise be ambiguous to use the corresponding
+   * character. Any path that already has square brackets in it will be left alone.
+   *
+   * @param path single filter or field path
+   * @return Converted to a string with no literal unicode code points.
+   */
+  public static String convertUnicodeCodePoints(String path) {
+    if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
+      return path;
+    }
+
+    String[] segments = path.split("\\\\u");
+    for (int i = 1; i < segments.length; i++) {
+      String segment = segments[i];
+      if (segment.length() >= 4
+          && UNICODE_POINT_PATTERN.matcher(segment.substring(0, 4)).matches()) {
+        String unicodePoint = segment.substring(0, 4);
+        String rest = segment.substring(4);
+        int value = Integer.parseInt(unicodePoint, 16);
+        char[] ch = Character.toChars(value);
+        segments[i] = String.valueOf(ch) + rest;
+      } else {
+        segments[i] = "\\u" + segments[i];
+      }
+    }
+    return String.join("", segments);
   }
 
   private static String convertSingleArrayPath(String path) {
@@ -132,6 +164,7 @@ public final class DocsApiUtils {
       List<String> fieldPath =
           Arrays.stream(fieldValue.split("\\."))
               .map(DocsApiUtils::convertArrayPath)
+              .map(DocsApiUtils::convertUnicodeCodePoints)
               .collect(Collectors.toList());
 
       results.add(fieldPath);

@@ -128,11 +128,11 @@ public class DocumentService {
               "$..*",
               (v, parsingContext) -> {
                 String fieldName = parsingContext.getCurrentFieldName();
-                if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
+                if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "The characters %s are not permitted in JSON field names, invalid field %s.",
-                          DocumentDB.getForbiddenCharactersMessage(), fieldName);
+                          "Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field %s.",
+                          fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
@@ -279,20 +279,12 @@ public class DocumentService {
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
         boolean isArrayElement = fieldName.startsWith("[") && fieldName.endsWith("]");
-        if (!isArrayElement) {
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          fieldName = DocumentDB.replaceIllegalChars(fieldName);
-        }
         if (isArrayElement) {
           if (i == 0 && patching) {
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
           }
 
           String innerPath = fieldName.substring(1, fieldName.length() - 1);
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
           int idx = 0;
           try {

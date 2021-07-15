@@ -76,21 +76,10 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void getForbiddenCharactersMessage() {
-    List<String> res = DocumentDB.getForbiddenCharactersMessage();
-    assertThat(res).isEqualTo(ImmutableList.of("`[`", "`]`", "`,`", "`.`", "`\'`", "`*`"));
-  }
-
-  @Test
-  public void containsIllegalChars() {
-    assertThat(DocumentDB.containsIllegalChars("[")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("]")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(",")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(".")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\'")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("*")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("a[b")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\"")).isFalse();
+  public void containsIllegalSequences() {
+    assertThat(DocumentDB.containsIllegalSequences("[012]")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("]012[")).isFalse();
+    assertThat(DocumentDB.containsIllegalSequences("[aaa]")).isFalse();
   }
 
   @Test
