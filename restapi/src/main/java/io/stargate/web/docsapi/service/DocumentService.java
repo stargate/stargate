@@ -104,7 +104,7 @@ public class DocumentService {
       } else {
         int indexOfBrace = part.indexOf('[');
         if (indexOfBrace < 0) {
-          newPath.append("['").append(part).append("']");
+          newPath.append("['").append(DocsApiUtils.convertUnicodeCodePoints(part)).append("']");
         } else {
           String keyPart = part.substring(0, indexOfBrace);
           String arrayPart = part.substring(indexOfBrace);
@@ -191,11 +191,11 @@ public class DocumentService {
               "$..*",
               (v, parsingContext) -> {
                 String fieldName = parsingContext.getCurrentFieldName();
-                if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
+                if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "The characters %s are not permitted in JSON field names, invalid field %s.",
-                          DocumentDB.getForbiddenCharactersMessage(), fieldName);
+                          "Array paths contained in square brackets and periods are not allowed in field names, invalid field %s.",
+                          fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
@@ -299,6 +299,7 @@ public class DocumentService {
       if (e instanceof ErrorCodeRuntimeException) {
         throw e;
       }
+      logger.error("Error occurred during JSON read", e);
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
     }
@@ -342,20 +343,12 @@ public class DocumentService {
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
         boolean isArrayElement = fieldName.startsWith("[") && fieldName.endsWith("]");
-        if (!isArrayElement) {
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          fieldName = DocumentDB.replaceIllegalChars(fieldName);
-        }
         if (isArrayElement) {
           if (i == 0 && patching) {
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
           }
 
           String innerPath = fieldName.substring(1, fieldName.length() - 1);
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
           int idx = 0;
           try {
@@ -735,17 +728,19 @@ public class DocumentService {
   private List<String> convertPath(List<PathSegment> path) {
     return path.stream()
         .map(pathSeg -> DocsApiUtils.convertArrayPath(pathSeg.getPath()))
+        .map(pathSeg -> DocsApiUtils.convertUnicodeCodePoints(pathSeg))
         .collect(Collectors.toList());
   }
 
   private Collection<List<String>> toFullFieldPaths(
-      List<String> pathPrefix, List<String> filedNames) {
-    return filedNames.stream()
+      List<String> pathPrefix, List<String> fieldNames) {
+    return fieldNames.stream()
         .map(
             name -> {
               List<String> fullFieldPath = new ArrayList<>(pathPrefix.size() + 1);
               fullFieldPath.addAll(pathPrefix);
-              fullFieldPath.add(DocsApiUtils.convertArrayPath(name));
+              fullFieldPath.add(
+                  DocsApiUtils.convertUnicodeCodePoints(DocsApiUtils.convertArrayPath(name)));
               return fullFieldPath;
             })
         .collect(Collectors.toList());
@@ -872,6 +867,7 @@ public class DocumentService {
       path =
           pathPrefix.stream()
               .map(seg -> DocsApiUtils.convertArrayPath(seg.getPath()))
+              .map(seg -> DocsApiUtils.convertUnicodeCodePoints(seg))
               .collect(Collectors.toList());
     } else {
       path = filters.get(0).getPath();
@@ -885,7 +881,9 @@ public class DocumentService {
     ExecutionContext mainContext;
     if (fields.isEmpty() && !filters.isEmpty()) {
       FilterCondition first = filters.get(0);
-      conditions.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
+      conditions.add(
+          BuiltCondition.of(
+              "leaf", Predicate.EQ, DocsApiUtils.convertUnicodeCodePoints(first.getField())));
 
       // Assume all filters apply to the same row - this is expected to be enforced by callers
       dbPageSize = paginator.docPageSize;
@@ -987,8 +985,7 @@ public class DocumentService {
   }
 
   private void collectNestedElementConditions(List<BuiltCondition> predicates, List<String> path) {
-    int i;
-    for (i = 0; i < path.size(); i++) {
+    for (int i = 0; i < path.size(); i++) {
       String[] pathSegmentSplit = path.get(i).split(",");
       if (pathSegmentSplit.length == 1) {
         String pathSegment = pathSegmentSplit[0];
@@ -997,6 +994,7 @@ public class DocumentService {
           predicates.add(BuiltCondition.of("p" + i, Predicate.GT, ""));
         } else {
           String convertedPath = DocsApiUtils.convertArrayPath(pathSegment);
+          convertedPath = DocsApiUtils.convertUnicodeCodePoints(convertedPath);
           predicates.add(BuiltCondition.of("p" + i, Predicate.EQ, convertedPath));
         }
       } else {
@@ -1012,7 +1010,10 @@ public class DocumentService {
 
   private void collectFieldConditions(List<BuiltCondition> predicates, FilterCondition condition) {
     predicates.add(
-        BuiltCondition.of("p" + condition.getPath().size(), Predicate.EQ, condition.getField()));
+        BuiltCondition.of(
+            "p" + condition.getPath().size(),
+            Predicate.EQ,
+            DocsApiUtils.convertUnicodeCodePoints(condition.getField())));
   }
 
   private void collectValueConditions(

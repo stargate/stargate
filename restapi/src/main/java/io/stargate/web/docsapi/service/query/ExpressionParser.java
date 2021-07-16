@@ -212,11 +212,11 @@ public class ExpressionParser {
   }
 
   /**
-   * Resolves the collection/document prepended path and the filed path as specified in the filter
+   * Resolves the collection/document prepended path and the field path as specified in the filter
    * query.
    *
    * @param prependedPath Given collection or document path segments
-   * @param fieldPath filed path given in the filter query, expects dot notation, f.e. <code>
+   * @param fieldPath field path given in the filter query, expects dot notation, f.e. <code>
    *     car.name</code>
    * @return FilterPath
    */
@@ -225,6 +225,7 @@ public class ExpressionParser {
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
             .map(DocsApiUtils::convertArrayPath)
+            .map(DocsApiUtils::convertUnicodeCodePoints)
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
@@ -233,7 +234,8 @@ public class ExpressionParser {
               .map(
                   pathSeg -> {
                     String path = pathSeg.getPath();
-                    return DocsApiUtils.convertArrayPath(path);
+                    return DocsApiUtils.convertUnicodeCodePoints(
+                        DocsApiUtils.convertArrayPath(path));
                   })
               .collect(Collectors.toList());
 

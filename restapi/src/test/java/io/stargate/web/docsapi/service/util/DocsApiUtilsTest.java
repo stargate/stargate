@@ -109,6 +109,26 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class ConvertUnicodeCodePoints {
+
+    @Test
+    public void happyPath() {
+      String result = DocsApiUtils.convertUnicodeCodePoints("\\u002E is a period");
+
+      assertThat(result).isEqualTo(". is a period");
+
+      result =
+          DocsApiUtils.convertUnicodeCodePoints("I can represent braces too: \\u005b000\\u005d");
+      assertThat(result).isEqualTo("I can represent braces too: [000]");
+
+      result =
+          DocsApiUtils.convertUnicodeCodePoints(
+              "\\u but without valid code points after are ignored: \\ufg00");
+      assertThat(result).isEqualTo("\\u but without valid code points after are ignored: \\ufg00");
+    }
+  }
+
+  @Nested
   class ConvertFieldsToPaths {
 
     ObjectMapper objectMapper = new ObjectMapper();
