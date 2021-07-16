@@ -113,7 +113,7 @@ public class AdminSchemaBuilder {
                   .description(
                       "The version of the schema to get. If not specified, it will return the latest version.")
                   .type(GraphQLString))
-          .type(nonNull(SCHEMA_TYPE))
+          .type(SCHEMA_TYPE)
           .build();
 
   private static final GraphQLFieldDefinition SCHEMA_HISTORY_PER_KEYSPACE_QUERY =

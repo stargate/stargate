@@ -386,4 +386,17 @@ public class SchemaDeploymentTest extends GraphqlFirstTestBase {
     // to the spec's format to avoid that:
     assertThat(schemaError).doesNotContainKey("stackTrace");
   }
+
+  @Test
+  @DisplayName("Should return null response when no schema has been deployed yet")
+  public void noDeployedSchema(@TestKeyspace CqlIdentifier keyspaceId) {
+    // When
+    Object response =
+        CLIENT.executeAdminQuery(
+            String.format(
+                "{ schema(keyspace: \"%s\") { deployDate, contents} }", keyspaceId.asInternal()));
+
+    // Then
+    assertThat(JsonPath.<Object>read(response, "$.schema")).isNull();
+  }
 }
