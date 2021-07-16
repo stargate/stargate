@@ -27,8 +27,11 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
+import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Server;
 import org.apache.cassandra.stargate.transport.internal.TransportDescriptor;
 import org.apache.cassandra.utils.NativeLibrary;
@@ -36,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CqlImpl {
+
   private static final Logger logger = LoggerFactory.getLogger(CqlImpl.class);
 
   private Collection<Server> servers = Collections.emptyList();
@@ -54,6 +58,9 @@ public class CqlImpl {
       ClientInfoMetricsTagProvider clientInfoTagProvider) {
     TransportDescriptor.daemonInitialization(config);
 
+    // Please see the comment on setUnsetValue().
+    CBUtil.setUnsetValue(persistence.unsetValue());
+
     this.persistence = persistence;
     this.metrics = metrics;
     this.authentication = authentication;
@@ -69,7 +76,6 @@ public class CqlImpl {
   }
 
   public void start() {
-
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
@@ -95,6 +101,35 @@ public class CqlImpl {
       }
     }
 
+    String additionalPorts = System.getProperty("stargate.cql.additional_ports");
+    if (additionalPorts != null) {
+      List<Server> additionalServers =
+          Arrays.stream(additionalPorts.split("\\s*,\\s*"))
+              .map(
+                  s -> {
+                    int port;
+                    try {
+                      port = Integer.parseInt(s);
+                    } catch (NumberFormatException e) {
+                      port = 0;
+                    }
+                    if (port <= 0) {
+                      logger.error(
+                          "Invalid port value found in property 'stargate.cql.additional_ports': {}",
+                          s);
+                    }
+                    return port;
+                  })
+              .filter(p -> p > 0)
+              .map(p -> builder.withSSL(false).withPort(p).build())
+              .collect(Collectors.toList());
+
+      if (!additionalServers.isEmpty()) {
+        additionalServers.addAll(servers);
+        servers = Collections.unmodifiableList(additionalServers);
+      }
+    }
+
     double metricsUpdatePeriodSeconds =
         Double.parseDouble(System.getProperty("stargate.cql.metrics.updatePeriodSeconds", "0.1"));
     ClientMetrics.instance.init(
@@ -113,8 +148,9 @@ public class CqlImpl {
     final boolean enableEpoll =
         Boolean.parseBoolean(System.getProperty("stargate.cql.native.epoll.enabled", "true"));
 
-    if (enableEpoll && !Epoll.isAvailable() && NativeLibrary.osType == NativeLibrary.OSType.LINUX)
+    if (enableEpoll && !Epoll.isAvailable() && NativeLibrary.osType == NativeLibrary.OSType.LINUX) {
       logger.warn("epoll not available", Epoll.unavailabilityCause());
+    }
 
     return enableEpoll && Epoll.isAvailable();
   }

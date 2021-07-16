@@ -15,6 +15,7 @@ public class ClientInfo {
   public static final String PROXY_PUBLIC_ADDRESS_HEADER = "proxy_public_address_header";
 
   private final InetSocketAddress remoteAddress;
+  private final int boundPort;
   private final @Nullable InetSocketAddress publicAddress;
 
   private volatile DriverInfo driverInfo;
@@ -22,13 +23,25 @@ public class ClientInfo {
   private AuthenticatedUser authenticatedUser;
   private Map<String, ByteBuffer> serializedAuthData;
 
+  public ClientInfo(
+      InetSocketAddress remoteAddress, int boundPort, @Nullable InetSocketAddress publicAddress) {
+    this.remoteAddress = remoteAddress;
+    this.boundPort = boundPort;
+    this.publicAddress = publicAddress;
+  }
+
   public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
     this.remoteAddress = remoteAddress;
+    this.boundPort = 0;
     this.publicAddress = publicAddress;
   }
 
   public InetSocketAddress remoteAddress() {
     return remoteAddress;
+  }
+
+  public int boundPort() {
+    return boundPort;
   }
 
   public Optional<InetSocketAddress> publicAddress() {

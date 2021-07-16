@@ -6,6 +6,7 @@ import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeer
 import com.google.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
+import io.stargate.db.dse.ClientStateWithBoundPort;
 import io.stargate.db.dse.impl.StargatePeerInfo;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
@@ -19,10 +20,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import org.apache.cassandra.cql3.CQLStatement;
+import org.apache.cassandra.cql3.ColumnIdentifier;
+import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
+import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
@@ -40,6 +44,8 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointStateChangeSubscriber {
   private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
+  private static final ColumnIdentifier NATIVE_TRANSPORT_PORT_ID =
+      new ColumnIdentifier("native_transport_port", false);
 
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
@@ -76,6 +82,10 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private static Single<ResultMessage> interceptSystemLocalOrPeers(
       CQLStatement statement, QueryState state, QueryOptions options, long queryStartNanoTime) {
+    assert state.getClientState() instanceof ClientStateWithBoundPort;
+
+    ClientStateWithBoundPort clientState = (ClientStateWithBoundPort) state.getClientState();
+
     SelectStatement selectStatement = ((SelectStatement) statement);
 
     // Re-parse so that we can intercept and replace the keyspace.
@@ -89,7 +99,9 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     return rows.map(
         r ->
             new ResultMessage.Rows(
-                new ResultSet(selectStatement.getResultMetadata(), r.result.rows)));
+                new ResultSet(
+                    selectStatement.getResultMetadata(),
+                    replaceNativeTransportPort(r.result, clientState.boundPort()).rows)));
   }
 
   @Override
@@ -289,5 +301,29 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   private static boolean isStargateNode(EndpointState epState) {
     VersionedValue value = epState.getApplicationState(ApplicationState.X10);
     return value != null && value.value.equals("stargate");
+  }
+
+  private static ResultSet replaceNativeTransportPort(ResultSet rs, int port) {
+    List<ColumnSpecification> columns = rs.metadata.names;
+    int columnCount = rs.metadata.getColumnCount();
+
+    int index = -1;
+    for (int i = 0; i < columnCount; ++i) {
+      if (columns.get(i).name.equals(NATIVE_TRANSPORT_PORT_ID)) {
+        index = i;
+      }
+    }
+
+    if (index == -1) {
+      return rs;
+    }
+
+    ByteBuffer portBytes = Int32Type.instance.decompose(port);
+
+    for (List<ByteBuffer> row : rs.rows) {
+      row.set(index, portBytes);
+    }
+
+    return rs;
   }
 }
