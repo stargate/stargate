@@ -44,7 +44,6 @@ public class DocumentDB {
   private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
-  private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("\\[[0-9]+\\]");
   private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\u");
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
@@ -145,7 +144,7 @@ public class DocumentDB {
   }
 
   public static boolean containsIllegalSequences(String x) {
-    return ARRAY_INDEX_PATTERN.matcher(x).matches() || UNICODE_ESCAPE_PATTERN.matcher(x).matches();
+    return x.contains("[") || UNICODE_ESCAPE_PATTERN.matcher(x).find();
   }
 
   public static List<Column> allColumns() {
