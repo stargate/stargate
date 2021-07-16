@@ -78,8 +78,12 @@ public class DocumentDBTest {
   @Test
   public void containsIllegalSequences() {
     assertThat(DocumentDB.containsIllegalSequences("[012]")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("]012[")).isFalse();
-    assertThat(DocumentDB.containsIllegalSequences("[aaa]")).isFalse();
+    assertThat(DocumentDB.containsIllegalSequences("aaa[012]")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("]012[")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("[aaa]")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("[aaa")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("aaa]")).isFalse();
+    assertThat(DocumentDB.containsIllegalSequences("a\\u2000")).isTrue();
   }
 
   @Test

@@ -236,6 +236,7 @@ public class DocumentService {
       if (e instanceof ErrorCodeRuntimeException) {
         throw e;
       }
+      logger.error("Error occurred during JSON read", e);
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
     }

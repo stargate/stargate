@@ -313,6 +313,13 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
+
+    obj = OBJECT_MAPPER.readTree("{ \"unicodeescaping\\uanything\": \"are not allowed\" }");
+
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
   }
 
   @Test
@@ -1145,6 +1152,39 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testBasicSearchUnicodeAndBrackets() throws IOException {
+    JsonNode fullObj = OBJECT_MAPPER.readTree("{\"a.b\":\"somedata\",\"some]data\":\"something\"}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // With Unicode code point
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "/cool-search-id?where={\"a\\u002eb\": {\"$eq\": \"somedata\"}}",
+            200);
+
+    String searchResultStr = "[{\"a.b\":\"somedata\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+
+    RestUtils.get(
+        authToken,
+        collectionPath + "/cool-search-id?where={\"a.b\": {\"$eq\": \"somedata\"}}&raw=true",
+        204);
+
+    // With brackets
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={\"some]data\": {\"$eq\": \"something\"}}&raw=true",
+            200);
+
+    searchResultStr = "[{\"some]data\":\"something\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
   }
 
   @Test
