@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 
 /**
  * Executes the {@code _entities} query of GraphQL federation.
@@ -82,7 +81,7 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
             entityModel::validateNoFiltering,
             keyspace);
     ResultSet resultSet =
-        query(entityModel, whereConditions, Optional.empty(), UnaryOperator.identity(), context);
+        query(entityModel, whereConditions, Optional.empty(), DEFAULT_PARAMETERS, context);
     Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
     return FederatedEntity.wrap(entityModel, entity);
   }

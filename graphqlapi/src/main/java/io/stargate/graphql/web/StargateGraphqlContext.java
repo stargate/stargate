@@ -15,6 +15,7 @@
  */
 package io.stargate.graphql.web;
 
+import com.google.common.base.MoreObjects;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;
@@ -23,13 +24,13 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
+import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.UnaryOperator;
 import javax.servlet.http.HttpServletRequest;
 
 public class StargateGraphqlContext {
@@ -96,8 +97,7 @@ public class StargateGraphqlContext {
     private final List<BoundQuery> queries = new ArrayList<>();
     private int operationCount;
     private final CompletableFuture<List<Row>> executionFuture = new CompletableFuture<>();
-    private final AtomicReference<UnaryOperator<Parameters>> parametersModifier =
-        new AtomicReference<>();
+    private final AtomicReference<Parameters> parameters = new AtomicReference<>();
 
     public CompletableFuture<List<Row>> getExecutionFuture() {
       return executionFuture;
@@ -129,14 +129,28 @@ public class StargateGraphqlContext {
       return operationCount;
     }
 
-    /** Sets the parameters to use for the batch and returns whether they were already set. */
-    public boolean setParametersModifier(UnaryOperator<Parameters> parametersModifier) {
-      return this.parametersModifier.getAndSet(parametersModifier) != null;
+    /**
+     * Sets the parameters to use for the batch.
+     *
+     * @return whether the update succeeded (either the parameters weren't set, or the were already
+     *     set but to the same values)
+     */
+    public boolean setParameters(Parameters newParameters) {
+      while (true) {
+        Parameters currentParameters = this.parameters.get();
+        if (currentParameters == null) {
+          // try to set, but if we race we need to loop to get and compare the new value
+          if (parameters.compareAndSet(null, newParameters)) {
+            return true;
+          }
+        } else {
+          return newParameters.equals(currentParameters);
+        }
+      }
     }
 
-    public UnaryOperator<Parameters> getParametersModifier() {
-      UnaryOperator<Parameters> savedParameters = this.parametersModifier.get();
-      return savedParameters == null ? UnaryOperator.identity() : savedParameters;
+    public Parameters getParameters() {
+      return MoreObjects.firstNonNull(parameters.get(), CassandraFetcher.DEFAULT_PARAMETERS);
     }
   }
 }

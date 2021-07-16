@@ -1,9 +1,10 @@
 mutation ProductsAndOrdersMutation(
     $productValue: ProductsInput!
     $orderValue: OrdersInput!
-    $options: MutationOptions
+    $productOptions: MutationOptions
+    $orderOptions: MutationOptions
 ) @atomic {
-    productMutation: insertProducts(value: $productValue, options: $options) {
+    productMutation: insertProducts(value: $productValue, options: $productOptions) {
         applied
         value {
             id
@@ -13,7 +14,7 @@ mutation ProductsAndOrdersMutation(
             description
         }
     },
-    orderMutation: updateOrders(value: $orderValue, options: $options) {
+    orderMutation: updateOrders(value: $orderValue, options: $orderOptions) {
         applied
         value {
             id

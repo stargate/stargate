@@ -15,14 +15,13 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.Modification;
 import io.stargate.db.query.builder.AbstractBound;
@@ -30,22 +29,33 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.graphqlfirst.processor.*;
+import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.IncrementModel;
+import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
+import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
+import io.stargate.graphql.schema.graphqlfirst.processor.UpdateModel;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
+public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResult<Object>> {
 
   public UpdateFetcher(UpdateModel model, MappingModel mappingModel) {
     super(model, mappingModel);
   }
 
   @Override
-  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected MutationPayload<DataFetcherResult<Object>> getPayload(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     DataFetchingFieldSelectionSet selectionSet = environment.getSelectionSet();
 
@@ -74,7 +84,6 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
             keyspace);
     List<BuiltCondition> ifConditions =
         bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
-    boolean isLwt = !ifConditions.isEmpty() || model.ifExists();
 
     Collection<ValueModifier> modifiers;
     if (!model.getIncrementModels().isEmpty()) {
@@ -88,63 +97,15 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
     Optional<Long> timestamp =
         TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
     AbstractBound<?> query =
-        context
-            .getDataStore()
-            .queryBuilder()
-            .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .ttl(model.getTtl().orElse(null))
-            .timestamp(timestamp.orElse(null))
-            .value(modifiers)
-            .where(whereConditions)
-            .ifs(ifConditions)
-            .ifExists(model.ifExists())
-            .build()
-            .bind();
+        buildUpdateQuery(entityModel, modifiers, whereConditions, ifConditions, timestamp, context);
 
-    context
-        .getAuthorizationService()
-        .authorizeDataWrite(
-            context.getSubject(),
-            entityModel.getKeyspaceName(),
-            entityModel.getCqlName(),
-            TypedKeyValue.forDML((BoundDMLQuery) query),
-            Scope.MODIFY,
-            SourceAPI.GRAPHQL);
+    List<TypedKeyValue> primaryKey = TypedKeyValue.forDML((BoundDMLQuery) query);
+    authorizeUpdate(entityModel, primaryKey, context);
 
-    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
+    Function<List<MutationResult>, DataFetcherResult<Object>> resultBuilder =
+        getResultBuilder(selectionSet, environment);
 
-    boolean responseContainsEntity =
-        model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
-    boolean applied;
-    Map<String, Object> entityData = responseContainsEntity ? new LinkedHashMap<>() : null;
-    if (isLwt) {
-      Row row = resultSet.one();
-      applied = row.getBoolean("[applied]");
-      if (!applied && responseContainsEntity) {
-        copyRowToEntity(row, entityData, model.getEntity());
-      }
-    } else {
-      applied = true;
-    }
-
-    if (model.getReturnType() == SimpleReturnType.BOOLEAN) {
-      return applied;
-    } else {
-      Map<String, Object> response = new LinkedHashMap<>();
-      if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
-        response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
-      }
-      if (responseContainsEntity) {
-        String prefix =
-            model
-                .getResponsePayload()
-                .flatMap(ResponsePayloadModel::getEntityField)
-                .map(EntityField::getName)
-                .orElseThrow(AssertionError::new);
-        response.put(prefix, entityData);
-      }
-      return response;
-    }
+    return new MutationPayload<>(query, primaryKey, resultBuilder);
   }
 
   private Collection<ValueModifier> buildIncrementModifiers(
@@ -199,5 +160,86 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, Object> {
           "Input object must have at least one non-PK field set for an update");
     }
     return modifiers;
+  }
+
+  private AbstractBound<?> buildUpdateQuery(
+      EntityModel entityModel,
+      Collection<ValueModifier> modifiers,
+      List<BuiltCondition> whereConditions,
+      List<BuiltCondition> ifConditions,
+      Optional<Long> timestamp,
+      StargateGraphqlContext context) {
+    return context
+        .getDataStore()
+        .queryBuilder()
+        .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
+        .ttl(model.getTtl().orElse(null))
+        .timestamp(timestamp.orElse(null))
+        .value(modifiers)
+        .where(whereConditions)
+        .ifs(ifConditions)
+        .ifExists(model.ifExists())
+        .build()
+        .bind();
+  }
+
+  private void authorizeUpdate(
+      EntityModel entityModel, List<TypedKeyValue> primaryKey, StargateGraphqlContext context)
+      throws UnauthorizedException {
+    context
+        .getAuthorizationService()
+        .authorizeDataWrite(
+            context.getSubject(),
+            entityModel.getKeyspaceName(),
+            entityModel.getCqlName(),
+            primaryKey,
+            Scope.MODIFY,
+            SourceAPI.GRAPHQL);
+  }
+
+  private Function<List<MutationResult>, DataFetcherResult<Object>> getResultBuilder(
+      DataFetchingFieldSelectionSet selectionSet, DataFetchingEnvironment environment) {
+    return queryResults -> {
+      DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
+      assert queryResults.size() == 1;
+      MutationResult queryResult = queryResults.get(0);
+      if (queryResult instanceof MutationResult.Failure) {
+        result.error(
+            toGraphqlError(
+                (MutationResult.Failure) queryResult,
+                getCurrentFieldLocation(environment),
+                environment));
+      } else {
+        boolean applied = queryResult instanceof MutationResult.Applied;
+        boolean responseContainsEntity =
+            model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
+        Map<String, Object> entityData = responseContainsEntity ? new LinkedHashMap<>() : null;
+        if (responseContainsEntity && queryResult instanceof MutationResult.NotApplied) {
+          ((MutationResult.NotApplied) queryResult)
+              .getRow()
+              .ifPresent(row -> copyRowToEntity(row, entityData, model.getEntity()));
+        }
+
+        if (model.getReturnType() == SimpleReturnType.BOOLEAN) {
+          result.data(applied);
+        } else {
+          Map<String, Object> response = new LinkedHashMap<>();
+          if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
+            response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
+          }
+          if (responseContainsEntity) {
+            String prefix =
+                model
+                    .getResponsePayload()
+                    .flatMap(ResponsePayloadModel::getEntityField)
+                    .map(EntityField::getName)
+                    .orElseThrow(AssertionError::new);
+            response.put(prefix, entityData);
+          }
+          result.data(response);
+        }
+      }
+      return result.build();
+    };
   }
 }

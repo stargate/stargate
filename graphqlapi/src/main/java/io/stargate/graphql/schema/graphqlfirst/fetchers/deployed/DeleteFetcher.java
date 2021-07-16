@@ -16,12 +16,12 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.google.common.collect.ImmutableMap;
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -39,16 +39,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
+public class DeleteFetcher extends MutationFetcher<DeleteModel, DataFetcherResult<Object>> {
 
   public DeleteFetcher(DeleteModel model, MappingModel mappingModel) {
     super(model, mappingModel);
   }
 
   @Override
-  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+  protected MutationPayload<DataFetcherResult<Object>> getPayload(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
-
     EntityModel entityModel = model.getEntity();
     Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
 
@@ -86,29 +86,45 @@ public class DeleteFetcher extends MutationFetcher<DeleteModel, Object> {
             .build()
             .bind();
 
+    List<TypedKeyValue> primaryKey = TypedKeyValue.forDML((BoundDelete) query);
     context
         .getAuthorizationService()
         .authorizeDataWrite(
             context.getSubject(),
             entityModel.getKeyspaceName(),
             entityModel.getCqlName(),
-            TypedKeyValue.forDML((BoundDelete) query),
+            primaryKey,
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, buildParameters(environment), context);
-    boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
-
-    ReturnType returnType = model.getReturnType();
-    if (returnType == SimpleReturnType.BOOLEAN) {
-      return applied;
-    } else {
-      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
-      if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
-        return ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied);
-      } else {
-        return Collections.emptyMap();
-      }
-    }
+    return new MutationPayload<>(
+        query,
+        primaryKey,
+        queryResults -> {
+          DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
+          assert queryResults.size() == 1;
+          MutationResult queryResult = queryResults.get(0);
+          if (queryResult instanceof MutationResult.Failure) {
+            result.error(
+                toGraphqlError(
+                    (MutationResult.Failure) queryResult,
+                    getCurrentFieldLocation(environment),
+                    environment));
+          } else {
+            boolean applied = queryResult instanceof MutationResult.Applied;
+            ReturnType returnType = model.getReturnType();
+            if (returnType == SimpleReturnType.BOOLEAN) {
+              result.data(applied);
+            } else {
+              ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
+              if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
+                result.data(ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied));
+              } else {
+                result.data(Collections.emptyMap());
+              }
+            }
+          }
+          return result.build();
+        });
   }
 }

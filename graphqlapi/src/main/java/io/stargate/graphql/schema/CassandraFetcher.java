@@ -3,7 +3,10 @@ package io.stargate.graphql.schema;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.Parameters;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.schema.Column;
 import io.stargate.graphql.web.StargateGraphqlContext;
+import java.util.List;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
@@ -32,4 +35,16 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
   protected abstract ResultT get(
       DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
+
+  protected boolean isAppliedBatch(List<Row> batchRows) {
+    if (batchRows.isEmpty()) {
+      return true;
+    }
+    if (batchRows.size() > 1) {
+      return false;
+    }
+    Row row = batchRows.get(0);
+    return row.columns().stream().map(Column::name).anyMatch("[applied]"::equals)
+        && row.getBoolean("[applied]");
+  }
 }

@@ -187,6 +187,10 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getGraphqlError(authToken, buildKeyspaceUri(keyspace), graphqlQuery, HttpStatus.SC_OK);
   }
 
+  public List<Map<String, Object>> getKeyspaceErrors(String keyspace, String graphqlQuery) {
+    return getGraphqlErrors(authToken, buildKeyspaceUri(keyspace), graphqlQuery, HttpStatus.SC_OK);
+  }
+
   private String buildSchemaFileUri(String keyspace, String version) {
     String url =
         String.format("http://%s:8080%s/keyspace/%s.graphql", host, FILES, urlEncode(keyspace));
