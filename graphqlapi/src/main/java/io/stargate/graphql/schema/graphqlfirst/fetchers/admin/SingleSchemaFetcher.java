@@ -46,8 +46,8 @@ public class SingleSchemaFetcher extends SchemaFetcher<SchemaSource> {
 
     authorize(context, keyspace);
 
-    SchemaSource schemaSource =
-        schemaSourceDaoProvider.apply(context.getDataStore()).getSingleVersion(keyspace, version);
-    return schemaSource;
+    return schemaSourceDaoProvider
+        .apply(context.getDataStore())
+        .getSingleVersion(keyspace, version);
   }
 }
