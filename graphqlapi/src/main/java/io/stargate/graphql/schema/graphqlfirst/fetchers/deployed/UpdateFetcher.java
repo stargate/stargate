@@ -169,20 +169,18 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResul
       List<BuiltCondition> ifConditions,
       Optional<Long> timestamp,
       StargateGraphqlContext context) {
-    AbstractBound<?> query =
-        context
-            .getDataStore()
-            .queryBuilder()
-            .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
-            .ttl(model.getTtl().orElse(null))
-            .timestamp(timestamp.orElse(null))
-            .value(modifiers)
-            .where(whereConditions)
-            .ifs(ifConditions)
-            .ifExists(model.ifExists())
-            .build()
-            .bind();
-    return query;
+    return context
+        .getDataStore()
+        .queryBuilder()
+        .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
+        .ttl(model.getTtl().orElse(null))
+        .timestamp(timestamp.orElse(null))
+        .value(modifiers)
+        .where(whereConditions)
+        .ifs(ifConditions)
+        .ifExists(model.ifExists())
+        .build()
+        .bind();
   }
 
   private void authorizeUpdate(
