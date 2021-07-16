@@ -324,7 +324,8 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testEscapableKeyPut() throws IOException {
-    JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are allowed\" }");
+    JsonNode obj =
+        OBJECT_MAPPER.readTree("{ \"square\\u005b\\u005dbraces\": \"are allowed if escaped\" }");
 
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     String resp = RestUtils.get(authToken, collectionPath + "/1", 200);

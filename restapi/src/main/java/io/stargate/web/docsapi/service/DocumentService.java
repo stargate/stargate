@@ -881,7 +881,9 @@ public class DocumentService {
     ExecutionContext mainContext;
     if (fields.isEmpty() && !filters.isEmpty()) {
       FilterCondition first = filters.get(0);
-      conditions.add(BuiltCondition.of("leaf", Predicate.EQ, first.getField()));
+      conditions.add(
+          BuiltCondition.of(
+              "leaf", Predicate.EQ, DocsApiUtils.convertUnicodeCodePoints(first.getField())));
 
       // Assume all filters apply to the same row - this is expected to be enforced by callers
       dbPageSize = paginator.docPageSize;
@@ -983,8 +985,7 @@ public class DocumentService {
   }
 
   private void collectNestedElementConditions(List<BuiltCondition> predicates, List<String> path) {
-    int i;
-    for (i = 0; i < path.size(); i++) {
+    for (int i = 0; i < path.size(); i++) {
       String[] pathSegmentSplit = path.get(i).split(",");
       if (pathSegmentSplit.length == 1) {
         String pathSegment = pathSegmentSplit[0];
@@ -1009,7 +1010,10 @@ public class DocumentService {
 
   private void collectFieldConditions(List<BuiltCondition> predicates, FilterCondition condition) {
     predicates.add(
-        BuiltCondition.of("p" + condition.getPath().size(), Predicate.EQ, condition.getField()));
+        BuiltCondition.of(
+            "p" + condition.getPath().size(),
+            Predicate.EQ,
+            DocsApiUtils.convertUnicodeCodePoints(condition.getField())));
   }
 
   private void collectValueConditions(
