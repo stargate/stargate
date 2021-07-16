@@ -36,6 +36,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class DocumentDBTest {
 
@@ -81,16 +83,40 @@ public class DocumentDBTest {
     assertThat(res).isEqualTo(ImmutableList.of("`[`", "`]`", "`,`", "`.`", "`\'`", "`*`"));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"[", "]", ",", ".", "\'", "*"})
+  public void containsIllegalCharsPositiveShort(String str) {
+    assertThat(DocumentDB.containsIllegalChars(str)).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"a[b", "stuff]", "a[b]", "a, b", "dot.ted.notation", "'quoted'", "foo*"})
+  public void containsIllegalCharsPositiveLong(String str) {
+    assertThat(DocumentDB.containsIllegalChars(str)).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"a", "3", "foobar", "-1259", "path/to/somewhere", "\"quoted\""})
+  public void containsIllegalCharsNegative(String str) {
+    assertThat(DocumentDB.containsIllegalChars(str)).isFalse();
+  }
+
   @Test
-  public void containsIllegalChars() {
-    assertThat(DocumentDB.containsIllegalChars("[")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("]")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(",")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars(".")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\'")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("*")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("a[b")).isTrue();
-    assertThat(DocumentDB.containsIllegalChars("\"")).isFalse();
+  public void replaceIllegalCharsChanges() {
+    assertThat(DocumentDB.replaceIllegalChars("a[1]")).isEqualTo("a_1_");
+    assertThat(DocumentDB.replaceIllegalChars("dot.ted")).isEqualTo("dot_ted");
+    assertThat(DocumentDB.replaceIllegalChars(".001")).isEqualTo("_001");
+    assertThat(DocumentDB.replaceIllegalChars("a,b,c")).isEqualTo("a_b_c");
+    assertThat(DocumentDB.replaceIllegalChars("word*")).isEqualTo("word_");
+    assertThat(DocumentDB.replaceIllegalChars("a.1,b.2,*")).isEqualTo("a_1_b_2__");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"a", "abc", "999", "-1259", "path/to/somewhere", "\"quoted\""})
+  public void replaceIllegalCharsNoChange(String str) {
+    assertThat(DocumentDB.replaceIllegalChars(str))
+        .withFailMessage("Input String that should remain the same: %s", str)
+        .isEqualTo(str);
   }
 
   @Test
