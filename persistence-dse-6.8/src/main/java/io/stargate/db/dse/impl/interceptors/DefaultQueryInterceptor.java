@@ -82,10 +82,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private static Single<ResultMessage> interceptSystemLocalOrPeers(
       CQLStatement statement, QueryState state, QueryOptions options, long queryStartNanoTime) {
-    assert state.getClientState() instanceof ClientStateWithBoundPort;
-
-    ClientStateWithBoundPort clientState = (ClientStateWithBoundPort) state.getClientState();
-
     SelectStatement selectStatement = ((SelectStatement) statement);
 
     // Re-parse so that we can intercept and replace the keyspace.
@@ -97,11 +93,15 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     Single<ResultMessage.Rows> rows =
         interceptStatement.execute(state, options, queryStartNanoTime);
     return rows.map(
-        r ->
-            new ResultMessage.Rows(
-                new ResultSet(
-                    selectStatement.getResultMetadata(),
-                    replaceNativeTransportPort(r.result, clientState.boundPort()).rows)));
+        r -> {
+          if (state.getClientState() instanceof ClientStateWithBoundPort) {
+            ClientStateWithBoundPort clientState =
+                (ClientStateWithBoundPort) state.getClientState();
+            replaceNativeTransportPort(r.result, clientState.boundPort());
+          }
+          return new ResultMessage.Rows(
+              new ResultSet(selectStatement.getResultMetadata(), r.result.rows));
+        });
   }
 
   @Override
@@ -303,7 +303,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     return value != null && value.value.equals("stargate");
   }
 
-  private static ResultSet replaceNativeTransportPort(ResultSet rs, int port) {
+  private static void replaceNativeTransportPort(ResultSet rs, int port) {
     List<ColumnSpecification> columns = rs.metadata.names;
     int columnCount = rs.metadata.getColumnCount();
 
@@ -315,7 +315,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     if (index == -1) {
-      return rs;
+      return;
     }
 
     ByteBuffer portBytes = Int32Type.instance.decompose(port);
@@ -323,7 +323,5 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     for (List<ByteBuffer> row : rs.rows) {
       row.set(index, portBytes);
     }
-
-    return rs;
   }
 }
