@@ -107,9 +107,6 @@ public class Server implements CassandraDaemon.Server {
       else workerGroup = new NioEventLoopGroup();
     }
     this.persistence.registerEventListener(new EventNotifier(this));
-
-    // Please see the comment on setUnsetValue().
-    CBUtil.setUnsetValue(persistence.unsetValue());
   }
 
   @Override
@@ -173,7 +170,13 @@ public class Server implements CassandraDaemon.Server {
 
   private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
     return new ServerConnection(
-        channel, proxyInfo, version, connectionTracker, persistence, authentication);
+        channel,
+        socket.getPort(),
+        proxyInfo,
+        version,
+        connectionTracker,
+        persistence,
+        authentication);
   }
 
   public int countConnectedClients() {

@@ -46,6 +46,7 @@ public class ServerConnection extends Connection {
 
   ServerConnection(
       Channel channel,
+      int boundPort,
       ProxyInfo proxyInfo,
       ProtocolVersion version,
       Connection.Tracker tracker,
@@ -58,7 +59,7 @@ public class ServerConnection extends Connection {
         tracker,
         persistence,
         authentication,
-        getClientInfo(channel, proxyInfo));
+        getClientInfo(channel, boundPort, proxyInfo));
   }
 
   private ServerConnection(
@@ -80,9 +81,10 @@ public class ServerConnection extends Connection {
   }
 
   @NotNull
-  private static ClientInfo getClientInfo(Channel channel, ProxyInfo proxyInfo) {
+  private static ClientInfo getClientInfo(Channel channel, int boundPort, ProxyInfo proxyInfo) {
     return new ClientInfo(
         proxyInfo != null ? proxyInfo.sourceAddress : (InetSocketAddress) channel.remoteAddress(),
+        boundPort,
         proxyInfo != null ? proxyInfo.publicAddress : null);
   }
 
