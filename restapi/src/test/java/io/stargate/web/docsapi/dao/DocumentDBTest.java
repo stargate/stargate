@@ -83,7 +83,7 @@ public class DocumentDBTest {
     assertThat(DocumentDB.containsIllegalSequences("[aaa]")).isTrue();
     assertThat(DocumentDB.containsIllegalSequences("[aaa")).isTrue();
     assertThat(DocumentDB.containsIllegalSequences("aaa]")).isFalse();
-    assertThat(DocumentDB.containsIllegalSequences("a\\u2000")).isTrue();
+    assertThat(DocumentDB.containsIllegalSequences("a.2000")).isTrue();
   }
 
   @Test

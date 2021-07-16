@@ -147,20 +147,6 @@ class DocsApiUtilsTest {
               "\\u but without valid code points after are ignored: \\ufg00");
       assertThat(result).isEqualTo("\\u but without valid code points after are ignored: \\ufg00");
     }
-
-    @Test
-    public void arraySegmentsIgnored() {
-      String result = DocsApiUtils.convertUnicodeCodePoints("[1],[44],[555]");
-
-      assertThat(result).isEqualTo("[1],[44],[555]");
-    }
-
-    @Test
-    public void globIgnored() {
-      String result = DocsApiUtils.convertUnicodeCodePoints("[*]");
-
-      assertThat(result).isEqualTo("[*]");
-    }
   }
 
   @Nested

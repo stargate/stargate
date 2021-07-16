@@ -312,14 +312,14 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets and periods are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"unicodeescaping\\uanything\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"periods.something\": \"are not allowed\" }");
 
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets and periods are not allowed in field names, invalid field periods.something.\",\"code\":400}");
   }
 
   @Test
@@ -330,17 +330,18 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
-    obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"periods\\u002e\": \"are allowed if escaped\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp))
+        .isEqualTo(OBJECT_MAPPER.readTree("{\"periods.\": \"are allowed if escaped\" }"));
+
+    obj = OBJECT_MAPPER.readTree("{ \"'qu''otes'\": \"are allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
-    obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are allowed\" }");
-    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
-    resp = RestUtils.get(authToken, collectionPath + "/1", 200);
-    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
-
-    obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"*aste*risks*\": \"are allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     resp = RestUtils.get(authToken, collectionPath + "/1", 200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
@@ -1156,7 +1157,8 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testBasicSearchUnicodeAndBrackets() throws IOException {
-    JsonNode fullObj = OBJECT_MAPPER.readTree("{\"a.b\":\"somedata\",\"some]data\":\"something\"}");
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree("{\"a\\u002eb\":\"somedata\",\"some]data\":\"something\"}");
     RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // With Unicode code point

@@ -131,7 +131,7 @@ public class DocumentService {
                 if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "Array paths contained in square brackets and literal unicode escape sequences are not allowed in field names, invalid field %s.",
+                          "Array paths contained in square brackets and periods are not allowed in field names, invalid field %s.",
                           fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
