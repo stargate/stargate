@@ -33,7 +33,6 @@ import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -44,7 +43,6 @@ public class DocumentDB {
   private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
-  private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\u");
   private static final List<String> allPathColumnNames;
   private static final List<Column.ColumnType> allPathColumnTypes;
   public static final int MAX_PAGE_SIZE = 20;
@@ -144,7 +142,7 @@ public class DocumentDB {
   }
 
   public static boolean containsIllegalSequences(String x) {
-    return x.contains("[") || UNICODE_ESCAPE_PATTERN.matcher(x).find();
+    return x.contains("[") || x.contains(".");
   }
 
   public static List<Column> allColumns() {
