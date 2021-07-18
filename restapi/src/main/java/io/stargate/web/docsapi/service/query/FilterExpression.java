@@ -123,7 +123,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   }
 
   // if given row matches the filter path in the
-  private boolean matchesFilterPath(Row row) {
+  public boolean matchesFilterPath(Row row) {
     List<String> targetPath = getFilterPath().getPath();
     return DocsApiUtils.isRowMatchingPath(row, targetPath);
   }

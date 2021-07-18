@@ -24,8 +24,6 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.QueryConstants;
-import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 /** The search query builder that creates all needed predicates for a {@link FilterPath}. */
-public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
+public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
 
   private final FilterPath filterPath;
 
@@ -44,6 +42,7 @@ public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
    * @param matchField If field name should be matches as well, adds extra predicates
    */
   public FilterPathSearchQueryBuilder(FilterPath filterPath, boolean matchField) {
+    super(filterPath.getParentPath());
     this.filterPath = filterPath;
     this.matchField = matchField;
   }
@@ -60,7 +59,7 @@ public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   @Override
   public Collection<BuiltCondition> getPredicates() {
-    List<BuiltCondition> predicates = getPathPredicates();
+    Collection<BuiltCondition> predicates = super.getPredicates();
     predicates.addAll(getFieldPredicates());
     predicates.addAll(getRemainingPathPredicates());
     return predicates;
@@ -68,36 +67,6 @@ public class FilterPathSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   public FilterPath getFilterPath() {
     return filterPath;
-  }
-
-  private List<BuiltCondition> getPathPredicates() {
-    List<BuiltCondition> predicates = new ArrayList<>();
-    List<String> path = filterPath.getParentPath();
-
-    // copied from the DocumentService
-    for (int i = 0; i < path.size(); i++) {
-      String next = path.get(i);
-      String[] pathSegmentSplit = next.split(",");
-      if (pathSegmentSplit.length == 1) {
-        String pathSegment = pathSegmentSplit[0];
-        if (pathSegment.equals(DocumentDB.GLOB_VALUE)
-            || pathSegment.equals(DocumentDB.GLOB_ARRAY_VALUE)) {
-          predicates.add(
-              BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.GT, ""));
-        } else {
-          predicates.add(
-              BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.EQ, pathSegment));
-        }
-      } else {
-        predicates.add(
-            BuiltCondition.of(
-                QueryConstants.P_COLUMN_NAME.apply(i),
-                Predicate.IN,
-                Arrays.asList(pathSegmentSplit)));
-      }
-    }
-
-    return predicates;
   }
 
   private List<BuiltCondition> getFieldPredicates() {

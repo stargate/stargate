@@ -150,8 +150,8 @@ public class Server extends Application<ApplicationConfiguration> {
 
     // Documents API
     environment.jersey().register(new DocsApiComponentsBinder(environment));
-    environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(ReactiveDocumentResourceV2.class);
+    environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(JsonSchemaResource.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);

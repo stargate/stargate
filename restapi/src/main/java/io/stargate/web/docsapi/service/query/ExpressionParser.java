@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 public class ExpressionParser {
@@ -73,7 +72,7 @@ public class ExpressionParser {
    * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
    */
   public Expression<FilterExpression> constructFilterExpression(
-      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson, numericBooleans);
 
     // if this is empty we can simply return true
@@ -96,7 +95,7 @@ public class ExpressionParser {
    * @return List of all expressions
    */
   private List<Expression<FilterExpression>> parse(
-      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     return parse(
         prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));
   }
@@ -112,7 +111,7 @@ public class ExpressionParser {
    * @return List of all expressions
    */
   private List<Expression<FilterExpression>> parse(
-      List<PathSegment> prependedPath,
+      List<String> prependedPath,
       Iterable<JsonNode> nodes,
       boolean numericBooleans,
       MutableInt nextIndex) {
@@ -180,10 +179,7 @@ public class ExpressionParser {
   }
 
   private Or<FilterExpression> resolveOr(
-      JsonNode node,
-      List<PathSegment> prependedPath,
-      boolean numericBooleans,
-      MutableInt nextIndex) {
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -196,10 +192,7 @@ public class ExpressionParser {
   }
 
   private And<FilterExpression> resolveAnd(
-      JsonNode node,
-      List<PathSegment> prependedPath,
-      boolean numericBooleans,
-      MutableInt nextIndex) {
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -220,7 +213,7 @@ public class ExpressionParser {
    *     car.name</code>
    * @return FilterPath
    */
-  private FilterPath getFilterPath(List<PathSegment> prependedPath, String fieldPath) {
+  private FilterPath getFilterPath(List<String> prependedPath, String fieldPath) {
     String[] fieldNamePath = PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
@@ -229,13 +222,7 @@ public class ExpressionParser {
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
-          prependedPath.stream()
-              .map(
-                  pathSeg -> {
-                    String path = pathSeg.getPath();
-                    return DocsApiUtils.convertArrayPath(path);
-                  })
-              .collect(Collectors.toList());
+          prependedPath.stream().map(DocsApiUtils::convertArrayPath).collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);
     }
