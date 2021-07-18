@@ -37,6 +37,7 @@
     <errorprone.version>2.3.4</errorprone.version>
     <commons-io.version>2.7</commons-io.version>
     <immutables.version>2.5.6</immutables.version>
+    <grpc.version>1.35.0</grpc.version>
   </properties>
   <dependencies>
     <dependency>
@@ -158,6 +159,20 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-cassandra-3.11</module>
+        <module>persistence-cassandra-4.0</module>
+        <module>cql</module>
+        <module>auth-api</module>
+        <module>authnz</module>
+        <module>auth-table-based-service</module>
+        <module>health-checker</module>
+        <module>rate-limiting-global</module>
+        <module>grpc-proto</module>
         <module>grpc</module>
       </modules>
     </profile>
