@@ -15,9 +15,12 @@
  */
 package io.stargate.db.datastore;
 
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.subscribers.TestSubscriber;
 import io.stargate.db.datastore.ValidatingDataStore.QueryExpectation;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -40,6 +43,12 @@ public abstract class AbstractDataStoreTest {
   @AfterEach
   public void checkExpectedExecutions() {
     dataStore.validate();
+  }
+
+  protected <T> List<T> values(Flowable<T> flowable) {
+    TestSubscriber<T> test = flowable.test();
+    test.assertNoErrors();
+    return test.values();
   }
 
   protected void ignorePreparedExecutions() {

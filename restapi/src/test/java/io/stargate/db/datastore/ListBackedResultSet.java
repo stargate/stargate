@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -49,7 +50,11 @@ public class ListBackedResultSet implements ResultSet {
     data = paginator.filter(data);
     Set<String> columnNames =
         data.stream().flatMap(m -> m.keySet().stream()).collect(Collectors.toSet());
-    List<Column> columns = columnNames.stream().map(table::column).collect(Collectors.toList());
+    List<Column> columns =
+        columnNames.stream()
+            .map(table::column)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
     if (columnNames.isEmpty()) { // empty `data`
       columns = table.columns(); // use all columns as a fallback for tests
@@ -107,6 +112,6 @@ public class ListBackedResultSet implements ResultSet {
 
   @Override
   public RowDecorator makeRowDecorator() {
-    throw new UnsupportedOperationException();
+    return new AlphabeticalOrderPartitionKeyDecorator(columns);
   }
 }

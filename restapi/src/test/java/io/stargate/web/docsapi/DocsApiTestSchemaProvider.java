@@ -17,6 +17,7 @@
 
 package io.stargate.web.docsapi;
 
+import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Regular;
 
@@ -83,7 +84,7 @@ public class DocsApiTestSchemaProvider {
           ImmutableColumn.builder()
               .name(QueryConstants.P_COLUMN_NAME.apply(i))
               .type(Column.Type.Text)
-              .kind(PartitionKey)
+              .kind(Clustering)
               .build();
       tableBuilder = tableBuilder.addColumns(column);
     }
