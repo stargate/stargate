@@ -24,6 +24,7 @@ import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
+import io.stargate.db.dse.ClientStateWithBoundPort;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
@@ -416,7 +417,7 @@ public class DsePersistence
       return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
-    return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
+    return new ClientStateWithBoundPort(clientInfo.remoteAddress(), clientInfo.boundPort());
   }
 
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
