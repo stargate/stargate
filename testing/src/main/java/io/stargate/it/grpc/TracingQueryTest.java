@@ -47,7 +47,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
 
     // when
     response =
@@ -59,14 +59,14 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
 
     // when
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, false)));
 
     // then
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
   }
 
   @Test
@@ -81,7 +81,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
 
     // when
     response =
@@ -93,14 +93,14 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
 
     // when
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, true)));
 
     // then
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
   }
 
   @Test
@@ -120,7 +120,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace, false))
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
   }
 
   @Test
@@ -140,7 +140,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace, true))
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
   }
 
   @Test
@@ -155,7 +155,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
     validateTrace(response);
 
     // when
@@ -168,7 +168,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
     validateTrace(response);
 
     // when
@@ -176,7 +176,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
     validateTrace(response);
   }
 
@@ -197,7 +197,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace, true))
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
     validateTrace(response);
   }
 

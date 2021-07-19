@@ -15,8 +15,6 @@
  */
 package io.stargate.grpc.service;
 
-import static io.stargate.proto.QueryOuterClass.*;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
@@ -445,32 +443,32 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiConsumer<Response.Builder, Throwable> executeTracingQueryIfNeeded(
+  private BiConsumer<ResponseAndTraceId, Throwable> executeTracingQueryIfNeeded(
       Connection connection,
       StreamObserver<Response> responseObserver,
       boolean tracingEnabled,
       ConsistencyLevel consistencyLevel) {
-    return (responseBuilder, t) -> {
+    return (responseAndTraceId, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
-      } else if (!tracingEnabled || responseBuilder.getTracingId().isEmpty()) {
+      } else if (!tracingEnabled || responseAndTraceId.tracingIdIsEmpty()) {
         // tracing is not enabled or not present, fill the response observer immediately
-        Response response = responseBuilder.build();
+        Response response = responseAndTraceId.responseBuilder.build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
       } else {
         try {
-          new QueryTracingFetcher(
-                  UUID.fromString(responseBuilder.getTracingId()), connection, consistencyLevel)
+          new QueryTracingFetcher(responseAndTraceId.tracingId, connection, consistencyLevel)
               .fetch()
               .whenComplete(
                   (traces, throwable) -> {
                     if (throwable != null) {
                       handleException(throwable, responseObserver);
                     } else {
-                      responseBuilder.setTraces(
-                          TraceEventsMapper.toTraceEvents(traces, responseBuilder.getTracingId()));
-                      responseObserver.onNext(responseBuilder.build());
+                      responseAndTraceId.responseBuilder.setTraces(
+                          TraceEventsMapper.toTraceEvents(
+                              traces, responseAndTraceId.responseBuilder.getTraces().getId()));
+                      responseObserver.onNext(responseAndTraceId.responseBuilder.build());
                       responseObserver.onCompleted();
                     }
                   });
@@ -482,18 +480,19 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiFunction<Result, Throwable, Response.Builder> handleQuery(
+  private BiFunction<Result, Throwable, ResponseAndTraceId> handleQuery(
       Query query, StreamObserver<Response> responseObserver, PayloadHandler handler) {
     return (result, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
       } else {
         try {
+          ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
           Response.Builder responseBuilder = makeResponseBuilder(result);
           switch (result.kind) {
             case Void:
               // fill tracing id for queries that doesn't return any data (i.e. INSERT)
-              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              handleTraceId(result.getTracingId(), query.getParameters(), responseAndTraceId);
               break;
             case SchemaChange:
               break;
@@ -502,7 +501,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   Payload.newBuilder()
                       .setType(query.getValues().getType())
                       .setData(handler.processResult((Rows) result, query.getParameters())));
-              handleTraceId(result.getTracingId(), query.getParameters(), responseBuilder);
+              handleTraceId(result.getTracingId(), query.getParameters(), responseAndTraceId);
               break;
             case SetKeyspace:
               throw Status.INVALID_ARGUMENT
@@ -511,29 +510,30 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
             default:
               throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
           }
-          return responseBuilder;
+          responseAndTraceId.setResponseBuilder(responseBuilder);
+          return responseAndTraceId;
         } catch (Throwable th) {
           handleException(th, responseObserver);
         }
       }
-      return makeResponseBuilder(result);
+      return new ResponseAndTraceId(makeResponseBuilder(result));
     };
   }
 
   private void handleTraceId(
-      UUID tracingId, QueryParameters parameters, Response.Builder responseBuilder) {
-    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+      UUID tracingId, QueryParameters parameters, ResponseAndTraceId responseAndTraceId) {
+    handleTraceId(tracingId, parameters.getTracing(), responseAndTraceId);
   }
 
   private void handleTraceId(
-      UUID tracingId, BatchParameters parameters, Response.Builder responseBuilder) {
-    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+      UUID tracingId, BatchParameters parameters, ResponseAndTraceId responseAndTraceId) {
+    handleTraceId(tracingId, parameters.getTracing(), responseAndTraceId);
   }
 
   private void handleTraceId(
-      UUID tracingId, boolean tracingEnabled, Response.Builder responseBuilder) {
+      UUID tracingId, boolean tracingEnabled, ResponseAndTraceId responseAndTraceId) {
     if (tracingEnabled && tracingId != null) {
-      responseBuilder.setTracingId(tracingId.toString());
+      responseAndTraceId.setTracingId(tracingId);
     }
   }
 
@@ -576,24 +576,26 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiFunction<Result, Throwable, Response.Builder> handleBatchQuery(
+  private BiFunction<Result, Throwable, ResponseAndTraceId> handleBatchQuery(
       BatchParameters parameters, StreamObserver<Response> responseObserver) {
     return (result, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
       } else {
         try {
+          ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
           Response.Builder responseBuilder = makeResponseBuilder(result);
-          handleTraceId(result.getTracingId(), parameters, responseBuilder);
+          handleTraceId(result.getTracingId(), parameters, responseAndTraceId);
           if (result.kind != Kind.Void) {
             throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
           }
-          return responseBuilder;
+          responseAndTraceId.setResponseBuilder(responseBuilder);
+          return responseAndTraceId;
         } catch (Throwable th) {
           handleException(th, responseObserver);
         }
       }
-      return makeResponseBuilder(result);
+      return new ResponseAndTraceId(makeResponseBuilder(result));
     };
   }
 
@@ -765,6 +767,30 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   }
                 }
               });
+    }
+  }
+
+  private static class ResponseAndTraceId {
+
+    @Nullable private UUID tracingId;
+    private Response.Builder responseBuilder;
+
+    public ResponseAndTraceId() {}
+
+    public ResponseAndTraceId(Response.Builder responseBuilder) {
+      this.responseBuilder = responseBuilder;
+    }
+
+    public void setTracingId(UUID tracingId) {
+      this.tracingId = tracingId;
+    }
+
+    public void setResponseBuilder(Response.Builder responseBuilder) {
+      this.responseBuilder = responseBuilder;
+    }
+
+    public boolean tracingIdIsEmpty() {
+      return tracingId == null || tracingId.toString().isEmpty();
     }
   }
 }

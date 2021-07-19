@@ -216,7 +216,6 @@ message Traces {
 
 message Response {
   Payload result_set = 1;
-  string tracing_id = 2;
   repeated string warnings = 3;
   Traces traces = 4;
 }
