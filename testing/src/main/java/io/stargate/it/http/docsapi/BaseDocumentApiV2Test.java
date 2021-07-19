@@ -1259,17 +1259,6 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         collectionPath + "/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
         204);
-
-    // NE with null
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}",
-            200);
-
-    searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
-    assertThat(OBJECT_MAPPER.readTree(r))
-        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
   }
 
   @Test
