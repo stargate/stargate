@@ -40,7 +40,7 @@ class InFilterOperationTest {
     public void stringIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = in.test(filterValue, "filterValue");
+      boolean result = in.test("filterValue", filterValue);
 
       assertThat(result).isTrue();
     }
@@ -49,7 +49,7 @@ class InFilterOperationTest {
     public void stringNotIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = in.test(filterValue, "dbValue");
+      boolean result = in.test("dbValue", filterValue);
 
       assertThat(result).isFalse();
     }
@@ -59,7 +59,7 @@ class InFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = in.test(filterValue, (String) null);
+      boolean result = in.test((String) null, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -68,7 +68,7 @@ class InFilterOperationTest {
     public void stringNullNotIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = in.test(filterValue, (String) null);
+      boolean result = in.test((String) null, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -78,7 +78,7 @@ class InFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = in.test(filterValue, value);
+      boolean result = in.test(value, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -88,7 +88,7 @@ class InFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = in.test(filterValue, !value);
+      boolean result = in.test(!value, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -98,7 +98,7 @@ class InFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = in.test(filterValue, (Boolean) null);
+      boolean result = in.test((Boolean) null, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -108,7 +108,7 @@ class InFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = in.test(filterValue, (Boolean) null);
+      boolean result = in.test((Boolean) null, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -117,7 +117,7 @@ class InFilterOperationTest {
     public void numberIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = in.test(filterValue, 22d);
+      boolean result = in.test(22d, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -126,7 +126,7 @@ class InFilterOperationTest {
     public void numberInNotDouble() {
       List<?> filterValue = Collections.singletonList(42);
 
-      boolean result = in.test(filterValue, 42d);
+      boolean result = in.test(42d, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -135,7 +135,7 @@ class InFilterOperationTest {
     public void numberNotIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = in.test(filterValue, 23d);
+      boolean result = in.test(23d, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -145,7 +145,7 @@ class InFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = in.test(filterValue, (Double) null);
+      boolean result = in.test((Double) null, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -154,7 +154,7 @@ class InFilterOperationTest {
     public void numberNullNotIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = in.test(filterValue, (Double) null);
+      boolean result = in.test((Double) null, filterValue);
 
       assertThat(result).isFalse();
     }

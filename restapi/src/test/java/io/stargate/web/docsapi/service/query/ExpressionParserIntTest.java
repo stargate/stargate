@@ -17,14 +17,19 @@
 package io.stargate.web.docsapi.service.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Or;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
@@ -44,6 +49,8 @@ import javax.ws.rs.core.PathSegment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 // INT test in terms that it works against components and has no mocks
 // TODO ISE: move to the testing when DI allows
@@ -62,11 +69,9 @@ class ExpressionParserIntTest {
   class ConstructFilterExpression {
 
     @Test
-    public void single() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("myField", mapper.createObjectNode().put("$eq", "some-value"));
+    public void single() throws Exception {
+      String json = "{\"myField\": {\"$eq\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
           service.constructFilterExpression(Collections.emptyList(), root, false);
@@ -96,10 +101,9 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void andWrappingRespected() {
-      ObjectNode root = mapper.createObjectNode();
-      root.set("b", mapper.createObjectNode().put("$ne", "some-value"));
-      root.set("a", mapper.createObjectNode().put("$gt", "some-value"));
+    public void andWrappingRespected() throws Exception {
+      String json = "{\"b\": {\"$ne\": \"some-value\"},\"a\": {\"$gt\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
           service.constructFilterExpression(Collections.emptyList(), root, false);
@@ -131,23 +135,115 @@ class ExpressionParserIntTest {
                                     }));
               });
     }
-  }
-
-  @Nested
-  class Parse {
 
     @Test
-    public void singleFieldString() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("myField", mapper.createObjectNode().put("$lt", "some-value"));
+    public void complex() throws Exception {
+      // a & (b | (c & d))
+      String json =
+          "{\"a\": {\"$eq\": \"a\"}, \"$or\": [{\"b\": {\"$eq\": \"b\"}}, {\"$and\":[{\"c\": {\"$eq\": \"c\"}},{\"d\": {\"$eq\": \"d\"}}]}]}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
+          .isInstanceOfSatisfying(
+              And.class,
+              a -> {
+                List<?> children = a.getChildren();
+                assertThat(children)
+                    .hasSize(2)
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    FilterExpression.class,
+                                    first -> {
+                                      assertThat(first.getOrderIndex()).isZero();
+                                      assertThat(first.getFilterPath().getField()).isEqualTo("a");
+                                    }))
+                    .anySatisfy(
+                        c ->
+                            assertThat(c)
+                                .isInstanceOfSatisfying(
+                                    Or.class,
+                                    or -> {
+                                      List<?> orChildren = or.getChildren();
+                                      assertThat(orChildren)
+                                          .hasSize(2)
+                                          .anySatisfy(
+                                              or1 ->
+                                                  assertThat(or1)
+                                                      .isInstanceOfSatisfying(
+                                                          FilterExpression.class,
+                                                          second -> {
+                                                            assertThat(second.getOrderIndex())
+                                                                .isOne();
+                                                            assertThat(
+                                                                    second
+                                                                        .getFilterPath()
+                                                                        .getField())
+                                                                .isEqualTo("b");
+                                                          }))
+                                          .anySatisfy(
+                                              or2 ->
+                                                  assertThat(or2)
+                                                      .isInstanceOfSatisfying(
+                                                          And.class,
+                                                          and -> {
+                                                            List<?> andChildren = and.getChildren();
+                                                            assertThat(andChildren)
+                                                                .hasSize(2)
+                                                                .anySatisfy(
+                                                                    and1 ->
+                                                                        assertThat(and1)
+                                                                            .isInstanceOfSatisfying(
+                                                                                FilterExpression
+                                                                                    .class,
+                                                                                third -> {
+                                                                                  assertThat(
+                                                                                          third
+                                                                                              .getOrderIndex())
+                                                                                      .isEqualTo(2);
+                                                                                  assertThat(
+                                                                                          third
+                                                                                              .getFilterPath()
+                                                                                              .getField())
+                                                                                      .isEqualTo(
+                                                                                          "c");
+                                                                                }))
+                                                                .anySatisfy(
+                                                                    and2 ->
+                                                                        assertThat(and2)
+                                                                            .isInstanceOfSatisfying(
+                                                                                FilterExpression
+                                                                                    .class,
+                                                                                fourth -> {
+                                                                                  assertThat(
+                                                                                          fourth
+                                                                                              .getOrderIndex())
+                                                                                      .isEqualTo(3);
+                                                                                  assertThat(
+                                                                                          fourth
+                                                                                              .getFilterPath()
+                                                                                              .getField())
+                                                                                      .isEqualTo(
+                                                                                          "d");
+                                                                                }));
+                                                          }));
+                                    }));
+              });
+    }
+
+    @Test
+    public void singleFieldString() throws Exception {
+      String json = "{\"myField\": {\"$lt\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -172,15 +268,14 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldBoolean() {
-      ObjectNode root =
-          mapper.createObjectNode().set("myField", mapper.createObjectNode().put("$gte", true));
+    public void singleFieldBoolean() throws Exception {
+      String json = "{\"myField\": {\"$gte\": true}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -205,15 +300,14 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldDouble() {
-      ObjectNode root =
-          mapper.createObjectNode().set("myField", mapper.createObjectNode().put("$lte", 22d));
+    public void singleFieldDouble() throws Exception {
+      String json = "{\"myField\": {\"$lte\": 22}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -231,23 +325,20 @@ class ExpressionParserIntTest {
                                     assertThat(builtCondition.value().get()).isEqualTo(22d);
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(LteFilterOperation.of());
-                          assertThat(sc.getQueryValue()).isEqualTo(22d);
+                          assertThat(sc.getQueryValue()).isEqualTo(22);
                         });
               });
     }
 
     @Test
-    public void singleFieldExtraPath() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("my.filter.field", mapper.createObjectNode().put("$eq", "some-value"));
+    public void singleFieldExtraPath() throws Exception {
+      String json = "{\"my.filter.field\": {\"$eq\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -272,17 +363,14 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldArrayIndex() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("my.filters.[2].field", mapper.createObjectNode().put("$eq", "some-value"));
+    public void singleFieldArrayIndex() throws Exception {
+      String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -308,17 +396,14 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldArraySplitIndex() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("my.filters.[1],[2].field", mapper.createObjectNode().put("$eq", "some-value"));
+    public void singleFieldArraySplitIndex() throws Exception {
+      String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -344,19 +429,17 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldPrepend() {
-      ObjectNode root =
-          mapper
-              .createObjectNode()
-              .set("my.*.field", mapper.createObjectNode().put("$eq", "some-value"));
+    public void singleFieldPrepend() throws Exception {
+      String json = "{\"my.*.field\": {\"$eq\": \"some-value\"}}";
+      JsonNode root = mapper.readTree(json);
+
       PathSegment segment = mock(PathSegment.class);
       when(segment.getPath()).thenReturn("first").thenReturn("second");
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Arrays.asList(segment, segment), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Arrays.asList(segment, segment), root, false);
 
       assertThat(result)
-          .singleElement()
           .isInstanceOfSatisfying(
               FilterExpression.class,
               c -> {
@@ -382,19 +465,17 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void singleFieldMultipleConditions() {
-      ObjectNode root = mapper.createObjectNode();
-      root.set(
-          "myField",
-          mapper
-              .createObjectNode()
-              .put("$eq", "some-value")
-              .set("$in", mapper.createArrayNode().add("array-one").add("array-two")));
+    public void singleFieldMultipleConditions() throws Exception {
+      String json =
+          "{\"myField\": {\"$eq\": \"some-value\", \"$in\": [\"array-one\", \"array-two\"]}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
-      assertThat(result)
+      assertThat(result).isInstanceOf(And.class);
+      List<? extends Expression<?>> children = ((And<?>) result).getChildren();
+      assertThat(children)
           .hasSize(2)
           .anySatisfy(
               e ->
@@ -453,15 +534,17 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void multipleFields() {
-      ObjectNode root = mapper.createObjectNode();
-      root.set("myField", mapper.createObjectNode().put("$eq", "some-value"));
-      root.set("myOtherField", mapper.createObjectNode().put("$ne", "some-small-value"));
+    public void multipleFields() throws Exception {
+      String json =
+          "{\"myField\": {\"$eq\": \"some-value\"}, \"myOtherField\": {\"$ne\": \"some-small-value\"}}";
+      JsonNode root = mapper.readTree(json);
 
-      List<Expression<FilterExpression>> result =
-          service.parse(Collections.emptyList(), root, false);
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
 
-      assertThat(result)
+      assertThat(result).isInstanceOf(And.class);
+      List<? extends Expression<?>> children = ((And<?>) result).getChildren();
+      assertThat(children)
           .hasSize(2)
           .anySatisfy(
               e ->
@@ -508,6 +591,230 @@ class ExpressionParserIntTest {
                                       assertThat(sc.getQueryValue()).isEqualTo("some-small-value");
                                     });
                           }));
+    }
+
+    @Test
+    public void orCondition() throws Exception {
+      String json =
+          "{\"$or\": [{\"myField\": {\"$eq\": \"some-value\"}}, {\"myOtherField\": {\"$ne\": \"some-small-value\"}}]}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .satisfies(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          Or.class,
+                          or -> {
+                            List<?> children = or.getChildren();
+                            assertThat(children)
+                                .hasSize(2)
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f1 -> {
+                                                  assertThat(f1.getOrderIndex()).isZero();
+                                                  assertThat(f1.getFilterPath().getField())
+                                                      .isEqualTo("myField");
+                                                  assertThat(f1.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f1.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .hasValueSatisfying(
+                                                                    builtCondition -> {
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .predicate())
+                                                                          .isEqualTo(Predicate.EQ);
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .value()
+                                                                                  .get())
+                                                                          .isEqualTo("some-value");
+                                                                    });
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(EqFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-value");
+                                                          });
+                                                }))
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f2 -> {
+                                                  assertThat(f2.getOrderIndex()).isOne();
+                                                  assertThat(f2.getFilterPath().getField())
+                                                      .isEqualTo("myOtherField");
+                                                  assertThat(f2.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f2.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .isEmpty();
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(NeFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-small-value");
+                                                          });
+                                                }));
+                          }));
+    }
+
+    @Test
+    public void orConditionNotInJsonArrayNode() throws Exception {
+      String json = "{\"$or\": {\"myField\": {\"$eq\": \"b\"}}}";
+      JsonNode root = mapper.readTree(json);
+
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+
+    @Test
+    public void andCondition() throws Exception {
+      String json =
+          "{\"$and\": [{\"myField\": {\"$eq\": \"some-value\"}}, {\"myOtherField\": {\"$ne\": \"some-small-value\"}}]}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .satisfies(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          And.class,
+                          and -> {
+                            List<?> children = and.getChildren();
+                            assertThat(children)
+                                .hasSize(2)
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f1 -> {
+                                                  assertThat(f1.getOrderIndex()).isZero();
+                                                  assertThat(f1.getFilterPath().getField())
+                                                      .isEqualTo("myField");
+                                                  assertThat(f1.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f1.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .hasValueSatisfying(
+                                                                    builtCondition -> {
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .predicate())
+                                                                          .isEqualTo(Predicate.EQ);
+                                                                      assertThat(
+                                                                              builtCondition
+                                                                                  .value()
+                                                                                  .get())
+                                                                          .isEqualTo("some-value");
+                                                                    });
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(EqFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-value");
+                                                          });
+                                                }))
+                                .anySatisfy(
+                                    c ->
+                                        assertThat(c)
+                                            .isInstanceOfSatisfying(
+                                                FilterExpression.class,
+                                                f2 -> {
+                                                  assertThat(f2.getOrderIndex()).isOne();
+                                                  assertThat(f2.getFilterPath().getField())
+                                                      .isEqualTo("myOtherField");
+                                                  assertThat(f2.getFilterPath().getParentPath())
+                                                      .isEmpty();
+                                                  assertThat(f2.getCondition())
+                                                      .isInstanceOfSatisfying(
+                                                          StringCondition.class,
+                                                          sc -> {
+                                                            assertThat(sc.getBuiltCondition())
+                                                                .isEmpty();
+                                                            assertThat(sc.getFilterOperation())
+                                                                .isEqualTo(NeFilterOperation.of());
+                                                            assertThat(sc.getQueryValue())
+                                                                .isEqualTo("some-small-value");
+                                                          });
+                                                }));
+                          }));
+    }
+
+    @Test
+    public void andConditionNotInJsonArrayNode() throws Exception {
+      String json = "{\"$and\": {\"myField\": {\"$eq\": \"b\"}}}";
+      JsonNode root = mapper.readTree(json);
+
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+  }
+
+  @Nested
+  class ValueTypeCompatibility {
+
+    @ParameterizedTest
+    @CsvSource({
+      "\"string-value\",String,12345,Number",
+      "\"string-value\",String,true,Boolean",
+      "true,Boolean,111.222,Number",
+    })
+    public void incompatibleValueTypes(String json1, String type1, String json2, String type2)
+        throws Exception {
+      String json = String.format("{\"myField\": {\"$eq\": %s, \"$gt\": %s}}", json1, json2);
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
+          .hasMessageContaining(type1)
+          .hasMessageContaining(type2);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"\"string-value\"", "12345", "true"})
+    public void nonSpecificValueType(String jsonValue) throws Exception {
+      String json =
+          String.format(
+              "{\"myField\": {\"$in\": [\"string\", true, 12345], \"$gt\": %s}}", jsonValue);
+      JsonNode root = mapper.readTree(json);
+
+      // Assert that no exception is thrown. Parsing is verified by other tests.
+      // `$in` does not imply a specific value type, therefore it is compatible with specific
+      // `$eq` conditions.
+      assertThat(service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isNotNull();
     }
   }
 }

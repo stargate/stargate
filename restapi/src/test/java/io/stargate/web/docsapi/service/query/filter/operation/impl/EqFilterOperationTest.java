@@ -41,14 +41,14 @@ class EqFilterOperationTest {
 
     @Test
     public void stringNotEquals() {
-      boolean result = eq.test("filterValue", "dbValue");
+      boolean result = eq.test("dbValue", "filterValue");
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void stringNotEqualsNull() {
-      boolean result = eq.test("filterValue", null);
+      boolean result = eq.test(null, "filterValue");
 
       assertThat(result).isFalse();
     }
@@ -66,7 +66,7 @@ class EqFilterOperationTest {
     public void booleanNotEquals() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = eq.test(value, !value);
+      boolean result = eq.test(!value, value);
 
       assertThat(result).isFalse();
     }
@@ -75,7 +75,7 @@ class EqFilterOperationTest {
     public void booleanNotEqualsNull() {
       boolean value = RandomUtils.nextBoolean();
 
-      boolean result = eq.test(value, null);
+      boolean result = eq.test(null, value);
 
       assertThat(result).isFalse();
     }
@@ -89,28 +89,28 @@ class EqFilterOperationTest {
 
     @Test
     public void numberEqualsDifferentTypes() {
-      boolean result = eq.test(22, 22d);
+      boolean result = eq.test(22d, 22);
 
       assertThat(result).isTrue();
     }
 
     @Test
     public void numbersNotEquals() {
-      boolean result = eq.test(22d, 23d);
+      boolean result = eq.test(23d, 22d);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersNotEqualsDifferentTypes() {
-      boolean result = eq.test(22L, 22.01);
+      boolean result = eq.test(22.01, 22L);
 
       assertThat(result).isFalse();
     }
 
     @Test
     public void numbersNotEqualsNull() {
-      boolean result = eq.test(22, null);
+      boolean result = eq.test(null, 22);
 
       assertThat(result).isFalse();
     }

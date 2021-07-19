@@ -39,7 +39,7 @@ class NotInFilterOperationTest {
     public void stringIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = nin.test(filterValue, "filterValue");
+      boolean result = nin.test("filterValue", filterValue);
 
       assertThat(result).isFalse();
     }
@@ -48,7 +48,7 @@ class NotInFilterOperationTest {
     public void stringNotIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = nin.test(filterValue, "dbValue");
+      boolean result = nin.test("dbValue", filterValue);
 
       assertThat(result).isTrue();
     }
@@ -58,7 +58,7 @@ class NotInFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = nin.test(filterValue, (String) null);
+      boolean result = nin.test((String) null, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -67,7 +67,7 @@ class NotInFilterOperationTest {
     public void stringNullNotIn() {
       List<?> filterValue = Collections.singletonList("filterValue");
 
-      boolean result = nin.test(filterValue, (String) null);
+      boolean result = nin.test((String) null, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -77,7 +77,7 @@ class NotInFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = nin.test(filterValue, value);
+      boolean result = nin.test(value, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -87,7 +87,7 @@ class NotInFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = nin.test(filterValue, !value);
+      boolean result = nin.test(!value, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -97,7 +97,7 @@ class NotInFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = nin.test(filterValue, (Boolean) null);
+      boolean result = nin.test((Boolean) null, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -107,7 +107,7 @@ class NotInFilterOperationTest {
       boolean value = RandomUtils.nextBoolean();
       List<?> filterValue = Collections.singletonList(value);
 
-      boolean result = nin.test(filterValue, (Boolean) null);
+      boolean result = nin.test((Boolean) null, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -116,7 +116,7 @@ class NotInFilterOperationTest {
     public void numberIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = nin.test(filterValue, 22d);
+      boolean result = nin.test(22d, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -125,7 +125,7 @@ class NotInFilterOperationTest {
     public void numberNotIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = nin.test(filterValue, 23d);
+      boolean result = nin.test(23d, filterValue);
 
       assertThat(result).isTrue();
     }
@@ -135,7 +135,7 @@ class NotInFilterOperationTest {
       List<?> filterValue = new ArrayList<>();
       filterValue.add(null);
 
-      boolean result = nin.test(filterValue, (Double) null);
+      boolean result = nin.test((Double) null, filterValue);
 
       assertThat(result).isFalse();
     }
@@ -144,7 +144,7 @@ class NotInFilterOperationTest {
     public void numberNullNotIn() {
       List<?> filterValue = Collections.singletonList(22d);
 
-      boolean result = nin.test(filterValue, (Double) null);
+      boolean result = nin.test((Double) null, filterValue);
 
       assertThat(result).isTrue();
     }

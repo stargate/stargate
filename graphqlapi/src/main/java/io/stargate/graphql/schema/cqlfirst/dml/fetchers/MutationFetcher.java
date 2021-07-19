@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import static io.stargate.graphql.schema.SchemaConstants.ASYNC_DIRECTIVE;
 import static io.stargate.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 
-import com.google.common.collect.ImmutableMap;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
@@ -113,7 +112,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     } else {
       return batchContext
           .getExecutionFuture()
-          .thenApply(v -> ImmutableMap.of("value", environment.getArgument("value")));
+          .thenApply(rows -> toBatchResult(rows, environment.getArgument("value")));
     }
   }
 

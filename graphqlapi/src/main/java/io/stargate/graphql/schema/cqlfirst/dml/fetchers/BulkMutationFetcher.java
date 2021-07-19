@@ -131,7 +131,7 @@ public abstract class BulkMutationFetcher
       // immediately
       return toListOfMutationResultsAccepted(values);
     } else {
-      return batchContext.getExecutionFuture().thenApply(rs -> toListOfMutationResults(rs, values));
+      return batchContext.getExecutionFuture().thenApply(rows -> toBatchResults(rows, values));
     }
   }
 

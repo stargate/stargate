@@ -2,6 +2,7 @@ package io.stargate.web.docsapi.resources;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -783,13 +784,24 @@ public class DocumentResourceV2 {
           List<String> selectionList = new ArrayList<>();
 
           if (fields != null) {
-            JsonNode fieldsJson = mapper.readTree(fields);
-            selectionList = documentService.convertToSelectionList(fieldsJson);
+            try {
+              JsonNode fieldsJson = mapper.readTree(fields);
+              selectionList = documentService.convertToSelectionList(fieldsJson);
+            } catch (JsonProcessingException e) {
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, "Malformed fields array provided.");
+            }
           }
 
           if (where != null) {
-            JsonNode filterJson = mapper.readTree(where);
-            filters = documentService.convertToFilterOps(path, filterJson);
+            try {
+              JsonNode filterJson = mapper.readTree(where);
+              filters = documentService.convertToFilterOps(path, filterJson);
+            } catch (JsonProcessingException e) {
+              throw new ErrorCodeRuntimeException(
+                  ErrorCode.DOCS_API_SEARCH_WHERE_JSON_INVALID,
+                  "Malformed search conditions provided.");
+            }
           }
 
           if (!filters.isEmpty()) {

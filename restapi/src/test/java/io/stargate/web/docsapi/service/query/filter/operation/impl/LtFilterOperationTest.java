@@ -40,22 +40,22 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void stringGreater() {
-      boolean result = lt.test("filterValue", "aaa");
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
     public void stringLess() {
-      boolean result = lt.test("filterValue", "www");
+      boolean result = lt.test("aaa", "filterValue");
 
       assertThat(result).isTrue();
     }
 
     @Test
+    public void stringGreater() {
+      boolean result = lt.test("www", "filterValue");
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
     public void stringNull() {
-      boolean result = lt.test("filterValue", null);
+      boolean result = lt.test(null, "filterValue");
 
       // nulls last
       assertThat(result).isFalse();
@@ -71,13 +71,6 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void booleanGreater() {
-      boolean result = lt.test(true, false);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
     public void booleanLess() {
       boolean result = lt.test(false, true);
 
@@ -85,8 +78,15 @@ class LtFilterOperationTest {
     }
 
     @Test
+    public void booleanGreater() {
+      boolean result = lt.test(true, false);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
     public void booleanNull() {
-      boolean result = lt.test(true, null);
+      boolean result = lt.test(null, true);
 
       assertThat(result).isFalse();
     }
@@ -99,22 +99,22 @@ class LtFilterOperationTest {
     }
 
     @Test
-    public void numbersGreater() {
-      boolean result = lt.test(22.1d, 22d);
-
-      assertThat(result).isFalse();
-    }
-
-    @Test
     public void numbersLess() {
-      boolean result = lt.test(21.9d, 22d);
+      boolean result = lt.test(22d, 22.1d);
 
       assertThat(result).isTrue();
     }
 
     @Test
+    public void numbersGreater() {
+      boolean result = lt.test(22d, 21.9d);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
     public void numbersNull() {
-      boolean result = lt.test(22, null);
+      boolean result = lt.test(null, 22);
 
       assertThat(result).isFalse();
     }

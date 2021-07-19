@@ -100,6 +100,35 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
       String expected = "{\"data\":[]}";
       assertThat(r).isEqualTo(expected);
     }
+
+    @Test
+    public void variedTables(CqlSession session, @TestKeyspace CqlIdentifier keyspace)
+        throws IOException {
+      assertThat(
+              session
+                  .execute(
+                      String.format(
+                          "create table \"%s\".not_docs(x text primary key, y text)", keyspace))
+                  .wasApplied())
+          .isTrue();
+      String basePath = getBasePath(keyspace);
+      String newColl = "{\"name\": \"newcollection\"}";
+      RestUtils.post(authToken, basePath, newColl, 201);
+
+      String result = RestUtils.get(authToken, getBasePath(keyspace) + "?raw=true", 200);
+
+      // non-docs tables should be excluded
+      assertThat(result).isEqualTo("[{\"name\":\"newcollection\",\"upgradeAvailable\":false}]");
+
+      assertThat(
+              session.execute(String.format("drop table \"%s\".not_docs", keyspace)).wasApplied())
+          .isTrue();
+      assertThat(
+              session
+                  .execute(String.format("drop table \"%s\".newcollection", keyspace))
+                  .wasApplied())
+          .isTrue();
+    }
   }
 
   @Nested
@@ -125,6 +154,13 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
 
       assertThat(r)
           .isEqualTo("{\"description\":\"Request invalid: payload not provided.\",\"code\":422}");
+    }
+
+    @Test
+    public void malformedPayload(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.post(authToken, getBasePath(keyspace), "{\"malformed\":", 400);
+
+      assertThat(r).isEqualTo("{\"code\":400,\"message\":\"Unable to process JSON\"}");
     }
 
     @Test
@@ -160,6 +196,22 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
 
       assertThat(result)
           .isEqualTo("{\"description\":\"Collection 'notexisting' not found.\",\"code\":404}");
+    }
+
+    @Test
+    public void notValidCollection(CqlSession session, @TestKeyspace CqlIdentifier keyspace)
+        throws IOException {
+      assertThat(
+              session
+                  .execute(
+                      String.format(
+                          "create table \"%s\".not_docs(x text primary key, y text)", keyspace))
+                  .wasApplied())
+          .isTrue();
+      String result = RestUtils.delete(authToken, getBasePath(keyspace) + "/not_docs", 404);
+
+      assertThat(result)
+          .isEqualTo("{\"description\":\"Collection 'not_docs' not found.\",\"code\":404}");
     }
   }
 

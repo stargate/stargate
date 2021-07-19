@@ -76,6 +76,7 @@ import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
 import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
@@ -85,6 +86,7 @@ import org.immutables.value.Value;
 import org.jetbrains.annotations.NotNull;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
+
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
@@ -163,7 +165,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 if (t != null) {
                   handleException(t, responseObserver);
                 } else {
-                  executePrepared(connection, prepared, query, responseObserver);
+                  executePrepared(connection, prepared, query, responseObserver, prepareInfo);
                 }
               });
     } catch (Throwable t) {
@@ -193,7 +195,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                 if (t != null) {
                   handleException(t, responseObserver);
                 } else {
-                  executeBatch(connection, preparedBatch, batch.getParameters(), responseObserver);
+                  executeBatch(connection, preparedBatch, batch, responseObserver);
                 }
               });
 
@@ -386,13 +388,27 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   private CompletableFuture<Prepared> prepareQuery(
       Connection connection, PrepareInfo prepareInfo, boolean tracing) {
-    CompletableFuture<Prepared> future = new CompletableFuture<>();
+    return prepareQuery(connection, prepareInfo, tracing, false);
+  }
 
-    // Caching here to avoid round trip to the persistence backend thread.
-    Prepared prepared = preparedCache.getIfPresent(prepareInfo);
-    if (prepared != null) {
-      future.complete(prepared);
+  private CompletableFuture<Prepared> prepareQuery(
+      Connection connection, PrepareInfo prepareInfo, boolean tracing, boolean shouldInvalidate) {
+    CompletableFuture<Prepared> future = new CompletableFuture<>();
+    Prepared prepared = null;
+
+    // In the event a query is being retried due to a PreparedQueryNotFoundException invalidate the
+    // local cache to refresh with the remote cache
+    if (shouldInvalidate) {
+      preparedCache.invalidate(prepareInfo);
     } else {
+      // Caching here to avoid round trip to the persistence backend thread.
+      prepared = preparedCache.getIfPresent(prepareInfo);
+      if (prepared != null) {
+        future.complete(prepared);
+      }
+    }
+
+    if (prepared == null) {
       ImmutableParameters.Builder parameterBuilder =
           ImmutableParameters.builder().tracingRequested(tracing);
       String keyspace = prepareInfo.keyspace();
@@ -418,7 +434,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Connection connection,
       Prepared prepared,
       Query query,
-      StreamObserver<Response> responseObserver) {
+      StreamObserver<Response> responseObserver,
+      PrepareInfo prepareInfo) {
     try {
       long queryStartNanoTime = System.nanoTime();
 
@@ -430,7 +447,14 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       connection
           .execute(
               bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
-          .handle(handleQuery(query, responseObserver, handler))
+          .handle(
+              handleQuery(
+                  query,
+                  responseObserver,
+                  handler,
+                  connection,
+                  prepareInfo,
+                  parameters.getTracing()))
           .whenComplete(
               executeTracingQueryIfNeeded(
                   connection,
@@ -481,10 +505,27 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   @NotNull
   private BiFunction<Result, Throwable, ResponseAndTraceId> handleQuery(
-      Query query, StreamObserver<Response> responseObserver, PayloadHandler handler) {
+      Query query,
+      StreamObserver<Response> responseObserver,
+      PayloadHandler handler,
+      Connection connection,
+      PrepareInfo prepareInfo,
+      boolean tracingEnabled) {
     return (result, t) -> {
       if (t != null) {
-        handleException(t, responseObserver);
+        if (t instanceof PreparedQueryNotFoundException) {
+          prepareQuery(connection, prepareInfo, tracingEnabled, true)
+              .whenComplete(
+                  (p, t1) -> {
+                    if (t1 != null) {
+                      handleException(t1, responseObserver);
+                    } else {
+                      executePrepared(connection, p, query, responseObserver, prepareInfo);
+                    }
+                  });
+        } else {
+          handleException(t, responseObserver);
+        }
       } else {
         try {
           ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
@@ -540,14 +581,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   private void executeBatch(
       Connection connection,
       io.stargate.db.Batch preparedBatch,
-      BatchParameters parameters,
+      Batch batch,
       StreamObserver<Response> responseObserver) {
     try {
       long queryStartNanoTime = System.nanoTime();
+      BatchParameters parameters = batch.getParameters();
 
       connection
           .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
-          .handle(handleBatchQuery(parameters, responseObserver))
+          .handle(handleBatchQuery(parameters, responseObserver, connection, batch))
           .whenComplete(
               executeTracingQueryIfNeeded(
                   connection,
@@ -577,10 +619,26 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   @NotNull
   private BiFunction<Result, Throwable, ResponseAndTraceId> handleBatchQuery(
-      BatchParameters parameters, StreamObserver<Response> responseObserver) {
+      BatchParameters parameters,
+      StreamObserver<Response> responseObserver,
+      Connection connection,
+      Batch batch) {
     return (result, t) -> {
       if (t != null) {
-        handleException(t, responseObserver);
+        if (t instanceof PreparedQueryNotFoundException) {
+          new BatchPreparer(connection, batch)
+              .prepareForRetry()
+              .whenComplete(
+                  (p, t1) -> {
+                    if (t1 != null) {
+                      handleException(t1, responseObserver);
+                    } else {
+                      executeBatch(connection, p, batch, responseObserver);
+                    }
+                  });
+        } else {
+          handleException(t, responseObserver);
+        }
       } else {
         try {
           ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
@@ -725,13 +783,22 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       int numToPrepare = Math.min(batch.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
       assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
-        next();
+        next(false);
+      }
+      return future;
+    }
+
+    public CompletableFuture<io.stargate.db.Batch> prepareForRetry() {
+      int numToPrepare = Math.min(batch.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
+      assert numToPrepare != 0;
+      for (int i = 0; i < numToPrepare; ++i) {
+        next(true);
       }
       return future;
     }
 
     /** Asynchronously prepares the next query in the batch. */
-    private void next() {
+    private void next(boolean shouldInvalidate) {
       int index = this.queryIndex.getAndIncrement();
       // When there are no more queries to prepare then construct the batch with the prepared
       // statements and complete the future.
@@ -752,7 +819,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               .cql(query.getCql())
               .build();
 
-      prepareQuery(connection, prepareInfo, batchParameters.getTracing())
+      prepareQuery(connection, prepareInfo, batchParameters.getTracing(), shouldInvalidate)
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -761,7 +828,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   try {
                     PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
                     statements.add(bindValues(handler, prepared, query.getValues()));
-                    next(); // Prepare the next query in the batch
+                    next(shouldInvalidate); // Prepare the next query in the batch
                   } catch (Throwable th) {
                     future.completeExceptionally(th);
                   }

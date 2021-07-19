@@ -1,8 +1,11 @@
 package io.stargate.web.docsapi.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.JsonSchemaResponse;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.JsonSchemaHandler;
@@ -34,10 +37,11 @@ public class JsonSchemaResource {
   @ManagedAsync
   @ApiOperation(
       value =
-          "Assign a JSON schema to a collection. This will erase any schema that already exists.")
+          "Assign a JSON schema to a collection. This will erase any schema that already exists.",
+      response = JsonSchemaResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
@@ -66,7 +70,13 @@ public class JsonSchemaResource {
           DocumentDB db =
               dbFactory.getDocDataStoreForToken(
                   token, RequestToHeadersMapper.getAllHeaders(request));
-          JsonNode schemaRaw = mapper.readTree(payload);
+          JsonNode schemaRaw = null;
+          try {
+            schemaRaw = mapper.readTree(payload);
+          } catch (JsonProcessingException e) {
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, "Malformed JSON schema provided.");
+          }
           schemaChecker.checkValidity(namespace, collection, db);
           JsonSchemaResponse resp =
               jsonSchemaHandler.attachSchemaToCollection(db, namespace, collection, schemaRaw);
@@ -76,10 +86,10 @@ public class JsonSchemaResource {
 
   @GET
   @ManagedAsync
-  @ApiOperation(value = "Get a JSON schema from a collection")
+  @ApiOperation(value = "Get a JSON schema from a collection", response = JsonSchemaResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 404, message = "Not found", response = Error.class),

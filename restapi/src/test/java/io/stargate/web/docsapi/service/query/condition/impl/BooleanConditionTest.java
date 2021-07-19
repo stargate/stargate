@@ -96,7 +96,7 @@ class BooleanConditionTest {
     public void nullDatabaseValue() {
       boolean filterValue = RandomUtils.nextBoolean();
       when(row.isNull("bool_value")).thenReturn(true);
-      when(filterOperation.test(filterValue, null)).thenReturn(true);
+      when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, filterValue, false);
@@ -111,7 +111,7 @@ class BooleanConditionTest {
       boolean databaseValue = RandomUtils.nextBoolean();
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getBoolean("bool_value")).thenReturn(databaseValue);
-      when(filterOperation.test(filterValue, databaseValue)).thenReturn(true);
+      when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, filterValue, false);
@@ -126,7 +126,7 @@ class BooleanConditionTest {
       byte databaseValue = 0;
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getByte("bool_value")).thenReturn(databaseValue);
-      when(filterOperation.test(filterValue, false)).thenReturn(true);
+      when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, filterValue, true);
@@ -141,7 +141,7 @@ class BooleanConditionTest {
       byte databaseValue = 1;
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getByte("bool_value")).thenReturn(databaseValue);
-      when(filterOperation.test(filterValue, true)).thenReturn(true);
+      when(filterOperation.test(true, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, filterValue, true);

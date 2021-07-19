@@ -148,7 +148,7 @@ public class StargateSystemKeyspace {
         snitch.getDatacenter(FBUtilities.getBroadcastAddress()),
         snitch.getRack(FBUtilities.getBroadcastAddress()),
         DatabaseDescriptor.getPartitioner().getClass().getName(),
-        DatabaseDescriptor.getRpcAddress(),
+        FBUtilities.getBroadcastRpcAddress(),
         FBUtilities.getBroadcastAddress(),
         FBUtilities.getLocalAddress(),
         SystemKeyspace.BootstrapState.COMPLETED.name(),

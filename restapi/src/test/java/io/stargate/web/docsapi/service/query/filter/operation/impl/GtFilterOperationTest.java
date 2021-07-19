@@ -40,22 +40,22 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void stringGreater() {
-      boolean result = gt.test("filterValue", "aaa");
-
-      assertThat(result).isTrue();
-    }
-
-    @Test
     public void stringLess() {
-      boolean result = gt.test("filterValue", "www");
+      boolean result = gt.test("aaa", "filterValue");
 
       assertThat(result).isFalse();
     }
 
     @Test
+    public void stringGreater() {
+      boolean result = gt.test("www", "filterValue");
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
     public void stringNull() {
-      boolean result = gt.test("filterValue", null);
+      boolean result = gt.test(null, "filterValue");
 
       // nulls last
       assertThat(result).isFalse();
@@ -71,13 +71,6 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void booleanGreater() {
-      boolean result = gt.test(true, false);
-
-      assertThat(result).isTrue();
-    }
-
-    @Test
     public void booleanLess() {
       boolean result = gt.test(false, true);
 
@@ -85,8 +78,15 @@ class GtFilterOperationTest {
     }
 
     @Test
+    public void booleanGreater() {
+      boolean result = gt.test(true, false);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
     public void booleanNull() {
-      boolean result = gt.test(true, null);
+      boolean result = gt.test(null, true);
 
       assertThat(result).isFalse();
     }
@@ -99,22 +99,22 @@ class GtFilterOperationTest {
     }
 
     @Test
-    public void numbersGreater() {
-      boolean result = gt.test(22.1d, 22d);
-
-      assertThat(result).isTrue();
-    }
-
-    @Test
     public void numbersLess() {
-      boolean result = gt.test(21.9d, 22d);
+      boolean result = gt.test(22d, 22.1d);
 
       assertThat(result).isFalse();
     }
 
     @Test
+    public void numbersGreater() {
+      boolean result = gt.test(22d, 21.9d);
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
     public void numbersNull() {
-      boolean result = gt.test(22, null);
+      boolean result = gt.test(null, 22);
 
       assertThat(result).isFalse();
     }

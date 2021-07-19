@@ -21,6 +21,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlCache;
@@ -94,11 +95,11 @@ public class StargateGraphqlContext {
   public static class BatchContext {
     private final List<BoundQuery> queries = new ArrayList<>();
     private int operationCount;
-    private final CompletableFuture<ResultSet> executionFuture = new CompletableFuture<>();
+    private final CompletableFuture<List<Row>> executionFuture = new CompletableFuture<>();
     private final AtomicReference<UnaryOperator<Parameters>> parametersModifier =
         new AtomicReference<>();
 
-    public CompletableFuture<ResultSet> getExecutionFuture() {
+    public CompletableFuture<List<Row>> getExecutionFuture() {
       return executionFuture;
     }
 
@@ -108,7 +109,7 @@ public class StargateGraphqlContext {
 
     public void setExecutionResult(CompletableFuture<ResultSet> result) {
       result
-          .thenApply(executionFuture::complete)
+          .thenApply(rs -> executionFuture.complete(rs.rows()))
           .exceptionally(executionFuture::completeExceptionally);
     }
 

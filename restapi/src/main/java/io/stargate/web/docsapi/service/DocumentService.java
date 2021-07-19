@@ -184,115 +184,124 @@ public class DocumentService {
       boolean patching) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
-
-    surfer
-        .configBuilder()
-        .bind(
-            "$..*",
-            (v, parsingContext) -> {
-              String fieldName = parsingContext.getCurrentFieldName();
-              if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
-                String msg =
-                    String.format(
-                        "The characters %s are not permitted in JSON field names, invalid field %s.",
-                        DocumentDB.getForbiddenCharactersMessage(), fieldName);
-                throw new ErrorCodeRuntimeException(
-                    ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
-              }
-
-              if (v instanceof JsonPrimitive
-                  || v instanceof JsonNull
-                  || isEmptyObject(v)
-                  || isEmptyArray(v)) {
-                JsonPath p =
-                    JsonPathCompiler.compile(convertToBracketedPath(parsingContext.getJsonPath()));
-                int i = path.size();
-                Map<String, Object> bindMap = db.newBindMap(path);
-
-                bindMap.put("key", key);
-
-                Iterator<PathOperator> it = p.iterator();
-                String leaf = null;
-                while (it.hasNext()) {
-                  if (i >= docsApiConfiguration.getMaxDepth()) {
-                    throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
-                  }
-
-                  PathOperator op = it.next();
-                  String pv = op.toString();
-
-                  if (pv.equals("$")) continue;
-
-                  // pv always starts with a square brace because of the above conversion
-                  String innerPath = pv.substring(1, pv.length() - 1);
-                  boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
-                  if (isArrayElement) {
-                    if (i == path.size() && patching) {
-                      throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
-                    }
-
-                    int idx = Integer.parseInt(innerPath);
-                    if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
-                      throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
-                    }
-
-                    // left-pad the array element to 6 characters
-                    pv = "[" + leftPadTo6(innerPath) + "]";
-                  } else if (i == path.size()) {
-                    firstLevelKeys.add(innerPath);
-                    pv = innerPath;
-                  } else {
-                    pv = innerPath;
-                  }
-
-                  bindMap.put("p" + i++, pv);
-                  leaf = pv;
+    try {
+      surfer
+          .configBuilder()
+          .bind(
+              "$..*",
+              (v, parsingContext) -> {
+                String fieldName = parsingContext.getCurrentFieldName();
+                if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
+                  String msg =
+                      String.format(
+                          "The characters %s are not permitted in JSON field names, invalid field %s.",
+                          DocumentDB.getForbiddenCharactersMessage(), fieldName);
+                  throw new ErrorCodeRuntimeException(
+                      ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
 
-                bindMap.put("leaf", leaf);
+                if (v instanceof JsonPrimitive
+                    || v instanceof JsonNull
+                    || isEmptyObject(v)
+                    || isEmptyArray(v)) {
+                  JsonPath p =
+                      JsonPathCompiler.compile(
+                          convertToBracketedPath(parsingContext.getJsonPath()));
+                  int i = path.size();
+                  Map<String, Object> bindMap = db.newBindMap(path);
 
-                if (v instanceof JsonPrimitive) {
-                  JsonPrimitive value = (JsonPrimitive) v;
+                  bindMap.put("key", key);
 
-                  if (value.isNumber()) {
-                    bindMap.put("dbl_value", value.getAsDouble());
-                    bindMap.put("bool_value", null);
-                    bindMap.put("text_value", null);
-                  } else if (value.isBoolean()) {
+                  Iterator<PathOperator> it = p.iterator();
+                  String leaf = null;
+                  while (it.hasNext()) {
+                    if (i >= docsApiConfiguration.getMaxDepth()) {
+                      throw new ErrorCodeRuntimeException(
+                          ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
+                    }
+
+                    PathOperator op = it.next();
+                    String pv = op.toString();
+
+                    if (pv.equals("$")) continue;
+
+                    // pv always starts with a square brace because of the above conversion
+                    String innerPath = pv.substring(1, pv.length() - 1);
+                    boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
+                    if (isArrayElement) {
+                      if (i == path.size() && patching) {
+                        throw new ErrorCodeRuntimeException(
+                            ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+                      }
+
+                      int idx = Integer.parseInt(innerPath);
+                      if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
+                        throw new ErrorCodeRuntimeException(
+                            ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
+                      }
+
+                      // left-pad the array element to 6 characters
+                      pv = "[" + leftPadTo6(innerPath) + "]";
+                    } else if (i == path.size()) {
+                      firstLevelKeys.add(innerPath);
+                      pv = innerPath;
+                    } else {
+                      pv = innerPath;
+                    }
+
+                    bindMap.put("p" + i++, pv);
+                    leaf = pv;
+                  }
+
+                  bindMap.put("leaf", leaf);
+
+                  if (v instanceof JsonPrimitive) {
+                    JsonPrimitive value = (JsonPrimitive) v;
+
+                    if (value.isNumber()) {
+                      bindMap.put("dbl_value", value.getAsDouble());
+                      bindMap.put("bool_value", null);
+                      bindMap.put("text_value", null);
+                    } else if (value.isBoolean()) {
+                      bindMap.put("dbl_value", null);
+                      bindMap.put(
+                          "bool_value",
+                          convertToBackendBooleanValue(
+                              value.getAsBoolean(), db.treatBooleansAsNumeric()));
+                      bindMap.put("text_value", null);
+                    } else {
+                      bindMap.put("dbl_value", null);
+                      bindMap.put("bool_value", null);
+                      bindMap.put("text_value", value.getAsString());
+                    }
+                  } else if (isEmptyObject(v)) {
                     bindMap.put("dbl_value", null);
-                    bindMap.put(
-                        "bool_value",
-                        convertToBackendBooleanValue(
-                            value.getAsBoolean(), db.treatBooleansAsNumeric()));
-                    bindMap.put("text_value", null);
+                    bindMap.put("bool_value", null);
+                    bindMap.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
+                  } else if (isEmptyArray(v)) {
+                    bindMap.put("dbl_value", null);
+                    bindMap.put("bool_value", null);
+                    bindMap.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
                   } else {
                     bindMap.put("dbl_value", null);
                     bindMap.put("bool_value", null);
-                    bindMap.put("text_value", value.getAsString());
+                    bindMap.put("text_value", null);
                   }
-                } else if (isEmptyObject(v)) {
-                  bindMap.put("dbl_value", null);
-                  bindMap.put("bool_value", null);
-                  bindMap.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
-                } else if (isEmptyArray(v)) {
-                  bindMap.put("dbl_value", null);
-                  bindMap.put("bool_value", null);
-                  bindMap.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
-                } else {
-                  bindMap.put("dbl_value", null);
-                  bindMap.put("bool_value", null);
-                  bindMap.put("text_value", null);
-                }
 
-                logger.debug("{}", bindMap.values());
-                bindVariableList.add(bindMap.values().toArray());
-              }
-            })
-        .withErrorStrategy(new RuntimeExceptionPassHandlingStrategy())
-        .buildAndSurf(jsonPayload);
-    return ImmutablePair.of(bindVariableList, firstLevelKeys);
+                  logger.debug("{}", bindMap.values());
+                  bindVariableList.add(bindMap.values().toArray());
+                }
+              })
+          .withErrorStrategy(new RuntimeExceptionPassHandlingStrategy())
+          .buildAndSurf(jsonPayload);
+      return ImmutablePair.of(bindVariableList, firstLevelKeys);
+    } catch (RuntimeException e) {
+      if (e instanceof ErrorCodeRuntimeException) {
+        throw e;
+      }
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
+    }
   }
 
   private Object convertToBackendBooleanValue(boolean value, boolean numericBooleans) {
@@ -452,7 +461,14 @@ public class DocumentService {
       }
 
       while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
-        JsonNode json = mapper.readTree(jsonParser);
+        JsonNode json;
+        try {
+          json = mapper.readTree(jsonParser);
+        } catch (JsonProcessingException e) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_INVALID_JSON_VALUE,
+              "Malformed JSON encountered during batch write.");
+        }
         String docId;
         if (docsPath.isPresent()) {
           if (!json.at(docsPath.get()).isTextual()) {
@@ -520,14 +536,14 @@ public class DocumentService {
       boolean isJson,
       Map<String, String> headers,
       ExecutionContext context)
-      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+      throws UnauthorizedException, ProcessingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferGson.INSTANCE;
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
 
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
-    if (schema != null && path.isEmpty()) {
+    if (schema != null && path.isEmpty() && isJson) {
       jsonSchemaHandler.validate(schema, payload);
     } else if (schema != null) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);

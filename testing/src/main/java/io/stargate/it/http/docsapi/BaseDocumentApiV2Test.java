@@ -46,7 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
+public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   private static final String TARGET_COLLECTION = "collection";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final OkHttpClient CLIENT =
@@ -153,6 +153,33 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.delete("garbage", collectionPath + "/1", 401);
     RestUtils.get("garbage", collectionPath + "/1", 401);
     RestUtils.get("garbage", collectionPath, 401);
+  }
+
+  @Test
+  public void testMalformedBadRequest() throws IOException {
+    String malformedJson = "{\"malformed\": ";
+    RestUtils.post(authToken, collectionPath, malformedJson, 400);
+    RestUtils.post(authToken, collectionPath + "/batch", "[" + malformedJson + "]", 400);
+    RestUtils.put(authToken, collectionPath + "/1", malformedJson, 400);
+    RestUtils.patch(authToken, collectionPath + "/1", malformedJson, 400);
+    RestUtils.get(authToken, collectionPath + "/1?where=" + malformedJson, 400);
+    RestUtils.get(
+        authToken,
+        collectionPath
+            + "/1?where={\"a\":{\"$eq\":\"b\"}}&fields=["
+            + malformedJson
+            + "]"
+            + malformedJson,
+        400);
+    RestUtils.get(authToken, collectionPath + "?where=" + malformedJson, 400);
+    RestUtils.get(
+        authToken,
+        collectionPath
+            + "?where={\"a\":{\"$eq\":\"b\"}}&fields=["
+            + malformedJson
+            + "]"
+            + malformedJson,
+        400);
   }
 
   @Test
@@ -1387,7 +1414,7 @@ public class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
-    RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 500);
+    RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 400);
 
     String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
     assertThat(r)
