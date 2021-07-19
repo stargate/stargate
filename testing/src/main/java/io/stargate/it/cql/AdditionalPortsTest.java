@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -38,6 +39,8 @@ public class AdditionalPortsTest extends BaseOsgiIntegrationTest {
 
   public static final List<Integer> ADDITIONAL_PORTS = ImmutableList.of(29042, 39042);
 
+  public static int MAIN_PORT = 9043;
+
   // The tests are going to set the contact points explicitly
   public static class EmptyContactPointResolver implements ContactPointResolver {
 
@@ -45,6 +48,12 @@ public class AdditionalPortsTest extends BaseOsgiIntegrationTest {
     public List<InetSocketAddress> resolve(ExtensionContext context) {
       return Collections.emptyList();
     }
+  }
+
+  @BeforeAll
+  public static void beforeAll(StargateEnvironmentInfo stargate) {
+    assertThat(stargate.nodes()).hasSizeGreaterThan(0);
+    MAIN_PORT = stargate.nodes().get(0).cqlPort();
   }
 
   @ParameterizedTest
@@ -93,7 +102,7 @@ public class AdditionalPortsTest extends BaseOsgiIntegrationTest {
   }
 
   public static List<Integer> allPorts() {
-    return ImmutableList.<Integer>builder().addAll(ADDITIONAL_PORTS).add(9043).build();
+    return ImmutableList.<Integer>builder().add(MAIN_PORT).addAll(ADDITIONAL_PORTS).build();
   }
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
