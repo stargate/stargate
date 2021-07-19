@@ -36,6 +36,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.rx.RxUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -228,7 +229,7 @@ public class QueryExecutor {
   private Accumulator toSeed(
       DocProperty property, Comparator<DocProperty> comparator, List<Column> keyColumns) {
     Row row = property.row();
-    String id = row.getString("key");
+    String id = row.getString(QueryConstants.KEY_COLUMN_NAME);
     Builder<String> docKey = ImmutableList.builder();
     for (Column c : keyColumns) {
       docKey.add(Objects.requireNonNull(row.getString(c.name())));
