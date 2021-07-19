@@ -478,7 +478,7 @@ class DocsApiUtilsTest {
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
 
-      Assertions.assertThat(result).isFalse();
+      Assertions.assertThat(result).isTrue();
     }
 
     @Test
