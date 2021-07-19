@@ -15,6 +15,8 @@
  */
 package io.stargate.graphql.web;
 
+import com.apollographql.federation.graphqljava.tracing.FederatedTracingInstrumentation;
+import com.apollographql.federation.graphqljava.tracing.HTTPRequestHeaders;
 import com.google.common.base.MoreObjects;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -25,6 +27,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.schema.graphqlfirst.processor.SchemaProcessor;
 import io.stargate.graphql.web.resources.AuthenticationFilter;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import java.util.ArrayList;
@@ -33,10 +36,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletRequest;
 
-public class StargateGraphqlContext {
+public class StargateGraphqlContext implements HTTPRequestHeaders {
 
   private final AuthenticationSubject subject;
   private final DataStore dataStore;
+  private final HttpServletRequest request;
   private final AuthorizationService authorizationService;
   private final Persistence persistence;
   private final GraphqlCache graphqlCache;
@@ -56,6 +60,7 @@ public class StargateGraphqlContext {
       GraphqlCache graphqlCache) {
     this.subject = (AuthenticationSubject) request.getAttribute(AuthenticationFilter.SUBJECT_KEY);
     this.dataStore = (DataStore) request.getAttribute(AuthenticationFilter.DATA_STORE_KEY);
+    this.request = request;
     this.authorizationService = authorizationService;
     this.persistence = persistence;
     this.graphqlCache = graphqlCache;
@@ -87,6 +92,19 @@ public class StargateGraphqlContext {
 
   public GraphqlCache getGraphqlCache() {
     return graphqlCache;
+  }
+
+  /**
+   * Give context clients access to the HTTP headers.
+   *
+   * <p>This is needed by the federated tracing implementation ({@link
+   * FederatedTracingInstrumentation}).
+   *
+   * @see SchemaProcessor
+   */
+  @Override
+  public String getHTTPRequestHeader(String headerName) {
+    return request.getHeader(headerName);
   }
 
   /**
