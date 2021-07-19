@@ -1,6 +1,50 @@
 # Changelog
 
-## [v1.0.29](https://github.com/stargate/stargate/tree/v1.0.29) (2021-06-29)
+## [v1.0.30](https://github.com/stargate/stargate/tree/v1.0.30) (2021-07-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.29...v1.0.30)
+
+**Fixed bugs:**
+
+- RawDocument reports to have next if not all rows can be fetched in a single query [\#1090](https://github.com/stargate/stargate/issues/1090)
+- Comparing filter operations tests wrongly [\#1088](https://github.com/stargate/stargate/issues/1088)
+- Searching of documents must populate them without the query limit [\#1087](https://github.com/stargate/stargate/issues/1087)
+- Searching collection can fail due to the race condition in JavaRx [\#1076](https://github.com/stargate/stargate/issues/1076)
+- Bad JSON results in the response code 500 [\#1064](https://github.com/stargate/stargate/issues/1064)
+
+**Closed issues:**
+
+- GraphQL schema-first: improve `schema` response when no custom schema is deployed [\#1103](https://github.com/stargate/stargate/issues/1103)
+- OpenAPI specs don't return typed responses in any API with a "raw" parameter [\#1101](https://github.com/stargate/stargate/issues/1101)
+- BaseDocumentApiV2Test should not run as a standalone test in CI [\#1094](https://github.com/stargate/stargate/issues/1094)
+- Move persistence-cassandra-4.0 to trunk branch until there is a GA release [\#1085](https://github.com/stargate/stargate/issues/1085)
+- GraphQL CQL-first: bulk insert does not handle conditional batch [\#1068](https://github.com/stargate/stargate/issues/1068)
+- GraphQL CQL-first: batched mutations don't handle LWTs correctly [\#1067](https://github.com/stargate/stargate/issues/1067)
+- gRPC's prepared query cache gets out of sync with persistence's query cache [\#1065](https://github.com/stargate/stargate/issues/1065)
+- Docs API getCollections should only return collections [\#1052](https://github.com/stargate/stargate/issues/1052)
+- Support parsing of $or and $and conditions [\#1031](https://github.com/stargate/stargate/issues/1031)
+- Frequent Codacy errors in CI: No content to map due to end-of-input [\#686](https://github.com/stargate/stargate/issues/686)
+
+**Merged pull requests:**
+
+- Allow CQL to be bound to more than one port [\#1115](https://github.com/stargate/stargate/pull/1115) ([mpenick](https://github.com/mpenick))
+- Adding Tatu [\#1109](https://github.com/stargate/stargate/pull/1109) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fix invalid \(e.g `0.0.0.0`\) `rpc\_address` in `system.local` [\#1108](https://github.com/stargate/stargate/pull/1108) ([mpenick](https://github.com/mpenick))
+- GraphQL schema-first: allow schema fetch operation to return null [\#1106](https://github.com/stargate/stargate/pull/1106) ([olim7t](https://github.com/olim7t))
+- Update openapi spec annotations for specific return types rather than generic responsewrapper [\#1102](https://github.com/stargate/stargate/pull/1102) ([gconaty](https://github.com/gconaty))
+- Add responseContainer to getCollections swagger annotation [\#1100](https://github.com/stargate/stargate/pull/1100) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Throw a user error in case of value type mismatch in Document filters [\#1099](https://github.com/stargate/stargate/pull/1099) ([dimas-b](https://github.com/dimas-b))
+- Make BaseDocumentApiV2Test abstract [\#1095](https://github.com/stargate/stargate/pull/1095) ([dimas-b](https://github.com/dimas-b))
+- Add restriction on tables that aren't docs collections [\#1093](https://github.com/stargate/stargate/pull/1093) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1088: fixed comparing filters returning opposite results [\#1089](https://github.com/stargate/stargate/pull/1089) ([ivansenic](https://github.com/ivansenic))
+- closes \#1085: cassandra-4 move driver to 4.0-rc2 [\#1086](https://github.com/stargate/stargate/pull/1086) ([ivansenic](https://github.com/ivansenic))
+- closes \#1076: not using withLatestFrom that can swallow rows [\#1084](https://github.com/stargate/stargate/pull/1084) ([ivansenic](https://github.com/ivansenic))
+- Add `@atomic` directive [\#1083](https://github.com/stargate/stargate/pull/1083) ([olim7t](https://github.com/olim7t))
+- Add handling/testing for 400's on malformed JSON in requests [\#1079](https://github.com/stargate/stargate/pull/1079) ([EricBorczuk](https://github.com/EricBorczuk))
+- GraphQL CQL-first: Fix handling of conditional batches [\#1078](https://github.com/stargate/stargate/pull/1078) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1075](https://github.com/stargate/stargate/pull/1075) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Retry queries in grpc on PreparedQueryNotFoundException [\#1066](https://github.com/stargate/stargate/pull/1066) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- closes \#1031: support parsing of the $or and $and expressions [\#1061](https://github.com/stargate/stargate/pull/1061) ([ivansenic](https://github.com/ivansenic))
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.28...v1.0.29)
 
