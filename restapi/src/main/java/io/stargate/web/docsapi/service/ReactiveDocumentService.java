@@ -175,6 +175,8 @@ public class ReactiveDocumentService {
       String fields,
       ExecutionContext context) {
 
+    long now = timeSource.currentTimeMicros();
+
     // everything in the reactive sequence
     return Maybe.defer(
         () -> {
@@ -232,7 +234,7 @@ public class ReactiveDocumentService {
                     if (!collector.isEmpty()) {
                       logger.info(
                           String.format("Deleting %d dead leaves", collector.getLeaves().size()));
-                      long now = timeSource.currentTimeMicros();
+
                       db.deleteDeadLeaves(
                           namespace, collection, documentId, collector.getLeaves(), context, now);
                     }

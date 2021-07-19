@@ -343,12 +343,12 @@ public class ReactiveDocumentResourceV2 {
   }
 
   private Function<DocumentResponseWrapper<? extends JsonNode>, Response> rawDocumentHandler(
-      @QueryParam("raw") @ApiParam(value = "Unwrap results", defaultValue = "false") Boolean raw) {
+      Boolean raw) {
     return results -> {
-      if (raw == null || !raw) {
-        return Response.ok(results).build();
-      } else {
+      if (raw != null && raw) {
         return Response.ok(results.getData()).build();
+      } else {
+        return Response.ok(results).build();
       }
     };
   }
