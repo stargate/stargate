@@ -239,10 +239,20 @@ public class ReactiveDocumentService {
                           namespace, collection, documentId, collector.getLeaves(), context, now);
                     }
 
-                    // iterate until we find a proper sub path
-                    for (String subPath : subDocumentPath) {
-                      docsResult = docsResult.get(subPath);
-                      if (null == docsResult) {
+                    // create json pattern expression if sub path is defined
+                    if (!subDocumentPath.isEmpty()) {
+                      String jsonPtrExpr =
+                          subDocumentPath.stream()
+                              .map(
+                                  p ->
+                                      DocsApiUtils.extractArrayPathIndex(p)
+                                          .map(Object::toString)
+                                          .orElse(p))
+                              .collect(Collectors.joining("/", "/", ""));
+
+                      // find and return empty if missing
+                      docsResult = docsResult.at(jsonPtrExpr);
+                      if (docsResult.isMissingNode()) {
                         return Maybe.empty();
                       }
                     }
