@@ -53,7 +53,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /** Base class for fetchers that handle the queries from a user's deployed schema. */
@@ -245,7 +244,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       EntityModel entity,
       List<BuiltCondition> whereConditions,
       Optional<Integer> limit,
-      UnaryOperator<Parameters> parametersModifier,
+      Parameters parameters,
       StargateGraphqlContext context)
       throws UnauthorizedException {
 
@@ -266,7 +265,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       return context
           .getAuthorizationService()
           .authorizedDataRead(
-              () -> executeUnchecked(query, parametersModifier, context),
+              () -> executeUnchecked(query, parameters, context),
               context.getSubject(),
               entity.getKeyspaceName(),
               entity.getCqlName(),
@@ -322,11 +321,9 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
   }
 
   protected ResultSet executeUnchecked(
-      AbstractBound<?> query,
-      UnaryOperator<Parameters> parametersModifier,
-      StargateGraphqlContext context) {
+      AbstractBound<?> query, Parameters parameters, StargateGraphqlContext context) {
     try {
-      return context.getDataStore().execute(query, parametersModifier).get();
+      return context.getDataStore().execute(query, __ -> parameters).get();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (ExecutionException e) {

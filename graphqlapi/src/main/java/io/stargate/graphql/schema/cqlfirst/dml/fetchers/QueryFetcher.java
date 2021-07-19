@@ -59,7 +59,8 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         context
             .getAuthorizationService()
             .authorizedDataRead(
-                () -> context.getDataStore().execute(query, buildParameters(environment)).get(),
+                () ->
+                    context.getDataStore().execute(query, __ -> buildParameters(environment)).get(),
                 context.getSubject(),
                 table.keyspace(),
                 table.name(),

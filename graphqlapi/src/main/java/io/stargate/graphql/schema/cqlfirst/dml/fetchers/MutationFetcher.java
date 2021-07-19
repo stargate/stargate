@@ -64,13 +64,13 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
 
     if (containsDirective(operation, ASYNC_DIRECTIVE)) {
       return executeAsyncAccepted(
-          query, environment.getArgument("value"), buildParameters(environment), context);
+          query, environment.getArgument("value"), __ -> buildParameters(environment), context);
     }
 
     // Execute as a single statement
     return context
         .getDataStore()
-        .execute(query, buildParameters(environment))
+        .execute(query, __ -> buildParameters(environment))
         .thenApply(rs -> toMutationResult(rs, environment.getArgument("value")));
   }
 
@@ -83,16 +83,10 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
     StargateGraphqlContext context = environment.getContext();
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
-    if (environment.getArgument("options") != null) {
-      boolean parametersAlreadySet =
-          batchContext.setParametersModifier(buildParameters(environment));
-
-      // Users should specify query options only once in the batch
-      if (parametersAlreadySet) {
-        buildException =
-            new GraphQLException(
-                "options can only de defined once in an @atomic mutation selection");
-      }
+    if (environment.getArgument("options") != null
+        && !batchContext.setParameters(buildParameters(environment))) {
+      buildException =
+          new GraphQLException("options can only de defined once in an @atomic mutation selection");
     }
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
@@ -101,7 +95,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletableFuture<Map<S
       batchContext.setExecutionResult(
           context
               .getDataStore()
-              .batch(batchContext.getQueries(), batchContext.getParametersModifier()));
+              .batch(batchContext.getQueries(), __ -> batchContext.getParameters()));
     }
 
     if (containsDirective(operation, ASYNC_DIRECTIVE)) {

@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryFetcher extends DeployedFetcher<Object> {
@@ -50,7 +49,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
     this.model = model;
   }
 
-  protected UnaryOperator<Parameters> buildParameters(DataFetchingEnvironment environment) {
+  protected Parameters buildParameters(DataFetchingEnvironment environment) {
     Optional<ByteBuffer> pagingState =
         model
             .getPagingStateArgumentName()
@@ -62,15 +61,14 @@ public class QueryFetcher extends DeployedFetcher<Object> {
     if (!pagingState.isPresent()
         && pageSize == DEFAULT_PAGE_SIZE
         && consistencyLevel == DEFAULT_CONSISTENCY) {
-      return UnaryOperator.identity();
+      return DEFAULT_PARAMETERS;
     } else {
-      return parameters ->
-          parameters
-              .toBuilder()
-              .pagingState(pagingState)
-              .pageSize(pageSize)
-              .consistencyLevel(consistencyLevel)
-              .build();
+      return DEFAULT_PARAMETERS
+          .toBuilder()
+          .pagingState(pagingState)
+          .pageSize(pageSize)
+          .consistencyLevel(consistencyLevel)
+          .build();
     }
   }
 

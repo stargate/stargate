@@ -108,8 +108,8 @@ public class BulkMutationFetcherTest extends DmlTestBase {
   }
 
   @Test
-  @DisplayName("Atomic bulk mutations with multiple batch options should fail")
-  public void mutationAtomicMultipleSelectionWithMultipleOptionsFailTest() {
+  @DisplayName("Atomic bulk mutations with different batch options should fail")
+  public void mutationAtomicMultipleSelectionWithDifferentOptionsFailTest() {
     ExecutionResult result =
         executeGraphQl(
             "mutation @atomic { "
@@ -118,7 +118,7 @@ public class BulkMutationFetcherTest extends DmlTestBase {
                 + "  options: { consistency: ALL }) { applied },"
                 + "m2: bulkInsertauthors("
                 + "  values: [{ author: \"G.O.\", title: \"1984\" }],"
-                + "  options: { consistency: ALL }) { applied }"
+                + "  options: { consistency: LOCAL_ONE }) { applied }"
                 + "}");
 
     assertThat(result.getErrors())
