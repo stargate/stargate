@@ -178,6 +178,10 @@ public class GraphqlFirstClient extends GraphqlClient {
     }
   }
 
+  public Object executeAdminQuery(String adminQuery) {
+    return getGraphqlData(authToken, adminUri, adminQuery);
+  }
+
   public Object executeKeyspaceQuery(String keyspace, String graphqlQuery) {
     return getGraphqlData(authToken, buildKeyspaceUri(keyspace), graphqlQuery);
   }
