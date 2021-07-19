@@ -46,6 +46,8 @@
 - Retry queries in grpc on PreparedQueryNotFoundException [\#1066](https://github.com/stargate/stargate/pull/1066) ([dougwettlaufer](https://github.com/dougwettlaufer))
 - closes \#1031: support parsing of the $or and $and expressions [\#1061](https://github.com/stargate/stargate/pull/1061) ([ivansenic](https://github.com/ivansenic))
 
+## [v1.0.29](https://github.com/stargate/stargate/tree/v1.0.29) (2021-06-29)
+
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.28...v1.0.29)
 
 **Fixed bugs:**
