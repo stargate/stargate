@@ -170,7 +170,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.description())
+                    .startsWith("SearchSubDocuments: sub-path 'parent'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -242,7 +243,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.description())
+                    .startsWith("SearchSubDocuments: sub-path 'parent'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -362,7 +364,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .satisfies(
               nested -> {
                 assertThat(nested.description())
-                    .isEqualTo("LoadSubDocuments: sub-path '*.reviews'");
+                    .startsWith("SearchSubDocuments: sub-path '*.reviews'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -449,7 +451,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.description())
+                    .startsWith("SearchSubDocuments: sub-path 'parent'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -520,7 +523,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.description())
+                    .startsWith("SearchSubDocuments: sub-path 'parent'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -567,7 +571,8 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description()).isEqualTo("LoadSubDocuments: sub-path 'parent'");
+                assertThat(nested.description())
+                    .startsWith("SearchSubDocuments: sub-path 'parent'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
