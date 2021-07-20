@@ -78,7 +78,7 @@ public class LWTBatchTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace))
                 .build());
 
-    // then response should contain two records (one per each failed LWT)
+    // then response should contain one record
     assertThat(response).isNotNull();
     ResultSet resultSet = response.getResultSet().getData().unpack(ResultSet.class);
     QueryOuterClass.Row row = resultSet.getRows(0);
