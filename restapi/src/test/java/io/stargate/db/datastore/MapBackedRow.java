@@ -138,4 +138,9 @@ public class MapBackedRow implements Row {
   public ProtocolVersion protocolVersion() {
     throw new UnsupportedOperationException();
   }
+
+  @Override
+  public String toString() {
+    return dataMap.toString();
+  }
 }
