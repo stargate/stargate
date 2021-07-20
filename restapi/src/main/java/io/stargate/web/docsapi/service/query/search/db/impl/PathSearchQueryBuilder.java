@@ -44,7 +44,7 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   @Override
   protected boolean allowFiltering() {
-    return true;
+    return !path.isEmpty();
   }
 
   /** {@inheritDoc} */

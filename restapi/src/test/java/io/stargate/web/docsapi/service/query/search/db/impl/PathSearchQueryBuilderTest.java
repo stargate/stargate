@@ -25,6 +25,7 @@ import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -118,6 +119,19 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
           String.format(
               "SELECT WRITETIME(leaf) FROM %s.%s WHERE p0 = 'path' AND p1 IN ('[000000]', '[000001]', '[000002]') AND p2 = 'something' ALLOW FILTERING",
               KEYSPACE_NAME, COLLECTION_NAME);
+      assertThat(query.toString()).isEqualTo(expected);
+    }
+
+    @Test
+    public void emptyPath() {
+      List<String> path = Collections.emptyList();
+
+      PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
+      BuiltQuery<? extends BoundQuery> query =
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+
+      String expected =
+          String.format("SELECT WRITETIME(leaf) FROM %s.%s", KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.toString()).isEqualTo(expected);
     }
   }

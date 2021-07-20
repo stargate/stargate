@@ -129,36 +129,55 @@ public class DocumentSearchService {
       Paginator paginator,
       ExecutionContext context) {
 
-    // if we have true immediately, means we can only do full doc fetch
-    if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
-
-      // for the sake of correctness make sure we don't have have false
-      if (Literal.getFalse().equals(expression)) {
-        return Flowable.empty();
-      }
-
-      return fullDocument(
-              queryExecutor,
-              configuration,
-              keyspace,
-              collection,
-              documentId,
-              subDocumentPath,
-              context)
-          // take one, as there can be only one document
-          .take(1);
+    // for the sake of correctness make sure we don't have have false
+    if (Literal.getFalse().equals(expression)) {
+      return Flowable.empty();
     }
 
     // create the resolver and return results
     SubDocumentsResolver subDocumentsResolver =
-        new SubDocumentsResolver(expression, documentId, subDocumentPath, context);
+        new SubDocumentsResolver(expression, documentId, subDocumentPath, context, false);
     return subDocumentsResolver
         .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+
         // limit to requested page size only to stop fetching extra docs
         .take(paginator.docPageSize);
   }
 
-  public Flowable<RawDocument> fullSearch(
+  /**
+   * Gets a single document optionally limit to the the #subDocumentPath.
+   *
+   * @param queryExecutor Query executor for running queries.
+   * @param keyspace Keyspace to search in.
+   * @param collection Collection to search in.
+   * @param documentId Document ID to search in
+   * @param subDocumentPath Path where to find the document
+   * @param context Context for recording profiling information
+   * @return Flowable of {@link RawDocument}s representing a document or sub-document in the given
+   *     #subDocumentPath.
+   */
+  public Flowable<RawDocument> getDocument(
+      QueryExecutor queryExecutor,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context) {
+
+    return fullDocument(
+            queryExecutor,
+            configuration,
+            keyspace,
+            collection,
+            documentId,
+            subDocumentPath,
+            nestedFullDocument(context))
+
+        // take one, as there can be only one document
+        .take(1);
+  }
+
+  private Flowable<RawDocument> fullSearch(
       QueryExecutor queryExecutor,
       DocsApiConfiguration configuration,
       String keyspace,
@@ -192,7 +211,7 @@ public class DocumentSearchService {
             });
   }
 
-  public Flowable<RawDocument> fullDocument(
+  private Flowable<RawDocument> fullDocument(
       QueryExecutor queryExecutor,
       DocsApiConfiguration configuration,
       String keyspace,
@@ -279,5 +298,9 @@ public class DocumentSearchService {
 
   private ExecutionContext nestedFullSearch(ExecutionContext context) {
     return context.nested("LoadAllDocuments");
+  }
+
+  private ExecutionContext nestedFullDocument(ExecutionContext context) {
+    return context.nested("GetFullDocument");
   }
 }

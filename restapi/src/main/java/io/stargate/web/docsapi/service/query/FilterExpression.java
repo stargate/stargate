@@ -199,4 +199,9 @@ public abstract class FilterExpression extends Expression<FilterExpression>
       ExprFactory<FilterExpression> exprFactory) {
     throw new UnsupportedOperationException("FilterExpression does not work with the vars.");
   }
+
+  @Override
+  public String toString() {
+    return getDescription();
+  }
 }

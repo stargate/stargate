@@ -48,7 +48,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -183,6 +182,7 @@ public class ReactiveDocumentService {
           // resolve the inputs first
           Collection<List<String>> fieldPaths = getFields(fields);
 
+          // TODO do we need another auth here or only if we actually gonna update the leafs
           // authentication for the read before searching
           AuthorizationService authorizationService = db.getAuthorizationService();
           AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
@@ -200,19 +200,14 @@ public class ReactiveDocumentService {
                   .peek(l -> l.addAll(0, subDocumentPathProcessed))
                   .collect(Collectors.toList());
 
-          // max size paginator
-          Paginator paginator = new Paginator(null, Integer.MAX_VALUE);
-
           // call the search service
           return searchService
-              .searchSubDocuments(
+              .getDocument(
                   db.getQueryExecutor(),
                   namespace,
                   collection,
                   documentId,
                   subDocumentPathProcessed,
-                  Literal.getTrue(),
-                  paginator,
                   context)
 
               // one document only
@@ -421,19 +416,11 @@ public class ReactiveDocumentService {
     return fieldPaths;
   }
 
-  // we need to check that we have no globs and transform the stuff to support array
-  // elements
+  // we need to transform the stuff to support array elements
   private List<String> processSubDocumentPath(List<String> subDocumentPath) {
+    // TODO after https://github.com/stargate/stargate/pull/1105 encode chars as well
     return subDocumentPath.stream()
-        .map(
-            path -> {
-              if (Objects.equals(path, DocumentDB.GLOB_VALUE)
-                  || Objects.equals(path, DocumentDB.GLOB_ARRAY_VALUE)) {
-                // TODO correct error message
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID);
-              }
-              return DocsApiUtils.convertArrayPath(path);
-            })
+        .map(path -> DocsApiUtils.convertArrayPath(path))
         .collect(Collectors.toList());
   }
 

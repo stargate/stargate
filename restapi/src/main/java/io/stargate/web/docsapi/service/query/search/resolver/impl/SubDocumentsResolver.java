@@ -128,6 +128,11 @@ public class SubDocumentsResolver implements DocumentsResolver {
   }
 
   private ExecutionContext createContext(ExecutionContext context, List<String> prependPath) {
-    return context.nested("LoadSubDocuments: sub-path '" + String.join(".", prependPath) + "'");
+    return context.nested(
+        "SearchSubDocuments: sub-path '"
+            + String.join(".", prependPath)
+            + "', expression: '"
+            + expression.toString()
+            + "'");
   }
 }
