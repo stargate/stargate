@@ -136,6 +136,7 @@ message QueryParameters {
   google.protobuf.Int64Value timestamp = 7;
   ConsistencyValue serial_consistency = 8;
   google.protobuf.Int32Value now_in_seconds = 9;
+  ConsistencyValue tracing_consistency = 10;
 }
 
 message TypeSpec {
@@ -199,10 +200,24 @@ message ColumnSpec {
   string name = 2;
 }
 
+message Traces {
+  message Event {
+    string activity = 1;
+    string source = 2;
+    int64 source_elapsed = 3;
+    string thread = 4;
+    string event_id = 5;
+  }
+  string id = 1;
+  int64 duration = 2;
+  int64 started_at = 3;
+  repeated Event events = 4;
+}
+
 message Response {
   Payload result_set = 1;
-  string tracing_id = 2;
   repeated string warnings = 3;
+  Traces traces = 4;
 }
 
 message Unavailable {
@@ -281,6 +296,7 @@ message BatchParameters {
   google.protobuf.Int64Value timestamp = 4;
   ConsistencyValue serial_consistency = 5;
   google.protobuf.Int32Value now_in_seconds = 6;
+  ConsistencyValue tracing_consistency = 7;
 }
 
 message Batch {

@@ -47,7 +47,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
 
     // when
     response =
@@ -59,14 +59,14 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
 
     // when
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, false)));
 
     // then
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
   }
 
   @Test
@@ -81,7 +81,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
 
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
 
     // when
     response =
@@ -93,14 +93,14 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 Values.of(2)));
     // then
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
 
     // when
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, true)));
 
     // then
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
   }
 
   @Test
@@ -120,7 +120,7 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace, false))
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isEmpty();
+    assertThat(response.getTraces().getId()).isEmpty();
   }
 
   @Test
@@ -140,6 +140,79 @@ public class TracingQueryTest extends GrpcIntegrationTest {
                 .setParameters(batchParameters(keyspace, true))
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTracingId()).isNotEmpty();
+    assertThat(response.getTraces()).isNotNull();
+  }
+
+  @Test
+  public void tracingIdNormalQueryEnabledGetTracingData(@TestKeyspace CqlIdentifier keyspace) {
+    // given
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // when
+    Response response =
+        stub.executeQuery(
+            cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace, true)));
+
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.getTraces()).isNotNull();
+    validateTrace(response);
+
+    // when
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES (?, ?)",
+                queryParameters(keyspace, true),
+                Values.of("b"),
+                Values.of(2)));
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.getTraces()).isNotNull();
+    validateTrace(response);
+
+    // when
+    response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace, true)));
+
+    // then
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getTraces()).isNotNull();
+    validateTrace(response);
+  }
+
+  @Test
+  public void tracingIdBatchQueryEnabledGetTracingData(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    Response response =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+                .setParameters(batchParameters(keyspace, true))
+                .build());
+    assertThat(response).isNotNull();
+    assertThat(response.getTraces()).isNotNull();
+    validateTrace(response);
+  }
+
+  private void validateTrace(Response response) {
+    QueryOuterClass.Traces traces = response.getTraces();
+    assertThat(traces.getDuration()).isGreaterThan(0);
+    assertThat(traces.getStartedAt()).isGreaterThan(0);
+    assertThat(traces.getId()).isNotNull();
+
+    assertThat(traces.getEventsList()).isNotEmpty();
+    QueryOuterClass.Traces.Event event = traces.getEvents(0);
+
+    assertThat(event.getActivity()).isNotEmpty();
+    assertThat(event.getSourceElapsed()).isGreaterThan(0);
+    assertThat(event.getThread()).isNotEmpty();
+    assertThat(event.getSource()).isNotEmpty();
   }
 }

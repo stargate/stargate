@@ -35,12 +35,15 @@ import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result;
 import io.stargate.db.Result.Kind;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.Statement;
+import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
+import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -65,6 +68,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
@@ -78,12 +83,14 @@ import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.NotNull;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
+  public static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
   public static Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -440,78 +447,134 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       connection
           .execute(
               bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
+          .handle(
+              handleQuery(
+                  query,
+                  responseObserver,
+                  handler,
+                  connection,
+                  prepareInfo,
+                  parameters.getTracing()))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  if (t instanceof PreparedQueryNotFoundException) {
-                    prepareQuery(connection, prepareInfo, parameters.getTracing(), true)
-                        .whenComplete(
-                            (p, t1) -> {
-                              if (t1 != null) {
-                                handleException(t1, responseObserver);
-                              } else {
-                                executePrepared(
-                                    connection, p, query, responseObserver, prepareInfo);
-                              }
-                            });
-                  } else {
-                    handleException(t, responseObserver);
-                  }
-                } else {
-                  try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    switch (result.kind) {
-                      case Void:
-                        // fill tracing id for queries that doesn't return any data (i.e. INSERT)
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SchemaChange:
-                        break;
-                      case Rows:
-                        responseBuilder.setResultSet(
-                            Payload.newBuilder()
-                                .setType(query.getValues().getType())
-                                .setData(
-                                    handler.processResult((Rows) result, query.getParameters())));
-                        handleTraceId(
-                            result.getTracingId(), query.getParameters(), responseBuilder);
-                        break;
-                      case SetKeyspace:
-                        throw Status.INVALID_ARGUMENT
-                            .withDescription("USE <keyspace> not supported")
-                            .asException();
-                      default:
-                        throw Status.INTERNAL
-                            .withDescription("Unhandled result kind")
-                            .asException();
-                    }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
   }
 
-  private void handleTraceId(
-      UUID tracingId, QueryParameters parameters, Response.Builder responseBuilder) {
-    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+  @NotNull
+  private BiConsumer<ResponseAndTraceId, Throwable> executeTracingQueryIfNeeded(
+      Connection connection,
+      StreamObserver<Response> responseObserver,
+      boolean tracingEnabled,
+      ConsistencyLevel consistencyLevel) {
+    return (responseAndTraceId, t) -> {
+      if (t != null) {
+        handleException(t, responseObserver);
+      } else if (!tracingEnabled || responseAndTraceId.tracingIdIsEmpty()) {
+        // tracing is not enabled or not present, fill the response observer immediately
+        Response response = responseAndTraceId.responseBuilder.build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+      } else {
+        try {
+          new QueryTracingFetcher(responseAndTraceId.tracingId, connection, consistencyLevel)
+              .fetch()
+              .whenComplete(
+                  (traces, throwable) -> {
+                    if (throwable != null) {
+                      handleException(throwable, responseObserver);
+                    } else {
+                      responseAndTraceId.responseBuilder.setTraces(
+                          TraceEventsMapper.toTraceEvents(
+                              traces, responseAndTraceId.responseBuilder.getTraces().getId()));
+                      responseObserver.onNext(responseAndTraceId.responseBuilder.build());
+                      responseObserver.onCompleted();
+                    }
+                  });
+        } catch (Throwable throwable) {
+          handleException(throwable, responseObserver);
+        }
+      }
+    };
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, ResponseAndTraceId> handleQuery(
+      Query query,
+      StreamObserver<Response> responseObserver,
+      PayloadHandler handler,
+      Connection connection,
+      PrepareInfo prepareInfo,
+      boolean tracingEnabled) {
+    return (result, t) -> {
+      if (t != null) {
+        if (t instanceof PreparedQueryNotFoundException) {
+          prepareQuery(connection, prepareInfo, tracingEnabled, true)
+              .whenComplete(
+                  (p, t1) -> {
+                    if (t1 != null) {
+                      handleException(t1, responseObserver);
+                    } else {
+                      executePrepared(connection, p, query, responseObserver, prepareInfo);
+                    }
+                  });
+        } else {
+          handleException(t, responseObserver);
+        }
+      } else {
+        try {
+          ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          switch (result.kind) {
+            case Void:
+              // fill tracing id for queries that doesn't return any data (i.e. INSERT)
+              handleTraceId(result.getTracingId(), query.getParameters(), responseAndTraceId);
+              break;
+            case SchemaChange:
+              break;
+            case Rows:
+              responseBuilder.setResultSet(
+                  Payload.newBuilder()
+                      .setType(query.getValues().getType())
+                      .setData(handler.processResult((Rows) result, query.getParameters())));
+              handleTraceId(result.getTracingId(), query.getParameters(), responseAndTraceId);
+              break;
+            case SetKeyspace:
+              throw Status.INVALID_ARGUMENT
+                  .withDescription("USE <keyspace> not supported")
+                  .asException();
+            default:
+              throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          responseAndTraceId.setResponseBuilder(responseBuilder);
+          return responseAndTraceId;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return new ResponseAndTraceId(makeResponseBuilder(result));
+    };
   }
 
   private void handleTraceId(
-      UUID tracingId, BatchParameters parameters, Response.Builder responseBuilder) {
-    handleTraceId(tracingId, parameters.getTracing(), responseBuilder);
+      UUID tracingId, QueryParameters parameters, ResponseAndTraceId responseAndTraceId) {
+    handleTraceId(tracingId, parameters.getTracing(), responseAndTraceId);
   }
 
   private void handleTraceId(
-      UUID tracingId, boolean tracingEnabled, Response.Builder responseBuilder) {
+      UUID tracingId, BatchParameters parameters, ResponseAndTraceId responseAndTraceId) {
+    handleTraceId(tracingId, parameters.getTracing(), responseAndTraceId);
+  }
+
+  private void handleTraceId(
+      UUID tracingId, boolean tracingEnabled, ResponseAndTraceId responseAndTraceId) {
     if (tracingEnabled && tracingId != null) {
-      responseBuilder.setTracingId(tracingId.toString());
+      responseAndTraceId.setTracingId(tracingId);
     }
   }
 
@@ -526,40 +589,72 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
+          .handle(handleBatchQuery(parameters, responseObserver, connection, batch))
           .whenComplete(
-              (result, t) -> {
-                if (t != null) {
-                  if (t instanceof PreparedQueryNotFoundException) {
-                    new BatchPreparer(connection, batch)
-                        .prepareForRetry()
-                        .whenComplete(
-                            (p, t1) -> {
-                              if (t1 != null) {
-                                handleException(t1, responseObserver);
-                              } else {
-                                executeBatch(connection, p, batch, responseObserver);
-                              }
-                            });
-                  } else {
-                    handleException(t, responseObserver);
-                  }
-                } else {
-                  try {
-                    Response.Builder responseBuilder = makeResponseBuilder(result);
-                    handleTraceId(result.getTracingId(), parameters, responseBuilder);
-                    if (result.kind != Kind.Void) {
-                      throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
-                    }
-                    responseObserver.onNext(responseBuilder.build());
-                    responseObserver.onCompleted();
-                  } catch (Throwable th) {
-                    handleException(th, responseObserver);
-                  }
-                }
-              });
+              executeTracingQueryIfNeeded(
+                  connection,
+                  responseObserver,
+                  parameters.getTracing(),
+                  getTracingConsistency(parameters)));
     } catch (Throwable t) {
       handleException(t, responseObserver);
     }
+  }
+
+  private ConsistencyLevel getTracingConsistency(QueryParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
+    }
+  }
+
+  private ConsistencyLevel getTracingConsistency(BatchParameters parameters) {
+    if (parameters.hasTracingConsistency()) {
+      return ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber());
+    } else {
+      return DEFAULT_TRACING_CONSISTENCY;
+    }
+  }
+
+  @NotNull
+  private BiFunction<Result, Throwable, ResponseAndTraceId> handleBatchQuery(
+      BatchParameters parameters,
+      StreamObserver<Response> responseObserver,
+      Connection connection,
+      Batch batch) {
+    return (result, t) -> {
+      if (t != null) {
+        if (t instanceof PreparedQueryNotFoundException) {
+          new BatchPreparer(connection, batch)
+              .prepareForRetry()
+              .whenComplete(
+                  (p, t1) -> {
+                    if (t1 != null) {
+                      handleException(t1, responseObserver);
+                    } else {
+                      executeBatch(connection, p, batch, responseObserver);
+                    }
+                  });
+        } else {
+          handleException(t, responseObserver);
+        }
+      } else {
+        try {
+          ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
+          Response.Builder responseBuilder = makeResponseBuilder(result);
+          handleTraceId(result.getTracingId(), parameters, responseAndTraceId);
+          if (result.kind != Kind.Void) {
+            throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
+          }
+          responseAndTraceId.setResponseBuilder(responseBuilder);
+          return responseAndTraceId;
+        } catch (Throwable th) {
+          handleException(th, responseObserver);
+        }
+      }
+      return new ResponseAndTraceId(makeResponseBuilder(result));
+    };
   }
 
   private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
@@ -739,6 +834,30 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
                   }
                 }
               });
+    }
+  }
+
+  private static class ResponseAndTraceId {
+
+    @Nullable private UUID tracingId;
+    private Response.Builder responseBuilder;
+
+    public ResponseAndTraceId() {}
+
+    public ResponseAndTraceId(Response.Builder responseBuilder) {
+      this.responseBuilder = responseBuilder;
+    }
+
+    public void setTracingId(UUID tracingId) {
+      this.tracingId = tracingId;
+    }
+
+    public void setResponseBuilder(Response.Builder responseBuilder) {
+      this.responseBuilder = responseBuilder;
+    }
+
+    public boolean tracingIdIsEmpty() {
+      return tracingId == null || tracingId.toString().isEmpty();
     }
   }
 }
