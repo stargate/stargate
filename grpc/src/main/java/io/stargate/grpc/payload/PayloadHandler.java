@@ -47,4 +47,6 @@ public interface PayloadHandler {
    * @throws Exception
    */
   Any processResult(Rows rows, QueryParameters parameters) throws Exception;
+
+  Any processResult(Rows rows, boolean skipMetadata) throws Exception;
 }

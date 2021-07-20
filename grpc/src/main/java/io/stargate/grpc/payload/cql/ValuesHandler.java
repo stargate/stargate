@@ -126,12 +126,17 @@ public class ValuesHandler implements PayloadHandler {
 
   @Override
   public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
+    return processResult(rows, parameters.getSkipMetadata());
+  }
+
+  @Override
+  public Any processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 
-    if (!parameters.getSkipMetadata()) {
+    if (!skipMetadata) {
       for (Column column : columns) {
         resultSetBuilder.addColumns(
             ColumnSpec.newBuilder()
