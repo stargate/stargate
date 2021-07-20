@@ -1533,7 +1533,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             collectionPath
-                + "/cool-search-id?where={\"quiz.nests.q2.options.[*].this.that.them\": {\"$eq\": false}}&raw=true",
+                + "/cool-search-id?where={\"quiz.nests.q2.options.*.this.that.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q2\":{\"options\":{\"[3]\":{\"this\":{\"that\":{\"them\":false}}}}}}}}]";
@@ -1558,7 +1558,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             collectionPath
-                + "/cool-search-id?where={\"quiz.nests.q2,q3.options.[*].this.them\": {\"$eq\": false}}&raw=true",
+                + "/cool-search-id?where={\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}&raw=true",
             200);
     searchResultStr =
         "[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]";
