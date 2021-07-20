@@ -131,7 +131,7 @@ public class DocumentService {
                 if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "Array paths contained in square brackets and periods are not allowed in field names, invalid field %s.",
+                          "Array paths contained in square brackets, periods, and single quotes are not allowed in field names, invalid field %s. Hint: Use unicode escape sequences to encode these characters.",
                           fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
@@ -163,7 +163,8 @@ public class DocumentService {
                     if (pv.equals("$")) continue;
 
                     // pv always starts with a square brace because of the above conversion
-                    String innerPath = pv.substring(1, pv.length() - 1);
+                    String innerPath =
+                        DocsApiUtils.convertUnicodeCodePoints(pv.substring(1, pv.length() - 1));
                     boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
                     if (isArrayElement) {
                       if (i == path.size() && patching) {

@@ -312,14 +312,21 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Array paths contained in square brackets and periods are not allowed in field names, invalid field bracketedarraypaths[100].\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, and single quotes are not allowed in field names, invalid field bracketedarraypaths[100]. Hint: Use unicode escape sequences to encode these characters.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("{ \"periods.something\": \"are not allowed\" }");
 
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Array paths contained in square brackets and periods are not allowed in field names, invalid field periods.something.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, and single quotes are not allowed in field names, invalid field periods.something. Hint: Use unicode escape sequences to encode these characters.\",\"code\":400}");
+
+    obj = OBJECT_MAPPER.readTree("{ \"single'quotes\": \"are not allowed\" }");
+
+    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"Array paths contained in square brackets, periods, and single quotes are not allowed in field names, invalid field single'quotes. Hint: Use unicode escape sequences to encode these characters.\",\"code\":400}");
   }
 
   @Test
@@ -339,10 +346,14 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(OBJECT_MAPPER.readTree("{\"periods.\": \"are allowed if escaped\" }"));
 
-    obj = OBJECT_MAPPER.readTree("{ \"'qu''otes'\": { \"are'\": \"allowed\" }}");
+    obj =
+        OBJECT_MAPPER.readTree(
+            "{ \"\\\\u0027qu\\\\u0027\\\\u0027otes\\\\u0027\": { \"are\\\\u0027\": \"allowed if escaped\" }}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
-    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
+    assertThat(OBJECT_MAPPER.readTree(resp))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree("{\"'qu''otes'\": { \"are'\": \"allowed if escaped\" }}"));
 
     obj = OBJECT_MAPPER.readTree("{ \"*aste*risks*\": \"are allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
