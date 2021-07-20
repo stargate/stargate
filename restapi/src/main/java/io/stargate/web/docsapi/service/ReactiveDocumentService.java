@@ -182,7 +182,8 @@ public class ReactiveDocumentService {
           // resolve the inputs first
           Collection<List<String>> fieldPaths = getFields(fields);
 
-          // TODO do we need another auth here or only if we actually gonna update the leafs
+          // TODO do we need another auth here or only if we actually gonna update the dead leaf
+
           // authentication for the read before searching
           AuthorizationService authorizationService = db.getAuthorizationService();
           AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
@@ -379,7 +380,7 @@ public class ReactiveDocumentService {
                   rawDocuments -> {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
-                    // NOTE: Search writes all paths as
+                    // NOTE: Search writes all paths as objects
                     ArrayNode docsResult = createJsonArray(db, rawDocuments, fieldPathsFinal, true);
                     return new DocumentResponseWrapper<JsonNode>(
                         documentId, state, docsResult, context.toProfile());
