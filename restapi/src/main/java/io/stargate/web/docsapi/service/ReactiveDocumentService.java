@@ -307,11 +307,6 @@ public class ReactiveDocumentService {
                   .distinct()
                   .collect(Collectors.toList());
 
-          // search expects one filter path
-          if (filterPaths.isEmpty()) {
-            throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
-          }
-
           // only single filter path
           if (filterPaths.size() > 1) {
             String msg =
@@ -322,9 +317,9 @@ public class ReactiveDocumentService {
                 ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
           }
 
-          FilterPath filterPath = filterPaths.get(0);
+          FilterPath filterPath = filterPaths.isEmpty() ? null : filterPaths.get(0);
           // field of condition must be referenced in the fields (if they exist)
-          if (!fieldPaths.isEmpty()) {
+          if (!fieldPaths.isEmpty() && filterPath != null) {
             if (!fieldPaths.contains(Collections.singletonList(filterPath.getField()))) {
               throw new ErrorCodeRuntimeException(
                   ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
@@ -342,22 +337,39 @@ public class ReactiveDocumentService {
           List<String> subDocumentPathProcessed = processSubDocumentPath(subDocumentPath);
 
           // yet another backward compatibility fix
-          // fields are relative to that single filter parent path
-          // but if there is not fields, then only the filter path
-          // TODO do we wanna break this filter field only
-          Collection<List<String>> fieldPathsFinal =
-              Optional.of(fieldPaths)
-                  .filter(fp -> !fp.isEmpty())
-                  .map(
-                      fp ->
-                          fp.stream()
-                              .peek(l -> l.addAll(0, filterPath.getParentPath()))
-                              .collect(Collectors.toList()))
-                  .orElse(Collections.singletonList(filterPath.getPath()));
+          // fields are relative to that single filter parent path if it exists
+          // otherwise to the path prefix
+          Collection<List<String>> fullFieldPaths;
 
-          // final search sub-path is combo of the given one and the filter parent path
+          // final search sub-path is combo of the given one and the filter parent path if exists
           List<String> searchPath = new ArrayList<>(subDocumentPathProcessed);
-          searchPath.addAll(filterPath.getParentPath());
+
+          // execute two different cases
+          if (null != filterPath) {
+            searchPath.addAll(filterPath.getParentPath());
+
+            fullFieldPaths =
+                Optional.of(fieldPaths)
+                    .filter(fp -> !fp.isEmpty())
+                    .map(
+                        fp ->
+                            fp.stream()
+                                .peek(l -> l.addAll(0, filterPath.getParentPath()))
+                                .collect(Collectors.toList()))
+                    .orElse(Collections.singletonList(filterPath.getPath()));
+
+          } else {
+            fullFieldPaths =
+                Optional.of(fieldPaths)
+                    .filter(fp -> !fp.isEmpty())
+                    .map(
+                        fp ->
+                            fp.stream()
+                                .peek(l -> l.addAll(0, subDocumentPathProcessed))
+                                .collect(Collectors.toList()))
+                    .orElse(Collections.singletonList(subDocumentPathProcessed));
+          }
+          Collection<List<String>> fullFieldPathsFinal = fullFieldPaths;
 
           // call the search service
           return searchService
@@ -381,7 +393,8 @@ public class ReactiveDocumentService {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
                     // NOTE: Search writes all paths as objects
-                    ArrayNode docsResult = createJsonArray(db, rawDocuments, fieldPathsFinal, true);
+                    ArrayNode docsResult =
+                        createJsonArray(db, rawDocuments, fullFieldPathsFinal, true);
                     return new DocumentResponseWrapper<JsonNode>(
                         documentId, state, docsResult, context.toProfile());
                   });

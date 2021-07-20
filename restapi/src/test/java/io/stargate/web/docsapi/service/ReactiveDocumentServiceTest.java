@@ -551,6 +551,70 @@ class ReactiveDocumentServiceTest {
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
     }
 
+      @Test
+      public void happyPathWithPrePathOnly() throws Exception {
+          String documentId = RandomStringUtils.randomAlphanumeric(16);
+          ObjectNode documentNode = objectMapper.createObjectNode().put("x", 1);
+          ExecutionContext context = ExecutionContext.create(true);
+          Paginator paginator = new Paginator(null, 1);
+          String namespace = RandomStringUtils.randomAlphanumeric(16);
+          String collection = RandomStringUtils.randomAlphanumeric(16);
+          String fields = "[\"myField\"]";
+          byte[] pageState = RandomUtils.nextBytes(64);
+          Flowable<RawDocument> docs = Flowable.just(rawDocument);
+          List<String> prePath = Collections.singletonList("prePath");
+          when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+          when(searchService.searchSubDocuments(
+                  queryExecutor,
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.singletonList("prePath"),
+                  Literal.getTrue(),
+                  paginator,
+                  context))
+                  .thenReturn(docs);
+          doReturn(documentNode)
+                  .when(jsonConverter)
+                  .convertToJsonDoc(
+                          eq(Collections.singletonList(row)),
+                          eq(ImmutableDeadLeafCollector.of()),
+                          eq(true),
+                          anyBoolean());
+          when(row.getString("p0")).thenReturn("prePath");
+          when(row.getString("p1")).thenReturn("myField");
+          when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
+          when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
+
+          Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+                  reactiveDocumentService.findSubDocuments(
+                          documentDB,
+                          namespace,
+                          collection,
+                          documentId,
+                          prePath,
+                          null,
+                          fields,
+                          paginator,
+                          context);
+
+          result
+                  .test()
+                  .assertValue(
+                          wrapper -> {
+                              assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
+                              assertThat(wrapper.getData()).hasSize(1);
+                              assertThat(wrapper.getData().iterator().next()).isEqualTo(documentNode);
+                              assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+                              assertThat(ByteBufferUtils.fromBase64UrlParam(wrapper.getPageState()).array())
+                                      .isEqualTo(pageState);
+                              return true;
+                          })
+                  .assertComplete();
+
+          verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      }
+
     @Test
     public void happyPathWithPreAndParentPath() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -742,40 +806,6 @@ class ReactiveDocumentServiceTest {
                     .isInstanceOf(ErrorCodeRuntimeException.class)
                     .hasFieldOrPropertyWithValue(
                         "errorCode", ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS);
-                return true;
-              });
-
-      verifyNoInteractions(searchService, authService);
-    }
-
-    @Test
-    public void noFilters() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
-      ExecutionContext context = ExecutionContext.create(true);
-      Paginator paginator = new Paginator(null, 1);
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-
-      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
-          reactiveDocumentService.findSubDocuments(
-              documentDB,
-              namespace,
-              collection,
-              documentId,
-              Collections.emptyList(),
-              null,
-              null,
-              paginator,
-              context);
-
-      result
-          .test()
-          .assertError(
-              e -> {
-                assertThat(e)
-                    .isInstanceOf(ErrorCodeRuntimeException.class)
-                    .hasFieldOrPropertyWithValue(
-                        "errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
                 return true;
               });
 
