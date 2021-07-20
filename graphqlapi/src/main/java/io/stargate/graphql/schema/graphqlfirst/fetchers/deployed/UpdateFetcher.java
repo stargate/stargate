@@ -33,14 +33,10 @@ import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.IncrementModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.EntityField;
 import io.stargate.graphql.schema.graphqlfirst.processor.UpdateModel;
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -103,7 +99,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResul
     authorizeUpdate(entityModel, primaryKey, context);
 
     Function<List<MutationResult>, DataFetcherResult<Object>> resultBuilder =
-        getResultBuilder(selectionSet, environment);
+        getDeleteOrUpdateResultBuilder(environment);
 
     return new MutationPayload<>(query, primaryKey, resultBuilder);
   }
@@ -195,51 +191,5 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResul
             primaryKey,
             Scope.MODIFY,
             SourceAPI.GRAPHQL);
-  }
-
-  private Function<List<MutationResult>, DataFetcherResult<Object>> getResultBuilder(
-      DataFetchingFieldSelectionSet selectionSet, DataFetchingEnvironment environment) {
-    return queryResults -> {
-      DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
-      assert queryResults.size() == 1;
-      MutationResult queryResult = queryResults.get(0);
-      if (queryResult instanceof MutationResult.Failure) {
-        result.error(
-            toGraphqlError(
-                (MutationResult.Failure) queryResult,
-                getCurrentFieldLocation(environment),
-                environment));
-      } else {
-        boolean applied = queryResult instanceof MutationResult.Applied;
-        boolean responseContainsEntity =
-            model.getResponsePayload().flatMap(ResponsePayloadModel::getEntityField).isPresent();
-        Map<String, Object> entityData = responseContainsEntity ? new LinkedHashMap<>() : null;
-        if (responseContainsEntity && queryResult instanceof MutationResult.NotApplied) {
-          ((MutationResult.NotApplied) queryResult)
-              .getRow()
-              .ifPresent(row -> copyRowToEntity(row, entityData, model.getEntity()));
-        }
-
-        if (model.getReturnType() == SimpleReturnType.BOOLEAN) {
-          result.data(applied);
-        } else {
-          Map<String, Object> response = new LinkedHashMap<>();
-          if (selectionSet.contains(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName())) {
-            response.put(ResponsePayloadModel.TechnicalField.APPLIED.getGraphqlName(), applied);
-          }
-          if (responseContainsEntity) {
-            String prefix =
-                model
-                    .getResponsePayload()
-                    .flatMap(ResponsePayloadModel::getEntityField)
-                    .map(EntityField::getName)
-                    .orElseThrow(AssertionError::new);
-            response.put(prefix, entityData);
-          }
-          result.data(response);
-        }
-      }
-      return result.build();
-    };
   }
 }

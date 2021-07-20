@@ -24,11 +24,9 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class DeleteModel extends MutationModel {
 
-  private final EntityModel entity;
   private final Optional<String> entityArgumentName;
   private final List<ConditionModel> whereConditions;
   private final List<ConditionModel> ifConditions;
-  private final ReturnType returnType;
   private final boolean ifExists;
 
   DeleteModel(
@@ -42,17 +40,11 @@ public class DeleteModel extends MutationModel {
       boolean ifExists,
       Optional<ConsistencyLevel> consistencyLevel,
       Optional<ConsistencyLevel> serialConsistencyLevel) {
-    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
-    this.entity = entity;
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
     this.entityArgumentName = entityArgumentName;
     this.whereConditions = whereConditions;
     this.ifConditions = ifConditions;
-    this.returnType = returnType;
     this.ifExists = ifExists;
-  }
-
-  public EntityModel getEntity() {
-    return entity;
   }
 
   /**
@@ -73,10 +65,6 @@ public class DeleteModel extends MutationModel {
 
   public List<ConditionModel> getIfConditions() {
     return ifConditions;
-  }
-
-  public ReturnType getReturnType() {
-    return returnType;
   }
 
   public boolean ifExists() {

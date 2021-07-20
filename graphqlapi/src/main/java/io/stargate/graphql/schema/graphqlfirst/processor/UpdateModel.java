@@ -24,11 +24,9 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class UpdateModel extends MutationModel {
 
-  private final EntityModel entity;
   private final List<ConditionModel> whereConditions;
   private final List<ConditionModel> ifConditions;
   private final Optional<String> entityArgumentName;
-  private final ReturnType returnType;
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifExists;
   private final List<IncrementModel> incrementModels;
@@ -50,21 +48,15 @@ public class UpdateModel extends MutationModel {
       Optional<ConsistencyLevel> serialConsistencyLevel,
       Optional<Integer> ttl,
       Optional<String> cqlTimestampArgumentName) {
-    super(parentTypeName, field, consistencyLevel, serialConsistencyLevel);
-    this.entity = entity;
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
     this.whereConditions = whereConditions;
     this.ifConditions = ifConditions;
     this.entityArgumentName = entityArgumentName;
-    this.returnType = returnType;
     this.responsePayload = responsePayload;
     this.ifExists = ifExists;
     this.incrementModels = incrementModels;
     this.ttl = ttl;
     this.cqlTimestampArgumentName = cqlTimestampArgumentName;
-  }
-
-  public EntityModel getEntity() {
-    return entity;
   }
 
   public List<ConditionModel> getWhereConditions() {
@@ -81,10 +73,6 @@ public class UpdateModel extends MutationModel {
 
   public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
-  }
-
-  public ReturnType getReturnType() {
-    return returnType;
   }
 
   public Optional<ResponsePayloadModel> getResponsePayload() {
