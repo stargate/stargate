@@ -232,15 +232,12 @@ public final class DocsApiUtils {
         return false;
       }
 
-      // skip any target path that is wildcard
+      // skip any target path that is a wildcard
       if (Objects.equals(target, DocumentDB.GLOB_VALUE)) {
-        // but make sure this is not an array
-        if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
-          return false;
-        }
         continue;
       }
 
+      // skip any target path that is an array wildcard
       if (Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
         // but make sure this is not an normal field
         if (!ARRAY_PATH_PATTERN.matcher(path).matches()) {
