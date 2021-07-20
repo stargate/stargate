@@ -19,10 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.db.BatchType;
 import io.stargate.db.Parameters;
-import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
-import io.stargate.db.query.QueryType;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Schema;
@@ -32,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,10 +43,11 @@ import org.assertj.core.api.AbstractIntegerAssert;
 import org.assertj.core.api.Assertions;
 
 public class ValidatingDataStore implements DataStore {
+
   private final Schema schema;
+  private final AtomicInteger preparedIdSeq = new AtomicInteger();
   private final List<QueryExpectation> expectedQueries = new ArrayList<>();
-  private final List<Prepared<?>> prepared = new ArrayList<>();
-  private final List<ExpectedExecution> expectedExecutions = new ArrayList<>();
+  private final Map<MD5Digest, Prepared> prepared = new HashMap<>();
 
   public ValidatingDataStore(Schema schema) {
     this.schema = schema;
@@ -55,7 +55,6 @@ public class ValidatingDataStore implements DataStore {
 
   public void reset() {
     prepared.clear();
-    expectedExecutions.clear();
     expectedQueries.clear();
   }
 
@@ -64,8 +63,8 @@ public class ValidatingDataStore implements DataStore {
   }
 
   public void validate() {
-    prepared.forEach(Prepared::validate);
-    expectedExecutions.forEach(ExpectedExecution::validate);
+    prepared.values().forEach(Prepared::validate);
+    expectedQueries.forEach(QueryExpectation::validate);
   }
 
   @Override
@@ -88,32 +87,52 @@ public class ValidatingDataStore implements DataStore {
     return false;
   }
 
-  @Override
-  public <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query) {
+  private MD5Digest nextQueryId() {
+    ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+    buffer.putInt(preparedIdSeq.incrementAndGet());
+    return MD5Digest.wrap(buffer.array());
+  }
+
+  private <B extends BoundQuery> MD5Digest prepareInternal(Query<B> query) {
     String queryString = query.queryStringForPreparation();
     expectedQueries.stream()
         .filter(qe -> qe.matches(queryString))
         .findAny()
         .orElseGet(() -> Assertions.fail("Unexpected query: " + queryString));
 
-    Prepared<B> p = new Prepared<>(query);
-    prepared.add(p);
-    return CompletableFuture.completedFuture(p);
+    // Generate unique IDs for each `prepare` call to validate that all prepared statements get
+    // executed.
+    MD5Digest preparedId = nextQueryId();
+
+    prepared.put(preparedId, new Prepared(queryString));
+    return preparedId;
+  }
+
+  @Override
+  public <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query) {
+    MD5Digest preparedId = prepareInternal(query);
+
+    return CompletableFuture.completedFuture(query.withPreparedId(preparedId));
   }
 
   @Override
   public CompletableFuture<ResultSet> execute(
       BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
-    ExpectedExecution execution;
-    if (query instanceof ExpectedExecution) {
-      execution = (ExpectedExecution) query;
-    } else {
-      Prepared<?> prepared = (Prepared<?>) prepare(query.source().query()).join();
-      execution = (ExpectedExecution) prepared.bindValues(query.values());
-    }
+    MD5Digest preparedId =
+        query
+            .source()
+            .query()
+            .preparedId()
+            .orElseGet(() -> prepareInternal(query.source().query()));
+
+    Prepared prepared =
+        this.prepared.computeIfAbsent(
+            preparedId, d -> Assertions.fail("Unknown prepared ID: " + d));
+
+    QueryExpectation expectation = prepared.bindValues(query.values());
 
     Parameters parameters = parametersModifier.apply(Parameters.defaults());
-    return execution.execute(parameters);
+    return expectation.execute(parameters);
   }
 
   @Override
@@ -173,44 +192,15 @@ public class ValidatingDataStore implements DataStore {
     return add(new QueryExpectation(table, regex));
   }
 
-  private class Prepared<B extends BoundQuery> implements Query<B> {
+  private class Prepared {
     private final String actualCql;
-    private final Query<B> query;
     private boolean bound;
-    private BoundQuery.Source<Query<B>> source;
 
-    private Prepared(Query<B> query) {
-      this.actualCql = query.queryStringForPreparation();
-      this.query = query;
+    private Prepared(String actualCql) {
+      this.actualCql = actualCql;
     }
 
-    @Override
-    public Codec valueCodec() {
-      return Codec.testCodec();
-    }
-
-    @Override
-    public List<BindMarker> bindMarkers() {
-      return query.bindMarkers();
-    }
-
-    @Override
-    public Optional<MD5Digest> preparedId() {
-      return Optional.empty();
-    }
-
-    @Override
-    public Query<B> withPreparedId(MD5Digest preparedId) {
-      return this;
-    }
-
-    @Override
-    public String queryStringForPreparation() {
-      return actualCql;
-    }
-
-    @Override
-    public B bindValues(List<TypedValue> values) {
+    public QueryExpectation bindValues(List<TypedValue> values) {
       QueryExpectation expectation =
           expectedQueries.stream()
               .filter(qe -> qe.matches(actualCql, values))
@@ -220,22 +210,19 @@ public class ValidatingDataStore implements DataStore {
                       Assertions.fail(
                           "Unexpected query: " + actualCql + " with params: " + values));
 
-      ExpectedExecution exec = new ExpectedExecution(this, expectation);
-      expectedExecutions.add(exec);
       bound = true;
-      this.source = new BoundQuery.Source<>(query, values);
-      //noinspection unchecked
-      return (B) exec;
+      return expectation;
     }
 
     public void validate() {
       if (!bound) {
-        Assertions.fail("The following query was prepared but never bound: " + actualCql);
+        Assertions.fail("The following query was prepared but never executed: " + actualCql);
       }
     }
   }
 
   public abstract static class QueryAssert {
+
     private final AtomicInteger executeCount = new AtomicInteger();
 
     public AbstractIntegerAssert<?> assertExecuteCount() {
@@ -292,63 +279,31 @@ public class ValidatingDataStore implements DataStore {
     private boolean matches(String cql, List<TypedValue> values) {
       return matches(cql) && (params == null || Arrays.equals(params, values(values)));
     }
-  }
-
-  private class ExpectedExecution implements BoundQuery {
-
-    private final Prepared<?> query;
-    private final QueryExpectation expectation;
-    private boolean executed;
-
-    public ExpectedExecution(Prepared<?> query, QueryExpectation expectation) {
-      this.query = query;
-      this.expectation = expectation;
-    }
-
-    private void validate() {
-      if (!executed) {
-        Assertions.fail(
-            "The following query was prepared but not executed: "
-                + query.actualCql
-                + ", params: "
-                + Arrays.toString(expectation.params));
-      }
-    }
 
     private CompletableFuture<ResultSet> execute(Parameters parameters) {
-      executed = true;
-
       Optional<ByteBuffer> pagingState = parameters.pagingState();
       int pageSize;
-      if (expectation.pageSize < Integer.MAX_VALUE) {
-        pageSize = expectation.pageSize;
+      if (this.pageSize < Integer.MAX_VALUE) {
+        pageSize = this.pageSize;
         assertThat(parameters.pageSize()).hasValue(pageSize);
       } else {
-        pageSize = parameters.pageSize().orElse(expectation.pageSize);
+        pageSize = parameters.pageSize().orElse(this.pageSize);
       }
 
       ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
 
-      expectation.executed();
-      return CompletableFuture.completedFuture(
-          ListBackedResultSet.of(expectation.table, expectation.rows, paginator));
-      //      return CompletableFuture.supplyAsync(
-      //          () -> ListBackedResultSet.of(expectation.table, expectation.rows, paginator));
+      executed();
+      return CompletableFuture.completedFuture(ListBackedResultSet.of(table, rows, paginator));
     }
 
-    @Override
-    public QueryType type() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Source<?> source() {
-      return query.source;
-    }
-
-    @Override
-    public List<TypedValue> values() {
-      throw new UnsupportedOperationException();
+    private void validate() {
+      assertExecuteCount()
+          .withFailMessage(
+              "No queries were executed for this expected pattern: "
+                  + cqlPattern
+                  + ", params: "
+                  + Arrays.toString(params))
+          .isGreaterThanOrEqualTo(1);
     }
   }
 }

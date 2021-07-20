@@ -85,7 +85,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -219,7 +219,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -322,7 +322,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returningNothing();
 
@@ -374,7 +374,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
                 assertThat(c.queries()).isEmpty();
               });
 
-      ignorePreparedExecutions();
+      resetExpectations();
     }
 
     @Test
