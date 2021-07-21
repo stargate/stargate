@@ -216,8 +216,8 @@ message Traces {
 
 message Response {
   Payload result_set = 1;
-  repeated string warnings = 3;
-  Traces traces = 4;
+  repeated string warnings = 2;
+  Traces traces = 3;
 }
 
 message Unavailable {
