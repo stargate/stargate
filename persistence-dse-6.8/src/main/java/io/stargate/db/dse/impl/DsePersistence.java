@@ -20,12 +20,15 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
+import io.stargate.db.dse.ClientStateWithBoundPort;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
+import io.stargate.db.schema.TableName;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -414,7 +417,7 @@ public class DsePersistence
       return new ClientStateWithPublicAddress(
           clientInfo.remoteAddress(), clientInfo.publicAddress().get());
     }
-    return ClientState.forExternalCalls(clientInfo.remoteAddress(), null);
+    return new ClientStateWithBoundPort(clientInfo.remoteAddress(), clientInfo.boundPort());
   }
 
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
@@ -637,6 +640,13 @@ public class DsePersistence
       TableMetadata table =
           SchemaManager.instance.validateTable(pos.tableName().keyspace(), pos.tableName().name());
       return Conversion.toPagingState(table, pos, parameters);
+    }
+
+    @Override
+    public RowDecorator makeRowDecorator(TableName tableName) {
+      TableMetadata table =
+          SchemaManager.instance.validateTable(tableName.keyspace(), tableName.name());
+      return new RowDecoratorImpl(tableName, table);
     }
 
     private Object queryOrId(Statement statement) {

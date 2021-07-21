@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import graphql.schema.Coercing;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class QueryFetcher extends DeployedFetcher<Object> {
 
@@ -48,39 +49,54 @@ public class QueryFetcher extends DeployedFetcher<Object> {
     this.model = model;
   }
 
-  @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws UnauthorizedException {
-    Keyspace keyspace = dataStore.schema().keyspace(model.getEntity().getKeyspaceName());
-
+  protected Parameters buildParameters(DataFetchingEnvironment environment) {
     Optional<ByteBuffer> pagingState =
         model
             .getPagingStateArgumentName()
             .filter(environment::containsArgument)
             .map(name -> BLOB_COERCING.parseValue(environment.<String>getArgument(name)));
+    int pageSize = model.getPageSize().orElse(DEFAULT_PAGE_SIZE);
+    ConsistencyLevel consistencyLevel = model.getConsistencyLevel().orElse(DEFAULT_CONSISTENCY);
+
+    if (!pagingState.isPresent()
+        && pageSize == DEFAULT_PAGE_SIZE
+        && consistencyLevel == DEFAULT_CONSISTENCY) {
+      return DEFAULT_PARAMETERS;
+    } else {
+      return DEFAULT_PARAMETERS
+          .toBuilder()
+          .pagingState(pagingState)
+          .pageSize(pageSize)
+          .consistencyLevel(consistencyLevel)
+          .build();
+    }
+  }
+
+  @Override
+  protected Object get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+      throws UnauthorizedException {
+    Keyspace keyspace =
+        context.getDataStore().schema().keyspace(model.getEntity().getKeyspaceName());
 
     ReturnType returnType = model.getReturnType();
 
     List<BuiltCondition> whereConditions =
-        bind(
+        bindWhere(
             model.getWhereConditions(),
-            model.getEntity(),
             environment::containsArgument,
             environment::getArgument,
+            model.getEntity()::validateNoFiltering,
             keyspace);
 
     ResultSet resultSet =
         query(
             model.getEntity(),
             whereConditions,
-            pagingState,
             model.getLimit(),
-            model.getPageSize(),
-            dataStore,
+            buildParameters(environment),
             environment.getContext());
     Object entityData =
-        returnType.isEntityList()
+        returnType.isList()
             ? toEntities(resultSet, model.getEntity())
             : toSingleEntity(resultSet, model.getEntity());
 

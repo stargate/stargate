@@ -1,7 +1,23 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.grpc;
 
 import com.google.protobuf.ByteString;
 import io.stargate.proto.QueryOuterClass.Collection;
+import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
@@ -11,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 public class Values {
@@ -70,5 +87,9 @@ public class Values {
     return Value.newBuilder()
         .setCollection(Collection.newBuilder().addAllElements(Arrays.asList(elements)).build())
         .build();
+  }
+
+  public static Value udtOf(Map<String, Value> fields) {
+    return Value.newBuilder().setUdt(UdtValue.newBuilder().putAllFields(fields).build()).build();
   }
 }

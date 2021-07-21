@@ -18,14 +18,12 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
-import graphql.language.InputValueDefinition;
-import graphql.language.Type;
-import graphql.language.TypeName;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
-import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
@@ -43,11 +41,19 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
 
   QueryModel build() throws SkipException {
 
-    Optional<Directive> cqlSelectDirective = DirectiveHelper.getDirective("cql_select", operation);
+    Optional<Directive> cqlSelectDirective =
+        DirectiveHelper.getDirective(CqlDirectives.SELECT, operation);
     Optional<Integer> limit =
-        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "limit", context));
+        cqlSelectDirective.flatMap(
+            d -> DirectiveHelper.getIntArgument(d, CqlDirectives.SELECT_LIMIT, context));
     Optional<Integer> pageSize =
-        cqlSelectDirective.flatMap(d -> DirectiveHelper.getIntArgument(d, "pageSize", context));
+        cqlSelectDirective.flatMap(
+            d -> DirectiveHelper.getIntArgument(d, CqlDirectives.SELECT_PAGE_SIZE, context));
+    Optional<ConsistencyLevel> consistencyLevel =
+        cqlSelectDirective.flatMap(
+            d ->
+                DirectiveHelper.getEnumArgument(
+                    d, CqlDirectives.SELECT_CONSISTENCY_LEVEL, ConsistencyLevel.class, context));
 
     ReturnType returnType = getReturnType("Query " + operationName);
     EntityModel entity =
@@ -62,8 +68,13 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
                   return SkipException.INSTANCE;
                 });
 
-    Optional<String> pagingStateArgumentName = findPagingState();
-    List<WhereConditionModel> whereConditions = buildWhereConditions(entity);
+    Optional<String> pagingStateArgumentName =
+        findFieldNameWithDirective(CqlDirectives.PAGING_STATE, Scalars.GraphQLString);
+    ArgumentDirectiveModels conditions =
+        new ArgumentDirectiveModelsBuilder(
+                operation, OperationType.SELECT, entity, entities, context)
+            .build();
+    List<ConditionModel> whereConditions = conditions.getWhereConditions();
     validateNoFiltering(whereConditions, entity);
 
     return new QueryModel(
@@ -74,38 +85,7 @@ class QueryModelBuilder extends OperationModelBuilderBase<QueryModel> {
         pagingStateArgumentName,
         limit,
         pageSize,
+        consistencyLevel,
         returnType);
-  }
-
-  private Optional<String> findPagingState() throws SkipException {
-    Optional<String> result = Optional.empty();
-    for (InputValueDefinition inputValue : operation.getInputValueDefinitions()) {
-      if (isPagingState(inputValue)) {
-        if (result.isPresent()) {
-          invalidMapping(
-              "Query %s: @cql_pagingState can be used on at most one argument (found %s and %s)",
-              operationName, result.get(), inputValue.getName());
-          throw SkipException.INSTANCE;
-        }
-        result = Optional.of(inputValue.getName());
-      }
-    }
-    return result;
-  }
-
-  private boolean isPagingState(InputValueDefinition inputValue) throws SkipException {
-    boolean hasDirective = DirectiveHelper.getDirective("cql_pagingState", inputValue).isPresent();
-    if (!hasDirective) {
-      return false;
-    }
-    Type<?> type = TypeHelper.unwrapNonNull(inputValue.getType());
-    if (!(type instanceof TypeName)
-        || !((TypeName) type).getName().equals(Scalars.GraphQLString.getName())) {
-      invalidMapping(
-          "Query %s: argument %s annotated with @cql_pagingState must have type %s",
-          operationName, inputValue.getName(), Scalars.GraphQLString.getName());
-      throw SkipException.INSTANCE;
-    }
-    return true;
   }
 }

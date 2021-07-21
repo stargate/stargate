@@ -107,9 +107,6 @@ public class Server implements CassandraDaemon.Server {
       else workerGroup = new NioEventLoopGroup();
     }
     this.persistence.registerEventListener(new EventNotifier(this));
-
-    // Please see the comment on setUnsetValue().
-    CBUtil.setUnsetValue(persistence.unsetValue());
   }
 
   @Override
@@ -173,7 +170,13 @@ public class Server implements CassandraDaemon.Server {
 
   private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
     return new ServerConnection(
-        channel, proxyInfo, version, connectionTracker, persistence, authentication);
+        channel,
+        socket.getPort(),
+        proxyInfo,
+        version,
+        connectionTracker,
+        persistence,
+        authentication);
   }
 
   public int countConnectedClients() {
@@ -700,11 +703,15 @@ public class Server implements CassandraDaemon.Server {
       if (logger.isTraceEnabled())
         logger.trace("Topology changed event : {}, {}", endpoint, event.change);
 
-      LatestEvent prev = latestEvents.get(endpoint);
-      if (prev == null || prev.topology != event.change) {
-        LatestEvent ret =
-            latestEvents.put(endpoint, LatestEvent.forTopologyChange(event.change, prev));
-        if (ret == prev) send(endpoint, event);
+      if (event.headerFilter != null) {
+        send(endpoint, event);
+      } else {
+        LatestEvent prev = latestEvents.get(endpoint);
+        if (prev == null || prev.topology != event.change) {
+          LatestEvent ret =
+              latestEvents.put(endpoint, LatestEvent.forTopologyChange(event.change, prev));
+          if (ret == prev) send(endpoint, event);
+        }
       }
     }
 
@@ -712,11 +719,15 @@ public class Server implements CassandraDaemon.Server {
       if (logger.isTraceEnabled())
         logger.trace("Status changed event : {}, {}", endpoint, event.status);
 
-      LatestEvent prev = latestEvents.get(endpoint);
-      if (prev == null || prev.status != event.status) {
-        LatestEvent ret =
-            latestEvents.put(endpoint, LatestEvent.forStatusChange(event.status, null));
-        if (ret == prev) send(endpoint, event);
+      if (event.headerFilter != null) {
+        send(endpoint, event);
+      } else {
+        LatestEvent prev = latestEvents.get(endpoint);
+        if (prev == null || prev.status != event.status) {
+          LatestEvent ret =
+              latestEvents.put(endpoint, LatestEvent.forStatusChange(event.status, null));
+          if (ret == prev) send(endpoint, event);
+        }
       }
     }
 

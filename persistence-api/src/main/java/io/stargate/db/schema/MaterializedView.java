@@ -23,6 +23,11 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   private static final long serialVersionUID = -2999120284516448661L;
 
   public static MaterializedView create(String keyspace, String name, Iterable<Column> columns) {
+    return create(keyspace, name, columns, "");
+  }
+
+  public static MaterializedView create(
+      String keyspace, String name, Iterable<Column> columns, String comment) {
     columns.forEach(
         c -> {
           Preconditions.checkState(
@@ -32,6 +37,7 @@ public abstract class MaterializedView extends AbstractTable implements Index {
         .keyspace(keyspace)
         .name(name)
         .addAllColumns(columns)
+        .comment(comment)
         .build();
   }
 

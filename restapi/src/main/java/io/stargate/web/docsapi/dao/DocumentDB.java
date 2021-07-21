@@ -4,18 +4,18 @@ import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.ImmutableParameters;
-import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.ValueModifier;
@@ -27,13 +27,13 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.ExecutionContext;
+import io.stargate.web.docsapi.service.QueryExecutor;
+import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
@@ -58,6 +58,7 @@ public class DocumentDB {
   public static final Integer MAX_ARRAY_LENGTH =
       Integer.getInteger("stargate.document_max_array_len", 1000000);
   public static final String GLOB_VALUE = "*";
+  public static final String GLOB_ARRAY_VALUE = "[*]";
 
   public static final String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
   public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
@@ -70,6 +71,7 @@ public class DocumentDB {
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
   private final AuthenticationSubject authenticationSubject;
+  private final QueryExecutor executor;
 
   static {
     allColumns = new ArrayList<>();
@@ -123,6 +125,12 @@ public class DocumentDB {
     if (!dataStore.supportsSAI() && !dataStore.supportsSecondaryIndex()) {
       throw new IllegalStateException("Backend does not support any known index types.");
     }
+
+    executor = new QueryExecutor(dataStore);
+  }
+
+  public QueryExecutor getQueryExecutor() {
+    return executor;
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -163,6 +171,17 @@ public class DocumentDB {
 
   public Schema schema() {
     return dataStore.schema();
+  }
+
+  public void writeJsonSchemaToCollection(String namespace, String collection, String schemaData) {
+    this.builder()
+        .alter()
+        .table(namespace, collection)
+        .withComment(schemaData)
+        .build()
+        .execute()
+        .join();
+    this.dataStore.waitForSchemaAgreement();
   }
 
   /**
@@ -365,7 +384,9 @@ public class DocumentDB {
     dataStore.queryBuilder().drop().table(keyspaceName, tableName).build().execute().get();
   }
 
-  public void executeBatch(Collection<BoundQuery> queries) {
+  public void executeBatch(Collection<BoundQuery> queries, ExecutionContext context) {
+    queries.forEach(context::traceDeferredDml);
+
     if (useLoggedBatches) {
       dataStore.batch(queries, ConsistencyLevel.LOCAL_QUORUM).join();
     } else {
@@ -373,135 +394,49 @@ public class DocumentDB {
     }
   }
 
-  public ResultSet executeSelect(
-      String keyspace, String collection, List<BuiltCondition> predicates)
-      throws UnauthorizedException {
+  public void authorizeSelect(String keyspace, String collection) throws UnauthorizedException {
     // Run generic authorizeDataRead for now
     getAuthorizationService()
         .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .build()
-        .execute()
-        .join();
   }
 
-  public ResultSet executeSelect(
+  public Flowable<RawDocument> executeSelect(
       String keyspace,
       String collection,
       List<BuiltCondition> predicates,
       int pageSize,
-      ByteBuffer pageState)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    UnaryOperator<Parameters> parametersModifier =
-        p -> ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .build()
-        .execute(parametersModifier)
-        .join();
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return Single.fromCallable(
+            () -> {
+              // Run generic authorizeDataRead for now
+              getAuthorizationService()
+                  .authorizeDataRead(
+                      getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
+              return this.builder()
+                  .select()
+                  .column(DocumentDB.allColumns())
+                  .writeTimeColumn("leaf")
+                  .from(keyspace, collection)
+                  .where(predicates)
+                  .build()
+                  .bind();
+            })
+        .flatMapPublisher(q -> executor.queryDocs(q, pageSize, pagingState, context));
   }
 
-  public ResultSet executeSelect(
-      String keyspace, String collection, List<BuiltCondition> predicates, boolean allowFiltering)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .allowFiltering(allowFiltering)
-        .build()
-        .execute()
-        .join();
+  public Flowable<RawDocument> executeSelect(
+      AbstractBound<?> query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
+    return executor.queryDocs(query, pageSize, pagingState, context);
   }
 
-  public ResultSet executeSelect(
-      String keyspace,
-      String collection,
-      List<BuiltCondition> predicates,
-      boolean allowFiltering,
+  public Flowable<RawDocument> executeSelect(
+      int keyDepth,
+      AbstractBound<?> query,
       int pageSize,
-      ByteBuffer pageState)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    UnaryOperator<Parameters> parametersModifier =
-        p -> {
-          if (pageState != null) {
-            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
-          } else {
-            return ImmutableParameters.builder().pageSize(pageSize).build();
-          }
-        };
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .where(predicates)
-        .allowFiltering(allowFiltering)
-        .build()
-        .execute(parametersModifier)
-        .join();
-  }
-
-  public ResultSet executeSelectAll(String keyspace, String collection)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .build()
-        .execute()
-        .join();
-  }
-
-  public ResultSet executeSelectAll(
-      String keyspace, String collection, int pageSize, ByteBuffer pageState)
-      throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-    UnaryOperator<Parameters> parametersModifier =
-        p -> {
-          if (pageState != null) {
-            return ImmutableParameters.builder().pageSize(pageSize).pagingState(pageState).build();
-          } else {
-            return ImmutableParameters.builder().pageSize(pageSize).build();
-          }
-        };
-
-    return this.builder()
-        .select()
-        .column(DocumentDB.allColumns())
-        .writeTimeColumn("leaf")
-        .from(keyspace, collection)
-        .build()
-        .execute(parametersModifier)
-        .join();
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return executor.queryDocs(keyDepth, query, pageSize, pagingState, context);
   }
 
   public BoundQuery getInsertStatement(
@@ -657,7 +592,8 @@ public class DocumentDB {
       String key,
       List<Object[]> vars,
       List<String> pathToDelete,
-      long microsSinceEpoch)
+      long microsSinceEpoch,
+      ExecutionContext context)
       throws UnauthorizedException {
 
     List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
@@ -673,7 +609,41 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    executeBatch(queries);
+    executeBatch(queries, context);
+  }
+
+  /**
+   * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
+   * using the @param vars provided, all in one batch.
+   */
+  public void deleteManyThenInsertBatch(
+      String keyspace,
+      String table,
+      List<String> keys,
+      List<Object[]> vars,
+      List<String> pathToDelete,
+      long microsSinceEpoch,
+      ExecutionContext context)
+      throws UnauthorizedException {
+
+    List<BoundQuery> queries = new ArrayList<>(keys.size() + vars.size());
+    keys.forEach(
+        key ->
+            queries.add(
+                getPrefixDeleteStatement(
+                    keyspace, table, key, microsSinceEpoch - 1, pathToDelete)));
+
+    for (Object[] values : vars) {
+      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
+    }
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+
+    executeBatch(queries, context);
   }
 
   /**
@@ -687,7 +657,8 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       List<String> patchedKeys,
-      long microsSinceEpoch)
+      long microsSinceEpoch,
+      ExecutionContext context)
       throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
 
@@ -725,7 +696,7 @@ public class DocumentDB {
     getAuthorizationService()
         .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
-    executeBatch(queries);
+    executeBatch(queries, context);
   }
 
   public void delete(
@@ -743,10 +714,14 @@ public class DocumentDB {
   }
 
   public void deleteDeadLeaves(
-      String keyspaceName, String tableName, String key, Map<String, Set<DeadLeaf>> deadLeaves)
+      String keyspaceName,
+      String tableName,
+      String key,
+      Map<String, Set<DeadLeaf>> deadLeaves,
+      ExecutionContext context,
+      long now)
       throws UnauthorizedException {
-    long now = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
-    deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves);
+    deleteDeadLeaves(keyspaceName, tableName, key, now, deadLeaves, context);
   }
 
   @VisibleForTesting
@@ -755,7 +730,8 @@ public class DocumentDB {
       String tableName,
       String key,
       long microsTimestamp,
-      Map<String, Set<DeadLeaf>> deadLeaves)
+      Map<String, Set<DeadLeaf>> deadLeaves,
+      ExecutionContext context)
       throws UnauthorizedException {
 
     getAuthorizationService()
@@ -799,7 +775,7 @@ public class DocumentDB {
     }
 
     // Fire this off in a future
-    executeBatch(queries);
+    executeBatch(queries, context.nested("ASYNC DOCUMENT CORRECTION"));
   }
 
   public Map<String, Object> newBindMap(List<String> path) {

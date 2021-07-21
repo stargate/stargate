@@ -32,12 +32,14 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.cassandra.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
+import io.stargate.db.schema.TableName;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -487,7 +489,7 @@ public class CassandraPersistence
           original.isInternal
               ? ClientState.forInternalCalls()
               : ClientState.forExternalCalls(original.getRemoteAddress());
-      clone.login(clone.getUser());
+      clone.login(original.getUser());
       if (original.isNoCompactMode()) {
         clone.setNoCompactMode();
       }
@@ -551,6 +553,11 @@ public class CassandraPersistence
     @Override
     public ByteBuffer makePagingState(PagingPosition position, Parameters parameters) {
       return Conversion.toPagingState(position, parameters);
+    }
+
+    @Override
+    public RowDecorator makeRowDecorator(TableName tableName) {
+      return new RowDecoratorImpl(tableName);
     }
 
     private Object queryOrId(Statement statement) {

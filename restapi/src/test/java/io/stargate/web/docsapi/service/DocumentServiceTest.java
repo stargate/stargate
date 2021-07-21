@@ -1,1888 +1,1121 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.web.docsapi.service;
 
+import static io.stargate.db.schema.Column.Kind.Clustering;
+import static io.stargate.db.schema.Column.Kind.PartitionKey;
+import static io.stargate.db.schema.Column.Kind.Regular;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap.Builder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableList;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.ArrayListBackedRow;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
-import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.datastore.AbstractDataStoreTest;
+import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableKeyspace;
+import io.stargate.db.schema.ImmutableSchema;
+import io.stargate.db.schema.ImmutableTable;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.filter.FilterCondition;
-import io.stargate.web.docsapi.service.filter.ListFilterCondition;
-import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
+import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
+import io.stargate.web.docsapi.models.QueryInfo;
+import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.resources.Db;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.PathSegment;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.jsfr.json.JsonSurfer;
-import org.jsfr.json.JsonSurferGson;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DocumentServiceTest {
-  private final DataStore dataStore = Mockito.mock(DataStore.class);
-  @InjectMocks DocumentService service;
-  @Mock JsonConverter jsonConverter;
-  @Mock DocsSchemaChecker schemaChecker;
-  @Spy ObjectMapper serviceMapper;
-  @Spy DocsApiConfiguration docsConfig;
+public class DocumentServiceTest extends AbstractDataStoreTest {
 
-  private Method convertToBracketedPath;
-  private Method leftPadTo6;
-  private Method convertArrayPath;
-  private Method isEmptyObject;
-  private Method isEmptyArray;
-  private Method shredPayload;
-  private Method validateOpAndValue;
-  private Method addRowsToMap;
-  private Method updateExistenceForMap;
-  private Method getParentPathFromRow;
-  private Method filterToSelectionSet;
-  private Method applyInMemoryFilters;
-  private Method pathsMatch;
-  private Method checkEqualsOp;
-  private Method checkInOp;
-  private Method checkGtOp;
-  private Method checkLtOp;
-  private Method searchRows;
+  private static final Object SEPARATOR = new Object();
 
+  private final String insert =
+      "INSERT INTO test_docs.collection1 (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+
+  protected static final Table table =
+      ImmutableTable.builder()
+          .keyspace("test_docs")
+          .name("collection1")
+          .addColumns(
+              ImmutableColumn.builder().name("key").type(Type.Text).kind(PartitionKey).build())
+          .addColumns(clusteringColumns())
+          .addColumns(ImmutableColumn.builder().name("leaf").type(Type.Text).kind(Regular).build())
+          .addColumns(
+              ImmutableColumn.builder().name("text_value").type(Type.Text).kind(Regular).build())
+          .addColumns(
+              ImmutableColumn.builder().name("dbl_value").type(Type.Double).kind(Regular).build())
+          .addColumns(
+              ImmutableColumn.builder().name("bool_value").type(Type.Boolean).kind(Regular).build())
+          .build();
+
+  private static final Keyspace keyspace =
+      ImmutableKeyspace.builder().name("test_docs").addTables(table).build();
+
+  private static final Schema schema = ImmutableSchema.builder().addKeyspaces(keyspace).build();
   private static final ObjectMapper mapper = new ObjectMapper();
-  private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
+
+  private final AtomicLong now = new AtomicLong();
+  private final TimeSource timeSource = now::get;
+  private final DocsApiConfiguration config = new DocsApiConfiguration() {};
+  private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
+  private final JsonConverter converter = new JsonConverter(mapper, config);
+  private final String authToken = "test-auth-token";
+  private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
+  @Mock private JsonSchemaHandler jsonSchemaHandler;
+  @Mock private AuthenticationService authenticationService;
+  @Mock private AuthorizationService authorizationService;
+  @Mock private DataStoreFactory dataStoreFactory;
+  @Mock private UriInfo uriInfo;
+
+  @Mock(answer = RETURNS_DEEP_STUBS)
+  private HttpHeaders headers;
+
+  @Mock(answer = RETURNS_DEEP_STUBS)
+  private HttpServletRequest request;
+
+  private Db db;
+  private DocumentService service;
+  private DocumentResourceV2 resource;
+
+  private static Column[] clusteringColumns() {
+    Column[] columns = new Column[DocumentDB.MAX_DEPTH];
+    for (int i = 0; i < columns.length; i++) {
+      columns[i] = ImmutableColumn.builder().name("p" + i).type(Type.Text).kind(Clustering).build();
+    }
+    return columns;
+  }
+
+  @Override
+  protected Schema schema() {
+    return schema;
+  }
+
+  @BeforeAll
+  public static void setupJackson() {
+    mapper.registerModule(new GuavaModule());
+  }
 
   @BeforeEach
-  public void setup() throws NoSuchMethodException {
-    convertToBracketedPath =
-        DocumentService.class.getDeclaredMethod("convertToBracketedPath", String.class);
-    convertToBracketedPath.setAccessible(true);
-    leftPadTo6 = DocumentService.class.getDeclaredMethod("leftPadTo6", String.class);
-    leftPadTo6.setAccessible(true);
-    convertArrayPath = DocumentService.class.getDeclaredMethod("convertArrayPath", String.class);
-    convertArrayPath.setAccessible(true);
-    isEmptyObject = DocumentService.class.getDeclaredMethod("isEmptyObject", Object.class);
-    isEmptyObject.setAccessible(true);
-    isEmptyArray = DocumentService.class.getDeclaredMethod("isEmptyArray", Object.class);
-    isEmptyArray.setAccessible(true);
-    shredPayload =
-        DocumentService.class.getDeclaredMethod(
-            "shredPayload",
-            JsonSurfer.class,
-            DocumentDB.class,
-            List.class,
-            String.class,
-            String.class,
-            boolean.class,
-            boolean.class);
-    shredPayload.setAccessible(true);
-    validateOpAndValue =
-        DocumentService.class.getDeclaredMethod(
-            "validateOpAndValue", String.class, JsonNode.class, String.class);
-    validateOpAndValue.setAccessible(true);
-    addRowsToMap = DocumentService.class.getDeclaredMethod("addRowsToMap", Map.class, List.class);
-    addRowsToMap.setAccessible(true);
-    updateExistenceForMap =
-        DocumentService.class.getDeclaredMethod(
-            "updateExistenceForMap",
-            Set.class,
-            List.class,
-            List.class,
-            boolean.class,
-            boolean.class);
-    updateExistenceForMap.setAccessible(true);
-    getParentPathFromRow =
-        DocumentService.class.getDeclaredMethod("getParentPathFromRow", Row.class);
-    getParentPathFromRow.setAccessible(true);
-    filterToSelectionSet =
-        DocumentService.class.getDeclaredMethod(
-            "filterToSelectionSet", List.class, List.class, List.class);
-    filterToSelectionSet.setAccessible(true);
-    applyInMemoryFilters =
-        DocumentService.class.getDeclaredMethod(
-            "applyInMemoryFilters", List.class, List.class, int.class, boolean.class);
-    applyInMemoryFilters.setAccessible(true);
-    pathsMatch = DocumentService.class.getDeclaredMethod("pathsMatch", String.class, String.class);
-    pathsMatch.setAccessible(true);
-    checkEqualsOp =
-        DocumentService.class.getDeclaredMethod(
-            "checkEqualsOp",
-            SingleFilterCondition.class,
-            String.class,
-            Boolean.class,
-            Double.class);
-    checkEqualsOp.setAccessible(true);
-    checkInOp =
-        DocumentService.class.getDeclaredMethod(
-            "checkInOp", ListFilterCondition.class, String.class, Boolean.class, Double.class);
-    checkInOp.setAccessible(true);
-    checkGtOp =
-        DocumentService.class.getDeclaredMethod(
-            "checkGtOp", SingleFilterCondition.class, String.class, Boolean.class, Double.class);
-    checkGtOp.setAccessible(true);
+  void setup() throws UnauthorizedException {
+    when(dataStoreFactory.createInternal(any())).thenReturn(datastore());
+    when(dataStoreFactory.create(any(), any())).thenReturn(datastore());
 
-    checkLtOp =
-        DocumentService.class.getDeclaredMethod(
-            "checkLtOp", SingleFilterCondition.class, String.class, Boolean.class, Double.class);
-    checkLtOp.setAccessible(true);
-    searchRows =
-        DocumentService.class.getDeclaredMethod(
-            "searchRows",
-            String.class,
-            String.class,
-            DocumentDB.class,
-            List.class,
-            List.class,
-            List.class,
-            List.class,
-            Boolean.class,
-            String.class,
-            Paginator.class);
-    searchRows.setAccessible(true);
+    db = new Db(authenticationService, authorizationService, dataStoreFactory);
+
+    when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
+    service =
+        new DocumentService(
+            timeSource, mapper, converter, config, schemaChecker, jsonSchemaHandler);
+    resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
   }
 
-  @Test
-  public void convertToBracketedPath() throws IllegalAccessException, InvocationTargetException {
-    String input = "$.a.b";
-    String res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['a']['b']");
-
-    input = "a.b";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("['a']['b']");
-
-    input = "$.$.c";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['$']['c']");
-
-    input = "$.a.b[0].c";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['a']['b'][0]['c']");
-
-    input = "$.a.I need some space.c";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['a']['I need some space']['c']");
-
-    input = "$.a.0[0].c";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['a']['0'][0]['c']");
-
-    input = "$.@.23.f";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['@']['23']['f']");
-
-    // This should really never be sent to this function...but it does "work"
-    input = "$..a";
-    res = (String) convertToBracketedPath.invoke(service, input);
-    assertThat(res).isEqualTo("$['']['a']");
+  private Map<String, Object> leafRow(String id) {
+    return m("key", id, "leaf", "test-value");
   }
 
-  @Test
-  public void leftPadTo6() throws InvocationTargetException, IllegalAccessException {
-    String result = (String) leftPadTo6.invoke(service, "");
-    assertThat(result).isEqualTo("000000");
-
-    result = (String) leftPadTo6.invoke(service, "00");
-    assertThat(result).isEqualTo("000000");
-
-    result = (String) leftPadTo6.invoke(service, "1");
-    assertThat(result).isEqualTo("000001");
-
-    result = (String) leftPadTo6.invoke(service, "abc");
-    assertThat(result).isEqualTo("000abc");
-
-    result = (String) leftPadTo6.invoke(service, "AbCd");
-    assertThat(result).isEqualTo("00AbCd");
+  private Map<String, Object> row(String id, Double value, String... path) {
+    return row(id, 123, value, path);
   }
 
-  @Test
-  public void convertArrayPath() throws InvocationTargetException, IllegalAccessException {
-    String result = (String) convertArrayPath.invoke(service, "");
-    assertThat(result).isEqualTo("");
-
-    result = (String) convertArrayPath.invoke(service, "a");
-    assertThat(result).isEqualTo("a");
-
-    result = (String) convertArrayPath.invoke(service, "[0]");
-    assertThat(result).isEqualTo("[000000]");
-
-    result = (String) convertArrayPath.invoke(service, "[0101]");
-    assertThat(result).isEqualTo("[000101]");
-
-    result = (String) convertArrayPath.invoke(service, "[999999]");
-    assertThat(result).isEqualTo("[999999]");
+  private Map<String, Object> row(String id, int timestamp, Double value, String... path) {
+    Builder<String, Object> map = row(id, timestamp, path);
+    map.put("dbl_value", value);
+    return map.build();
   }
 
-  @Test
-  public void convertArrayPath_invalidInput() {
-    Throwable thrown = catchThrowable(() -> convertArrayPath.invoke(service, "[]"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(NumberFormatException.class)
-        .hasMessage("For input string: \"\"");
-
-    thrown = catchThrowable(() -> convertArrayPath.invoke(service, "[a]"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(NumberFormatException.class)
-        .hasMessage("For input string: \"a\"");
-
-    thrown = catchThrowable(() -> convertArrayPath.invoke(service, "[1000000]"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED)
-        .hasMessage("Max array length of 1000000 exceeded.");
+  private Map<String, Object> row(String id, Boolean value, String... path) {
+    Builder<String, Object> map = row(id, 123, path);
+    map.put("bool_value", value);
+    return map.build();
   }
 
-  @Test
-  public void isEmptyObject() throws InvocationTargetException, IllegalAccessException {
-    assertThat(isEmptyObject.invoke(service, "a")).isEqualTo(false);
-    assertThat(isEmptyObject.invoke(service, (Object) null)).isEqualTo(false);
-    assertThat(isEmptyObject.invoke(service, JsonNull.INSTANCE)).isEqualTo(false);
-    assertThat(isEmptyObject.invoke(service, new JsonArray())).isEqualTo(false);
-    JsonArray nonEmptyArray = new JsonArray();
-    nonEmptyArray.add("something");
-    assertThat(isEmptyObject.invoke(service, nonEmptyArray)).isEqualTo(false);
-    JsonObject nonEmptyObj = new JsonObject();
-    nonEmptyObj.add("key", new JsonPrimitive("something"));
-    assertThat(isEmptyObject.invoke(service, nonEmptyObj)).isEqualTo(false);
-    assertThat(isEmptyObject.invoke(service, new JsonObject())).isEqualTo(true);
+  private Map<String, Object> row(String id, String value, String... path) {
+    Builder<String, Object> map = row(id, 123, path);
+    map.put("text_value", value);
+    return map.build();
   }
 
-  @Test
-  public void isEmptyArray() throws InvocationTargetException, IllegalAccessException {
-    assertThat(isEmptyArray.invoke(service, "a")).isEqualTo(false);
-    assertThat(isEmptyArray.invoke(service, (Object) null)).isEqualTo(false);
-    assertThat(isEmptyArray.invoke(service, JsonNull.INSTANCE)).isEqualTo(false);
-    JsonObject nonEmptyObj = new JsonObject();
-    nonEmptyObj.add("key", new JsonPrimitive("something"));
-    assertThat(isEmptyArray.invoke(service, nonEmptyObj)).isEqualTo(false);
-    assertThat(isEmptyArray.invoke(service, new JsonObject())).isEqualTo(false);
-    JsonArray nonEmptyArray = new JsonArray();
-    nonEmptyArray.add("something");
-    assertThat(isEmptyArray.invoke(service, nonEmptyArray)).isEqualTo(false);
-    assertThat(isEmptyArray.invoke(service, new JsonArray())).isEqualTo(true);
-  }
-
-  @Test
-  public void shredPayload_booleanLeaf() throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": true}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      null,
-      null,
-      true,
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_numberLeaf() throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": 3}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      null,
-      3.0,
-      null
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_stringLeaf() throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": \"leaf\"}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      "leaf",
-      null,
-      null
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_emptyObjectLeaf()
-      throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": {}}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      DocumentDB.EMPTY_OBJECT_MARKER,
-      null,
-      null,
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_emptyArrayLeaf()
-      throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": []}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      DocumentDB.EMPTY_ARRAY_MARKER,
-      null,
-      null
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_nullLeaf() throws InvocationTargetException, IllegalAccessException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"cool\": {\"document\": null}}";
-    ImmutablePair<?, ?> shredResult =
-        (ImmutablePair<?, ?>)
-            shredPayload.invoke(
-                service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true);
-    List<?> bindVariables = (List<?>) shredResult.left;
-    List<?> topLevelKeys = (List<?>) shredResult.right;
-    assertThat(bindVariables.size()).isEqualTo(1);
-    Object[] vars = (Object[]) bindVariables.get(0);
-    assertThat(vars.length).isEqualTo(69);
-    Object[] expected = {
-      "eric",
-      "cool",
-      "document",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "document",
-      null,
-      null,
-      null
-    };
-    for (int i = 0; i < vars.length; i++) {
-      assertThat(vars[i]).isEqualTo(expected[i]);
-    }
-
-    assertThat(topLevelKeys.size()).isEqualTo(1);
-    assertThat(topLevelKeys.get(0)).isEqualTo("cool");
-  }
-
-  @Test
-  public void shredPayload_invalidKeys() {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "{\"coo]\": {\"document\": null}}";
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, false, true));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME)
-        .hasMessageContaining("are not permitted in JSON field names, invalid field coo]");
-  }
-
-  @Test
-  public void shredPayload_patchingArrayInvalid() {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    List<String> path = new ArrayList<>();
-    String key = "eric";
-    String payload = "[1, 2, 3]";
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                shredPayload.invoke(
-                    service, JsonSurferGson.INSTANCE, dbMock, path, key, payload, true, true));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED)
-        .hasMessageContaining(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED.getDefaultMessage());
-  }
-
-  @Test
-  public void putAtPath() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    service.putAtPath(
-        "authToken",
-        "ks",
-        "collection",
-        "id",
-        "{\"some\": \"data\"}",
-        new ArrayList<>(),
-        false,
-        dbFactoryMock,
-        true,
-        EMPTY_HEADERS);
-
-    verify(dbMock, times(1))
-        .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
-    verify(dbMock, times(0))
-        .deletePatchedPathsThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), any(), anyLong());
-  }
-
-  @Test
-  public void putAtPath_patching() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-    when(dbMock.newBindMap(any())).thenCallRealMethod();
-
-    service.putAtPath(
-        "authToken",
-        "ks",
-        "collection",
-        "id",
-        "{\"some\": \"data\"}",
-        new ArrayList<>(),
-        true,
-        dbFactoryMock,
-        true,
-        EMPTY_HEADERS);
-
-    verify(dbMock, times(0))
-        .deleteThenInsertBatch(anyString(), anyString(), anyString(), any(), any(), anyLong());
-    verify(dbMock, times(1))
-        .deletePatchedPathsThenInsertBatch(
-            anyString(), anyString(), anyString(), any(), any(), any(), anyLong());
-  }
-
-  @Test
-  public void putAtPath_noData() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    Db dbFactoryMock = mock(Db.class);
-    when(dbFactoryMock.getDocDataStoreForToken(anyString(), any())).thenReturn(dbMock);
-
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                service.putAtPath(
-                    "authToken",
-                    "ks",
-                    "collection",
-                    "id",
-                    "\"a\"",
-                    new ArrayList<>(),
-                    true,
-                    dbFactoryMock,
-                    true,
-                    EMPTY_HEADERS));
-
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID)
-        .hasMessageContaining(
-            "Updating a key with just a JSON primitive, empty object, or empty array is not allowed.");
-  }
-
-  @Test
-  public void getJsonAtPath() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
-        .thenReturn(rsMock);
-    when(rsMock.rows()).thenReturn(new ArrayList<>());
-
-    List<PathSegment> path = smallPath();
-    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
-
-    assertThat(result).isNull();
-  }
-
-  @Test
-  public void getJsonAtPath_withRowsEmptyJson() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
-        .thenReturn(rsMock);
-
-    List<Row> rows = makeInitialRowData(false);
-    when(rsMock.rows()).thenReturn(rows);
-
-    List<PathSegment> path = smallPath();
-
-    when(jsonConverter.convertToJsonDoc(anyList(), any(), anyBoolean(), anyBoolean()))
-        .thenReturn(mapper.createObjectNode());
-
-    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
-
-    assertThat(result).isNull();
-  }
-
-  @Test
-  public void getJsonAtPath_withRows() throws JsonProcessingException, UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    when(dbMock.executeSelect(anyString(), anyString(), anyListOf(BuiltCondition.class)))
-        .thenReturn(rsMock);
-
-    List<Row> rows = makeInitialRowData(false);
-    when(rsMock.rows()).thenReturn(rows);
-
-    List<PathSegment> path = smallPath();
-
-    ObjectNode jsonObj = mapper.createObjectNode();
-    jsonObj.set("abc", mapper.readTree("[1]"));
-
-    when(jsonConverter.convertToJsonDoc(anyListOf(Row.class), any(), anyBoolean(), anyBoolean()))
-        .thenReturn(jsonObj);
-
-    JsonNode result = service.getJsonAtPath(dbMock, "ks", "collection", "id", path);
-
-    assertThat(result).isEqualTo(IntNode.valueOf(1));
-  }
-
-  @Test
-  public void validateOpAndValue()
-      throws JsonProcessingException, InvocationTargetException, IllegalAccessException {
-    final JsonNode value = mapper.readTree("{\"a\": \"b\"}");
-    validateOpAndValue.invoke(service, "not_valid", value, "field");
-
-    Throwable thrown =
-        catchThrowable(() -> validateOpAndValue.invoke(service, "$ne", value, "field"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
-        .hasMessageContaining("was expecting a value or `null`");
-
-    thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value, "field"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
-        .hasMessageContaining("only supports the value `true`");
-
-    final JsonNode value2 = mapper.readTree("false");
-    thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$exists", value2, "field"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
-        .hasMessageContaining("only supports the value `true`");
-
-    thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$gt", value, "field"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
-        .hasMessageContaining("was expecting a non-null value");
-
-    thrown = catchThrowable(() -> validateOpAndValue.invoke(service, "$in", value, "field"));
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
-        .hasMessageContaining("was expecting an array");
-  }
-
-  @Test
-  public void convertToSelectionList() throws JsonProcessingException {
-    JsonNode input = mapper.readTree("[\"A\", \"B\"]");
-    List<String> res = service.convertToSelectionList(input);
-    List<String> expected = new ArrayList<>();
-    expected.add("A");
-    expected.add("B");
-    assertThat(res).isEqualTo(expected);
-  }
-
-  @Test
-  public void convertToSelectionList_invalidInput() throws JsonProcessingException {
-    final JsonNode input = mapper.readTree("{}");
-    Throwable thrown = catchThrowable(() -> service.convertToSelectionList(input));
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
-        .hasMessage("`fields` must be a JSON array, found {}");
-
-    final JsonNode input2 = mapper.readTree("[\"A\", 0]");
-    thrown = catchThrowable(() -> service.convertToSelectionList(input2));
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
-        .hasMessage("Each field must be a string, found 0");
-  }
-
-  @Test
-  public void convertToFilterOps() throws JsonProcessingException {
-    JsonNode input =
-        mapper.readTree(
-            "{\"a.b.c\": {\"$eq\": 1, \"$lt\": true, \"$lte\": \"1\", \"$ne\": null, \"$in\": [1, \"a\", true]}}");
-    List<FilterCondition> result = service.convertToFilterOps(new ArrayList<>(), input);
-    List<FilterCondition> expected = new ArrayList<>();
-    expected.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", Double.valueOf(1)));
-    expected.add(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lt", true));
-    expected.add(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lte", "1"));
-    expected.add(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$ne", (String) null));
-    expected.add(
-        new ListFilterCondition(
-            ImmutableList.of("a", "b", "c"), "$in", ImmutableList.of(1, "a", true)));
-    assertThat(result.toString()).isEqualTo(expected.toString());
-  }
-
-  @Test
-  public void convertToFilterOps_invalidInput() throws JsonProcessingException {
-    final JsonNode input = mapper.readTree("[]");
-    Throwable thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input));
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED)
-        .hasMessage(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED.getDefaultMessage());
-
-    final JsonNode input2 = mapper.readTree("{\"\": {}}");
-    thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input2));
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID)
-        .hasMessage(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID.getDefaultMessage());
-
-    final JsonNode input3 = mapper.readTree("{\"a\": []}}");
-    thrown = catchThrowable(() -> service.convertToFilterOps(new ArrayList<>(), input3));
-    assertThat(thrown)
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED)
-        .hasMessage("Search entry for field a was expecting a JSON object as input.");
-  }
-
-  @Test
-  public void deleteAtPath() throws UnauthorizedException {
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
-    DocumentDB dbMock = mock(DocumentDB.class);
-
-    service.deleteAtPath(dbMock, "keyspace", "collection", "id", smallPath());
-    verify(dbMock, times(1))
-        .delete(anyString(), anyString(), anyString(), anyListOf(String.class), anyLong());
-  }
-
-  // searchDocuments unit tests excluded here, it is in deprecated v1
-
-  @Test
-  public void searchDocumentsV2_emptyResult() throws Exception {
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-    DocumentService serviceMock = Mockito.mock(DocumentService.class);
-    Mockito.when(serviceMock.searchDocumentsV2(any(), any(), any(), any(), any(), any(), any()))
-        .thenCallRealMethod();
-    Mockito.when(
-            serviceMock.searchRows(
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new ArrayList<>());
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    JsonNode result =
-        serviceMock.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
-    assertThat(result).isNull();
-  }
-
-  @Test
-  public void searchDocumentsV2_existingResult() throws Exception {
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", "value"));
-    JsonNode result =
-        service.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, new ArrayList<>(), null, paginator);
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result.at("/1").isMissingNode()).isFalse();
-  }
-
-  @Test
-  public void searchDocumentsV2_existingResultWithFields() throws Exception {
-    DocumentDB dbMock = Mockito.mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-    JsonNode result =
-        service.searchDocumentsV2(
-            dbMock, "keyspace", "collection", filters, ImmutableList.of("field"), null, paginator);
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isNull();
-  }
-
-  @Test
-  public void addRowsToMap() throws InvocationTargetException, IllegalAccessException {
-    Map<String, List<Row>> rowsByDoc = new HashMap<>();
-    List<Row> rows = makeInitialRowData(false);
-    addRowsToMap.invoke(service, rowsByDoc, rows);
-    assertThat(rowsByDoc.get("1")).isEqualTo(rows);
-  }
-
-  @Test
-  public void updateExistenceForMap() throws InvocationTargetException, IllegalAccessException {
-    Set<String> existenceByDoc = new HashSet<>();
-    List<Row> rows = makeInitialRowData(false);
-    updateExistenceForMap.invoke(service, existenceByDoc, rows, new ArrayList<>(), false, true);
-    assertThat(existenceByDoc.contains("1")).isTrue();
-  }
-
-  @Test
-  public void getFullDocuments_lessThanLimit() throws Exception {
-    DocumentDB dbMock = mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
-        .thenReturn(mapper.readTree("{\"a\": 1}"));
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    JsonNode result =
-        service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
-  }
-
-  @Test
-  public void getFullDocuments_greaterThanLimit() throws Exception {
-    DocumentDB dbMock = mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-    List<Row> twoDocsRows = makeInitialRowData(false);
-    twoDocsRows.addAll(makeRowDataForSecondDoc(false));
-    Mockito.when(jsonConverter.convertToJsonDoc(anyList(), anyBoolean(), anyBoolean()))
-        .thenReturn(mapper.readTree("{\"a\": 1}"));
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    JsonNode result =
-        service.getFullDocuments(dbMock, "keyspace", "collection", new ArrayList<>(), paginator);
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(mapper.readTree("{\"1\": {\"a\": 1}}"));
-  }
-
-  @Test
-  public void searchRows()
-      throws InvocationTargetException, IllegalAccessException, UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-
-    ResultSet rsMock = mock(ResultSet.class);
-    List<Row> rows = makeInitialRowData(false);
-    when(dbMock.executeSelectAll(anyString(), anyString(), anyInt(), any())).thenReturn(rsMock);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.currentPageRows()).thenReturn(rows);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$eq", true));
-
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    List<Row> result =
-        (List<Row>)
-            searchRows.invoke(
-                service,
-                "keyspace",
-                "collection",
-                dbMock,
-                new ArrayList<>(),
-                filters,
-                new ArrayList<>(),
-                ImmutableList.of("a,b", "*", "c"),
-                false,
-                null,
-                paginator);
-
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(rows);
-
-    paginator = new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-    result =
-        (List<Row>)
-            searchRows.invoke(
-                service,
-                "keyspace",
-                "collection",
-                dbMock,
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new ArrayList<>(),
-                false,
-                null,
-                paginator);
-
-    assertThat(paginator.getCurrentDbPageState()).isNull();
-    assertThat(result).isEqualTo(rows);
-  }
-
-  @Test
-  public void searchRows_invalid() throws UnauthorizedException {
-    DocumentDB dbMock = mock(DocumentDB.class);
-    ResultSet rsMock = mock(ResultSet.class);
-    when(dbMock.executeSelect(anyString(), anyString(), any(), anyBoolean(), anyInt(), any()))
-        .thenReturn(rsMock);
-    when(rsMock.getPagingState()).thenReturn(ByteBuffer.wrap(new byte[0]));
-
-    int pageSizeParam = 0;
-    Paginator paginator =
-        new Paginator(dataStore, null, pageSizeParam, DocumentDB.SEARCH_PAGE_SIZE);
-
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a,b", "*", "c"), "$ne", true));
-
-    Throwable thrown =
-        catchThrowable(
-            () ->
-                searchRows.invoke(
-                    service,
-                    "keyspace",
-                    "collection",
-                    dbMock,
-                    new ArrayList<>(),
-                    filters,
-                    new ArrayList<>(),
-                    ImmutableList.of("a,b", "*", "c"),
-                    null,
-                    null,
-                    paginator));
-
-    assertThat(thrown.getCause())
-        .isInstanceOf(ErrorCodeRuntimeException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_RESULTS_NOT_FITTING)
-        .hasMessage(ErrorCode.DOCS_API_SEARCH_RESULTS_NOT_FITTING.getDefaultMessage());
-  }
-
-  @Test
-  public void getParentPathFromRow() throws InvocationTargetException, IllegalAccessException {
-    Row row = makeInitialRowData(false).get(1);
-    String result = (String) getParentPathFromRow.invoke(service, row);
-    assertThat(result).isEqualTo("1/a.b.");
-  }
-
-  @Test
-  public void filterToSelectionSet() throws InvocationTargetException, IllegalAccessException {
-    List<Row> rows = makeInitialRowData(false);
-    rows = rows.subList(1, rows.size());
-
-    List<?> result =
-        (List<?>)
-            filterToSelectionSet.invoke(
-                service, rows, new ArrayList<>(), ImmutableList.of("a", "b"));
-    assertThat(result).isEqualTo(rows);
-
-    List<String> selectionSet = ImmutableList.of("c", "n1", "n2", "n3");
-    result =
-        (List<?>)
-            filterToSelectionSet.invoke(service, rows, selectionSet, ImmutableList.of("a", "b"));
-    List<Row> expected = new ArrayList<>();
-    expected.add(rows.get(0));
-    for (int i = 0; i < 7; i++) {
-      expected.add(null);
-    }
-    assertThat(result).isEqualTo(expected);
-  }
-
-  @Test
-  public void applyInMemoryFilters() throws InvocationTargetException, IllegalAccessException {
-    List<Row> rows = makeInitialRowData(false);
-    rows = rows.subList(1, rows.size());
-    List<FilterCondition> filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$eq", true));
-    List<?> result =
-        (List<?>) applyInMemoryFilters.invoke(service, rows, new ArrayList<>(), 1, false);
-    assertThat(result).isEqualTo(rows);
-
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(1);
-    assertThat(result.get(0)).isEqualTo(rows.get(0));
-
-    filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$exists", true));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(1);
-    assertThat(result.get(0)).isEqualTo(rows.get(0));
-
-    filters =
-        ImmutableList.of(
-            new SingleFilterCondition(ImmutableList.of("a", "b", "x"), "$exists", true));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$gt", true));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$gte", 2.0));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lt", true));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$lte", false));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(new SingleFilterCondition(ImmutableList.of("a", "b", "c"), "$ne", true));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(
-            new ListFilterCondition(
-                ImmutableList.of("a", "b", "c"), "$in", ImmutableList.of(false)));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-
-    filters =
-        ImmutableList.of(
-            new ListFilterCondition(
-                ImmutableList.of("a", "b", "c"), "$nin", ImmutableList.of(true)));
-    result = (List<?>) applyInMemoryFilters.invoke(service, rows, filters, 1, false);
-    assertThat(result.size()).isEqualTo(0);
-  }
-
-  @Test
-  public void pathsMatch() throws InvocationTargetException, IllegalAccessException {
-    boolean res = (boolean) pathsMatch.invoke(service, "", "");
-    assertThat(res).isTrue();
-
-    res = (boolean) pathsMatch.invoke(service, "a", "a");
-    assertThat(res).isTrue();
-
-    res = (boolean) pathsMatch.invoke(service, "a", "b");
-    assertThat(res).isFalse();
-
-    res = (boolean) pathsMatch.invoke(service, "a.b", "a.b");
-    assertThat(res).isTrue();
-
-    res = (boolean) pathsMatch.invoke(service, "a.b", "a.c");
-    assertThat(res).isFalse();
-
-    res = (boolean) pathsMatch.invoke(service, "a.*.c", "a.b.c");
-    assertThat(res).isTrue();
-
-    res = (boolean) pathsMatch.invoke(service, "a.*.d", "a.b.c");
-    assertThat(res).isFalse();
-  }
-
-  @Test
-  public void checkEqualsOp() throws InvocationTargetException, IllegalAccessException {
-    SingleFilterCondition cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", true);
-    Boolean res = (Boolean) checkEqualsOp.invoke(service, cond, null, true, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", "a");
-    res = (Boolean) checkEqualsOp.invoke(service, cond, "a", null, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", 3.14);
-    res = (Boolean) checkEqualsOp.invoke(service, cond, null, null, 3.14);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", false);
-    res = (Boolean) checkEqualsOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", 3.0);
-    res = (Boolean) checkEqualsOp.invoke(service, cond, null, null, 3.1);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", "A");
-    res = (Boolean) checkEqualsOp.invoke(service, cond, "a", null, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", "A");
-    res = (Boolean) checkEqualsOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-  }
-
-  @Test
-  public void checkInOp() throws InvocationTargetException, IllegalAccessException {
-    ListFilterCondition cond =
-        new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of("a", "b", "c"));
-    Boolean res = (Boolean) checkInOp.invoke(service, cond, "a", null, null);
-    assertThat(res).isTrue();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(true));
-    res = (Boolean) checkInOp.invoke(service, cond, null, true, null);
-    assertThat(res).isTrue();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(4.5));
-    res = (Boolean) checkInOp.invoke(service, cond, null, null, 4.5);
-    assertThat(res).isTrue();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of("a", "b"));
-    res = (Boolean) checkInOp.invoke(service, cond, "c", null, null);
-    assertThat(res).isFalse();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(true));
-    res = (Boolean) checkInOp.invoke(service, cond, null, false, null);
-    assertThat(res).isFalse();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(4.5));
-    res = (Boolean) checkInOp.invoke(service, cond, null, null, 4.4);
-    assertThat(res).isFalse();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(4.5));
-    res = (Boolean) checkInOp.invoke(service, cond, null, null, null);
-    assertThat(res).isFalse();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", ImmutableList.of(4.5));
-    res = (Boolean) checkInOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-
-    cond = new ListFilterCondition(ImmutableList.of("a"), "$in", new ArrayList<>());
-    res = (Boolean) checkInOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-  }
-
-  @Test
-  public void checkGtOp() throws InvocationTargetException, IllegalAccessException {
-    SingleFilterCondition cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", false);
-    Boolean res = (Boolean) checkGtOp.invoke(service, cond, null, true, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", "a");
-    res = (Boolean) checkGtOp.invoke(service, cond, "b", null, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", 3.14);
-    res = (Boolean) checkGtOp.invoke(service, cond, null, null, 3.141);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", true);
-    res = (Boolean) checkGtOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", 3.2);
-    res = (Boolean) checkGtOp.invoke(service, cond, null, null, 3.1);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$gt", "b");
-    res = (Boolean) checkGtOp.invoke(service, cond, "a", null, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$eq", "A");
-    res = (Boolean) checkGtOp.invoke(service, cond, null, true, null);
-    assertThat(res).isNull();
-  }
-
-  @Test
-  public void checkLtOp() throws InvocationTargetException, IllegalAccessException {
-    SingleFilterCondition cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", true);
-    Boolean res = (Boolean) checkLtOp.invoke(service, cond, null, false, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", "b");
-    res = (Boolean) checkLtOp.invoke(service, cond, "a", null, null);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", 3.14);
-    res = (Boolean) checkLtOp.invoke(service, cond, null, null, 3.13);
-    assertThat(res).isTrue();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", true);
-    res = (Boolean) checkLtOp.invoke(service, cond, null, true, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", 3.2);
-    res = (Boolean) checkLtOp.invoke(service, cond, null, null, 3.3);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", "b");
-    res = (Boolean) checkLtOp.invoke(service, cond, "c", null, null);
-    assertThat(res).isFalse();
-
-    cond = new SingleFilterCondition(ImmutableList.of("a"), "$lt", "A");
-    res = (Boolean) checkLtOp.invoke(service, cond, null, true, null);
-    assertThat(res).isNull();
-  }
-
-  public static List<Row> makeInitialRowData(boolean numericBooleans) {
-    List<Row> rows = new ArrayList<>();
-    Map<String, Object> data0 = new HashMap<>();
-    Map<String, Object> data1 = new HashMap<>();
-    Map<String, Object> data2 = new HashMap<>();
-    Map<String, Object> data3 = new HashMap<>();
-    data0.put("key", "1");
-    data1.put("key", "1");
-    data2.put("key", "1");
-    data3.put("key", "1");
-
-    data0.put("writetime(leaf)", 0L);
-    data1.put("writetime(leaf)", 0L);
-    data2.put("writetime(leaf)", 0L);
-    data3.put("writetime(leaf)", 0L);
-
-    data0.put("p0", "");
-    data0.put("p1", "");
-    data0.put("p2", "");
-    data0.put("p3", "");
-    data0.put("leaf", DocumentDB.ROOT_DOC_MARKER);
-
-    data1.put("p0", "a");
-    data1.put("p1", "b");
-    data1.put("p2", "c");
-    data1.put("bool_value", true);
-    data1.put("p3", "");
-    data1.put("leaf", "c");
-
-    data2.put("p0", "d");
-    data2.put("p1", "e");
-    data2.put("p2", "[0]");
-    data2.put("dbl_value", 3.0);
-    data2.put("p3", "");
-    data2.put("leaf", "[0]");
-
-    data3.put("p0", "f");
-    data3.put("text_value", "abc");
-    data3.put("p1", "");
-    data3.put("p2", "");
-    data3.put("p3", "");
-    data3.put("leaf", "f");
-
-    rows.add(makeRow(data0, numericBooleans));
-    rows.add(makeRow(data1, numericBooleans));
-    rows.add(makeRow(data2, numericBooleans));
-    rows.add(makeRow(data3, numericBooleans));
-
-    return rows;
-  }
-
-  public static List<Row> makeSecondRowData(boolean numericBooleans) {
-    List<Row> rows = new ArrayList<>();
-    Map<String, Object> data1 = new HashMap<>();
-    data1.put("key", "1");
-    data1.put("writetime(leaf)", 1L);
-    data1.put("p0", "a");
-    data1.put("p1", "b");
-    data1.put("p2", "c");
-    data1.put("p3", "d");
-    data1.put("text_value", "replaced");
-    data1.put("leaf", "d");
-    data1.put("p4", "");
-    rows.add(makeRow(data1, numericBooleans));
-
-    Map<String, Object> data2 = new HashMap<>();
-    data2.put("key", "1");
-    data2.put("writetime(leaf)", 1L);
-    data2.put("p0", "d");
-    data2.put("p1", "e");
-    data2.put("p2", "f");
-    data2.put("p3", "g");
-    data2.put("text_value", "replaced");
-    data2.put("leaf", "g");
-    data2.put("p4", "");
-    rows.add(makeRow(data2, numericBooleans));
-    return rows;
-  }
-
-  public static List<Row> makeThirdRowData(boolean numericBooleans) {
-    List<Row> rows = new ArrayList<>();
-    Map<String, Object> data1 = new HashMap<>();
-
-    data1.put("key", "1");
-    data1.put("writetime(leaf)", 2L);
-    data1.put("p0", "[0]");
-    data1.put("text_value", "replaced");
-    data1.put("p1", "");
-    data1.put("p2", "");
-    data1.put("p3", "");
-    data1.put("leaf", "[0]");
-    ;
-
-    rows.add(makeRow(data1, numericBooleans));
-    return rows;
-  }
-
-  public static List<Row> makeMultipleReplacements() {
-    List<Row> rows = new ArrayList<>();
-    Map<String, Object> data1 = new HashMap<>();
-
-    data1.put("key", "1");
-    data1.put("writetime(leaf)", 0L);
-    data1.put("p0", "a");
-    data1.put("p1", "[0]");
-    data1.put("p2", "b");
-    data1.put("p3", "c");
-    data1.put("text_value", "initial");
-    data1.put("p4", "");
-    data1.put("leaf", "c");
-
-    Map<String, Object> data2 = new HashMap<>();
-
-    data2.put("key", "1");
-    data2.put("writetime(leaf)", 1L);
-    data2.put("p0", "a");
-    data2.put("p1", "[0]");
-    data2.put("p2", "");
-    data2.put("p3", "");
-    data2.put("text_value", "initial");
-    data2.put("leaf", "a");
-
-    Map<String, Object> data3 = new HashMap<>();
-
-    data3.put("key", "1");
-    data3.put("writetime(leaf)", 2L);
-    data3.put("p0", "a");
-    data3.put("p1", "[0]");
-    data3.put("p2", "[0]");
-    data3.put("dbl_value", 1.23);
-    data3.put("p3", "");
-    data3.put("leaf", "a");
-
-    Map<String, Object> data4 = new HashMap<>();
-
-    data4.put("key", "1");
-    data4.put("writetime(leaf)", 3L);
-    data4.put("p0", "a");
-    data4.put("p1", "[0]");
-    data4.put("p2", "c");
-    data4.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
-    data4.put("p3", "");
-    data4.put("leaf", "c");
-
-    Map<String, Object> data5 = new HashMap<>();
-
-    data5.put("key", "1");
-    data5.put("writetime(leaf)", 4L);
-    data5.put("p0", "a");
-    data5.put("p1", "b");
-    data5.put("p2", "c");
-    data5.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
-    data5.put("p3", "");
-    data5.put("leaf", "c");
-
-    rows.add(makeRow(data1, false));
-    rows.add(makeRow(data2, false));
-    rows.add(makeRow(data3, false));
-    rows.add(makeRow(data4, false));
-    rows.add(makeRow(data5, false));
-    return rows;
-  }
-
-  public List<Row> makeRowDataForSecondDoc(boolean numericBooleans) {
-    List<Row> rows = new ArrayList<>();
-    Map<String, Object> data1 = new HashMap<>();
-
-    data1.put("key", "2");
-    data1.put("writetime(leaf)", 2L);
-    data1.put("p0", "[0]");
-    data1.put("text_value", "replaced");
-    data1.put("p1", "");
-    data1.put("p2", "");
-    data1.put("p3", "");
-    data1.put("leaf", "[0]");
-
-    rows.add(makeRow(data1, numericBooleans));
-    return rows;
-  }
-
-  private List<PathSegment> smallPath() {
-    List<PathSegment> path = new ArrayList<>();
-    path.add(
-        new PathSegment() {
-          @Override
-          public String getPath() {
-            return "abc";
-          }
-
-          @Override
-          public MultivaluedMap<String, String> getMatrixParameters() {
-            return null;
-          }
-        });
-    path.add(
-        new PathSegment() {
-          @Override
-          public String getPath() {
-            return "[0]";
-          }
-
-          @Override
-          public MultivaluedMap<String, String> getMatrixParameters() {
-            return null;
-          }
-        });
-    return path;
-  }
-
-  private static Row makeRow(Map<String, Object> data, boolean numericBooleans) {
-    List<Column> columns = new ArrayList<>(DocumentDB.allColumns());
-    columns.add(Column.create("writetime(leaf)", Type.Bigint));
-    List<ByteBuffer> values = new ArrayList<>(columns.size());
-    ProtocolVersion version = ProtocolVersion.DEFAULT;
-    if (numericBooleans) {
-      columns.replaceAll(
-          col -> {
-            if (col.name().equals("bool_value")) {
-              return Column.create("bool_value", Type.Tinyint);
-            }
-            return col;
-          });
-    }
-
-    for (Column column : columns) {
-      Object v = data.get(column.name());
-      if (column.name().equals("bool_value") && numericBooleans && v != null) {
-        v = ((Boolean) v) ? (byte) 1 : (byte) 0;
+  private Builder<String, Object> row(String id, int timestamp, String... path) {
+    Builder<String, Object> map = ImmutableMap.builder();
+    map.put("key", id);
+    map.put("writetime(leaf)", timestamp);
+    String leaf = null;
+    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+      String p;
+      if (i < path.length) {
+        p = path[i];
+        leaf = p;
+      } else {
+        p = "";
       }
-      values.add(v == null ? null : column.type().codec().encode(v, version));
+
+      map.put("p" + i, p);
     }
-    return new ArrayListBackedRow(columns, values, version);
+
+    assertThat(leaf).isNotNull();
+    map.put("leaf", leaf);
+    return map;
+  }
+
+  private <T> DocumentResponseWrapper<T> unwrap(Response r) throws JsonProcessingException {
+    assertThat(r.getStatus())
+        .withFailMessage("Unexpected error code: " + r.getStatus() + ", message: " + r.getEntity())
+        .isEqualTo(Status.OK.getStatusCode());
+
+    String entity = (String) r.getEntity();
+    @SuppressWarnings("unchecked")
+    DocumentResponseWrapper<T> resp = mapper.readValue(entity, DocumentResponseWrapper.class);
+
+    assertThat(resp).isNotNull();
+    return resp;
+  }
+
+  private <T> DocumentResponseWrapper<T> getDocPath(
+      String id, String where, String fields, List<PathSegment> path)
+      throws JsonProcessingException {
+    return getDocPath(id, where, fields, path, false);
+  }
+
+  private <T> DocumentResponseWrapper<T> getDocPath(
+      String id, String where, String fields, List<PathSegment> path, boolean profile)
+      throws JsonProcessingException {
+    return getDocPath(id, where, fields, path, null, null, profile);
+  }
+
+  private <T> DocumentResponseWrapper<T> getDocPath(
+      String id,
+      String where,
+      String fields,
+      List<PathSegment> path,
+      Integer pageSize,
+      String pageState,
+      boolean profile)
+      throws JsonProcessingException {
+    return unwrap(
+        resource.getDocPath(
+            headers,
+            uriInfo,
+            authToken,
+            keyspace.name(),
+            table.name(),
+            id,
+            path,
+            where,
+            fields,
+            pageSize,
+            pageState,
+            profile,
+            false,
+            request));
+  }
+
+  private <T> String getDocPathRaw(String id, String where, String fields, List<PathSegment> path) {
+    Response r =
+        resource.getDocPath(
+            headers,
+            uriInfo,
+            authToken,
+            keyspace.name(),
+            table.name(),
+            id,
+            path,
+            where,
+            fields,
+            null,
+            null,
+            false,
+            true, // raw
+            request);
+
+    assertThat(r.getStatus())
+        .withFailMessage("Unexpected error code: " + r.getStatus() + ", message: " + r.getEntity())
+        .isEqualTo(Status.OK.getStatusCode());
+
+    return (String) r.getEntity();
+  }
+
+  private PathSegment p(String segment) {
+    return new PathSegment() {
+      @Override
+      public String getPath() {
+        return segment;
+      }
+
+      @Override
+      public MultivaluedMap<String, String> getMatrixParameters() {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  private Map<String, Object> m(Object... keyValues) {
+    assertThat(keyValues.length).isEven();
+    Builder<String, Object> map = ImmutableMap.builder();
+    for (int i = 0; i < keyValues.length; i++) {
+      Object key = keyValues[i++];
+      Object value = keyValues[i];
+      map.put(key.toString(), value);
+    }
+    return map.build();
+  }
+
+  private String selectAll(String where) {
+    return "SELECT key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM test_docs.collection1"
+        + (where.isEmpty() ? "" : " " + where);
+  }
+
+  @Test
+  void testGetDocById() throws JsonProcessingException {
+    final String id = "id1";
+    withQuery(table, selectAll("WHERE key = ?"), id)
+        .returning(ImmutableList.of(row(id, 1.0, "a"), row(id, 2.0, "b")));
+    DocumentResponseWrapper<Map<String, ?>> r =
+        unwrap(
+            resource.getDoc(
+                headers,
+                uriInfo,
+                authToken,
+                keyspace.name(),
+                table.name(),
+                id,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                request));
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("a", 1, "b", 2));
+  }
+
+  @Test
+  void testGetDocPath() throws JsonProcessingException {
+    final String id = "id0";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ?"), id, "a", "c")
+        .returning(ImmutableList.of(row(id, 1.0, "a", "c", "x"), row(id, 2.0, "a", "c", "y")));
+
+    DocumentResponseWrapper<Map<String, ?>> r =
+        getDocPath(id, null, null, ImmutableList.of(p("a"), p("c")));
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("x", 1, "y", 2));
+  }
+
+  @Test
+  void testGetDocPathPaged() throws JsonProcessingException {
+    final String id = "id1";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "c1", "x"),
+            row(id, 1.0, "a", "b", "c1", "y"),
+            row(id, 2.0, "a", "b", "c2"),
+            row(id, 3.0, "a", "b", "c3", "x"),
+            row(id, 3.0, "a", "b", "c3", "y"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(
+                m("a", m("b", m("c1", m("x", 1, "y", 1)))), m("a", m("b", m("c2", 2)))));
+
+    r =
+        getDocPath(
+            id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, r.getPageState(), false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("c3", m("x", 3, "y", 3))))));
+  }
+
+  @Test
+  void testGetDocPathPagedArray() throws JsonProcessingException {
+    final String id = "id1";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "[000000]", "x"),
+            row(id, 1.0, "a", "b", "[000000]", "y"),
+            row(id, 2.0, "a", "b", "[000001]", "z"),
+            row(id, 3.0, "a", "b", "[000002]", "x"),
+            row(id, 3.0, "a", "b", "[000002]", "y"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(
+                m("a", m("b", m("[0]", m("x", 1, "y", 1)))), m("a", m("b", m("[1]", m("z", 2))))));
+
+    r =
+        getDocPath(
+            id, null, null, ImmutableList.of(p("a"), p("b"), p("*")), 2, r.getPageState(), false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(ImmutableList.of(m("a", m("b", m("[2]", m("x", 3, "y", 3))))));
+  }
+
+  @Test
+  void testGetDocPathRaw() {
+    final String id = "id0";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ?"), id, "a", "c")
+        .returning(ImmutableList.of(row(id, 1.0, "a", "c", "x"), row(id, 2.0, "a", "c", "y")));
+
+    String result = getDocPathRaw(id, null, null, ImmutableList.of(p("a"), p("c")));
+    assertThat(result).isEqualTo("{\"x\":1,\"y\":2}");
+  }
+
+  @Test
+  void testGetDocPathWhere() throws JsonProcessingException {
+    final String id = "id1";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 3.0, "a", "d", "c"), row(id, 10.0, "a", "e", "c"), row(id, 1.0, "a", "f", "c"));
+    withQuery(
+            table,
+            selectAll(
+                "WHERE key = ? AND leaf = ? AND p0 = ? AND p1 > ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING"),
+            id,
+            "c",
+            "a",
+            "",
+            "c",
+            1.0d)
+        .returning(rows);
+    withQuery(
+            table,
+            selectAll(
+                "WHERE key = ? AND leaf = ? AND p0 = ? AND p1 > ? AND p2 = ? AND dbl_value < ? ALLOW FILTERING"),
+            id,
+            "c",
+            "a",
+            "",
+            "c",
+            1000.0d)
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, "{\"a.*.c\":{\"$gt\":1,\"$ne\":10}}", null, ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3))), m("a", m("f", m("c", 1)))));
+
+    r = getDocPath(id, "{\"a.*.c\":{\"$lt\":1000}}", null, ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(
+                m("a", m("d", m("c", 3))), m("a", m("e", m("c", 10))), m("a", m("f", m("c", 1)))));
+  }
+
+  @Test
+  void testGetDocPathFields() throws JsonProcessingException {
+    final String id = "id1";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 > ? ALLOW FILTERING"), id, "a", "")
+        .returning(
+            ImmutableList.of(
+                row(id, 3.0, "a", "d", "c"),
+                row(id, true, "a", "d", "z"),
+                row(id, "yy", new String[] {"a", "d", "y"}),
+                row(id, 10.0, "a", "e", "c"),
+                row(id, 20.0, "a", "e", "z"),
+                row(id, 100.0, "a", "f", "c")));
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, "{\"a.*.c\":{\"$gte\":1,\"$ne\":10}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(m("a", m("d", m("c", 3, "z", true))), m("a", m("f", m("c", 100)))));
+
+    r =
+        getDocPath(
+            id, "{\"a.*.c\":{\"$lt\":1000,\"$ne\":10}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData())
+        .isEqualTo(
+            ImmutableList.of(m("a", m("d", m("c", 3, "z", true))), m("a", m("f", m("c", 100)))));
+
+    r = getDocPath(id, "{\"a.*.c\":{\"$in\":[3]}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3, "z", true)))));
+
+    r = getDocPath(id, "{\"a.*.c\":{\"$lte\":3}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3, "z", true)))));
+
+    r = getDocPath(id, "{\"a.*.c\":{\"$nin\":[10, 100]}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3, "z", true)))));
+
+    r = getDocPath(id, "{\"a.*.z\":{\"$in\":[true]}}", "[\"c\", \"z\"]", ImmutableList.of());
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3, "z", true)))));
+
+    r = getDocPath(id, "{\"a.*.y\":{\"$in\":[\"yy\"]}}", "[\"c\", \"y\"]", ImmutableList.of());
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3, "y", "yy")))));
+
+    assertThat(
+            getDocPathRaw(
+                id, "{\"a.*.c\":{\"$gt\":1,\"$ne\":10}}", "[\"c\", \"z\"]", ImmutableList.of()))
+        .isEqualTo("[{\"a\":{\"d\":{\"c\":3,\"z\":true}}},{\"a\":{\"f\":{\"c\":100}}}]");
+  }
+
+  @Test
+  void testGetDocPathPlainFields() throws JsonProcessingException {
+    final String id = "id2";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ?"), id, "a", "d")
+        .returning(
+            ImmutableList.of(
+                row(id, 3.0, "a", "d", "c"),
+                row(id, true, "a", "d", "z"),
+                row(id, "zz", "a", "d", "y")));
+
+    DocumentResponseWrapper<Map<String, ?>> r =
+        getDocPath(id, null, "[\"c\", \"z\"]", ImmutableList.of(p("a"), p("d")));
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("c", 3, "z", true));
+
+    // selecting missing field results in no docs found
+    assertThat(
+            resource
+                .getDocPath(
+                    headers,
+                    uriInfo,
+                    authToken,
+                    keyspace.name(),
+                    table.name(),
+                    id,
+                    ImmutableList.of(p("a"), p("d")),
+                    null,
+                    "[\"x\"]",
+                    null,
+                    null,
+                    false,
+                    false,
+                    request)
+                .getStatus())
+        .isEqualTo(Status.NOT_FOUND.getStatusCode());
+
+    withQuery(table, selectAll("WHERE key = ?"), id)
+        .returning(ImmutableList.of(row(id, 3.0, "x"), row(id, true, "y"), row(id, "zz", "z")));
+
+    r = getDocPath(id, null, "[\"x\", \"z\"]", ImmutableList.of());
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(m("x", 3, "z", "zz"));
+  }
+
+  @Test
+  void testGetDocPathPlainFieldsPaged() throws JsonProcessingException {
+    final String id = "id2";
+    withQuery(table, selectAll("WHERE key = ? AND p0 = ? AND p1 = ? ALLOW FILTERING"), id, "a", "b")
+        .returning(
+            ImmutableList.of(
+                row(id, 3.0, "a", "b", "c1"),
+                row(id, true, "a", "b", "c2"),
+                row(id, "zz", "a", "b", "d")));
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(id, null, "[\"c1\", \"d\"]", ImmutableList.of(p("a"), p("b")), 1, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("c1", 3, "d", "zz")))));
+  }
+
+  @Test
+  void testGetDocPathPlainFieldsPagedArray() throws JsonProcessingException {
+    final String id = "id2";
+    ImmutableList<Map<String, Object>> rows =
+        ImmutableList.of(
+            row(id, 1.0, "a", "b", "[000000]", "x"),
+            row(id, 1.0, "a", "b", "[000000]", "y"),
+            row(id, 2.0, "a", "b", "[000001]", "z"),
+            row(id, 3.0, "a", "b", "[000002]", "x"),
+            row(id, 3.0, "a", "b", "[000002]", "y"),
+            row(id, 3.0, "a", "b", "[000002]", "z"));
+    withQuery(
+            table,
+            selectAll("WHERE key = ? AND p0 = ? AND p1 = ? AND p2 > ? ALLOW FILTERING"),
+            params(id, "a", "b", ""))
+        .returning(rows);
+
+    DocumentResponseWrapper<List<Map<String, ?>>> r =
+        getDocPath(
+            id, null, "[\"x\", \"z\"]", ImmutableList.of(p("a"), p("b"), p("[*]")), 1, null, false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("[0]", m("x", 1))))));
+
+    r =
+        getDocPath(
+            id,
+            null,
+            "[\"x\", \"z\"]",
+            ImmutableList.of(p("a"), p("b"), p("[*]")),
+            1,
+            r.getPageState(),
+            false);
+    assertThat(r.getDocumentId()).isEqualTo(id);
+    assertThat(r.getPageState()).isNotNull();
+    assertThat(r.getData()).isEqualTo(ImmutableList.of(m("a", m("b", m("[1]", m("z", 2))))));
+  }
+
+  private Object[] params(Object... params) {
+    return params;
+  }
+
+  private Object[] fillParams(Object val, int count, double lastValue, Object... params) {
+    Object[] result = new Object[params.length + count + 1];
+    Arrays.fill(result, val);
+    System.arraycopy(params, 0, result, 0, params.length);
+    result[result.length - 1] = lastValue;
+    return result;
+  }
+
+  private Object[] fillParams(int totalCount, Object... params) {
+    Object[] result = new Object[totalCount];
+    Arrays.fill(result, ""); // default value for pNN columns
+    int idx = 0;
+    for (Object param : params) {
+      if (param == SEPARATOR) {
+        idx = totalCount - params.length + idx + 1;
+        continue;
+      }
+
+      result[idx++] = param;
+    }
+
+    return result;
+  }
+
+  @Test
+  void testPutAtPathRoot()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+    withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
+        .returningNothing();
+
+    withQuery(table, insert, fillParams(70, "id1", "a", SEPARATOR, "a", null, 123.0d, null, 100L))
+        .returningNothing();
+    withQuery(table, insert, fillParams(70, "id1", "b", SEPARATOR, "b", null, null, true, 100L))
+        .returningNothing();
+    withQuery(table, insert, fillParams(70, "id1", "c", SEPARATOR, "c", "text", null, null, 100L))
+        .returningNothing();
+    withQuery(
+            table,
+            insert,
+            fillParams(
+                70, "id1", "d", SEPARATOR, "d", DocumentDB.EMPTY_OBJECT_MARKER, null, null, 100L))
+        .returningNothing();
+    withQuery(
+            table,
+            insert,
+            fillParams(
+                70, "id1", "e", SEPARATOR, "e", DocumentDB.EMPTY_ARRAY_MARKER, null, null, 100L))
+        .returningNothing();
+    withQuery(table, insert, fillParams(70, "id1", "f", SEPARATOR, "f", null, null, null, 100L))
+        .returningNothing();
+    withQuery(
+            table,
+            insert,
+            fillParams(70, "id1", "g", "[000000]", "h", SEPARATOR, "h", null, 1.0d, null, 100L))
+        .returningNothing();
+
+    now.set(100);
+    service.putAtPath(
+        authToken,
+        keyspace.name(),
+        table.name(),
+        "id1",
+        "{\"a\":123, \"b\":true, \"c\":\"text\", \"d\":{}, \"e\":[], \"f\":null, \"g\":[{\"h\":1}]}",
+        ImmutableList.of(),
+        false,
+        db,
+        true,
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
+  }
+
+  @Test
+  void testPutAtPathNested()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+    withQuery(
+            table,
+            "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?",
+            199L,
+            "id2",
+            "x",
+            "y",
+            "[000000]")
+        .returningNothing();
+
+    String insert =
+        "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+    withQuery(
+            table,
+            insert,
+            fillParams(
+                70, "id2", "x", "y", "[000000]", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+        .returningNothing();
+
+    now.set(200);
+    service.putAtPath(
+        authToken,
+        keyspace.name(),
+        table.name(),
+        "id2",
+        "{\"a\":123}",
+        ImmutableList.of(p("x"), p("y"), p("[000000]")),
+        false,
+        db,
+        true,
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
+  }
+
+  @Test
+  void testPutAtPathPatch()
+      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+    String insert =
+        "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+    withQuery(table, insert, fillParams(70, "id3", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+        .returningNothing();
+
+    withQuery(
+            table,
+            "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?",
+            199L,
+            "id3",
+            "[000000]",
+            "[999999]")
+        .returningNothing();
+    withQuery(
+            table,
+            "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?",
+            199L,
+            "id3",
+            ImmutableList.of("a"))
+        .returningNothing();
+
+    now.set(200);
+    service.putAtPath(
+        authToken,
+        keyspace.name(),
+        table.name(),
+        "id3",
+        "{\"a\":123}",
+        ImmutableList.of(),
+        true,
+        db,
+        true,
+        Collections.emptyMap(),
+        ExecutionContext.NOOP_CONTEXT);
+  }
+
+  @Test
+  void testPutAtPathUnauthorized() throws UnauthorizedException {
+    ThrowingCallable action =
+        () ->
+            service.putAtPath(
+                authToken,
+                keyspace.name(),
+                table.name(),
+                "id3",
+                "{\"a\":123}",
+                ImmutableList.of(),
+                true,
+                db,
+                true,
+                Collections.emptyMap(),
+                ExecutionContext.NOOP_CONTEXT);
+
+    Mockito.doThrow(new UnauthorizedException("test1"))
+        .when(authorizationService)
+        .authorizeDataWrite(
+            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.DELETE), eq(SourceAPI.REST));
+
+    assertThatThrownBy(action).hasMessage("test1");
+
+    Mockito.doNothing()
+        .when(authorizationService)
+        .authorizeDataWrite(
+            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.DELETE), eq(SourceAPI.REST));
+    Mockito.doThrow(new UnauthorizedException("test2"))
+        .when(authorizationService)
+        .authorizeDataWrite(
+            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.MODIFY), eq(SourceAPI.REST));
+
+    assertThatThrownBy(action).hasMessage("test2");
+  }
+
+  @Test
+  void testGetDocPathUnauthorized() throws UnauthorizedException {
+    Mockito.doThrow(new UnauthorizedException("test3"))
+        .when(authorizationService)
+        .authorizeDataRead(any(), eq(keyspace.name()), eq(table.name()), eq(SourceAPI.REST));
+
+    assertThatThrownBy(
+            () -> getDocPath("id1", "{\"a.*.y\":{\"$in\":[\"yy\"]}}", null, ImmutableList.of()))
+        .hasMessageContaining("test3");
+  }
+
+  @Test
+  void testWriteManyDocs() throws UnauthorizedException, IOException {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
+    now.set(200);
+    withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 199L, "b")
+        .returningNothing();
+    withQuery(table, insert, fillParams(70, "b", "a", SEPARATOR, "a", "b", null, null, 200L))
+        .returningNothing();
+    service.writeManyDocs(
+        authToken,
+        keyspace.name(),
+        table.name(),
+        in,
+        Optional.of("a"),
+        db,
+        ExecutionContext.NOOP_CONTEXT,
+        Collections.emptyMap());
+  }
+
+  @Test
+  void testWriteManyDocs_invalidIdPath() {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
+    assertThatThrownBy(
+            () ->
+                service.writeManyDocs(
+                    authToken,
+                    keyspace.name(),
+                    table.name(),
+                    in,
+                    Optional.of("no.good"),
+                    db,
+                    ExecutionContext.NOOP_CONTEXT,
+                    Collections.emptyMap()))
+        .hasMessage(
+            "Json Document {\"a\":\"b\"} requires a String value at the path no.good, found . Batch write failed.");
+  }
+
+  @Nested
+  class Profiling {
+
+    private final String dblValueGtQuery =
+        "SELECT key, leaf FROM test_docs.collection1 WHERE p0 = ? AND p1 = ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING";
+    private final String dblValueEqQuery =
+        "SELECT key, leaf FROM test_docs.collection1 WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND dbl_value = ? LIMIT ? ALLOW FILTERING";
+    private final String selectByKey = selectAll("WHERE key = ?");
+    private final String selectAll = selectAll("");
+    private final String id1 = "id1";
+    private final String id2 = "id2";
+    private final String id3 = "id3";
+
+    @BeforeEach
+    void setQueryExpectations() {
+
+      withQuery(table, dblValueGtQuery, params("a", "c", "", 1.0))
+          .returning(ImmutableList.of(leafRow(id1), leafRow(id2), leafRow(id3)));
+
+      withQuery(table, dblValueEqQuery, id1, "d", "e", "f", "", 2.0, 1)
+          .returning(ImmutableList.of(leafRow(id1)));
+      withQuery(table, dblValueEqQuery, id2, "d", "e", "f", "", 2.0, 1)
+          .returning(ImmutableList.of(leafRow(id2)));
+      withQuery(table, dblValueEqQuery, id3, "d", "e", "f", "", 2.0, 1).returningNothing();
+
+      withQuery(table, selectByKey, id1)
+          .returning(ImmutableList.of(row(id1, 3.0, "a", "b"), row(id1, 4.0, "a", "c")));
+
+      withQuery(table, selectByKey, id2)
+          .returning(
+              ImmutableList.of(
+                  row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
+
+      withQuery(table, selectAll)
+          .returning(
+              ImmutableList.of(
+                  row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
+
+      withQuery(table, insert, fillParams(70, id3, "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+          .returningNothing();
+    }
+
+    @Test
+    void docById() throws JsonProcessingException {
+      String id = "id3";
+      ImmutableList<Map<String, Object>> rows =
+          ImmutableList.of(
+              row(id, 2000, 3.0, "a", "d", "c"),
+              row(id, 2000, 10.0, "a", "d", "[0]"),
+              row(id, 1000, 1.0, "a", "f", "c"));
+      withQuery(table, selectByKey, id).returning(rows);
+
+      now.set(300);
+      String delete =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 IN ?";
+      withQuery(table, delete, 300L, id, "a", "d", ImmutableList.of("c")).returningNothing();
+
+      DocumentResponseWrapper<Map<String, ?>> r =
+          unwrap(
+              resource.getDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  id,
+                  null,
+                  null,
+                  null,
+                  null,
+                  true,
+                  false,
+                  request));
+
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties")
+                          .addQueries(QueryInfo.of(selectByKey, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC DOCUMENT CORRECTION")
+                          .addQueries(QueryInfo.of(delete, 1, 0)) // numRows unknown
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchWithDocIdAndFilters() throws JsonProcessingException {
+      final String id = "id1";
+      ImmutableList<Map<String, Object>> rows =
+          ImmutableList.of(
+              row(id, 3.0, "a", "d", "c"),
+              row(id, 10.0, "a", "e", "c"),
+              row(id, 1.0, "a", "f", "c"));
+      String selectWithWhere =
+          selectAll(
+              "WHERE key = ? AND leaf = ? AND p0 = ? AND p1 > ? AND p2 = ? AND dbl_value > ? AND dbl_value < ? ALLOW FILTERING");
+      withQuery(table, selectWithWhere, id, "c", "a", "", "c", 1.0d, 3.0d).returning(rows);
+
+      DocumentResponseWrapper<List<Map<String, ?>>> r =
+          getDocPath(
+              id, "{\"a.*.c\":{\"$gt\":1,\"$lt\":3,\"$ne\":10}}", null, ImmutableList.of(), true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties: a.*.c GT 1.0 AND a.*.c LT 3.0")
+                          .addQueries(QueryInfo.of(selectWithWhere, 1, 3))
+                          .build())
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("FILTER IN MEMORY: a.*.c NE 10.0")
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void searchWithDocId() throws JsonProcessingException {
+      DocumentResponseWrapper<List<Map<String, ?>>> r =
+          getDocPath(id2, null, null, ImmutableList.of(), true);
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("LoadProperties")
+                          .addQueries(QueryInfo.of(selectByKey, 1, 3))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void putDoc() throws JsonProcessingException {
+      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
+
+      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
+      withQuery(table, delete, 199L, "id3").returningNothing();
+
+      now.set(200);
+      DocumentResponseWrapper<Object> r =
+          unwrap(
+              resource.putDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  "id3",
+                  "{\"a\":123}",
+                  true,
+                  request));
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC INSERT")
+                          // row count for DELETE is not known
+                          .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void putManyDocs() throws JsonProcessingException {
+      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
+      withQuery(table, delete, 199L, "123").returningNothing();
+      withQuery(table, delete, 199L, "234").returningNothing();
+      withQuery(table, insert, fillParams(70, "123", "a", SEPARATOR, "a", "123", null, null, 200L))
+          .returningNothing();
+      withQuery(table, insert, fillParams(70, "234", "a", SEPARATOR, "a", "234", null, null, 200L))
+          .returningNothing();
+
+      now.set(200);
+      Response r =
+          resource.writeManyDocs(
+              headers,
+              uriInfo,
+              authToken,
+              keyspace.name(),
+              table.name(),
+              new ByteArrayInputStream("[{\"a\":\"123\"},{\"a\":\"234\"}]".getBytes()),
+              "a",
+              true,
+              request);
+      @SuppressWarnings("unchecked")
+      MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
+      assertThat(mdr.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC INSERT")
+                          // row count for DELETE is not known
+                          .addQueries(QueryInfo.of(insert, 2, 2), QueryInfo.of(delete, 2, 0))
+                          .build())
+                  .build());
+    }
+
+    @Test
+    void patchDoc() throws JsonProcessingException {
+      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
+
+      String delete1 =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
+      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]").returningNothing();
+      String delete2 =
+          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
+      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a")).returningNothing();
+
+      now.set(200);
+      DocumentResponseWrapper<Object> r =
+          unwrap(
+              resource.patchDoc(
+                  headers,
+                  uriInfo,
+                  authToken,
+                  keyspace.name(),
+                  table.name(),
+                  "id3",
+                  "{\"a\":123}",
+                  true,
+                  request));
+      assertThat(r.getProfile())
+          .isEqualTo(
+              ImmutableExecutionProfile.builder()
+                  .description("root")
+                  .addNested(
+                      ImmutableExecutionProfile.builder()
+                          .description("ASYNC PATCH")
+                          // row count for DELETE is not known
+                          .addQueries(
+                              QueryInfo.of(insert, 1, 1),
+                              QueryInfo.of(delete2, 1, 0),
+                              QueryInfo.of(delete1, 1, 0))
+                          .build())
+                  .build());
+    }
   }
 }

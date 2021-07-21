@@ -35,7 +35,9 @@ import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
+import io.stargate.web.docsapi.resources.JsonSchemaResource;
 import io.stargate.web.docsapi.resources.NamespacesResource;
+import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
 import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
@@ -50,6 +52,7 @@ import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
 import io.stargate.web.resources.v2.schemas.UserDefinedTypesResource;
 import io.stargate.web.swagger.SwaggerUIResource;
+import io.stargate.web.validation.ViolationExceptionMapper;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -114,6 +117,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     configureObjectMapper(environment.getObjectMapper());
 
+    environment.jersey().register(new ViolationExceptionMapper());
     environment
         .jersey()
         .register(
@@ -147,6 +151,8 @@ public class Server extends Application<ApplicationConfiguration> {
     // Documents API
     environment.jersey().register(new DocsApiComponentsBinder(environment));
     environment.jersey().register(DocumentResourceV2.class);
+    environment.jersey().register(ReactiveDocumentResourceV2.class);
+    environment.jersey().register(JsonSchemaResource.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
 

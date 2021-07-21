@@ -72,11 +72,11 @@ public class KeyspacesResource {
   @ApiOperation(
       value = "Get all keyspaces",
       notes = "Retrieve all available keyspaces.",
-      response = ResponseWrapper.class,
+      response = Keyspace.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })

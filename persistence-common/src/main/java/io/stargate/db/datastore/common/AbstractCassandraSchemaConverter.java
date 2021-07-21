@@ -87,6 +87,9 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   /** The (internal) 2ndary indexes of provided internal table. */
   protected abstract Iterable<I> secondaryIndexes(T table);
 
+  /** The comment on the provided internal table. * */
+  protected abstract String comment(T table);
+
   /** The (unquoted) name of the provided internal index. */
   protected abstract String indexName(I index);
 
@@ -143,11 +146,13 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     List<Column> columns = convertColumns(keyspaceName, table).collect(Collectors.toList());
     Stream<Index> secondaryIndexes = convertSecondaryIndexes(keyspaceName, table, columns);
     Stream<Index> materializedViews = convertMVIndexes(keyspaceName, table, views);
+    String comment = comment(table);
     return Table.create(
         keyspaceName,
         tableName(table),
         columns,
-        Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()));
+        Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
+        comment);
   }
 
   private Stream<Column> convertColumns(String keyspaceName, T table) {
@@ -257,7 +262,8 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   private Index convertMVIndex(String keyspaceName, V view) {
     T table = asTable(view);
     List<Column> columns = convertColumns(keyspaceName, table).collect(Collectors.toList());
-    return MaterializedView.create(keyspaceName, tableName(table), columns);
+    String comment = comment(table);
+    return MaterializedView.create(keyspaceName, tableName(table), columns, comment);
   }
 
   private Stream<UserDefinedType> convertUserTypes(String keyspaceName, Iterable<U> userTypes) {

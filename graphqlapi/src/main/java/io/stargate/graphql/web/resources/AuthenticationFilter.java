@@ -20,6 +20,10 @@ import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.DataStoreFactory;
+import io.stargate.db.datastore.DataStoreOptions;
+import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.web.RequestToHeadersMapper;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,20 +43,33 @@ import javax.ws.rs.ext.Provider;
 public class AuthenticationFilter implements ContainerRequestFilter {
 
   public static final String SUBJECT_KEY = AuthenticationSubject.class.getName();
+  public static final String DATA_STORE_KEY = DataStore.class.getName();
 
   private final AuthenticationService authenticationService;
+  private final DataStoreFactory dataStoreFactory;
 
-  public AuthenticationFilter(AuthenticationService authenticationService) {
+  public AuthenticationFilter(
+      AuthenticationService authenticationService, DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
+    this.dataStoreFactory = dataStoreFactory;
   }
 
   @Override
   public void filter(ContainerRequestContext context) {
     String token = context.getHeaderString("X-Cassandra-Token");
     try {
-      AuthenticationSubject subject =
-          authenticationService.validateToken(token, deduplicate(context.getHeaders()));
+      Map<String, String> headers = deduplicate(context.getHeaders());
+      AuthenticationSubject subject = authenticationService.validateToken(token, headers);
       context.setProperty(SUBJECT_KEY, subject);
+
+      DataStoreOptions dataStoreOptions =
+          DataStoreOptions.builder()
+              .putAllCustomProperties(headers)
+              .defaultParameters(CassandraFetcher.DEFAULT_PARAMETERS)
+              .alwaysPrepareQueries(true)
+              .build();
+      DataStore dataStore = dataStoreFactory.create(subject.asUser(), dataStoreOptions);
+      context.setProperty(DATA_STORE_KEY, dataStore);
     } catch (UnauthorizedException e) {
       context.abortWith(
           Response.status(Response.Status.UNAUTHORIZED)

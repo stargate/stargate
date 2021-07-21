@@ -21,8 +21,12 @@ import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;
+import graphql.execution.AsyncExecutionStrategy;
 import graphql.language.Argument;
+import graphql.language.Description;
 import graphql.language.Directive;
+import graphql.language.DirectiveDefinition;
+import graphql.language.DirectiveLocation;
 import graphql.language.EnumTypeDefinition;
 import graphql.language.FieldDefinition;
 import graphql.language.InputObjectTypeDefinition;
@@ -30,6 +34,7 @@ import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.ScalarTypeDefinition;
 import graphql.language.StringValue;
 import graphql.language.Type;
 import graphql.language.TypeName;
@@ -50,6 +55,7 @@ import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntity;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntityFetcher;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
@@ -59,16 +65,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SchemaProcessor {
-
-  private static final TypeDefinitionRegistry CQL_DIRECTIVES =
-      new SchemaParser()
-          .parse(
-              new InputStreamReader(
-                  SchemaProcessor.class.getResourceAsStream("/schemafirst/cql_directives.graphql"),
-                  StandardCharsets.UTF_8));
 
   private static final TypeDefinitionRegistry FEDERATION_DIRECTIVES =
       new SchemaParser()
@@ -76,6 +76,15 @@ public class SchemaProcessor {
               new InputStreamReader(
                   SchemaProcessor.class.getResourceAsStream("/schemafirst/federation.graphql"),
                   StandardCharsets.UTF_8));
+
+  private static final DirectiveDefinition ATOMIC_DIRECTIVE =
+      DirectiveDefinition.newDirectiveDefinition()
+          .name(SchemaConstants.ATOMIC_DIRECTIVE)
+          .description(
+              new Description(
+                  "Instructs the server to apply the mutations in a LOGGED batch", null, false))
+          .directiveLocation(DirectiveLocation.newDirectiveLocation().name("MUTATION").build())
+          .build();
 
   private final Persistence persistence;
   private final boolean isPersisted;
@@ -175,15 +184,23 @@ public class SchemaProcessor {
       finalizeKeyDirectives(registry, mappingModel);
       stubQueryTypeIfNeeded(registry, mappingModel);
     }
-    registry = registry.merge(CQL_DIRECTIVES); // Stargate's own CQL directives
+    registry = registry.merge(CqlDirectives.ALL_AS_REGISTRY); // Stargate's own CQL directives
+
+    // Unlike the schema directives, this one is used in queries, and therefore stays at runtime
+    registry.add(ATOMIC_DIRECTIVE);
 
     RuntimeWiring.Builder runtimeWiring =
         RuntimeWiring.newRuntimeWiring()
             .codeRegistry(buildCodeRegistry(mappingModel))
             .scalar(_FieldSet.type);
     for (CqlScalar cqlScalar : cqlScalars) {
+      registry.add(
+          ScalarTypeDefinition.newScalarTypeDefinition()
+              .name(cqlScalar.getGraphqlType().getName())
+              .build());
       runtimeWiring.scalar(cqlScalar.getGraphqlType());
     }
+
     GraphQLSchema schema =
         new SchemaGenerator()
             .makeExecutableSchema(
@@ -206,7 +223,9 @@ public class SchemaProcessor {
     }
     schema = federationTransformer.build();
 
-    return GraphQL.newGraphQL(schema).build();
+    return GraphQL.newGraphQL(schema)
+        .mutationExecutionStrategy(new AsyncExecutionStrategy())
+        .build();
   }
 
   /**
@@ -289,13 +308,19 @@ public class SchemaProcessor {
       return parser.parse(source);
     } catch (SchemaProblem schemaProblem) {
       List<GraphQLError> schemaErrors = schemaProblem.getErrors();
+      // Convert to JSON explicitly, because the parser sometimes returns errors that also implement
+      // java.lang.Exception (e.g. NonSDLDefinitionError), and those get formatted with a full stack
+      // trace by default.
+      List<Map<String, Object>> errorsJson =
+          schemaErrors.stream().map(GraphQLError::toSpecification).collect(Collectors.toList());
+
       String schemaOrigin = isPersisted ? "stored for this keyspace" : "that you provided";
       throw GraphqlErrorException.newErrorException()
           .message(
               String.format(
                   "The schema %s is not valid GraphQL. See details in `extensions.schemaErrors` below.",
                   schemaOrigin))
-          .extensions(ImmutableMap.of("schemaErrors", schemaErrors))
+          .extensions(ImmutableMap.of("schemaErrors", errorsJson))
           .build();
     }
   }
@@ -317,7 +342,7 @@ public class SchemaProcessor {
               @Override
               public TraversalControl visitGraphQLEnumType(
                   GraphQLEnumType node, TraverserContext<GraphQLSchemaElement> context) {
-                if (CQL_DIRECTIVES
+                if (CqlDirectives.ALL_AS_REGISTRY
                     .getType(node.getName())
                     .filter(t -> t instanceof EnumTypeDefinition)
                     .isPresent()) {
@@ -329,7 +354,9 @@ public class SchemaProcessor {
               @Override
               public TraversalControl visitGraphQLDirective(
                   GraphQLDirective node, TraverserContext<GraphQLSchemaElement> context) {
-                if (CQL_DIRECTIVES.getDirectiveDefinition(node.getName()).isPresent()) {
+                if (CqlDirectives.ALL_AS_REGISTRY
+                    .getDirectiveDefinition(node.getName())
+                    .isPresent()) {
                   TreeTransformerUtil.deleteNode(context);
                 }
                 return TraversalControl.CONTINUE;

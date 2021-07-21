@@ -15,14 +15,18 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationModel> {
 
@@ -38,13 +42,120 @@ abstract class MutationModelBuilder extends OperationModelBuilderBase<MutationMo
 
     Type<?> type = TypeHelper.unwrapNonNull(input.getType());
 
+    String inputTypeName;
     if (type instanceof ListType) {
-      return Optional.empty();
+      Type<?> innerListType = TypeHelper.unwrapNonNull(((ListType) type).getType());
+      inputTypeName = ((TypeName) innerListType).getName();
+
+    } else {
+      inputTypeName = ((TypeName) type).getName();
     }
 
-    String inputTypeName = ((TypeName) type).getName();
     return entities.values().stream()
         .filter(e -> e.getInputTypeName().map(name -> name.equals(inputTypeName)).orElse(false))
         .findFirst();
+  }
+
+  protected boolean isList(InputValueDefinition input) {
+    Type<?> type = TypeHelper.unwrapNonNull(input.getType());
+    return (type instanceof ListType);
+  }
+
+  protected EntityModel entityFromDirective(
+      Optional<Directive> cqlDeleteDirective, String name, String directive) throws SkipException {
+    EntityModel entity;
+    String entityName =
+        cqlDeleteDirective
+            .flatMap(
+                d ->
+                    DirectiveHelper.getStringArgument(
+                        d, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY, context))
+            .orElseThrow(
+                () -> {
+                  invalidMapping(
+                      "Mutation %s: if a %s doesn't take an entity input type, "
+                          + "it must indicate the entity name in '@%s.%s'",
+                      operationName, name, directive, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY);
+                  return SkipException.INSTANCE;
+                });
+    entity = entities.get(entityName);
+    if (entity == null) {
+      invalidMapping(
+          "Mutation %s: unknown entity %s (from '@%s.%s')",
+          operationName, entityName, directive, CqlDirectives.UPDATE_OR_DELETE_TARGET_ENTITY);
+      throw SkipException.INSTANCE;
+    }
+    return entity;
+  }
+
+  protected boolean computeIfExists(Optional<Directive> directive) {
+    return directive
+        .flatMap(
+            d ->
+                DirectiveHelper.getBooleanArgument(
+                    d, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS, context))
+        .orElseGet(
+            () -> {
+              if (operation.getName().endsWith("IfExists")) {
+                info(
+                    "Mutation %s: setting the '%s' flag implicitly "
+                        + "because the name follows the naming convention.",
+                    operationName, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS);
+                return true;
+              }
+              return false;
+            });
+  }
+
+  protected Optional<ConsistencyLevel> getConsistencyLevel(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getEnumArgument(
+                d, CqlDirectives.MUTATION_CONSISTENCY_LEVEL, ConsistencyLevel.class, context));
+  }
+
+  protected Optional<ConsistencyLevel> getSerialConsistencyLevel(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getEnumArgument(
+                d,
+                CqlDirectives.MUTATION_SERIAL_CONSISTENCY_LEVEL,
+                ConsistencyLevel.class,
+                context));
+  }
+
+  protected Optional<Integer> getTtl(Optional<Directive> directive) {
+    return directive.flatMap(
+        d ->
+            DirectiveHelper.getStringArgument(d, CqlDirectives.UPDATE_OR_INSERT_TTL, context)
+                .flatMap(this::parseTtl));
+  }
+
+  private Optional<Integer> parseTtl(String spec) {
+    long seconds;
+    try {
+      seconds = Long.parseLong(spec);
+    } catch (NumberFormatException e) {
+      try {
+        Duration duration = Duration.parse(spec);
+        seconds = duration.getSeconds();
+        if (duration.getNano() != 0) {
+          warn(
+              "Mutation %s: TTL's minimum granularity is seconds, "
+                  + "the nanosecond part will be ignored",
+              operationName);
+        }
+      } catch (DateTimeParseException e2) {
+        invalidMapping(
+            "Mutation %s: can't parse TTL '%s' (expected an integer or ISO-8601 duration string)",
+            operationName, spec);
+        return Optional.empty();
+      }
+    }
+    if (seconds < 0 || seconds > Integer.MAX_VALUE) {
+      invalidMapping("Mutation %s: TTL must between 0 and 2^31 - 1 seconds", operationName);
+      return Optional.empty();
+    }
+    return Optional.of((int) seconds);
   }
 }

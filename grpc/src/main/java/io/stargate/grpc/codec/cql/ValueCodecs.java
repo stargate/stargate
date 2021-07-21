@@ -49,6 +49,7 @@ public class ValueCodecs {
               .put(Type.Set, new CollectionCodec())
               .put(Type.Map, new MapCodec())
               .put(Type.Tuple, new TupleCodec())
+              .put(Type.UDT, new UdtCodec())
               .build());
 
   @NonNull

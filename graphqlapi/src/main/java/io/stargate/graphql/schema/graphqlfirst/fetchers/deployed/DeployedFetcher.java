@@ -27,7 +27,6 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundSelect;
@@ -37,14 +36,13 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.graphql.schema.CassandraFetcher;
+import io.stargate.graphql.schema.graphqlfirst.processor.ConditionModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.FieldModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.WhereConditionModel;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -55,7 +53,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /** Base class for fetchers that handle the queries from a user's deployed schema. */
@@ -246,15 +243,14 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
   protected ResultSet query(
       EntityModel entity,
       List<BuiltCondition> whereConditions,
-      Optional<ByteBuffer> pagingState,
       Optional<Integer> limit,
-      Optional<Integer> pageSize,
-      DataStore dataStore,
+      Parameters parameters,
       StargateGraphqlContext context)
       throws UnauthorizedException {
 
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .select()
             .column(
@@ -269,7 +265,7 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
       return context
           .getAuthorizationService()
           .authorizedDataRead(
-              () -> executeUnchecked(query, pagingState, pageSize, dataStore),
+              () -> executeUnchecked(query, parameters, context),
               context.getSubject(),
               entity.getKeyspaceName(),
               entity.getCqlName(),
@@ -307,27 +303,27 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
     return singleResult;
   }
 
-  protected ResultSet executeUnchecked(
-      AbstractBound<?> query,
-      Optional<ByteBuffer> pagingState,
-      Optional<Integer> pageSize,
-      DataStore dataStore) {
-    try {
-      if (pagingState.isPresent() || pageSize.isPresent()) {
-        UnaryOperator<Parameters> parametersModifier =
-            parameters -> {
-              if (pagingState.isPresent()) {
-                parameters = parameters.withPagingState(pagingState.get());
-              }
-              if (pageSize.isPresent()) {
-                parameters = parameters.toBuilder().pageSize(pageSize.get()).build();
-              }
-              return parameters;
-            };
-        return dataStore.execute(query, parametersModifier).get();
-      } else {
-        return dataStore.execute(query).get();
+  /**
+   * Copies a CQL row to a map representing the given entity. Only the columns that correspond to
+   * the entity's fields are considered. If some fields were already present in the map, they are
+   * overridden.
+   */
+  protected void copyRowToEntity(Row row, Map<String, Object> entityData, EntityModel entity) {
+    for (FieldModel field : entity.getAllColumns()) {
+      if (row.columns().stream().noneMatch(c -> c.name().equals(field.getCqlName()))) {
+        continue;
       }
+      Object cqlValue = row.getObject(field.getCqlName());
+      entityData.put(
+          field.getGraphqlName(),
+          toGraphqlValue(cqlValue, field.getCqlType(), field.getGraphqlType()));
+    }
+  }
+
+  protected ResultSet executeUnchecked(
+      AbstractBound<?> query, Parameters parameters, StargateGraphqlContext context) {
+    try {
+      return context.getDataStore().execute(query, __ -> parameters).get();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (ExecutionException e) {
@@ -366,23 +362,54 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
    *     cases the values are not directly arguments, but instead inner fields of an object
    *     argument).
    * @param getArgument how to get the value of an argument (same).
+   * @param validator a validation function that will be applied to the actual conditions, to check
+   *     that they form a valid where clause.
    */
-  protected List<BuiltCondition> bind(
-      List<WhereConditionModel> whereConditions,
-      EntityModel entity,
+  protected List<BuiltCondition> bindWhere(
+      List<ConditionModel> conditions,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Function<List<ConditionModel>, Optional<String>> validator,
+      Keyspace keyspace) {
+
+    List<BuiltCondition> result = new ArrayList<>();
+    List<ConditionModel> activeConditions =
+        bind(conditions, hasArgument, getArgument, keyspace, result);
+
+    validator
+        .apply(activeConditions)
+        .ifPresent(
+            message -> {
+              throw new IllegalArgumentException("Invalid arguments: " + message);
+            });
+    return result;
+  }
+
+  protected List<BuiltCondition> bindIf(
+      List<ConditionModel> conditions,
       Predicate<String> hasArgument,
       Function<String, Object> getArgument,
       Keyspace keyspace) {
 
     List<BuiltCondition> result = new ArrayList<>();
-    List<WhereConditionModel> activeConditions = new ArrayList<>();
-    for (WhereConditionModel whereCondition : whereConditions) {
-      FieldModel field = whereCondition.getField();
-      if (hasArgument.test(whereCondition.getArgumentName())) {
-        activeConditions.add(whereCondition);
-        Object graphqlValue = getArgument.apply(whereCondition.getArgumentName());
+    bind(conditions, hasArgument, getArgument, keyspace, result);
+    return result;
+  }
+
+  private <T extends ConditionModel> List<T> bind(
+      List<T> conditions,
+      Predicate<String> hasArgument,
+      Function<String, Object> getArgument,
+      Keyspace keyspace,
+      List<BuiltCondition> result) {
+    List<T> activeConditions = new ArrayList<>();
+    for (T condition : conditions) {
+      FieldModel field = condition.getField();
+      if (hasArgument.test(condition.getArgumentName())) {
+        activeConditions.add(condition);
+        Object graphqlValue = getArgument.apply(condition.getArgumentName());
         Column.ColumnType cqlType;
-        switch (whereCondition.getPredicate()) {
+        switch (condition.getPredicate()) {
           case IN:
             cqlType = Column.Type.List.of(field.getCqlType());
             break;
@@ -394,18 +421,9 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
             break;
         }
         Object cqlValue = toCqlValue(graphqlValue, cqlType, keyspace);
-        result.add(whereCondition.build(cqlValue));
+        result.add(condition.build(cqlValue));
       }
     }
-
-    // Re-check the validity of the query (we already did while building the model, but some
-    // conditions might not apply if the corresponding argument was missing).
-    entity
-        .validateNoFiltering(activeConditions)
-        .ifPresent(
-            message -> {
-              throw new IllegalArgumentException("Invalid arguments: " + message);
-            });
-    return result;
+    return activeConditions;
   }
 }

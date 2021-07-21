@@ -17,6 +17,7 @@ import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.TableParams;
 import org.apache.cassandra.schema.ViewTableMetadata;
 
 public class SchemaConverter
@@ -115,6 +116,11 @@ public class SchemaConverter
     // nothing we can do at the Stargate level...
     return Iterables.transform(
         Keyspace.openAndGetStore(table).indexManager.listIndexes(), Index::getIndexMetadata);
+  }
+
+  @Override
+  protected String comment(TableMetadata table) {
+    return table.params.get(TableParams.COMMENT);
   }
 
   @Override

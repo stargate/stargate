@@ -19,13 +19,15 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
+import java.util.List;
+import java.util.Map;
 
 @StargateSpec(parametersCustomizer = "enableGraphqlFirst")
 public abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
 
   @SuppressWarnings("ununsed") // invoked by StargateSpec
   public static void enableGraphqlFirst(StargateParameters.Builder builder) {
-    builder.putSystemProperties("stargate.enable_graphql_first", "true");
+    builder.putSystemProperties("stargate.graphql_first.enabled", "true");
   }
 
   protected static void deleteAllGraphqlSchemas(String keyspace, CqlSession session) {
@@ -38,5 +40,14 @@ public abstract class GraphqlFirstTestBase extends BaseOsgiIntegrationTest {
                 session.execute(
                     "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = ?",
                     keyspace));
+  }
+
+  @SuppressWarnings("unchecked")
+  protected String getMappingErrors(Map<String, Object> errors) {
+    Map<String, Object> value =
+        ((Map<String, List<Map<String, Object>>>) errors.get("extensions"))
+            .get("mappingErrors")
+            .get(0);
+    return (String) value.get("message");
   }
 }

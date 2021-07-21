@@ -3,8 +3,10 @@ package io.stargate.db.dse.impl;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +16,9 @@ import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class ConversionTest extends BaseDseTest {
@@ -100,5 +104,44 @@ class ConversionTest extends BaseDseTest {
     // let's just make sure it's not obviously broken
     assertThat(converted.getTimestamp()).isGreaterThan(0);
     assertThat(converted.getKeyspace()).isNull();
+  }
+
+  @Nested
+  class RequestFailureReasons {
+    private RequestFailureReason convert(
+        org.apache.cassandra.exceptions.RequestFailureReason internal) {
+      return Conversion.toExternal(ImmutableMap.of(InetAddress.getLoopbackAddress(), internal))
+          .values()
+          .iterator()
+          .next();
+    }
+
+    @Test
+    void unknown() {
+      assertThat(convert(org.apache.cassandra.exceptions.RequestFailureReason.UNKNOWN))
+          .isEqualTo(RequestFailureReason.UNKNOWN);
+    }
+
+    @Test
+    void readTooManyTombstones() {
+      assertThat(
+              convert(
+                  org.apache.cassandra.exceptions.RequestFailureReason.READ_TOO_MANY_TOMBSTONES))
+          .isEqualTo(RequestFailureReason.READ_TOO_MANY_TOMBSTONES);
+    }
+
+    @Test
+    void allKnownCodes() {
+      for (org.apache.cassandra.exceptions.RequestFailureReason r :
+          org.apache.cassandra.exceptions.RequestFailureReason.values()) {
+        if (r == org.apache.cassandra.exceptions.RequestFailureReason.UNKNOWN) {
+          continue;
+        }
+
+        assertThat(convert(r))
+            .withFailMessage(() -> "" + r + " should not convert to UNKNOWN")
+            .isNotEqualTo(RequestFailureReason.UNKNOWN);
+      }
+    }
   }
 }

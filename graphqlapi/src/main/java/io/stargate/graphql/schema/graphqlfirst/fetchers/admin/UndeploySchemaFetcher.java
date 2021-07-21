@@ -19,7 +19,6 @@ import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.graphql.schema.CassandraFetcher;
@@ -29,12 +28,11 @@ import java.util.UUID;
 public class UndeploySchemaFetcher extends CassandraFetcher<Boolean> {
 
   @Override
-  protected Boolean get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected Boolean get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws Exception {
 
     String keyspaceName = environment.getArgument("keyspace");
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    Keyspace keyspace = context.getDataStore().schema().keyspace(keyspaceName);
     if (keyspace == null) {
       throw new IllegalArgumentException(
           String.format("Keyspace '%s' does not exist.", keyspaceName));
@@ -53,7 +51,7 @@ public class UndeploySchemaFetcher extends CassandraFetcher<Boolean> {
     UUID expectedVersion = getExpectedVersion(environment);
     boolean force = environment.getArgument("force");
 
-    new SchemaSourceDao(dataStore).undeploy(keyspaceName, expectedVersion, force);
+    new SchemaSourceDao(context.getDataStore()).undeploy(keyspaceName, expectedVersion, force);
     return true;
   }
 

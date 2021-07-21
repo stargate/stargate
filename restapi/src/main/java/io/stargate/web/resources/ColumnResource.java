@@ -218,10 +218,11 @@ public class ColumnResource {
   @GET
   @ApiOperation(
       value = "Retrieve a column",
-      notes = "Return a single column specification in a specific table.")
+      notes = "Return a single column specification in a specific table.",
+      response = ColumnDefinition.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK"),
+        @ApiResponse(code = 200, message = "OK", response = ColumnDefinition.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),

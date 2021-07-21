@@ -11,6 +11,7 @@ import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
+import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,9 +86,12 @@ public class Conversion {
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 
+  public static TableMetadata toTableMetadata(TableName tableName) {
+    return Schema.instance.validateTable(tableName.keyspace(), tableName.name());
+  }
+
   public static ByteBuffer toPagingState(PagingPosition pos, Parameters parameters) {
-    TableMetadata table =
-        Schema.instance.validateTable(pos.tableName().keyspace(), pos.tableName().name());
+    TableMetadata table = toTableMetadata(pos.tableName());
 
     Object[] pkValues =
         table.partitionKeyColumns().stream()

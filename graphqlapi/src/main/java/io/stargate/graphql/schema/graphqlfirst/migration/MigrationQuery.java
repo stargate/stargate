@@ -15,6 +15,9 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.migration;
 
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.schema.Column;
@@ -29,6 +32,10 @@ public abstract class MigrationQuery {
   public abstract String getDescription();
 
   public abstract boolean mustRunBefore(MigrationQuery that);
+
+  public abstract void authorize(
+      AuthorizationService authorizationService, AuthenticationSubject subject)
+      throws UnauthorizedException;
 
   /** Whether the query will introduce a new column/field that uses the given UDT. */
   protected abstract boolean addsReferenceTo(String udtName);

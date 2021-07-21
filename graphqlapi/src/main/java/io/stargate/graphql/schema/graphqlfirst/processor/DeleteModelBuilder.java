@@ -18,9 +18,11 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +46,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
 
   @Override
   MutationModel build() throws SkipException {
-    Optional<Directive> cqlDeleteDirective = DirectiveHelper.getDirective("cql_delete", operation);
+    Optional<Directive> cqlDeleteDirective =
+        DirectiveHelper.getDirective(CqlDirectives.DELETE, operation);
     boolean ifExists = computeIfExists(cqlDeleteDirective);
 
     ReturnType returnType = getReturnType("Mutation " + operationName);
@@ -61,7 +64,6 @@ class DeleteModelBuilder extends MutationModelBuilder {
               .filter(f -> f != TechnicalField.APPLIED)
               .map(TechnicalField::getGraphqlName)
               .collect(Collectors.toCollection(HashSet::new));
-      payload.getEntityField().ifPresent(e -> unsupportedFields.add(e.getName()));
       if (!unsupportedFields.isEmpty()) {
         warn(
             "Mutation %s: 'applied' is the only supported field in delete response payloads. Others will always be null (%s).",
@@ -82,7 +84,8 @@ class DeleteModelBuilder extends MutationModelBuilder {
     Optional<EntityModel> entityFromFirstArgument = findEntity(firstArgument);
     Optional<String> entityArgumentName =
         entityFromFirstArgument.map(__ -> firstArgument.getName());
-    List<WhereConditionModel> whereConditions;
+    List<ConditionModel> whereConditions;
+    List<ConditionModel> ifConditions;
     if (entityFromFirstArgument.isPresent()) {
       if (arguments.size() > 1) {
         invalidMapping(
@@ -92,10 +95,22 @@ class DeleteModelBuilder extends MutationModelBuilder {
       }
       entity = entityFromFirstArgument.get();
       whereConditions = entity.getPrimaryKeyWhereConditions();
+      ifConditions = Collections.emptyList();
     } else {
-      entity = entityFromDirective(cqlDeleteDirective);
-      whereConditions = buildWhereConditions(entity);
+      entity = entityFromDirective(cqlDeleteDirective, "delete", CqlDirectives.DELETE);
+      ArgumentDirectiveModels conditions =
+          new ArgumentDirectiveModelsBuilder(
+                  operation, OperationType.DELETE, entity, entities, context)
+              .build();
+      whereConditions = conditions.getWhereConditions();
+      ifConditions = conditions.getIfConditions();
       validateNoFiltering(whereConditions, entity);
+      if (!ifConditions.isEmpty() && ifExists) {
+        invalidMapping(
+            "Operation %s: can't use @%s and %s at the same time",
+            operationName, CqlDirectives.IF, CqlDirectives.UPDATE_OR_DELETE_IF_EXISTS);
+        throw SkipException.INSTANCE;
+      }
     }
 
     return new DeleteModel(
@@ -104,47 +119,10 @@ class DeleteModelBuilder extends MutationModelBuilder {
         entity,
         entityArgumentName,
         whereConditions,
+        ifConditions,
         returnType,
-        ifExists);
-  }
-
-  private boolean computeIfExists(Optional<Directive> cqlDeleteDirective) {
-    return cqlDeleteDirective
-        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifExists", context))
-        .orElseGet(
-            () -> {
-              if (operation.getName().endsWith("IfExists")) {
-                info(
-                    "Mutation %s: setting the 'ifExists' flag implicitly "
-                        + "because the name follows the naming convention.",
-                    operationName);
-                return true;
-              }
-              return false;
-            });
-  }
-
-  private EntityModel entityFromDirective(Optional<Directive> cqlDeleteDirective)
-      throws SkipException {
-    EntityModel entity;
-    String entityName =
-        cqlDeleteDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "targetEntity", context))
-            .orElseThrow(
-                () -> {
-                  invalidMapping(
-                      "Mutation %s: if a delete doesn't take an entity input type, "
-                          + "it must indicate the entity name in '@cql_delete.targetEntity'",
-                      operationName);
-                  return SkipException.INSTANCE;
-                });
-    entity = entities.get(entityName);
-    if (entity == null) {
-      invalidMapping(
-          "Mutation %s: unknown entity %s (from '@cql_delete.targetEntity')",
-          operationName, entityName);
-      throw SkipException.INSTANCE;
-    }
-    return entity;
+        ifExists,
+        getConsistencyLevel(cqlDeleteDirective),
+        getSerialConsistencyLevel(cqlDeleteDirective));
   }
 }

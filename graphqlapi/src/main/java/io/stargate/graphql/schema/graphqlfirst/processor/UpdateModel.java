@@ -18,25 +18,77 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.UpdateFetcher;
+import java.util.List;
+import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class UpdateModel extends MutationModel {
 
-  private final EntityModel entity;
-  private final String entityArgumentName;
+  private final List<ConditionModel> whereConditions;
+  private final List<ConditionModel> ifConditions;
+  private final Optional<String> entityArgumentName;
+  private final Optional<ResponsePayloadModel> responsePayload;
+  private final boolean ifExists;
+  private final List<IncrementModel> incrementModels;
+  private final Optional<Integer> ttl;
+  private final Optional<String> cqlTimestampArgumentName;
 
-  UpdateModel(
-      String parentTypeName, FieldDefinition field, EntityModel entity, String entityArgumentName) {
-    super(parentTypeName, field);
-    this.entity = entity;
+  public UpdateModel(
+      String parentTypeName,
+      FieldDefinition field,
+      EntityModel entity,
+      List<ConditionModel> whereConditions,
+      List<ConditionModel> ifConditions,
+      Optional<String> entityArgumentName,
+      ReturnType returnType,
+      Optional<ResponsePayloadModel> responsePayload,
+      boolean ifExists,
+      List<IncrementModel> incrementModels,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel,
+      Optional<Integer> ttl,
+      Optional<String> cqlTimestampArgumentName) {
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
+    this.whereConditions = whereConditions;
+    this.ifConditions = ifConditions;
     this.entityArgumentName = entityArgumentName;
+    this.responsePayload = responsePayload;
+    this.ifExists = ifExists;
+    this.incrementModels = incrementModels;
+    this.ttl = ttl;
+    this.cqlTimestampArgumentName = cqlTimestampArgumentName;
   }
 
-  public EntityModel getEntity() {
-    return entity;
+  public List<ConditionModel> getWhereConditions() {
+    return whereConditions;
   }
 
-  public String getEntityArgumentName() {
+  public List<ConditionModel> getIfConditions() {
+    return ifConditions;
+  }
+
+  public boolean ifExists() {
+    return ifExists;
+  }
+
+  public Optional<String> getEntityArgumentName() {
     return entityArgumentName;
+  }
+
+  public Optional<ResponsePayloadModel> getResponsePayload() {
+    return responsePayload;
+  }
+
+  public List<IncrementModel> getIncrementModels() {
+    return incrementModels;
+  }
+
+  public Optional<Integer> getTtl() {
+    return ttl;
+  }
+
+  public Optional<String> getCqlTimestampArgumentName() {
+    return cqlTimestampArgumentName;
   }
 
   @Override

@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.cqlfirst.ddl.fetchers;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.web.StargateGraphqlContext;
@@ -27,12 +26,11 @@ import java.util.Collections;
 public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
 
   @Override
-  protected KeyspaceDto get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected KeyspaceDto get(DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws Exception {
     String keyspaceName = environment.getArgument("name");
 
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    Keyspace keyspace = context.getDataStore().schema().keyspace(keyspaceName);
     if (keyspace == null) {
       return null;
     }

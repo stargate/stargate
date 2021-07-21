@@ -15,9 +15,15 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
+import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.*;
+
+import graphql.Scalars;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InputValueDefinition;
+import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ResponsePayloadModelListReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
+import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +45,9 @@ class InsertModelBuilder extends MutationModelBuilder {
   @Override
   InsertModel build() throws SkipException {
 
-    boolean ifNotExists = computeIfNotExists();
+    Optional<Directive> cqlInsertDirective =
+        DirectiveHelper.getDirective(CqlDirectives.INSERT, operation);
+    boolean ifNotExists = computeIfNotExists(cqlInsertDirective);
 
     // Validate inputs: must be a single entity argument
     List<InputValueDefinition> inputs = operation.getInputValueDefinitions();
@@ -49,8 +57,10 @@ class InsertModelBuilder extends MutationModelBuilder {
           operationName);
       throw SkipException.INSTANCE;
     }
-    if (inputs.size() > 1) {
-      invalidMapping("Mutation %s: inserts can't have more than one argument", operationName);
+    if (inputs.size() > 2) {
+      invalidMapping(
+          "Mutation %s: inserts can't have more than two arguments: entity input and optionally a value with %s directive",
+          operationName, CqlDirectives.TIMESTAMP);
       throw SkipException.INSTANCE;
     }
     InputValueDefinition input = inputs.get(0);
@@ -64,40 +74,86 @@ class InsertModelBuilder extends MutationModelBuilder {
                       operationName);
                   return SkipException.INSTANCE;
                 });
+    boolean isList = isList(input);
 
-    // Validate return type: must be the entity itself, or a wrapper payload
+    // Validate return type: must be the entity itself, or a wrapper payload, boolean, or a list of
+    // those types
     ReturnType returnType = getReturnType("Mutation " + operationName);
-    if (returnType.isEntityList()
-        || !returnType.getEntity().filter(e -> e.equals(entity)).isPresent()) {
+    if (!returnType.getEntity().filter(e -> e.equals(entity)).isPresent()
+        && returnType != SimpleReturnType.BOOLEAN
+        && !isSimpleListWithBoolean(returnType)) {
       invalidMapping(
           "Mutation %s: invalid return type. Expected %s, or a response payload that wraps a "
-              + "single instance of it.",
+              + "single instance of it or Boolean, or a list of those types.",
           operationName, entity.getGraphqlName());
+    }
+
+    if (isList && !returnType.isList()) {
+      invalidMapping(
+          "Mutation %s: invalid return type. For bulk inserts, expected list of %s. ",
+          operationName, entity.getGraphqlName());
+    }
+
+    Optional<String> cqlTimestampArgumentName =
+        findFieldNameWithDirective(
+            CqlDirectives.TIMESTAMP, Scalars.GraphQLString, CqlScalar.BIGINT.getGraphqlType());
+    if (inputs.size() == 2 && !cqlTimestampArgumentName.isPresent()) {
+      invalidMapping(
+          "Mutation %s: if you provided two arguments, the second one must be annotated with %s directive.",
+          operationName, CqlDirectives.TIMESTAMP);
     }
 
     Optional<ResponsePayloadModel> responsePayload =
         Optional.of(returnType)
+            .map(
+                r -> {
+                  // if it is a list of response payloads, extract the underlying type
+                  if (r instanceof ResponsePayloadModelListReturnType) {
+                    return ((ResponsePayloadModelListReturnType) returnType)
+                        .getResponsePayloadModel();
+                  }
+                  return r;
+                })
             .filter(ResponsePayloadModel.class::isInstance)
             .map(ResponsePayloadModel.class::cast);
 
     return new InsertModel(
-        parentTypeName, operation, entity, input.getName(), responsePayload, ifNotExists);
+        parentTypeName,
+        operation,
+        entity,
+        input.getName(),
+        responsePayload,
+        ifNotExists,
+        getConsistencyLevel(cqlInsertDirective),
+        getSerialConsistencyLevel(cqlInsertDirective),
+        getTtl(cqlInsertDirective),
+        returnType,
+        cqlTimestampArgumentName,
+        isList);
   }
 
-  private boolean computeIfNotExists() {
+  private boolean isSimpleListWithBoolean(ReturnType returnType) {
+    return returnType instanceof SimpleListReturnType
+        && ((SimpleListReturnType) returnType)
+            .getSimpleReturnType()
+            .equals(SimpleReturnType.BOOLEAN);
+  }
+
+  private boolean computeIfNotExists(Optional<Directive> cqlInsertDirective) {
     // If the directive is set, it always takes precedence
     Optional<Boolean> fromDirective =
-        DirectiveHelper.getDirective("cql_insert", operation)
-            .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "ifNotExists", context));
+        cqlInsertDirective.flatMap(
+            d ->
+                DirectiveHelper.getBooleanArgument(d, CqlDirectives.INSERT_IF_NOT_EXISTS, context));
     if (fromDirective.isPresent()) {
       return fromDirective.get();
     }
     // Otherwise, try the naming convention
     if (operation.getName().endsWith("IfNotExists")) {
       info(
-          "Mutation %s: setting the 'ifNotExists' flag implicitly "
+          "Mutation %s: setting the '%s' flag implicitly "
               + "because the name follows the naming convention.",
-          operationName);
+          operationName, CqlDirectives.INSERT_IF_NOT_EXISTS);
       return true;
     }
     return false;

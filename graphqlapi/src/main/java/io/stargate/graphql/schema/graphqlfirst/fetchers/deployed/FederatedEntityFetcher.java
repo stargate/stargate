@@ -18,7 +18,6 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 import com.apollographql.federation.graphqljava._Entity;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.schema.Keyspace;
@@ -48,19 +47,19 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
 
   @Override
   protected List<FederatedEntity> get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
 
     List<FederatedEntity> result = new ArrayList<>();
     for (Map<String, Object> representation :
         environment.<List<Map<String, Object>>>getArgument(_Entity.argumentName)) {
-      result.add(getEntity(representation, dataStore, context));
+      result.add(getEntity(representation, context));
     }
     return result;
   }
 
   private FederatedEntity getEntity(
-      Map<String, Object> representation, DataStore dataStore, StargateGraphqlContext context)
+      Map<String, Object> representation, StargateGraphqlContext context)
       throws UnauthorizedException {
     Object rawTypeName = representation.get("__typename");
     if (!(rawTypeName instanceof String)) {
@@ -73,23 +72,16 @@ public class FederatedEntityFetcher extends DeployedFetcher<List<FederatedEntity
     if (entityModel == null) {
       throw new IllegalArgumentException(String.format("Unknown entity type %s", entityName));
     }
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
     List<BuiltCondition> whereConditions =
-        bind(
+        bindWhere(
             entityModel.getPrimaryKeyWhereConditions(),
-            entityModel,
             representation::containsKey,
             representation::get,
+            entityModel::validateNoFiltering,
             keyspace);
     ResultSet resultSet =
-        query(
-            entityModel,
-            whereConditions,
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            dataStore,
-            context);
+        query(entityModel, whereConditions, Optional.empty(), DEFAULT_PARAMETERS, context);
     Map<String, Object> entity = toSingleEntity(resultSet, entityModel);
     return FederatedEntity.wrap(entityModel, entity);
   }

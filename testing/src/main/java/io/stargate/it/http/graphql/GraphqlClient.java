@@ -43,7 +43,8 @@ public abstract class GraphqlClient {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   protected Map<String, Object> getGraphqlData(String authToken, String url, String graphqlQuery) {
-    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
+    Map<String, Object> response =
+        getGraphqlResponse(authToken, url, graphqlQuery, HttpStatus.SC_OK);
     assertThat(response).isNotNull();
     assertThat(response.get("errors")).isNull();
     @SuppressWarnings("unchecked")
@@ -51,17 +52,26 @@ public abstract class GraphqlClient {
     return data;
   }
 
-  protected String getGraphqlError(String authToken, String url, String graphqlQuery) {
-    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery);
-    assertThat(response).isNotNull();
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
+  protected String getGraphqlError(
+      String authToken, String url, String graphqlQuery, int expectedStatus) {
+    List<Map<String, Object>> errors =
+        getGraphqlErrors(authToken, url, graphqlQuery, expectedStatus);
     assertThat(errors).hasSize(1);
     return (String) errors.get(0).get("message");
   }
 
+  protected List<Map<String, Object>> getGraphqlErrors(
+      String authToken, String url, String graphqlQuery, int expectedStatus) {
+    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery, expectedStatus);
+    assertThat(response).isNotNull();
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
+    assertThat(errors).isNotEmpty();
+    return errors;
+  }
+
   protected Map<String, Object> getGraphqlResponse(
-      String authToken, String url, String graphqlQuery) {
+      String authToken, String url, String graphqlQuery, int expectedStatus) {
     try {
       OkHttpClient okHttpClient = RestUtils.client();
       Map<String, Object> formData = new HashMap<>();
@@ -80,13 +90,12 @@ public abstract class GraphqlClient {
       String bodyString = response.body().string();
       assertThat(response.code())
           .as("Unexpected error %d: %s", response.code(), bodyString)
-          .isEqualTo(HttpStatus.SC_OK);
+          .isEqualTo(expectedStatus);
       @SuppressWarnings("unchecked")
       Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(bodyString, Map.class);
       return graphqlResponse;
     } catch (IOException e) {
-      fail("Unexpected error while sending POST request", e);
-      return null; // never reached
+      return fail("Unexpected error while sending POST request", e);
     }
   }
 

@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,7 +88,7 @@ public class ExecuteBatchTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeBatch(
             QueryOuterClass.Batch.newBuilder()
                 .addQueries(
@@ -87,7 +102,7 @@ public class ExecuteBatchTest extends BaseServiceTest {
                         "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
                 .build());
 
-    assertThat(result.hasPayload()).isFalse();
+    assertThat(response.hasResultSet()).isFalse();
   }
 
   @ParameterizedTest
@@ -116,14 +131,14 @@ public class ExecuteBatchTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeBatch(
             QueryOuterClass.Batch.newBuilder()
                 .setType(QueryOuterClass.Batch.Type.forNumber(type.id))
                 .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
                 .build());
 
-    assertThat(result.hasPayload()).isFalse();
+    assertThat(response.hasResultSet()).isFalse();
   }
 
   @Test
@@ -136,9 +151,9 @@ public class ExecuteBatchTest extends BaseServiceTest {
 
     assertThatThrownBy(
             () -> {
-              QueryOuterClass.Result result =
+              QueryOuterClass.Response response =
                   stub.executeBatch(QueryOuterClass.Batch.newBuilder().build());
-              assertThat(result.hasPayload()).isFalse();
+              assertThat(response.hasResultSet()).isFalse();
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("No queries in batch");
@@ -164,12 +179,12 @@ public class ExecuteBatchTest extends BaseServiceTest {
 
     assertThatThrownBy(
             () -> {
-              QueryOuterClass.Result result =
+              QueryOuterClass.Response response =
                   stub.executeBatch(
                       QueryOuterClass.Batch.newBuilder()
                           .addQueries(cqlBatchQuery("DOES NOT MATTER", values))
                           .build());
-              assertThat(result).isNotNull(); // Never going to happen
+              assertThat(response).isNotNull(); // Never going to happen
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining(expectedMessage);
@@ -208,12 +223,12 @@ public class ExecuteBatchTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeBatch(
             QueryOuterClass.Batch.newBuilder()
                 .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
                 .build());
 
-    assertThat(result.getWarningsList()).containsAll(expectedWarnings);
+    assertThat(response.getWarningsList()).containsAll(expectedWarnings);
   }
 }

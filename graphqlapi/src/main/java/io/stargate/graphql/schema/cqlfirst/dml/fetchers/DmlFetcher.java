@@ -8,7 +8,6 @@ import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
@@ -19,12 +18,15 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.NameMapping;
+import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,14 +43,13 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     this.dbColumnGetter = new DbColumnGetter(nameMapping);
   }
 
-  @Override
-  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
+  protected Parameters buildParameters(DataFetchingEnvironment environment) {
     Map<String, Object> options = environment.getArgument("options");
     if (options == null) {
       return DEFAULT_PARAMETERS;
     }
 
-    ImmutableParameters.Builder builder = Parameters.builder().from(DEFAULT_PARAMETERS);
+    ImmutableParameters.Builder builder = DEFAULT_PARAMETERS.toBuilder();
 
     Object consistency = options.get("consistency");
     if (consistency != null) {
@@ -107,22 +108,50 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
     }
   }
 
-  protected List<Map<String, Object>> toListOfMutationResults(
-      ResultSet resultSet, List<Map<String, Object>> originalValues) {
-    List<Row> rows = resultSet.currentPageRows();
+  protected List<Map<String, Object>> toBatchResults(
+      List<Row> rows, List<Map<String, Object>> originalValues) {
+
+    boolean applied = isAppliedBatch(rows);
+
     List<Map<String, Object>> results = new ArrayList<>();
-    if (rows.isEmpty()) {
-      for (Map<String, Object> originalValue : originalValues) {
-        results.add(toAppliedMutationResultWithOriginalValue(originalValue));
-      }
-    } else {
-      for (int i = 0; i <= rows.size(); i++) {
-        Row row = rows.get(i);
-        Map<String, Object> originalValue = originalValues.get(i);
-        results.add(toMutationResultSingleRow(originalValue, row));
-      }
+    for (Map<String, Object> originalValue : originalValues) {
+      results.add(
+          applied
+              ? toAppliedMutationResultWithOriginalValue(originalValue)
+              : toUnappliedBatchResult(rows, originalValue));
     }
     return results;
+  }
+
+  protected Map<String, Object> toBatchResult(List<Row> rows, Map<String, Object> originalValue) {
+    return isAppliedBatch(rows)
+        ? toAppliedMutationResultWithOriginalValue(originalValue)
+        : toUnappliedBatchResult(rows, originalValue);
+  }
+
+  private Map<String, Object> toUnappliedBatchResult(
+      List<Row> rows, final Map<String, Object> originalValue) {
+    Map<String, Object> primaryKey =
+        table.primaryKeyColumns().stream()
+            .collect(
+                Collectors.toMap(
+                    Column::name, column -> toDBValue(column, originalValue.get(column.name()))));
+    return rows.stream()
+        .filter(row -> matches(row, primaryKey))
+        .findFirst()
+        .map(row -> toMutationResultSingleRow(originalValue, row))
+        .orElse(ImmutableMap.of("applied", false));
+  }
+
+  private boolean matches(Row row, Map<String, Object> primaryKey) {
+    for (Map.Entry<String, Object> entry : primaryKey.entrySet()) {
+      String name = entry.getKey();
+      if (row.columns().stream().noneMatch(c -> name.equals(c.name()))
+          || !entry.getValue().equals(row.getObject(name))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   protected CompletableFuture<List<Map<String, Object>>> toListOfMutationResultsAccepted(
@@ -163,10 +192,10 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
 
   private ImmutableMap<String, Object> toMutationResultSingleRow(Object originalValue, Row row) {
     boolean applied = row.getBoolean("[applied]");
-    Map<String, Object> value = DataTypeMapping.toGraphQLValue(nameMapping, table, row);
 
     // if applied we can return the original value, otherwise use database state
-    Object finalValue = applied ? originalValue : value;
+    Object finalValue =
+        applied ? originalValue : DataTypeMapping.toGraphQLValue(nameMapping, table, row);
     return ImmutableMap.of("value", finalValue, "applied", applied);
   }
 
@@ -179,9 +208,13 @@ public abstract class DmlFetcher<ResultT> extends CassandraFetcher<ResultT> {
    * accepted=true without waiting for the result.
    */
   protected CompletableFuture<Map<String, Object>> executeAsyncAccepted(
-      DataStore dataStore, BoundQuery query, Object originalValue) {
-    dataStore
-        .execute(query)
+      BoundQuery query,
+      Object originalValue,
+      UnaryOperator<Parameters> parameters,
+      StargateGraphqlContext context) {
+    context
+        .getDataStore()
+        .execute(query, parameters)
         .whenComplete(
             (r, throwable) -> {
               if (throwable != null) {

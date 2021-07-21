@@ -15,14 +15,12 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import com.google.common.collect.ImmutableMap;
+import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDelete;
 import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -30,33 +28,23 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.schema.graphqlfirst.processor.DeleteModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.graphql.schema.graphqlfirst.processor.MappingModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
-import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel;
-import io.stargate.graphql.schema.graphqlfirst.processor.ResponsePayloadModel.TechnicalField;
 import io.stargate.graphql.web.StargateGraphqlContext;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
-public class DeleteFetcher extends DeployedFetcher<Object> {
-
-  private final DeleteModel model;
+public class DeleteFetcher extends MutationFetcher<DeleteModel, DataFetcherResult<Object>> {
 
   public DeleteFetcher(DeleteModel model, MappingModel mappingModel) {
-    super(mappingModel);
-    this.model = model;
+    super(model, mappingModel);
   }
 
   @Override
-  protected Object get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+  protected MutationPayload<DataFetcherResult<Object>> getPayload(
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
-
     EntityModel entityModel = model.getEntity();
-    Keyspace keyspace = dataStore.schema().keyspace(entityModel.getKeyspaceName());
+    Keyspace keyspace = context.getDataStore().schema().keyspace(entityModel.getKeyspaceName());
 
     // We're either getting the values from a single entity argument, or individual PK field
     // arguments:
@@ -72,40 +60,37 @@ public class DeleteFetcher extends DeployedFetcher<Object> {
     }
 
     List<BuiltCondition> whereConditions =
-        bind(model.getWhereConditions(), entityModel, hasArgument, getArgument, keyspace);
+        bindWhere(
+            model.getWhereConditions(),
+            hasArgument,
+            getArgument,
+            entityModel::validateNoFiltering,
+            keyspace);
+    List<BuiltCondition> ifConditions =
+        bindIf(model.getIfConditions(), hasArgument, getArgument, keyspace);
     AbstractBound<?> query =
-        dataStore
+        context
+            .getDataStore()
             .queryBuilder()
             .delete()
             .from(entityModel.getKeyspaceName(), entityModel.getCqlName())
             .where(whereConditions)
+            .ifs(ifConditions)
             .ifExists(model.ifExists())
             .build()
             .bind();
 
+    List<TypedKeyValue> primaryKey = TypedKeyValue.forDML((BoundDelete) query);
     context
         .getAuthorizationService()
         .authorizeDataWrite(
             context.getSubject(),
             entityModel.getKeyspaceName(),
             entityModel.getCqlName(),
-            TypedKeyValue.forDML((BoundDelete) query),
+            primaryKey,
             Scope.DELETE,
             SourceAPI.GRAPHQL);
 
-    ResultSet resultSet = executeUnchecked(query, Optional.empty(), Optional.empty(), dataStore);
-    boolean applied = !model.ifExists() || resultSet.one().getBoolean("[applied]");
-
-    ReturnType returnType = model.getReturnType();
-    if (returnType == SimpleReturnType.BOOLEAN) {
-      return applied;
-    } else {
-      ResponsePayloadModel payload = (ResponsePayloadModel) returnType;
-      if (payload.getTechnicalFields().contains(TechnicalField.APPLIED)) {
-        return ImmutableMap.of(TechnicalField.APPLIED.getGraphqlName(), applied);
-      } else {
-        return Collections.emptyMap();
-      }
-    }
+    return new MutationPayload<>(query, primaryKey, getDeleteOrUpdateResultBuilder(environment));
   }
 }

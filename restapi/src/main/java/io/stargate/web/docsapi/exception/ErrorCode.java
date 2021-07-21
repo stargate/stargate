@@ -35,9 +35,6 @@ public enum ErrorCode {
       "The table name contains invalid characters. Valid characters are alphanumeric and underscores."),
 
   /** Document API. */
-  DOCS_API_TABLE_NOT_A_COLLECTION(
-      Response.Status.BAD_REQUEST,
-      "The requested database table is not a Documents API Collection."),
   DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED(
       Response.Status.BAD_REQUEST,
       String.format(
@@ -63,6 +60,13 @@ public enum ErrorCode {
           "The parameter `page-size` is limited to %d.",
           DocsApiConfiguration.DEFAULT.getMaxPageSize())),
 
+  DOCS_API_GENERAL_UPGRADE_INVALID(
+      Response.Status.BAD_REQUEST, "The collection cannot be upgraded in given manner."),
+
+  DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION(
+      Response.Status.BAD_REQUEST,
+      "The requested database table is not a Documents API Collection."),
+
   DOCS_API_GET_FIELDS_WITHOUT_WHERE(
       Response.Status.BAD_REQUEST, "Selecting fields is not allowed without `where`."),
 
@@ -80,15 +84,44 @@ public enum ErrorCode {
   DOCS_API_PUT_PAYLOAD_INVALID(
       Response.Status.BAD_REQUEST, "A put operation failed due to the invalid payload."),
 
+  DOCS_API_SEARCH_WHERE_JSON_INVALID(
+      Response.Status.BAD_REQUEST,
+      "The `where` parameter expects a valid JSON object representing search criteria."),
+
+  DOCS_API_SEARCH_FIELDS_JSON_INVALID(
+      Response.Status.BAD_REQUEST,
+      "The `fields` parameter expects a valid JSON array containing field names."),
+
   DOCS_API_SEARCH_FILTER_INVALID(
       Response.Status.BAD_REQUEST, "A filter operation and value resolved as invalid."),
+
+  DOCS_API_SEARCH_ARRAY_PATH_INVALID(
+      Response.Status.BAD_REQUEST, "An invalid array path value was provided."),
 
   DOCS_API_SEARCH_OBJECT_REQUIRED(
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
 
+  DOCS_API_SEARCH_OR_NOT_SUPPORTED(
+      Response.Status.BAD_REQUEST,
+      "Searching documents with the $or condition is not yet supported."),
+
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,
-      "The results as requested must fit in one page, try increasing the `page-size` parameter.");
+      "The results as requested must fit in one page, try increasing the `page-size` parameter."),
+
+  DOCS_API_JSON_SCHEMA_INVALID(
+      Response.Status.BAD_REQUEST, "The provided JSON schema is invalid or malformed."),
+
+  DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE(
+      Response.Status.BAD_REQUEST,
+      "When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons."),
+
+  DOCS_API_INVALID_JSON_VALUE(
+      Response.Status.BAD_REQUEST, "The provided JSON does not match the collection's schema."),
+  DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
+      Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),
+  DOCS_API_WRITE_BATCH_FAILED(
+      Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write.");
 
   /** Status of the response. */
   private final Response.Status responseStatus;

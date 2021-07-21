@@ -1,6 +1,7 @@
 package io.stargate.web.docsapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.anyString;
@@ -8,21 +9,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.google.common.collect.ImmutableList;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
-import io.stargate.web.docsapi.service.filter.FilterCondition;
-import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
-import io.stargate.web.models.Error;
 import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,8 +34,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class DocumentResourceV2Test {
   private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
   @InjectMocks private DocumentResourceV2 documentResourceV2;
@@ -67,14 +67,32 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.postDoc(
-            headers, ui, authToken, keyspace, collection, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
   }
 
   @Test
-  public void putDoc_success() throws UnauthorizedException, JsonProcessingException {
+  public void postMultiDoc_success() throws JsonProcessingException {
+    HttpHeaders headers = mock(HttpHeaders.class);
+    when(headers.getHeaderString(anyString())).thenReturn("application/json");
+    UriInfo ui = mock(UriInfo.class);
+    String authToken = "auth_token";
+    String keyspace = "keyspace";
+    String collection = "collection";
+    InputStream payload = mock(InputStream.class);
+
+    Response r =
+        documentResourceV2.writeManyDocs(
+            headers, ui, authToken, keyspace, collection, payload, null, false, httpServletRequest);
+
+    assertThat(r.getStatus()).isEqualTo(202);
+    mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
+  }
+
+  @Test
+  public void putDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
     when(headers.getHeaderString(anyString())).thenReturn("application/json");
     UriInfo ui = mock(UriInfo.class);
@@ -86,7 +104,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -106,7 +124,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            path,
+            payload,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -126,7 +153,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -147,7 +174,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, payload, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            path,
+            payload,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -199,7 +235,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
 
     ObjectNode mockedReturn = mapper.createObjectNode();
@@ -207,7 +242,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), anyList(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -220,8 +255,9 @@ public class DocumentResourceV2Test {
             id,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -239,7 +275,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -248,7 +283,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), anyList(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -262,8 +297,9 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -281,7 +317,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = "{\"a\": {\"$eq\": \"b\"}}";
     String fields = "[\"a\"]";
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -295,8 +330,10 @@ public class DocumentResourceV2Test {
                 anyString(),
                 anyList(),
                 anyList(),
+                anyList(),
                 anyString(),
-                anyObject()))
+                anyObject(),
+                any()))
         .thenReturn(mockedReturn);
 
     Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
@@ -315,8 +352,9 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
 
@@ -334,7 +372,6 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
@@ -343,7 +380,7 @@ public class DocumentResourceV2Test {
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), anyList(), any()))
         .thenReturn(mockedReturn);
 
     Response r =
@@ -357,8 +394,9 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
+            false,
             false,
             httpServletRequest);
 
@@ -379,13 +417,12 @@ public class DocumentResourceV2Test {
     String id = "id";
     String where = null;
     String fields = null;
-    int pageSizeParam = 0;
     String pageStateParam = null;
     List<PathSegment> path = new ArrayList<>();
 
     Mockito.when(
             documentServiceMock.getJsonAtPath(
-                anyObject(), anyString(), anyString(), anyString(), anyObject()))
+                anyObject(), anyString(), anyString(), anyString(), anyObject(), anyList(), any()))
         .thenReturn(null);
 
     Response r =
@@ -399,11 +436,12 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
             false,
+            false,
             httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(204);
+    assertThat(r.getStatus()).isEqualTo(404);
     r =
         documentResourceV2.getDocPath(
             headers,
@@ -415,321 +453,11 @@ public class DocumentResourceV2Test {
             path,
             where,
             fields,
-            pageSizeParam,
+            null,
             pageStateParam,
+            false,
             true,
             httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(204);
-  }
-
-  @Test
-  public void searchDoc_whereWithNoFields()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = "";
-    String fields = null;
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = false;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field"), "$eq", "value"));
-
-    ObjectNode searchResult = mapper.createObjectNode();
-    searchResult.set("id1", mapper.createArrayNode());
-    searchResult.set("id2", mapper.createArrayNode());
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Mockito.when(
-            documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
-        .thenReturn(searchResult);
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(200);
-    JsonNode resp = mapper.readTree((String) r.getEntity());
-    ObjectNode expected = mapper.createObjectNode();
-    expected.set("data", searchResult);
-    assertThat(resp).isEqualTo(expected);
-  }
-
-  @Test
-  public void searchDoc_whereWithNoFieldsRaw()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = "";
-    String fields = null;
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field"), "$eq", "value"));
-
-    ObjectNode searchResult = mapper.createObjectNode();
-    searchResult.set("id1", mapper.createArrayNode());
-    searchResult.set("id2", mapper.createArrayNode());
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Mockito.when(
-            documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
-        .thenReturn(searchResult);
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
-  }
-
-  @Test
-  public void searchDoc_whereWithFieldsRaw()
-      throws ExecutionException, InterruptedException, JsonProcessingException,
-          UnauthorizedException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = "";
-    String fields = "";
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
-
-    ObjectNode searchResult = mapper.createObjectNode();
-    searchResult.set("id1", mapper.createArrayNode());
-    searchResult.set("id2", mapper.createArrayNode());
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
-        .thenReturn(ImmutableList.of("field1"));
-
-    Mockito.when(
-            documentServiceMock.getFullDocumentsFiltered(
-                anyObject(), anyString(), anyString(), anyList(), anyList(), anyObject()))
-        .thenReturn(searchResult);
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
-  }
-
-  @Test
-  public void searchDoc_invalidFieldsWithNoWhere() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = null;
-    String fields = "";
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
-
-    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
-        .thenReturn(ImmutableList.of("field1"));
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(204);
-  }
-
-  @Test
-  public void searchDoc_invalidPageSize() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = "";
-    String fields = "";
-    int pageSizeParam = 21;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    List<FilterCondition> conditions = new ArrayList<>();
-    conditions.add(
-        new SingleFilterCondition(ImmutableList.of("a", "b", "c", "field1"), "$eq", "value"));
-
-    Mockito.when(documentServiceMock.convertToFilterOps(anyList(), anyObject()))
-        .thenReturn(conditions);
-
-    Mockito.when(documentServiceMock.convertToSelectionList(anyObject()))
-        .thenReturn(ImmutableList.of("field1"));
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(400);
-    assertThat(r.getEntity())
-        .isInstanceOfSatisfying(
-            Error.class,
-            error -> {
-              assertThat(error.getCode()).isEqualTo(400);
-              assertThat(error.getDescription())
-                  .isEqualTo("The parameter `page-size` is limited to 20.");
-            });
-  }
-
-  @Test
-  public void searchDoc_fullDocuments()
-      throws InterruptedException, ExecutionException, UnauthorizedException,
-          JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = null;
-    String fields = null;
-    int pageSizeParam = 0;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    ObjectNode searchResult = mapper.createObjectNode();
-    searchResult.set("id1", mapper.createArrayNode());
-    searchResult.set("id2", mapper.createArrayNode());
-
-    Mockito.when(
-            documentServiceMock.getFullDocuments(
-                anyObject(), anyString(), anyString(), anyList(), anyObject()))
-        .thenReturn(searchResult);
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity())).isEqualTo(searchResult);
-  }
-
-  @Test
-  public void searchDoc_invalidPageSizeFullDocuments() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String where = null;
-    String fields = null;
-    int pageSizeParam = 21;
-    String pageStateParam = null;
-    boolean raw = true;
-
-    Response r =
-        documentResourceV2.searchDoc(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            where,
-            fields,
-            pageSizeParam,
-            pageStateParam,
-            raw,
-            httpServletRequest);
-    assertThat(r.getStatus()).isEqualTo(400);
-    assertThat(r.getEntity())
-        .isInstanceOfSatisfying(
-            Error.class,
-            error -> {
-              assertThat(error.getCode()).isEqualTo(400);
-              assertThat(error.getDescription())
-                  .isEqualTo("The parameter `page-size` is limited to 20.");
-            });
+    assertThat(r.getStatus()).isEqualTo(404);
   }
 }

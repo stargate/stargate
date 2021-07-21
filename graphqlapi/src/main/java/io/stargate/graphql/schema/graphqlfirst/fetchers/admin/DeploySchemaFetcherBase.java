@@ -18,8 +18,6 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.entity.ResourceKind;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
@@ -38,26 +36,25 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
 
   @Override
   protected DeploySchemaResponseDto get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception {
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception {
 
-    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(dataStore);
+    SchemaSourceDao schemaSourceDao = new SchemaSourceDao(context.getDataStore());
 
     String keyspaceName = environment.getArgument("keyspace");
-    Keyspace keyspace = dataStore.schema().keyspace(keyspaceName);
+    Keyspace keyspace = context.getDataStore().schema().keyspace(keyspaceName);
     if (keyspace == null) {
       throw new IllegalArgumentException("Keyspace '%s' does not exist.");
     }
 
+    // Ensure that we'll be able to save the new version in the schema table:
     context
         .getAuthorizationService()
-        .authorizeSchemaWrite(
+        .authorizeDataWrite(
             context.getSubject(),
-            keyspaceName,
-            null,
+            SchemaSourceDao.KEYSPACE_NAME,
+            SchemaSourceDao.TABLE_NAME,
             Scope.MODIFY,
-            SourceAPI.GRAPHQL,
-            ResourceKind.KEYSPACE);
+            SourceAPI.GRAPHQL);
 
     String input = getSchemaContents(environment);
     UUID expectedVersion = getExpectedVersion(environment);
@@ -79,6 +76,11 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
       queries =
           CassandraMigrator.forDeployment(migrationStrategy)
               .compute(processedSchema.getMappingModel(), keyspace);
+
+      for (MigrationQuery query : queries) {
+        query.authorize(context.getAuthorizationService(), context.getSubject());
+      }
+
       response.setCqlChanges(queries);
     } catch (Exception e) {
       if (!dryRun) {
@@ -89,7 +91,7 @@ abstract class DeploySchemaFetcherBase extends CassandraFetcher<DeploySchemaResp
 
     if (!dryRun) {
       for (MigrationQuery query : queries) {
-        dataStore.execute(query.build(dataStore)).get();
+        context.getDataStore().execute(query.build(context.getDataStore())).get();
       }
       SchemaSource newSource = schemaSourceDao.insert(keyspaceName, input);
       schemaSourceDao.purgeOldVersions(keyspaceName);

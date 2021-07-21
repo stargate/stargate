@@ -16,10 +16,43 @@
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.FieldDefinition;
+import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public abstract class MutationModel extends OperationModel {
 
-  public MutationModel(String parentTypeName, FieldDefinition field) {
+  private final EntityModel entity;
+  private final ReturnType returnType;
+  private final Optional<ConsistencyLevel> consistencyLevel;
+  private final Optional<ConsistencyLevel> serialConsistencyLevel;
+
+  public MutationModel(
+      String parentTypeName,
+      FieldDefinition field,
+      EntityModel entity,
+      ReturnType returnType,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel) {
     super(parentTypeName, field);
+    this.entity = entity;
+    this.returnType = returnType;
+    this.consistencyLevel = consistencyLevel;
+    this.serialConsistencyLevel = serialConsistencyLevel;
+  }
+
+  public EntityModel getEntity() {
+    return entity;
+  }
+
+  public ReturnType getReturnType() {
+    return returnType;
+  }
+
+  public Optional<ConsistencyLevel> getConsistencyLevel() {
+    return consistencyLevel;
+  }
+
+  public Optional<ConsistencyLevel> getSerialConsistencyLevel() {
+    return serialConsistencyLevel;
   }
 }

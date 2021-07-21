@@ -22,6 +22,7 @@ import static graphql.language.TypeName.newTypeName;
 import com.google.common.collect.ImmutableSet;
 import graphql.Scalars;
 import graphql.language.ListType;
+import graphql.language.Node;
 import graphql.language.NonNullType;
 import graphql.language.Type;
 import graphql.language.TypeName;
@@ -37,6 +38,23 @@ public class TypeHelper {
           Scalars.GraphQLID.getName(),
           CqlScalar.UUID.getGraphqlType().getName(),
           CqlScalar.TIMEUUID.getGraphqlType().getName());
+
+  /**
+   * Tests if the two types represent the exact same GraphQL type: unlike {@link
+   * Type#isEqualTo(Node)}, this method does compare the children.
+   */
+  public static boolean deepEquals(Type<?> type1, Type<?> type2) {
+    if (type1 instanceof ListType && type2 instanceof ListType) {
+      return deepEquals(((ListType) type1).getType(), ((ListType) type2).getType());
+    }
+    if (type1 instanceof NonNullType && type2 instanceof NonNullType) {
+      return deepEquals(((NonNullType) type1).getType(), ((NonNullType) type2).getType());
+    }
+    if (type1 instanceof TypeName && type2 instanceof TypeName) {
+      return type1.isEqualTo(type2);
+    }
+    return false;
+  }
 
   public static boolean mapsToUuid(Type<?> type) {
     type = unwrapNonNull(type);

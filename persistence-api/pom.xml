@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.26-SNAPSHOT</version>
+    <version>1.0.31-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -128,6 +128,7 @@
               io.stargate.db.query.builder,
               io.stargate.db.schema,
               io.stargate.db.limiter,
+              io.stargate.db.tracing,
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,

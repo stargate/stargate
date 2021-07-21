@@ -1,5 +1,197 @@
 # Changelog
 
+## [v1.0.30](https://github.com/stargate/stargate/tree/v1.0.30) (2021-07-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.29...v1.0.30)
+
+**Fixed bugs:**
+
+- RawDocument reports to have next if not all rows can be fetched in a single query [\#1090](https://github.com/stargate/stargate/issues/1090)
+- Comparing filter operations tests wrongly [\#1088](https://github.com/stargate/stargate/issues/1088)
+- Searching of documents must populate them without the query limit [\#1087](https://github.com/stargate/stargate/issues/1087)
+- Searching collection can fail due to the race condition in JavaRx [\#1076](https://github.com/stargate/stargate/issues/1076)
+- Bad JSON results in the response code 500 [\#1064](https://github.com/stargate/stargate/issues/1064)
+
+**Closed issues:**
+
+- GraphQL schema-first: improve `schema` response when no custom schema is deployed [\#1103](https://github.com/stargate/stargate/issues/1103)
+- OpenAPI specs don't return typed responses in any API with a "raw" parameter [\#1101](https://github.com/stargate/stargate/issues/1101)
+- BaseDocumentApiV2Test should not run as a standalone test in CI [\#1094](https://github.com/stargate/stargate/issues/1094)
+- Move persistence-cassandra-4.0 to trunk branch until there is a GA release [\#1085](https://github.com/stargate/stargate/issues/1085)
+- GraphQL CQL-first: bulk insert does not handle conditional batch [\#1068](https://github.com/stargate/stargate/issues/1068)
+- GraphQL CQL-first: batched mutations don't handle LWTs correctly [\#1067](https://github.com/stargate/stargate/issues/1067)
+- gRPC's prepared query cache gets out of sync with persistence's query cache [\#1065](https://github.com/stargate/stargate/issues/1065)
+- Docs API getCollections should only return collections [\#1052](https://github.com/stargate/stargate/issues/1052)
+- Support parsing of $or and $and conditions [\#1031](https://github.com/stargate/stargate/issues/1031)
+- Frequent Codacy errors in CI: No content to map due to end-of-input [\#686](https://github.com/stargate/stargate/issues/686)
+
+**Merged pull requests:**
+
+- Allow CQL to be bound to more than one port [\#1115](https://github.com/stargate/stargate/pull/1115) ([mpenick](https://github.com/mpenick))
+- Adding Tatu [\#1109](https://github.com/stargate/stargate/pull/1109) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Fix invalid \(e.g `0.0.0.0`\) `rpc\_address` in `system.local` [\#1108](https://github.com/stargate/stargate/pull/1108) ([mpenick](https://github.com/mpenick))
+- GraphQL schema-first: allow schema fetch operation to return null [\#1106](https://github.com/stargate/stargate/pull/1106) ([olim7t](https://github.com/olim7t))
+- Update openapi spec annotations for specific return types rather than generic responsewrapper [\#1102](https://github.com/stargate/stargate/pull/1102) ([gconaty](https://github.com/gconaty))
+- Add responseContainer to getCollections swagger annotation [\#1100](https://github.com/stargate/stargate/pull/1100) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Throw a user error in case of value type mismatch in Document filters [\#1099](https://github.com/stargate/stargate/pull/1099) ([dimas-b](https://github.com/dimas-b))
+- Make BaseDocumentApiV2Test abstract [\#1095](https://github.com/stargate/stargate/pull/1095) ([dimas-b](https://github.com/dimas-b))
+- Add restriction on tables that aren't docs collections [\#1093](https://github.com/stargate/stargate/pull/1093) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1088: fixed comparing filters returning opposite results [\#1089](https://github.com/stargate/stargate/pull/1089) ([ivansenic](https://github.com/ivansenic))
+- closes \#1085: cassandra-4 move driver to 4.0-rc2 [\#1086](https://github.com/stargate/stargate/pull/1086) ([ivansenic](https://github.com/ivansenic))
+- closes \#1076: not using withLatestFrom that can swallow rows [\#1084](https://github.com/stargate/stargate/pull/1084) ([ivansenic](https://github.com/ivansenic))
+- Add `@atomic` directive [\#1083](https://github.com/stargate/stargate/pull/1083) ([olim7t](https://github.com/olim7t))
+- Add handling/testing for 400's on malformed JSON in requests [\#1079](https://github.com/stargate/stargate/pull/1079) ([EricBorczuk](https://github.com/EricBorczuk))
+- GraphQL CQL-first: Fix handling of conditional batches [\#1078](https://github.com/stargate/stargate/pull/1078) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1075](https://github.com/stargate/stargate/pull/1075) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Retry queries in grpc on PreparedQueryNotFoundException [\#1066](https://github.com/stargate/stargate/pull/1066) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- closes \#1031: support parsing of the $or and $and expressions [\#1061](https://github.com/stargate/stargate/pull/1061) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.29](https://github.com/stargate/stargate/tree/v1.0.29) (2021-06-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.28...v1.0.29)
+
+**Fixed bugs:**
+
+- Unable to create materialized view in Stargate 1.0.28 [\#1073](https://github.com/stargate/stargate/issues/1073)
+
+**Closed issues:**
+
+- GraphQL CQL-first: `@atomic` bulk insert should generate a CQL batch [\#1069](https://github.com/stargate/stargate/issues/1069)
+- Refactor in-document get/search code to be aligned with DocumentSearchService [\#1059](https://github.com/stargate/stargate/issues/1059)
+
+**Merged pull requests:**
+
+- Support Materialized View comments [\#1074](https://github.com/stargate/stargate/pull/1074) ([dimas-b](https://github.com/dimas-b))
+- GraphQL CQL-first: generate batch for atomic bulk insert [\#1070](https://github.com/stargate/stargate/pull/1070) ([olim7t](https://github.com/olim7t))
+- gRPC tracing [\#1062](https://github.com/stargate/stargate/pull/1062) ([tomekl007](https://github.com/tomekl007))
+- Bumping version for next release [\#1060](https://github.com/stargate/stargate/pull/1060) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Get the user from the original clientState when cloning [\#1053](https://github.com/stargate/stargate/pull/1053) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add endpoint to write multiple docs [\#1043](https://github.com/stargate/stargate/pull/1043) ([EricBorczuk](https://github.com/EricBorczuk))
+- Support bulk insert [\#1042](https://github.com/stargate/stargate/pull/1042) ([tomekl007](https://github.com/tomekl007))
+
+## [v1.0.28](https://github.com/stargate/stargate/tree/v1.0.28) (2021-06-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.27...v1.0.28)
+
+**Implemented enhancements:**
+
+- Add config option to disable graphql playground [\#791](https://github.com/stargate/stargate/issues/791)
+
+**Fixed bugs:**
+
+- Document search with path segment and $in returns wrong results [\#1049](https://github.com/stargate/stargate/issues/1049)
+- Page-size not working in subdocuments if request not contains "where" query parameter [\#1040](https://github.com/stargate/stargate/issues/1040)
+- Incorrect pageState when get subdocument \(AstraDb\) [\#1039](https://github.com/stargate/stargate/issues/1039)
+
+**Closed issues:**
+
+- Add possibility to ingest multiple rows in one call using the REST API [\#1056](https://github.com/stargate/stargate/issues/1056)
+- Support TTL on the REST API [\#1055](https://github.com/stargate/stargate/issues/1055)
+- Using "fields" without "where" [\#1046](https://github.com/stargate/stargate/issues/1046)
+- GraphQL schema-first: fix type checks for conditions [\#1013](https://github.com/stargate/stargate/issues/1013)
+- Gracefully handle missing default keyspace [\#1007](https://github.com/stargate/stargate/issues/1007)
+- GraphQL CQL-first: support counter increments [\#986](https://github.com/stargate/stargate/issues/986)
+- Add support for UDTs to gRPC [\#979](https://github.com/stargate/stargate/issues/979)
+- Improve Document API parameter validation [\#947](https://github.com/stargate/stargate/issues/947)
+- Adding per-keyspace and percentile Dropwizard metrics [\#944](https://github.com/stargate/stargate/issues/944)
+- Update swagger to mention that page-state param should be URL encoded [\#867](https://github.com/stargate/stargate/issues/867)
+- Improve collection search performance [\#680](https://github.com/stargate/stargate/issues/680)
+
+**Merged pull requests:**
+
+- relates to \#1024: extract row matching [\#1058](https://github.com/stargate/stargate/pull/1058) ([ivansenic](https://github.com/ivansenic))
+- Allow fetching document fields without WHERE [\#1054](https://github.com/stargate/stargate/pull/1054) ([dimas-b](https://github.com/dimas-b))
+- fixes \#1049: path segment search with in-memory filter fixed [\#1050](https://github.com/stargate/stargate/pull/1050) ([ivansenic](https://github.com/ivansenic))
+- Support paginating over nested doc elements [\#1048](https://github.com/stargate/stargate/pull/1048) ([dimas-b](https://github.com/dimas-b))
+- relates to \#1024: refactored doc search rows to node conversion [\#1047](https://github.com/stargate/stargate/pull/1047) ([ivansenic](https://github.com/ivansenic))
+- Use URL-safe base64 alphabet for REST API paging state [\#1041](https://github.com/stargate/stargate/pull/1041) ([dimas-b](https://github.com/dimas-b))
+- allow insert to return Boolean to have the unified API between insert and update [\#1038](https://github.com/stargate/stargate/pull/1038) ([tomekl007](https://github.com/tomekl007))
+- closes \#947: document api validation finalized [\#1037](https://github.com/stargate/stargate/pull/1037) ([ivansenic](https://github.com/ivansenic))
+- closes \#944: default http tag provider to return selected headers [\#1036](https://github.com/stargate/stargate/pull/1036) ([ivansenic](https://github.com/ivansenic))
+- relates to \#944: property for collecting path params as tags in the h… [\#1035](https://github.com/stargate/stargate/pull/1035) ([ivansenic](https://github.com/ivansenic))
+- GraphQL: use a single DataStore per HTTP request [\#1034](https://github.com/stargate/stargate/pull/1034) ([olim7t](https://github.com/olim7t))
+- Merge feature/docsapi-search-service branch to master [\#1032](https://github.com/stargate/stargate/pull/1032) ([ivansenic](https://github.com/ivansenic))
+- Minor refactor of JsonSchemaHandler [\#1023](https://github.com/stargate/stargate/pull/1023) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- GraphQL schema-first: allow custom TTL for INSERT and UPDATE [\#1022](https://github.com/stargate/stargate/pull/1022) ([olim7t](https://github.com/olim7t))
+- Add system property to disable graphql playground [\#1020](https://github.com/stargate/stargate/pull/1020) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- GraphQL CQL-first: support counter increments \(fixes \#986\) [\#1019](https://github.com/stargate/stargate/pull/1019) ([olim7t](https://github.com/olim7t))
+- Allow custom timestamp on operations [\#1018](https://github.com/stargate/stargate/pull/1018) ([tomekl007](https://github.com/tomekl007))
+- extending INT tests for the docs api [\#1016](https://github.com/stargate/stargate/pull/1016) ([ivansenic](https://github.com/ivansenic))
+- GraphQL schema-first: fix type checks for conditions \(fixes \#1013\) [\#1014](https://github.com/stargate/stargate/pull/1014) ([olim7t](https://github.com/olim7t))
+- Rename property to enable GraphQL-first API [\#1012](https://github.com/stargate/stargate/pull/1012) ([olim7t](https://github.com/olim7t))
+- Expose decorated partition keys for comparison at Stargate level [\#1010](https://github.com/stargate/stargate/pull/1010) ([dimas-b](https://github.com/dimas-b))
+- Add comment to the Schema, for tables [\#1009](https://github.com/stargate/stargate/pull/1009) ([EricBorczuk](https://github.com/EricBorczuk))
+- Gracefully handle missing default keyspace \(fixes \#1007\) [\#1008](https://github.com/stargate/stargate/pull/1008) ([olim7t](https://github.com/olim7t))
+- Bump jetty-servlets from 9.4.40.v20210413 to 9.4.41.v20210516 [\#1006](https://github.com/stargate/stargate/pull/1006) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Support incremental updates for UPDATE queries [\#1005](https://github.com/stargate/stargate/pull/1005) ([tomekl007](https://github.com/tomekl007))
+- Define the CQL directives programmatically [\#1003](https://github.com/stargate/stargate/pull/1003) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1000](https://github.com/stargate/stargate/pull/1000) ([github-actions[bot]](https://github.com/apps/github-actions))
+- GraphQL schema-first: allow custom consistency levels [\#996](https://github.com/stargate/stargate/pull/996) ([olim7t](https://github.com/olim7t))
+- Add support for user-defined types to gRPC [\#995](https://github.com/stargate/stargate/pull/995) ([mpenick](https://github.com/mpenick))
+- Add resource to attach a JSON schema to a collection [\#994](https://github.com/stargate/stargate/pull/994) ([EricBorczuk](https://github.com/EricBorczuk))
+- Allow the persistence base directory to be overridden [\#993](https://github.com/stargate/stargate/pull/993) ([mpenick](https://github.com/mpenick))
+
+## [v1.0.27](https://github.com/stargate/stargate/tree/v1.0.27) (2021-06-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.26...v1.0.27)
+
+**Closed issues:**
+
+- Make stargate\_graphql replication options configurable [\#987](https://github.com/stargate/stargate/issues/987)
+- Improve gRPC error handling [\#923](https://github.com/stargate/stargate/issues/923)
+
+**Merged pull requests:**
+
+- Avoid filtering events that already have a channel filter associated … [\#997](https://github.com/stargate/stargate/pull/997) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#992](https://github.com/stargate/stargate/pull/992) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add system property to configure replication options of stargate\_graphql \(fixes \#987\) [\#989](https://github.com/stargate/stargate/pull/989) ([olim7t](https://github.com/olim7t))
+- gRPC errors [\#978](https://github.com/stargate/stargate/pull/978) ([mpenick](https://github.com/mpenick))
+- Allow IF conditions for UPDATE queries [\#975](https://github.com/stargate/stargate/pull/975) ([tomekl007](https://github.com/tomekl007))
+
+## [v1.0.26](https://github.com/stargate/stargate/tree/v1.0.26) (2021-06-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.25...v1.0.26)
+
+**Implemented enhancements:**
+
+- Query Chaining for GraphQL API [\#154](https://github.com/stargate/stargate/issues/154)
+
+**Fixed bugs:**
+
+- Inconsistencies in C\* RequestFailureReason mapping for DSE [\#982](https://github.com/stargate/stargate/issues/982)
+- Stargate does not load non-system keyspaces if it tries to throw an InvalidTypeException [\#645](https://github.com/stargate/stargate/issues/645)
+
+**Closed issues:**
+
+- Query plan analysis for combined and-queries [\#973](https://github.com/stargate/stargate/issues/973)
+- Revisit `GraphqlCache.DmlGraphqlHolder` [\#959](https://github.com/stargate/stargate/issues/959)
+- Add support for collections to gRPC [\#935](https://github.com/stargate/stargate/issues/935)
+- Prevent `USE \<keyspace\>` queries over gRPC [\#928](https://github.com/stargate/stargate/issues/928)
+- Support partition key level deletes with GraphQL API [\#583](https://github.com/stargate/stargate/issues/583)
+- GraphQL: Document collections, batches and UDTs support [\#312](https://github.com/stargate/stargate/issues/312)
+
+**Merged pull requests:**
+
+- Avoid proactively fetching empty pages when one result set row is expected [\#988](https://github.com/stargate/stargate/pull/988) ([dimas-b](https://github.com/dimas-b))
+- Add dependency to the legacy driver in OSS persistence modules [\#985](https://github.com/stargate/stargate/pull/985) ([olim7t](https://github.com/olim7t))
+- Add RequestFailureReason enum values for DSE [\#983](https://github.com/stargate/stargate/pull/983) ([dimas-b](https://github.com/dimas-b))
+- Add Docs API query profiling [\#980](https://github.com/stargate/stargate/pull/980) ([dimas-b](https://github.com/dimas-b))
+- Fix NPE caused by `AuthenticationInterceptor` [\#977](https://github.com/stargate/stargate/pull/977) ([mpenick](https://github.com/mpenick))
+- relates to \#944: config prop for the http request metrics percentiles [\#974](https://github.com/stargate/stargate/pull/974) ([ivansenic](https://github.com/ivansenic))
+- GraphQL schema-first: check authorization for the DDL queries of a deploySchema [\#972](https://github.com/stargate/stargate/pull/972) ([olim7t](https://github.com/olim7t))
+- GraphQL: simplify cache internals \(fixes \#959\) [\#971](https://github.com/stargate/stargate/pull/971) ([olim7t](https://github.com/olim7t))
+- gRPC API cleanup [\#970](https://github.com/stargate/stargate/pull/970) ([mpenick](https://github.com/mpenick))
+- Change to 404 on empty GET [\#969](https://github.com/stargate/stargate/pull/969) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#947: added validations for NamespacesResource [\#968](https://github.com/stargate/stargate/pull/968) ([ivansenic](https://github.com/ivansenic))
+- GrapqhQL-first update IT [\#967](https://github.com/stargate/stargate/pull/967) ([tomekl007](https://github.com/tomekl007))
+- Reduce the number of predicates in nested CQL queries for Docs API filters [\#966](https://github.com/stargate/stargate/pull/966) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#965](https://github.com/stargate/stargate/pull/965) ([github-actions[bot]](https://github.com/apps/github-actions))
+- releates to \#947: validation for the CollectionsResource [\#962](https://github.com/stargate/stargate/pull/962) ([ivansenic](https://github.com/ivansenic))
+- GraphQL schema-first: don't return full stacktrace some parsing errors [\#961](https://github.com/stargate/stargate/pull/961) ([olim7t](https://github.com/olim7t))
+- Remove duplicate integration test [\#960](https://github.com/stargate/stargate/pull/960) ([olim7t](https://github.com/olim7t))
+- Custom if clause for delete [\#958](https://github.com/stargate/stargate/pull/958) ([tomekl007](https://github.com/tomekl007))
+- Refactor docs api pagination [\#937](https://github.com/stargate/stargate/pull/937) ([dimas-b](https://github.com/dimas-b))
+
 ## [v1.0.25](https://github.com/stargate/stargate/tree/v1.0.25) (2021-05-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.24...v1.0.25)

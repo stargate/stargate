@@ -4,12 +4,18 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.26-SNAPSHOT</version>
+    <version>1.0.31-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-3.11</artifactId>
   <properties>
+    <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <cassandra.version>3.11.8</cassandra.version>
+    <!--
+      The driver used internally by cassandra-all for UDFs (must match the version declared in
+      cassandra-all's POM).
+    -->
+    <cassandra.bundled-driver.version>3.0.1</cassandra.bundled-driver.version>
   </properties>
   <dependencies>
     <dependency>
@@ -45,6 +51,15 @@
           <artifactId>sjk-core</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <!--
+      Redeclare the driver dependency because it's optional in cassandra-all (this is required to
+      correctly handle UDFs).
+    -->
+    <dependency>
+      <groupId>com.datastax.cassandra</groupId>
+      <artifactId>cassandra-driver-core</artifactId>
+      <version>${cassandra.bundled-driver.version}</version>
     </dependency>
     <dependency>
       <groupId>org.gridkit.jvmtool</groupId>

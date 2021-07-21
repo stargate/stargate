@@ -83,24 +83,23 @@ public class BaseServiceTest {
     return StargateGrpc.newBlockingStub(clientChannel);
   }
 
-  protected QueryOuterClass.Result executeQuery(
+  protected QueryOuterClass.Response executeQuery(
       StargateBlockingStub stub, String cql, Value... values) {
-    return stub.executeQuery(
-        Query.newBuilder().setCql(cql).setParameters(cqlQueryParameters(values)).build());
+    return stub.executeQuery(Query.newBuilder().setCql(cql).setValues(cqlPayload(values)).build());
   }
 
   protected static Payload.Builder cqlPayload(Value... values) {
     return Payload.newBuilder()
-        .setType(Payload.Type.TYPE_CQL)
-        .setValue(Any.pack(Values.newBuilder().addAllValues(Arrays.asList(values)).build()));
+        .setType(Payload.Type.CQL)
+        .setData(Any.pack(Values.newBuilder().addAllValues(Arrays.asList(values)).build()));
   }
 
-  protected static QueryParameters.Builder cqlQueryParameters(Value... values) {
-    return QueryParameters.newBuilder().setPayload(cqlPayload(values));
+  protected static QueryParameters.Builder cqlQueryParameters() {
+    return QueryParameters.newBuilder();
   }
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
-    return BatchQuery.newBuilder().setCql(cql).setPayload(cqlPayload(values)).build();
+    return BatchQuery.newBuilder().setCql(cql).setValues(cqlPayload(values)).build();
   }
 
   protected void startServer(Persistence persistence) {

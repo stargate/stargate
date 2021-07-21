@@ -60,11 +60,13 @@ import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.db.ComparableKey;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.PagingPosition.ResumeMode;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.PersistenceDataStoreFactory;
@@ -78,6 +80,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableTupleType;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.MaterializedView;
 import io.stargate.db.schema.ParameterizedType;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
@@ -661,6 +664,43 @@ public abstract class PersistenceTest {
     assertThat(actualTable.indexes().size()).isEqualTo(expectedTable.indexes().size());
     assertThat(actualTable.index("byD").toString())
         .isEqualTo(expectedTable.index("byD").toString());
+  }
+
+  @Test
+  public void testMaterializedView() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("a", Int, PartitionKey)
+        .column("b", Varchar, Clustering)
+        .withComment("test-comment1")
+        .build()
+        .execute()
+        .join();
+    dataStore
+        .queryBuilder()
+        .create()
+        .materializedView(keyspace, "test_MV")
+        .asSelect()
+        .column("b", PartitionKey)
+        .column("a", Clustering)
+        .from(keyspace, table)
+        .withComment("test-comment2")
+        .build()
+        .execute()
+        .join();
+
+    MaterializedView mv = dataStore.schema().keyspace(keyspace).materializedView("test_MV");
+    assertThat(mv).isNotNull();
+    assertThat(mv.name()).isEqualTo("test_MV");
+    assertThat(mv.comment()).isEqualTo("test-comment2");
+    assertThat(mv.columns()).hasSize(2);
+    assertThat(mv.column("b").kind()).isEqualTo(PartitionKey);
+    assertThat(mv.column("b").type()).isEqualTo(Varchar);
+    assertThat(mv.column("a").kind()).isEqualTo(Clustering);
+    assertThat(mv.column("a").type()).isEqualTo(Int);
   }
 
   @Disabled("Disabling for now since it currently just hangs")
@@ -1296,6 +1336,37 @@ public abstract class PersistenceTest {
   }
 
   @Test
+  public void testTableCommentSelect() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("graph", Boolean, PartitionKey)
+        .column("name", Column.Type.Text)
+        .withComment("This is a table")
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+    Table theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.comment()).isEqualTo("This is a table");
+
+    dataStore
+        .queryBuilder()
+        .alter()
+        .table(keyspace, table)
+        .withComment("This is still a table")
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+
+    theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.comment()).isEqualTo("This is still a table");
+  }
+
+  @Test
   public void testInsertWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
@@ -1811,6 +1882,89 @@ public abstract class PersistenceTest {
     // With the limit of 7 rows in the second execution and 5 rows read in the second page,
     // 2 rows remain
     assertThat(rs.rows()).hasSize(2);
+  }
+
+  private void assertEq(Row r1, Row r2, RowDecorator... decorators) {
+    for (RowDecorator dec1 : decorators) {
+      for (RowDecorator dec2 : decorators) {
+        assertThat(dec1.decoratePartitionKey(r1)).isEqualTo(dec2.decoratePartitionKey(r2));
+        assertThat(dec1.decoratePartitionKey(r2)).isEqualTo(dec2.decoratePartitionKey(r1));
+      }
+    }
+
+    assertGtEq(r1, r2, decorators);
+  }
+
+  private void assertGtEq(Row r1, Row r2, RowDecorator... decorators) {
+    for (RowDecorator dec1 : decorators) {
+      ComparableKey<?> k1 = dec1.decoratePartitionKey(r1);
+      ComparableKey<?> k2 = dec1.decoratePartitionKey(r1);
+      int i = k1.compareTo(k2);
+      for (RowDecorator dec2 : decorators) {
+        assertThat(dec1.decoratePartitionKey(r1))
+            .isGreaterThanOrEqualTo(dec2.decoratePartitionKey(r2));
+        assertThat(dec1.decoratePartitionKey(r2))
+            .isLessThanOrEqualTo(dec2.decoratePartitionKey(r1));
+      }
+    }
+  }
+
+  private void assertGt(Row r1, Row r2, RowDecorator... decorators) {
+    for (RowDecorator dec1 : decorators) {
+      for (RowDecorator dec2 : decorators) {
+        assertThat(dec1.decoratePartitionKey(r1)).isGreaterThan(dec2.decoratePartitionKey(r2));
+        assertThat(dec1.decoratePartitionKey(r2)).isLessThan(dec2.decoratePartitionKey(r1));
+      }
+    }
+  }
+
+  @Test
+  public void testRowDecorator() throws ExecutionException, InterruptedException {
+    setupCustomPagingData();
+
+    // Obtain partition keys in "ring" order
+    AbstractBound<?> selectAll =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .build()
+            .bind();
+
+    ResultSet rs1 = dataStore.execute(selectAll).get();
+    Iterator<Row> it1 = rs1.iterator();
+    RowDecorator dec1 = rs1.makeRowDecorator();
+
+    ResultSet rs2 = dataStore.execute(selectAll).get();
+    RowDecorator dec2 = rs2.makeRowDecorator();
+    Iterator<Row> it2 = rs2.iterator();
+
+    Row first = null;
+    Row last = null;
+    Row p1 = null;
+    while (it1.hasNext()) {
+      assertThat(it2.hasNext()).isTrue();
+
+      Row r1 = it1.next();
+      Row r2 = it2.next();
+
+      first = first == null ? r1 : first;
+      last = r1;
+
+      assertEq(r1, r2, dec1, dec2);
+
+      if (p1 == null) {
+        p1 = r1;
+      }
+
+      assertGtEq(r1, p1, dec1, dec2);
+    }
+
+    assertThat(it2.hasNext()).isFalse();
+
+    assertGt(last, first, dec1, dec2);
   }
 
   private boolean isCassandra4() {

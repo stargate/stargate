@@ -54,6 +54,7 @@ public class DropwizardServer extends Application<Configuration> {
   private final AuthorizationService authorizationService;
   private final DataStoreFactory dataStoreFactory;
   private final boolean enableGraphqlFirst;
+  private final boolean enableGraphqlPlayground;
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private volatile Server jettyServer;
@@ -65,7 +66,8 @@ public class DropwizardServer extends Application<Configuration> {
       Metrics metrics,
       HttpMetricsTagProvider httpMetricsTagProvider,
       DataStoreFactory dataStoreFactory,
-      boolean enableGraphqlFirst) {
+      boolean enableGraphqlFirst,
+      boolean enableGraphqlPlayground) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
@@ -73,6 +75,7 @@ public class DropwizardServer extends Application<Configuration> {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.dataStoreFactory = dataStoreFactory;
     this.enableGraphqlFirst = enableGraphqlFirst;
+    this.enableGraphqlPlayground = enableGraphqlPlayground;
   }
 
   /**
@@ -111,25 +114,7 @@ public class DropwizardServer extends Application<Configuration> {
             new AbstractBinder() {
               @Override
               protected void configure() {
-                bind(authenticationService).to(AuthenticationService.class);
-              }
-            });
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
                 bind(authorizationService).to(AuthorizationService.class);
-              }
-            });
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(dataStoreFactory).to(DataStoreFactory.class);
               }
             });
 
@@ -142,7 +127,9 @@ public class DropwizardServer extends Application<Configuration> {
                 bind(FrameworkUtil.getBundle(GraphqlActivator.class)).to(Bundle.class);
               }
             });
-    environment.jersey().register(new AuthenticationFilter(authenticationService));
+    environment
+        .jersey()
+        .register(new AuthenticationFilter(authenticationService, dataStoreFactory));
     environment
         .jersey()
         .register(
@@ -153,7 +140,9 @@ public class DropwizardServer extends Application<Configuration> {
               }
             });
 
-    environment.jersey().register(PlaygroundResource.class);
+    if (enableGraphqlPlayground) {
+      environment.jersey().register(PlaygroundResource.class);
+    }
 
     environment.jersey().register(DmlResource.class);
     environment.jersey().register(DdlResource.class);

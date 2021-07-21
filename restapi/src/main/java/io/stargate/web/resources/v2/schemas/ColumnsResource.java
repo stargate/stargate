@@ -73,11 +73,11 @@ public class ColumnsResource {
   @ApiOperation(
       value = "Get all columns",
       notes = "Return all columns for a specified table.",
-      response = ResponseWrapper.class,
+      response = ColumnDefinition.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ResponseWrapper.class),
+        @ApiResponse(code = 200, message = "OK", response = ColumnDefinition.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)

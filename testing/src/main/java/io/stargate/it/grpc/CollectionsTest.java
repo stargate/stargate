@@ -1,3 +1,18 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.stargate.it.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -5,13 +20,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.StringValue;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.Result;
+import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
@@ -38,22 +52,23 @@ public class CollectionsTest extends GrpcIntegrationTest {
       throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
 
-    StringValue keyspaceValue = StringValue.of(keyspace.toString());
-
-    Result result =
+    Response response =
         stub.executeQuery(
             cqlQuery(
                 String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
-                cqlQueryParameters(Values.of("a"), collection).setKeyspace(keyspaceValue)));
-    assertThat(result).isNotNull();
+                queryParameters(keyspace),
+                Values.of("a"),
+                collection));
+    assertThat(response).isNotNull();
 
-    result =
+    response =
         stub.executeQuery(
             cqlQuery(
                 String.format("SELECT * FROM %s WHERE k = ?", tableName),
-                cqlQueryParameters(Values.of("a")).setKeyspace(keyspaceValue)));
-    assertThat(result.hasPayload()).isTrue();
-    ResultSet rs = result.getPayload().getValue().unpack(ResultSet.class);
+                queryParameters(keyspace),
+                Values.of("a")));
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("a"));
@@ -89,22 +104,23 @@ public class CollectionsTest extends GrpcIntegrationTest {
       throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
 
-    StringValue keyspaceValue = StringValue.of(keyspace.toString());
-
-    Result result =
+    Response response =
         stub.executeQuery(
             cqlQuery(
                 String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
-                cqlQueryParameters(Values.of("b"), collection).setKeyspace(keyspaceValue)));
-    assertThat(result).isNotNull();
+                queryParameters(keyspace),
+                Values.of("b"),
+                collection));
+    assertThat(response).isNotNull();
 
-    result =
+    response =
         stub.executeQuery(
             cqlQuery(
                 String.format("SELECT * FROM %s WHERE k = ?", tableName),
-                cqlQueryParameters(Values.of("b")).setKeyspace(keyspaceValue)));
-    assertThat(result.hasPayload()).isTrue();
-    ResultSet rs = result.getPayload().getValue().unpack(ResultSet.class);
+                queryParameters(keyspace),
+                Values.of("b")));
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("b"));
@@ -132,17 +148,16 @@ public class CollectionsTest extends GrpcIntegrationTest {
       @TestKeyspace CqlIdentifier keyspace) {
     StargateBlockingStub stub = stubWithCallCredentials();
 
-    StringValue keyspaceValue = StringValue.of(keyspace.toString());
-
     assertThatThrownBy(
             () -> {
-              Result result =
+              Response response =
                   stub.executeQuery(
                       cqlQuery(
                           String.format("INSERT INTO %s (k, v) VALUES (?, ?)", tableName),
-                          cqlQueryParameters(Values.of("b"), collection)
-                              .setKeyspace(keyspaceValue)));
-              assertThat(result).isNotNull();
+                          queryParameters(keyspace),
+                          Values.of("b"),
+                          collection));
+              assertThat(response).isNotNull();
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining(expectedMessage);

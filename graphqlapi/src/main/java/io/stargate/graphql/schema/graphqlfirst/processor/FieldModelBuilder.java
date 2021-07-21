@@ -23,7 +23,6 @@ import graphql.language.FieldDefinition;
 import graphql.language.ListType;
 import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
-import graphql.language.ScalarTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
@@ -75,14 +74,14 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
     this.graphqlName = field.getName();
     this.graphqlType = field.getType();
     this.messagePrefix = parentGraphqlName + "." + graphqlName;
-    this.cqlColumnDirective = DirectiveHelper.getDirective("cql_column", field);
+    this.cqlColumnDirective = DirectiveHelper.getDirective(CqlDirectives.COLUMN, field);
   }
 
   @Override
   FieldModel build() throws SkipException {
     String cqlName =
         cqlColumnDirective
-            .flatMap(d -> DirectiveHelper.getStringArgument(d, "name", context))
+            .flatMap(d -> DirectiveHelper.getStringArgument(d, CqlDirectives.COLUMN_NAME, context))
             .orElse(graphqlName);
     boolean isUdtField = targetContainer == EntityModel.Target.UDT;
     boolean partitionKey = isPartitionKey(isUdtField);
@@ -114,7 +113,8 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
 
   private Boolean isPartitionKey(boolean isUdtField) {
     return cqlColumnDirective
-        .flatMap(d -> DirectiveHelper.getBooleanArgument(d, "partitionKey", context))
+        .flatMap(
+            d -> DirectiveHelper.getBooleanArgument(d, CqlDirectives.COLUMN_PARTITION_KEY, context))
         .filter(
             __ -> {
               if (isUdtField) {
@@ -131,7 +131,9 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
   private Optional<Column.Order> getClusteringOrder(boolean isUdtField) {
     return cqlColumnDirective
         .flatMap(
-            d -> DirectiveHelper.getEnumArgument(d, "clusteringOrder", Column.Order.class, context))
+            d ->
+                DirectiveHelper.getEnumArgument(
+                    d, CqlDirectives.COLUMN_CLUSTERING_ORDER, Column.Order.class, context))
         .filter(
             __ -> {
               if (isUdtField) {
@@ -182,14 +184,6 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
         CqlScalar cqlScalar = maybeCqlScalar.get();
         // Remember that we'll need to add the scalar to the RuntimeWiring
         context.getUsedCqlScalars().add(cqlScalar);
-        // Add the scalar to the schema definition. Normally it's not there because users are not
-        // required to declare it explicitly, but if it is it's not a problem.
-        if (!typeRegistry.scalars().containsKey(typeName)) {
-          typeRegistry.add(
-              ScalarTypeDefinition.newScalarTypeDefinition()
-                  .name(cqlScalar.getGraphqlType().getName())
-                  .build());
-        }
         return cqlScalar.getCqlType();
       }
 
@@ -201,17 +195,19 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
   /** Checks that if a field is an object type, then that object maps to a UDT. */
   private Column.ColumnType expectUdt(ObjectTypeDefinition definition) throws SkipException {
     boolean isUdt =
-        DirectiveHelper.getDirective("cql_entity", definition)
+        DirectiveHelper.getDirective(CqlDirectives.ENTITY, definition)
             .flatMap(
                 d ->
-                    DirectiveHelper.getEnumArgument(d, "target", EntityModel.Target.class, context))
+                    DirectiveHelper.getEnumArgument(
+                        d, CqlDirectives.ENTITY_TARGET, EntityModel.Target.class, context))
             .filter(target -> target == EntityModel.Target.UDT)
             .isPresent();
     if (isUdt) {
-      if (checkForInputType && !DirectiveHelper.getDirective("cql_input", definition).isPresent()) {
+      if (checkForInputType
+          && !DirectiveHelper.getDirective(CqlDirectives.INPUT, definition).isPresent()) {
         invalidMapping(
-            "%s: type '%s' must also be annotated with @cql_input",
-            messagePrefix, definition.getName());
+            "%s: type '%s' must also be annotated with @%s",
+            messagePrefix, definition.getName(), CqlDirectives.INPUT);
         throw SkipException.INSTANCE;
       }
       return ImmutableUserDefinedType.builder()
@@ -234,7 +230,8 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
   private Column.ColumnType maybeUseTypeHint(
       Column.ColumnType cqlType, boolean isPk, boolean isUdtField) throws SkipException {
     Optional<String> maybeCqlTypeHint =
-        cqlColumnDirective.flatMap(d -> DirectiveHelper.getStringArgument(d, "typeHint", context));
+        cqlColumnDirective.flatMap(
+            d -> DirectiveHelper.getStringArgument(d, CqlDirectives.COLUMN_TYPE_HINT, context));
     if (!maybeCqlTypeHint.isPresent()) {
       return cqlType;
     }
@@ -308,7 +305,8 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
   private Optional<IndexModel> getIndex(
       String cqlName, boolean isUdtField, boolean isPk, final Column.ColumnType cqlType)
       throws SkipException {
-    Optional<Directive> cqlIndexDirective = DirectiveHelper.getDirective("cql_index", field);
+    Optional<Directive> cqlIndexDirective =
+        DirectiveHelper.getDirective(CqlDirectives.INDEX, field);
     if (cqlIndexDirective.isPresent()) {
       if (isPk) {
         invalidMapping("%s: partition or clustering columns can't have an index", messagePrefix);

@@ -41,7 +41,7 @@ abstract class ModelBuilderBase<ModelT> {
   }
 
   @FormatMethod
-  protected void invalidMapping(String format, Object... arguments) {
+  public void invalidMapping(String format, Object... arguments) {
     context.addError(location, ProcessingErrorType.InvalidMapping, format, arguments);
   }
 

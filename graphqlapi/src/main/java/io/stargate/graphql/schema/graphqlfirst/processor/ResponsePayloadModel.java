@@ -52,7 +52,7 @@ public class ResponsePayloadModel implements OperationModel.ReturnType {
   }
 
   @Override
-  public boolean isEntityList() {
+  public boolean isList() {
     return getEntityField().map(EntityField::isList).orElse(false);
   }
 
@@ -120,7 +120,7 @@ public class ResponsePayloadModel implements OperationModel.ReturnType {
 
     private boolean matches(FieldDefinition field) {
       return graphqlName.equals(field.getName())
-          && typeName.isEqualTo(TypeHelper.unwrapNonNull(field.getType()));
+          && TypeHelper.deepEquals(typeName, TypeHelper.unwrapNonNull(field.getType()));
     }
   }
 }

@@ -19,13 +19,16 @@ import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.InsertFetcher;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class InsertModel extends MutationModel {
 
-  private final EntityModel entity;
   private final String entityArgumentName;
   private final Optional<ResponsePayloadModel> responsePayload;
   private final boolean ifNotExists;
+  private final Optional<String> cqlTimestampArgumentName;
+  private final Optional<Integer> ttl;
+  private final boolean isList;
 
   InsertModel(
       String parentTypeName,
@@ -33,16 +36,20 @@ public class InsertModel extends MutationModel {
       EntityModel entity,
       String entityArgumentName,
       Optional<ResponsePayloadModel> responsePayload,
-      boolean ifNotExists) {
-    super(parentTypeName, field);
-    this.entity = entity;
+      boolean ifNotExists,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel,
+      Optional<Integer> ttl,
+      ReturnType returnType,
+      Optional<String> cqlTimestampArgumentName,
+      boolean isList) {
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
     this.entityArgumentName = entityArgumentName;
     this.responsePayload = responsePayload;
     this.ifNotExists = ifNotExists;
-  }
-
-  public EntityModel getEntity() {
-    return entity;
+    this.ttl = ttl;
+    this.cqlTimestampArgumentName = cqlTimestampArgumentName;
+    this.isList = isList;
   }
 
   public String getEntityArgumentName() {
@@ -55,6 +62,18 @@ public class InsertModel extends MutationModel {
 
   public boolean ifNotExists() {
     return ifNotExists;
+  }
+
+  public Optional<String> getCqlTimestampArgumentName() {
+    return cqlTimestampArgumentName;
+  }
+
+  public Optional<Integer> getTtl() {
+    return ttl;
+  }
+
+  public boolean isList() {
+    return isList;
   }
 
   @Override

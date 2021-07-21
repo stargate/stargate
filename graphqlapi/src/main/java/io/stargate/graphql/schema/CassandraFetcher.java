@@ -2,11 +2,11 @@ package io.stargate.graphql.schema;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.auth.AuthenticationSubject;
 import io.stargate.db.Parameters;
-import io.stargate.db.datastore.DataStore;
-import io.stargate.db.datastore.DataStoreOptions;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.schema.Column;
 import io.stargate.graphql.web.StargateGraphqlContext;
+import java.util.List;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /** Base class for fetchers that access the Cassandra backend. It also handles authentication. */
@@ -25,27 +25,26 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
 
   @Override
   public final ResultT get(DataFetchingEnvironment environment) throws Exception {
+
+    // Small convenience: subclasses could just call environment.getContext() directly, but they'd
+    // have to cast every time
     StargateGraphqlContext context = environment.getContext();
 
-    AuthenticationSubject authenticationSubject = context.getSubject();
-
-    Parameters parameters = getDatastoreParameters(environment);
-    DataStoreOptions dataStoreOptions =
-        DataStoreOptions.builder()
-            .putAllCustomProperties(context.getAllHeaders())
-            .defaultParameters(parameters)
-            .alwaysPrepareQueries(true)
-            .build();
-    DataStore dataStore =
-        context.getDataStoreFactory().create(authenticationSubject.asUser(), dataStoreOptions);
-    return get(environment, dataStore, context);
-  }
-
-  protected Parameters getDatastoreParameters(DataFetchingEnvironment environment) {
-    return DEFAULT_PARAMETERS;
+    return get(environment, context);
   }
 
   protected abstract ResultT get(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
-      throws Exception;
+      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception;
+
+  protected boolean isAppliedBatch(List<Row> batchRows) {
+    if (batchRows.isEmpty()) {
+      return true;
+    }
+    if (batchRows.size() > 1) {
+      return false;
+    }
+    Row row = batchRows.get(0);
+    return row.columns().stream().map(Column::name).anyMatch("[applied]"::equals)
+        && row.getBoolean("[applied]");
+  }
 }

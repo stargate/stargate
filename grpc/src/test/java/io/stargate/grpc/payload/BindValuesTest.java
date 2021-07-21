@@ -46,23 +46,23 @@ public class BindValuesTest {
   @ParameterizedTest
   @MethodSource({"validPayloads", "emptyPayload", "unsetAndNullPayloads"})
   public void bindValuesValid(
-      Payload.Type type, Prepared prepared, Payload payload, PayloadValuesValidator validator)
+      Payload.Type type, Prepared prepared, Any values, PayloadValuesValidator validator)
       throws Exception {
     PayloadHandler handler = PayloadHandlers.get(type);
-    BoundStatement statement = handler.bindValues(prepared, payload, Utils.UNSET);
+    BoundStatement statement = handler.bindValues(prepared, values, Utils.UNSET);
 
-    validator.validate(statement, prepared, payload);
+    validator.validate(statement, prepared, values);
   }
 
   public static Stream<Arguments> validPayloads() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(),
             makeCqlPayload(Values.newBuilder().build()),
             CqlPayloadValidator.INSTANCE),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -71,7 +71,7 @@ public class BindValuesTest {
                     .build()),
             CqlPayloadValidator.INSTANCE),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -86,7 +86,7 @@ public class BindValuesTest {
   public static Stream<Arguments> emptyPayload() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(),
             makeCqlPayload(Values.newBuilder().build()),
             CqlPayloadValidator.INSTANCE));
@@ -95,7 +95,7 @@ public class BindValuesTest {
   public static Stream<Arguments> unsetAndNullPayloads() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -104,7 +104,7 @@ public class BindValuesTest {
                     .build()),
             CqlPayloadValidator.INSTANCE),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -121,7 +121,7 @@ public class BindValuesTest {
   public void bindValuesInvalid(
       Payload.Type type,
       Prepared prepared,
-      Payload payload,
+      Any payload,
       Class<?> expectedException,
       String expectedMessage) {
     PayloadHandler handler = PayloadHandlers.get(type);
@@ -136,7 +136,7 @@ public class BindValuesTest {
   public static Stream<Arguments> invalidArityPayloads() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(),
             makeCqlPayload(
                 Values.newBuilder()
@@ -145,13 +145,13 @@ public class BindValuesTest {
             StatusException.class,
             "Invalid number of bind values. Expected 0, but received 1"),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(Values.newBuilder().build()),
             StatusException.class,
             "Invalid number of bind values. Expected 2, but received 0"),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -166,13 +166,13 @@ public class BindValuesTest {
   public static Stream<Arguments> invalidNamesPayloads() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(),
             makeCqlPayload(Values.newBuilder().addValueNames("v1").build()),
             StatusException.class,
             "Invalid number of bind names. Expected 0, but received 1"),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -183,7 +183,7 @@ public class BindValuesTest {
             StatusException.class,
             "Invalid number of bind names. Expected 1, but received 2"),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -197,7 +197,7 @@ public class BindValuesTest {
   public static Stream<Arguments> invalidTypePayloads() {
     return Stream.of(
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -206,7 +206,7 @@ public class BindValuesTest {
             StatusException.class,
             "Invalid argument at position 1"),
         arguments(
-            Payload.Type.TYPE_CQL,
+            Payload.Type.CQL,
             Utils.makePrepared(Column.create("v1", Type.Int), Column.create("v2", Type.Text)),
             makeCqlPayload(
                 Values.newBuilder()
@@ -217,12 +217,12 @@ public class BindValuesTest {
             "Invalid argument at position 2"));
   }
 
-  private static Payload makeCqlPayload(Values values) {
-    return Payload.newBuilder().setType(Payload.Type.TYPE_CQL).setValue(Any.pack(values)).build();
+  private static Any makeCqlPayload(Values values) {
+    return Any.pack(values);
   }
 
   private interface PayloadValuesValidator {
-    void validate(BoundStatement statement, Prepared prepared, Payload payload)
+    void validate(BoundStatement statement, Prepared prepared, Any payload)
         throws InvalidProtocolBufferException;
   }
 
@@ -230,11 +230,9 @@ public class BindValuesTest {
     public static final PayloadValuesValidator INSTANCE = new CqlPayloadValidator();
 
     @Override
-    public void validate(BoundStatement statement, Prepared prepared, Payload payload)
+    public void validate(BoundStatement statement, Prepared prepared, Any payload)
         throws InvalidProtocolBufferException {
-      assertThat(payload.getType()).isEqualTo(Payload.Type.TYPE_CQL);
-
-      Values values = payload.getValue().unpack(Values.class);
+      Values values = payload.unpack(Values.class);
       assertThat(values.getValuesCount()).isEqualTo(statement.values().size());
 
       if (values.getValueNamesCount() > 0) {

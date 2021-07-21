@@ -22,7 +22,6 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.ValueModifier;
@@ -42,7 +41,7 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
 
   @Override
   protected List<BoundQuery> buildQueries(
-      DataFetchingEnvironment environment, DataStore dataStore, StargateGraphqlContext context)
+      DataFetchingEnvironment environment, StargateGraphqlContext context)
       throws UnauthorizedException {
     boolean ifNotExists =
         environment.containsArgument("ifNotExists")
@@ -53,7 +52,8 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
     List<BoundQuery> boundQueries = new ArrayList<>(valuesToInsert.size());
     for (Map<String, Object> value : valuesToInsert) {
       BoundQuery query =
-          dataStore
+          context
+              .getDataStore()
               .queryBuilder()
               .insertInto(table.keyspace(), table.name())
               .value(buildInsertValues(value))

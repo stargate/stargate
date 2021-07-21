@@ -51,7 +51,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
       String token = headers.get(TOKEN_KEY);
       if (token == null) {
         call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
-        return null;
+        return new NopListener<>();
       }
       Context context = Context.current();
       context = context.withValue(Service.AUTHENTICATION_KEY, authentication.validateToken(token));
@@ -60,6 +60,8 @@ public class AuthenticationInterceptor implements ServerInterceptor {
       call.close(
           Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
     }
-    return null;
+    return new NopListener<>();
   }
+
+  private class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
 }

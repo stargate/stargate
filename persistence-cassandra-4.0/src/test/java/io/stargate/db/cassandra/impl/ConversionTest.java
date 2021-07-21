@@ -3,6 +3,7 @@ package io.stargate.db.cassandra.impl;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import java.nio.ByteBuffer;
@@ -12,9 +13,12 @@ import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.db.marshal.UTF8Type;
+import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class ConversionTest {
@@ -102,5 +106,57 @@ class ConversionTest {
     assertThat(converted.getTimestamp(queryState)).isGreaterThan(0);
     assertThat(converted.getNowInSeconds(queryState)).isGreaterThan(0);
     assertThat(converted.getKeyspace()).isNull();
+  }
+
+  @Nested
+  class RequestFailureReasons {
+    private RequestFailureReason convert(
+        org.apache.cassandra.exceptions.RequestFailureReason internal) {
+      return Conversion.toExternal(
+              ImmutableMap.of(InetAddressAndPort.getLoopbackAddress(), internal))
+          .values()
+          .iterator()
+          .next();
+    }
+
+    @Test
+    void unknown() {
+      assertThat(convert(org.apache.cassandra.exceptions.RequestFailureReason.UNKNOWN))
+          .isEqualTo(RequestFailureReason.UNKNOWN);
+    }
+
+    @Test
+    void readTooManyTombstones() {
+      assertThat(
+              convert(
+                  org.apache.cassandra.exceptions.RequestFailureReason.READ_TOO_MANY_TOMBSTONES))
+          .isEqualTo(RequestFailureReason.READ_TOO_MANY_TOMBSTONES);
+    }
+
+    @Test
+    void timeout() {
+      assertThat(convert(org.apache.cassandra.exceptions.RequestFailureReason.TIMEOUT))
+          .isEqualTo(RequestFailureReason.TIMEOUT);
+    }
+
+    @Test
+    void incompatibleSchema() {
+      assertThat(convert(org.apache.cassandra.exceptions.RequestFailureReason.INCOMPATIBLE_SCHEMA))
+          .isEqualTo(RequestFailureReason.INCOMPATIBLE_SCHEMA);
+    }
+
+    @Test
+    void allKnownCodes() {
+      for (org.apache.cassandra.exceptions.RequestFailureReason r :
+          org.apache.cassandra.exceptions.RequestFailureReason.values()) {
+        if (r == org.apache.cassandra.exceptions.RequestFailureReason.UNKNOWN) {
+          continue;
+        }
+
+        assertThat(convert(r))
+            .withFailMessage(() -> "" + r + " should not convert to UNKNOWN")
+            .isNotEqualTo(RequestFailureReason.UNKNOWN);
+      }
+    }
   }
 }

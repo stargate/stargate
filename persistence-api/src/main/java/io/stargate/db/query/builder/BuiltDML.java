@@ -3,17 +3,7 @@ package io.stargate.db.query.builder;
 import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 
-import io.stargate.db.query.AsyncQueryExecutor;
-import io.stargate.db.query.BindMarker;
-import io.stargate.db.query.BoundDMLQuery;
-import io.stargate.db.query.Condition;
-import io.stargate.db.query.ImmutableCondition;
-import io.stargate.db.query.ImmutableModification;
-import io.stargate.db.query.ModifiableEntity;
-import io.stargate.db.query.Modification;
-import io.stargate.db.query.QueryType;
-import io.stargate.db.query.RowsImpacted;
-import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.*;
 import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -278,7 +268,21 @@ abstract class BuiltDML<Q extends AbstractBound<?> & BoundDMLQuery> extends Buil
     private void handleConditions() {
       for (BuiltCondition bc : dml.data.conditions) {
         Condition.LHS lhs = createLHS(bc.lhs());
-        TypedValue v = handleValue(lhs.toString(), lhs.valueType(), bc.value());
+        TypedValue v;
+        if (bc.predicate().equals(Predicate.IN)) {
+          // IN works only on a LIST type
+          v = handleValue(lhs.toString(), Column.Type.List.of(lhs.valueType()), bc.value());
+        } else if (bc.predicate().equals(Predicate.CONTAINS)) {
+          // for a CONTAINS, the valueType is a list. We need to extract the underlying value
+          v = handleValue(lhs.toString(), lhs.valueType().fieldType(lhs.toString()), bc.value());
+        } else if (bc.predicate().equals(Predicate.CONTAINS_KEY)) {
+          // CONTAINS_KEY works only for Map, extract KEY type and use it
+          ColumnType keyType = lhs.valueType().parameters().get(0);
+          v = handleValue(lhs.toString(), keyType, bc.value());
+        } else {
+          v = handleValue(lhs.toString(), lhs.valueType(), bc.value());
+        }
+
         if (!lhs.isUnset() && !v.isUnset()) {
           conditions.add(
               ImmutableCondition.builder().lhs(lhs).predicate(bc.predicate()).value(v).build());

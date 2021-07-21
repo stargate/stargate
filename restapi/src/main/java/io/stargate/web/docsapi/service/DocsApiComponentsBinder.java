@@ -1,6 +1,9 @@
 package io.stargate.web.docsapi.service;
 
 import io.dropwizard.setup.Environment;
+import io.stargate.web.docsapi.service.query.DocumentSearchService;
+import io.stargate.web.docsapi.service.query.ExpressionParser;
+import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 
 public class DocsApiComponentsBinder extends AbstractBinder {
@@ -12,12 +15,17 @@ public class DocsApiComponentsBinder extends AbstractBinder {
 
   protected void configure() {
     DocsApiConfiguration conf = DocsApiConfiguration.DEFAULT;
-    JsonConverter jsonConverter = new JsonConverter(environment.getObjectMapper(), conf);
-    DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
     bind(conf).to(DocsApiConfiguration.class);
-    bind(jsonConverter).to(JsonConverter.class);
-    bind(schemaChecker).to(DocsSchemaChecker.class);
-    bind(new DocumentService(environment.getObjectMapper(), jsonConverter, conf, schemaChecker))
-        .to(DocumentService.class);
+    bind(TimeSource.SYSTEM).to(TimeSource.class);
+
+    bindAsContract(JsonConverter.class);
+    bindAsContract(DocsSchemaChecker.class);
+    bindAsContract(DocumentService.class);
+    bindAsContract(CollectionService.class);
+    bindAsContract(JsonSchemaHandler.class);
+    bindAsContract(ExpressionParser.class);
+    bindAsContract(ConditionParser.class);
+    bindAsContract(DocumentSearchService.class);
+    bindAsContract(ReactiveDocumentService.class);
   }
 }

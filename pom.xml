@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>1.0.26-SNAPSHOT</version>
+  <version>1.0.31-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -25,7 +25,7 @@
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <jetty.version>9.4.40.v20210413</jetty.version>
+    <jetty.version>9.4.41.v20210516</jetty.version>
     <slf4j.version>1.7.30</slf4j.version>
     <logback.version>1.2.3</logback.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
@@ -574,6 +574,11 @@
         <groupId>io.prometheus</groupId>
         <artifactId>simpleclient_dropwizard</artifactId>
         <version>${prometheus.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.bpodgursky</groupId>
+        <artifactId>jbool_expressions</artifactId>
+        <version>1.23</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>

@@ -112,6 +112,11 @@ public class SchemaConverter
   }
 
   @Override
+  protected String comment(CFMetaData table) {
+    return table.params.comment;
+  }
+
+  @Override
   protected String indexName(IndexMetadata index) {
     return index.name;
   }

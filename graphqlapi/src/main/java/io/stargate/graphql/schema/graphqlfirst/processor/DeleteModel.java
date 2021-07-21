@@ -20,13 +20,13 @@ import graphql.schema.DataFetcher;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.DeleteFetcher;
 import java.util.List;
 import java.util.Optional;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class DeleteModel extends MutationModel {
 
-  private final EntityModel entity;
   private final Optional<String> entityArgumentName;
-  private final List<WhereConditionModel> whereConditions;
-  private final ReturnType returnType;
+  private final List<ConditionModel> whereConditions;
+  private final List<ConditionModel> ifConditions;
   private final boolean ifExists;
 
   DeleteModel(
@@ -34,19 +34,17 @@ public class DeleteModel extends MutationModel {
       FieldDefinition field,
       EntityModel entity,
       Optional<String> entityArgumentName,
-      List<WhereConditionModel> whereConditions,
+      List<ConditionModel> whereConditions,
+      List<ConditionModel> ifConditions,
       ReturnType returnType,
-      boolean ifExists) {
-    super(parentTypeName, field);
-    this.entity = entity;
+      boolean ifExists,
+      Optional<ConsistencyLevel> consistencyLevel,
+      Optional<ConsistencyLevel> serialConsistencyLevel) {
+    super(parentTypeName, field, entity, returnType, consistencyLevel, serialConsistencyLevel);
     this.entityArgumentName = entityArgumentName;
     this.whereConditions = whereConditions;
-    this.returnType = returnType;
+    this.ifConditions = ifConditions;
     this.ifExists = ifExists;
-  }
-
-  public EntityModel getEntity() {
-    return entity;
   }
 
   /**
@@ -61,12 +59,12 @@ public class DeleteModel extends MutationModel {
    * If the mutation takes individual PK fields, the condition builder associated with each field.
    * Either this or {@link #getEntityArgumentName()} is set.
    */
-  public List<WhereConditionModel> getWhereConditions() {
+  public List<ConditionModel> getWhereConditions() {
     return whereConditions;
   }
 
-  public ReturnType getReturnType() {
-    return returnType;
+  public List<ConditionModel> getIfConditions() {
+    return ifConditions;
   }
 
   public boolean ifExists() {

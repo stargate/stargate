@@ -2,14 +2,24 @@ package io.stargate.web.docsapi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.LongNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
-import java.util.*;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 
 public class JsonConverter {
@@ -25,16 +35,6 @@ public class JsonConverter {
     this.docsApiConfiguration = docsApiConfiguration;
   }
 
-  // TODO find a place to refactor this to, along with DocumentService#getBooleanFromRow
-  private static Boolean getBooleanFromRow(Row row, String colName, boolean numericBooleans) {
-    if (row.isNull("bool_value")) return null;
-    if (numericBooleans) {
-      byte value = row.getByte(colName);
-      return value != 0;
-    }
-    return row.getBoolean(colName);
-  }
-
   public JsonNode convertToJsonDoc(
       List<Row> rows, boolean writeAllPathsAsObjects, boolean numericBooleans) {
     return convertToJsonDoc(
@@ -46,6 +46,16 @@ public class JsonConverter {
       DeadLeafCollector collector,
       boolean writeAllPathsAsObjects,
       boolean numericBooleans) {
+    int maxDepth = docsApiConfiguration.getMaxDepth();
+    return convertToJsonDoc(rows, collector, writeAllPathsAsObjects, numericBooleans, maxDepth);
+  }
+
+  private JsonNode convertToJsonDoc(
+      List<Row> rows,
+      DeadLeafCollector collector,
+      boolean writeAllPathsAsObjects,
+      boolean numericBooleans,
+      int maxDepth) {
     JsonNode doc = mapper.createObjectNode();
     Map<String, Long> pathWriteTimes = new HashMap<>();
     if (rows.isEmpty()) {
@@ -66,10 +76,9 @@ public class JsonConverter {
 
       String parentPath = "$";
 
-      for (int i = 0; i < docsApiConfiguration.getMaxDepth(); i++) {
+      for (int i = 0; i < maxDepth; i++) {
         String p = row.getString("p" + i);
-        String nextP =
-            i < docsApiConfiguration.getMaxDepth() - 1 ? row.getString("p" + (i + 1)) : "";
+        String nextP = i < maxDepth - 1 ? row.getString("p" + (i + 1)) : "";
         boolean endOfPath = nextP.equals("");
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
@@ -234,7 +243,8 @@ public class JsonConverter {
         n = new TextNode(value);
       }
     } else if (!row.isNull("bool_value")) {
-      n = BooleanNode.valueOf(getBooleanFromRow(row, "bool_value", numericBooleans));
+      Boolean booleanFromRow = DocsApiUtils.getBooleanFromRow(row, numericBooleans);
+      n = BooleanNode.valueOf(booleanFromRow);
     } else if (!row.isNull("dbl_value")) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without

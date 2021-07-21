@@ -18,7 +18,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -176,8 +175,7 @@ public class DsePersistenceActivator extends BaseActivator {
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");
     try {
-      // Throw away data directory since stargate is ephemeral anyway
-      baseDir = Files.createTempDirectory("stargate-dse").toFile();
+      baseDir = getBaseDir();
 
       dseDB.setAuthorizationService(authorizationService.get());
       dseDB.initialize(makeConfig(baseDir));

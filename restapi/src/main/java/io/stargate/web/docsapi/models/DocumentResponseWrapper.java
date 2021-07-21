@@ -31,6 +31,9 @@ public class DocumentResponseWrapper<T> {
   @JsonProperty("data")
   T data;
 
+  @JsonProperty("profile")
+  ExecutionProfile profile;
+
   @ApiModelProperty(value = "The id of the document")
   public String getDocumentId() {
     return documentId;
@@ -62,13 +65,20 @@ public class DocumentResponseWrapper<T> {
     return this;
   }
 
+  @ApiModelProperty("Profiling information related to the execution of the request (optional)")
+  public ExecutionProfile getProfile() {
+    return profile;
+  }
+
   @JsonCreator
   public DocumentResponseWrapper(
       @JsonProperty("documentId") final String documentId,
       @JsonProperty("pageState") final String pageState,
-      @JsonProperty("data") final T data) {
+      @JsonProperty("data") final T data,
+      @JsonProperty("profile") ExecutionProfile profile) {
     this.documentId = documentId;
     this.pageState = pageState;
     this.data = data;
+    this.profile = profile;
   }
 }

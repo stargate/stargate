@@ -305,11 +305,23 @@ public class Conversion {
     Map<InetAddressAndPort, RequestFailureReason> external = new HashMap<>(internal.size());
     for (Map.Entry<InetAddress, org.apache.cassandra.exceptions.RequestFailureReason> entry :
         internal.entrySet()) {
-      external.put(
-          InetAddressAndPort.getByAddress(entry.getKey()),
-          RequestFailureReason.fromCode(entry.getValue().codeForNativeProtocol()));
+      external.put(InetAddressAndPort.getByAddress(entry.getKey()), toExternal(entry.getValue()));
     }
     return external;
+  }
+
+  private static RequestFailureReason toExternal(
+      org.apache.cassandra.exceptions.RequestFailureReason internal) {
+    try {
+      // Convert to Stargate enum values by name since SG replies on OSS protocol codes
+      // for request failure reasons and they do match DSE-specific failure codes.
+      return RequestFailureReason.valueOf(internal.name());
+    } catch (IllegalArgumentException e) {
+      logger.debug("Unknown failure reason: {}", internal);
+      // Note: the "UNKNOWN" failure reason itself should match by name. If we ended up here it
+      // means the error code is new in DSE and Stargate has not yet been updated to handle it.
+      return RequestFailureReason.FROM_THE_FUTURE;
+    }
   }
 
   public static WriteType toExternal(org.apache.cassandra.db.WriteType internal) {

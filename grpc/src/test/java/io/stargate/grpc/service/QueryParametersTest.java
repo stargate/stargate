@@ -73,10 +73,10 @@ public class QueryParametersTest extends BaseServiceTest {
 
     StargateBlockingStub stub = makeBlockingStub();
 
-    QueryOuterClass.Result result =
+    QueryOuterClass.Response response =
         stub.executeQuery(
             Query.newBuilder().setCql("SELECT * FROM test").setParameters(actual).build());
-    assertThat(result).isNotNull();
+    assertThat(response.hasResultSet()).isTrue();
   }
 
   public static Stream<Arguments> queryParameterValues() {
@@ -87,14 +87,13 @@ public class QueryParametersTest extends BaseServiceTest {
             Parameters.builder().defaultKeyspace("abc").build()),
         arguments(
             cqlQueryParameters()
-                .setConsistency(
-                    ConsistencyValue.newBuilder().setValue(Consistency.CONSISTENCY_THREE))
+                .setConsistency(ConsistencyValue.newBuilder().setValue(Consistency.THREE))
                 .build(),
             Parameters.builder().consistencyLevel(ConsistencyLevel.THREE).build()),
         arguments(
             cqlQueryParameters()
                 .setSerialConsistency(
-                    ConsistencyValue.newBuilder().setValue(Consistency.CONSISTENCY_LOCAL_SERIAL))
+                    ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_SERIAL))
                 .build(),
             Parameters.builder().serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL).build()),
         arguments(
@@ -129,10 +128,8 @@ public class QueryParametersTest extends BaseServiceTest {
         arguments(
             cqlQueryParameters()
                 .setKeyspace(StringValue.newBuilder().setValue("def"))
-                .setConsistency(
-                    ConsistencyValue.newBuilder().setValue(Consistency.CONSISTENCY_LOCAL_QUORUM))
-                .setSerialConsistency(
-                    ConsistencyValue.newBuilder().setValue(Consistency.CONSISTENCY_SERIAL))
+                .setConsistency(ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_QUORUM))
+                .setSerialConsistency(ConsistencyValue.newBuilder().setValue(Consistency.SERIAL))
                 .setNowInSeconds(Int32Value.newBuilder().setValue(54321).build())
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .setTracing(true)
