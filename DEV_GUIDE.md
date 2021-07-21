@@ -303,7 +303,7 @@ Install that version of the JDK and then be sure to add it to your path. If you 
 
 ```sh
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-export PATH="$MAVEN_HOME/bin:$JAVA_HOME/bin:$PATH"
+export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
 Now you should be able to successfully compile the Stargate project using the command ```./mvnw clean package```
