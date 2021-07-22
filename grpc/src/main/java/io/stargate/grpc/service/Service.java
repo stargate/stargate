@@ -186,6 +186,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
         return;
       }
 
+      validateTypeOfBatchQueries(batch);
+
       // TODO: Add a limit for the maximum number of queries in a batch? The setting
       // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
 
@@ -651,7 +653,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           }
 
           if (result.kind == Kind.Rows) {
-            Payload.Type type = validateAndGetTypeForBatchQueries(batch);
+            // all queries within a batch must have the same type
+            Payload.Type type = batch.getQueries(0).getValues().getType();
             PayloadHandler handler = PayloadHandlers.get(type);
             Any data = handler.processResult((Rows) result, batch.getParameters());
             responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
@@ -667,7 +670,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     };
   }
 
-  private Payload.Type validateAndGetTypeForBatchQueries(Batch batch) {
+  private void validateTypeOfBatchQueries(Batch batch) {
     // we assume that all queries within a batch have the same type
     Payload.Type type = batch.getQueries(0).getValues().getType();
     boolean allTypesMatch =
@@ -676,8 +679,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       throw new IllegalStateException(
           "Types for all queries within batch must be the same, and equal to: " + type);
     }
-
-    return type;
   }
 
   private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
