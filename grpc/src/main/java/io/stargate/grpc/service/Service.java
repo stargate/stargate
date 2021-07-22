@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.protobuf.Any;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -184,6 +185,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
             Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException());
         return;
       }
+
+      validateTypeOfBatchQueries(batch);
 
       // TODO: Add a limit for the maximum number of queries in a batch? The setting
       // `batch_size_fail_threshold_in_kb` provides some protection at the persistence layer.
@@ -644,9 +647,19 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
           Response.Builder responseBuilder = makeResponseBuilder(result);
           handleTraceId(result.getTracingId(), parameters, responseAndTraceId);
-          if (result.kind != Kind.Void) {
+
+          if (result.kind != Kind.Void && result.kind != Kind.Rows) {
             throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
           }
+
+          if (result.kind == Kind.Rows) {
+            // all queries within a batch must have the same type
+            Payload.Type type = batch.getQueries(0).getValues().getType();
+            PayloadHandler handler = PayloadHandlers.get(type);
+            Any data = handler.processResult((Rows) result, batch.getParameters());
+            responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
+          }
+
           responseAndTraceId.setResponseBuilder(responseBuilder);
           return responseAndTraceId;
         } catch (Throwable th) {
@@ -655,6 +668,17 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       }
       return new ResponseAndTraceId(makeResponseBuilder(result));
     };
+  }
+
+  private void validateTypeOfBatchQueries(Batch batch) {
+    // we assume that all queries within a batch have the same type
+    Payload.Type type = batch.getQueries(0).getValues().getType();
+    boolean allTypesMatch =
+        batch.getQueriesList().stream().allMatch(v -> v.getValues().getType().equals(type));
+    if (!allTypesMatch) {
+      throw new IllegalStateException(
+          "Types for all queries within batch must be the same, and equal to: " + type);
+    }
   }
 
   private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)

@@ -35,6 +35,7 @@ import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.cql.ValueCodec;
 import io.stargate.grpc.codec.cql.ValueCodecs;
 import io.stargate.grpc.payload.PayloadHandler;
+import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
@@ -126,12 +127,21 @@ public class ValuesHandler implements PayloadHandler {
 
   @Override
   public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
+    return processResult(rows, parameters.getSkipMetadata());
+  }
+
+  @Override
+  public Any processResult(Rows rows, BatchParameters parameters) throws StatusException {
+    return processResult(rows, parameters.getSkipMetadata());
+  }
+
+  private Any processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 
-    if (!parameters.getSkipMetadata()) {
+    if (!skipMetadata) {
       for (Column column : columns) {
         resultSetBuilder.addColumns(
             ColumnSpec.newBuilder()
