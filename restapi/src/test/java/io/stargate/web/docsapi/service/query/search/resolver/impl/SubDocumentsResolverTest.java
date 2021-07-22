@@ -110,7 +110,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "parent",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
@@ -194,7 +196,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "parent",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
@@ -267,7 +271,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND p1 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND p1 = ? AND key = ? ALLOW FILTERING",
+                  "",
+                  "reviews",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
@@ -387,7 +394,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "parent",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
@@ -475,7 +484,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "parent",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
@@ -545,7 +556,9 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "parent",
+                  documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returningNothing();
 
