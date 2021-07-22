@@ -22,10 +22,13 @@ import com.bpodgursky.jbool_expressions.Literal;
 import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Streams;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.query.ImmutableFilterExpression.Builder;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -143,14 +147,24 @@ public class ExpressionParser {
           expressions.add(and);
         } else {
           FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
+          JsonNode conditions = next.getValue();
+          Optional<Double> selectivity = resolveSelectivity(conditions);
           Collection<BaseCondition> fieldConditions =
-              conditionParser.getConditions(next.getValue(), numericBooleans);
-          validateFieldConditions(filterPath, fieldConditions);
+              conditionParser.getConditions(conditions, numericBooleans);
+          validateFieldConditions(filterPath, fieldConditions, selectivity);
+
           for (BaseCondition fieldCondition : fieldConditions) {
-            ImmutableFilterExpression expression =
-                ImmutableFilterExpression.of(
-                    filterPath, fieldCondition, nextIndex.getAndIncrement());
-            expressions.add(expression);
+            int index = nextIndex.getAndIncrement();
+
+            Builder builder =
+                ImmutableFilterExpression.builder()
+                    .filterPath(filterPath)
+                    .condition(fieldCondition)
+                    .orderIndex(index);
+
+            selectivity.ifPresent(builder::selectivity);
+
+            expressions.add(builder.build());
           }
         }
       }
@@ -159,8 +173,33 @@ public class ExpressionParser {
     return expressions;
   }
 
+  private Optional<Double> resolveSelectivity(JsonNode conditions) {
+    //noinspection UnstableApiUsage
+    return Streams.stream(conditions.fields())
+        .map(
+            entry ->
+                FilterHintCode.getByRawValue(entry.getKey())
+                    .filter(h -> h == FilterHintCode.SELECTIVITY)
+                    .map(
+                        h -> {
+                          JsonNode value = entry.getValue();
+                          if (!value.isNumber()) {
+                            String msg =
+                                String.format(
+                                    "Selectivity hint does not support the provided value %s (expecting a number)",
+                                    value);
+                            throw new ErrorCodeRuntimeException(
+                                ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+                          }
+                          return value.asDouble();
+                        }))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst();
+  }
+
   private void validateFieldConditions(
-      FilterPath filterPath, Collection<BaseCondition> conditions) {
+      FilterPath filterPath, Collection<BaseCondition> conditions, Optional<Double> selectivity) {
     // If some conditions imply specific and different value types it is a user error since each
     // field can have a value of only one type at a time.
     // Example: `field GT 1` and `field EQ "string"`
@@ -175,6 +214,17 @@ public class ExpressionParser {
               "Filter conditions for field '%s' imply incompatible types: %s",
               filterPath.getField(),
               specificTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ")));
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+    }
+
+    // If selectivity is explicitly provided, allow at most one condition to avoid ambiguity.
+    if (selectivity.isPresent() && conditions.size() > 1) {
+      String msg =
+          String.format(
+              "Specifying multiple filter conditions in the same JSON block with a selectivity "
+                  + "hint is not supported. Combine them using \"$and\" to disambiguate. "
+                  + "Related field: '%s')",
+              filterPath.getField());
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
   }

@@ -23,6 +23,7 @@ import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,6 +53,21 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   /** @return Returns the order index of this filter expression given by the user. */
   @Value.Parameter
   public abstract int getOrderIndex();
+
+  /**
+   * The best known selectivity of this filter expression.
+   *
+   * <p>Selectivity is a value between 0 and 1 (inclusive) that represents the percentage of rows
+   * that are expected to be matched by this filter.
+   *
+   * <p>By default, filters that do not have an explicit selectivity {@link
+   * FilterHintCode#SELECTIVITY hint} provided by the query get the selectivity value of {@code 1.0}
+   * (the worst possible selectivity).
+   */
+  @Value.Default
+  public double getSelectivity() {
+    return 1.0;
+  }
 
   /** @return Returns human-readable description of this expression. */
   public String getDescription() {

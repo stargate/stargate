@@ -33,23 +33,33 @@ public class UserOrderWeightResolver implements ExpressionWeightResolver<FilterE
   /** {@inheritDoc} */
   @Override
   public int compare(FilterExpression o1, FilterExpression o2) {
-    int defaultCompare = ExpressionWeightResolver.super.compare(o1, o2);
-    if (defaultCompare != 0) {
-      return defaultCompare;
-    } else {
-      return Integer.compare(o1.getOrderIndex(), o2.getOrderIndex());
+    int result = ExpressionWeightResolver.super.compare(o1, o2);
+    if (result != 0) {
+      return result;
     }
+
+    result = Double.compare(o1.getSelectivity(), o2.getSelectivity());
+    if (result != 0) {
+      return result;
+    }
+
+    return Integer.compare(o1.getOrderIndex(), o2.getOrderIndex());
   }
 
   /** {@inheritDoc} */
   @Override
   public int compare(Collection<FilterExpression> c1, Collection<FilterExpression> c2) {
-    int defaultCompare = ExpressionWeightResolver.super.compare(c1, c2);
-    if (defaultCompare != 0) {
-      return defaultCompare;
-    } else {
-      return Integer.compare(lowestIndex(c1), lowestIndex(c2));
+    int result = ExpressionWeightResolver.super.compare(c1, c2);
+    if (result != 0) {
+      return result;
     }
+
+    result = Double.compare(lowestSelectivity(c1), lowestSelectivity(c2));
+    if (result != 0) {
+      return result;
+    }
+
+    return Integer.compare(lowestIndex(c1), lowestIndex(c2));
   }
 
   private int lowestIndex(Collection<FilterExpression> collection) {
@@ -57,5 +67,12 @@ public class UserOrderWeightResolver implements ExpressionWeightResolver<FilterE
         .mapToInt(FilterExpression::getOrderIndex)
         .min()
         .orElse(Integer.MAX_VALUE);
+  }
+
+  private double lowestSelectivity(Collection<FilterExpression> collection) {
+    return collection.stream()
+        .mapToDouble(FilterExpression::getSelectivity)
+        .min()
+        .orElse(Double.MAX_VALUE);
   }
 }
