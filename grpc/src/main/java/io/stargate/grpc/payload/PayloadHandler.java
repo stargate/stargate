@@ -19,6 +19,7 @@ import com.google.protobuf.Any;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
+import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import java.nio.ByteBuffer;
 
@@ -48,5 +49,5 @@ public interface PayloadHandler {
    */
   Any processResult(Rows rows, QueryParameters parameters) throws Exception;
 
-  Any processResult(Rows rows, boolean skipMetadata) throws Exception;
+  Any processResult(Rows rows, BatchParameters parameters) throws Exception;
 }

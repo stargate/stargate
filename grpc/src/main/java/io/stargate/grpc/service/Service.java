@@ -653,7 +653,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
           if (result.kind == Kind.Rows) {
             Payload.Type type = validateAndGetTypeForBatchQueries(batch);
             PayloadHandler handler = PayloadHandlers.get(type);
-            Any data = handler.processResult((Rows) result, false);
+            Any data = handler.processResult((Rows) result, batch.getParameters());
             responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
           }
 

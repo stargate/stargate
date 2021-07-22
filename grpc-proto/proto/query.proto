@@ -297,6 +297,7 @@ message BatchParameters {
   ConsistencyValue serial_consistency = 5;
   google.protobuf.Int32Value now_in_seconds = 6;
   ConsistencyValue tracing_consistency = 7;
+  bool skip_metadata = 8;
 }
 
 message Batch {
