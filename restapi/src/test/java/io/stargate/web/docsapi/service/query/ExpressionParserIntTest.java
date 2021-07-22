@@ -761,6 +761,20 @@ class ExpressionParserIntTest {
     }
 
     @Test
+    public void notObjectNode() throws Exception {
+      String json = "[\"b\"]";
+      JsonNode root = mapper.readTree(json);
+
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
+    }
+
+    @Test
     public void andConditionNotInJsonArrayNode() throws Exception {
       String json = "{\"$and\": {\"myField\": {\"$eq\": \"b\"}}}";
       JsonNode root = mapper.readTree(json);

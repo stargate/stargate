@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.query.condition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -53,6 +54,18 @@ class ConditionParserTest {
   class GetConditions {
 
     ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    public void invalidNode() {
+      JsonNode node = objectMapper.missingNode();
+
+      Throwable throwable =
+          catchThrowable(() -> conditionParser.getConditions(node, NUMERIC_BOOLEANS));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
 
     @Test
     public void invalidOps() {

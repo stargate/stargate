@@ -100,6 +100,10 @@ public class ExpressionParser {
    */
   private List<Expression<FilterExpression>> parse(
       List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+    if (!filterJson.isObject()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
+    }
+
     return parse(
         prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));
   }

@@ -46,6 +46,10 @@ public class ConditionParser {
    *     condition constructions fails or filter value is not supported by the filter op.
    */
   public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
+    if (!conditionsNode.isObject()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(

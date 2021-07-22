@@ -1425,6 +1425,9 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
+    // without collect initalized, we can not test below
+    RestUtils.put(authToken, collectionPath + "/dummy", "{\"a\": 1}", 200);
+
     RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 400);
 
     String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
@@ -1435,7 +1438,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where={\"a\": true}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Search was expecting a JSON object as input.\",\"code\":400}");
+            "{\"description\":\"A filter operation and value resolved as invalid.\",\"code\":400}");
 
     r =
         RestUtils.get(
