@@ -39,6 +39,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.server.ServerProperties;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
@@ -114,6 +115,9 @@ public class Server extends Application<ApplicationConfiguration> {
         new ResourceMetricsEventListener(
             metrics, httpMetricsTagProvider, AuthApiActivator.MODULE_NAME);
     environment.jersey().register(metricsListener);
+
+    // no html content
+    environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
   @Override
