@@ -139,7 +139,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
 
     @Test
@@ -171,7 +171,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
   }
 
@@ -199,7 +199,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -264,6 +268,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 > ? AND p2 = ? AND leaf = ? AND p3 = ? AND key = ? ALLOW FILTERING",
+                  "some",
+                  "",
+                  "field",
+                  "field",
+                  "",
                   documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
@@ -327,7 +336,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returningNothing();
 
@@ -377,7 +390,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returningNothing();
 
@@ -427,7 +444,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 

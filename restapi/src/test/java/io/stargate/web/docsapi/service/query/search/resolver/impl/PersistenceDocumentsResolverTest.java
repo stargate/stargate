@@ -105,7 +105,11 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING")
+                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "",
+                  "query-value")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -162,7 +166,12 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND dbl_value >= ? AND dbl_value <= ? ALLOW FILTERING")
+                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND dbl_value >= ? AND dbl_value <= ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "",
+                  1.0,
+                  2.0)
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -208,7 +217,11 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value < ? ALLOW FILTERING")
+                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value < ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "",
+                  "query-value")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -266,7 +279,11 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING")
+                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "",
+                  "query-value")
               .withPageSize(configuration.getSearchPageSize())
               .returningNothing();
 
@@ -295,7 +312,13 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? AND text_value = ? ALLOW FILTERING")
+                  "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? AND text_value = ? ALLOW FILTERING",
+                  "field",
+                  "nested",
+                  "value",
+                  "value",
+                  "",
+                  "query-value")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 

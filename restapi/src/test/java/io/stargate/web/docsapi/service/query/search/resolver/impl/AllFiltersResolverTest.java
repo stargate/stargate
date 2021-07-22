@@ -147,7 +147,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
 
       results.test().assertValue(rawDocument).assertComplete();
 
-      ignorePreparedExecutions();
+      resetExpectations();
 
       verify(candidatesFilter)
           .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
@@ -192,7 +192,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
 
       results.test().assertValueAt(0, rawDocument).assertValueAt(1, rawDocument2).assertComplete();
 
-      ignorePreparedExecutions();
+      resetExpectations();
 
       verify(candidatesFilter)
           .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
@@ -241,7 +241,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
 
       results.test().assertValueCount(0).assertComplete();
 
-      ignorePreparedExecutions();
+      resetExpectations();
 
       verify(candidatesFilter)
           .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
@@ -272,7 +272,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
 
       results.test().assertValueCount(0).assertComplete();
 
-      ignorePreparedExecutions();
+      resetExpectations();
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
   }

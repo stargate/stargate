@@ -139,7 +139,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
 
     @Test
@@ -172,7 +172,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
   }
 
@@ -198,7 +198,12 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  "query-value",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returning(Arrays.asList(ImmutableMap.of("key", "1")));
 
@@ -251,6 +256,13 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 > ? AND p2 = ? AND leaf = ? AND p3 = ? AND dbl_value < ? AND dbl_value > ? AND key = ? ALLOW FILTERING",
+                  "some",
+                  "",
+                  "field",
+                  "field",
+                  "",
+                  1.0,
+                  2.0,
                   documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1")));
@@ -300,7 +312,12 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  "query-value",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returningNothing();
 

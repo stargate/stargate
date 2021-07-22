@@ -70,6 +70,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -909,6 +910,14 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
       withQuery(table, insert, fillParams(70, id3, "a", SEPARATOR, "a", null, 123.0d, null, 200L))
           .returningNothing();
+    }
+
+    @AfterEach
+    void ignoreExpectation() {
+      // Tests in this class are meant to validate only profile output. We have some extra
+      // expectations defined by setQueryExpectations() to reduce copy-paste, but we do not actually
+      // expect all of them to be executed by each test method.
+      resetExpectations();
     }
 
     @Test

@@ -37,7 +37,7 @@ public abstract class AbstractDataStoreTest {
   @BeforeEach
   public void createDataStore() {
     dataStore = new ValidatingDataStore(schema());
-    dataStore.reset();
+    resetExpectations();
   }
 
   @AfterEach
@@ -53,6 +53,10 @@ public abstract class AbstractDataStoreTest {
 
   protected void ignorePreparedExecutions() {
     dataStore.ignorePrepared();
+  }
+
+  protected void resetExpectations() {
+    dataStore.reset();
   }
 
   protected QueryExpectation withQuery(Table table, String cql, Object... params) {
