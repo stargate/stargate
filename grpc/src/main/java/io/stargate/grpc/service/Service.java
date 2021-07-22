@@ -65,7 +65,9 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -450,7 +452,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
       connection
           .execute(
-              bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime)
+              bindValues(handler, prepared, values),
+              makeParameters(parameters, connection.clientInfo()),
+              queryStartNanoTime)
           .handle(
               handleQuery(
                   query,
@@ -601,7 +605,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       BatchParameters parameters = batch.getParameters();
 
       connection
-          .batch(preparedBatch, makeParameters(parameters), queryStartNanoTime)
+          .batch(
+              preparedBatch,
+              makeParameters(parameters, connection.clientInfo()),
+              queryStartNanoTime)
           .handle(handleBatchQuery(parameters, responseObserver, connection, batch))
           .whenComplete(
               executeTracingQueryIfNeeded(
@@ -700,7 +707,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return handler.bindValues(prepared, values.getData(), unsetValue);
   }
 
-  private Parameters makeParameters(QueryParameters parameters) {
+  private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
     if (parameters.hasConsistency()) {
@@ -733,10 +740,17 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       builder.nowInSeconds(parameters.getNowInSeconds().getValue());
     }
 
+    clientInfo.ifPresent(
+        c -> {
+          Map<String, ByteBuffer> customPayload = new HashMap<>();
+          c.storeAuthenticationData(customPayload);
+          builder.customPayload(customPayload);
+        });
+
     return builder.tracingRequested(parameters.getTracing()).build();
   }
 
-  private Parameters makeParameters(BatchParameters parameters) {
+  private Parameters makeParameters(BatchParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
     if (parameters.hasConsistency()) {
@@ -761,6 +775,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       builder.nowInSeconds(parameters.getNowInSeconds().getValue());
     }
 
+    clientInfo.ifPresent(
+        c -> {
+          Map<String, ByteBuffer> customPayload = new HashMap<>();
+          c.storeAuthenticationData(customPayload);
+          builder.customPayload(customPayload);
+        });
+
     return builder.tracingRequested(parameters.getTracing()).build();
   }
 
@@ -777,6 +798,9 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       connection = persistence.newConnection();
     }
     connection.login(user);
+    if (user.token() != null) {
+      connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+    }
     return connection;
   }
 
