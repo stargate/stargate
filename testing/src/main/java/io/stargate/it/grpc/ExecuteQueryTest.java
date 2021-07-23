@@ -82,7 +82,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         stub.executeQuery(
             cqlQuery(
                 "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                QueryParameters.newBuilder()));
     assertThat(response).isNotNull();
 
     response =

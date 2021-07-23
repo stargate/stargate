@@ -24,6 +24,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass.Batch;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
@@ -79,7 +80,7 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
         stub.executeQuery(
             cqlQuery(
                 "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                QueryParameters.newBuilder()));
     assertThat(response).isNotNull();
 
     response =
