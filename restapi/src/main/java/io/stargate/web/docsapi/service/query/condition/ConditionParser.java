@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,8 +42,8 @@ public class ConditionParser {
    * @param conditionsNode Node containing the filter ops as keys
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Collection of created conditions.
-   * @throws io.stargate.web.docsapi.exception.DocumentAPIRequestException If filter op is not
-   *     found, condition constructions fails or filter value is not supported by the filter op.
+   * @throws io.stargate.web.docsapi.exception.ErrorCodeRuntimeException If filter op is not found,
+   *     condition constructions fails or filter value is not supported by the filter op.
    */
   public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
     List<BaseCondition> results = new ArrayList<>();
@@ -50,6 +51,12 @@ public class ConditionParser {
     fields.forEachRemaining(
         field -> {
           String filterOp = field.getKey();
+
+          // skip hints (processed elsewhere)
+          if (FilterHintCode.getByRawValue(filterOp).isPresent()) {
+            return;
+          }
+
           Optional<FilterOperationCode> operationCode = FilterOperationCode.getByRawValue(filterOp);
           if (operationCode.isPresent()) {
             JsonNode valueNode = field.getValue();

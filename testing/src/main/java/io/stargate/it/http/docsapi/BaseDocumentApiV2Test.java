@@ -1106,6 +1106,28 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testBasicSearchWithSelectivityHints() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={"
+                + "\"products.electronics.Pixel_3a.price\": {\"$gte\": 600},"
+                + "\"products.electronics.Pixel_3a.price\": {\"$lte\": 600, \"$selectivity\": 0.5}"
+                + "}",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
   public void testBasicSearchSelectionSet() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -1706,6 +1728,31 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchMultiPersistenceFilterWithSelectivity() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={"
+                + "\"value\": {\"$eq\": \"a\"},"
+                + "\"n.value\": {\"$lt\": 6, \"$selectivity\":0.5}"
+                + "}&raw=true",
             200);
 
     String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";

@@ -81,6 +81,7 @@ class ExpressionParserIntTest {
               FilterExpression.class,
               c -> {
                 assertThat(c.getOrderIndex()).isZero();
+                assertThat(c.getSelectivity()).isEqualTo(1.0); // default selectivity
                 assertThat(c.getFilterPath().getField()).isEqualTo("myField");
                 assertThat(c.getFilterPath().getParentPath()).isEmpty();
                 assertThat(c.getCondition())
@@ -541,8 +542,8 @@ class ExpressionParserIntTest {
 
       Expression<FilterExpression> result =
           service.constructFilterExpression(Collections.emptyList(), root, false);
-
       assertThat(result).isInstanceOf(And.class);
+
       List<? extends Expression<?>> children = ((And<?>) result).getChildren();
       assertThat(children)
           .hasSize(2)
@@ -777,6 +778,137 @@ class ExpressionParserIntTest {
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+  }
+
+  @Nested
+  class ConstructFilterWithSelectivity {
+    @Test
+    public void singleField() throws Exception {
+      String json = "{\"my.*.field\": {\"$eq\": \"some-value\", \"$selectivity\": 0.123}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              FilterExpression.class,
+              c -> {
+                assertThat(c.getOrderIndex()).isZero();
+                assertThat(c.getSelectivity()).isEqualTo(0.123);
+                assertThat(c.getFilterPath().getField()).isEqualTo("field");
+                assertThat(c.getCondition()).isInstanceOf(StringCondition.class);
+              });
+    }
+
+    @Test
+    public void multipleFields() throws Exception {
+      String json =
+          "{\"field1\": {\"$eq\": \"some-value\", \"$selectivity\": 0.111},"
+              + "\"field2\": {\"$selectivity\": 0.222, \"$ne\": \"some-small-value\"},"
+              + "\"field3\": {\"$ne\": \"some-small-value\"}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+      assertThat(result).isInstanceOf(And.class);
+      List<? extends Expression<?>> children = ((And<?>) result).getChildren();
+
+      assertThat(children)
+          .hasSize(3)
+          .anySatisfy(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          FilterExpression.class,
+                          c -> {
+                            assertThat(c.getFilterPath().getField()).isEqualTo("field1");
+                            assertThat(c.getOrderIndex()).isEqualTo(0);
+                            assertThat(c.getSelectivity()).isEqualTo(0.111);
+                          }))
+          .anySatisfy(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          FilterExpression.class,
+                          c -> {
+                            assertThat(c.getFilterPath().getField()).isEqualTo("field2");
+                            assertThat(c.getOrderIndex()).isEqualTo(1);
+                            assertThat(c.getSelectivity()).isEqualTo(0.222);
+                          }))
+          .anySatisfy(
+              e ->
+                  assertThat(e)
+                      .isInstanceOfSatisfying(
+                          FilterExpression.class,
+                          c -> {
+                            assertThat(c.getFilterPath().getField()).isEqualTo("field3");
+                            assertThat(c.getOrderIndex()).isEqualTo(2);
+                            assertThat(c.getSelectivity()).isEqualTo(1.0); // default selectivity
+                          }));
+    }
+
+    @Test
+    public void singleFieldMultipleConditions() throws Exception {
+      String json = "{\"my.*.field\": {\"$eq\": \"some-value\", \"$selectivity\": 0.123}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              FilterExpression.class,
+              c -> {
+                assertThat(c.getOrderIndex()).isZero();
+                assertThat(c.getSelectivity()).isEqualTo(0.123);
+                assertThat(c.getFilterPath().getField()).isEqualTo("field");
+                assertThat(c.getCondition()).isInstanceOf(StringCondition.class);
+              });
+    }
+
+    @Test
+    public void singleSelectivityMultipleConditions() throws Exception {
+      String json = "{\"field1\": {\"$gt\": \"a\", \"$lt\": \"z\", \"$selectivity\": 0.123}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
+          .hasMessageContaining(
+              "Specifying multiple filter conditions in the same JSON block with a selectivity "
+                  + "hint is not supported. Combine them using \"$and\" to disambiguate. "
+                  + "Related field: 'field1')");
+    }
+
+    @Test
+    public void singleSelectivityNoConditions() throws Exception {
+      String json = "{\"field1\": {\"$selectivity\": 0.123}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
+          .hasMessageContaining("Field 'field1' has a selectivity hint but no condition");
+    }
+
+    @Test
+    public void invalidSelectivityValueType() throws Exception {
+      String json = "{\"field1\": {\"$gt\": \"a\", \"$selectivity\": \"0.123\"}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
+          .hasMessageContaining(
+              "Selectivity hint does not support the provided value \"0.123\" (expecting a number)");
     }
   }
 
