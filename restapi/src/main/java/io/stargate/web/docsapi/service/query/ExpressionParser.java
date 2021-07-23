@@ -227,6 +227,13 @@ public class ExpressionParser {
               filterPath.getField());
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
+
+    if (selectivity.isPresent() && conditions.isEmpty()) {
+      String msg =
+          String.format(
+              "Field '%s' has a selectivity hint but no condition", filterPath.getField());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+    }
   }
 
   private Or<FilterExpression> resolveOr(

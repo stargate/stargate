@@ -869,7 +869,7 @@ class ExpressionParserIntTest {
     }
 
     @Test
-    public void invalidSelectivityValueType() throws Exception {
+    public void singleSelectivityMultipleConditions() throws Exception {
       String json = "{\"field1\": {\"$gt\": \"a\", \"$lt\": \"z\", \"$selectivity\": 0.123}}";
       JsonNode root = mapper.readTree(json);
 
@@ -882,6 +882,33 @@ class ExpressionParserIntTest {
               "Specifying multiple filter conditions in the same JSON block with a selectivity "
                   + "hint is not supported. Combine them using \"$and\" to disambiguate. "
                   + "Related field: 'field1')");
+    }
+
+    @Test
+    public void singleSelectivityNoConditions() throws Exception {
+      String json = "{\"field1\": {\"$selectivity\": 0.123}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
+          .hasMessageContaining("Field 'field1' has a selectivity hint but no condition");
+    }
+
+    @Test
+    public void invalidSelectivityValueType() throws Exception {
+      String json = "{\"field1\": {\"$gt\": \"a\", \"$selectivity\": \"0.123\"}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
+          .hasMessageContaining(
+              "Selectivity hint does not support the provided value \"0.123\" (expecting a number)");
     }
   }
 
