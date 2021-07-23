@@ -318,11 +318,11 @@ public class ReactiveDocumentService {
 
           FilterPath filterPath = filterPaths.isEmpty() ? null : filterPaths.get(0);
           // field of condition must be referenced in the fields (if they exist)
-          if (!fieldPaths.isEmpty() && filterPath != null) {
-            if (!fieldPaths.contains(Collections.singletonList(filterPath.getField()))) {
-              throw new ErrorCodeRuntimeException(
-                  ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
-            }
+          if (!fieldPaths.isEmpty()
+              && filterPath != null
+              && !fieldPaths.contains(Collections.singletonList(filterPath.getField()))) {
+            throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_GET_CONDITION_FIELDS_NOT_REFERENCED);
           }
 
           // authentication for the read before searching
@@ -338,32 +338,8 @@ public class ReactiveDocumentService {
           // yet another backward compatibility fix
           // fields are relative to that single filter parent path if it exists
           // otherwise to the path prefix
-          Collection<List<String>> fullFieldPaths;
-
-          // execute two different cases
-          if (null != filterPath) {
-            fullFieldPaths =
-                Optional.of(fieldPaths)
-                    .filter(fp -> !fp.isEmpty())
-                    .map(
-                        fp ->
-                            fp.stream()
-                                .peek(l -> l.addAll(0, filterPath.getParentPath()))
-                                .collect(Collectors.toList()))
-                    .orElse(Collections.singletonList(filterPath.getPath()));
-
-          } else {
-            fullFieldPaths =
-                Optional.of(fieldPaths)
-                    .filter(fp -> !fp.isEmpty())
-                    .map(
-                        fp ->
-                            fp.stream()
-                                .peek(l -> l.addAll(0, subDocumentPathProcessed))
-                                .collect(Collectors.toList()))
-                    .orElse(Collections.singletonList(subDocumentPathProcessed));
-          }
-          Collection<List<String>> fullFieldPathsFinal = fullFieldPaths;
+          Collection<List<String>> finalFieldPath =
+              getFinalInDocumentFieldPaths(fieldPaths, filterPath, subDocumentPathProcessed);
 
           // final search sub-path is either the given one or the filter parent path if exists
           List<String> searchPath =
@@ -391,12 +367,40 @@ public class ReactiveDocumentService {
                     String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
                     // NOTE: Search writes all paths as objects
-                    ArrayNode docsResult =
-                        createJsonArray(db, rawDocuments, fullFieldPathsFinal, true);
+                    ArrayNode docsResult = createJsonArray(db, rawDocuments, finalFieldPath, true);
                     return new DocumentResponseWrapper<JsonNode>(
                         documentId, state, docsResult, context.toProfile());
                   });
         });
+  }
+
+  private Collection<List<String>> getFinalInDocumentFieldPaths(
+      Collection<List<String>> fieldPaths,
+      FilterPath filterPath,
+      List<String> subDocumentPathProcessed) {
+    // fields are relative to that single filter parent path if it exists
+    // otherwise to the path prefix
+    // execute two different cases
+    if (null != filterPath) {
+      return Optional.of(fieldPaths)
+          .filter(fp -> !fp.isEmpty())
+          .map(
+              fp ->
+                  fp.stream()
+                      .peek(l -> l.addAll(0, filterPath.getParentPath()))
+                      .collect(Collectors.toList()))
+          .orElse(Collections.singletonList(filterPath.getPath()));
+
+    } else {
+      return Optional.of(fieldPaths)
+          .filter(fp -> !fp.isEmpty())
+          .map(
+              fp ->
+                  fp.stream()
+                      .peek(l -> l.addAll(0, subDocumentPathProcessed))
+                      .collect(Collectors.toList()))
+          .orElse(Collections.singletonList(subDocumentPathProcessed));
+    }
   }
 
   private Expression<FilterExpression> getExpression(
