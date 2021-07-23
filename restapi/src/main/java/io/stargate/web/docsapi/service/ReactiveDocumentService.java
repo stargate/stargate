@@ -29,6 +29,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -181,8 +182,6 @@ public class ReactiveDocumentService {
           // resolve the inputs first
           Collection<List<String>> fieldPaths = getFields(fields);
 
-          // TODO do we need another auth here or only if we actually gonna update the dead leaf
-
           // authentication for the read before searching
           AuthorizationService authorizationService = db.getAuthorizationService();
           AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
@@ -230,8 +229,14 @@ public class ReactiveDocumentService {
                       logger.info(
                           String.format("Deleting %d dead leaves", collector.getLeaves().size()));
 
-                      db.deleteDeadLeaves(
-                          namespace, collection, documentId, collector.getLeaves(), context, now);
+                      // don't fail here if the unauthorized exception occurs, this is a read
+                      // request
+                      try {
+                        db.deleteDeadLeaves(
+                            namespace, collection, documentId, collector.getLeaves(), context, now);
+                      } catch (UnauthorizedException e) {
+                        logger.debug("Unauthorized when trying to delete dead leaves.", e);
+                      }
                     }
 
                     // create json pattern expression if sub path is defined

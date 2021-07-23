@@ -21,13 +21,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.Literal;
@@ -48,6 +52,7 @@ import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
@@ -441,7 +446,6 @@ class ReactiveDocumentServiceTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String fields = "[\"myField\"]";
-      byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
@@ -477,6 +481,126 @@ class ReactiveDocumentServiceTest {
           .assertComplete();
 
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(documentDB, never()).deleteDeadLeaves(any(), any(), any(), anyMap(), any(), anyLong());
+      verifyNoMoreInteractions(authService);
+    }
+
+    @Test
+    public void happyPathWithDeadLeavesCollection() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode subDocumentNode = objectMapper.createObjectNode();
+      ObjectNode documentNode = objectMapper.createObjectNode().set("prePath", subDocumentNode);
+      ExecutionContext context = ExecutionContext.create(true);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String fields = "[\"myField\"]";
+      Flowable<RawDocument> docs = Flowable.just(rawDocument);
+      List<String> prePath = Collections.singletonList("prePath");
+      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+      when(searchService.getDocument(
+              queryExecutor,
+              namespace,
+              collection,
+              documentId,
+              Collections.singletonList("prePath"),
+              context))
+          .thenReturn(docs);
+
+      when(row.getString("p0")).thenReturn("prePath");
+      when(row.getString("p1")).thenReturn("myField");
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doAnswer(
+              invocation -> {
+                DeadLeafCollector collector = invocation.getArgument(1);
+                collector.addAll("whatever");
+                return documentNode;
+              })
+          .when(jsonConverter)
+          .convertToJsonDoc(eq(rows), any(), eq(false), anyBoolean());
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.getDocument(
+              documentDB, namespace, collection, documentId, prePath, fields, context);
+
+      result
+          .test()
+          .assertValue(
+              wrapper -> {
+                assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
+                assertThat(wrapper.getData()).isEqualTo(subDocumentNode);
+                assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+                assertThat(wrapper.getPageState()).isNull();
+                return true;
+              })
+          .assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(documentDB)
+          .deleteDeadLeaves(
+              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+      verifyNoMoreInteractions(authService);
+    }
+
+    @Test
+    public void unauthorizedWithDeadLeavesCollection() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode subDocumentNode = objectMapper.createObjectNode();
+      ObjectNode documentNode = objectMapper.createObjectNode().set("prePath", subDocumentNode);
+      ExecutionContext context = ExecutionContext.create(true);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String fields = "[\"myField\"]";
+      Flowable<RawDocument> docs = Flowable.just(rawDocument);
+      List<String> prePath = Collections.singletonList("prePath");
+      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+      when(searchService.getDocument(
+              queryExecutor,
+              namespace,
+              collection,
+              documentId,
+              Collections.singletonList("prePath"),
+              context))
+          .thenReturn(docs);
+
+      when(row.getString("p0")).thenReturn("prePath");
+      when(row.getString("p1")).thenReturn("myField");
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doAnswer(
+              invocation -> {
+                DeadLeafCollector collector = invocation.getArgument(1);
+                collector.addAll("whatever");
+                return documentNode;
+              })
+          .when(jsonConverter)
+          .convertToJsonDoc(eq(rows), any(), eq(false), anyBoolean());
+      doThrow(UnauthorizedException.class)
+          .when(documentDB)
+          .deleteDeadLeaves(
+              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.getDocument(
+              documentDB, namespace, collection, documentId, prePath, fields, context);
+
+      result
+          .test()
+          .assertValue(
+              wrapper -> {
+                assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
+                assertThat(wrapper.getData()).isEqualTo(subDocumentNode);
+                assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+                assertThat(wrapper.getPageState()).isNull();
+                return true;
+              })
+          .assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(documentDB)
+          .deleteDeadLeaves(
+              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+      verifyNoMoreInteractions(authService);
     }
   }
 
