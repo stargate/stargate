@@ -65,6 +65,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -467,7 +468,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiConsumer<ResponseAndTraceId, Throwable> executeTracingQueryIfNeeded(
+  private BiConsumer<Optional<ResponseAndTraceId>, Throwable> executeTracingQueryIfNeeded(
       Connection connection,
       StreamObserver<Response> responseObserver,
       boolean tracingEnabled,
@@ -475,24 +476,30 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     return (responseAndTraceId, t) -> {
       if (t != null) {
         handleException(t, responseObserver);
-      } else if (!tracingEnabled || responseAndTraceId.tracingIdIsEmpty()) {
+      } else if (!responseAndTraceId.isPresent()) {
+        // ignore, it means that there was an exception handled in the previous step
+      } else if (!tracingEnabled || responseAndTraceId.get().tracingIdIsEmpty()) {
         // tracing is not enabled or not present, fill the response observer immediately
-        Response response = responseAndTraceId.responseBuilder.build();
+        Response response = responseAndTraceId.get().responseBuilder.build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
       } else {
         try {
-          new QueryTracingFetcher(responseAndTraceId.tracingId, connection, consistencyLevel)
+          new QueryTracingFetcher(responseAndTraceId.get().tracingId, connection, consistencyLevel)
               .fetch()
               .whenComplete(
                   (traces, throwable) -> {
                     if (throwable != null) {
                       handleException(throwable, responseObserver);
                     } else {
-                      responseAndTraceId.responseBuilder.setTraces(
-                          TraceEventsMapper.toTraceEvents(
-                              traces, responseAndTraceId.responseBuilder.getTraces().getId()));
-                      responseObserver.onNext(responseAndTraceId.responseBuilder.build());
+                      responseAndTraceId
+                          .get()
+                          .responseBuilder
+                          .setTraces(
+                              TraceEventsMapper.toTraceEvents(
+                                  traces,
+                                  responseAndTraceId.get().responseBuilder.getTraces().getId()));
+                      responseObserver.onNext(responseAndTraceId.get().responseBuilder.build());
                       responseObserver.onCompleted();
                     }
                   });
@@ -504,7 +511,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiFunction<Result, Throwable, ResponseAndTraceId> handleQuery(
+  private BiFunction<Result, Throwable, Optional<ResponseAndTraceId>> handleQuery(
       Query query,
       StreamObserver<Response> responseObserver,
       PayloadHandler handler,
@@ -552,12 +559,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
           }
           responseAndTraceId.setResponseBuilder(responseBuilder);
-          return responseAndTraceId;
+          return Optional.of(responseAndTraceId);
         } catch (Throwable th) {
           handleException(th, responseObserver);
         }
       }
-      return new ResponseAndTraceId(makeResponseBuilder(result));
+      // it can happen only if the exception was thrown
+      return Optional.empty();
     };
   }
 
@@ -618,7 +626,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   }
 
   @NotNull
-  private BiFunction<Result, Throwable, ResponseAndTraceId> handleBatchQuery(
+  private BiFunction<Result, Throwable, Optional<ResponseAndTraceId>> handleBatchQuery(
       BatchParameters parameters,
       StreamObserver<Response> responseObserver,
       Connection connection,
@@ -648,12 +656,13 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
             throw Status.INTERNAL.withDescription("Unhandled result kind").asException();
           }
           responseAndTraceId.setResponseBuilder(responseBuilder);
-          return responseAndTraceId;
+          return Optional.of(responseAndTraceId);
         } catch (Throwable th) {
           handleException(th, responseObserver);
         }
       }
-      return new ResponseAndTraceId(makeResponseBuilder(result));
+      // it can happen only if the exception was thrown
+      return Optional.empty();
     };
   }
 
