@@ -120,94 +120,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                       ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
 
       DocumentsResolver resolver =
-          new SubDocumentsResolver(
-              filterExpression, documentId, subDocumentPath, executionContext, true);
-      Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
-
-      result
-          .test()
-          .assertValueAt(
-              0,
-              doc -> {
-                assertThat(doc.id()).isEqualTo("1");
-                assertThat(doc.rows()).hasSize(1);
-                return true;
-              })
-          .assertValueAt(
-              1,
-              doc -> {
-                assertThat(doc.id()).isEqualTo("1");
-                assertThat(doc.rows()).hasSize(1);
-                return true;
-              })
-          .assertComplete();
-
-      // one query only
-      queryAssert.assertExecuteCount().isEqualTo(1);
-      verify(filterExpression, times(2)).test(rowsCaptor.capture());
-
-      assertThat(rowsCaptor.getAllValues())
-          .hasSize(2)
-          .anySatisfy(
-              rows ->
-                  assertThat(rows)
-                      .singleElement()
-                      .satisfies(
-                          row -> {
-                            assertThat(row.getString("p1")).isEqualTo("first");
-                          }))
-          .anySatisfy(
-              rows ->
-                  assertThat(rows)
-                      .singleElement()
-                      .satisfies(
-                          row -> {
-                            assertThat(row.getString("p1")).isEqualTo("second");
-                          }));
-
-      // execution context
-      assertThat(executionContext.toProfile().nested())
-          .singleElement()
-          .satisfies(
-              nested -> {
-                assertThat(nested.description())
-                    .startsWith("SearchSubDocuments: sub-path 'parent'");
-                assertThat(nested.queries())
-                    .singleElement()
-                    .satisfies(
-                        queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
-                          assertThat(queryInfo.rowCount()).isEqualTo(2);
-                        });
-              });
-    }
-
-    @Test
-    public void happyPathNoSplit() {
-      int pageSize = 1;
-      String documentId = "d123456";
-      List<String> subDocumentPath = Collections.singletonList("parent");
-      Paginator paginator = new Paginator(null, pageSize);
-      when(filterExpression.test(anyList())).thenReturn(true);
-      when(filterExpression.matchesFilterPath(any())).thenReturn(true);
-
-      ValidatingDataStore.QueryAssert queryAssert =
-          withQuery(
-                  TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
-                  "parent",
-                  documentId)
-              .withPageSize(configuration.getSearchPageSize())
-              .returning(
-                  Arrays.asList(
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
-
-      DocumentsResolver resolver =
-          new SubDocumentsResolver(
-              filterExpression, documentId, subDocumentPath, executionContext, false);
+          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -283,10 +196,6 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                       ImmutableMap.of(
                           "key", "1", "p0", "x60", "p1", "reviews", "p2", "[000001]", "p3", "date"),
                       ImmutableMap.of(
-                          "key", "1", "p0", "x60", "p1", "reviews", "p2", "[000002]", "p3", "text"),
-                      ImmutableMap.of(
-                          "key", "1", "p0", "x60", "p1", "reviews", "p2", "[000002]", "p3", "date"),
-                      ImmutableMap.of(
                           "key", "1", "p0", "x90", "p1", "reviews", "p2", "[000001]", "p3", "text"),
                       ImmutableMap.of(
                           "key",
@@ -300,8 +209,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                           "p3",
                           "date")));
       DocumentsResolver resolver =
-          new SubDocumentsResolver(
-              filterExpression, documentId, subDocumentPath, executionContext, true);
+          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -322,21 +230,14 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                 assertThat(doc.rows()).hasSize(2);
                 return true;
               })
-          .assertValueAt(
-              2,
-              doc -> {
-                assertThat(doc.id()).isEqualTo("1");
-                assertThat(doc.rows()).hasSize(2);
-                return true;
-              })
           .assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
-      verify(filterExpression, times(3)).test(rowsCaptor.capture());
+      verify(filterExpression, times(2)).test(rowsCaptor.capture());
 
       assertThat(rowsCaptor.getAllValues())
-          .hasSize(3)
+          .hasSize(2)
           .anySatisfy(
               rows -> {
                 assertThat(rows.get(0).getString("p0")).isEqualTo("x60");
@@ -344,15 +245,6 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                 assertThat(rows.get(0).getString("p3")).isEqualTo("text");
                 assertThat(rows.get(0).getString("p0")).isEqualTo("x60");
                 assertThat(rows.get(1).getString("p2")).isEqualTo("[000001]");
-                assertThat(rows.get(1).getString("p3")).isEqualTo("date");
-              })
-          .anySatisfy(
-              rows -> {
-                assertThat(rows.get(0).getString("p0")).isEqualTo("x60");
-                assertThat(rows.get(0).getString("p2")).isEqualTo("[000002]");
-                assertThat(rows.get(0).getString("p3")).isEqualTo("text");
-                assertThat(rows.get(0).getString("p0")).isEqualTo("x60");
-                assertThat(rows.get(1).getString("p2")).isEqualTo("[000002]");
                 assertThat(rows.get(1).getString("p3")).isEqualTo("date");
               })
           .anySatisfy(
@@ -377,7 +269,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                     .satisfies(
                         queryInfo -> {
                           assertThat(queryInfo.execCount()).isEqualTo(1);
-                          assertThat(queryInfo.rowCount()).isEqualTo(6);
+                          assertThat(queryInfo.rowCount()).isEqualTo(4);
                         });
               });
     }
@@ -386,7 +278,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     public void orConditionOneTrue() {
       int pageSize = 1;
       String documentId = "d123456";
-      List<String> subDocumentPath = Collections.singletonList("parent");
+      List<String> subDocumentPath = Collections.singletonList("*");
       Paginator paginator = new Paginator(null, pageSize);
       when(filterExpression.test(anyList())).thenReturn(true);
       when(filterExpression.matchesFilterPath(any())).thenReturn(true);
@@ -394,22 +286,21 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
-                  "parent",
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
+                  "",
                   documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
+                      ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
+                      ImmutableMap.of("key", "1", "p0", "parent2", "p1", "second")));
 
       DocumentsResolver resolver =
           new SubDocumentsResolver(
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext,
-              true);
+              executionContext);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -460,8 +351,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description())
-                    .startsWith("SearchSubDocuments: sub-path 'parent'");
+                assertThat(nested.description()).startsWith("SearchSubDocuments: sub-path '*'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -476,7 +366,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     public void orConditionNoneTrue() {
       int pageSize = 1;
       String documentId = "d123456";
-      List<String> subDocumentPath = Collections.singletonList("parent");
+      List<String> subDocumentPath = Collections.singletonList("*");
       Paginator paginator = new Paginator(null, pageSize);
       when(filterExpression.matchesFilterPath(any())).thenReturn(true);
       when(filterExpression2.matchesFilterPath(any())).thenReturn(true);
@@ -484,22 +374,21 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
-                  "parent",
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
+                  "",
                   documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(
                   Arrays.asList(
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
-                      ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
+                      ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
+                      ImmutableMap.of("key", "1", "p0", "parent2", "p1", "second")));
 
       DocumentsResolver resolver =
           new SubDocumentsResolver(
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext,
-              true);
+              executionContext);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
@@ -534,8 +423,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           .singleElement()
           .satisfies(
               nested -> {
-                assertThat(nested.description())
-                    .startsWith("SearchSubDocuments: sub-path 'parent'");
+                assertThat(nested.description()).startsWith("SearchSubDocuments: sub-path '*'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -567,8 +455,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext,
-              true);
+              executionContext);
       Flowable<RawDocument> result =
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);

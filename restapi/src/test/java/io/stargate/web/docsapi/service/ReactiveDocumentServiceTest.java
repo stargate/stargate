@@ -629,7 +629,7 @@ class ReactiveDocumentServiceTest {
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
       when(filterPath.getField()).thenReturn("myField");
-      when(filterPath.getParentPath()).thenReturn(Collections.singletonList("parentPath"));
+      when(filterPath.getParentPath()).thenReturn(Arrays.asList("prePath", "parentPath"));
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(prePath, objectMapper.readTree(where), true))
@@ -651,8 +651,9 @@ class ReactiveDocumentServiceTest {
               eq(ImmutableDeadLeafCollector.of()),
               eq(true),
               anyBoolean());
-      when(row.getString("p0")).thenReturn("parentPath");
-      when(row.getString("p1")).thenReturn("myField");
+      when(row.getString("p0")).thenReturn("prePath");
+      when(row.getString("p1")).thenReturn("parentPath");
+      when(row.getString("p2")).thenReturn("myField");
       when(rawDocument.rows()).thenReturn(Collections.singletonList(row));
       when(rawDocument.makePagingState()).thenReturn(ByteBuffer.wrap(pageState));
 

@@ -68,22 +68,12 @@ public class SubDocumentsResolver implements DocumentsResolver {
       String documentId,
       List<String> subDocumentPath,
       ExecutionContext context) {
-    this(expression, documentId, subDocumentPath, context, false);
-  }
-
-  public SubDocumentsResolver(
-      Expression<FilterExpression> expression,
-      String documentId,
-      List<String> subDocumentPath,
-      ExecutionContext context,
-      boolean splitOnSubPathKeys) {
     this.expression = expression;
     this.context = createContext(context, subDocumentPath);
     this.queryBuilder = new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
     // key depth explained:
     //  - one extra for the document id
-    //  - one extra on size if we need to split based on keys ids after sub-document path
-    this.keyDepth = subDocumentPath.size() + (splitOnSubPathKeys ? 2 : 1);
+    this.keyDepth = subDocumentPath.size() + 1;
   }
 
   @Override

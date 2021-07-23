@@ -43,7 +43,6 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -341,13 +340,8 @@ public class ReactiveDocumentService {
           // otherwise to the path prefix
           Collection<List<String>> fullFieldPaths;
 
-          // final search sub-path is combo of the given one and the filter parent path if exists
-          List<String> searchPath = new ArrayList<>(subDocumentPathProcessed);
-
           // execute two different cases
           if (null != filterPath) {
-            searchPath.addAll(filterPath.getParentPath());
-
             fullFieldPaths =
                 Optional.of(fieldPaths)
                     .filter(fp -> !fp.isEmpty())
@@ -370,6 +364,10 @@ public class ReactiveDocumentService {
                     .orElse(Collections.singletonList(subDocumentPathProcessed));
           }
           Collection<List<String>> fullFieldPathsFinal = fullFieldPaths;
+
+          // final search sub-path is either the given one or the filter parent path if exists
+          List<String> searchPath =
+              null != filterPath ? filterPath.getParentPath() : subDocumentPathProcessed;
 
           // call the search service
           return searchService
@@ -467,8 +465,7 @@ public class ReactiveDocumentService {
       JsonNode node =
           documentToNode(doc, fieldPaths, writeAllPathsAsObjects, db.treatBooleansAsNumeric());
 
-      // TODO Confirm: adding empty nodes to the results array makes no sense?
-      //  should be revisited
+      // skip adding empty nodes to the results array
       if (!node.isEmpty()) {
         docsResult.add(node);
       }

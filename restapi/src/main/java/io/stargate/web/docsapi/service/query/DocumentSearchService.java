@@ -136,7 +136,7 @@ public class DocumentSearchService {
 
     // create the resolver and return results
     SubDocumentsResolver subDocumentsResolver =
-        new SubDocumentsResolver(expression, documentId, subDocumentPath, context, false);
+        new SubDocumentsResolver(expression, documentId, subDocumentPath, context);
     return subDocumentsResolver
         .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
 
