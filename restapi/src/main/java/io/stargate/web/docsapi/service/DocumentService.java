@@ -30,6 +30,7 @@ import io.stargate.web.docsapi.service.filter.FilterOp;
 import io.stargate.web.docsapi.service.filter.ListFilterCondition;
 import io.stargate.web.docsapi.service.filter.SingleFilterCondition;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
 import java.io.IOException;
@@ -793,6 +794,12 @@ public class DocumentService {
       Iterator<String> ops = fieldConditions.fieldNames();
       while (ops.hasNext()) {
         String op = ops.next();
+
+        // Ignore hints, DocumentService does not support them
+        if (FilterHintCode.getByRawValue(op).isPresent()) {
+          continue;
+        }
+
         JsonNode value = fieldConditions.get(op);
         validateOpAndValue(op, value, fieldName);
         if (value.isNumber()) {
