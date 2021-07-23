@@ -19,10 +19,20 @@ import com.datastax.oss.driver.api.core.data.GettableByIndex;
 import com.datastax.oss.driver.api.core.data.GettableByName;
 import io.stargate.db.schema.Column;
 import java.util.List;
+import java.util.Objects;
 
 public interface Row extends GettableByIndex, GettableByName {
 
   List<Column> columns();
+
+  default boolean columnExists(String columnName) {
+    List<Column> columns = columns();
+    if (null == columns) {
+      return false;
+    }
+
+    return columns.stream().anyMatch(c -> Objects.equals(c.name(), columnName));
+  }
 
   @Override
   String toString();

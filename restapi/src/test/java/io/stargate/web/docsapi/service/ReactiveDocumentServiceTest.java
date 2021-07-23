@@ -136,6 +136,7 @@ class ReactiveDocumentServiceTest {
             })
         .when(expression)
         .collectK(any(), anyInt());
+    lenient().when(row.columnExists(any())).thenReturn(true);
   }
 
   @Nested

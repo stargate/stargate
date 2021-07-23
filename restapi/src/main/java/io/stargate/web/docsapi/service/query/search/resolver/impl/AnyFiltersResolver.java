@@ -2,7 +2,7 @@
  * Copyright The Stargate Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in comHpliance with the License.
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -29,33 +29,27 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class AllFiltersResolver extends AbstractFiltersResolver {
+public class AnyFiltersResolver extends AbstractFiltersResolver {
 
   private final Collection<CandidatesFilter> candidatesFilters;
 
   private final DocumentsResolver candidatesResolver;
 
-  public AllFiltersResolver(
+  public AnyFiltersResolver(
       Function<ExecutionContext, CandidatesFilter> candidatesFilterSupplier,
       ExecutionContext context,
       DocumentsResolver candidatesResolver) {
     this(Collections.singleton(candidatesFilterSupplier), context, candidatesResolver);
   }
 
-  public AllFiltersResolver(
+  public AnyFiltersResolver(
       Collection<Function<ExecutionContext, CandidatesFilter>> candidatesFilterSuppliers,
       ExecutionContext context,
       DocumentsResolver candidatesResolver) {
-    ExecutionContext nested = context.nested("PARALLEL [ALL OF]");
+    ExecutionContext nested = context.nested("PARALLEL [ANY OF]");
     this.candidatesFilters =
         candidatesFilterSuppliers.stream().map(s -> s.apply(nested)).collect(Collectors.toList());
     this.candidatesResolver = candidatesResolver;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected Collection<CandidatesFilter> getCandidatesFilters() {
-    return candidatesFilters;
   }
 
   /** {@inheritDoc} */
@@ -66,9 +60,15 @@ public class AllFiltersResolver extends AbstractFiltersResolver {
 
   /** {@inheritDoc} */
   @Override
+  protected Collection<CandidatesFilter> getCandidatesFilters() {
+    return candidatesFilters;
+  }
+
+  /** {@inheritDoc} */
+  @Override
   protected Flowable<RawDocument> resolveSources(RawDocument rawDocument, List<Maybe<?>> sources) {
-    // only if all filters emit the item, return the doc
-    // this means all filters are passed
-    return Maybe.zip(sources, objects -> rawDocument).toFlowable();
+    // only one signal is needed here, we can dispose the rest immediately
+    // when one emits, map to the document
+    return Maybe.amb(sources).map(any -> rawDocument).toFlowable();
   }
 }

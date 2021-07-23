@@ -232,6 +232,7 @@ public final class DocsApiUtils {
     int targetPathSize = path.size();
 
     // short-circuit if the field is not matching
+    // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
     String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
     if (!Objects.equals(field, leaf)) {
@@ -239,8 +240,9 @@ public final class DocsApiUtils {
     }
 
     // short-circuit if p_n after path is not empty
-    String afterPath = row.getString(QueryConstants.P_COLUMN_NAME.apply(targetPathSize));
-    if (!Objects.equals(afterPath, "")) {
+    String targetP = QueryConstants.P_COLUMN_NAME.apply(targetPathSize);
+    boolean exists = row.columnExists(targetP);
+    if (!exists || !Objects.equals(row.getString(targetP), "")) {
       return false;
     }
 
@@ -269,10 +271,14 @@ public final class DocsApiUtils {
     for (String target : pathIterable) {
       int index = p++;
       // check that row has the request path depth
-      String path = row.getString(QueryConstants.P_COLUMN_NAME.apply(index));
-      if (null != path && path.length() == 0) {
+      String targetP = QueryConstants.P_COLUMN_NAME.apply(index);
+      boolean exists = row.columnExists(targetP);
+      if (!exists) {
         return false;
       }
+
+      // get the path
+      String path = row.getString(targetP);
 
       // skip any target path that is a wildcard
       if (Objects.equals(target, DocumentDB.GLOB_VALUE)) {
