@@ -478,6 +478,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
         handleException(t, responseObserver);
       } else if (!responseAndTraceId.isPresent()) {
         // ignore, it means that there was an exception handled in the previous step
+        return;
       } else if (!tracingEnabled || responseAndTraceId.get().tracingIdIsEmpty()) {
         // tracing is not enabled or not present, fill the response observer immediately
         Response response = responseAndTraceId.get().responseBuilder.build();
