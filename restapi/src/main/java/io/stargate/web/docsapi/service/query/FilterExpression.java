@@ -69,6 +69,16 @@ public abstract class FilterExpression extends Expression<FilterExpression>
     return 1.0;
   }
 
+  public static FilterExpression of(
+      FilterPath filterPath, BaseCondition condition, int orderIndex, double selectivity) {
+    return ImmutableFilterExpression.builder()
+        .filterPath(filterPath)
+        .condition(condition)
+        .orderIndex(orderIndex)
+        .selectivity(selectivity)
+        .build();
+  }
+
   /** @return Returns human-readable description of this expression. */
   public String getDescription() {
     BaseCondition condition = getCondition();

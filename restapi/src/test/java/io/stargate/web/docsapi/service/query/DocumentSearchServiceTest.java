@@ -20,6 +20,8 @@ package io.stargate.web.docsapi.service.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.reactivex.rxjava3.core.Flowable;
@@ -38,6 +40,7 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -473,6 +476,124 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
                           assertThat(queryInfo.preparedCQL())
                               .isEqualTo(
                                   String.format(searchCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+  }
+
+  @Nested
+  class SelectivityHints {
+
+    @Test
+    public void predicateOrderWithExplicitSelectivity() {
+      Paginator paginator = new Paginator(null, 20);
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath1 = ImmutableFilterPath.of(Arrays.asList("some", "field1"));
+      FilterPath filterPath2 = ImmutableFilterPath.of(Arrays.asList("some", "field2"));
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      Expression<FilterExpression> expression =
+          And.of(
+              // the filter on field2 is listed first but with worse selectivity
+              FilterExpression.of(filterPath2, condition, 0, 0.9),
+              // the filter on field1 is listed second but with better selectivity
+              FilterExpression.of(filterPath1, condition, 1, 0.5));
+
+      String candidatesCql =
+          "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
+      withQuery(TABLE, candidatesCql, "some", "field1", "field1", "", "find-me")
+          .withPageSize(configuration.getSearchPageSize())
+          .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
+      String filterCql =
+          "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING";
+      withQuery(TABLE, filterCql, "some", "field2", "field2", "", "find-me", "1", 1)
+          .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
+
+      String populateCql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+
+      withQuery(TABLE, populateCql, "1")
+          .withPageSize(configuration.getSearchPageSize())
+          .returning(
+              Arrays.asList(
+                  ImmutableMap.of("key", "1", "text_value", "find-me", "p0", "some", "p1", "field"),
+                  ImmutableMap.of(
+                      "key", "1", "text_value", "other", "p0", "another", "p1", "field")));
+
+      service
+          .searchDocuments(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              expression,
+              paginator,
+              context)
+          .test()
+          .assertNoErrors();
+
+      // Rely on profiling output to validate the order of filter execution
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested()).hasSize(3);
+
+      assertThat(executionProfile.nested())
+          .element(0)
+          .satisfies(
+              c -> {
+                // Note: the filter on field1 becomes the top filter due to its lower selectivity
+                assertThat(c.description()).isEqualTo("FILTER: some.field1 EQ find-me");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+
+      assertThat(executionProfile.nested())
+          .element(1)
+          .satisfies(
+              c -> {
+                assertThat(c.description()).isEqualTo("PARALLEL [ALL OF]");
+                assertThat(c.nested())
+                    .singleElement()
+                    .satisfies(
+                        c1 -> {
+                          // Note: the filter on field2 becomes the nested filter due to its worse
+                          // selectivity
+                          assertThat(c1.description()).isEqualTo("FILTER: some.field2 EQ find-me");
+                          assertThat(c1.queries())
+                              .singleElement()
+                              .satisfies(
+                                  queryInfo -> {
+                                    assertThat(queryInfo.execCount()).isEqualTo(1);
+                                    assertThat(queryInfo.rowCount()).isEqualTo(1);
+                                    assertThat(queryInfo.preparedCQL())
+                                        .isEqualTo(
+                                            String.format(
+                                                filterCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                                  });
+                        });
+              });
+
+      assertThat(executionProfile.nested())
+          .element(2)
+          .satisfies(
+              c -> {
+                assertThat(c.description()).isEqualTo("LoadProperties");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      populateCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
     }
