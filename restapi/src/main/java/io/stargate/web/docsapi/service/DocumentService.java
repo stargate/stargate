@@ -19,17 +19,6 @@ import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.jsfr.json.JsonSurfer;
-import org.jsfr.json.JsonSurferGson;
-import org.jsfr.json.compiler.JsonPathCompiler;
-import org.jsfr.json.path.JsonPath;
-import org.jsfr.json.path.PathOperator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -42,6 +31,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
+import javax.ws.rs.core.PathSegment;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.jsfr.json.JsonSurfer;
+import org.jsfr.json.JsonSurferGson;
+import org.jsfr.json.compiler.JsonPathCompiler;
+import org.jsfr.json.path.JsonPath;
+import org.jsfr.json.path.PathOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
@@ -551,5 +550,4 @@ public class DocumentService {
 
     db.delete(keyspace, collection, id, convertedPath, now);
   }
-
 }

@@ -141,9 +141,9 @@ public final class DocsApiUtils {
   }
 
   /**
-   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
-   * that only uses square brackets to denote pathing (e.g. "$['a']['b']['c'][0]".
-   * This is to allow escaping of certain characters, such as space, $, and @.
+   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string that only uses square
+   * brackets to denote pathing (e.g. "$['a']['b']['c'][0]". This is to allow escaping of certain
+   * characters, such as space, $, and @.
    */
   public static String convertJsonToBracketedPath(String path) {
     String[] parts = PERIOD_PATTERN.split(path);

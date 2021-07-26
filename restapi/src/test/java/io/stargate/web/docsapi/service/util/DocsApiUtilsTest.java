@@ -210,9 +210,6 @@ class DocsApiUtilsTest {
 
       assertThat(result).isEqualTo("$['a']['b'][2]['c']");
     }
-
-
-
   }
 
   @Nested
