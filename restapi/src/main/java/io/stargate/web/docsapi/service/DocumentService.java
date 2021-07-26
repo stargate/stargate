@@ -17,8 +17,8 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferGson;
@@ -48,7 +48,6 @@ public class DocumentService {
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
-  private static final Splitter PATH_SPLITTER = Splitter.on('/');
   private TimeSource timeSource;
   private DocsApiConfiguration docsApiConfiguration;
   private JsonConverter jsonConverterService;
@@ -96,22 +95,6 @@ public class DocumentService {
       }
     }
     return newPath.toString();
-  }
-
-  private String leftPadTo6(String value) {
-    return StringUtils.leftPad(value, 6, '0');
-  }
-
-  private String convertArrayPath(String path) {
-    if (path.startsWith("[") && path.endsWith("]")) {
-      String innerPath = path.substring(1, path.length() - 1);
-      int idx = Integer.parseInt(innerPath);
-      if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
-        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
-      }
-      return "[" + leftPadTo6(innerPath) + "]";
-    }
-    return path;
   }
 
   private boolean isEmptyObject(Object v) {
@@ -224,7 +207,7 @@ public class DocumentService {
                       }
 
                       // left-pad the array element to 6 characters
-                      pv = "[" + leftPadTo6(innerPath) + "]";
+                      pv = "[" + DocsApiUtils.leftPadTo6(innerPath) + "]";
                     } else if (i == path.size()) {
                       firstLevelKeys.add(innerPath);
                       pv = innerPath;
@@ -351,7 +334,7 @@ public class DocumentService {
           }
 
           // left-pad the array element to 6 characters
-          fieldName = "[" + leftPadTo6(innerPath) + "]";
+          fieldName = "[" + DocsApiUtils.leftPadTo6(innerPath) + "]";
         } else if (i == 0) {
           firstLevelKeys.add(fieldName);
         }
@@ -538,7 +521,7 @@ public class DocumentService {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
-      convertedPath.add(convertArrayPath(pathStr));
+      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr));
     }
 
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
@@ -586,7 +569,7 @@ public class DocumentService {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
-      convertedPath.add(convertArrayPath(pathStr));
+      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr));
     }
 
     long now = timeSource.currentTimeMicros();
