@@ -305,6 +305,33 @@ message Traces {
   repeated Event events = 4;
 }
 
+// If a Query message is a DDL statement, this will be included in the Response to describe the
+// how the CQL schema was impacted.
+message SchemaChange {
+  enum Type {
+    CREATED = 0;
+    UPDATED = 1;
+    DROPPED = 2;
+  }
+  enum Target {
+    KEYSPACE = 0;
+    TABLE = 1;
+    TYPE = 2;
+    FUNCTION = 3;
+    AGGREGATE = 4;
+  }
+  // The nature of the change (created, updated or dropped).
+  Type change_type = 1;
+  // The type of schema object that was affected.
+  Target target = 2;
+  // The name of the keyspace.
+  string keyspace = 3;
+  // If the target is a keyspace element (table, type, etc), its name.
+  google.protobuf.StringValue name = 4;
+  // If the target is a function or aggregate, the CQL types of the arguments.
+  repeated string argument_types = 5;
+}
+
 // The response to a Query or Batch message.
 message Response {
   // The result data.
@@ -314,6 +341,7 @@ message Response {
   repeated string warnings = 2;
   // The tracing information, if it was requested for the query.
   Traces traces = 3;
+  SchemaChange schema_change = 4;
 }
 
 // Thrown when the coordinator knows there is not enough replicas alive to perform a query with the

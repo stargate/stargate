@@ -18,6 +18,7 @@ package io.stargate.grpc.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.protobuf.Any;
+import com.google.protobuf.StringValue;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
@@ -57,6 +58,7 @@ import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ReadFailure;
 import io.stargate.proto.QueryOuterClass.ReadTimeout;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.Unavailable;
 import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
@@ -552,6 +554,19 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               break;
             case SchemaChange:
               persistence.waitForSchemaAgreement();
+              Result.SchemaChangeMetadata metadata = ((Result.SchemaChange) result).metadata;
+              SchemaChange.Builder schemaChangeBuilder =
+                  SchemaChange.newBuilder()
+                      .setChangeType(SchemaChange.Type.valueOf(metadata.change))
+                      .setTarget(SchemaChange.Target.valueOf(metadata.target))
+                      .setKeyspace(metadata.keyspace);
+              if (metadata.name != null) {
+                schemaChangeBuilder.setName(StringValue.of(metadata.name));
+              }
+              if (metadata.argTypes != null) {
+                schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
+              }
+              responseBuilder.setSchemaChange(schemaChangeBuilder.build());
               break;
             case Rows:
               responseBuilder.setResultSet(
