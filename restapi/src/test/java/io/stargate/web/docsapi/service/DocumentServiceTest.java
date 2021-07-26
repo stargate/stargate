@@ -259,25 +259,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         + (where.isEmpty() ? "" : " " + where);
   }
 
-  void testGetDocPathWhereWithSelectivity() throws JsonProcessingException {
-    final String id = "id1";
-    ImmutableList<Map<String, Object>> rows =
-        ImmutableList.of(row(id, 3.0, "a", "d", "c"), row(id, 1.0, "a", "f", "c"));
-    withQuery(
-            table,
-            selectAll(
-                "WHERE key = ? AND leaf = ? AND p0 = ? AND p1 > ? AND p2 = ? AND dbl_value > ? ALLOW FILTERING"),
-            params(id, "c", "a", "", "c", 1.0d))
-        .returning(rows);
-
-    DocumentResponseWrapper<List<Map<String, ?>>> r =
-        getDocPath(id, "{\"a.*.c\":{\"$gt\":1,\"$selectivity\":1}}", null, ImmutableList.of());
-    assertThat(r.getDocumentId()).isEqualTo(id);
-    assertThat(r.getPageState()).isNull();
-    assertThat(r.getData())
-        .isEqualTo(ImmutableList.of(m("a", m("d", m("c", 3))), m("a", m("f", m("c", 1)))));
-  }
-
   @Test
   private Object[] params(Object... params) {
     return params;
