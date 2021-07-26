@@ -117,7 +117,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private final TimeSource timeSource = now::get;
   private final DocsApiConfiguration config = new DocsApiConfiguration() {};
   private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
-  private final JsonConverter converter = new JsonConverter(mapper, config);
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
   @Mock private JsonSchemaHandler jsonSchemaHandler;
@@ -162,9 +161,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     db = new Db(authenticationService, authorizationService, dataStoreFactory);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
-    service =
-        new DocumentService(
-            timeSource, mapper, converter, config, schemaChecker, jsonSchemaHandler);
+    service = new DocumentService(timeSource, mapper, config, schemaChecker, jsonSchemaHandler);
     resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
   }
 
@@ -179,18 +176,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private Map<String, Object> row(String id, int timestamp, Double value, String... path) {
     Builder<String, Object> map = row(id, timestamp, path);
     map.put("dbl_value", value);
-    return map.build();
-  }
-
-  private Map<String, Object> row(String id, Boolean value, String... path) {
-    Builder<String, Object> map = row(id, 123, path);
-    map.put("bool_value", value);
-    return map.build();
-  }
-
-  private Map<String, Object> row(String id, String value, String... path) {
-    Builder<String, Object> map = row(id, 123, path);
-    map.put("text_value", value);
     return map.build();
   }
 
@@ -264,14 +249,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     return params;
   }
 
-  private Object[] fillParams(Object val, int count, double lastValue, Object... params) {
-    Object[] result = new Object[params.length + count + 1];
-    Arrays.fill(result, val);
-    System.arraycopy(params, 0, result, 0, params.length);
-    result[result.length - 1] = lastValue;
-    return result;
-  }
-
   private Object[] fillParams(int totalCount, Object... params) {
     Object[] result = new Object[totalCount];
     Arrays.fill(result, ""); // default value for pNN columns
@@ -289,8 +266,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathRoot()
-      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+  void testPutAtPathRoot() throws UnauthorizedException, ProcessingException {
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
         .returningNothing();
 
@@ -336,8 +312,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathNested()
-      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+  void testPutAtPathNested() throws UnauthorizedException, ProcessingException {
     withQuery(
             table,
             "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?",
@@ -373,8 +348,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testPutAtPathPatch()
-      throws UnauthorizedException, JsonProcessingException, ProcessingException {
+  void testPutAtPathPatch() throws UnauthorizedException, ProcessingException {
     String insert =
         "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
     withQuery(table, insert, fillParams(70, "id3", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
@@ -591,7 +565,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
               "a",
               true,
               request);
-      @SuppressWarnings("unchecked")
       MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
       assertThat(mdr.getProfile())
           .isEqualTo(

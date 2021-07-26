@@ -50,7 +50,6 @@ public class DocumentService {
 
   private final TimeSource timeSource;
   private final DocsApiConfiguration docsApiConfiguration;
-  private final JsonConverter jsonConverterService;
   private final ObjectMapper mapper;
   private final DocsSchemaChecker schemaChecker;
   private final JsonSchemaHandler jsonSchemaHandler;
@@ -59,13 +58,11 @@ public class DocumentService {
   public DocumentService(
       TimeSource timeSource,
       ObjectMapper mapper,
-      JsonConverter jsonConverterService,
       DocsApiConfiguration docsApiConfiguration,
       DocsSchemaChecker schemaChecker,
       JsonSchemaHandler jsonSchemaHandler) {
     this.timeSource = timeSource;
     this.mapper = mapper;
-    this.jsonConverterService = jsonConverterService;
     this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
     this.jsonSchemaHandler = jsonSchemaHandler;
