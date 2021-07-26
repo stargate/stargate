@@ -22,6 +22,7 @@ import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -52,6 +53,10 @@ public class Values {
 
   public static Value of(float value) {
     return Value.newBuilder().setFloat(value).build();
+  }
+
+  public static Value of(BigInteger value) {
+    return Value.newBuilder().setInt(value.longValue()).build();
   }
 
   public static Value of(double value) {
