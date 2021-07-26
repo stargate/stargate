@@ -149,7 +149,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   }
 
   // if given row matches the filter path in the
-  private boolean matchesFilterPath(Row row) {
+  public boolean matchesFilterPath(Row row) {
     List<String> targetPath = getFilterPath().getPath();
     return DocsApiUtils.isRowMatchingPath(row, targetPath);
   }
@@ -198,5 +198,10 @@ public abstract class FilterExpression extends Expression<FilterExpression>
       Map<FilterExpression, Expression<FilterExpression>> m,
       ExprFactory<FilterExpression> exprFactory) {
     throw new UnsupportedOperationException("FilterExpression does not work with the vars.");
+  }
+
+  @Override
+  public String toString() {
+    return getDescription();
   }
 }

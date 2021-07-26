@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +63,19 @@ public final class DocsApiUtils {
   }
 
   private static String convertSingleArrayPath(String path) {
+    return extractArrayPathIndex(path)
+        .map(innerPath -> "[" + leftPadTo6(innerPath.toString()) + "]")
+        .orElse(path);
+  }
+
+  /**
+   * Optionally extracts the index of the array path. Returns empty if the path is not an array
+   * path.
+   *
+   * @param path single filter or field path
+   * @return Array index or empty
+   */
+  public static Optional<Integer> extractArrayPathIndex(String path) {
     // check if we have array path
     if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
       String innerPath = path.substring(1, path.length() - 1);
@@ -77,14 +91,14 @@ public final class DocsApiUtils {
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
           }
-          return "[" + leftPadTo6(innerPath) + "]";
+          return Optional.of(idx);
         } catch (NumberFormatException e) {
           String msg = String.format("Array path %s is not valid.", path);
           throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID, msg);
         }
       }
     }
-    return path;
+    return Optional.empty();
   }
 
   public static String leftPadTo6(String value) {

@@ -19,8 +19,6 @@ package io.stargate.web.docsapi.service.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
@@ -45,7 +43,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.core.PathSegment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -434,11 +431,8 @@ class ExpressionParserIntTest {
       String json = "{\"my.*.field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
-      PathSegment segment = mock(PathSegment.class);
-      when(segment.getPath()).thenReturn("first").thenReturn("second");
-
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Arrays.asList(segment, segment), root, false);
+          service.constructFilterExpression(Arrays.asList("first", "second"), root, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -764,6 +758,20 @@ class ExpressionParserIntTest {
                                                           });
                                                 }));
                           }));
+    }
+
+    @Test
+    public void notObjectNode() throws Exception {
+      String json = "[\"b\"]";
+      JsonNode root = mapper.readTree(json);
+
+      Throwable t =
+          catchThrowable(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+
+      assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
     }
 
     @Test

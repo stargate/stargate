@@ -1259,17 +1259,6 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         collectionPath + "/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
         204);
-
-    // NE with null
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}",
-            200);
-
-    searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
-    assertThat(OBJECT_MAPPER.readTree(r))
-        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
   }
 
   @Test
@@ -1286,6 +1275,60 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/cool-search-id?profile=true&where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
             200);
     assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
+  public void testOrSearch() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // $OR
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"food\": {\"Orange\": {\"name\": \"orange\"}}}}, {\"products\": {\"food\": {\"Pear\": {\"name\": \"pear\"}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testOrSearchWithPaging() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // $OR + page-size param
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]&page-size=1",
+            200);
+
+    String searchResultStr = "[{\"products\": {\"food\": {\"Orange\": {\"name\": \"orange\"}}}}]";
+    JsonNode actual = OBJECT_MAPPER.readTree(r);
+    assertThat(actual.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
+    String pageState = actual.at("/pageState").requireNonNull().asText();
+    assertThat(pageState).isNotNull();
+
+    // paging only second with state
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]&page-size=1&page-state="
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+
+    searchResultStr = "[{\"products\": {\"food\": {\"Pear\": {\"name\": \"pear\"}}}}]";
+    actual = OBJECT_MAPPER.readTree(r);
+    assertThat(actual.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
   }
 
   @Test
@@ -1436,6 +1479,9 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
+    // without collect initalized, we can not test below
+    RestUtils.put(authToken, collectionPath + "/dummy", "{\"a\": 1}", 200);
+
     RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 400);
 
     String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
@@ -1446,7 +1492,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where={\"a\": true}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Search entry for field a was expecting a JSON object as input.\",\"code\":400}");
+            "{\"description\":\"A filter operation and value resolved as invalid.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1454,41 +1500,40 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             collectionPath + "/cool-search-id?where={\"a\": {\"$exists\": false}}}",
             400);
     assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The operation $exists only supports the value `true`\",\"code\":400}");
+        .isEqualTo("{\"description\":\"$exists only supports the value `true`\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}", 400);
-    assertThat(r).startsWith("{\"description\":\"Invalid operator: exists, valid operators are:");
+    assertThat(r).startsWith("{\"description\":\"Operation 'exists' is not supported.");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": null}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value null.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": {}}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value { }.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": []}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value [ ].\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$in\": 2}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $in was expecting an array\",\"code\":400}");
+            "{\"description\":\"Operation '$in' does not support the provided value 2.\",\"code\":400}");
 
     r =
         RestUtils.get(

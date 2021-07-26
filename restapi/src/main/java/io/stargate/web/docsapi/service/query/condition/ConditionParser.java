@@ -46,6 +46,10 @@ public class ConditionParser {
    *     condition constructions fails or filter value is not supported by the filter op.
    */
   public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
+    if (!conditionsNode.isObject()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(
@@ -69,13 +73,13 @@ public class ConditionParser {
               // condition empty
               String msg =
                   String.format(
-                      "Operation %s does not support the provided value %s.",
+                      "Operation '%s' does not support the provided value %s.",
                       filterOp, valueNode.toPrettyString());
               throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
             }
           } else {
             // provider can not be found
-            String msg = String.format("Operation %s is not supported.", filterOp);
+            String msg = String.format("Operation '%s' is not supported.", filterOp);
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
           }
         });

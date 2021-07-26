@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.assertj.core.api.Assertions;
@@ -105,6 +106,26 @@ class DocsApiUtilsTest {
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID);
+    }
+  }
+
+  @Nested
+  class ExtractArrayPathIndex {
+
+    @Test
+    public void happyPath() {
+      int index = RandomUtils.nextInt(100, 999);
+
+      Optional<Integer> result = DocsApiUtils.extractArrayPathIndex(String.format("[%d]", index));
+
+      assertThat(result).hasValue(index);
+    }
+
+    @Test
+    public void emptyNotArray() {
+      Optional<Integer> result = DocsApiUtils.extractArrayPathIndex("some");
+
+      assertThat(result).isEmpty();
     }
   }
 
