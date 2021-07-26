@@ -387,6 +387,7 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> mapValues() {
+
     return Stream.of(
         arguments(Type.Map.of(Type.Varchar, Type.Int), Values.of()),
         arguments(
@@ -400,7 +401,15 @@ public class ValueCodecTest {
             Values.of(
                 Values.of(Uuids.random()), Values.of("a"),
                 Values.of(Uuids.random()), Values.of("b"),
-                Values.of(Uuids.random()), Values.of("c"))));
+                Values.of(Uuids.random()), Values.of("c"))),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            Values.of(
+                ImmutableMap.<Value, Value>builder()
+                    .put(Values.of(Uuids.random()), Values.of("a"))
+                    .put(Values.of(Uuids.random()), Values.of("b"))
+                    .put(Values.of(Uuids.random()), Values.of("c"))
+                    .build())));
   }
 
   public static Stream<Arguments> invalidMapValues() {

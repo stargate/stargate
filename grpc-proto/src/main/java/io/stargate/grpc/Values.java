@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Values {
   public static Value NULL = Value.newBuilder().setNull(Null.newBuilder().build()).build();
@@ -105,5 +107,19 @@ public class Values {
 
   public static Value udtOf(Map<String, Value> fields) {
     return Value.newBuilder().setUdt(UdtValue.newBuilder().putAllFields(fields).build()).build();
+  }
+
+  public static Value of(Map<Value, Value> fields) {
+
+    // map is stored as a list of altering k,v
+    // For example, for a Map([1,"a"], [2,"b"]) it becomes a List(1,"a",2,"b")
+    List<Value> values =
+        fields.entrySet().stream()
+            .flatMap(v -> Stream.of(v.getKey(), v.getValue()))
+            .collect(Collectors.toList());
+
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(values).build())
+        .build();
   }
 }
