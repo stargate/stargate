@@ -48,12 +48,13 @@ public class DocumentService {
   private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
-  private TimeSource timeSource;
-  private DocsApiConfiguration docsApiConfiguration;
-  private JsonConverter jsonConverterService;
-  private ObjectMapper mapper;
-  private DocsSchemaChecker schemaChecker;
-  private JsonSchemaHandler jsonSchemaHandler;
+
+  private final TimeSource timeSource;
+  private final DocsApiConfiguration docsApiConfiguration;
+  private final JsonConverter jsonConverterService;
+  private final ObjectMapper mapper;
+  private final DocsSchemaChecker schemaChecker;
+  private final JsonSchemaHandler jsonSchemaHandler;
 
   @Inject
   public DocumentService(
@@ -69,32 +70,6 @@ public class DocumentService {
     this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
     this.jsonSchemaHandler = jsonSchemaHandler;
-  }
-
-  /*
-   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
-   * that only uses square brackets to denote pathing (e.g. "$['a']['b']['c'][0]".
-   * This is to allow escaping of certain characters, such as space, $, and @.
-   */
-  private String convertToBracketedPath(String path) {
-    String[] parts = PERIOD_PATTERN.split(path);
-    StringBuilder newPath = new StringBuilder();
-    for (int i = 0; i < parts.length; i++) {
-      String part = parts[i];
-      if (part.startsWith("$") && i == 0) {
-        newPath.append(part);
-      } else {
-        int indexOfBrace = part.indexOf('[');
-        if (indexOfBrace < 0) {
-          newPath.append("['").append(part).append("']");
-        } else {
-          String keyPart = part.substring(0, indexOfBrace);
-          String arrayPart = part.substring(indexOfBrace);
-          newPath.append("['").append(keyPart).append("']").append(arrayPart);
-        }
-      }
-    }
-    return newPath.toString();
   }
 
   private boolean isEmptyObject(Object v) {
@@ -172,7 +147,7 @@ public class DocumentService {
                     || isEmptyArray(v)) {
                   JsonPath p =
                       JsonPathCompiler.compile(
-                          convertToBracketedPath(parsingContext.getJsonPath()));
+                          DocsApiUtils.convertJsonToBracketedPath(parsingContext.getJsonPath()));
                   int i = path.size();
                   Map<String, Object> bindMap = db.newBindMap(path);
 

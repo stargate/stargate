@@ -35,6 +35,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class DocsApiUtils {
 
+  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
+
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
 
   private DocsApiUtils() {}
@@ -136,6 +138,32 @@ public final class DocsApiUtils {
     }
 
     return results;
+  }
+
+  /**
+   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string
+   * that only uses square brackets to denote pathing (e.g. "$['a']['b']['c'][0]".
+   * This is to allow escaping of certain characters, such as space, $, and @.
+   */
+  public static String convertJsonToBracketedPath(String path) {
+    String[] parts = PERIOD_PATTERN.split(path);
+    StringBuilder newPath = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i];
+      if (part.startsWith("$") && i == 0) {
+        newPath.append(part);
+      } else {
+        int indexOfBrace = part.indexOf('[');
+        if (indexOfBrace < 0) {
+          newPath.append("['").append(part).append("']");
+        } else {
+          String keyPart = part.substring(0, indexOfBrace);
+          String arrayPart = part.substring(indexOfBrace);
+          newPath.append("['").append(keyPart).append("']").append(arrayPart);
+        }
+      }
+    }
+    return newPath.toString();
   }
 
   /**
