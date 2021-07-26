@@ -27,7 +27,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class Values {
@@ -86,6 +88,18 @@ public class Values {
   public static Value of(Value... elements) {
     return Value.newBuilder()
         .setCollection(Collection.newBuilder().addAllElements(Arrays.asList(elements)).build())
+        .build();
+  }
+
+  public static Value of(List<Value> elements) {
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(elements).build())
+        .build();
+  }
+
+  public static Value of(Set<Value> elements) {
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(elements).build())
         .build();
   }
 

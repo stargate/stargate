@@ -25,6 +25,7 @@ import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.grpc.StargateBearerToken;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
