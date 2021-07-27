@@ -85,7 +85,7 @@ public class CqlImpl {
             .withEventLoopGroup(workerGroup)
             .withHost(nativeAddr);
 
-    if (!TransportDescriptor.getNativeProtocolEncryptionOptions().enabled) {
+    if (!TransportDescriptor.getNativeProtocolEncryptionOptions().isEnabled()) {
       servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
     } else {
       if (nativePort != nativePortSSL) {
