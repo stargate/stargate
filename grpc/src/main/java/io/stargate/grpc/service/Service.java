@@ -544,6 +544,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
               handleTraceId(result.getTracingId(), query.getParameters(), responseAndTraceId);
               break;
             case SchemaChange:
+              persistence.waitForSchemaAgreement();
               break;
             case Rows:
               responseBuilder.setResultSet(
