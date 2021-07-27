@@ -2461,7 +2461,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-size=3&where={\"count\": {\"$gt\": 0}}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&raw=true",
+                + "/collections/collection?page-size=3&where={\"count\": {\"$gt\": 0}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&raw=true",
             200);
 
     String expected =

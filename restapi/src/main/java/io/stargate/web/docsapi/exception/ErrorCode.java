@@ -102,8 +102,7 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
 
   DOCS_API_SEARCH_EXPRESSION_NOT_RESOLVED(
-      Response.Status.INTERNAL_SERVER_ERROR,
-      "Can not find the document resolver for the given expression."),
+      Response.Status.INTERNAL_SERVER_ERROR, "Unable to resolve the given expression."),
 
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,

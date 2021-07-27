@@ -39,7 +39,6 @@ public class TrueFilterExpressions extends Rule<Expression<FilterExpression>, Fi
   @Override
   public Expression<FilterExpression> applyInternal(
       Expression<FilterExpression> input, ExprOptions<FilterExpression> options) {
-    // cast OK because of the isApply
     boolean test = truePredicate.test(input);
     if (test) {
       return Literal.getTrue();

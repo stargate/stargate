@@ -51,16 +51,13 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private final Or<FilterExpression> expression;
 
-  private final Set<FilterExpression> children;
-
   private final List<AbstractSearchQueryBuilder> queryBuilders;
 
   private final ExecutionContext context;
 
   public OrExpressionDocumentsResolver(Or<FilterExpression> expression, ExecutionContext context) {
     this.expression = expression;
-    this.children = getChildren(expression);
-    this.queryBuilders = buildQueries(this.children);
+    this.queryBuilders = buildQueries(getChildren(expression));
     this.context = createContext(context, expression);
   }
 

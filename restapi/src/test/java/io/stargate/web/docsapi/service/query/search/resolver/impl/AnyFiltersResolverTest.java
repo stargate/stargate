@@ -171,10 +171,10 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
       doAnswer(i -> query2)
           .when(candidatesFilter2)
           .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      doAnswer(i -> Maybe.just("you shall pass"))
+      doAnswer(i -> Maybe.empty())
           .when(candidatesFilter)
           .bindAndFilter(eq(queryExecutor), eq(configuration), eq(query1.blockingGet()), any());
-      doAnswer(i -> Maybe.empty())
+      doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter2)
           .bindAndFilter(eq(queryExecutor), eq(configuration), eq(query2.blockingGet()), any());
       DocumentsResolver candidatesResolver =
