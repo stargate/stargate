@@ -70,6 +70,6 @@ public class AnyFiltersResolver extends AbstractFiltersResolver {
     // only one signal is needed here, we can dispose the rest immediately
     // when one emits, map to the document because we need to return the document that passes
     // it's important to keep with the concatMap approach in the abstract class
-    return Maybe.concat(sources).take(1).map(any -> rawDocument);
+    return Maybe.merge(sources).take(1).map(any -> rawDocument);
   }
 }
