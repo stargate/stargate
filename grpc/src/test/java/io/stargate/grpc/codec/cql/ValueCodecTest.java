@@ -50,6 +50,7 @@ public class ValueCodecTest {
     "bigintValues",
     "booleanValues",
     "byteValues",
+    "byteBufferValues",
     "dateValues",
     "doubleValues",
     "floatValues",
@@ -89,6 +90,7 @@ public class ValueCodecTest {
     "invalidBigintValues",
     "invalidBooleanValues",
     "invalidByteValues",
+    "invalidByteBufferValues",
     "invalidDateValues",
     "invalidDoubleValues",
     "invalidFloatValues",
@@ -144,7 +146,19 @@ public class ValueCodecTest {
         arguments(Type.Blob, Values.of(new byte[] {})));
   }
 
+  public static Stream<Arguments> byteBufferValues() {
+    return Stream.of(
+        arguments(Type.Blob, Values.of(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'}))),
+        arguments(Type.Blob, Values.of(ByteBuffer.wrap(new byte[] {}))));
+  }
+
   public static Stream<Arguments> invalidByteValues() {
+    return Stream.of(
+        arguments(Type.Blob, Values.NULL, "Expected bytes type"),
+        arguments(Type.Blob, Values.UNSET, "Expected bytes type"));
+  }
+
+  public static Stream<Arguments> invalidByteBufferValues() {
     return Stream.of(
         arguments(Type.Blob, Values.NULL, "Expected bytes type"),
         arguments(Type.Blob, Values.UNSET, "Expected bytes type"));

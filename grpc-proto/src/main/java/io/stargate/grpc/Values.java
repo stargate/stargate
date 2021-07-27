@@ -24,6 +24,7 @@ import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -55,6 +56,14 @@ public class Values {
     return Value.newBuilder().setFloat(value).build();
   }
 
+  public static Value of(short value) {
+    return Value.newBuilder().setInt(value).build();
+  }
+
+  public static Value of(byte value) {
+    return Value.newBuilder().setInt(value).build();
+  }
+
   public static Value of(BigInteger value) {
     return Value.newBuilder().setInt(value.longValue()).build();
   }
@@ -64,6 +73,10 @@ public class Values {
   }
 
   public static Value of(byte[] value) {
+    return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
+  }
+
+  public static Value of(ByteBuffer value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
