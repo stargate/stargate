@@ -83,9 +83,6 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             queryBuilder ->
                 RxUtils.singleFromFuture(
                         () -> {
-                          // TODO column per query if possible
-                          // String[] columns = columnsForQuery(queryBuilder,
-                          // configuration.getMaxDepth());
                           BuiltQuery<? extends BoundQuery> query =
                               queryBuilder.buildQuery(
                                   dataStore::queryBuilder, keyspace, collection, columns);
@@ -110,19 +107,18 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
         .filter(
             doc -> {
               // now we can get doc as a result of the persistence or in memory query
-              // if we can locate that it was a result of the persistence ones, then nothing is
-              // needed anymore
-              // we can do this by finding any row that does not have any path related column
-              // TODO enable if solved in the query executor
-              // boolean noPaths = doc.rows().stream().anyMatch(r ->
-              // !r.columnExists(QueryConstants.P_COLUMN_NAME.apply(0)));
-              // if (noPaths) {
-              // return true;
-              // }
+              // if we only run persistence queries we can return true immediately
+              // running only persistence queries means we had no path columns
+              // since all rows must have same columns we can find any that does not have it
+              boolean noPaths =
+                  doc.rows().stream()
+                      .anyMatch(r -> !r.columnExists(QueryConstants.P_COLUMN_NAME.apply(0)));
+              if (noPaths) {
+                return true;
+              }
 
               // otherwise evaluate using the EvalEngine
-              // this is gonna test the persistence expressions as well, but they must respond to
-              // false
+              // this is gonna test the persistence expressions as well, but this is fine
               Map<String, EvalRule<FilterExpression>> rules = EvalEngine.booleanRules();
               rules.put(FilterExpression.EXPR_TYPE, new RawDocumentEvalRule(doc));
               return EvalEngine.evaluate(expression, rules);
@@ -131,11 +127,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
     String[] columns;
-    // we need to figure columns for each query
-    // TODO re-enable if possible key/leaf only
-    // if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
-    // columns = new String[] {QueryConstants.KEY_COLUMN_NAME, QueryConstants.LEAF_COLUMN_NAME};
-    if (queryBuilder instanceof FilterPathSearchQueryBuilder) {
+    if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
+      columns = new String[] {QueryConstants.KEY_COLUMN_NAME, QueryConstants.LEAF_COLUMN_NAME};
+    } else if (queryBuilder instanceof FilterPathSearchQueryBuilder) {
       FilterPathSearchQueryBuilder fpqb = (FilterPathSearchQueryBuilder) queryBuilder;
       columns = QueryConstants.ALL_COLUMNS_NAMES.apply(fpqb.getFilterPath().getPath().size() + 1);
     } else {
