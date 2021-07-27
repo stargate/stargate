@@ -1,5 +1,38 @@
 # Changelog
 
+## [v1.0.31](https://github.com/stargate/stargate/tree/v1.0.31) (2021-07-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.30...v1.0.31)
+
+**Fixed bugs:**
+
+- APIs should not return HTML content [\#1117](https://github.com/stargate/stargate/issues/1117)
+
+**Closed issues:**
+
+- GraphQL schema-first: allow entity field in delete response payload [\#1082](https://github.com/stargate/stargate/issues/1082)
+- Enable user to explicitly specify filter priority in order to control the execution [\#1072](https://github.com/stargate/stargate/issues/1072)
+- Document search service to support in document search [\#1028](https://github.com/stargate/stargate/issues/1028)
+- Validating data store should compare against externalQueryString [\#1026](https://github.com/stargate/stargate/issues/1026)
+- Reduce complexity of DocumentService.searchRows [\#537](https://github.com/stargate/stargate/issues/537)
+
+**Merged pull requests:**
+
+- Use Cassandra 4.0.0 GA [\#1139](https://github.com/stargate/stargate/pull/1139) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- closes \#537: clean-up the DocumentService [\#1136](https://github.com/stargate/stargate/pull/1136) ([ivansenic](https://github.com/ivansenic))
+- Add selectivity hints to Docs API query filters [\#1134](https://github.com/stargate/stargate/pull/1134) ([dimas-b](https://github.com/dimas-b))
+- Update DEV\_GUIDE.md [\#1130](https://github.com/stargate/stargate/pull/1130) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- fix ordering of fields in query.proto `Response` [\#1127](https://github.com/stargate/stargate/pull/1127) ([tomekl007](https://github.com/tomekl007))
+- Fix prepared statement handling in ValidatingDataStore [\#1125](https://github.com/stargate/stargate/pull/1125) ([dimas-b](https://github.com/dimas-b))
+- Grpc fix response types for batches to support LWTs [\#1123](https://github.com/stargate/stargate/pull/1123) ([tomekl007](https://github.com/tomekl007))
+- closes \#1117: never return html code as the API response [\#1122](https://github.com/stargate/stargate/pull/1122) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#1120](https://github.com/stargate/stargate/pull/1120) ([github-actions[bot]](https://github.com/apps/github-actions))
+- GraphQL schema-first: allow entity field in delete response payload [\#1118](https://github.com/stargate/stargate/pull/1118) ([olim7t](https://github.com/olim7t))
+- relates to \#1028: glob wildcard to match both field and array item [\#1116](https://github.com/stargate/stargate/pull/1116) ([ivansenic](https://github.com/ivansenic))
+- closes \#1028: refactored in-document search [\#1080](https://github.com/stargate/stargate/pull/1080) ([ivansenic](https://github.com/ivansenic))
+- Include trace table content in the gRPC message [\#1077](https://github.com/stargate/stargate/pull/1077) ([tomekl007](https://github.com/tomekl007))
+- Added a section for Mac developers to install the correct JDK [\#904](https://github.com/stargate/stargate/pull/904) ([jdavies](https://github.com/jdavies))
+
 ## [v1.0.30](https://github.com/stargate/stargate/tree/v1.0.30) (2021-07-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.29...v1.0.30)
