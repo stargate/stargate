@@ -314,10 +314,8 @@ public class ExpressionParser {
       List<String> prependedConverted =
           prependedPath.stream()
               .map(
-                  pathSeg -> {
-                    return DocsApiUtils.convertUnicodeCodePoints(
-                        DocsApiUtils.convertArrayPath(path));
-                  })
+                  path ->
+                      DocsApiUtils.convertUnicodeCodePoints(DocsApiUtils.convertArrayPath(path)))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);
