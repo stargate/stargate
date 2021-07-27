@@ -191,6 +191,28 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class ConvertJsonToBracketedPath {
+
+    @Test
+    public void happyPath() {
+      String jsonPath = "$.a.b.c";
+
+      String result = DocsApiUtils.convertJsonToBracketedPath(jsonPath);
+
+      assertThat(result).isEqualTo("$['a']['b']['c']");
+    }
+
+    @Test
+    public void withArrayElements() {
+      String jsonPath = "$.a.b[2].c";
+
+      String result = DocsApiUtils.convertJsonToBracketedPath(jsonPath);
+
+      assertThat(result).isEqualTo("$['a']['b'][2]['c']");
+    }
+  }
+
+  @Nested
   class GetStringFromRow {
 
     @Mock Row row;
