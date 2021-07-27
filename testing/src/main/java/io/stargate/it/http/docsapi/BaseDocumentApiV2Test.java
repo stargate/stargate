@@ -2420,6 +2420,48 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void searchOrMixedFilterWithPaging() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=1&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"}}";
+    JsonNode result = OBJECT_MAPPER.readTree(r);
+    assertThat(result.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(result.at("/pageState")).isNotNull();
+    String pageState = result.at("/pageState").requireNonNull().asText();
+    assertThat(pageState).isNotNull();
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=1&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&page-state="
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+
+    expected = "{\"matching2\":{\"value\":\"b\"}}";
+    result = OBJECT_MAPPER.readTree(r);
+    assertThat(result.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
   public void searchOrMixedFiltersDifferentPaths() throws Exception {
     JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"count\": 1}");
     JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\", \"count\": 2}");
