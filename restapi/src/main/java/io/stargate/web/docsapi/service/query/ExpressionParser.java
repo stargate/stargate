@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.query;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,6 +47,8 @@ import javax.inject.Inject;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 public class ExpressionParser {
+
+  private static final String NOT_OPERATOR = "$not";
 
   private static final String OR_OPERATOR = "$or";
 
@@ -148,6 +151,11 @@ public class ExpressionParser {
           And<FilterExpression> and =
               resolveAnd(andChildrenNode, prependedPath, numericBooleans, nextIndex);
           expressions.add(and);
+        } else if (Objects.equals(NOT_OPERATOR, fieldOrOp)) {
+          JsonNode andChildrenNode = next.getValue();
+          Not<FilterExpression> negated =
+              resolveNot(andChildrenNode, prependedPath, numericBooleans, nextIndex);
+          expressions.add(negated);
         } else {
           FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
           JsonNode conditions = next.getValue();
@@ -263,6 +271,26 @@ public class ExpressionParser {
     List<Expression<FilterExpression>> orConditions =
         parse(prependedPath, node, numericBooleans, nextIndex);
     return And.of(orConditions);
+  }
+
+  private Not<FilterExpression> resolveNot(
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
+    if (!node.isObject()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $not operator requires a json object as value.");
+    }
+
+    List<Expression<FilterExpression>> negatedConditions =
+        parse(prependedPath, Collections.singletonList(node), numericBooleans, nextIndex);
+
+    if (negatedConditions.size() != 1) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $not operator requires exactly one child expression.");
+    }
+
+    return Not.of(negatedConditions.get(0));
   }
 
   /**

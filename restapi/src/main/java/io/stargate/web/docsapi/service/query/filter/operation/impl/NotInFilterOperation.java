@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import io.stargate.web.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -69,5 +70,10 @@ public abstract class NotInFilterOperation extends InFilterOperation {
   @Override
   public boolean test(Double dbValue, List<?> filterValue) {
     return !super.test(dbValue, filterValue);
+  }
+
+  @Override
+  public GenericFilterOperation<List<?>> negate() {
+    return InFilterOperation.of();
   }
 }

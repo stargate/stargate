@@ -77,4 +77,9 @@ public abstract class StringCondition implements BaseCondition {
     String dbValue = getString(row);
     return getFilterOperation().test(dbValue, getQueryValue());
   }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableStringCondition.of(getFilterOperation().negate(), getQueryValue());
+  }
 }

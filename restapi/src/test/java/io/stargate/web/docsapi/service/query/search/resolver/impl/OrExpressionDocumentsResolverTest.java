@@ -589,7 +589,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               nested -> {
                 assertThat(nested.description())
                     .isEqualTo(
-                        "MERGING OR: expression '(path.field IN [1] | path.field GT query-value)'");
+                        "MERGING OR: expression '(path.field GT query-value | path.field IN [1])'");
                 assertThat(nested.queries())
                     .hasSize(2)
                     .allSatisfy(
@@ -785,7 +785,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               nested -> {
                 assertThat(nested.description())
                     .isEqualTo(
-                        "MERGING OR: expression '(field NE not-me | field IN [query-value])'");
+                        "MERGING OR: expression '(field IN [query-value] | field NE not-me)'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(
@@ -847,7 +847,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               nested -> {
                 assertThat(nested.description())
                     .isEqualTo(
-                        "MERGING OR: expression '(field NE not-me | field IN [query-value])'");
+                        "MERGING OR: expression '(field IN [query-value] | field NE not-me)'");
                 assertThat(nested.queries())
                     .singleElement()
                     .satisfies(

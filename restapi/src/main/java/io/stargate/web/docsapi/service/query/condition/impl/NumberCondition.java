@@ -79,4 +79,9 @@ public abstract class NumberCondition implements BaseCondition {
     Double dbValue = getDouble(row);
     return getFilterOperation().test(dbValue, getQueryValue());
   }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableNumberCondition.of(getFilterOperation().negate(), getQueryValue());
+  }
 }

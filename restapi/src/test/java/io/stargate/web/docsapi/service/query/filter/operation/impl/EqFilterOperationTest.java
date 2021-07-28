@@ -137,4 +137,12 @@ class EqFilterOperationTest {
       assertThat(result).isEqualTo(FilterOperationCode.EQ);
     }
   }
+
+  @Nested
+  class Negation {
+    @Test
+    public void negate() {
+      assertThat(eq.negate()).isInstanceOf(NeFilterOperation.class);
+    }
+  }
 }

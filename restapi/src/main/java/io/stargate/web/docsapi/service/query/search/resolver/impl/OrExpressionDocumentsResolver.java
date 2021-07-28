@@ -186,6 +186,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private ExecutionContext createContext(
       ExecutionContext context, Or<FilterExpression> expression) {
-    return context.nested("MERGING OR: expression '" + expression + "'");
+    // Note: use toLexicographicString to ensure a stable order of sub-expressions.
+    return context.nested("MERGING OR: expression '" + expression.toLexicographicString() + "'");
   }
 }

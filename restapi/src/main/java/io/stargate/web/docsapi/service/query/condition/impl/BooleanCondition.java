@@ -81,4 +81,10 @@ public abstract class BooleanCondition implements BaseCondition {
     Boolean dbValue = getBoolean(row, isNumericBooleans());
     return getFilterOperation().test(dbValue, getQueryValue());
   }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableBooleanCondition.of(
+        getFilterOperation().negate(), getQueryValue(), isNumericBooleans());
+  }
 }
