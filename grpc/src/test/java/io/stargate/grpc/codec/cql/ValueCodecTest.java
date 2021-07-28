@@ -28,7 +28,6 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Value;
-import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.UnknownHostException;
