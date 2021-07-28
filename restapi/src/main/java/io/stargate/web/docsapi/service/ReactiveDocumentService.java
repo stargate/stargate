@@ -29,7 +29,6 @@ import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -44,6 +43,7 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import io.stargate.web.rx.RxUtils;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -188,6 +188,10 @@ public class ReactiveDocumentService {
           authorizationService.authorizeDataRead(
               authenticationSubject, namespace, collection, SourceAPI.REST);
 
+          // Don't fail this read request if the corrective DELETE statements are not authorized,
+          // simply skip DELETE batches in that case (see the Rx pipeline below).
+          boolean deleteAuthorized = db.authorizeDeleteDeadLeaves(namespace, collection);
+
           // we need to check that we have no globs and transform the stuff to support array
           // elements
           List<String> subDocumentPathProcessed = processSubDocumentPath(subDocumentPath);
@@ -224,21 +228,32 @@ public class ReactiveDocumentService {
                             false,
                             db.treatBooleansAsNumeric());
 
+                    Maybe<?> deleteBatch;
+
                     // dead leaf deletion init on non-empty collection
-                    if (!collector.isEmpty()) {
+                    if (deleteAuthorized && !collector.isEmpty()) {
                       logger.info(
                           String.format("Deleting %d dead leaves", collector.getLeaves().size()));
 
-                      // don't fail here if the unauthorized exception occurs, this is a read
-                      // request
-                      try {
-                        db.deleteDeadLeaves(
-                            namespace, collection, documentId, collector.getLeaves(), context, now);
-                      } catch (UnauthorizedException e) {
-                        logger.debug("Unauthorized when trying to delete dead leaves.", e);
-                      }
+                      deleteBatch =
+                          Maybe.fromSingle(
+                              RxUtils.singleFromFuture(
+                                  () ->
+                                      db.deleteDeadLeaves(
+                                          namespace,
+                                          collection,
+                                          documentId,
+                                          now,
+                                          collector.getLeaves(),
+                                          context)));
+                    } else {
+                      deleteBatch = Maybe.just("delete not issued");
                     }
 
+                    return deleteBatch.map(__ -> docsResult);
+                  })
+              .flatMap(
+                  docsResult -> {
                     // create json pattern expression if sub path is defined
                     if (!subDocumentPath.isEmpty()) {
                       String jsonPtrExpr =

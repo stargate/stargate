@@ -321,7 +321,7 @@ public class DocumentDBTest {
     deadLeaves.put("$.b", new HashSet<>());
     deadLeaves.get("$.b").add(DeadLeaf.ARRAYLEAF);
 
-    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves, context);
+    documentDB.deleteDeadLeaves("keyspace", "table", "key", 1L, deadLeaves, context).join();
 
     List<BoundQuery> generatedQueries = ds.getRecentStatements();
     assertThat(generatedQueries).hasSize(2);
