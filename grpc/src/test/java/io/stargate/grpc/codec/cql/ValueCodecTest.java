@@ -64,8 +64,7 @@ public class ValueCodecTest {
     "listValues",
     "setValues",
     "mapValues",
-    "tupleValues",
-    "bigIntegerValues"
+    "tupleValues"
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -105,8 +104,7 @@ public class ValueCodecTest {
     "invalidSetValues",
     "invalidMapValues",
     "invalidTupleValues",
-    "invalidUdtValues",
-    "invalidBigIntegerValues"
+    "invalidUdtValues"
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -238,14 +236,6 @@ public class ValueCodecTest {
         arguments(Type.Int, Values.of(1)),
         arguments(Type.Int, Values.of(Integer.MAX_VALUE)),
         arguments(Type.Int, Values.of(Integer.MIN_VALUE)));
-  }
-
-  public static Stream<Arguments> bigIntegerValues() {
-    return Stream.of(
-        arguments(Type.Bigint, Values.of(BigInteger.ZERO)),
-        arguments(Type.Bigint, Values.of(BigInteger.ONE)),
-        arguments(Type.Bigint, Values.of(BigInteger.valueOf(Long.MAX_VALUE))),
-        arguments(Type.Bigint, Values.of(BigInteger.valueOf(Long.MIN_VALUE))));
   }
 
   public static Stream<Arguments> invalidIntValues() {
@@ -409,12 +399,6 @@ public class ValueCodecTest {
             Type.Set.of(Type.Varchar), Values.of(Values.NULL), "null is not supported inside sets"),
         arguments(
             Type.Set.of(Type.Int), Values.of(Values.NULL), "null is not supported inside sets"));
-  }
-
-  public static Stream<Arguments> invalidBigIntegerValues() {
-    return Stream.of(
-        arguments(Type.Bigint, Values.NULL, "Expected integer type"),
-        arguments(Type.Bigint, Values.UNSET, "Expected integer type"));
   }
 
   public static Stream<Arguments> mapValues() {

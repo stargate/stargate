@@ -22,7 +22,6 @@ import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -62,10 +61,6 @@ public class Values {
 
   public static Value of(byte value) {
     return Value.newBuilder().setInt(value).build();
-  }
-
-  public static Value of(BigInteger value) {
-    return Value.newBuilder().setInt(value.longValue()).build();
   }
 
   public static Value of(double value) {
