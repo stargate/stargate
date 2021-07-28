@@ -83,7 +83,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     // resolve if no path are there, used in the filtering
     boolean noPaths =
         Arrays.stream(columns)
-            .anyMatch(c -> Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
+            .allMatch(c -> !Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
 
     return Flowable.fromIterable(queryBuilders)
         .flatMap(
