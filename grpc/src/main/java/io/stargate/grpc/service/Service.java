@@ -911,10 +911,10 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  private static class ResponseAndTraceId {
+  static class ResponseAndTraceId {
 
-    @Nullable private UUID tracingId;
-    private Response.Builder responseBuilder;
+    @Nullable UUID tracingId;
+    Response.Builder responseBuilder;
 
     public ResponseAndTraceId() {}
 
