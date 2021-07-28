@@ -35,12 +35,10 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class DocsApiUtils {
 
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
+  public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
-  public static final Pattern ESCAPED_FORBIDDEN_CHAR_PATTERN =
-      Pattern.compile("(\\\\'|\\\\\\.|\\\\\\[|\\\\\\]|\\\\\\\\)");
-  public static final Pattern ESCAPED_FORBIDDEN_CHAR_PATTERN_INTERNAL_CAPTURE =
-      Pattern.compile("\\\\(\\.|'|\\]|\\[|\\\\)");
+  public static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
+  public static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE = Pattern.compile("\\\\(\\.|\\*|,)");
 
   private DocsApiUtils() {}
 
@@ -68,16 +66,16 @@ public final class DocsApiUtils {
   }
 
   /**
-   * Converts any of the valid escape sequences (for periods, square braces, and single quotes) into
-   * their actual character. E.g. if the input string is literally abc\.123, this function returns
-   * abc.123 This allows a user to use escape sequences in where filters and when writing documents
-   * when it would otherwise be ambiguous to use the corresponding character.
+   * Converts any of the valid escape sequences (for periods, commas, and asterisks) into their
+   * actual character. E.g. if the input string is literally abc\.123, this function returns abc.123
+   * This allows a user to use escape sequences in where filters and when writing documents when it
+   * would otherwise be ambiguous to use the corresponding character.
    *
    * @param path single filter or field path
    * @return Converted to a string with no literal unicode code points.
    */
   public static String convertEscapedCharacters(String path) {
-    return path.replaceAll(ESCAPED_FORBIDDEN_CHAR_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
+    return path.replaceAll(ESCAPED_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
   }
 
   private static String convertSingleArrayPath(String path) {

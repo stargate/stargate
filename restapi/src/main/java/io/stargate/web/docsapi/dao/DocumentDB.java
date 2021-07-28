@@ -144,8 +144,11 @@ public class DocumentDB {
   }
 
   public static boolean containsIllegalSequences(String x) {
-    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_FORBIDDEN_CHAR_PATTERN.pattern(), "");
-    return replaced.contains("[") || replaced.contains(".") || replaced.contains("'");
+    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_PATTERN.pattern(), "");
+    return replaced.contains("[")
+        || replaced.contains(".")
+        || replaced.contains("'")
+        || replaced.contains("\\");
   }
 
   public static List<Column> allColumns() {

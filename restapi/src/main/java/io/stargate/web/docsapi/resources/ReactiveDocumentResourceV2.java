@@ -206,7 +206,7 @@ public class ReactiveDocumentResourceV2 {
       @Suspended AsyncResponse asyncResponse) {
 
     // we do search if we have conditions, or the page size is defined and we need to page through
-    // the resulsts
+    // the results
     boolean isSearch = where != null || pageSizeParam != null;
 
     // init sequence

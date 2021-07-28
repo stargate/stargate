@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -53,8 +52,6 @@ public class ExpressionParser {
   private static final String OR_OPERATOR = "$or";
 
   private static final String AND_OPERATOR = "$and";
-
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
   private final ConditionParser conditionParser;
 
@@ -303,7 +300,7 @@ public class ExpressionParser {
    * @return FilterPath
    */
   private FilterPath getFilterPath(List<String> prependedPath, String fieldPath) {
-    String[] fieldNamePath = PERIOD_PATTERN.split(fieldPath);
+    String[] fieldNamePath = DocsApiUtils.PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
             .map(DocsApiUtils::convertArrayPath)

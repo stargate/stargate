@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
 
@@ -131,7 +129,7 @@ public class DocumentService {
                 if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "Array paths contained in square brackets, periods, and single quotes are not allowed in field names, invalid field %s. Hint: Use unicode escape sequences to encode these characters.",
+                          "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",
                           fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
@@ -268,7 +266,7 @@ public class DocumentService {
       } else {
         continue;
       }
-      String[] fieldNames = PERIOD_PATTERN.split(fullyQualifiedField);
+      String[] fieldNames = DocsApiUtils.PERIOD_PATTERN.split(fullyQualifiedField);
 
       if (path.size() + fieldNames.length > docsApiConfiguration.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
@@ -346,7 +344,10 @@ public class DocumentService {
 
   private Optional<String> convertToJsonPtr(Optional<String> path) {
     return path.map(
-        p -> "/" + p.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1"));
+        p ->
+            "/"
+                + p.replaceAll(DocsApiUtils.PERIOD_PATTERN.pattern(), "/")
+                    .replaceAll("\\[(\\d+)\\]", "$1"));
   }
 
   private DocumentDB maybeCreateTableAndIndexes(

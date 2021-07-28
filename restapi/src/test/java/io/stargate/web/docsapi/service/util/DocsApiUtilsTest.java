@@ -130,7 +130,7 @@ class DocsApiUtilsTest {
   }
 
   @Nested
-  class ConvertUnicodeCodePoints {
+  class ConvertEscapedCharacters {
 
     @Test
     public void happyPath() {
@@ -138,11 +138,11 @@ class DocsApiUtilsTest {
 
       assertThat(result).isEqualTo(". is a period");
 
-      result = DocsApiUtils.convertEscapedCharacters("I can represent braces too: \\[000\\]");
-      assertThat(result).isEqualTo("I can represent braces too: [000]");
+      result = DocsApiUtils.convertEscapedCharacters("I can represent asterisks too: \\*");
+      assertThat(result).isEqualTo("I can represent asterisks too: *");
 
-      result = DocsApiUtils.convertEscapedCharacters("I can represent backslashes too: \\\\");
-      assertThat(result).isEqualTo("I can represent backslashes too: \\");
+      result = DocsApiUtils.convertEscapedCharacters("I can represent commas too: \\,");
+      assertThat(result).isEqualTo("I can represent commas too: ,");
 
       result =
           DocsApiUtils.convertEscapedCharacters(
