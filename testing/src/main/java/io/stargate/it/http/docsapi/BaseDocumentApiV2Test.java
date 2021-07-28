@@ -332,15 +332,14 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testEscapableKeyPut() throws IOException {
     JsonNode obj =
-        OBJECT_MAPPER.readTree(
-            "{ \"square\\\\u005b\\\\u005dbraces\": \"are allowed if escaped\" }");
+        OBJECT_MAPPER.readTree("{ \"square\\\\[\\\\]braces\": \"are allowed if escaped\" }");
 
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     String resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are allowed if escaped\" }"));
 
-    obj = OBJECT_MAPPER.readTree("{ \"periods\\\\u002e\": \"are allowed if escaped\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"periods\\\\.\": \"are allowed if escaped\" }");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
@@ -348,12 +347,19 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     obj =
         OBJECT_MAPPER.readTree(
-            "{ \"\\\\u0027qu\\\\u0027\\\\u0027otes\\\\u0027\": { \"are\\\\u0027\": \"allowed if escaped\" }}");
+            "{ \"\\\\'qu\\\\'\\\\'otes\\\\'\": { \"are\\\\'\": \"allowed if escaped\" }}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
     resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
     assertThat(OBJECT_MAPPER.readTree(resp))
         .isEqualTo(
             OBJECT_MAPPER.readTree("{\"'qu''otes'\": { \"are'\": \"allowed if escaped\" }}"));
+
+    obj = OBJECT_MAPPER.readTree("{ \"slashes\\\\\": { \"are\\\\\": \"allowed if escaped\" }}");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree("{\"slashes\\\": { \"are\\\": \"allowed if escaped\" }}"));
 
     obj = OBJECT_MAPPER.readTree("{ \"*aste*risks*\": \"are allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
@@ -1172,14 +1178,14 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   @Test
   public void testBasicSearchUnicodeAndBrackets() throws IOException {
     JsonNode fullObj =
-        OBJECT_MAPPER.readTree("{\"a\\\\u002eb\":\"somedata\",\"some]data\":\"something\"}");
+        OBJECT_MAPPER.readTree("{\"a\\\\.b\":\"somedata\",\"some]data\":\"something\"}");
     RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
 
     // With Unicode code point
     String r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"a\\\\u002eb\": {\"$eq\": \"somedata\"}}",
+            collectionPath + "/cool-search-id?where={\"a\\\\.b\": {\"$eq\": \"somedata\"}}",
             200);
 
     String searchResultStr = "[{\"a.b\":\"somedata\"}]";

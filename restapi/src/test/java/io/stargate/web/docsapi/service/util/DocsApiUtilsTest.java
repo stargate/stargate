@@ -134,18 +134,20 @@ class DocsApiUtilsTest {
 
     @Test
     public void happyPath() {
-      String result = DocsApiUtils.convertUnicodeCodePoints("\\u002E is a period");
+      String result = DocsApiUtils.convertEscapedCharacters("\\. is a period");
 
       assertThat(result).isEqualTo(". is a period");
 
-      result =
-          DocsApiUtils.convertUnicodeCodePoints("I can represent braces too: \\u005b000\\u005d");
+      result = DocsApiUtils.convertEscapedCharacters("I can represent braces too: \\[000\\]");
       assertThat(result).isEqualTo("I can represent braces too: [000]");
 
+      result = DocsApiUtils.convertEscapedCharacters("I can represent backslashes too: \\\\");
+      assertThat(result).isEqualTo("I can represent backslashes too: \\");
+
       result =
-          DocsApiUtils.convertUnicodeCodePoints(
-              "\\u but without valid code points after are ignored: \\ufg00");
-      assertThat(result).isEqualTo("\\u but without valid code points after are ignored: \\ufg00");
+          DocsApiUtils.convertEscapedCharacters(
+              "\\ but without valid chars after are ignored: \\a");
+      assertThat(result).isEqualTo("\\ but without valid chars after are ignored: \\a");
     }
   }
 

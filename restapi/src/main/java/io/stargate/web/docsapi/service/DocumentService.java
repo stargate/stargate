@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
+  private static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
 
@@ -164,7 +164,7 @@ public class DocumentService {
 
                     // pv always starts with a square brace because of the above conversion
                     String innerPath =
-                        DocsApiUtils.convertUnicodeCodePoints(pv.substring(1, pv.length() - 1));
+                        DocsApiUtils.convertEscapedCharacters(pv.substring(1, pv.length() - 1));
                     boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
                     if (isArrayElement) {
                       if (i == path.size() && patching) {
