@@ -490,9 +490,8 @@ public class ReactiveDocumentService {
 
   // we need to transform the stuff to support array elements
   private List<String> processSubDocumentPath(List<String> subDocumentPath) {
-    // TODO after https://github.com/stargate/stargate/pull/1105 encode chars as well
     return subDocumentPath.stream()
-        .map(path -> DocsApiUtils.convertArrayPath(path))
+        .map(path -> DocsApiUtils.convertUnicodeCodePoints(DocsApiUtils.convertArrayPath(path)))
         .collect(Collectors.toList());
   }
 
