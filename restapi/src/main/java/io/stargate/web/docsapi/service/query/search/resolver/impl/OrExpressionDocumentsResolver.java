@@ -39,11 +39,13 @@ import io.stargate.web.docsapi.service.query.search.db.impl.FilterPathSearchQuer
 import io.stargate.web.docsapi.service.query.search.db.impl.FullSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.rx.RxUtils;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,6 +80,11 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             .max(Comparator.comparingInt(o -> o.length))
             .orElseGet(() -> QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth()));
 
+    // resolve if no path are there, used in the filtering
+    boolean noPaths =
+        Arrays.stream(columns)
+            .anyMatch(c -> Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
+
     return Flowable.fromIterable(queryBuilders)
         .flatMap(
             queryBuilder ->
@@ -109,10 +116,6 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // now we can get doc as a result of the persistence or in memory query
               // if we only run persistence queries we can return true immediately
               // running only persistence queries means we had no path columns
-              // since all rows must have same columns we can find any that does not have it
-              boolean noPaths =
-                  doc.rows().stream()
-                      .anyMatch(r -> !r.columnExists(QueryConstants.P_COLUMN_NAME.apply(0)));
               if (noPaths) {
                 return true;
               }
