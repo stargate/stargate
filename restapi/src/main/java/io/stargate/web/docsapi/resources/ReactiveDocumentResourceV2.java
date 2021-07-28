@@ -53,6 +53,11 @@ import org.glassfish.jersey.server.ManagedAsync;
 @Produces(MediaType.APPLICATION_JSON)
 public class ReactiveDocumentResourceV2 {
 
+  private static final String WHERE_DESCRIPTION =
+      "a JSON blob with search filters;"
+          + " allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists;"
+          + " allowed hints: $selectivity (a number between 0.0 and 1.0, less is better)";
+
   @Inject private Db dbFactory;
   @Inject private ReactiveDocumentService reactiveDocumentService;
   @Inject private DocsSchemaChecker schemaChecker;
@@ -91,12 +96,7 @@ public class ReactiveDocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(
-              value =
-                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists",
-              required = false)
-          @QueryParam("where")
-          String where,
+      @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
       @ApiParam(
               value = "the field names that you want to restrict the results to",
               required = false)
@@ -178,12 +178,7 @@ public class ReactiveDocumentResourceV2 {
       @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(
-              value =
-                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists",
-              required = false)
-          @QueryParam("where")
-          String where,
+      @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
       @ApiParam(
               value = "the field names that you want to restrict the results to",
               required = false)
@@ -287,11 +282,7 @@ public class ReactiveDocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      @ApiParam(
-              value =
-                  "a JSON blob with search filters, allowed operators: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists")
-          @QueryParam("where")
-          String where,
+      @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
       @ApiParam(
               value = "the field names that you want to restrict the results to",
               required = false)

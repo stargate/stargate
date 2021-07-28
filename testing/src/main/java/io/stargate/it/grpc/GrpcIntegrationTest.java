@@ -114,6 +114,14 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
         .build();
   }
 
+  protected static Query cqlQuery(String cql, Value... values) {
+    return Query.newBuilder()
+        .setCql(cql)
+        .setValues(
+            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
+        .build();
+  }
+
   protected static Query cqlQuery(String cql, QueryParameters.Builder parameters, Value... values) {
     return Query.newBuilder()
         .setCql(cql)

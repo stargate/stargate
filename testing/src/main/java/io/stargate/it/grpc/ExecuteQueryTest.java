@@ -81,38 +81,34 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
     Response response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
 
-    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"));
     assertThat(response).isNotNull();
 
     // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
     // cache
-    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;", null));
+    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
 
-    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"));
     assertThat(response).isNotNull();
   }
 
