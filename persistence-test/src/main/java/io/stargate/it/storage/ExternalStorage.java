@@ -332,6 +332,12 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       }
     }
 
+    private void dumpConfig() {
+      LOG.warn("Dumping storage config files.");
+
+      nodes.forEach(StorageNode::dumpConfig);
+    }
+
     @Override
     public String seedAddress() {
       return "127.0.0.1";
@@ -448,5 +454,24 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
       start(cmd, env.build());
     }
+
+    private void dumpConfig() {
+
+      Collection<File> files = FileUtils.listFiles(cassandraConf, new String[] {"yaml"}, true);
+      for (File file : files) {
+        try (LogOutputStream dumper =
+            new LogOutputStream() {
+              @Override
+              protected void processLine(String line, int logLevel) {
+                LOG.info("storage log: {}>> {}", file.getAbsolutePath(), line);
+              }
+            }) {
+          FileUtils.copyFile(file, dumper);
+        } catch (IOException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
+
   }
 }
