@@ -50,13 +50,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class BatchHandler extends MessageHandler {
+class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
       Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
-
-  private final Batch batch;
 
   BatchHandler(
       Batch batch,
@@ -64,52 +62,35 @@ class BatchHandler extends MessageHandler {
       Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
-    super(connection, preparedCache, persistence, responseObserver);
-    this.batch = batch;
+    super(batch, connection, preparedCache, persistence, responseObserver);
   }
 
-  void handle() {
-    CompletionStage<Result> resultFuture =
-        CompletableFuture.<Void>completedFuture(null)
-            .thenApply(this::validateQueries)
-            .thenCompose(__ -> new BatchPreparer().prepare())
-            .thenCompose(this::executePrepared);
-    resultFuture = handleUnprepared(resultFuture, this::reprepareAndRetry);
-    resultFuture
-        .thenApply(this::buildResponse)
-        .thenCompose(this::executeTracingQueryIfNeeded)
-        .whenComplete(
-            (response, error) -> {
-              if (error != null) {
-                handleException(error);
-              } else {
-                setSuccess(response);
-              }
-            });
-  }
-
-  private Void validateQueries(Void ignored) {
-    if (batch.getQueriesCount() == 0) {
-      throw new CompletionException(
-          Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException());
+  @Override
+  protected void validate() throws Exception {
+    if (message.getQueriesCount() == 0) {
+      throw Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException();
     }
 
-    Payload.Type type = batch.getQueries(0).getValues().getType();
+    Payload.Type type = message.getQueries(0).getValues().getType();
     boolean allTypesMatch =
-        batch.getQueriesList().stream().allMatch(v -> v.getValues().getType().equals(type));
+        message.getQueriesList().stream().allMatch(v -> v.getValues().getType().equals(type));
     if (!allTypesMatch) {
-      throw new CompletionException(
-          Status.INVALID_ARGUMENT
-              .withDescription(
-                  "Types for all queries within batch must be the same, and equal to: " + type)
-              .asException());
+      throw Status.INVALID_ARGUMENT
+          .withDescription(
+              "Types for all queries within batch must be the same, and equal to: " + type)
+          .asException();
     }
-    return null;
   }
 
-  private CompletionStage<Result> executePrepared(io.stargate.db.Batch preparedBatch) {
+  @Override
+  protected CompletionStage<io.stargate.db.Batch> prepare(boolean shouldInvalidate) {
+    return new BatchPreparer().prepare(shouldInvalidate);
+  }
+
+  @Override
+  protected CompletionStage<Result> executePrepared(io.stargate.db.Batch preparedBatch) {
     long queryStartNanoTime = System.nanoTime();
-    BatchParameters parameters = batch.getParameters();
+    BatchParameters parameters = message.getParameters();
     try {
       return connection.batch(
           preparedBatch, makeParameters(parameters, connection.clientInfo()), queryStartNanoTime);
@@ -118,11 +99,8 @@ class BatchHandler extends MessageHandler {
     }
   }
 
-  private CompletionStage<Result> reprepareAndRetry() {
-    return new BatchPreparer().prepareForRetry().thenCompose(this::executePrepared);
-  }
-
-  private ResponseAndTraceId buildResponse(Result result) {
+  @Override
+  protected ResponseAndTraceId buildResponse(Result result) {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -134,10 +112,10 @@ class BatchHandler extends MessageHandler {
 
     if (result.kind == Result.Kind.Rows) {
       // all queries within a batch must have the same type
-      Payload.Type type = batch.getQueries(0).getValues().getType();
+      Payload.Type type = message.getQueries(0).getValues().getType();
       PayloadHandler handler = PayloadHandlers.get(type);
       try {
-        Any data = handler.processResult((Result.Rows) result, batch.getParameters());
+        Any data = handler.processResult((Result.Rows) result, message.getParameters());
         responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
       } catch (Exception e) {
         throw new CompletionException(e);
@@ -146,6 +124,14 @@ class BatchHandler extends MessageHandler {
 
     responseAndTraceId.setResponseBuilder(responseBuilder);
     return responseAndTraceId;
+  }
+
+  @Override
+  protected ConsistencyLevel getTracingConsistency() {
+    BatchParameters parameters = message.getParameters();
+    return parameters.hasTracingConsistency()
+        ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
+        : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
   }
 
   private Parameters makeParameters(BatchParameters parameters, Optional<ClientInfo> clientInfo) {
@@ -183,14 +169,6 @@ class BatchHandler extends MessageHandler {
     return builder.tracingRequested(parameters.getTracing()).build();
   }
 
-  @Override
-  protected ConsistencyLevel getTracingConsistency() {
-    BatchParameters parameters = batch.getParameters();
-    return parameters.hasTracingConsistency()
-        ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
-        : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
-  }
-
   /**
    * Concurrently prepares queries in a batch. It'll prepare up to {@link
    * #MAX_CONCURRENT_PREPARES_FOR_BATCH} queries simultaneously.
@@ -201,12 +179,6 @@ class BatchHandler extends MessageHandler {
     private final List<Statement> statements = new CopyOnWriteArrayList<>();
     private final CompletableFuture<io.stargate.db.Batch> future = new CompletableFuture<>();
 
-    /**
-     * Initiates the initial prepares. When these prepares finish they'll pull the next available
-     * query in the batch and prepare it.
-     *
-     * @return An future which completes with an internal batch statement with all queries prepared.
-     */
     CompletionStage<io.stargate.db.Batch> prepare() {
       return prepare(false);
     }
@@ -215,8 +187,14 @@ class BatchHandler extends MessageHandler {
       return prepare(true);
     }
 
-    private CompletionStage<io.stargate.db.Batch> prepare(boolean shouldInvalidate) {
-      int numToPrepare = Math.min(batch.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
+    /**
+     * Initiates the initial prepares. When these prepares finish they'll pull the next available
+     * query in the batch and prepare it.
+     *
+     * @return A future which completes with an internal batch statement with all queries prepared.
+     */
+    CompletionStage<io.stargate.db.Batch> prepare(boolean shouldInvalidate) {
+      int numToPrepare = Math.min(message.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
       assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
         next(shouldInvalidate);
@@ -229,14 +207,14 @@ class BatchHandler extends MessageHandler {
       int index = this.queryIndex.getAndIncrement();
       // When there are no more queries to prepare then construct the batch with the prepared
       // statements and complete the future.
-      if (index >= batch.getQueriesCount()) {
+      if (index >= message.getQueriesCount()) {
         future.complete(
-            new io.stargate.db.Batch(BatchType.fromId(batch.getTypeValue()), statements));
+            new io.stargate.db.Batch(BatchType.fromId(message.getTypeValue()), statements));
         return;
       }
 
-      BatchQuery query = batch.getQueries(index);
-      BatchParameters batchParameters = batch.getParameters();
+      BatchQuery query = message.getQueries(index);
+      BatchParameters batchParameters = message.getParameters();
 
       PrepareInfo prepareInfo =
           ImmutablePrepareInfo.builder()

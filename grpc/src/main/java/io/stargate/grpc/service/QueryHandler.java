@@ -44,9 +44,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class QueryHandler extends MessageHandler {
+class QueryHandler extends MessageHandler<Query, Prepared> {
 
-  private final Query query;
   private final PrepareInfo prepareInfo;
 
   QueryHandler(
@@ -55,8 +54,7 @@ class QueryHandler extends MessageHandler {
       Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
-    super(connection, preparedCache, persistence, responseObserver);
-    this.query = query;
+    super(query, connection, preparedCache, persistence, responseObserver);
     QueryParameters queryParameters = query.getParameters();
     this.prepareInfo =
         ImmutablePrepareInfo.builder()
@@ -67,29 +65,24 @@ class QueryHandler extends MessageHandler {
             .build();
   }
 
-  void handle() {
-    CompletionStage<Result> resultFuture = prepare(prepareInfo).thenCompose(this::executePrepared);
-    resultFuture = handleUnprepared(resultFuture, this::reprepareAndRetry);
-    resultFuture
-        .thenApply(this::buildResponse)
-        .thenCompose(this::executeTracingQueryIfNeeded)
-        .whenComplete(
-            (response, error) -> {
-              if (error != null) {
-                handleException(error);
-              } else {
-                setSuccess(response);
-              }
-            });
+  @Override
+  protected void validate() {
+    // nothing to do
   }
 
-  private CompletionStage<Result> executePrepared(Prepared prepared) {
+  @Override
+  protected CompletionStage<Prepared> prepare(boolean shouldInvalidate) {
+    return prepare(prepareInfo, shouldInvalidate);
+  }
+
+  @Override
+  protected CompletionStage<Result> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
-    Payload values = query.getValues();
+    Payload values = message.getValues();
     PayloadHandler handler = PayloadHandlers.get(values.getType());
 
-    QueryParameters parameters = query.getParameters();
+    QueryParameters parameters = message.getParameters();
 
     try {
       return connection.execute(
@@ -101,11 +94,8 @@ class QueryHandler extends MessageHandler {
     }
   }
 
-  private CompletionStage<Result> reprepareAndRetry() {
-    return prepare(prepareInfo, true).thenCompose(this::executePrepared);
-  }
-
-  private ResponseAndTraceId buildResponse(Result result) {
+  @Override
+  protected ResponseAndTraceId buildResponse(Result result) {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -130,13 +120,13 @@ class QueryHandler extends MessageHandler {
         responseBuilder.setSchemaChange(schemaChangeBuilder.build());
         break;
       case Rows:
-        Payload values = query.getValues();
+        Payload values = message.getValues();
         PayloadHandler handler = PayloadHandlers.get(values.getType());
         try {
           responseBuilder.setResultSet(
               Payload.newBuilder()
-                  .setType(query.getValues().getType())
-                  .setData(handler.processResult((Result.Rows) result, query.getParameters())));
+                  .setType(message.getValues().getType())
+                  .setData(handler.processResult((Result.Rows) result, message.getParameters())));
         } catch (Exception e) {
           throw new CompletionException(e);
         }
@@ -150,6 +140,14 @@ class QueryHandler extends MessageHandler {
     }
     responseAndTraceId.setResponseBuilder(responseBuilder);
     return responseAndTraceId;
+  }
+
+  @Override
+  protected ConsistencyLevel getTracingConsistency() {
+    QueryParameters parameters = message.getParameters();
+    return parameters.hasTracingConsistency()
+        ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
+        : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
   }
 
   private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
@@ -193,13 +191,5 @@ class QueryHandler extends MessageHandler {
         });
 
     return builder.tracingRequested(parameters.getTracing()).build();
-  }
-
-  @Override
-  protected ConsistencyLevel getTracingConsistency() {
-    QueryParameters parameters = query.getParameters();
-    return parameters.hasTracingConsistency()
-        ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
-        : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
   }
 }

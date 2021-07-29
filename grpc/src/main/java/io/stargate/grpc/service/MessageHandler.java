@@ -16,6 +16,7 @@
 package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -32,6 +33,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.service.Service.PrepareInfo;
+import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -53,7 +55,11 @@ import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
-abstract class MessageHandler {
+/**
+ * @param <MessageT> the type of gRPC message being handled.
+ * @param <PreparedT> the persistence object resulting from the preparation of the query(ies).
+ */
+abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
   static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.Unavailable.getDefaultInstance());
@@ -74,20 +80,79 @@ abstract class MessageHandler {
 
   protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
+  protected final MessageT message;
   protected final Connection connection;
   private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache;
   protected final Persistence persistence;
   private final StreamObserver<Response> responseObserver;
 
   protected MessageHandler(
+      MessageT message,
       Connection connection,
       Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
+    this.message = message;
     this.connection = connection;
     this.preparedCache = preparedCache;
     this.persistence = persistence;
     this.responseObserver = responseObserver;
+  }
+
+  void handle() {
+    CompletionStage<Result> resultFuture =
+        CompletableFuture.<Void>completedFuture(null)
+            .thenApply(this::invokeValidate)
+            .thenCompose(__ -> prepare(false))
+            .thenCompose(this::executePrepared);
+    resultFuture = handleUnprepared(resultFuture, this::reprepareAndRetry);
+    resultFuture
+        .thenApply(this::buildResponse)
+        .thenCompose(this::executeTracingQueryIfNeeded)
+        .whenComplete(
+            (response, error) -> {
+              if (error != null) {
+                handleException(error);
+              } else {
+                setSuccess(response);
+              }
+            });
+  }
+
+  /** Performs any necessary validation on the message before execution starts. */
+  protected abstract void validate() throws Exception;
+
+  /**
+   * Prepares any CQL query required for the execution of the request, and returns an executable
+   * object.
+   *
+   * @param shouldInvalidate whether to invalidate the corresponding entries in the prepared
+   *     statement cache.
+   */
+  protected abstract CompletionStage<PreparedT> prepare(boolean shouldInvalidate);
+
+  /** Executes the prepared object to get the CQL results. */
+  protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
+
+  /** Builds the gRPC response from the CQL result. */
+  protected abstract ResponseAndTraceId buildResponse(Result result);
+
+  /** Computes the consistency level to use for tracing queries. */
+  protected abstract ConsistencyLevel getTracingConsistency();
+
+  private CompletionStage<Result> reprepareAndRetry() {
+    return prepare(true).thenCompose(this::executePrepared);
+  }
+
+  private Void invokeValidate(Void ignored) {
+    try {
+      validate();
+      return null;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new CompletionException(e);
+    }
   }
 
   protected BoundStatement bindValues(
@@ -95,10 +160,6 @@ abstract class MessageHandler {
     return values.hasData()
         ? handler.bindValues(prepared, values.getData(), persistence.unsetValue())
         : new BoundStatement(prepared.statementId, Collections.emptyList(), null);
-  }
-
-  protected CompletionStage<Prepared> prepare(PrepareInfo prepareInfo) {
-    return prepare(prepareInfo, false);
   }
 
   protected CompletionStage<Prepared> prepare(PrepareInfo prepareInfo, boolean shouldInvalidate) {
@@ -149,7 +210,7 @@ abstract class MessageHandler {
   }
 
   protected CompletionStage<Response> executeTracingQueryIfNeeded(
-      Service.ResponseAndTraceId responseAndTraceId) {
+      ResponseAndTraceId responseAndTraceId) {
     Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
     return (responseAndTraceId.tracingIdIsEmpty())
         ? CompletableFuture.completedFuture(responseBuilder.build())
@@ -167,8 +228,6 @@ abstract class MessageHandler {
                   return responseBuilder.build();
                 });
   }
-
-  protected abstract ConsistencyLevel getTracingConsistency();
 
   protected void setSuccess(Response response) {
     responseObserver.onNext(response);
