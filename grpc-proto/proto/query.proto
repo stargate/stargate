@@ -334,14 +334,17 @@ message SchemaChange {
 
 // The response to a Query or Batch message.
 message Response {
-  // The result data.
-  // If the payload type is CQL, then the data is a ResultSet message.
-  Payload result_set = 1;
+  oneof result {
+    // The result data.
+    // If the payload type is CQL, then the data is a ResultSet message.
+    Payload result_set = 1;
+    // How the query changed the CQL schema.
+    SchemaChange schema_change = 4;
+  }
   // The server-side warnings for the query, if any.
   repeated string warnings = 2;
   // The tracing information, if it was requested for the query.
   Traces traces = 3;
-  SchemaChange schema_change = 4;
 }
 
 // Thrown when the coordinator knows there is not enough replicas alive to perform a query with the
