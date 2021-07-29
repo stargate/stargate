@@ -24,6 +24,7 @@ import hu.akarnokd.rxjava3.operators.FlowableTransformers;
 import hu.akarnokd.rxjava3.operators.Flowables;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.db.ComparableKey;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.PagingPosition;
@@ -212,6 +213,7 @@ public class QueryExecutor {
                 });
 
     return RxUtils.singleFromFuture(supplier)
+        .observeOn(Schedulers.io())
         .toFlowable()
         .compose(FlowableConnectOnRequest.with()) // separate subscription from query execution
         .take(1);
