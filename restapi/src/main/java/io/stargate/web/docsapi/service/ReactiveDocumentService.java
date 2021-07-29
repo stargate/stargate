@@ -24,8 +24,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -52,6 +55,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,6 +177,26 @@ public class ReactiveDocumentService {
       List<String> subDocumentPath,
       String fields,
       ExecutionContext context) {
+    return getDocumentInternal(
+            db, namespace, collection, documentId, subDocumentPath, fields, context)
+        .map(Pair::getValue0);
+  }
+
+  /**
+   * See {@link #getDocument(DocumentDB, String, String, String, List, String, ExecutionContext)}
+   *
+   * @return a Maybe pair of the {@link DocumentResponseWrapper}, and a {@link Disposable} for a
+   *     potentially issued "dead leaf" deletion batch.
+   */
+  @VisibleForTesting
+  Maybe<Pair<DocumentResponseWrapper<? extends JsonNode>, Disposable>> getDocumentInternal(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      String fields,
+      ExecutionContext context) {
 
     long now = timeSource.currentTimeMicros();
 
@@ -187,10 +211,6 @@ public class ReactiveDocumentService {
           AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
           authorizationService.authorizeDataRead(
               authenticationSubject, namespace, collection, SourceAPI.REST);
-
-          // Don't fail this read request if the corrective DELETE statements are not authorized,
-          // simply skip DELETE batches in that case (see the Rx pipeline below).
-          boolean deleteAuthorized = db.authorizeDeleteDeadLeaves(namespace, collection);
 
           // we need to check that we have no globs and transform the stuff to support array
           // elements
@@ -228,32 +248,48 @@ public class ReactiveDocumentService {
                             false,
                             db.treatBooleansAsNumeric());
 
-                    Maybe<?> deleteBatch;
-
+                    Disposable deleteBatch;
                     // dead leaf deletion init on non-empty collection
-                    if (deleteAuthorized && !collector.isEmpty()) {
-                      logger.info(
-                          String.format("Deleting %d dead leaves", collector.getLeaves().size()));
-
+                    if (!collector.isEmpty()) {
+                      int size = collector.getLeaves().size();
+                      // Submit the DELETE batch for async execution (do not block, do not wait)
+                      // Note: authorizeDeleteDeadLeaves is called only if dead leaves are found.
                       deleteBatch =
-                          Maybe.fromSingle(
-                              RxUtils.singleFromFuture(
-                                  () ->
-                                      db.deleteDeadLeaves(
-                                          namespace,
-                                          collection,
-                                          documentId,
-                                          now,
-                                          collector.getLeaves(),
-                                          context)));
+                          Single.fromCallable(
+                                  () -> db.authorizeDeleteDeadLeaves(namespace, collection))
+                              .filter(
+                                  authorized -> {
+                                    // Don't fail this read request if the corrective DELETE
+                                    // statements
+                                    // are not authorized, simply skip DELETE batch in that case.
+                                    if (authorized) {
+                                      logger.info("Deleting {} dead leaves", size);
+                                    } else {
+                                      logger.info("Not authorized to delete {} dead leaves", size);
+                                    }
+
+                                    return authorized;
+                                  })
+                              .flatMap(
+                                  __ ->
+                                      RxUtils.singleFromFuture(
+                                              () ->
+                                                  db.deleteDeadLeaves(
+                                                      namespace,
+                                                      collection,
+                                                      documentId,
+                                                      now,
+                                                      collector.getLeaves(),
+                                                      context))
+                                          .toMaybe())
+                              .subscribeOn(Schedulers.io())
+                              .doOnSuccess(__ -> logger.info("Deleted {} dead leaves", size))
+                              .doOnError(t -> logger.error("Unable to delete dead leaves: " + t, t))
+                              .subscribe();
                     } else {
-                      deleteBatch = Maybe.just("delete not issued");
+                      deleteBatch = Disposable.disposed();
                     }
 
-                    return deleteBatch.map(__ -> docsResult);
-                  })
-              .flatMap(
-                  docsResult -> {
                     // create json pattern expression if sub path is defined
                     if (!subDocumentPath.isEmpty()) {
                       String jsonPtrExpr =
@@ -275,7 +311,7 @@ public class ReactiveDocumentService {
                     DocumentResponseWrapper<JsonNode> wrapper =
                         new DocumentResponseWrapper<>(
                             documentId, null, docsResult, context.toProfile());
-                    return Maybe.just(wrapper);
+                    return Maybe.just(Pair.with(wrapper, deleteBatch));
                   });
         });
   }
