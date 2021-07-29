@@ -55,6 +55,10 @@ message Uuid {
   fixed64 lsb = 2;
 }
 
+message BigInteger {
+  bytes value = 1;
+}
+
 message Value {
   message Null {}
   message Unset {}
@@ -101,6 +105,9 @@ message Value {
 
     // CQL types: user defined types
     UdtValue udt = 13;
+
+    // CQL types: varint
+    BigInteger varint = 14;
   }
 }
 
