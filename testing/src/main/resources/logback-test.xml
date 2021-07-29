@@ -9,7 +9,7 @@
       <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
     </encoder>
   </appender>
-  <root level="${stargate.logging.level.root:-INFO}">
+  <root level="${stargate.logging.level.root:-DEBUG}">
     <appender-ref ref="STDOUT"/>
   </root>
   <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
