@@ -243,6 +243,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     public void start() {
       if (!EXTERNAL_BACKEND) {
         ccm.create();
+        dumpConfig();
 
         ShutdownHook.add(this);
 
