@@ -116,7 +116,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       withAnySelectFrom(TABLE).returningNothing();
 
       DataStore datastore = datastore();
@@ -145,7 +145,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
-      results.test().assertValue(rawDocument).assertComplete();
+      results.test().await().assertValue(rawDocument).assertComplete();
 
       resetExpectations();
 
@@ -161,7 +161,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void multipleDocumentsOneFilterPassing() {
+    public void multipleDocumentsOneFilterPassing() throws Exception {
       withAnySelectFrom(TABLE).returningNothing();
 
       DataStore datastore = datastore();
@@ -190,7 +190,12 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
-      results.test().assertValueAt(0, rawDocument).assertValueAt(1, rawDocument2).assertComplete();
+      results
+          .test()
+          .await()
+          .assertValueAt(0, rawDocument)
+          .assertValueAt(1, rawDocument2)
+          .assertComplete();
 
       resetExpectations();
 
@@ -210,7 +215,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void allFiltersNotPassed() {
+    public void allFiltersNotPassed() throws Exception {
       withAnySelectFrom(TABLE).returningNothing();
 
       DataStore datastore = datastore();
@@ -239,7 +244,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
-      results.test().assertValueCount(0).assertComplete();
+      results.test().await().assertValueCount(0).assertComplete();
 
       resetExpectations();
 
@@ -255,7 +260,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void noCandidates() {
+    public void noCandidates() throws Exception {
       withAnySelectFrom(TABLE).returningNothing();
 
       DocumentsResolver candidatesResolver =
@@ -270,7 +275,7 @@ class AnyFiltersResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
-      results.test().assertValueCount(0).assertComplete();
+      results.test().await().assertValueCount(0).assertComplete();
 
       resetExpectations();
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);

@@ -110,7 +110,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
   class PrepareQuery {
 
     @Test
-    public void fixedPath() {
+    public void fixedPath() throws Exception {
       // fixed path has limit
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "query-value");
@@ -127,7 +127,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
       Single<? extends Query<? extends BoundQuery>> single =
           filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
 
-      single.test().assertValueCount(1).assertComplete();
+      single.test().await().assertValueCount(1).assertComplete();
 
       // execution context not updated with execution
       assertThat(executionContext.toProfile().nested())
@@ -143,7 +143,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void globComplexPath() {
+    public void globComplexPath() throws Exception {
       // glob path has no limits and glob px has GT as condition
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "*", "field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "query-value");
@@ -160,7 +160,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
       Single<? extends Query<? extends BoundQuery>> single =
           filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
 
-      single.test().assertValueCount(1).assertComplete();
+      single.test().await().assertValueCount(1).assertComplete();
 
       // execution context not updated with execution
       assertThat(executionContext.toProfile().nested())
@@ -184,7 +184,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
     @Mock FilterExpression filterExpression2;
 
     @Test
-    public void fixedPath() {
+    public void fixedPath() throws Exception {
       // fixed path has limit and page size 2 on the execution
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -215,7 +215,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(1).assertComplete();
+      result.test().await().assertValueCount(1).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -238,7 +238,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void globPathMultipleExpressions() {
+    public void globPathMultipleExpressions() throws Exception {
       // glob path has no limits and glob px has GT as condition
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "*", "field"));
@@ -277,7 +277,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(1).assertComplete();
+      result.test().await().assertValueCount(1).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -299,7 +299,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingReturned() {
+    public void nothingReturned() throws Exception {
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "query-value");
@@ -329,7 +329,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 

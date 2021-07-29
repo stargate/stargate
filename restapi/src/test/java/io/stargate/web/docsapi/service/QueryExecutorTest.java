@@ -112,7 +112,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testFullScan() {
+  void testFullScan() throws Exception {
     withQuery(table, "SELECT * FROM %s")
         .returning(ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d)));
 
@@ -149,7 +149,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "3", "5", "100"})
-  void testFullScanPaged(int pageSize) {
+  void testFullScanPaged(int pageSize) throws Exception {
     withFiveTestDocs(pageSize);
 
     List<RawDocument> r1 = values(executor.queryDocs(allDocsQuery, pageSize, null, context));
@@ -174,7 +174,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "100", "5000"})
-  void testFullScanDeep(int pageSize) {
+  void testFullScanDeep(int pageSize) throws Exception {
     int N = 100_000;
     Builder<Map<String, Object>> rows = ImmutableList.builder();
     for (int i = 0; i < N; i++) { // generate 10 pages of data
@@ -221,7 +221,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testFullScanFinalPagingState(int pageSize) {
+  void testFullScanFinalPagingState(int pageSize) throws Exception {
     // Note: the test result set has 8 rows.
     // If page size is a divisor of the result set size the test DataStore will return a non-null
     // paging state in the page that contains the last row to emulate C* behaviour, which cannot
@@ -245,7 +245,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testPopulate(int pageSize) {
+  void testPopulate(int pageSize) throws Exception {
     withFiveTestDocIds(pageSize);
     withQuery(table, "SELECT * FROM %s WHERE key = ?", "2")
         .withPageSize(pageSize)
@@ -290,13 +290,14 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testResultSetPagination() {
+  void testResultSetPagination() throws Exception {
     withFiveTestDocs(3);
 
     List<ResultSet> r1 =
         executor
             .execute(datastore().queryBuilder().select().star().from(table).build().bind(), 3, null)
             .test()
+            .await()
             .values();
 
     assertThat(r1.get(0).currentPageRows())
@@ -315,7 +316,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testSubDocuments() {
+  void testSubDocuments() throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
         .withPageSize(3)
         .returning(
@@ -361,7 +362,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testSubDocumentsPaged(int pageSize) {
+  void testSubDocumentsPaged(int pageSize) throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE key = ? AND p0 > ?", "a", "x")
         .withPageSize(pageSize)
         .returning(
@@ -427,7 +428,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testMergeByDocKey(int pageSize) {
+  void testMergeByDocKey(int pageSize) throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
         .withPageSize(pageSize)
         .returning(
@@ -464,7 +465,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testMergeSubDocuments(int pageSize) {
+  void testMergeSubDocuments(int pageSize) throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
         .withPageSize(pageSize)
         .returning(
@@ -511,7 +512,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testMergeWithPartialPath(int pageSize) {
+  void testMergeWithPartialPath(int pageSize) throws Exception {
     String cql = "SELECT key, p0, test_value FROM %s WHERE p0 > ?";
     withQuery(table, cql, "x")
         .withPageSize(pageSize)
@@ -563,7 +564,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testMergeByDocKeyPaged(int pageSize) {
+  void testMergeByDocKeyPaged(int pageSize) throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
         .withPageSize(pageSize)
         .returning(
@@ -635,7 +636,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @ParameterizedTest
   @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-  void testMergeResultPaginationWithExcludedRows(int pageSize) {
+  void testMergeResultPaginationWithExcludedRows(int pageSize) throws Exception {
     withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
         .withPageSize(pageSize)
         .returning(

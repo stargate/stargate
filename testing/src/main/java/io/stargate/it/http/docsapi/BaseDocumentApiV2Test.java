@@ -40,7 +40,6 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -562,7 +561,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(wrapResponse(fullObjNode, "1", null));
   }
 
-  @RepeatedTest(1000)
+  @Test
   public void testPutReplacingWithArray() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));

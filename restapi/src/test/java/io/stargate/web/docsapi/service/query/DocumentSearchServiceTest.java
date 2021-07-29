@@ -80,7 +80,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   class SearchDocuments {
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -127,6 +127,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -214,7 +215,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void limitedResults() {
+    public void limitedResults() throws Exception {
       Paginator paginator = new Paginator(null, 1);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -252,6 +253,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -317,7 +319,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingToPopulate() {
+    public void nothingToPopulate() throws Exception {
       Paginator paginator = new Paginator(null, 1);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -348,7 +350,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               context);
 
       // assert results
-      results.test().assertValueCount(0).assertComplete();
+      results.test().await().assertValueCount(0).assertComplete();
 
       // assert queries execution
       candidatesAssert.assertExecuteCount().isEqualTo(1);
@@ -383,7 +385,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void fullSearch() {
+    public void fullSearch() throws Exception {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
 
@@ -414,6 +416,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -487,7 +490,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   class SearchSubDocuments {
 
     @Test
-    public void searchFullDoc() {
+    public void searchFullDoc() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
@@ -539,6 +542,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo(documentId);
@@ -586,7 +590,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void searchSubDoc() {
+    public void searchSubDoc() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
@@ -628,6 +632,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo(documentId);
@@ -669,7 +674,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void searchSubDocPaginated() {
+    public void searchSubDocPaginated() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       Paginator paginator = new Paginator(null, 2);
       ExecutionContext context = ExecutionContext.create(true);
@@ -700,6 +705,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -756,7 +762,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   class GetDocument {
 
     @Test
-    public void getSubDoc() {
+    public void getSubDoc() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       List<String> subPath = Collections.singletonList("field");
@@ -787,6 +793,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo(documentId);
@@ -822,7 +829,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   class SelectivityHints {
 
     @Test
-    public void predicateOrderWithExplicitSelectivity() {
+    public void predicateOrderWithExplicitSelectivity() throws Exception {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath1 = ImmutableFilterPath.of(Arrays.asList("some", "field1"));
@@ -865,6 +872,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               paginator,
               context)
           .test()
+          .await()
           .assertNoErrors();
 
       // Rely on profiling output to validate the order of filter execution
