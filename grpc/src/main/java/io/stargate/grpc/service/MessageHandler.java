@@ -22,21 +22,31 @@ import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
+import io.stargate.db.BoundStatement;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
+import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import io.stargate.db.tracing.QueryTracingFetcher;
+import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.service.Service.PrepareInfo;
+import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Response;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
 import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
@@ -45,22 +55,24 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
 abstract class MessageHandler {
 
-  private static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
+  static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.Unavailable.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.WriteTimeout> WRITE_TIMEOUT_KEY =
+  static final Metadata.Key<QueryOuterClass.WriteTimeout> WRITE_TIMEOUT_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.WriteTimeout.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.ReadTimeout> READ_TIMEOUT_KEY =
+  static final Metadata.Key<QueryOuterClass.ReadTimeout> READ_TIMEOUT_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.ReadTimeout.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.ReadFailure> READ_FAILURE_KEY =
+  static final Metadata.Key<QueryOuterClass.ReadFailure> READ_FAILURE_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.ReadFailure.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.FunctionFailure> FUNCTION_FAILURE_KEY =
+  static final Metadata.Key<QueryOuterClass.FunctionFailure> FUNCTION_FAILURE_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.FunctionFailure.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.WriteFailure> WRITE_FAILURE_KEY =
+  static final Metadata.Key<QueryOuterClass.WriteFailure> WRITE_FAILURE_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.WriteFailure.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.AlreadyExists> ALREADY_EXISTS_KEY =
+  static final Metadata.Key<QueryOuterClass.AlreadyExists> ALREADY_EXISTS_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.AlreadyExists.getDefaultInstance());
-  private static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
+  static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
+
+  protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
   protected final Connection connection;
   private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache;
@@ -76,6 +88,13 @@ abstract class MessageHandler {
     this.preparedCache = preparedCache;
     this.persistence = persistence;
     this.responseObserver = responseObserver;
+  }
+
+  protected BoundStatement bindValues(
+      PayloadHandler handler, Prepared prepared, QueryOuterClass.Payload values) throws Exception {
+    return values.hasData()
+        ? handler.bindValues(prepared, values.getData(), persistence.unsetValue())
+        : new BoundStatement(prepared.statementId, Collections.emptyList(), null);
   }
 
   protected CompletionStage<Prepared> prepare(PrepareInfo prepareInfo) {
@@ -119,6 +138,37 @@ abstract class MessageHandler {
             : ImmutableParameters.builder().defaultKeyspace(keyspace).build();
     return connection.prepare(prepareInfo.cql(), parameters);
   }
+
+  protected Response.Builder makeResponseBuilder(Result result) {
+    Response.Builder resultBuilder = Response.newBuilder();
+    List<String> warnings = result.getWarnings();
+    if (warnings != null) {
+      resultBuilder.addAllWarnings(warnings);
+    }
+    return resultBuilder;
+  }
+
+  protected CompletionStage<Response> executeTracingQueryIfNeeded(
+      Service.ResponseAndTraceId responseAndTraceId) {
+    Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
+    return (responseAndTraceId.tracingIdIsEmpty())
+        ? CompletableFuture.completedFuture(responseBuilder.build())
+        : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
+            .fetch()
+            .handle(
+                (traces, error) -> {
+                  if (error == null) {
+                    responseBuilder.setTraces(
+                        TraceEventsMapper.toTraceEvents(
+                            traces, responseBuilder.getTraces().getId()));
+                  }
+                  // If error != null, ignore and still return the main result with an empty trace
+                  // TODO log error?
+                  return responseBuilder.build();
+                });
+  }
+
+  protected abstract ConsistencyLevel getTracingConsistency();
 
   protected void setSuccess(Response response) {
     responseObserver.onNext(response);
@@ -301,5 +351,46 @@ abstract class MessageHandler {
     Metadata trailer = new Metadata();
     trailer.put(key, value);
     return trailer;
+  }
+
+  /**
+   * If our local prepared statement cache gets out of sync with the server, we might get an
+   * UNPREPARED response when executing a query. This method allows us to recover for that case
+   * (other execution errors get propagated as-is).
+   */
+  protected CompletionStage<Result> handleUnprepared(
+      CompletionStage<Result> source, Supplier<CompletionStage<Result>> onUnprepared) {
+    CompletableFuture<Result> target = new CompletableFuture<>();
+    source.whenComplete(
+        (result, error) -> {
+          if (error != null) {
+            if (error instanceof CompletionException) {
+              error = error.getCause();
+            }
+            if (error instanceof PreparedQueryNotFoundException) {
+              onUnprepared
+                  .get()
+                  .whenComplete(
+                      (result2, error2) -> {
+                        if (error2 != null) {
+                          target.completeExceptionally(error2);
+                        } else {
+                          target.complete(result2);
+                        }
+                      });
+            } else {
+              target.completeExceptionally(error);
+            }
+          } else {
+            target.complete(result);
+          }
+        });
+    return target;
+  }
+
+  protected <V> CompletionStage<V> failedFuture(Exception e) {
+    CompletableFuture<V> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(e);
+    return failedFuture;
   }
 }

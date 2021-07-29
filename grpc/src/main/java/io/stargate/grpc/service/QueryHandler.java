@@ -16,35 +16,33 @@
 package io.stargate.grpc.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.google.common.base.Supplier;
+import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.BoundStatement;
+import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
-import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
 import io.stargate.grpc.service.Service.ResponseAndTraceId;
-import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 
 class QueryHandler extends MessageHandler {
 
@@ -71,11 +69,7 @@ class QueryHandler extends MessageHandler {
 
   void handle() {
     CompletionStage<Result> resultFuture = prepare(prepareInfo).thenCompose(this::executePrepared);
-
-    // If our local cache got out of sync with the server, we might get an UNPREPARED response,
-    // reprepare on the fly and retry:
     resultFuture = handleUnprepared(resultFuture, this::reprepareAndRetry);
-
     resultFuture
         .thenApply(this::buildResponse)
         .thenCompose(this::executeTracingQueryIfNeeded)
@@ -99,11 +93,11 @@ class QueryHandler extends MessageHandler {
 
     try {
       return connection.execute(
-          bindValues(handler, prepared, values), makeParameters(parameters), queryStartNanoTime);
+          bindValues(handler, prepared, values),
+          makeParameters(parameters, connection.clientInfo()),
+          queryStartNanoTime);
     } catch (Exception e) {
-      CompletableFuture<Result> failedFuture = new CompletableFuture<>();
-      failedFuture.completeExceptionally(e);
-      return failedFuture;
+      return failedFuture(e);
     }
   }
 
@@ -121,6 +115,19 @@ class QueryHandler extends MessageHandler {
       case SchemaChange:
         // TODO make this non-blocking?
         persistence.waitForSchemaAgreement();
+        Result.SchemaChangeMetadata metadata = ((Result.SchemaChange) result).metadata;
+        SchemaChange.Builder schemaChangeBuilder =
+            SchemaChange.newBuilder()
+                .setChangeType(SchemaChange.Type.valueOf(metadata.change))
+                .setTarget(SchemaChange.Target.valueOf(metadata.target))
+                .setKeyspace(metadata.keyspace);
+        if (metadata.name != null) {
+          schemaChangeBuilder.setName(StringValue.of(metadata.name));
+        }
+        if (metadata.argTypes != null) {
+          schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
+        }
+        responseBuilder.setSchemaChange(schemaChangeBuilder.build());
         break;
       case Rows:
         Payload values = query.getValues();
@@ -145,35 +152,7 @@ class QueryHandler extends MessageHandler {
     return responseAndTraceId;
   }
 
-  private CompletionStage<Response> executeTracingQueryIfNeeded(
-      ResponseAndTraceId responseAndTraceId) {
-    Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
-    return (responseAndTraceId.tracingIdIsEmpty())
-        ? CompletableFuture.completedFuture(responseBuilder.build())
-        : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
-            .fetch()
-            .handle(
-                (traces, error) -> {
-                  if (error == null) {
-                    responseBuilder.setTraces(
-                        TraceEventsMapper.toTraceEvents(
-                            traces, responseBuilder.getTraces().getId()));
-                  }
-                  // If error != null, ignore and still return the main result with an empty trace
-                  // TODO log error?
-                  return responseBuilder.build();
-                });
-  }
-
-  private BoundStatement bindValues(PayloadHandler handler, Prepared prepared, Payload values)
-      throws Exception {
-    if (!values.hasData()) {
-      return new BoundStatement(prepared.statementId, Collections.emptyList(), null);
-    }
-    return handler.bindValues(prepared, values.getData(), persistence.unsetValue());
-  }
-
-  private Parameters makeParameters(QueryParameters parameters) {
+  private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
     if (parameters.hasConsistency()) {
@@ -206,53 +185,21 @@ class QueryHandler extends MessageHandler {
       builder.nowInSeconds(parameters.getNowInSeconds().getValue());
     }
 
+    clientInfo.ifPresent(
+        c -> {
+          Map<String, ByteBuffer> customPayload = new HashMap<>();
+          c.storeAuthenticationData(customPayload);
+          builder.customPayload(customPayload);
+        });
+
     return builder.tracingRequested(parameters.getTracing()).build();
   }
 
-  private Response.Builder makeResponseBuilder(io.stargate.db.Result result) {
-    Response.Builder resultBuilder = Response.newBuilder();
-    List<String> warnings = result.getWarnings();
-    if (warnings != null) {
-      resultBuilder.addAllWarnings(warnings);
-    }
-    return resultBuilder;
-  }
-
-  private ConsistencyLevel getTracingConsistency() {
+  @Override
+  protected ConsistencyLevel getTracingConsistency() {
     QueryParameters parameters = query.getParameters();
     return parameters.hasTracingConsistency()
         ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
-        : Service.DEFAULT_TRACING_CONSISTENCY;
-  }
-
-  /**
-   * If the source future is failed with {@link PreparedQueryNotFoundException}, return the result
-   * of {@code onUnprepared}, otherwise return an equivalent of the source future.
-   */
-  private CompletionStage<Result> handleUnprepared(
-      CompletionStage<Result> source, Supplier<CompletionStage<Result>> onUnprepared) {
-    CompletableFuture<Result> target = new CompletableFuture<>();
-    source.whenComplete(
-        (result, error) -> {
-          if (error != null) {
-            if (error instanceof PreparedQueryNotFoundException) {
-              onUnprepared
-                  .get()
-                  .whenComplete(
-                      (result2, error2) -> {
-                        if (error2 != null) {
-                          target.completeExceptionally(error2);
-                        } else {
-                          target.complete(result2);
-                        }
-                      });
-            } else {
-              target.completeExceptionally(error);
-            }
-          } else {
-            target.complete(result);
-          }
-        });
-    return target;
+        : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
   }
 }
