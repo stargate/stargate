@@ -59,6 +59,11 @@ message BigInteger {
   bytes value = 1;
 }
 
+message BigDecimal {
+  uint32 scale = 1;
+  bytes value = 3;
+}
+
 message Value {
   message Null {}
   message Unset {}
@@ -108,6 +113,9 @@ message Value {
 
     // CQL types: varint
     BigInteger varint = 14;
+
+    // CQL types: decimal
+    BigDecimal decimal = 15;
   }
 }
 

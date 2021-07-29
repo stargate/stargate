@@ -23,6 +23,7 @@ import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.time.LocalDate;
@@ -81,6 +82,16 @@ public class Values {
         .setVarint(
             QueryOuterClass.BigInteger.newBuilder()
                 .setValue(ByteString.copyFrom(value.toByteArray()))
+                .build())
+        .build();
+  }
+
+  public static Value of(BigDecimal value) {
+    return Value.newBuilder()
+        .setDecimal(
+            QueryOuterClass.BigDecimal.newBuilder()
+                .setValue(ByteString.copyFrom(value.unscaledValue().toByteArray()))
+                .setScale(value.scale())
                 .build())
         .build();
   }

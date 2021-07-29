@@ -18,29 +18,48 @@ package io.stargate.grpc.codec.cql;
 import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.proto.QueryOuterClass.BigInteger;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class VarintCodec implements ValueCodec {
+public class DecimalCodec implements ValueCodec {
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.VARINT) {
-      throw new IllegalArgumentException("Expected varint type");
+    if (value.getInnerCase() != InnerCase.DECIMAL) {
+      throw new IllegalArgumentException("Expected decimal type");
     }
-    BigInteger varint = value.getVarint();
-    return ByteBuffer.wrap(varint.getValue().toByteArray());
+    QueryOuterClass.BigDecimal decimal = value.getDecimal();
+    ByteString bi = decimal.getValue();
+    int scale = decimal.getScale();
+    byte[] bibytes = bi.toByteArray();
+
+    ByteBuffer bytes = ByteBuffer.allocate(4 + bibytes.length);
+    bytes.putInt(scale);
+    bytes.put(bibytes);
+    bytes.rewind();
+    return bytes;
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     if (bytes.remaining() == 0) {
       return null;
+    } else if (bytes.remaining() < 4) {
+      throw new IllegalArgumentException(
+          "Invalid decimal value, expecting at least 4 bytes but got " + bytes.remaining());
     }
 
+    bytes = bytes.duplicate();
+    int scale = bytes.getInt();
+    byte[] bibytes = new byte[bytes.remaining()];
+    bytes.get(bibytes);
     return Value.newBuilder()
-        .setVarint(BigInteger.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setDecimal(
+            QueryOuterClass.BigDecimal.newBuilder()
+                .setValue(ByteString.copyFrom(bibytes))
+                .setScale(scale)
+                .build())
         .build();
   }
 }

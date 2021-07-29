@@ -28,6 +28,7 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Value;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -63,7 +64,8 @@ public class ValueCodecTest {
     "setValues",
     "mapValues",
     "tupleValues",
-    "bigIntegerValues"
+    "bigIntegerValues",
+    "bigDecimalValues",
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -103,7 +105,8 @@ public class ValueCodecTest {
     "invalidMapValues",
     "invalidTupleValues",
     "invalidUdtValues",
-    "invalidBigIntegerValues"
+    "invalidBigIntegerValues",
+    "invalidBigDecimalValues"
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -577,5 +580,19 @@ public class ValueCodecTest {
     return Stream.of(
         arguments(Type.Varint, Values.NULL, "Expected varint type"),
         arguments(Type.Varint, Values.UNSET, "Expected varint type"));
+  }
+
+  public static Stream<Arguments> bigDecimalValues() {
+    return Stream.of(
+        arguments(Type.Decimal, Values.of(BigDecimal.ZERO)),
+        arguments(Type.Decimal, Values.of(BigDecimal.ONE)),
+        arguments(Type.Decimal, Values.of(BigDecimal.valueOf(Long.MAX_VALUE))),
+        arguments(Type.Decimal, Values.of(BigDecimal.valueOf(Long.MIN_VALUE))));
+  }
+
+  public static Stream<Arguments> invalidBigDecimalValues() {
+    return Stream.of(
+        arguments(Type.Decimal, Values.NULL, "Expected decimal type"),
+        arguments(Type.Decimal, Values.UNSET, "Expected decimal type"));
   }
 }
