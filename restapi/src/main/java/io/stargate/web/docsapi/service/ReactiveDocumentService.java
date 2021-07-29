@@ -491,7 +491,7 @@ public class ReactiveDocumentService {
   // we need to transform the stuff to support array elements
   private List<String> processSubDocumentPath(List<String> subDocumentPath) {
     return subDocumentPath.stream()
-        .map(path -> DocsApiUtils.convertEscapedCharacters(DocsApiUtils.convertArrayPath(path)))
+        .map(path -> DocsApiUtils.convertArrayPath(path))
         .collect(Collectors.toList());
   }
 

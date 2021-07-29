@@ -257,8 +257,7 @@ public class ReactiveDocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value = "Search documents in a collection",
-      notes =
-          "Page over documents in a collection, with optional search parameters. Does not perform well for large documents.")
+      notes = "Page over documents in a collection, with optional search parameters.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),

@@ -177,7 +177,6 @@ public class ExpressionParser {
         }
       }
     }
-
     return expressions;
   }
 
@@ -304,15 +303,12 @@ public class ExpressionParser {
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
             .map(DocsApiUtils::convertArrayPath)
-            .map(DocsApiUtils::convertEscapedCharacters)
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
           prependedPath.stream()
-              .map(
-                  path ->
-                      DocsApiUtils.convertEscapedCharacters(DocsApiUtils.convertArrayPath(path)))
+              .map(path -> DocsApiUtils.convertArrayPath(path))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);

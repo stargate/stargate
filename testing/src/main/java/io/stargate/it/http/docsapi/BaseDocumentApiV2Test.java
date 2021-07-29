@@ -328,11 +328,11 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         .isEqualTo(
             "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field single'quotes\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"back\\slashes\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"back\\\\\\\\slashes\": \"are not allowed\" }");
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field back\\slashes\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field back\\\\\\\\slashes\",\"code\":400}");
   }
 
   @Test
@@ -1185,22 +1185,17 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             collectionPath
-                + "/cool-search-id?where={\"some\\,data\": {\"$eq\": \"something\"}}&raw=true",
+                + "/cool-search-id?where={\"some\\\\,data\": {\"$eq\": \"something\"}}&raw=true",
             200);
 
     searchResultStr = "[{\"some,data\":\"something\"}]";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
 
-    RestUtils.get(
-        authToken,
-        collectionPath + "/cool-search-id?where={\"some,data\": {\"$eq\": \"something\"}}&raw=true",
-        204);
-
     // With asterisk
     r =
         RestUtils.get(
             authToken,
-            collectionPath + "/cool-search-id?where={\"\\*\": {\"$eq\": \"star\"}}&raw=true",
+            collectionPath + "/cool-search-id?where={\"\\\\*\": {\"$eq\": \"star\"}}&raw=true",
             200);
 
     searchResultStr = "[{\"*\":\"star\"}]";

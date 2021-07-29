@@ -52,7 +52,6 @@ public final class BaseResolver {
    */
   public static DocumentsResolver resolve(
       Expression<FilterExpression> expression, ExecutionContext context, DocumentsResolver parent) {
-
     // if we are hitting the literal TRUE, then return parent
     if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
       return parent;

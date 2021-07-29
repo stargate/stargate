@@ -36,6 +36,7 @@ import org.apache.commons.lang3.StringUtils;
 public final class DocsApiUtils {
 
   public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
+  public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
   public static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
   public static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE = Pattern.compile("\\\\(\\.|\\*|,)");
@@ -57,7 +58,7 @@ public final class DocsApiUtils {
    */
   public static String convertArrayPath(String path) {
     if (path.contains(",")) {
-      return Arrays.stream(path.split(","))
+      return Arrays.stream(path.split(COMMA_PATTERN.pattern()))
           .map(DocsApiUtils::convertSingleArrayPath)
           .collect(Collectors.joining(","));
     } else {
@@ -144,7 +145,7 @@ public final class DocsApiUtils {
       }
       String fieldValue = value.asText();
       List<String> fieldPath =
-          Arrays.stream(fieldValue.split("\\."))
+          Arrays.stream(fieldValue.split(PERIOD_PATTERN.pattern()))
               .map(DocsApiUtils::convertArrayPath)
               .map(DocsApiUtils::convertEscapedCharacters)
               .collect(Collectors.toList());
@@ -250,7 +251,7 @@ public final class DocsApiUtils {
     // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
     String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
-    if (!Objects.equals(field, leaf)) {
+    if (!Objects.equals(DocsApiUtils.convertEscapedCharacters(field), leaf)) {
       return false;
     }
 
@@ -313,11 +314,12 @@ public final class DocsApiUtils {
       // if we have the path segment, we need to check if any matches
       if (pathSegment) {
         boolean noneMatch =
-            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
+            Arrays.stream(target.split(COMMA_PATTERN.pattern()))
+                .noneMatch(t -> Objects.equals(DocsApiUtils.convertEscapedCharacters(t), path));
         if (noneMatch) {
           return false;
         }
-      } else if (!Objects.equals(path, target)) {
+      } else if (!Objects.equals(path, DocsApiUtils.convertEscapedCharacters(target))) {
         // if not equal, fail
         return false;
       }
