@@ -473,6 +473,5 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
         }
       }
     }
-
   }
 }
