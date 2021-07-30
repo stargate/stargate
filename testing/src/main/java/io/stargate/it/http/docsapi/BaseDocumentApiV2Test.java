@@ -2814,8 +2814,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
-    // page-size defaults to 1 document when excluded
-    String r = RestUtils.get(authToken, collectionPath, 200);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=1", 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2831,7 +2830,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/collection?page-size=1&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2849,7 +2848,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/collection?page-size=1&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2940,8 +2939,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
-    // page-size defaults to 1 document when excluded
-    String r = RestUtils.get(authToken, collectionPath + "?fields=[\"a\"]", 200);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=1&fields=[\"a\"]", 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2965,7 +2963,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/collection?page-size=1&fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2990,7 +2988,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/collection?page-size=1&fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -3183,7 +3181,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
+                + "/collections/collection?page-size=1&where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
             200);
     resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -3209,7 +3207,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
+                + "/collections/collection?page-size=1&where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
