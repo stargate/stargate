@@ -293,8 +293,8 @@ public class ReactiveDocumentResourceV2 {
               value =
                   "the max number of documents to return, max "
                       + DocumentDB.MAX_PAGE_SIZE
-                      + ", default 1",
-              defaultValue = "1")
+                      + ", default 3",
+              defaultValue = "3")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of documents to return is one")
           @Max(
@@ -316,7 +316,7 @@ public class ReactiveDocumentResourceV2 {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
-    int pageSize = Optional.ofNullable(pageSizeParam).orElse(1);
+    int pageSize = Optional.ofNullable(pageSizeParam).orElse(3);
     final Paginator paginator = new Paginator(pageStateParam, pageSize);
     // init sequence
     Single.fromCallable(
