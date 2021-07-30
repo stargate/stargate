@@ -20,10 +20,12 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.Rule;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.rules.RulesHelper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -36,14 +38,19 @@ import io.stargate.web.docsapi.service.query.search.resolver.filter.CandidatesFi
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.InMemoryCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.PersistenceCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.AllFiltersResolver;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.AnyFiltersResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.OrExpressionDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.weigth.ExpressionWeightResolver;
 import io.stargate.web.docsapi.service.query.search.weigth.impl.UserOrderWeightResolver;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -83,15 +90,20 @@ public final class CnfResolver {
 
     // try to get the next persistence resolver
     return nextPersistenceResolver(expression, children, weightResolver, context, parent)
+        // if not persistent ones exists, go for the ORs
         .orElseGet(
             () ->
-                // if this is not working, go for the memory
-                nextInMemoryResolver(expression, children, weightResolver, context, parent)
-                    .orElseThrow(
+                nextOrResolver(expression, children, weightResolver, context, parent)
+                    // if this is not working, go for the memory
+                    .orElseGet(
                         () ->
-                            // this should happen only if we have ors
-                            new ErrorCodeRuntimeException(
-                                ErrorCode.DOCS_API_SEARCH_OR_NOT_SUPPORTED)));
+                            nextInMemoryResolver(
+                                    expression, children, weightResolver, context, parent)
+                                .orElseThrow(
+                                    () ->
+                                        // this should never happen
+                                        new ErrorCodeRuntimeException(
+                                            ErrorCode.DOCS_API_SEARCH_EXPRESSION_NOT_RESOLVED))));
   }
 
   private static Optional<DocumentsResolver> nextPersistenceResolver(
@@ -103,7 +115,7 @@ public final class CnfResolver {
 
     // find available and next most important set of persistence expressions
     // these would be the ones on the same filter path
-    return nextPersistenceExpressions(children)
+    return allPersistenceExpressions(children)
         .map(
             nextExpressions -> {
               // if we don't have a parent, then we can not filter with candidates
@@ -118,7 +130,8 @@ public final class CnfResolver {
                 // construct current
                 DocumentsResolver current = new PersistenceDocumentsResolver(selected, context);
                 // then simplify root
-                Expression<FilterExpression> simplified = simplifyCnfExpression(root, selected);
+                Expression<FilterExpression> simplified =
+                    simplifyCnfExpression(root, ImmutableList.copyOf(selected));
                 // and resolve further
                 return BaseResolver.resolve(simplified, context, current);
               } else {
@@ -131,7 +144,7 @@ public final class CnfResolver {
 
                 // then simplify root
                 Expression<FilterExpression> simplified =
-                    simplifyCnfExpression(root, nextExpressions);
+                    simplifyCnfExpression(root, ImmutableList.copyOf(nextExpressions));
 
                 // and resolve further
                 return BaseResolver.resolve(simplified, context, current);
@@ -161,7 +174,8 @@ public final class CnfResolver {
                 // construct current
                 DocumentsResolver current = new InMemoryDocumentsResolver(selected, context);
                 // then simplify root
-                Expression<FilterExpression> simplified = simplifyCnfExpression(root, selected);
+                Expression<FilterExpression> simplified =
+                    simplifyCnfExpression(root, ImmutableList.copyOf(selected));
                 // and resolve further
                 return BaseResolver.resolve(simplified, context, current);
               } else {
@@ -174,7 +188,57 @@ public final class CnfResolver {
 
                 // then simplify root
                 Expression<FilterExpression> simplified =
-                    simplifyCnfExpression(root, inMemoryExpressions);
+                    simplifyCnfExpression(root, ImmutableList.copyOf(inMemoryExpressions));
+                // and resolve further
+                return BaseResolver.resolve(simplified, context, current);
+              }
+            });
+  }
+
+  private static Optional<DocumentsResolver> nextOrResolver(
+      Expression<FilterExpression> root,
+      List<Expression<FilterExpression>> children,
+      ExpressionWeightResolver<FilterExpression> weightResolver,
+      ExecutionContext context,
+      DocumentsResolver parent) {
+
+    // find next OR expression
+    return nextOrExpression(children, weightResolver)
+        .map(
+            or -> {
+              // simplify root
+              Expression<FilterExpression> simplified =
+                  simplifyCnfExpression(root, Collections.singletonList(or));
+
+              // if we don't have a parent, then we can not filter with candidates
+              // take best one
+              if (null == parent) {
+                // construct current
+                DocumentsResolver current = new OrExpressionDocumentsResolver(or, context);
+
+                // and resolve further
+                return BaseResolver.resolve(simplified, context, current);
+              } else {
+                // collect all children
+                Set<FilterExpression> expressions = new HashSet<>();
+                or.collectK(expressions, Integer.MAX_VALUE);
+
+                // map to the correct filters
+                List<Function<ExecutionContext, CandidatesFilter>> input =
+                    expressions.stream()
+                        .map(
+                            exp -> {
+                              if (exp.getCondition().isPersistenceCondition()) {
+                                return PersistenceCandidatesFilter.forExpression(exp);
+                              } else {
+                                return InMemoryCandidatesFilter.forExpression(exp);
+                              }
+                            })
+                        .collect(Collectors.toList());
+
+                // create the resolver
+                AnyFiltersResolver current = new AnyFiltersResolver(input, context, parent);
+
                 // and resolve further
                 return BaseResolver.resolve(simplified, context, current);
               }
@@ -183,7 +247,7 @@ public final class CnfResolver {
 
   /** Simplifies by having all resolved ones replaced by {@link Literal#getTrue()} */
   private static Expression<FilterExpression> simplifyCnfExpression(
-      Expression<FilterExpression> root, Collection<FilterExpression> resolved) {
+      Expression<FilterExpression> root, Collection<Expression<FilterExpression>> resolved) {
     List<Rule<?, FilterExpression>> rules = new ArrayList<>();
     rules.add(new TrueFilterExpressions(resolved::contains));
     rules.addAll(RulesHelper.<FilterExpression>simplifyRules().getRules());
@@ -193,7 +257,7 @@ public final class CnfResolver {
   }
 
   /** Finds all expression with persistence conditions. */
-  private static Optional<Collection<FilterExpression>> nextPersistenceExpressions(
+  private static Optional<Collection<FilterExpression>> allPersistenceExpressions(
       List<Expression<FilterExpression>> children) {
 
     // collect
@@ -221,6 +285,30 @@ public final class CnfResolver {
     }
   }
 
+  /**
+   * Finds next OR expression that should be executed. Favors the ones that have the best filters
+   * based on the #weightResolver.
+   */
+  private static Optional<Or<FilterExpression>> nextOrExpression(
+      List<Expression<FilterExpression>> children,
+      ExpressionWeightResolver<FilterExpression> weightResolver) {
+    List<Or<FilterExpression>> ors = getOrExpressions(children);
+
+    if (ors.isEmpty()) {
+      return Optional.empty();
+    } else {
+      return ors.stream()
+          .min(
+              (or1, or2) -> {
+                List<FilterExpression> first =
+                    getFilterExpressions(or1.getChildren(), filterExpression -> true);
+                List<FilterExpression> second =
+                    getFilterExpressions(or2.getChildren(), filterExpression -> true);
+                return weightResolver.compare(first, second);
+              });
+    }
+  }
+
   /** index the expressions by filter path */
   private static Multimap<FilterPath, FilterExpression> indexByFilterPath(
       Iterable<FilterExpression> persistenceExpressions) {
@@ -235,5 +323,17 @@ public final class CnfResolver {
         .map(FilterExpression.class::cast)
         .filter(predicate)
         .collect(Collectors.toList());
+  }
+
+  /** Extracts only {@link Or<FilterExpression>} from collection of {@link Expression}s. */
+  private static List<Or<FilterExpression>> getOrExpressions(
+      List<Expression<FilterExpression>> children) {
+    List<?> result =
+        children.stream()
+            .filter(Or.class::isInstance)
+            .map(Or.class::cast)
+            .collect(Collectors.toList());
+
+    return (List<Or<FilterExpression>>) result;
   }
 }

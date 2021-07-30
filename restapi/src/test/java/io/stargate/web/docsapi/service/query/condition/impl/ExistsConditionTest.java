@@ -1,34 +1,56 @@
 package io.stargate.web.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.db.datastore.Row;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ExistsConditionTest {
 
   @Nested
   class Constructor {
 
     @Test
-    public void validated() {
-      Throwable throwable = catchThrowable(() -> ImmutableExistsCondition.of(false));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
-    }
-
-    @Test
-    public void assertProps() {
+    public void assertPropsTrue() {
       ExistsCondition condition = ImmutableExistsCondition.of(true);
 
       assertThat(condition.isPersistenceCondition()).isTrue();
+      assertThat(condition.isEvaluateOnMissingFields()).isFalse();
       assertThat(condition.getBuiltCondition()).isEmpty();
-      assertThat(condition.test(null)).isTrue();
+    }
+
+    @Test
+    public void assertPropsFalse() {
+      ExistsCondition condition = ImmutableExistsCondition.of(false);
+
+      assertThat(condition.isPersistenceCondition()).isFalse();
+      assertThat(condition.isEvaluateOnMissingFields()).isTrue();
+      assertThat(condition.getBuiltCondition()).isEmpty();
+    }
+  }
+
+  @Nested
+  class DoTest {
+
+    @Mock Row row;
+
+    @Test
+    public void existsTrue() {
+      ExistsCondition condition = ImmutableExistsCondition.of(true);
+
+      assertThat(condition.test(row)).isTrue();
+    }
+
+    @Test
+    public void assertPropsFalse() {
+      ExistsCondition condition = ImmutableExistsCondition.of(false);
+
+      assertThat(condition.test(row)).isFalse();
     }
   }
 }

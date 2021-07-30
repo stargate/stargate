@@ -41,11 +41,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.ByteBufferUtils;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -59,12 +61,16 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.awaitility.Awaitility;
+import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -105,6 +111,8 @@ class ReactiveDocumentServiceTest {
 
   @Mock Row row;
 
+  @Mock ResultSet deleteResultSet;
+
   @Mock AuthenticationSubject authSubject;
 
   @BeforeEach
@@ -112,6 +120,10 @@ class ReactiveDocumentServiceTest {
     reactiveDocumentService =
         new ReactiveDocumentService(
             expressionParser, searchService, jsonConverter, objectMapper, timeSource);
+    lenient()
+        .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
+        .thenReturn(CompletableFuture.completedFuture(deleteResultSet));
+    lenient().when(documentDB.authorizeDeleteDeadLeaves(any(), any())).thenReturn(true);
     lenient().when(documentDB.getAuthorizationService()).thenReturn(authService);
     lenient().when(documentDB.getAuthenticationSubject()).thenReturn(authSubject);
     lenient().when(expression.getFilterPath()).thenReturn(filterPath);
@@ -124,6 +136,7 @@ class ReactiveDocumentServiceTest {
             })
         .when(expression)
         .collectK(any(), anyInt());
+    lenient().when(row.columnExists(any())).thenReturn(true);
   }
 
   @Nested
@@ -481,7 +494,7 @@ class ReactiveDocumentServiceTest {
           .assertComplete();
 
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
-      verify(documentDB, never()).deleteDeadLeaves(any(), any(), any(), anyMap(), any(), anyLong());
+      verify(documentDB, never()).deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any());
       verifyNoMoreInteractions(authService);
     }
 
@@ -519,26 +532,28 @@ class ReactiveDocumentServiceTest {
           .when(jsonConverter)
           .convertToJsonDoc(eq(rows), any(), eq(false), anyBoolean());
 
-      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
-          reactiveDocumentService.getDocument(
+      Maybe<Pair<DocumentResponseWrapper<? extends JsonNode>, Disposable>> result =
+          reactiveDocumentService.getDocumentInternal(
               documentDB, namespace, collection, documentId, prePath, fields, context);
 
-      result
-          .test()
-          .assertValue(
-              wrapper -> {
-                assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
-                assertThat(wrapper.getData()).isEqualTo(subDocumentNode);
-                assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
-                assertThat(wrapper.getPageState()).isNull();
-                return true;
-              })
-          .assertComplete();
+      List<Pair<DocumentResponseWrapper<? extends JsonNode>, Disposable>> values =
+          result.test().assertComplete().assertNoErrors().values();
+      assertThat(values.size()).isEqualTo(1);
+
+      DocumentResponseWrapper<? extends JsonNode> wrapper = values.get(0).getValue0();
+      Disposable deleteBatch = values.get(0).getValue1();
+
+      assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
+      assertThat(wrapper.getData()).isEqualTo(subDocumentNode);
+      assertThat(wrapper.getProfile()).isEqualTo(context.toProfile());
+      assertThat(wrapper.getPageState()).isNull();
+
+      Awaitility.await().atMost(Duration.ofSeconds(60)).until(deleteBatch::isDisposed);
 
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(documentDB)
           .deleteDeadLeaves(
-              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+              eq(namespace), eq(collection), eq(documentId), anyLong(), anyMap(), eq(context));
       verifyNoMoreInteractions(authService);
     }
 
@@ -575,10 +590,8 @@ class ReactiveDocumentServiceTest {
               })
           .when(jsonConverter)
           .convertToJsonDoc(eq(rows), any(), eq(false), anyBoolean());
-      doThrow(UnauthorizedException.class)
-          .when(documentDB)
-          .deleteDeadLeaves(
-              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+
+      when(documentDB.authorizeDeleteDeadLeaves(eq(namespace), eq(collection))).thenReturn(false);
 
       Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
           reactiveDocumentService.getDocument(
@@ -597,9 +610,9 @@ class ReactiveDocumentServiceTest {
           .assertComplete();
 
       verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
-      verify(documentDB)
+      verify(documentDB, never())
           .deleteDeadLeaves(
-              eq(namespace), eq(collection), eq(documentId), anyMap(), eq(context), anyLong());
+              eq(namespace), eq(collection), eq(documentId), anyLong(), anyMap(), eq(context));
       verifyNoMoreInteractions(authService);
     }
   }

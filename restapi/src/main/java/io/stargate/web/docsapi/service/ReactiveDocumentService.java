@@ -24,12 +24,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.annotations.VisibleForTesting;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
-import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -44,6 +46,7 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import io.stargate.web.rx.RxUtils;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,6 +55,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,6 +177,26 @@ public class ReactiveDocumentService {
       List<String> subDocumentPath,
       String fields,
       ExecutionContext context) {
+    return getDocumentInternal(
+            db, namespace, collection, documentId, subDocumentPath, fields, context)
+        .map(Pair::getValue0);
+  }
+
+  /**
+   * See {@link #getDocument(DocumentDB, String, String, String, List, String, ExecutionContext)}
+   *
+   * @return a Maybe pair of the {@link DocumentResponseWrapper}, and a {@link Disposable} for a
+   *     potentially issued "dead leaf" deletion batch.
+   */
+  @VisibleForTesting
+  Maybe<Pair<DocumentResponseWrapper<? extends JsonNode>, Disposable>> getDocumentInternal(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      String fields,
+      ExecutionContext context) {
 
     long now = timeSource.currentTimeMicros();
 
@@ -224,19 +248,46 @@ public class ReactiveDocumentService {
                             false,
                             db.treatBooleansAsNumeric());
 
+                    Disposable deleteBatch;
                     // dead leaf deletion init on non-empty collection
                     if (!collector.isEmpty()) {
-                      logger.info(
-                          String.format("Deleting %d dead leaves", collector.getLeaves().size()));
+                      int size = collector.getLeaves().size();
+                      // Submit the DELETE batch for async execution (do not block, do not wait)
+                      // Note: authorizeDeleteDeadLeaves is called only if dead leaves are found.
+                      deleteBatch =
+                          Single.fromCallable(
+                                  () -> db.authorizeDeleteDeadLeaves(namespace, collection))
+                              .filter(
+                                  authorized -> {
+                                    // Don't fail this read request if the corrective DELETE
+                                    // statements
+                                    // are not authorized, simply skip DELETE batch in that case.
+                                    if (authorized) {
+                                      logger.info("Deleting {} dead leaves", size);
+                                    } else {
+                                      logger.info("Not authorized to delete {} dead leaves", size);
+                                    }
 
-                      // don't fail here if the unauthorized exception occurs, this is a read
-                      // request
-                      try {
-                        db.deleteDeadLeaves(
-                            namespace, collection, documentId, collector.getLeaves(), context, now);
-                      } catch (UnauthorizedException e) {
-                        logger.debug("Unauthorized when trying to delete dead leaves.", e);
-                      }
+                                    return authorized;
+                                  })
+                              .flatMap(
+                                  __ ->
+                                      RxUtils.singleFromFuture(
+                                              () ->
+                                                  db.deleteDeadLeaves(
+                                                      namespace,
+                                                      collection,
+                                                      documentId,
+                                                      now,
+                                                      collector.getLeaves(),
+                                                      context))
+                                          .toMaybe())
+                              .subscribeOn(Schedulers.io())
+                              .doOnSuccess(__ -> logger.info("Deleted {} dead leaves", size))
+                              .doOnError(t -> logger.error("Unable to delete dead leaves: " + t, t))
+                              .subscribe();
+                    } else {
+                      deleteBatch = Disposable.disposed();
                     }
 
                     // create json pattern expression if sub path is defined
@@ -260,7 +311,7 @@ public class ReactiveDocumentService {
                     DocumentResponseWrapper<JsonNode> wrapper =
                         new DocumentResponseWrapper<>(
                             documentId, null, docsResult, context.toProfile());
-                    return Maybe.just(wrapper);
+                    return Maybe.just(Pair.with(wrapper, deleteBatch));
                   });
         });
   }

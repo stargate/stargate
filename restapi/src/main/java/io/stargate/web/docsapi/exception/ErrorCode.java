@@ -101,9 +101,8 @@ public enum ErrorCode {
   DOCS_API_SEARCH_OBJECT_REQUIRED(
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
 
-  DOCS_API_SEARCH_OR_NOT_SUPPORTED(
-      Response.Status.BAD_REQUEST,
-      "Searching documents with the $or condition is not yet supported."),
+  DOCS_API_SEARCH_EXPRESSION_NOT_RESOLVED(
+      Response.Status.INTERNAL_SERVER_ERROR, "Unable to resolve the given expression."),
 
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,
