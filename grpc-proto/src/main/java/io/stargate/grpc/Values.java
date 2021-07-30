@@ -26,12 +26,17 @@ import io.stargate.proto.QueryOuterClass.Value.Unset;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Values {
   public static Value NULL = Value.newBuilder().setNull(Null.newBuilder().build()).build();
@@ -53,11 +58,23 @@ public class Values {
     return Value.newBuilder().setFloat(value).build();
   }
 
+  public static Value of(short value) {
+    return Value.newBuilder().setInt(value).build();
+  }
+
+  public static Value of(byte value) {
+    return Value.newBuilder().setInt(value).build();
+  }
+
   public static Value of(double value) {
     return Value.newBuilder().setDouble(value).build();
   }
 
   public static Value of(byte[] value) {
+    return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
+  }
+
+  public static Value of(ByteBuffer value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
@@ -111,7 +128,33 @@ public class Values {
         .build();
   }
 
+  public static Value of(List<Value> elements) {
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(elements).build())
+        .build();
+  }
+
+  public static Value of(Set<Value> elements) {
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(elements).build())
+        .build();
+  }
+
   public static Value udtOf(Map<String, Value> fields) {
     return Value.newBuilder().setUdt(UdtValue.newBuilder().putAllFields(fields).build()).build();
+  }
+
+  public static Value of(Map<Value, Value> fields) {
+
+    // map is stored as a list of altering k,v
+    // For example, for a Map([1,"a"], [2,"b"]) it becomes a List(1,"a",2,"b")
+    List<Value> values =
+        fields.entrySet().stream()
+            .flatMap(v -> Stream.of(v.getKey(), v.getValue()))
+            .collect(Collectors.toList());
+
+    return Value.newBuilder()
+        .setCollection(Collection.newBuilder().addAllElements(values).build())
+        .build();
   }
 }

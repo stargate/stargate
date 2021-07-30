@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.it.grpc;
+package io.stargate.grpc;
 
 import io.grpc.CallCredentials;
 import io.grpc.Metadata;

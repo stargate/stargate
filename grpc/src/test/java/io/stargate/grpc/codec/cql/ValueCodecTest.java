@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,6 +51,7 @@ public class ValueCodecTest {
     "bigintValues",
     "booleanValues",
     "byteValues",
+    "byteBufferValues",
     "dateValues",
     "doubleValues",
     "floatValues",
@@ -90,6 +92,7 @@ public class ValueCodecTest {
     "invalidBigintValues",
     "invalidBooleanValues",
     "invalidByteValues",
+    "invalidByteBufferValues",
     "invalidDateValues",
     "invalidDoubleValues",
     "invalidFloatValues",
@@ -146,7 +149,19 @@ public class ValueCodecTest {
         arguments(Type.Blob, Values.of(new byte[] {})));
   }
 
+  public static Stream<Arguments> byteBufferValues() {
+    return Stream.of(
+        arguments(Type.Blob, Values.of(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'}))),
+        arguments(Type.Blob, Values.of(ByteBuffer.wrap(new byte[] {}))));
+  }
+
   public static Stream<Arguments> invalidByteValues() {
+    return Stream.of(
+        arguments(Type.Blob, Values.NULL, "Expected bytes type"),
+        arguments(Type.Blob, Values.UNSET, "Expected bytes type"));
+  }
+
+  public static Stream<Arguments> invalidByteBufferValues() {
     return Stream.of(
         arguments(Type.Blob, Values.NULL, "Expected bytes type"),
         arguments(Type.Blob, Values.UNSET, "Expected bytes type"));
@@ -343,7 +358,10 @@ public class ValueCodecTest {
         arguments(Type.List.of(Type.Varchar), Values.of()),
         arguments(
             Type.List.of(Type.Varchar), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
-        arguments(Type.List.of(Type.Int), Values.of(Values.of(1), Values.of(2), Values.of(3))));
+        arguments(Type.List.of(Type.Int), Values.of(Values.of(1), Values.of(2), Values.of(3))),
+        arguments(
+            Type.List.of(Type.Int),
+            Values.of(Arrays.asList(Values.of(1), Values.of(2), Values.of(3)))));
   }
 
   public static Stream<Arguments> invalidListValues() {
@@ -367,7 +385,17 @@ public class ValueCodecTest {
     return Stream.of(
         arguments(Type.Set.of(Type.Varchar), Values.of()),
         arguments(
-            Type.Set.of(Type.Varchar), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))));
+            Type.Set.of(Type.Varchar), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
+        arguments(
+            Type.Set.of(Type.Varchar),
+            Values.of(
+                new HashSet<Value>() {
+                  {
+                    add(Values.of("a"));
+                    add(Values.of("b"));
+                    add(Values.of("c"));
+                  }
+                })));
   }
 
   public static Stream<Arguments> invalidSetValues() {
@@ -392,7 +420,15 @@ public class ValueCodecTest {
             Values.of(
                 Values.of(Uuids.random()), Values.of("a"),
                 Values.of(Uuids.random()), Values.of("b"),
-                Values.of(Uuids.random()), Values.of("c"))));
+                Values.of(Uuids.random()), Values.of("c"))),
+        arguments(
+            Type.Map.of(Type.Uuid, Type.Varchar),
+            Values.of(
+                ImmutableMap.<Value, Value>builder()
+                    .put(Values.of(Uuids.random()), Values.of("a"))
+                    .put(Values.of(Uuids.random()), Values.of("b"))
+                    .put(Values.of(Uuids.random()), Values.of("c"))
+                    .build())));
   }
 
   public static Stream<Arguments> invalidMapValues() {
