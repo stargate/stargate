@@ -103,7 +103,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       case Void:
         break;
       case SchemaChange:
-        // TODO make this non-blocking?
+        // TODO make this non-blocking (see #1145)
         persistence.waitForSchemaAgreement();
         Result.SchemaChangeMetadata metadata = ((Result.SchemaChange) result).metadata;
         SchemaChange.Builder schemaChangeBuilder =

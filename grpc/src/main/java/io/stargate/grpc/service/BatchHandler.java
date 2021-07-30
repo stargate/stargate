@@ -179,14 +179,6 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
     private final List<Statement> statements = new CopyOnWriteArrayList<>();
     private final CompletableFuture<io.stargate.db.Batch> future = new CompletableFuture<>();
 
-    CompletionStage<io.stargate.db.Batch> prepare() {
-      return prepare(false);
-    }
-
-    CompletionStage<io.stargate.db.Batch> prepareForRetry() {
-      return prepare(true);
-    }
-
     /**
      * Initiates the initial prepares. When these prepares finish they'll pull the next available
      * query in the batch and prepare it.

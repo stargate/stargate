@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
@@ -105,8 +104,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
             .thenApply(this::invokeValidate)
             .thenCompose(__ -> prepare(false))
             .thenCompose(this::executePrepared);
-    resultFuture = handleUnprepared(resultFuture, this::reprepareAndRetry);
-    resultFuture
+    handleUnprepared(resultFuture)
         .thenApply(this::buildResponse)
         .thenCompose(this::executeTracingQueryIfNeeded)
         .whenComplete(
@@ -139,10 +137,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
-
-  private CompletionStage<Result> reprepareAndRetry() {
-    return prepare(true).thenCompose(this::executePrepared);
-  }
 
   private Void invokeValidate(Void ignored) {
     try {
@@ -198,6 +192,43 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
             ? Parameters.defaults()
             : ImmutableParameters.builder().defaultKeyspace(keyspace).build();
     return connection.prepare(prepareInfo.cql(), parameters);
+  }
+
+  /**
+   * If our local prepared statement cache gets out of sync with the server, we might get an
+   * UNPREPARED response when executing a query. This method allows us to recover from that case
+   * (other execution errors get propagated as-is).
+   */
+  private CompletionStage<Result> handleUnprepared(CompletionStage<Result> source) {
+    CompletableFuture<Result> target = new CompletableFuture<>();
+    source.whenComplete(
+        (result, error) -> {
+          if (error != null) {
+            if (error instanceof CompletionException) {
+              error = error.getCause();
+            }
+            if (error instanceof PreparedQueryNotFoundException) {
+              reprepareAndRetry()
+                  .whenComplete(
+                      (result2, error2) -> {
+                        if (error2 != null) {
+                          target.completeExceptionally(error2);
+                        } else {
+                          target.complete(result2);
+                        }
+                      });
+            } else {
+              target.completeExceptionally(error);
+            }
+          } else {
+            target.complete(result);
+          }
+        });
+    return target;
+  }
+
+  private CompletionStage<Result> reprepareAndRetry() {
+    return prepare(true).thenCompose(this::executePrepared);
   }
 
   protected Response.Builder makeResponseBuilder(Result result) {
@@ -410,41 +441,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     Metadata trailer = new Metadata();
     trailer.put(key, value);
     return trailer;
-  }
-
-  /**
-   * If our local prepared statement cache gets out of sync with the server, we might get an
-   * UNPREPARED response when executing a query. This method allows us to recover for that case
-   * (other execution errors get propagated as-is).
-   */
-  protected CompletionStage<Result> handleUnprepared(
-      CompletionStage<Result> source, Supplier<CompletionStage<Result>> onUnprepared) {
-    CompletableFuture<Result> target = new CompletableFuture<>();
-    source.whenComplete(
-        (result, error) -> {
-          if (error != null) {
-            if (error instanceof CompletionException) {
-              error = error.getCause();
-            }
-            if (error instanceof PreparedQueryNotFoundException) {
-              onUnprepared
-                  .get()
-                  .whenComplete(
-                      (result2, error2) -> {
-                        if (error2 != null) {
-                          target.completeExceptionally(error2);
-                        } else {
-                          target.complete(result2);
-                        }
-                      });
-            } else {
-              target.completeExceptionally(error);
-            }
-          } else {
-            target.complete(result);
-          }
-        });
-    return target;
   }
 
   protected <V> CompletionStage<V> failedFuture(Exception e) {
