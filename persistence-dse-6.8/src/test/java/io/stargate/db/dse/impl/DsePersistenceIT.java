@@ -36,10 +36,13 @@ public class DsePersistenceIT extends PersistenceTest {
     baseDir = Files.createTempDirectory("stargate-dse-test").toFile();
     baseDir.deleteOnExit();
 
+    System.out.printf("The %s seed address reported by the backend.%n", backend.seedAddress());
+
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
     System.setProperty("stargate.datacenter", backend.datacenter());
     System.setProperty("stargate.rack", backend.rack());
+    System.setProperty("stargate.seed_list", backend.seedAddress());
     ClassLoader classLoader = DsePersistenceIT.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
