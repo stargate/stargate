@@ -1496,14 +1496,6 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     r =
         RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$exists\": false}}}",
-            400);
-    assertThat(r)
-        .isEqualTo("{\"description\":\"$exists only supports the value `true`\",\"code\":400}");
-
-    r =
-        RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}", 400);
     assertThat(r).startsWith("{\"description\":\"Operation 'exists' is not supported.");
 
@@ -2668,6 +2660,64 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             200);
 
     String expected = "{\"doc\":{\"value\":[{\"n\":{\"value\":5}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchExistsFalse() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$exists\": false}}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching\":{\"value\": \"b\"}, \"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchExistsFalseMixed() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$exists\": false}}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching\":{\"value\": \"b\"}, \"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}}";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
