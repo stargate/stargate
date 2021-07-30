@@ -38,7 +38,9 @@ import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSear
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterPathSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FullSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
+import io.stargate.web.docsapi.service.query.search.weigth.impl.UserOrderWeightResolver;
 import io.stargate.web.rx.RxUtils;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -83,10 +85,10 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     // resolve if no path are there, used in the filtering
     boolean noPaths =
         Arrays.stream(columns)
-            .allMatch(c -> !Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
+            .noneMatch(c -> Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
 
     return Flowable.fromIterable(queryBuilders)
-        .flatMap(
+        .concatMap(
             queryBuilder ->
                 RxUtils.singleFromFuture(
                         () -> {
@@ -141,8 +143,8 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     return columns;
   }
 
-  private List<AbstractSearchQueryBuilder> buildQueries(Set<FilterExpression> children) {
-    // if any condition is evaluate on missing, then we can do a full search only
+  private List<AbstractSearchQueryBuilder> buildQueries(List<FilterExpression> children) {
+    // if any condition is evaluated on missing, then we can do a full search only
     boolean evaluateOnMissing =
         children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
     if (evaluateOnMissing) {
@@ -170,10 +172,16 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     return persistenceQueries;
   }
 
-  private Set<FilterExpression> getChildren(Or<FilterExpression> expression) {
+  private List<FilterExpression> getChildren(Or<FilterExpression> expression) {
+    // collect first
     Set<FilterExpression> set = new HashSet<>();
     expression.collectK(set, Integer.MAX_VALUE);
-    return set;
+
+    // then always maintain a same order by sorting
+    UserOrderWeightResolver resolver = UserOrderWeightResolver.of();
+    List<FilterExpression> result = new ArrayList<>(set);
+    result.sort(resolver::compare);
+    return result;
   }
 
   private ExecutionContext createContext(
