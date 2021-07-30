@@ -99,22 +99,24 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   void handle() {
-    CompletionStage<Result> resultFuture =
-        CompletableFuture.<Void>completedFuture(null)
-            .thenApply(this::invokeValidate)
-            .thenCompose(__ -> prepare(false))
-            .thenCompose(this::executePrepared);
-    handleUnprepared(resultFuture)
-        .thenApply(this::buildResponse)
-        .thenCompose(this::executeTracingQueryIfNeeded)
-        .whenComplete(
-            (response, error) -> {
-              if (error != null) {
-                handleException(error);
-              } else {
-                setSuccess(response);
-              }
-            });
+    try {
+      validate();
+
+      CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
+      handleUnprepared(resultFuture)
+          .thenApply(this::buildResponse)
+          .thenCompose(this::executeTracingQueryIfNeeded)
+          .whenComplete(
+              (response, error) -> {
+                if (error != null) {
+                  handleException(error);
+                } else {
+                  setSuccess(response);
+                }
+              });
+    } catch (Throwable t) {
+      handleException(t);
+    }
   }
 
   /** Performs any necessary validation on the message before execution starts. */
@@ -137,17 +139,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
-
-  private Void invokeValidate(Void ignored) {
-    try {
-      validate();
-      return null;
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new CompletionException(e);
-    }
-  }
 
   protected BoundStatement bindValues(
       PayloadHandler handler, Prepared prepared, QueryOuterClass.Payload values) throws Exception {
