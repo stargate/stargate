@@ -104,7 +104,7 @@ public class ReactiveDocumentResourceV2 {
           @QueryParam("fields")
           String fields,
       @ApiParam(
-              value = "the max number of results to return, if `where` is defined.",
+              value = "the max number of results to return, if `where` is defined (default 100)",
               defaultValue = "100")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of results to return is one")
@@ -186,7 +186,7 @@ public class ReactiveDocumentResourceV2 {
           @QueryParam("fields")
           String fields,
       @ApiParam(
-              value = "the max number of results to return, if `where` is defined",
+              value = "the max number of results to return, if `where` is defined (default 100)",
               defaultValue = "100")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of results to return is one")
@@ -290,7 +290,10 @@ public class ReactiveDocumentResourceV2 {
           @QueryParam("fields")
           String fields,
       @ApiParam(
-              value = "the max number of documents to return, max " + DocumentDB.MAX_PAGE_SIZE,
+              value =
+                  "the max number of documents to return, max "
+                      + DocumentDB.MAX_PAGE_SIZE
+                      + ", default 1",
               defaultValue = "1")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of documents to return is one")
