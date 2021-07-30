@@ -62,12 +62,8 @@ public abstract class ExistsCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
+    // row must always be non-null here
     // if row exists then the test is true if query value is true
-    // if row is null, then the test is true if query value is false
-    if (null != row) {
-      return getQueryValue();
-    } else {
-      return !getQueryValue();
-    }
+    return getQueryValue();
   }
 }

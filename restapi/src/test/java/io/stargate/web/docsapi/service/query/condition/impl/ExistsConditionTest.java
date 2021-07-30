@@ -44,7 +44,6 @@ class ExistsConditionTest {
       ExistsCondition condition = ImmutableExistsCondition.of(true);
 
       assertThat(condition.test(row)).isTrue();
-      assertThat(condition.test(null)).isFalse();
     }
 
     @Test
@@ -52,7 +51,6 @@ class ExistsConditionTest {
       ExistsCondition condition = ImmutableExistsCondition.of(false);
 
       assertThat(condition.test(row)).isFalse();
-      assertThat(condition.test(null)).isTrue();
     }
   }
 }
