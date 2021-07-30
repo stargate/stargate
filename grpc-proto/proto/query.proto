@@ -55,11 +55,11 @@ message Uuid {
   fixed64 lsb = 2;
 }
 
-message BigInteger {
+message Varint {
   bytes value = 1;
 }
 
-message BigDecimal {
+message Decimal {
   uint32 scale = 1;
   bytes value = 3;
 }
@@ -112,10 +112,10 @@ message Value {
     UdtValue udt = 13;
 
     // CQL types: varint
-    BigInteger varint = 14;
+    Varint varint = 14;
 
     // CQL types: decimal
-    BigDecimal decimal = 15;
+    Decimal decimal = 15;
   }
 }
 

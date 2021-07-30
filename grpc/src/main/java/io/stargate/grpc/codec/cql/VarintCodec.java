@@ -18,9 +18,9 @@ package io.stargate.grpc.codec.cql;
 import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.proto.QueryOuterClass.BigInteger;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
+import io.stargate.proto.QueryOuterClass.Varint;
 import java.nio.ByteBuffer;
 
 public class VarintCodec implements ValueCodec {
@@ -29,7 +29,7 @@ public class VarintCodec implements ValueCodec {
     if (value.getInnerCase() != InnerCase.VARINT) {
       throw new IllegalArgumentException("Expected varint type");
     }
-    BigInteger varint = value.getVarint();
+    Varint varint = value.getVarint();
     return ByteBuffer.wrap(varint.getValue().toByteArray());
   }
 
@@ -40,7 +40,7 @@ public class VarintCodec implements ValueCodec {
     }
 
     return Value.newBuilder()
-        .setVarint(BigInteger.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
         .build();
   }
 }

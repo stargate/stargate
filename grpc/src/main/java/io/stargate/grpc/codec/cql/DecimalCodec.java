@@ -29,7 +29,7 @@ public class DecimalCodec implements ValueCodec {
     if (value.getInnerCase() != InnerCase.DECIMAL) {
       throw new IllegalArgumentException("Expected decimal type");
     }
-    QueryOuterClass.BigDecimal decimal = value.getDecimal();
+    QueryOuterClass.Decimal decimal = value.getDecimal();
     ByteString bi = decimal.getValue();
     int scale = decimal.getScale();
     byte[] bibytes = bi.toByteArray();
@@ -56,7 +56,7 @@ public class DecimalCodec implements ValueCodec {
     bytes.get(bibytes);
     return Value.newBuilder()
         .setDecimal(
-            QueryOuterClass.BigDecimal.newBuilder()
+            QueryOuterClass.Decimal.newBuilder()
                 .setValue(ByteString.copyFrom(bibytes))
                 .setScale(scale)
                 .build())

@@ -97,7 +97,7 @@ public class Values {
   public static Value of(BigInteger value) {
     return Value.newBuilder()
         .setVarint(
-            QueryOuterClass.BigInteger.newBuilder()
+            QueryOuterClass.Varint.newBuilder()
                 .setValue(ByteString.copyFrom(value.toByteArray()))
                 .build())
         .build();
@@ -106,7 +106,7 @@ public class Values {
   public static Value of(BigDecimal value) {
     return Value.newBuilder()
         .setDecimal(
-            QueryOuterClass.BigDecimal.newBuilder()
+            QueryOuterClass.Decimal.newBuilder()
                 .setValue(ByteString.copyFrom(value.unscaledValue().toByteArray()))
                 .setScale(value.scale())
                 .build())
