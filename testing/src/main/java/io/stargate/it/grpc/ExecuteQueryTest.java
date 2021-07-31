@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
@@ -75,8 +76,10 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void queryAfterSchemaChange() {
+  public void queryAfterSchemaChange(CqlSession session) {
     StargateBlockingStub stub = stubWithCallCredentials();
+
+    session.execute("DROP KEYSPACE IF EXISTS ks1");
 
     // Create keyspace, table, and then insert some data
     Response response =
