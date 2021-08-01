@@ -36,7 +36,15 @@ import io.stargate.grpc.service.Service.PrepareInfo;
 import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.AlreadyExists;
+import io.stargate.proto.QueryOuterClass.CasWriteUnknown;
+import io.stargate.proto.QueryOuterClass.FunctionFailure;
+import io.stargate.proto.QueryOuterClass.ReadFailure;
+import io.stargate.proto.QueryOuterClass.ReadTimeout;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.Unavailable;
+import io.stargate.proto.QueryOuterClass.WriteFailure;
+import io.stargate.proto.QueryOuterClass.WriteTimeout;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -60,22 +68,22 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
  */
 abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
-  static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.Unavailable.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.WriteTimeout> WRITE_TIMEOUT_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.WriteTimeout.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.ReadTimeout> READ_TIMEOUT_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.ReadTimeout.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.ReadFailure> READ_FAILURE_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.ReadFailure.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.FunctionFailure> FUNCTION_FAILURE_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.FunctionFailure.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.WriteFailure> WRITE_FAILURE_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.WriteFailure.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.AlreadyExists> ALREADY_EXISTS_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.AlreadyExists.getDefaultInstance());
-  static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
-      ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
+  static final Metadata.Key<Unavailable> UNAVAILABLE_KEY =
+      ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
+  static final Metadata.Key<WriteTimeout> WRITE_TIMEOUT_KEY =
+      ProtoUtils.keyForProto(WriteTimeout.getDefaultInstance());
+  static final Metadata.Key<ReadTimeout> READ_TIMEOUT_KEY =
+      ProtoUtils.keyForProto(ReadTimeout.getDefaultInstance());
+  static final Metadata.Key<ReadFailure> READ_FAILURE_KEY =
+      ProtoUtils.keyForProto(ReadFailure.getDefaultInstance());
+  static final Metadata.Key<FunctionFailure> FUNCTION_FAILURE_KEY =
+      ProtoUtils.keyForProto(FunctionFailure.getDefaultInstance());
+  static final Metadata.Key<WriteFailure> WRITE_FAILURE_KEY =
+      ProtoUtils.keyForProto(WriteFailure.getDefaultInstance());
+  static final Metadata.Key<AlreadyExists> ALREADY_EXISTS_KEY =
+      ProtoUtils.keyForProto(AlreadyExists.getDefaultInstance());
+  static final Metadata.Key<CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
+      ProtoUtils.keyForProto(CasWriteUnknown.getDefaultInstance());
 
   protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
@@ -159,7 +167,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       // concurrently
       CompletableFuture<Prepared> myEntry = new CompletableFuture<>();
       result = preparedCache.get(prepareInfo, __ -> myEntry);
-      if (result == myEntry) {
+      if (result == myEntry) { // NOPMD: we really want reference equality here
         prepareOnServer(prepareInfo)
             .whenComplete(
                 (prepared, error) -> {
@@ -292,17 +300,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
         onError(Status.UNAUTHENTICATED, pe);
         break;
       case UNAVAILABLE:
-        UnavailableException ue = (UnavailableException) pe;
-        onError(
-            Status.UNAVAILABLE,
-            ue,
-            makeTrailer(
-                UNAVAILABLE_KEY,
-                QueryOuterClass.Unavailable.newBuilder()
-                    .setConsistencyValue(ue.consistency.code)
-                    .setAlive(ue.alive)
-                    .setRequired(ue.required)
-                    .build()));
+        handleUnavailable((UnavailableException) pe);
         break;
       case OVERLOADED:
         onError(Status.RESOURCE_EXHAUSTED, pe);
@@ -311,88 +309,22 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
         onError(Status.UNAVAILABLE, pe);
         break;
       case WRITE_TIMEOUT:
-        WriteTimeoutException wte = (WriteTimeoutException) pe;
-        onError(
-            Status.DEADLINE_EXCEEDED,
-            pe,
-            makeTrailer(
-                WRITE_TIMEOUT_KEY,
-                QueryOuterClass.WriteTimeout.newBuilder()
-                    .setConsistencyValue(wte.consistency.code)
-                    .setBlockFor(wte.blockFor)
-                    .setReceived(wte.received)
-                    .setWriteType(wte.writeType.name())
-                    .build()));
+        handleWriteTimeout((WriteTimeoutException) pe);
         break;
       case READ_TIMEOUT:
-        ReadTimeoutException rte = (ReadTimeoutException) pe;
-        onError(
-            Status.DEADLINE_EXCEEDED,
-            pe,
-            makeTrailer(
-                READ_TIMEOUT_KEY,
-                QueryOuterClass.ReadTimeout.newBuilder()
-                    .setConsistencyValue(rte.consistency.code)
-                    .setBlockFor(rte.blockFor)
-                    .setReceived(rte.received)
-                    .setDataPresent(rte.dataPresent)
-                    .build()));
+        handleReadTimeout((ReadTimeoutException) pe);
         break;
       case READ_FAILURE:
-        ReadFailureException rfe = (ReadFailureException) pe;
-        onError(
-            Status.ABORTED,
-            pe,
-            makeTrailer(
-                READ_FAILURE_KEY,
-                QueryOuterClass.ReadFailure.newBuilder()
-                    .setConsistencyValue(rfe.consistency.code)
-                    .setNumFailures(rfe.failureReasonByEndpoint.size())
-                    .setBlockFor(rfe.blockFor)
-                    .setReceived(rfe.received)
-                    .setDataPresent(rfe.dataPresent)
-                    .build()));
+        handleReadFailure((ReadFailureException) pe);
         break;
       case FUNCTION_FAILURE:
-        FunctionExecutionException fee = (FunctionExecutionException) pe;
-        onError(
-            Status.FAILED_PRECONDITION,
-            pe,
-            makeTrailer(
-                FUNCTION_FAILURE_KEY,
-                QueryOuterClass.FunctionFailure.newBuilder()
-                    .setKeyspace(fee.functionName.keyspace)
-                    .setFunction(fee.functionName.name)
-                    .addAllArgTypes(fee.argTypes)
-                    .build()));
+        handleFunctionExecutionException((FunctionExecutionException) pe);
         break;
       case WRITE_FAILURE:
-        WriteFailureException wfe = (WriteFailureException) pe;
-        onError(
-            Status.ABORTED,
-            pe,
-            makeTrailer(
-                WRITE_FAILURE_KEY,
-                QueryOuterClass.WriteFailure.newBuilder()
-                    .setConsistencyValue(wfe.consistency.code)
-                    .setNumFailures(wfe.failureReasonByEndpoint.size())
-                    .setBlockFor(wfe.blockFor)
-                    .setReceived(wfe.received)
-                    .setWriteType(wfe.writeType.name())
-                    .build()));
+        handleWriteFailure((WriteFailureException) pe);
         break;
       case CAS_WRITE_UNKNOWN:
-        CasWriteUnknownResultException cwe = (CasWriteUnknownResultException) pe;
-        onError(
-            Status.ABORTED,
-            pe,
-            makeTrailer(
-                CAS_WRITE_UNKNOWN_KEY,
-                QueryOuterClass.CasWriteUnknown.newBuilder()
-                    .setConsistencyValue(cwe.consistency.code)
-                    .setBlockFor(cwe.blockFor)
-                    .setReceived(cwe.received)
-                    .build()));
+        handleCasWriteUnknown((CasWriteUnknownResultException) pe);
         break;
       case UNAUTHORIZED:
         onError(Status.PERMISSION_DENIED, pe);
@@ -401,21 +333,118 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
         onError(Status.FAILED_PRECONDITION, pe);
         break;
       case ALREADY_EXISTS:
-        AlreadyExistsException aee = (AlreadyExistsException) pe;
-        onError(
-            Status.ALREADY_EXISTS,
-            pe,
-            makeTrailer(
-                ALREADY_EXISTS_KEY,
-                QueryOuterClass.AlreadyExists.newBuilder()
-                    .setKeyspace(aee.ksName)
-                    .setTable(aee.cfName)
-                    .build()));
+        handleAlreadyExists((AlreadyExistsException) pe);
         break;
       default:
         onError(Status.UNKNOWN, pe);
         break;
     }
+  }
+
+  private void handleUnavailable(UnavailableException ue) {
+    onError(
+        Status.UNAVAILABLE,
+        ue,
+        makeTrailer(
+            UNAVAILABLE_KEY,
+            Unavailable.newBuilder()
+                .setConsistencyValue(ue.consistency.code)
+                .setAlive(ue.alive)
+                .setRequired(ue.required)
+                .build()));
+  }
+
+  private void handleWriteTimeout(WriteTimeoutException wte) {
+    onError(
+        Status.DEADLINE_EXCEEDED,
+        wte,
+        makeTrailer(
+            WRITE_TIMEOUT_KEY,
+            WriteTimeout.newBuilder()
+                .setConsistencyValue(wte.consistency.code)
+                .setBlockFor(wte.blockFor)
+                .setReceived(wte.received)
+                .setWriteType(wte.writeType.name())
+                .build()));
+  }
+
+  private void handleReadTimeout(ReadTimeoutException rte) {
+    onError(
+        Status.DEADLINE_EXCEEDED,
+        rte,
+        makeTrailer(
+            READ_TIMEOUT_KEY,
+            ReadTimeout.newBuilder()
+                .setConsistencyValue(rte.consistency.code)
+                .setBlockFor(rte.blockFor)
+                .setReceived(rte.received)
+                .setDataPresent(rte.dataPresent)
+                .build()));
+  }
+
+  private void handleReadFailure(ReadFailureException rfe) {
+    onError(
+        Status.ABORTED,
+        rfe,
+        makeTrailer(
+            READ_FAILURE_KEY,
+            ReadFailure.newBuilder()
+                .setConsistencyValue(rfe.consistency.code)
+                .setNumFailures(rfe.failureReasonByEndpoint.size())
+                .setBlockFor(rfe.blockFor)
+                .setReceived(rfe.received)
+                .setDataPresent(rfe.dataPresent)
+                .build()));
+  }
+
+  private void handleFunctionExecutionException(FunctionExecutionException fee) {
+    onError(
+        Status.FAILED_PRECONDITION,
+        fee,
+        makeTrailer(
+            FUNCTION_FAILURE_KEY,
+            FunctionFailure.newBuilder()
+                .setKeyspace(fee.functionName.keyspace)
+                .setFunction(fee.functionName.name)
+                .addAllArgTypes(fee.argTypes)
+                .build()));
+  }
+
+  private void handleWriteFailure(WriteFailureException wfe) {
+    onError(
+        Status.ABORTED,
+        wfe,
+        makeTrailer(
+            WRITE_FAILURE_KEY,
+            WriteFailure.newBuilder()
+                .setConsistencyValue(wfe.consistency.code)
+                .setNumFailures(wfe.failureReasonByEndpoint.size())
+                .setBlockFor(wfe.blockFor)
+                .setReceived(wfe.received)
+                .setWriteType(wfe.writeType.name())
+                .build()));
+  }
+
+  private void handleCasWriteUnknown(CasWriteUnknownResultException cwe) {
+    onError(
+        Status.ABORTED,
+        cwe,
+        makeTrailer(
+            CAS_WRITE_UNKNOWN_KEY,
+            CasWriteUnknown.newBuilder()
+                .setConsistencyValue(cwe.consistency.code)
+                .setBlockFor(cwe.blockFor)
+                .setReceived(cwe.received)
+                .build()));
+  }
+
+  private void handleAlreadyExists(AlreadyExistsException aee) {
+    onError(
+        Status.ALREADY_EXISTS,
+        aee,
+        makeTrailer(
+            ALREADY_EXISTS_KEY,
+            AlreadyExists.newBuilder().setKeyspace(aee.ksName).setTable(aee.cfName).build()));
   }
 
   private void onError(Status status, Throwable throwable, Metadata trailer) {

@@ -127,8 +127,6 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     @Nullable UUID tracingId;
     Response.Builder responseBuilder;
 
-    ResponseAndTraceId() {}
-
     void setTracingId(UUID tracingId) {
       this.tracingId = tracingId;
     }
