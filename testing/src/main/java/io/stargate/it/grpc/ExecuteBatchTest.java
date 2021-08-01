@@ -73,6 +73,7 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
   @Test
   public void simpleBatchAfterSchemaChange() throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
+    stub.executeQuery(cqlQuery("DROP KEYSPACE IF EXISTS ks1"));
 
     // Create keyspace, table, and then insert some data
     Response response =

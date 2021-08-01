@@ -31,6 +31,7 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -76,6 +77,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void queryAfterSchemaChange() {
     StargateBlockingStub stub = stubWithCallCredentials();
+    stub.executeQuery(cqlQuery("DROP KEYSPACE IF EXISTS ks1"));
 
     // Create keyspace, table, and then insert some data
     Response response =
@@ -83,19 +85,50 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
             cqlQuery(
                 "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.CREATED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.KEYSPACE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.hasName()).isFalse();
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
     response =
         stub.executeQuery(
             cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.CREATED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.TABLE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.getName().getValue()).isEqualTo("tbl1");
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
     response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isFalse();
 
     // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
     // cache
     response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.DROPPED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.KEYSPACE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.hasName()).isFalse();
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
     response =
         stub.executeQuery(
