@@ -87,4 +87,7 @@ public interface ValueFilterOperation extends BaseFilterOperation {
   default void validateBooleanFilterInput(Boolean filterValue) {
     // default impl empty
   }
+
+  @Override
+  ValueFilterOperation negate();
 }

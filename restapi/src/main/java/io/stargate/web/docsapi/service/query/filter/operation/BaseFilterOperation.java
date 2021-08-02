@@ -36,4 +36,7 @@ public interface BaseFilterOperation {
   default boolean isEvaluateOnMissingFields() {
     return false;
   }
+
+  /** Returns a filter operation that is the logical opposite of this operation. */
+  BaseFilterOperation negate();
 }

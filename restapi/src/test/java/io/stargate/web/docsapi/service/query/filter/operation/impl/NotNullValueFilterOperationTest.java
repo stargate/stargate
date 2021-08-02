@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,11 @@ class NotNullValueFilterOperationTest {
         @Override
         public Optional<Predicate> getQueryPredicate() {
           return Optional.empty();
+        }
+
+        @Override
+        public ValueFilterOperation negate() {
+          throw new UnsupportedOperationException();
         }
       };
 

@@ -141,4 +141,12 @@ class GtFilterOperationTest {
       assertThat(result).isEqualTo(FilterOperationCode.GT);
     }
   }
+
+  @Nested
+  class Negation {
+    @Test
+    public void negate() {
+      assertThat(gt.negate()).isInstanceOf(LteFilterOperation.class);
+    }
+  }
 }

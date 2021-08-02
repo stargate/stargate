@@ -1106,6 +1106,26 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testBasicSearchWithNegation() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // NOT NE === EQ
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={\"$not\": {\"products.electronics.Pixel_3a.price\": {\"$ne\": 600}}}",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
   public void testBasicSearchWithSelectivityHints() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));

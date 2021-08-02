@@ -66,4 +66,9 @@ public abstract class ExistsCondition implements BaseCondition {
     // if row exists then the test is true if query value is true
     return getQueryValue();
   }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableExistsCondition.of(!getQueryValue());
+  }
 }

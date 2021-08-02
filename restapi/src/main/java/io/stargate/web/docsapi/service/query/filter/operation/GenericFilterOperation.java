@@ -63,4 +63,6 @@ public interface GenericFilterOperation<FV> extends BaseFilterOperation {
   default void validateFilterInput(FV filterValue) {
     // default impl empty
   }
+
+  GenericFilterOperation<FV> negate();
 }

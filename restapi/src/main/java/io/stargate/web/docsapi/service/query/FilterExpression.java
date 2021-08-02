@@ -65,6 +65,10 @@ public abstract class FilterExpression extends Expression<FilterExpression>
    * (the worst possible selectivity).
    */
   @Value.Default
+  // Do not use selectivity for equality comparisons. This is critical to allow expression
+  // simplification (see `ExpressionUtilsTest`) in cases where filters do not have proper
+  // selectivity hints defined (hints are optional).
+  @Value.Auxiliary
   public double getSelectivity() {
     return 1.0;
   }
@@ -76,6 +80,16 @@ public abstract class FilterExpression extends Expression<FilterExpression>
         .condition(condition)
         .orderIndex(orderIndex)
         .selectivity(selectivity)
+        .build();
+  }
+
+  public FilterExpression negate() {
+    return ImmutableFilterExpression.builder()
+        .filterPath(getFilterPath())
+        .condition(getCondition().negate())
+        .orderIndex(getOrderIndex())
+        // The negated filter will select rows complementing the ones selected by source filter
+        .selectivity(1.0 - getSelectivity())
         .build();
   }
 

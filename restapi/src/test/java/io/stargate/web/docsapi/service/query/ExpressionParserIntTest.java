@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,7 @@ import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.NumberCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.StringCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.GteFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.InFilterOperation;
@@ -131,6 +133,110 @@ class ExpressionParserIntTest {
                                       assertThat(second.getOrderIndex()).isOne();
                                       assertThat(second.getFilterPath().getField()).isEqualTo("a");
                                     }));
+              });
+    }
+
+    @Test
+    public void negationDirect() throws Exception {
+      String json = "{\"$not\": {\"a\": {\"$eq\": \"b\"}}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result).isInstanceOf(Not.class);
+      assertThat(result.getChildren()).hasSize(1);
+      assertThat(result.getChildren().get(0))
+          .isInstanceOfSatisfying(
+              FilterExpression.class,
+              filter -> {
+                assertThat(filter.getOrderIndex()).isEqualTo(0);
+                assertThat(filter.getCondition().getFilterOperationCode())
+                    .isEqualTo(FilterOperationCode.EQ);
+                assertThat(filter.getCondition().getQueryValue()).isEqualTo("b");
+              });
+    }
+
+    @Test
+    public void implicitAndWithNegation() throws Exception {
+      String json = "{\"a\": {\"$eq\": \"b\"}, \"$not\": {\"c\": {\"$eq\": \"d\"}}}";
+      JsonNode root = mapper.readTree(json);
+
+      Expression<FilterExpression> result =
+          service.constructFilterExpression(Collections.emptyList(), root, false);
+
+      assertThat(result).isInstanceOf(And.class);
+      assertThat(result.getChildren()).hasSize(2);
+      assertThat(result.getChildren().get(0))
+          .isInstanceOfSatisfying(
+              FilterExpression.class,
+              filter -> {
+                assertThat(filter.getOrderIndex()).isEqualTo(0);
+                assertThat(filter.getCondition().getFilterOperationCode())
+                    .isEqualTo(FilterOperationCode.EQ);
+                assertThat(filter.getFilterPath().getPathString()).isEqualTo("a");
+                assertThat(filter.getCondition().getQueryValue()).isEqualTo("b");
+              });
+      assertThat(result.getChildren().get(1))
+          .isInstanceOfSatisfying(
+              Not.class,
+              negated -> {
+                assertThat(negated.getChildren()).hasSize(1);
+                assertThat(negated.getChildren().get(0))
+                    .isInstanceOfSatisfying(
+                        FilterExpression.class,
+                        filter -> {
+                          assertThat(filter.getOrderIndex()).isEqualTo(1);
+                          assertThat(filter.getCondition().getFilterOperationCode())
+                              .isEqualTo(FilterOperationCode.EQ);
+                          assertThat(filter.getFilterPath().getPathString()).isEqualTo("c");
+                          assertThat(filter.getCondition().getQueryValue()).isEqualTo("d");
+                        });
+              });
+    }
+
+    @Test
+    public void negationArray() throws Exception {
+      String json = "{\"$not\": [{\"a\": {\"$eq\": \"b\"}}] }";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .hasMessageContaining("The $not operator requires a json object as value.")
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+              });
+    }
+
+    @Test
+    public void negationMultiple() throws Exception {
+      String json = "{\"$not\": {\"a\": {\"$eq\": \"b\"}, \"c\": {\"$eq\": \"d\"}}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .hasMessageContaining("The $not operator requires exactly one child expression.")
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+              });
+    }
+
+    @Test
+    public void negationEmpty() throws Exception {
+      String json = "{\"$not\": {}}";
+      JsonNode root = mapper.readTree(json);
+
+      assertThatThrownBy(
+              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+          .hasMessageContaining("The $not operator requires exactly one child expression.")
+          .isInstanceOfSatisfying(
+              ErrorCodeRuntimeException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
               });
     }
 

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
@@ -29,16 +30,19 @@ import io.stargate.web.docsapi.service.query.ImmutableFilterExpression;
 import io.stargate.web.docsapi.service.query.ImmutableFilterPath;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.GtFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOperation;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.NeFilterOperation;
+import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.InMemoryCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.PersistenceCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.AllFiltersResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.OrExpressionDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
+import java.util.Collection;
 import java.util.Collections;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -157,6 +161,45 @@ class BaseResolverTest {
       DocumentsResolver result = BaseResolver.resolve(And.of(expression1), context);
 
       assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
+    }
+
+    @Test
+    public void andWithNegation() {
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition1 = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
+      FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1, 0);
+
+      DocumentsResolver result = BaseResolver.resolve(Not.of(And.of(expression1)), context);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              PersistenceDocumentsResolver.class,
+              resolver -> {
+                assertThat(resolver)
+                    .extracting("queryBuilder")
+                    .isInstanceOfSatisfying(
+                        FilterExpressionSearchQueryBuilder.class,
+                        qb ->
+                            assertThat(qb)
+                                .extracting("expressions")
+                                .isInstanceOfSatisfying(
+                                    Collection.class,
+                                    expressions -> {
+                                      assertThat(expressions).hasSize(1);
+                                      assertThat(expressions.iterator().next())
+                                          .isInstanceOfSatisfying(
+                                              FilterExpression.class,
+                                              filter -> {
+                                                assertThat(
+                                                        filter
+                                                            .getCondition()
+                                                            .getFilterOperationCode())
+                                                    .isEqualTo(
+                                                        FilterOperationCode.LTE); // inverse of "GT"
+                                              });
+                                    }));
+              });
     }
 
     @Test

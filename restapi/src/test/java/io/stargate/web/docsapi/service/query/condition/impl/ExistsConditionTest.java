@@ -6,6 +6,8 @@ import io.stargate.db.datastore.Row;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,6 +53,22 @@ class ExistsConditionTest {
       ExistsCondition condition = ImmutableExistsCondition.of(false);
 
       assertThat(condition.test(row)).isFalse();
+    }
+  }
+
+  @Nested
+  class Negation {
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void simple(boolean queryValue) {
+      ExistsCondition condition = ImmutableExistsCondition.of(queryValue);
+
+      assertThat(condition.negate())
+          .isInstanceOfSatisfying(
+              ExistsCondition.class,
+              negated -> {
+                assertThat(negated.getQueryValue()).isEqualTo(!queryValue);
+              });
     }
   }
 }

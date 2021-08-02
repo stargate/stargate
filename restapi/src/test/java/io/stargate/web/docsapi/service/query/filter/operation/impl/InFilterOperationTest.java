@@ -207,4 +207,12 @@ class InFilterOperationTest {
       assertThat(result).isEqualTo(FilterOperationCode.IN);
     }
   }
+
+  @Nested
+  class Negation {
+    @Test
+    public void negate() {
+      assertThat(in.negate()).isEqualTo(NotInFilterOperation.of());
+    }
+  }
 }
