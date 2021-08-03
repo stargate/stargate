@@ -62,6 +62,15 @@ message Uuid {
   fixed64 lsb = 2;
 }
 
+message Varint {
+  bytes value = 1;
+}
+
+message Decimal {
+  uint32 scale = 1;
+  bytes value = 3;
+}
+
 // A CQL value. This is used both in requests to bind parameterized query strings, and in responses
 // to represent the result data.
 message Value {
@@ -114,6 +123,12 @@ message Value {
 
     // CQL types: user defined types
     UdtValue udt = 13;
+
+    // CQL types: varint
+    Varint varint = 14;
+
+    // CQL types: decimal
+    Decimal decimal = 15;
   }
 }
 

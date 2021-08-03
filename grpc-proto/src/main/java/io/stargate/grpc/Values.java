@@ -16,12 +16,15 @@
 package io.stargate.grpc;
 
 import com.google.protobuf.ByteString;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Collection;
 import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -89,6 +92,25 @@ public class Values {
 
   public static Value of(LocalTime value) {
     return Value.newBuilder().setTime(value.toNanoOfDay()).build();
+  }
+
+  public static Value of(BigInteger value) {
+    return Value.newBuilder()
+        .setVarint(
+            QueryOuterClass.Varint.newBuilder()
+                .setValue(ByteString.copyFrom(value.toByteArray()))
+                .build())
+        .build();
+  }
+
+  public static Value of(BigDecimal value) {
+    return Value.newBuilder()
+        .setDecimal(
+            QueryOuterClass.Decimal.newBuilder()
+                .setValue(ByteString.copyFrom(value.unscaledValue().toByteArray()))
+                .setScale(value.scale())
+                .build())
+        .build();
   }
 
   public static Value of(UUID value) {

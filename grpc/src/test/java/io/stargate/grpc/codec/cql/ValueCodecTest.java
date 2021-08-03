@@ -28,6 +28,8 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Value;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.UnknownHostException;
@@ -63,7 +65,9 @@ public class ValueCodecTest {
     "listValues",
     "setValues",
     "mapValues",
-    "tupleValues"
+    "tupleValues",
+    "bigIntegerValues",
+    "bigDecimalValues",
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -103,7 +107,9 @@ public class ValueCodecTest {
     "invalidSetValues",
     "invalidMapValues",
     "invalidTupleValues",
-    "invalidUdtValues"
+    "invalidUdtValues",
+    "invalidBigIntegerValues",
+    "invalidBigDecimalValues"
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -401,7 +407,6 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> mapValues() {
-
     return Stream.of(
         arguments(Type.Map.of(Type.Varchar, Type.Int), Values.of()),
         arguments(
@@ -597,5 +602,33 @@ public class ValueCodecTest {
         .keyspace("keyspace") // Dummy value
         .columns(Arrays.asList(columns))
         .build();
+  }
+
+  public static Stream<Arguments> bigIntegerValues() {
+    return Stream.of(
+        arguments(Type.Varint, Values.of(BigInteger.ZERO)),
+        arguments(Type.Varint, Values.of(BigInteger.ONE)),
+        arguments(Type.Varint, Values.of(BigInteger.valueOf(Long.MAX_VALUE))),
+        arguments(Type.Varint, Values.of(BigInteger.valueOf(Long.MIN_VALUE))));
+  }
+
+  public static Stream<Arguments> invalidBigIntegerValues() {
+    return Stream.of(
+        arguments(Type.Varint, Values.NULL, "Expected varint type"),
+        arguments(Type.Varint, Values.UNSET, "Expected varint type"));
+  }
+
+  public static Stream<Arguments> bigDecimalValues() {
+    return Stream.of(
+        arguments(Type.Decimal, Values.of(BigDecimal.ZERO)),
+        arguments(Type.Decimal, Values.of(BigDecimal.ONE)),
+        arguments(Type.Decimal, Values.of(BigDecimal.valueOf(Long.MAX_VALUE))),
+        arguments(Type.Decimal, Values.of(BigDecimal.valueOf(Long.MIN_VALUE))));
+  }
+
+  public static Stream<Arguments> invalidBigDecimalValues() {
+    return Stream.of(
+        arguments(Type.Decimal, Values.NULL, "Expected decimal type"),
+        arguments(Type.Decimal, Values.UNSET, "Expected decimal type"));
   }
 }
