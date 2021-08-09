@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
@@ -130,5 +131,26 @@ public class FederationTest extends GraphqlFirstTestBase {
                 + "} }");
 
     assertThat(JsonPath.<Integer>read(response, "$._entities[0].k.k")).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Should include trace if requested via header")
+  public void federatedTracing() {
+    Object response =
+        CLIENT.getKeyspaceFullResponse(
+            ImmutableMap.of("apollo-federation-include-trace", "ftv1"),
+            KEYSPACE,
+            "query {\n"
+                + "_entities(representations: [ "
+                + "{ __typename: \"Entity2\", k: 1 }, "
+                + " ]) { "
+                + "... on Entity2 { k } "
+                + "} }");
+
+    String trace = JsonPath.read(response, "$.extensions.ftv1");
+    // The value is an opaque string (Base64 encoding of the protobuf representation of the trace).
+    // Don't attempt to decode it here: we are not testing the federation-jvm code that builds the
+    // trace, just the fact that it's wired correctly into Stargate.
+    assertThat(trace).isNotEmpty();
   }
 }
