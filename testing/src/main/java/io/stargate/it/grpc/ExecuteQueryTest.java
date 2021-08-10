@@ -163,7 +163,6 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
     ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(2);
     assertThat(rs.getPagingState()).isNotNull();
-    assertThat(rs.getPageSize().getValue()).isGreaterThan(0);
   }
 
   @Test
