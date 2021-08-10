@@ -162,9 +162,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
     }
 
-    if (parameters.hasPageSize()) {
-      builder.pageSize(parameters.getPageSize().getValue());
-    }
+    builder.pageSize(
+        parameters.hasPageSize() ? parameters.getPageSize().getValue() : Service.DEFAULT_PAGE_SIZE);
 
     if (parameters.hasPagingState()) {
       builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().getValue().toByteArray()));
