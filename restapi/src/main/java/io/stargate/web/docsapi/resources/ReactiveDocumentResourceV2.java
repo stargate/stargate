@@ -56,7 +56,7 @@ public class ReactiveDocumentResourceV2 {
   private static final String WHERE_DESCRIPTION =
       "a JSON blob with search filters;"
           + " allowed predicates: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists;"
-          + " allowed boolean operators: $and, $or;"
+          + " allowed boolean operators: $and, $or, $not;"
           + " allowed hints: $selectivity (a number between 0.0 and 1.0, less is better)";
 
   @Inject private Db dbFactory;
