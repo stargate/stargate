@@ -81,7 +81,10 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
               BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.GT, ""));
         } else {
           predicates.add(
-              BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.EQ, pathSegment));
+              BuiltCondition.of(
+                  QueryConstants.P_COLUMN_NAME.apply(i),
+                  Predicate.EQ,
+                  DocsApiUtils.convertEscapedCharacters(pathSegment)));
         }
       } else {
         predicates.add(

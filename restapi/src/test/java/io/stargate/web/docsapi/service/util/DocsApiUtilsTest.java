@@ -360,6 +360,27 @@ class DocsApiUtilsTest {
     }
 
     @Test
+    public void matchingSpecialCharacters() {
+      List<String> path = Arrays.asList("field\\,with", "commas\\.");
+      Row row =
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "commas.",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field,with",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "commas.",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  ""));
+
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+
+      Assertions.assertThat(result).isTrue();
+    }
+
+    @Test
     public void notMatchingExtraDepth() {
       List<String> path = Arrays.asList("field", "value");
       Row row =
@@ -421,6 +442,23 @@ class DocsApiUtilsTest {
                   "field",
                   QueryConstants.P_COLUMN_NAME.apply(1),
                   "value"));
+
+      boolean result = DocsApiUtils.isRowOnPath(row, path);
+
+      Assertions.assertThat(result).isTrue();
+    }
+
+    @Test
+    public void matchingSpecialCharacters() {
+      List<String> path = Arrays.asList("field\\,with", "commas\\.");
+      Row row =
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field,with",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "commas."));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
 

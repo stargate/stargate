@@ -298,7 +298,7 @@ public class ReactiveDocumentService {
                                   p ->
                                       DocsApiUtils.extractArrayPathIndex(p)
                                           .map(Object::toString)
-                                          .orElse(p))
+                                          .orElse(DocsApiUtils.convertEscapedCharacters(p)))
                               .collect(Collectors.joining("/", "/", ""));
 
                       // find and return empty if missing

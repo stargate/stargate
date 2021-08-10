@@ -312,6 +312,7 @@ public final class DocsApiUtils {
 
       boolean pathSegment = target.contains(",");
       // if we have the path segment, we need to check if any matches
+
       if (pathSegment) {
         boolean noneMatch =
             Arrays.stream(target.split(COMMA_PATTERN.pattern()))

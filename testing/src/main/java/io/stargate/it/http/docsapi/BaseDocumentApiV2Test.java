@@ -477,6 +477,24 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testEscapedCharGet() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(
+            "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}");
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
+
+    String result = RestUtils.get(authToken, collectionPath + "/1/a%5C.b?raw=true", 200);
+    assertThat(result).isEqualTo("\"somedata\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/some%5C,data?raw=true", 200);
+    assertThat(result).isEqualTo("\"something\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/%5C*?raw=true", 200);
+    assertThat(result).isEqualTo("\"star\"");
+  }
+
+  @Test
   public void testPutNullsAndEmpties() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{\"abc\": null}");
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
