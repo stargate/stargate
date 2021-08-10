@@ -81,37 +81,40 @@ public class QueryParametersTest extends BaseServiceTest {
 
   public static Stream<Arguments> queryParameterValues() {
     return Stream.of(
-        arguments(cqlQueryParameters().build(), Parameters.builder().build()),
+        arguments(cqlQueryParameters().build(), Parameters.builder().pageSize(100).build()),
         arguments(
             cqlQueryParameters().setKeyspace(StringValue.newBuilder().setValue("abc")).build(),
-            Parameters.builder().defaultKeyspace("abc").build()),
+            Parameters.builder().pageSize(100).defaultKeyspace("abc").build()),
         arguments(
             cqlQueryParameters()
                 .setConsistency(ConsistencyValue.newBuilder().setValue(Consistency.THREE))
                 .build(),
-            Parameters.builder().consistencyLevel(ConsistencyLevel.THREE).build()),
+            Parameters.builder().pageSize(100).consistencyLevel(ConsistencyLevel.THREE).build()),
         arguments(
             cqlQueryParameters()
                 .setSerialConsistency(
                     ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_SERIAL))
                 .build(),
-            Parameters.builder().serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL).build()),
+            Parameters.builder()
+                .pageSize(100)
+                .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
+                .build()),
         arguments(
             cqlQueryParameters()
                 .setNowInSeconds(Int32Value.newBuilder().setValue(12345).build())
                 .build(),
-            Parameters.builder().nowInSeconds(12345).build()),
+            Parameters.builder().pageSize(100).nowInSeconds(12345).build()),
         arguments(
             cqlQueryParameters()
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .build(),
-            Parameters.builder().defaultTimestamp(1234567890).build()),
+            Parameters.builder().pageSize(100).defaultTimestamp(1234567890).build()),
         arguments(
             cqlQueryParameters().setTracing(true).build(),
-            Parameters.builder().tracingRequested(true).build()),
+            Parameters.builder().pageSize(100).tracingRequested(true).build()),
         arguments(
             cqlQueryParameters().setTracing(false).build(),
-            Parameters.builder().tracingRequested(false).build()),
+            Parameters.builder().pageSize(100).tracingRequested(false).build()),
         arguments(
             cqlQueryParameters()
                 .setPageSize(Int32Value.newBuilder().setValue(99999).build())
@@ -124,7 +127,10 @@ public class QueryParametersTest extends BaseServiceTest {
                         .setValue(ByteString.copyFrom(new byte[] {'a', 'b', 'c'}))
                         .build())
                 .build(),
-            Parameters.builder().pagingState(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'})).build()),
+            Parameters.builder()
+                .pageSize(100)
+                .pagingState(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'}))
+                .build()),
         arguments(
             cqlQueryParameters()
                 .setKeyspace(StringValue.newBuilder().setValue("def"))
