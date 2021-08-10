@@ -137,19 +137,19 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
   private Parameters makeParameters(BatchParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
-    if (parameters.hasConsistency()) {
-      builder.consistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
-    }
+    builder.consistencyLevel(
+        parameters.hasConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
+            : Service.DEFAULT_CONSISTENCY);
 
     if (parameters.hasKeyspace()) {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
     }
 
-    if (parameters.hasSerialConsistency()) {
-      builder.serialConsistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
-    }
+    builder.serialConsistencyLevel(
+        parameters.hasSerialConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber())
+            : Service.DEFAULT_SERIAL_CONSISTENCY);
 
     if (parameters.hasTimestamp()) {
       builder.defaultTimestamp(parameters.getTimestamp().getValue());

@@ -76,37 +76,68 @@ public class BatchParametersTest extends BaseServiceTest {
 
   public static Stream<Arguments> batchParameterValues() {
     return Stream.of(
-        arguments(batchParameters().build(), Parameters.builder().build()),
+        arguments(
+            batchParameters().build(),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .build()),
         arguments(
             batchParameters().setKeyspace(StringValue.newBuilder().setValue("abc")).build(),
-            Parameters.builder().defaultKeyspace("abc").build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .defaultKeyspace("abc")
+                .build()),
         arguments(
             batchParameters()
                 .setConsistency(ConsistencyValue.newBuilder().setValue(Consistency.THREE))
                 .build(),
-            Parameters.builder().consistencyLevel(ConsistencyLevel.THREE).build()),
+            Parameters.builder()
+                .consistencyLevel(ConsistencyLevel.THREE)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .build()),
         arguments(
             batchParameters()
                 .setSerialConsistency(
                     ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_SERIAL))
                 .build(),
-            Parameters.builder().serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
+                .build()),
         arguments(
             batchParameters()
                 .setNowInSeconds(Int32Value.newBuilder().setValue(12345).build())
                 .build(),
-            Parameters.builder().nowInSeconds(12345).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .nowInSeconds(12345)
+                .build()),
         arguments(
             batchParameters()
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .build(),
-            Parameters.builder().defaultTimestamp(1234567890).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .defaultTimestamp(1234567890)
+                .build()),
         arguments(
             batchParameters().setTracing(true).build(),
-            Parameters.builder().tracingRequested(true).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .tracingRequested(true)
+                .build()),
         arguments(
             batchParameters().setTracing(false).build(),
-            Parameters.builder().tracingRequested(false).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .tracingRequested(false)
+                .build()),
         arguments(
             batchParameters()
                 .setKeyspace(StringValue.newBuilder().setValue("def"))
