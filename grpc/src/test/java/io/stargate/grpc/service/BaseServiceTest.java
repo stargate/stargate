@@ -17,9 +17,18 @@ package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import com.google.protobuf.Any;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
+import io.grpc.ClientInterceptors;
+import io.grpc.ForwardingClientCall;
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
@@ -31,6 +40,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.grpc.codec.cql.ValueCodecs;
+import io.stargate.grpc.service.interceptors.HeadersInterceptor;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
@@ -46,6 +56,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -60,7 +71,7 @@ public class BaseServiceTest {
 
   protected @Mock Persistence persistence;
 
-  protected @Mock Connection connection;
+  protected Connection connection = spy(mock(Connection.class));
 
   @AfterEach
   public void cleanUp() {
@@ -81,6 +92,15 @@ public class BaseServiceTest {
       clientChannel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
     }
     return StargateGrpc.newBlockingStub(clientChannel);
+  }
+
+  protected StargateGrpc.StargateBlockingStub makeBlockingStubWithClientHeaders(
+      Consumer<Metadata> addHeaders) {
+    ManagedChannel originalChannel =
+        InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
+    Channel channel =
+        ClientInterceptors.intercept(originalChannel, new AddClientHeadersInterceptor(addHeaders));
+    return StargateGrpc.newBlockingStub(channel);
   }
 
   protected QueryOuterClass.Response executeQuery(
@@ -108,6 +128,7 @@ public class BaseServiceTest {
         InProcessServerBuilder.forName(SERVER_NAME)
             .directExecutor()
             .intercept(new MockInterceptor())
+            .intercept(new HeadersInterceptor())
             .addService(new Service(persistence, mock(Metrics.class)))
             .build();
     try {
@@ -128,6 +149,28 @@ public class BaseServiceTest {
       Value actual =
           ValueCodecs.get(column.type().rawType()).decode(boundValues.get(i), column.type());
       assertThat(values[i]).isEqualTo(actual);
+    }
+  }
+
+  static class AddClientHeadersInterceptor implements ClientInterceptor {
+
+    private final Consumer<Metadata> addHeaders;
+
+    AddClientHeadersInterceptor(Consumer<Metadata> addHeaders) {
+      this.addHeaders = addHeaders;
+    }
+
+    @Override
+    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+        MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+      return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+          next.newCall(method, callOptions)) {
+        @Override
+        public void start(Listener<RespT> responseListener, Metadata headers) {
+          addHeaders.accept(headers);
+          super.start(responseListener, headers);
+        }
+      };
     }
   }
 }
