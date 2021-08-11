@@ -126,7 +126,7 @@ public class DocumentService {
               "$..*",
               (v, parsingContext) -> {
                 String fieldName = parsingContext.getCurrentFieldName();
-                if (fieldName != null && DocumentDB.containsIllegalSequences(fieldName)) {
+                if (fieldName != null && DocsApiUtils.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
                           "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",

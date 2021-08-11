@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * The search query builder that creates all needed predicates for a path represented as a list of
@@ -42,12 +41,6 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
   /** @param path Path to match. */
   public PathSearchQueryBuilder(List<String> path) {
     this.path = path;
-  }
-
-  private List<String> unescape(List<String> escaped) {
-    return escaped.stream()
-        .map(DocsApiUtils::convertEscapedCharacters)
-        .collect(Collectors.toList());
   }
 
   @Override
@@ -91,7 +84,7 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
             BuiltCondition.of(
                 QueryConstants.P_COLUMN_NAME.apply(i),
                 Predicate.IN,
-                unescape(Arrays.asList(pathSegmentSplit))));
+                DocsApiUtils.convertEscapedCharacters(Arrays.asList(pathSegmentSplit))));
       }
     }
 

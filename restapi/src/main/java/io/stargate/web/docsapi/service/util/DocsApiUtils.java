@@ -79,6 +79,10 @@ public final class DocsApiUtils {
     return path.replaceAll(ESCAPED_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
   }
 
+  public static List<String> convertEscapedCharacters(List<String> path) {
+    return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
+  }
+
   private static String convertSingleArrayPath(String path) {
     return extractArrayPathIndex(path)
         .map(innerPath -> "[" + leftPadTo6(innerPath.toString()) + "]")
@@ -154,6 +158,14 @@ public final class DocsApiUtils {
     }
 
     return results;
+  }
+
+  public static boolean containsIllegalSequences(String x) {
+    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_PATTERN.pattern(), "");
+    return replaced.contains("[")
+        || replaced.contains(".")
+        || replaced.contains("'")
+        || replaced.contains("\\");
   }
 
   /**
@@ -310,18 +322,10 @@ public final class DocsApiUtils {
         continue;
       }
 
-      boolean pathSegment = target.contains(",");
-      // if we have the path segment, we need to check if any matches
-
-      if (pathSegment) {
-        boolean noneMatch =
-            Arrays.stream(target.split(COMMA_PATTERN.pattern()))
-                .noneMatch(t -> Objects.equals(DocsApiUtils.convertEscapedCharacters(t), path));
-        if (noneMatch) {
-          return false;
-        }
-      } else if (!Objects.equals(path, DocsApiUtils.convertEscapedCharacters(target))) {
-        // if not equal, fail
+      boolean noneMatch =
+          Arrays.stream(target.split(COMMA_PATTERN.pattern()))
+              .noneMatch(t -> Objects.equals(DocsApiUtils.convertEscapedCharacters(t), path));
+      if (noneMatch) {
         return false;
       }
     }

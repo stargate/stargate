@@ -76,19 +76,6 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void containsIllegalSequences() {
-    assertThat(DocumentDB.containsIllegalSequences("[012]")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("aaa[012]")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("]012[")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("[aaa]")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("[aaa")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("aaa]")).isFalse();
-    assertThat(DocumentDB.containsIllegalSequences("a.2000")).isTrue();
-    assertThat(DocumentDB.containsIllegalSequences("a\\.2000")).isFalse();
-    assertThat(DocumentDB.containsIllegalSequences("a'2000")).isTrue();
-  }
-
-  @Test
   public void getInsertStatement() {
     Object[] values = new Object[DocumentDB.allColumns().size()];
     int idx = 0;

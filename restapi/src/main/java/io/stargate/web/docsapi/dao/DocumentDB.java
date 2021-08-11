@@ -30,7 +30,6 @@ import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
-import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -141,14 +140,6 @@ public class DocumentDB {
 
   public boolean treatBooleansAsNumeric() {
     return !dataStore.supportsSecondaryIndex();
-  }
-
-  public static boolean containsIllegalSequences(String x) {
-    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_PATTERN.pattern(), "");
-    return replaced.contains("[")
-        || replaced.contains(".")
-        || replaced.contains("'")
-        || replaced.contains("\\");
   }
 
   public static List<Column> allColumns() {

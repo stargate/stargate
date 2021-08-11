@@ -25,6 +25,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.MapBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Table;
@@ -148,6 +149,15 @@ class DocsApiUtilsTest {
           DocsApiUtils.convertEscapedCharacters(
               "\\ but without valid chars after are ignored: \\a");
       assertThat(result).isEqualTo("\\ but without valid chars after are ignored: \\a");
+    }
+
+    @Test
+    public void asList() {
+      List<String> converted =
+          DocsApiUtils.convertEscapedCharacters(
+              ImmutableList.of("\\. is a period", "I can represent asterisks too: \\*"));
+      assertThat(converted)
+          .isEqualTo(ImmutableList.of(". is a period", "I can represent asterisks too: *"));
     }
   }
 
@@ -329,6 +339,22 @@ class DocsApiUtilsTest {
       Boolean result = DocsApiUtils.getBooleanFromRow(row, false);
 
       assertThat(result).isNull();
+    }
+  }
+
+  @Nested
+  class ContainsIllegalSequences {
+    @Test
+    public void happyPath() {
+      assertThat(DocsApiUtils.containsIllegalSequences("[012]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("aaa[012]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("]012[")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("[aaa]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("[aaa")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("aaa]")).isFalse();
+      assertThat(DocsApiUtils.containsIllegalSequences("a.2000")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("a\\.2000")).isFalse();
+      assertThat(DocsApiUtils.containsIllegalSequences("a'2000")).isTrue();
     }
   }
 

@@ -49,7 +49,7 @@ public enum ErrorCode {
 
   DOCS_API_GENERAL_INVALID_FIELD_NAME(
       Response.Status.BAD_REQUEST,
-      "Array paths with brackets are not permitted in JSON field names."),
+      "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names."),
 
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,
