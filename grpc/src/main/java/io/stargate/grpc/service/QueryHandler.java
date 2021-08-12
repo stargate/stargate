@@ -217,10 +217,12 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     }
     if (remainingAttempts <= 1) {
       agreementFuture.completeExceptionally(
-          new IllegalStateException(
-              "Failed to reach schema agreement after "
-                  + (200 * Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES)
-                  + " milliseconds."));
+          Status.DEADLINE_EXCEEDED
+              .withDescription(
+                  "Failed to reach schema agreement after "
+                      + (200 * Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES)
+                      + " milliseconds.")
+              .asException());
       return;
     }
     executor.schedule(
