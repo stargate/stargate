@@ -35,9 +35,11 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class DocsApiUtils {
 
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
-
+  public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
+  public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
+  public static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
+  public static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE = Pattern.compile("\\\\(\\.|\\*|,)");
 
   private DocsApiUtils() {}
 
@@ -56,12 +58,29 @@ public final class DocsApiUtils {
    */
   public static String convertArrayPath(String path) {
     if (path.contains(",")) {
-      return Arrays.stream(path.split(","))
+      return Arrays.stream(path.split(COMMA_PATTERN.pattern()))
           .map(DocsApiUtils::convertSingleArrayPath)
           .collect(Collectors.joining(","));
     } else {
       return convertSingleArrayPath(path);
     }
+  }
+
+  /**
+   * Converts any of the valid escape sequences (for periods, commas, and asterisks) into their
+   * actual character. E.g. if the input string is literally abc\.123, this function returns abc.123
+   * This allows a user to use escape sequences in where filters and when writing documents when it
+   * would otherwise be ambiguous to use the corresponding character.
+   *
+   * @param path single filter or field path
+   * @return Converted to a string with no literal unicode code points.
+   */
+  public static String convertEscapedCharacters(String path) {
+    return path.replaceAll(ESCAPED_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
+  }
+
+  public static List<String> convertEscapedCharacters(List<String> path) {
+    return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
   }
 
   private static String convertSingleArrayPath(String path) {
@@ -130,14 +149,23 @@ public final class DocsApiUtils {
       }
       String fieldValue = value.asText();
       List<String> fieldPath =
-          Arrays.stream(fieldValue.split("\\."))
+          Arrays.stream(fieldValue.split(PERIOD_PATTERN.pattern()))
               .map(DocsApiUtils::convertArrayPath)
+              .map(DocsApiUtils::convertEscapedCharacters)
               .collect(Collectors.toList());
 
       results.add(fieldPath);
     }
 
     return results;
+  }
+
+  public static boolean containsIllegalSequences(String x) {
+    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_PATTERN.pattern(), "");
+    return replaced.contains("[")
+        || replaced.contains(".")
+        || replaced.contains("'")
+        || replaced.contains("\\");
   }
 
   /**
@@ -235,7 +263,7 @@ public final class DocsApiUtils {
     // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
     String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
-    if (!Objects.equals(field, leaf)) {
+    if (!Objects.equals(DocsApiUtils.convertEscapedCharacters(field), leaf)) {
       return false;
     }
 
@@ -294,16 +322,10 @@ public final class DocsApiUtils {
         continue;
       }
 
-      boolean pathSegment = target.contains(",");
-      // if we have the path segment, we need to check if any matches
-      if (pathSegment) {
-        boolean noneMatch =
-            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
-        if (noneMatch) {
-          return false;
-        }
-      } else if (!Objects.equals(path, target)) {
-        // if not equal, fail
+      boolean noneMatch =
+          Arrays.stream(target.split(COMMA_PATTERN.pattern()))
+              .noneMatch(t -> Objects.equals(DocsApiUtils.convertEscapedCharacters(t), path));
+      if (noneMatch) {
         return false;
       }
     }

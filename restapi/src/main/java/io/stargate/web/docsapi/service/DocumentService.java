@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
   private static final Splitter FORM_SPLITTER = Splitter.on('&');
   private static final Splitter PAIR_SPLITTER = Splitter.on('=');
 
@@ -128,11 +126,11 @@ public class DocumentService {
               "$..*",
               (v, parsingContext) -> {
                 String fieldName = parsingContext.getCurrentFieldName();
-                if (fieldName != null && DocumentDB.containsIllegalChars(fieldName)) {
+                if (fieldName != null && DocsApiUtils.containsIllegalSequences(fieldName)) {
                   String msg =
                       String.format(
-                          "The characters %s are not permitted in JSON field names, invalid field %s.",
-                          DocumentDB.getForbiddenCharactersMessage(), fieldName);
+                          "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",
+                          fieldName);
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
@@ -163,7 +161,8 @@ public class DocumentService {
                     if (pv.equals("$")) continue;
 
                     // pv always starts with a square brace because of the above conversion
-                    String innerPath = pv.substring(1, pv.length() - 1);
+                    String innerPath =
+                        DocsApiUtils.convertEscapedCharacters(pv.substring(1, pv.length() - 1));
                     boolean isArrayElement = op.getType() == PathOperator.Type.ARRAY;
                     if (isArrayElement) {
                       if (i == path.size() && patching) {
@@ -236,6 +235,7 @@ public class DocumentService {
       if (e instanceof ErrorCodeRuntimeException) {
         throw e;
       }
+      logger.error("Error occurred during JSON read", e);
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
     }
@@ -266,7 +266,7 @@ public class DocumentService {
       } else {
         continue;
       }
-      String[] fieldNames = PERIOD_PATTERN.split(fullyQualifiedField);
+      String[] fieldNames = DocsApiUtils.PERIOD_PATTERN.split(fullyQualifiedField);
 
       if (path.size() + fieldNames.length > docsApiConfiguration.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
@@ -279,20 +279,12 @@ public class DocumentService {
       for (int i = 0; i < fieldNames.length; i++) {
         String fieldName = fieldNames[i];
         boolean isArrayElement = fieldName.startsWith("[") && fieldName.endsWith("]");
-        if (!isArrayElement) {
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          fieldName = DocumentDB.replaceIllegalChars(fieldName);
-        }
         if (isArrayElement) {
           if (i == 0 && patching) {
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
           }
 
           String innerPath = fieldName.substring(1, fieldName.length() - 1);
-          // Unlike using JSON, try to allow any input by replacing illegal characters with _.
-          // Form shredding is only supposed to be used for benchmarking tests.
-          innerPath = DocumentDB.replaceIllegalChars(innerPath);
 
           int idx = 0;
           try {
@@ -352,7 +344,10 @@ public class DocumentService {
 
   private Optional<String> convertToJsonPtr(Optional<String> path) {
     return path.map(
-        p -> "/" + p.replaceAll(PERIOD_PATTERN.pattern(), "/").replaceAll("\\[(\\d+)\\]", "$1"));
+        p ->
+            "/"
+                + p.replaceAll(DocsApiUtils.PERIOD_PATTERN.pattern(), "/")
+                    .replaceAll("\\[(\\d+)\\]", "$1"));
   }
 
   private DocumentDB maybeCreateTableAndIndexes(

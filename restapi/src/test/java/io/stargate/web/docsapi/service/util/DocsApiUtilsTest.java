@@ -25,6 +25,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.MapBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Table;
@@ -126,6 +127,37 @@ class DocsApiUtilsTest {
       Optional<Integer> result = DocsApiUtils.extractArrayPathIndex("some");
 
       assertThat(result).isEmpty();
+    }
+  }
+
+  @Nested
+  class ConvertEscapedCharacters {
+
+    @Test
+    public void happyPath() {
+      String result = DocsApiUtils.convertEscapedCharacters("\\. is a period");
+
+      assertThat(result).isEqualTo(". is a period");
+
+      result = DocsApiUtils.convertEscapedCharacters("I can represent asterisks too: \\*");
+      assertThat(result).isEqualTo("I can represent asterisks too: *");
+
+      result = DocsApiUtils.convertEscapedCharacters("I can represent commas too: \\,");
+      assertThat(result).isEqualTo("I can represent commas too: ,");
+
+      result =
+          DocsApiUtils.convertEscapedCharacters(
+              "\\ but without valid chars after are ignored: \\a");
+      assertThat(result).isEqualTo("\\ but without valid chars after are ignored: \\a");
+    }
+
+    @Test
+    public void asList() {
+      List<String> converted =
+          DocsApiUtils.convertEscapedCharacters(
+              ImmutableList.of("\\. is a period", "I can represent asterisks too: \\*"));
+      assertThat(converted)
+          .isEqualTo(ImmutableList.of(". is a period", "I can represent asterisks too: *"));
     }
   }
 
@@ -311,6 +343,22 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class ContainsIllegalSequences {
+    @Test
+    public void happyPath() {
+      assertThat(DocsApiUtils.containsIllegalSequences("[012]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("aaa[012]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("]012[")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("[aaa]")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("[aaa")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("aaa]")).isFalse();
+      assertThat(DocsApiUtils.containsIllegalSequences("a.2000")).isTrue();
+      assertThat(DocsApiUtils.containsIllegalSequences("a\\.2000")).isFalse();
+      assertThat(DocsApiUtils.containsIllegalSequences("a'2000")).isTrue();
+    }
+  }
+
+  @Nested
   class IsRowMatchingPath {
 
     private final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
@@ -329,6 +377,27 @@ class DocsApiUtilsTest {
                   "field",
                   QueryConstants.P_COLUMN_NAME.apply(1),
                   "value",
+                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  ""));
+
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+
+      Assertions.assertThat(result).isTrue();
+    }
+
+    @Test
+    public void matchingSpecialCharacters() {
+      List<String> path = Arrays.asList("field\\,with", "commas\\.");
+      Row row =
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.LEAF_COLUMN_NAME,
+                  "commas.",
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field,with",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "commas.",
                   QueryConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
@@ -399,6 +468,23 @@ class DocsApiUtilsTest {
                   "field",
                   QueryConstants.P_COLUMN_NAME.apply(1),
                   "value"));
+
+      boolean result = DocsApiUtils.isRowOnPath(row, path);
+
+      Assertions.assertThat(result).isTrue();
+    }
+
+    @Test
+    public void matchingSpecialCharacters() {
+      List<String> path = Arrays.asList("field\\,with", "commas\\.");
+      Row row =
+          MapBackedRow.of(
+              TABLE,
+              ImmutableMap.of(
+                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  "field,with",
+                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  "commas."));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
 

@@ -298,7 +298,7 @@ public class ReactiveDocumentService {
                                   p ->
                                       DocsApiUtils.extractArrayPathIndex(p)
                                           .map(Object::toString)
-                                          .orElse(p))
+                                          .orElse(DocsApiUtils.convertEscapedCharacters(p)))
                               .collect(Collectors.joining("/", "/", ""));
 
                       // find and return empty if missing
@@ -490,7 +490,6 @@ public class ReactiveDocumentService {
 
   // we need to transform the stuff to support array elements
   private List<String> processSubDocumentPath(List<String> subDocumentPath) {
-    // TODO after https://github.com/stargate/stargate/pull/1105 encode chars as well
     return subDocumentPath.stream()
         .map(path -> DocsApiUtils.convertArrayPath(path))
         .collect(Collectors.toList());

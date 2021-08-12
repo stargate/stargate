@@ -24,6 +24,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,7 +77,7 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
     if (parentSize >= DocumentDB.MAX_DEPTH) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
     } else {
-      String field = filterPath.getField();
+      String field = DocsApiUtils.convertEscapedCharacters(filterPath.getField());
       if (matchField) {
         // apply to both p and leaf, as index is on leaf and we want it kicking in
         return Arrays.asList(

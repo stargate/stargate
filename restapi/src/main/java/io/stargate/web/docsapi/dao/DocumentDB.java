@@ -2,7 +2,6 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -42,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
-  private static final List<Character> forbiddenCharacters;
   private static final List<Column> allColumns;
   private static final List<String> allColumnNames;
   private static final List<Column.ColumnType> allColumnTypes;
@@ -103,8 +101,6 @@ public class DocumentDB {
     allColumnTypes.add(Type.Boolean);
     allColumns.add(Column.create("bool_value", Type.Boolean));
 
-    forbiddenCharacters = ImmutableList.of('[', ']', ',', '.', '\'', '*');
-
     if (MAX_ARRAY_LENGTH > 1000000) {
       throw new IllegalStateException(
           "stargate.document_max_array_len cannot be greater than 1000000.");
@@ -144,22 +140,6 @@ public class DocumentDB {
 
   public boolean treatBooleansAsNumeric() {
     return !dataStore.supportsSecondaryIndex();
-  }
-
-  public static List<String> getForbiddenCharactersMessage() {
-    return forbiddenCharacters.stream().map(ch -> "`" + ch + "`").collect(Collectors.toList());
-  }
-
-  public static boolean containsIllegalChars(String x) {
-    return forbiddenCharacters.stream().anyMatch(ch -> x.indexOf(ch) >= 0);
-  }
-
-  public static String replaceIllegalChars(String x) {
-    String newStr = x;
-    for (Character y : forbiddenCharacters) {
-      newStr = newStr.replace(y, '_');
-    }
-    return newStr;
   }
 
   public static List<Column> allColumns() {

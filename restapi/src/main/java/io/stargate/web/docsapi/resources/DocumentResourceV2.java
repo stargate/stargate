@@ -91,7 +91,8 @@ public class DocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value = "Create a new document",
-      notes = "Auto-generates an ID for the newly created document",
+      notes =
+          "Auto-generates an ID for the newly created document. Use \\ to escape periods, commas, and asterisks.",
       code = 201)
   @ApiResponses(
       value = {

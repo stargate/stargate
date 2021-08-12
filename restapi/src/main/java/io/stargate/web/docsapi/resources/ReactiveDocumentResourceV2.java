@@ -57,7 +57,8 @@ public class ReactiveDocumentResourceV2 {
       "a JSON blob with search filters;"
           + " allowed predicates: $eq, $ne, $in, $nin, $gt, $lt, $gte, $lte, $exists;"
           + " allowed boolean operators: $and, $or, $not;"
-          + " allowed hints: $selectivity (a number between 0.0 and 1.0, less is better)";
+          + " allowed hints: $selectivity (a number between 0.0 and 1.0, less is better);"
+          + " Use \\ to escape periods, commas, and asterisks.";
 
   @Inject private Db dbFactory;
   @Inject private ReactiveDocumentService reactiveDocumentService;
@@ -176,7 +177,10 @@ public class ReactiveDocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+      @ApiParam(
+              value =
+                  "the path in the JSON that you want to retrieve. Use \\ to escape periods, commas, and asterisks.",
+              required = true)
           @PathParam("document-path")
           List<PathSegment> path,
       @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
@@ -206,7 +210,7 @@ public class ReactiveDocumentResourceV2 {
       @Suspended AsyncResponse asyncResponse) {
 
     // we do search if we have conditions, or the page size is defined and we need to page through
-    // the resulsts
+    // the results
     boolean isSearch = where != null || pageSizeParam != null;
 
     // init sequence
@@ -257,8 +261,7 @@ public class ReactiveDocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value = "Search documents in a collection",
-      notes =
-          "Page over documents in a collection, with optional search parameters. Does not perform well for large documents.")
+      notes = "Page over documents in a collection, with optional search parameters.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),

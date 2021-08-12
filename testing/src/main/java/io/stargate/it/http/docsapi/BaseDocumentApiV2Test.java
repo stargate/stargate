@@ -307,36 +307,46 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidKeyPut() throws IOException {
-    JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are not allowed\" }");
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"bracketedarraypaths[100]\": \"are not allowed\" }");
 
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field bracketedarraypaths[100]\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"commas,\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"periods.something\": \"are not allowed\" }");
+
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field periods.something\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"single'quotes\": \"are not allowed\" }");
+
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods..\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field single'quotes\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"back\\\\\\\\slashes\": \"are not allowed\" }");
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field back\\\\\\\\slashes\",\"code\":400}");
+  }
 
-    obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*.\",\"code\":400}");
+  @Test
+  public void testEscapableKeyPut() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"periods\\\\.\": \"are allowed if escaped\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp))
+        .isEqualTo(OBJECT_MAPPER.readTree("{\"periods.\": \"are allowed if escaped\" }"));
+
+    obj = OBJECT_MAPPER.readTree("{ \"*aste*risks*\": \"are allowed\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
     resp = RestUtils.put(authToken, collectionPath + "/1", "", 422);
     assertThat(resp)
@@ -464,6 +474,24 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.get(
         authToken, collectionPath + "/1/quiz/maths/q1/options/[9999]", 404); // out of bounds
+  }
+
+  @Test
+  public void testEscapedCharGet() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(
+            "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}");
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
+
+    String result = RestUtils.get(authToken, collectionPath + "/1/a%5C.b?raw=true", 200);
+    assertThat(result).isEqualTo("\"somedata\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/some%5C,data?raw=true", 200);
+    assertThat(result).isEqualTo("\"something\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/%5C*?raw=true", 200);
+    assertThat(result).isEqualTo("\"star\"");
   }
 
   @Test
@@ -1145,6 +1173,51 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
     assertThat(OBJECT_MAPPER.readTree(r))
         .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testBasicSearchEscaped() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(
+            "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // With escaped period
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "/cool-search-id?where={\"a\\\\.b\": {\"$eq\": \"somedata\"}}",
+            200);
+
+    String searchResultStr = "[{\"a.b\":\"somedata\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+
+    RestUtils.get(
+        authToken,
+        collectionPath + "/cool-search-id?where={\"a.b\": {\"$eq\": \"somedata\"}}&raw=true",
+        204);
+
+    // With commas
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={\"some\\\\,data\": {\"$eq\": \"something\"}}&raw=true",
+            200);
+
+    searchResultStr = "[{\"some,data\":\"something\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
+
+    // With asterisk
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "/cool-search-id?where={\"\\\\*\": {\"$eq\": \"star\"}}&raw=true",
+            200);
+
+    searchResultStr = "[{\"*\":\"star\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
   }
 
   @Test
