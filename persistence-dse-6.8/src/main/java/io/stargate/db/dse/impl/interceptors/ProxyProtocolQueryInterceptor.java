@@ -162,22 +162,23 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
           "Unable to intercept proxy protocol system query without a valid public address");
     }
     String tableName = selectStatement.table();
+    Set<InetAddress> currentPeers = clientState.isInternal() ? internalPeers : externalPeers;
     if (tableName.equals(PeersSystemView.NAME)) {
-      Set<InetAddress> currentPeers = clientState.isInternal() ? internalPeers : externalPeers;
       rows =
           currentPeers.isEmpty()
               ? Collections.emptyList()
               : Lists.newArrayListWithCapacity(currentPeers.size() - 1);
       for (InetAddress peer : currentPeers) {
         if (!peer.equals(publicAddress.getAddress())) {
-          rows.add(buildRow(selectStatement.getResultMetadata(), peer));
+          rows.add(buildRow(selectStatement.getResultMetadata(), peer, currentPeers));
         }
       }
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
       rows =
           Collections.singletonList(
-              buildRow(selectStatement.getResultMetadata(), publicAddress.getAddress()));
+              buildRow(
+                  selectStatement.getResultMetadata(), publicAddress.getAddress(), currentPeers));
     }
 
     ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
@@ -234,7 +235,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    * @param publicAddress
    * @return a {@link ByteBuffer} value for a given system local/peers column.
    */
-  private ByteBuffer buildColumnValue(String name, InetAddress publicAddress) {
+  private ByteBuffer buildColumnValue(
+      String name, InetAddress publicAddress, Set<InetAddress> peers) {
     switch (name) {
       case "key":
         return UTF8Type.instance.decompose("local");
@@ -267,7 +269,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "schema_version":
         return UUIDType.instance.decompose(StargateSystemKeyspace.SCHEMA_VERSION);
       case "tokens":
-        return SetType.getInstance(UTF8Type.instance, false).decompose(getTokens(publicAddress));
+        return SetType.getInstance(UTF8Type.instance, false)
+            .decompose(getTokens(publicAddress, peers));
       case "native_transport_port": // Fallthrough intentional
       case "native_transport_port_ssl":
         return Int32Type.instance.decompose(PROXY_PORT);
@@ -296,8 +299,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    * @param publicAddress
    * @return a list of random token calculated using the the public address as a seed.
    */
-  private Set<String> getTokens(InetAddress publicAddress) {
-    if (externalPeers.contains(publicAddress)) {
+  private Set<String> getTokens(InetAddress publicAddress, Set<InetAddress> peers) {
+    if (peers.contains(publicAddress)) {
       return tokensCache.computeIfAbsent(
           publicAddress,
           pa -> StargateSystemKeyspace.generateRandomTokens(pa, DatabaseDescriptor.getNumTokens()));
@@ -316,10 +319,11 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    * @param publicAddress
    * @return a list of {@link ByteBuffer} values for a system local/peers row.
    */
-  private List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress) {
+  private List<ByteBuffer> buildRow(
+      ResultMetadata metadata, InetAddress publicAddress, Set<InetAddress> peers) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
     metadata.names.forEach(
-        column -> row.add(buildColumnValue(column.name.toString(), publicAddress)));
+        column -> row.add(buildColumnValue(column.name.toString(), publicAddress, peers)));
     return row;
   }
 
