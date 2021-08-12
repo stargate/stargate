@@ -71,11 +71,13 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
   private final Resolver resolver;
   private final String proxyDnsName;
+  private final String internalProxyDnsName;
   private final int proxyPort;
   private final long resolveDelaySecs;
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Map<InetAddress, Set<String>> tokensCache = new ConcurrentHashMap<>();
-  private volatile Set<InetAddress> peers = Collections.emptySet();
+  private volatile Set<InetAddress> externalPeers = Collections.emptySet();
+  private volatile Set<InetAddress> internalPeers = Collections.emptySet();
   private final Optional<QueryInterceptor> wrapped;
 
   /**
@@ -117,6 +119,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       QueryInterceptor wrapped) {
     this.resolver = resolver;
     this.proxyDnsName = proxyDnsName;
+    this.internalProxyDnsName = "internal-" + proxyDnsName;
     this.proxyPort = proxyPort;
     this.resolveDelaySecs = resolveDelaySecs;
     this.wrapped = Optional.ofNullable(wrapped);
@@ -130,7 +133,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
           "DNS cache TTL (property \"networkaddress.cache.ttl\") not explicitly set. Setting to 60 seconds.");
       Security.setProperty("networkaddress.cache.ttl", "60");
     }
-    resolvePeers();
+    resolveAllPeers();
     wrapped.ifPresent(w -> w.initialize());
   }
 
@@ -160,7 +163,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     }
     String tableName = selectStatement.table();
     if (tableName.equals(PeersSystemView.NAME)) {
-      Set<InetAddress> currentPeers = peers;
+      Set<InetAddress> currentPeers = clientState.isInternal() ? internalPeers : externalPeers;
       rows =
           currentPeers.isEmpty()
               ? Collections.emptyList()
@@ -187,34 +190,40 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     wrapped.ifPresent(w -> w.register(listener));
   }
 
-  private void resolvePeers() {
+  @SuppressWarnings("NonAtomicOperationOnVolatileField")
+  private void resolveAllPeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {
-        Set<InetAddress> resolved = resolver.resolve(proxyDnsName);
-
-        if (!peers.equals(resolved)) {
-          // Generate listener events based on the differences between this and the previous
-          // resolved peers.
-          Sets.SetView<InetAddress> added = Sets.difference(resolved, peers);
-          Sets.SetView<InetAddress> removed = Sets.difference(peers, resolved);
-
-          for (EventListener listener : listeners) {
-            for (InetAddress peer : added) {
-              listener.onJoinCluster(peer, proxyPort);
-              listener.onUp(peer, proxyPort);
-            }
-            for (InetAddress peer : removed) {
-              tokensCache.remove(peer);
-              listener.onLeaveCluster(peer, proxyPort);
-            }
-          }
-          peers = resolved;
-        }
+        externalPeers = resolvePeers(proxyDnsName, externalPeers);
+        internalPeers = resolvePeers(internalProxyDnsName, internalPeers);
       } catch (UnknownHostException e) {
         throw new ServerError("Unable to resolve DNS for proxy protocol peers table", e);
       }
-      scheduler.schedule(this::resolvePeers, resolveDelaySecs, TimeUnit.SECONDS);
+      scheduler.schedule(this::resolveAllPeers, resolveDelaySecs, TimeUnit.SECONDS);
     }
+  }
+
+  private Set<InetAddress> resolvePeers(String dnsName, Set<InetAddress> current)
+      throws UnknownHostException {
+    Set<InetAddress> resolved = resolver.resolve(dnsName);
+    if (!current.equals(resolved)) {
+      // Generate listener events based on the differences between this and the previous
+      // resolved peers.
+      Sets.SetView<InetAddress> added = Sets.difference(resolved, current);
+      Sets.SetView<InetAddress> removed = Sets.difference(current, resolved);
+
+      for (EventListener listener : listeners) {
+        for (InetAddress peer : added) {
+          listener.onJoinCluster(peer, proxyPort);
+          listener.onUp(peer, proxyPort);
+        }
+        for (InetAddress peer : removed) {
+          tokensCache.remove(peer);
+          listener.onLeaveCluster(peer, proxyPort);
+        }
+      }
+    }
+    return resolved;
   }
 
   /**
@@ -288,7 +297,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    * @return a list of random token calculated using the the public address as a seed.
    */
   private Set<String> getTokens(InetAddress publicAddress) {
-    if (peers.contains(publicAddress)) {
+    if (externalPeers.contains(publicAddress)) {
       return tokensCache.computeIfAbsent(
           publicAddress,
           pa -> StargateSystemKeyspace.generateRandomTokens(pa, DatabaseDescriptor.getNumTokens()));

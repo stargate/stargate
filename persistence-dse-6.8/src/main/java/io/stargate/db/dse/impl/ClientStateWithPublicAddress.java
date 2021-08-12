@@ -12,11 +12,13 @@ import org.apache.cassandra.service.ClientState;
 public class ClientStateWithPublicAddress extends ClientState {
 
   private final InetSocketAddress publicAddress;
+  private final boolean internal;
 
   public ClientStateWithPublicAddress(
       SocketAddress remoteAddress, InetSocketAddress publicAddress) {
     super((InetSocketAddress) remoteAddress, null);
     this.publicAddress = publicAddress;
+    this.internal = publicAddress.getAddress().isSiteLocalAddress();
   }
 
   public ClientStateWithPublicAddress(
@@ -25,9 +27,18 @@ public class ClientStateWithPublicAddress extends ClientState {
     // the remote address is not.
     super(ClientState.forExternalCalls(user, remoteAddress));
     this.publicAddress = publicAddress;
+    this.internal = publicAddress.getAddress().isSiteLocalAddress();
   }
 
   public InetSocketAddress publicAddress() {
     return publicAddress;
+  }
+
+  /**
+   * Whether {@link #publicAddress()} is "internal", meaning that the client connected via a local
+   * network rather than the public internet.
+   */
+  public boolean isInternal() {
+    return internal;
   }
 }
