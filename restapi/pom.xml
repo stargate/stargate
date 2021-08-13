@@ -58,11 +58,6 @@
       <artifactId>dropwizard-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.java-json-tools</groupId>
       <artifactId>json-schema-validator</artifactId>
       <version>2.2.14</version>
