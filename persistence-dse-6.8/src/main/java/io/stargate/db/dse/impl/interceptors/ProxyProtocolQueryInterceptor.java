@@ -101,11 +101,6 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   @VisibleForTesting
-  public ProxyProtocolQueryInterceptor() {
-    this(null);
-  }
-
-  @VisibleForTesting
   public ProxyProtocolQueryInterceptor(
       Resolver resolver, String proxyDnsName, int proxyPort, long resolveDelaySecs) {
     this(resolver, proxyDnsName, proxyPort, resolveDelaySecs, null);
