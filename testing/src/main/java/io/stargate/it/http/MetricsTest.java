@@ -109,6 +109,54 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void docsApiHttpRequestMetrics() throws IOException {
+    // call the rest api path with target header
+    String path = String.format("%s:8082/v2/namespaces/some", host);
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    Request request =
+        new Request.Builder()
+            .url(path)
+            .get()
+            .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
+            .build();
+
+    int status = execute(client, request);
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              String result =
+                  RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+              List<String> lines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests"))
+                      .collect(Collectors.toList());
+
+              assertThat(lines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"docsapi\"")
+                              .contains("uri=\"NOT_FOUND\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                              .contains("quantile=\"0.95\""))
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"docsapi\"")
+                              .contains("uri=\"NOT_FOUND\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
+                              .contains("quantile=\"0.99\""));
+            });
+  }
+
+  @Test
   public void graphqlApiHttpRequestMetrics() throws IOException {
     // call the rest api path with target header
     String path = String.format("%s:8080/graphql", host);
