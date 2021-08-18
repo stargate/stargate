@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -187,18 +188,26 @@ public class QueryExecutor {
   }
 
   public Flowable<ResultSet> execute(BoundQuery query, int pageSize, ByteBuffer pagingState) {
-    // An empty paging state means the query was exhaused during previous execution
+    // An empty paging state means the query was exhausted during previous execution
     if (pagingState != null && pagingState.remaining() == 0) {
       return Flowable.empty();
     }
 
-    return fetchPage(query, pageSize, pagingState)
+    AtomicInteger pageNumber = new AtomicInteger();
+    pageNumber.set(1);
+
+    return fetchPage(query, 0, pageSize, pagingState)
         .compose( // Expand BREADTH_FIRST to reduce the number of "proactive" page requests
             FlowableTransformers.expand(
-                rs -> fetchNext(rs, pageSize, query), ExpandStrategy.BREADTH_FIRST, 1));
+                rs -> fetchNext(rs, pageNumber.getAndAdd(1), pageSize, query),
+                ExpandStrategy.BREADTH_FIRST,
+                1));
   }
 
-  private Flowable<ResultSet> fetchPage(BoundQuery query, int pageSize, ByteBuffer pagingState) {
+  private Flowable<ResultSet> fetchPage(
+      BoundQuery query, int pageNumber, int basePageSize, ByteBuffer pagingState) {
+    int pageSize = Math.max((int) Math.pow(2, pageNumber) * basePageSize, 10);
+    pageSize = Math.min(pageSize, 10000);
     Supplier<CompletableFuture<ResultSet>> supplier =
         () ->
             dataStore.execute(
@@ -219,12 +228,13 @@ public class QueryExecutor {
         .take(1);
   }
 
-  private Flowable<ResultSet> fetchNext(ResultSet rs, int pageSize, BoundQuery query) {
+  private Flowable<ResultSet> fetchNext(
+      ResultSet rs, int pageNumber, int basePageSize, BoundQuery query) {
     ByteBuffer nextPagingState = rs.getPagingState();
     if (nextPagingState == null) {
       return Flowable.empty();
     } else {
-      return fetchPage(query, pageSize, nextPagingState);
+      return fetchPage(query, pageNumber, basePageSize, nextPagingState);
     }
   }
 
