@@ -89,7 +89,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void twoPersistenceConditions() {
+    public void twoPersistenceConditions() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -130,6 +130,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -160,7 +161,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void twoPersistenceConditionsOneQueryEmpty() {
+    public void twoPersistenceConditionsOneQueryEmpty() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -201,6 +202,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -236,7 +238,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void twoPersistenceConditionsNothingReturned() {
+    public void twoPersistenceConditionsNothingReturned() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -275,7 +277,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // each query run
       query1Assert.assertExecuteCount().isEqualTo(1);
@@ -299,7 +301,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndInMemoryConditionPersistenceTrue() {
+    public void persistenceAndInMemoryConditionPersistenceTrue() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -355,6 +357,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -385,7 +388,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndInMemoryConditionMemoryTrue() {
+    public void persistenceAndInMemoryConditionMemoryTrue() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -429,6 +432,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -464,7 +468,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndInMemoryConditionMemoryFalse() {
+    public void persistenceAndInMemoryConditionMemoryFalse() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -506,7 +510,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // each query run
       query1Assert.assertExecuteCount().isEqualTo(1);
@@ -535,7 +539,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndInMemoryConditionNothingReturned() {
+    public void persistenceAndInMemoryConditionNothingReturned() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("path", "field"));
@@ -576,7 +580,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // each query run
       query1Assert.assertExecuteCount().isEqualTo(1);
@@ -601,7 +605,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndEvaluateOnMissing() {
+    public void persistenceAndEvaluateOnMissing() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -639,6 +643,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -668,7 +673,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void persistenceAndEvaluateOnMissingNotMatched() {
+    public void persistenceAndEvaluateOnMissingNotMatched() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -704,7 +709,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // each query run
       query1Assert.assertExecuteCount().isEqualTo(1);
@@ -727,7 +732,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void inMemoryAndEvaluateOnMissing() {
+    public void inMemoryAndEvaluateOnMissing() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -767,6 +772,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -797,7 +803,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void inMemoryAndEvaluateOnMissingNotMatching() {
+    public void inMemoryAndEvaluateOnMissingNotMatching() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
@@ -835,7 +841,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // each query run
       query1Assert.assertExecuteCount().isEqualTo(1);

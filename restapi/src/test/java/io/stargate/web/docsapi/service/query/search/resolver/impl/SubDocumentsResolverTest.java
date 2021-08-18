@@ -99,7 +99,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Collections.singletonList("parent");
@@ -127,6 +127,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -173,7 +174,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void complexPathWithMoreRows() {
+    public void complexPathWithMoreRows() throws Exception {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Arrays.asList("*", "reviews");
@@ -216,6 +217,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -275,7 +277,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void orConditionOneTrue() {
+    public void orConditionOneTrue() throws Exception {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Collections.singletonList("*");
@@ -307,6 +309,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -363,7 +366,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void orConditionNoneTrue() {
+    public void orConditionNoneTrue() throws Exception {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Collections.singletonList("*");
@@ -393,7 +396,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -435,7 +438,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingFound() {
+    public void nothingFound() throws Exception {
       int pageSize = 1;
       String documentId = "d123456";
       List<String> subDocumentPath = Collections.singletonList("parent");
@@ -460,7 +463,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);

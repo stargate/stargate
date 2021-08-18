@@ -180,6 +180,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
@@ -233,6 +234,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
@@ -285,6 +287,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
@@ -323,6 +326,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
@@ -356,6 +360,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isNull();
@@ -386,6 +391,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e).isInstanceOf(UnauthorizedException.class);
@@ -397,7 +403,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void whereJsonException() {
+    public void whereJsonException() throws Exception {
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
@@ -410,6 +416,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)
@@ -422,7 +429,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void fieldsJsonException() {
+    public void fieldsJsonException() throws Exception {
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
@@ -435,6 +442,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)
@@ -483,6 +491,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
@@ -537,7 +546,7 @@ class ReactiveDocumentServiceTest {
               documentDB, namespace, collection, documentId, prePath, fields, context);
 
       List<Pair<DocumentResponseWrapper<? extends JsonNode>, Disposable>> values =
-          result.test().assertComplete().assertNoErrors().values();
+          result.test().await().assertComplete().assertNoErrors().values();
       assertThat(values.size()).isEqualTo(1);
 
       DocumentResponseWrapper<? extends JsonNode> wrapper = values.get(0).getValue0();
@@ -599,6 +608,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
@@ -673,6 +683,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
@@ -737,6 +748,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
@@ -808,6 +820,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertValue(
               wrapper -> {
                 assertThat(wrapper.getDocumentId()).isEqualTo(documentId);
@@ -852,6 +865,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e).isInstanceOf(UnauthorizedException.class);
@@ -890,6 +904,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)
@@ -938,6 +953,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)
@@ -951,7 +967,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void whereJsonException() {
+    public void whereJsonException() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
@@ -973,6 +989,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)
@@ -985,7 +1002,7 @@ class ReactiveDocumentServiceTest {
     }
 
     @Test
-    public void fieldsJsonException() {
+    public void fieldsJsonException() throws Exception {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
@@ -1007,6 +1024,7 @@ class ReactiveDocumentServiceTest {
 
       result
           .test()
+          .await()
           .assertError(
               e -> {
                 assertThat(e)

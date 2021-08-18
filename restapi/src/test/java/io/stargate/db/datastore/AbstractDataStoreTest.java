@@ -45,8 +45,8 @@ public abstract class AbstractDataStoreTest {
     dataStore.validate();
   }
 
-  protected <T> List<T> values(Flowable<T> flowable) {
-    TestSubscriber<T> test = flowable.test();
+  protected <T> List<T> values(Flowable<T> flowable) throws Exception {
+    TestSubscriber<T> test = flowable.test().await();
     test.assertNoErrors();
     return test.values();
   }

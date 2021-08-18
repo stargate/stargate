@@ -93,7 +93,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -119,6 +119,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -148,7 +149,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPathEvalOnMissing() {
+    public void happyPathEvalOnMissing() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       when(baseCondition.isEvaluateOnMissingFields()).thenReturn(true);
@@ -170,6 +171,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -199,7 +201,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPathMultipleExpressions() {
+    public void happyPathMultipleExpressions() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -228,7 +230,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -252,7 +254,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void multipleDocuments() {
+    public void multipleDocuments() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -277,6 +279,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -312,7 +315,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingReturnedFromDataStore() {
+    public void nothingReturnedFromDataStore() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -334,7 +337,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertNoValues().assertComplete();
+      result.test().await().assertNoValues().assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -342,7 +345,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void complexFilterPath() {
+    public void complexFilterPath() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("field", "nested", "value"));
@@ -369,6 +372,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -383,7 +387,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void testNotPassed() {
+    public void testNotPassed() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -407,7 +411,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
