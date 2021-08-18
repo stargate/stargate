@@ -207,14 +207,14 @@ public class QueryExecutor {
   private Flowable<ResultSet> fetchPage(
       BoundQuery query, int pageNumber, int basePageSize, ByteBuffer pagingState) {
     int pageSize = Math.max((int) Math.pow(2, pageNumber) * basePageSize, 10);
-    pageSize = Math.min(pageSize, 10000);
+    final int pageSizeFinal = Math.min(pageSize, 10000);
     Supplier<CompletableFuture<ResultSet>> supplier =
         () ->
             dataStore.execute(
                 query,
                 p -> {
                   ImmutableParameters.Builder builder = p.toBuilder();
-                  builder.pageSize(pageSize);
+                  builder.pageSize(pageSizeFinal);
                   if (pagingState != null) {
                     builder.pagingState(pagingState);
                   }
