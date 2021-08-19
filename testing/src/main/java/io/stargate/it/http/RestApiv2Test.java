@@ -881,6 +881,20 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowsWithQueryAndInvalidSort() throws IOException {
+    String rowIdentifier = setupClusteringTestCase();
+
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+                host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void getRowsWithNotFound() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);

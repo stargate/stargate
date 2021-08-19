@@ -19,8 +19,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -46,6 +44,7 @@ import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.resources.ResourceUtils;
 import io.stargate.web.service.WhereParser;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -382,14 +381,7 @@ public class RowsResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Map<String, Object> requestBody;
-          try {
-            requestBody =
-                mapper.readValue(payload, new TypeReference<HashMap<String, Object>>() {});
-          } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(
-                String.format("Input provided is not valid json. %s", e.getMessage()));
-          }
+          Map<String, Object> requestBody = ResourceUtils.readJson(payload, mapper);
 
           Table table = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -610,13 +602,7 @@ public class RowsResource {
           .build();
     }
 
-    Map<String, Object> requestBody;
-    try {
-      requestBody = mapper.readValue(payload, new TypeReference<HashMap<String, Object>>() {});
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException(
-          String.format("Input provided is not valid json. %s", e.getMessage()));
-    }
+    Map<String, Object> requestBody = ResourceUtils.readJson(payload, mapper);
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
             .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
@@ -712,17 +698,11 @@ public class RowsResource {
     }
 
     List<ColumnOrder> order = new ArrayList<>();
-    Map<String, String> sortOrder;
-    try {
-      sortOrder = mapper.readValue(sort, new TypeReference<HashMap<String, String>>() {});
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException(
-          String.format("Input provided is not valid json. %s", e.getMessage()));
-    }
+    Map<String, Object> sortOrder = ResourceUtils.readJson(sort, mapper);
 
-    for (Map.Entry<String, String> entry : sortOrder.entrySet()) {
+    for (Map.Entry<String, Object> entry : sortOrder.entrySet()) {
       Column.Order colOrder =
-          "asc".equalsIgnoreCase(entry.getValue()) ? Column.Order.ASC : Column.Order.DESC;
+          "asc".equalsIgnoreCase((String) entry.getValue()) ? Column.Order.ASC : Column.Order.DESC;
       order.add(ColumnOrder.of(entry.getKey(), colOrder));
     }
     return order;
