@@ -18,6 +18,8 @@ package io.stargate.web.resources.v2.schemas;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -220,7 +222,14 @@ public class KeyspacesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+          Map<String, Object> requestBody;
+          try {
+            requestBody =
+                mapper.readValue(payload, new TypeReference<HashMap<String, Object>>() {});
+          } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(
+                String.format("Input provided is not valid json. %s", e.getMessage()));
+          }
 
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()

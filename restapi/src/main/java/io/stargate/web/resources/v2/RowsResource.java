@@ -19,6 +19,8 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
@@ -380,8 +382,14 @@ public class RowsResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          @SuppressWarnings("unchecked")
-          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+          Map<String, Object> requestBody;
+          try {
+            requestBody =
+                mapper.readValue(payload, new TypeReference<HashMap<String, Object>>() {});
+          } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(
+                String.format("Input provided is not valid json. %s", e.getMessage()));
+          }
 
           Table table = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -602,8 +610,13 @@ public class RowsResource {
           .build();
     }
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+    Map<String, Object> requestBody;
+    try {
+      requestBody = mapper.readValue(payload, new TypeReference<HashMap<String, Object>>() {});
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          String.format("Input provided is not valid json. %s", e.getMessage()));
+    }
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
             .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
@@ -693,14 +706,19 @@ public class RowsResource {
     return raw ? rows : new GetResponseWrapper(rows.size(), newPagingState, rows);
   }
 
-  private List<ColumnOrder> buildSortOrder(String sort)
-      throws com.fasterxml.jackson.core.JsonProcessingException {
+  private List<ColumnOrder> buildSortOrder(String sort) {
     if (Strings.isNullOrEmpty(sort)) {
       return new ArrayList<>();
     }
 
     List<ColumnOrder> order = new ArrayList<>();
-    Map<String, String> sortOrder = mapper.readValue(sort, Map.class);
+    Map<String, String> sortOrder;
+    try {
+      sortOrder = mapper.readValue(sort, new TypeReference<HashMap<String, String>>() {});
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          String.format("Input provided is not valid json. %s", e.getMessage()));
+    }
 
     for (Map.Entry<String, String> entry : sortOrder.entrySet()) {
       Column.Order colOrder =
