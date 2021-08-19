@@ -91,7 +91,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
           withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(paginator.docPageSize)
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       String populateCql =
@@ -226,7 +226,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
           withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       String populateCql =
@@ -330,7 +330,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
           withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returningNothing();
 
       String populateCql =
@@ -845,7 +845,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       withQuery(TABLE, candidatesCql, "some", "field1", "field1", "", "find-me")
-          .withPageSize(configuration.getSearchPageSize())
+          .withPageSize(paginator.docPageSize)
           .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
       String filterCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING";

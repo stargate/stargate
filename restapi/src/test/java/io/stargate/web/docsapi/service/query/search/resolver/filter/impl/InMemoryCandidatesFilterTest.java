@@ -204,7 +204,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
                   "",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
@@ -341,7 +341,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
                   "",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returningNothing();
 
       CandidatesFilter filter =
@@ -395,7 +395,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
                   "",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returningNothing();
 
       CandidatesFilter filter =
@@ -449,7 +449,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
                   "",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =

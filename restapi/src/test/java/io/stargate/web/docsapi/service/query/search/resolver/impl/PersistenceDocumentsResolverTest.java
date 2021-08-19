@@ -89,7 +89,6 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      when(configuration.getSearchPageSize()).thenReturn(100);
     }
 
     @Test
@@ -110,7 +109,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
@@ -173,7 +172,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "",
                   1.0,
                   2.0)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
@@ -223,7 +222,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       DocumentsResolver resolver =
@@ -286,7 +285,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returningNothing();
 
       DocumentsResolver resolver =
@@ -321,7 +320,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "value",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(10)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =

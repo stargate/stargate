@@ -204,7 +204,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
                   "query-value",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returning(Arrays.asList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
@@ -318,7 +318,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
                   "query-value",
                   documentId,
                   1)
-              .withPageSize(2)
+              .withPageSize(10)
               .returningNothing();
 
       CandidatesFilter filter =
