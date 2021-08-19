@@ -85,7 +85,7 @@ public class ClientInfo {
     return "ClientInfo{"
         + "remoteAddress="
         + remoteAddress
-        + ", publicAddress="
+        + ", destinationAddress="
         + destinationAddress
         + ", driverInfo="
         + driverInfo
