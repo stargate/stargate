@@ -52,8 +52,6 @@ public class DefaultRetryPolicy implements RetryPolicy {
       "Retrying on unavailable exception (consistency: {}, "
           + "required replica: {}, alive replica: {}, retries: {})";
 
-  public DefaultRetryPolicy() {}
-
   /**
    * {@inheritDoc}
    *
