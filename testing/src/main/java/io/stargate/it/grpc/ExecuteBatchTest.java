@@ -73,19 +73,18 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
   @Test
   public void simpleBatchAfterSchemaChange() throws InvalidProtocolBufferException {
     StargateBlockingStub stub = stubWithCallCredentials();
+    stub.executeQuery(cqlQuery("DROP KEYSPACE IF EXISTS ks1"));
 
     // Create keyspace, table, and then insert some data
     Response response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
 
     response =
@@ -101,7 +100,7 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
                 .build());
     assertThat(response).isNotNull();
 
-    response = stub.executeQuery(cqlQuery("SELECT * FROM ks1.tbl1", null));
+    response = stub.executeQuery(cqlQuery("SELECT * FROM ks1.tbl1"));
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(new HashSet<>(rs.getRowsList()))
@@ -114,20 +113,18 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
 
     // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
     // cache
-    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;", null));
+    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
 
     response =

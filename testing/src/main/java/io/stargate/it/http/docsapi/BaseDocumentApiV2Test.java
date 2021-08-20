@@ -307,36 +307,46 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidKeyPut() throws IOException {
-    JsonNode obj = OBJECT_MAPPER.readTree("{ \"square[]braces\": \"are not allowed\" }");
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"bracketedarraypaths[100]\": \"are not allowed\" }");
 
     String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field square[]braces.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field bracketedarraypaths[100]\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"commas,\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"periods.something\": \"are not allowed\" }");
+
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field commas,.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field periods.something\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"periods.\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"single'quotes\": \"are not allowed\" }");
+
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field periods..\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field single'quotes\",\"code\":400}");
 
-    obj = OBJECT_MAPPER.readTree("{ \"'quotes'\": \"are not allowed\" }");
+    obj = OBJECT_MAPPER.readTree("{ \"back\\\\\\\\slashes\": \"are not allowed\" }");
     resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(resp)
         .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field 'quotes'.\",\"code\":400}");
+            "{\"description\":\"Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field back\\\\\\\\slashes\",\"code\":400}");
+  }
 
-    obj = OBJECT_MAPPER.readTree("{ \"*asterisks*\": \"are not allowed\" }");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    assertThat(resp)
-        .isEqualTo(
-            "{\"description\":\"The characters [`[`, `]`, `,`, `.`, `'`, `*`] are not permitted in JSON field names, invalid field *asterisks*.\",\"code\":400}");
+  @Test
+  public void testEscapableKeyPut() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("{ \"periods\\\\.\": \"are allowed if escaped\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    String resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp))
+        .isEqualTo(OBJECT_MAPPER.readTree("{\"periods.\": \"are allowed if escaped\" }"));
+
+    obj = OBJECT_MAPPER.readTree("{ \"*aste*risks*\": \"are allowed\" }");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    resp = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
 
     resp = RestUtils.put(authToken, collectionPath + "/1", "", 422);
     assertThat(resp)
@@ -464,6 +474,24 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
     RestUtils.get(
         authToken, collectionPath + "/1/quiz/maths/q1/options/[9999]", 404); // out of bounds
+  }
+
+  @Test
+  public void testEscapedCharGet() throws IOException {
+    JsonNode obj =
+        OBJECT_MAPPER.readTree(
+            "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}");
+    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+    assertThat(resp).isEqualTo("{\"documentId\":\"1\"}");
+
+    String result = RestUtils.get(authToken, collectionPath + "/1/a%5C.b?raw=true", 200);
+    assertThat(result).isEqualTo("\"somedata\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/some%5C,data?raw=true", 200);
+    assertThat(result).isEqualTo("\"something\"");
+
+    result = RestUtils.get(authToken, collectionPath + "/1/%5C*?raw=true", 200);
+    assertThat(result).isEqualTo("\"star\"");
   }
 
   @Test
@@ -1106,6 +1134,93 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testBasicSearchWithNegation() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // NOT NE === EQ
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={\"$not\": {\"products.electronics.Pixel_3a.price\": {\"$ne\": 600}}}",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testBasicSearchWithSelectivityHints() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={"
+                + "\"products.electronics.Pixel_3a.price\": {\"$gte\": 600},"
+                + "\"products.electronics.Pixel_3a.price\": {\"$lte\": 600, \"$selectivity\": 0.5}"
+                + "}",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"electronics\": {\"Pixel_3a\": {\"price\": 600}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testBasicSearchEscaped() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(
+            "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}");
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // With escaped period
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "/cool-search-id?where={\"a\\\\.b\": {\"$eq\": \"somedata\"}}",
+            200);
+
+    String searchResultStr = "[{\"a.b\":\"somedata\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+
+    RestUtils.get(
+        authToken,
+        collectionPath + "/cool-search-id?where={\"a.b\": {\"$eq\": \"somedata\"}}&raw=true",
+        204);
+
+    // With commas
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id?where={\"some\\\\,data\": {\"$eq\": \"something\"}}&raw=true",
+            200);
+
+    searchResultStr = "[{\"some,data\":\"something\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
+
+    // With asterisk
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath + "/cool-search-id?where={\"\\\\*\": {\"$eq\": \"star\"}}&raw=true",
+            200);
+
+    searchResultStr = "[{\"*\":\"star\"}]";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
+  }
+
+  @Test
   public void testBasicSearchSelectionSet() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -1237,17 +1352,6 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         authToken,
         collectionPath + "/cool-search-id?where={\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}",
         204);
-
-    // NE with null
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"products.food.*.sku\": {\"$ne\": null}}",
-            200);
-
-    searchResultStr = "[{\"products\": {\"food\": { \"Apple\": {\"sku\": \"100100010101001\"}}}}]";
-    assertThat(OBJECT_MAPPER.readTree(r))
-        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
   }
 
   @Test
@@ -1264,6 +1368,60 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/cool-search-id?profile=true&where={\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}",
             200);
     assertThat(OBJECT_MAPPER.readTree(r).get("profile").isEmpty()).isFalse();
+  }
+
+  @Test
+  public void testOrSearch() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // $OR
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]",
+            200);
+
+    String searchResultStr =
+        "[{\"products\": {\"food\": {\"Orange\": {\"name\": \"orange\"}}}}, {\"products\": {\"food\": {\"Pear\": {\"name\": \"pear\"}}}}]";
+    assertThat(OBJECT_MAPPER.readTree(r))
+        .isEqualTo(wrapResponse(OBJECT_MAPPER.readTree(searchResultStr), "cool-search-id", null));
+  }
+
+  @Test
+  public void testOrSearchWithPaging() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/cool-search-id", fullObj.toString(), 200);
+
+    // $OR + page-size param
+    String r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]&page-size=1",
+            200);
+
+    String searchResultStr = "[{\"products\": {\"food\": {\"Orange\": {\"name\": \"orange\"}}}}]";
+    JsonNode actual = OBJECT_MAPPER.readTree(r);
+    assertThat(actual.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
+    String pageState = actual.at("/pageState").requireNonNull().asText();
+    assertThat(pageState).isNotNull();
+
+    // paging only second with state
+    r =
+        RestUtils.get(
+            authToken,
+            collectionPath
+                + "/cool-search-id/products/food?where={\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}&fields=[\"name\"]&page-size=1&page-state="
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+
+    searchResultStr = "[{\"products\": {\"food\": {\"Pear\": {\"name\": \"pear\"}}}}]";
+    actual = OBJECT_MAPPER.readTree(r);
+    assertThat(actual.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(searchResultStr));
   }
 
   @Test
@@ -1414,6 +1572,9 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSearch() throws IOException {
+    // without collect initalized, we can not test below
+    RestUtils.put(authToken, collectionPath + "/dummy", "{\"a\": 1}", 200);
+
     RestUtils.get(authToken, collectionPath + "/cool-search-id?where=hello", 400);
 
     String r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where=[\"a\"]}", 400);
@@ -1424,49 +1585,40 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     r = RestUtils.get(authToken, collectionPath + "/cool-search-id?where={\"a\": true}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Search entry for field a was expecting a JSON object as input.\",\"code\":400}");
-
-    r =
-        RestUtils.get(
-            authToken,
-            collectionPath + "/cool-search-id?where={\"a\": {\"$exists\": false}}}",
-            400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The operation $exists only supports the value `true`\",\"code\":400}");
+            "{\"description\":\"A filter operation and value resolved as invalid.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"exists\": true}}}", 400);
-    assertThat(r).startsWith("{\"description\":\"Invalid operator: exists, valid operators are:");
+    assertThat(r).startsWith("{\"description\":\"Operation 'exists' is not supported.");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": null}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value null.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": {}}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value { }.\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$eq\": []}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $eq was expecting a non-null value\",\"code\":400}");
+            "{\"description\":\"Operation '$eq' does not support the provided value [ ].\",\"code\":400}");
 
     r =
         RestUtils.get(
             authToken, collectionPath + "/cool-search-id?where={\"a\": {\"$in\": 2}}}", 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Value entry for field a, operation $in was expecting an array\",\"code\":400}");
+            "{\"description\":\"Operation '$in' does not support the provided value 2.\",\"code\":400}");
 
     r =
         RestUtils.get(
@@ -1706,6 +1858,31 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
                 + "/v2/namespaces/"
                 + keyspace
                 + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchMultiPersistenceFilterWithSelectivity() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 10}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={"
+                + "\"value\": {\"$eq\": \"a\"},"
+                + "\"n.value\": {\"$lt\": 6, \"$selectivity\":0.5}"
+                + "}&raw=true",
             200);
 
     String expected = "{\"matching\":{\"value\":\"a\",\"n\":{\"value\":5}}}";
@@ -2256,6 +2433,247 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void searchOrPersistenceFilter() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$eq\": \"b\"}}]}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"value\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrInMemoryFilter() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$in\": [\"a\"]}}, {\"value\": {\"$in\": [\"b\"]}}]}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"value\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrMixedFilter() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"value\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrMixedFilterWithPaging() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=1&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"}}";
+    JsonNode result = OBJECT_MAPPER.readTree(r);
+    assertThat(result.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(expected));
+    assertThat(result.at("/pageState")).isNotNull();
+    String pageState = result.at("/pageState").requireNonNull().asText();
+    assertThat(pageState).isNotNull();
+
+    r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=1&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&page-state="
+                + URLEncoder.encode(pageState, "UTF-8"),
+            200);
+
+    expected = "{\"matching2\":{\"value\":\"b\"}}";
+    result = OBJECT_MAPPER.readTree(r);
+    assertThat(result.at("/data")).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrMixedFiltersDifferentPaths() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"count\": 1}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\", \"count\": 2}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\", \"count\": 3}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"count\": {\"$in\": [2,4]}}]}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching1\":{\"value\":\"a\",\"count\": 1},\"matching2\":{\"value\":\"b\",\"count\": 2}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchAndWithOr() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"count\": 1}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"value\": \"b\", \"count\": 2}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\", \"count\": 3}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"count\": {\"$gt\": 0}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching1\":{\"value\":\"a\",\"count\": 1},\"matching2\":{\"value\":\"b\",\"count\": 2}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrExists() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"other\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"other\": {\"$exists\": true}}]}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"other\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrEvaluateOnMissing() throws Exception {
+    JsonNode matching1 = OBJECT_MAPPER.readTree("{\"value\": \"a\"}");
+    JsonNode matching2 = OBJECT_MAPPER.readTree("{\"other\": \"b\"}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"c\"}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/nonMatching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=3&where={\"$or\": [{\"value\": {\"$nin\": [\"b\",\"c\"]}}, {\"value\": {\"$eq\": \"a\"}}]}&raw=true",
+            200);
+
+    String expected = "{\"matching1\":{\"value\":\"a\"},\"matching2\":{\"other\":\"b\"}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchOrPathSegmentsAndWildcards() throws Exception {
+    JsonNode matching1 =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+    JsonNode matching2 =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": [{ \"x\": { \"value\": 10} }, { \"y\": { \"value\": 20} }]}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": [{ \"n\": { \"value\": 10} }]}");
+    RestUtils.put(authToken, collectionPath + "/matching1", matching1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/matching2", matching2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"$or\": [{\"value.[*].*.value\": {\"$eq\": 20}}, {\"value.[1],[2].n,m.value\": {\"$eq\": 8}}]}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching1\":{\"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]},\"matching2\":{\"value\":[{\"x\":{\"value\":10}},{\"y\":{\"value\":20}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
   public void searchWithProfile() throws IOException {
     JsonNode fullObj1 =
         OBJECT_MAPPER.readTree("{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}");
@@ -2335,6 +2753,64 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             200);
 
     String expected = "{\"doc\":{\"value\":[{\"n\":{\"value\":5}}]}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchExistsFalse() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"someStuff.*.value\": {\"$exists\": false}}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching\":{\"value\": \"b\"}, \"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
+  public void searchExistsFalseMixed() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"b\"}");
+    JsonNode wildcardMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}");
+    JsonNode wildcardNotMatching =
+        OBJECT_MAPPER.readTree(
+            "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wild-card", wildcardMatching.toString(), 200);
+    RestUtils.put(
+        authToken, collectionPath + "/wild-card-not-matching", wildcardNotMatching.toString(), 200);
+
+    // wild card path
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$exists\": false}}&raw=true",
+            200);
+
+    String expected =
+        "{\"matching\":{\"value\": \"b\"}, \"wild-card\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}}";
     assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
   }
 
@@ -2431,8 +2907,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
-    // page-size defaults to 1 document when excluded
-    String r = RestUtils.get(authToken, collectionPath, 200);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=1", 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2448,7 +2923,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/collection?page-size=1&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2466,7 +2941,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?page-state="
+                + "/collections/collection?page-size=1&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2557,8 +3032,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/2", doc2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/3", doc3.toString(), 200);
 
-    // page-size defaults to 1 document when excluded
-    String r = RestUtils.get(authToken, collectionPath + "?fields=[\"a\"]", 200);
+    String r = RestUtils.get(authToken, collectionPath + "?page-size=1&fields=[\"a\"]", 200);
     JsonNode resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
     JsonNode data = resp.requiredAt("/data");
@@ -2582,7 +3056,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/collection?page-size=1&fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2607,7 +3081,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?fields=[\"a\"]&page-state="
+                + "/collections/collection?page-size=1&fields=[\"a\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);
@@ -2800,7 +3274,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
+                + "/collections/collection?page-size=1&where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]",
             200);
     resp = OBJECT_MAPPER.readTree(r);
     String pageState = resp.requiredAt("/pageState").requireNonNull().asText();
@@ -2826,7 +3300,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             hostWithPort
                 + "/v2/namespaces/"
                 + keyspace
-                + "/collections/collection?where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
+                + "/collections/collection?page-size=1&where={\"quiz.sport.q1.question\": {\"$exists\": true}}&fields=[\"quiz\"]&page-state="
                 + URLEncoder.encode(pageState, "UTF-8"),
             200);
     resp = OBJECT_MAPPER.readTree(r);

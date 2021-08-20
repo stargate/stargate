@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import io.stargate.it.http.RestUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -27,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -44,7 +46,8 @@ public abstract class GraphqlClient {
 
   protected Map<String, Object> getGraphqlData(String authToken, String url, String graphqlQuery) {
     Map<String, Object> response =
-        getGraphqlResponse(authToken, url, graphqlQuery, HttpStatus.SC_OK);
+        getGraphqlResponse(
+            ImmutableMap.of("X-Cassandra-Token", authToken), url, graphqlQuery, HttpStatus.SC_OK);
     assertThat(response).isNotNull();
     assertThat(response.get("errors")).isNull();
     @SuppressWarnings("unchecked")
@@ -62,7 +65,9 @@ public abstract class GraphqlClient {
 
   protected List<Map<String, Object>> getGraphqlErrors(
       String authToken, String url, String graphqlQuery, int expectedStatus) {
-    Map<String, Object> response = getGraphqlResponse(authToken, url, graphqlQuery, expectedStatus);
+    Map<String, Object> response =
+        getGraphqlResponse(
+            ImmutableMap.of("X-Cassandra-Token", authToken), url, graphqlQuery, expectedStatus);
     assertThat(response).isNotNull();
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
@@ -71,7 +76,7 @@ public abstract class GraphqlClient {
   }
 
   protected Map<String, Object> getGraphqlResponse(
-      String authToken, String url, String graphqlQuery, int expectedStatus) {
+      Map<String, String> headers, String url, String graphqlQuery, int expectedStatus) {
     try {
       OkHttpClient okHttpClient = RestUtils.client();
       Map<String, Object> formData = new HashMap<>();
@@ -82,9 +87,7 @@ public abstract class GraphqlClient {
           new Request.Builder()
               .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsBytes(formData)))
               .url(url);
-      if (authToken != null) {
-        requestBuilder.addHeader("X-Cassandra-Token", authToken);
-      }
+      requestBuilder.headers(Headers.of(headers));
       okhttp3.Response response = okHttpClient.newCall(requestBuilder.build()).execute();
       assertThat(response.body()).isNotNull();
       String bodyString = response.body().string();

@@ -113,4 +113,76 @@ class UserOrderWeightResolverTest {
       assertThat(resultReversed).isEqualTo(c2);
     }
   }
+
+  @Nested
+  class CompareWithSelectivity {
+
+    @Mock FilterExpression e1;
+
+    @Mock FilterExpression e2;
+
+    @Mock FilterExpression e3;
+
+    @Mock FilterExpression e4;
+
+    @Mock BaseCondition condition;
+
+    @BeforeEach
+    public void init() {
+      lenient().when(e1.getCondition()).thenReturn(condition);
+      lenient().when(e2.getCondition()).thenReturn(condition);
+      lenient().when(e3.getCondition()).thenReturn(condition);
+      lenient().when(e4.getCondition()).thenReturn(condition);
+    }
+
+    @Test
+    public void singleExplicitSelectivity() {
+      when(e1.getSelectivity()).thenReturn(1.0);
+      when(e2.getSelectivity()).thenReturn(0.9);
+
+      // Note: e2 has smaller (better) selectivity
+      assertThat(resolver.single().apply(e1, e2)).isEqualTo(e2);
+      assertThat(resolver.single().apply(e2, e1)).isEqualTo(e2);
+    }
+
+    @Test
+    public void collectionExplicitSelectivityUnambiguous() {
+      when(e1.getSelectivity()).thenReturn(1.0); // worst selectivity
+      when(e2.getSelectivity()).thenReturn(0.5);
+      when(e3.getSelectivity()).thenReturn(0.1); // best selectivity
+
+      List<FilterExpression> c1 = Arrays.asList(e1, e2);
+      List<FilterExpression> c2 = Arrays.asList(e2, e3);
+
+      // Note: each c1 element is not better that each c2 element
+      assertThat(resolver.collection().apply(c1, c2)).isEqualTo(c2);
+      assertThat(resolver.collection().apply(c2, c1)).isEqualTo(c2);
+
+      List<FilterExpression> c3 = Arrays.asList(e1, e3);
+
+      // Note: c1 elements are worse than c2 elements "in total"
+      assertThat(resolver.collection().apply(c1, c3)).isEqualTo(c3);
+      assertThat(resolver.collection().apply(c3, c1)).isEqualTo(c3);
+
+      // Note: c3 elements are worse than c2 elements "in total"
+      assertThat(resolver.collection().apply(c2, c3)).isEqualTo(c2);
+      assertThat(resolver.collection().apply(c3, c2)).isEqualTo(c2);
+    }
+
+    @Test
+    public void collectionExplicitSelectivityComplex() {
+      when(e1.getSelectivity()).thenReturn(1.0); // worst selectivity
+      when(e2.getSelectivity()).thenReturn(0.5);
+      when(e3.getSelectivity()).thenReturn(0.2);
+      when(e4.getSelectivity()).thenReturn(0.1); // best selectivity
+
+      // Note: c1 elements are equal to c2 elements "in total"
+      List<FilterExpression> c1 = Arrays.asList(e1, e4);
+      List<FilterExpression> c2 = Arrays.asList(e2, e3);
+
+      // c1 contains the best selectivity filter, so it wins
+      assertThat(resolver.collection().apply(c1, c2)).isEqualTo(c1);
+      assertThat(resolver.collection().apply(c2, c1)).isEqualTo(c1);
+    }
+  }
 }

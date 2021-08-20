@@ -22,8 +22,12 @@ package stargate;
 
 import "query.proto";
 
-service Stargate { // Maybe this should be call `Query` or `Cql`?
+// The gPRC service to interact with a Stargate coordinator.
+service Stargate {
+  // Executes a single CQL query.
   rpc ExecuteQuery(Query) returns (Response) {}
+
+  // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
 }
 

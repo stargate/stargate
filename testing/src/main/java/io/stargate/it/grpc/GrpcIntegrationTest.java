@@ -25,6 +25,7 @@ import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.grpc.StargateBearerToken;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
@@ -107,6 +108,14 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
     return BatchQuery.newBuilder()
+        .setCql(cql)
+        .setValues(
+            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
+        .build();
+  }
+
+  protected static Query cqlQuery(String cql, Value... values) {
+    return Query.newBuilder()
         .setCql(cql)
         .setValues(
             Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())

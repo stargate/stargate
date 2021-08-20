@@ -93,7 +93,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -104,7 +104,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -116,6 +119,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -145,7 +149,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPathEvalOnMissing() {
+    public void happyPathEvalOnMissing() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       when(baseCondition.isEvaluateOnMissingFields()).thenReturn(true);
@@ -167,6 +171,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -196,7 +201,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void happyPathMultipleExpressions() {
+    public void happyPathMultipleExpressions() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -211,7 +216,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -222,7 +230,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertComplete();
+      result.test().await().assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -246,7 +254,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void multipleDocuments() {
+    public void multipleDocuments() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -256,7 +264,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -268,6 +279,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -303,7 +315,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingReturnedFromDataStore() {
+    public void nothingReturnedFromDataStore() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -312,7 +324,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returningNothing();
 
@@ -322,7 +337,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertNoValues().assertComplete();
+      result.test().await().assertNoValues().assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -330,7 +345,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void complexFilterPath() {
+    public void complexFilterPath() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("field", "nested", "value"));
@@ -340,7 +355,12 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? ALLOW FILTERING",
+                  "field",
+                  "nested",
+                  "value",
+                  "value",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -352,6 +372,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       result
           .test()
+          .await()
           .assertValue(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
@@ -366,7 +387,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void testNotPassed() {
+    public void testNotPassed() throws Exception {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -377,7 +398,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING")
+                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "field",
+                  "field",
+                  "")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -387,7 +411,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           resolver.getDocuments(
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       // one query only
       queryAssert.assertExecuteCount().isEqualTo(1);

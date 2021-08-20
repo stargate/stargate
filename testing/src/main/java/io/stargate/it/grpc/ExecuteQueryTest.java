@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
@@ -28,12 +29,13 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -43,6 +45,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
 public class ExecuteQueryTest extends GrpcIntegrationTest {
+
+  @AfterEach
+  public void cleanup(CqlSession session) {
+    session.execute("TRUNCATE TABLE test");
+  }
 
   @Test
   public void simpleQuery(@TestKeyspace CqlIdentifier keyspace)
@@ -76,65 +83,109 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void queryAfterSchemaChange() {
     StargateBlockingStub stub = stubWithCallCredentials();
+    stub.executeQuery(cqlQuery("DROP KEYSPACE IF EXISTS ks1"));
 
     // Create keyspace, table, and then insert some data
     Response response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.CREATED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.KEYSPACE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.hasName()).isFalse();
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.CREATED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.TABLE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.getName().getValue()).isEqualTo("tbl1");
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
-    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isFalse();
 
     // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
     // cache
-    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;", null));
+    response = stub.executeQuery(cqlQuery("DROP KEYSPACE ks1;"));
     assertThat(response).isNotNull();
+    assertThat(response.hasSchemaChange()).isTrue();
+    assertThat(response.getSchemaChange())
+        .satisfies(
+            c -> {
+              assertThat(c.getChangeType()).isEqualTo(SchemaChange.Type.DROPPED);
+              assertThat(c.getTarget()).isEqualTo(SchemaChange.Target.KEYSPACE);
+              assertThat(c.getKeyspace()).isEqualTo("ks1");
+              assertThat(c.hasName()).isFalse();
+              assertThat(c.getArgumentTypesCount()).isEqualTo(0);
+            });
 
     response =
         stub.executeQuery(
             cqlQuery(
-                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-                null));
+                "CREATE KEYSPACE IF NOT EXISTS ks1 WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"));
     assertThat(response).isNotNull();
 
     response =
         stub.executeQuery(
-            cqlQuery(
-                "CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));", null));
+            cqlQuery("CREATE TABLE IF NOT EXISTS ks1.tbl1 (k text, v int, PRIMARY KEY (k));"));
     assertThat(response).isNotNull();
 
-    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)", null));
+    response = stub.executeQuery(cqlQuery("INSERT INTO ks1.tbl1 (k, v) VALUES ('a', 1)"));
     assertThat(response).isNotNull();
   }
 
   @Test
-  public void simpleQueryWithPaging() throws InvalidProtocolBufferException {
+  public void simpleQueryWithPaging(@TestKeyspace CqlIdentifier keyspace)
+      throws InvalidProtocolBufferException {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    for (int i = 0; i < 150; i++) {
+      stub.executeQuery(
+          cqlQuery(
+              String.format("INSERT INTO test (k, v) VALUES ('%d', %d)", i, i),
+              queryParameters(keyspace)));
+    }
+
+    // No explicit page size => should default to 100
     Response response =
-        stubWithCallCredentials()
-            .executeQuery(
-                Query.newBuilder()
-                    .setCql("select keyspace_name,table_name from system_schema.tables")
-                    .setParameters(
-                        QueryParameters.newBuilder()
-                            .setPageSize(Int32Value.newBuilder().setValue(2).build())
-                            .build())
-                    .build());
+        stub.executeQuery(cqlQuery("select k,v from test", queryParameters(keyspace)));
 
     assertThat(response.hasResultSet()).isTrue();
     assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
     ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    assertThat(rs.getRowsCount()).isEqualTo(100);
+    assertThat(rs.getPagingState()).isNotNull();
+
+    // Explicit page size
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "select k,v from test",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(2).build())));
+
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
+    rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(2);
     assertThat(rs.getPagingState()).isNotNull();
-    assertThat(rs.getPageSize().getValue()).isGreaterThan(0);
   }
 
   @Test

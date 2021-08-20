@@ -17,6 +17,7 @@ import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.server.ServerProperties;
 
 public class Server extends Application<ApplicationConfiguration> {
 
@@ -80,6 +81,9 @@ public class Server extends Application<ApplicationConfiguration> {
         new ResourceMetricsEventListener(
             metrics, httpMetricsTagProvider, HealthCheckerActivator.MODULE_NAME);
     environment.jersey().register(component);
+
+    // no html content
+    environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
   @Override

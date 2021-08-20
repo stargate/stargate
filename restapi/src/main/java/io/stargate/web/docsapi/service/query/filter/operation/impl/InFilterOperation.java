@@ -98,4 +98,9 @@ public abstract class InFilterOperation implements GenericFilterOperation<List<?
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
   }
+
+  @Override
+  public GenericFilterOperation<List<?>> negate() {
+    return NotInFilterOperation.of();
+  }
 }

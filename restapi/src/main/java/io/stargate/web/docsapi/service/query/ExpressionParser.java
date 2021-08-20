@@ -19,13 +19,17 @@ package io.stargate.web.docsapi.service.query;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Streams;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.query.ImmutableFilterExpression.Builder;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,20 +39,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 public class ExpressionParser {
 
+  private static final String NOT_OPERATOR = "$not";
+
   private static final String OR_OPERATOR = "$or";
 
   private static final String AND_OPERATOR = "$and";
-
-  private static final Pattern PERIOD_PATTERN = Pattern.compile("\\.");
 
   private final ConditionParser conditionParser;
 
@@ -73,7 +76,7 @@ public class ExpressionParser {
    * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
    */
   public Expression<FilterExpression> constructFilterExpression(
-      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
     List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson, numericBooleans);
 
     // if this is empty we can simply return true
@@ -96,7 +99,11 @@ public class ExpressionParser {
    * @return List of all expressions
    */
   private List<Expression<FilterExpression>> parse(
-      List<PathSegment> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+    if (!filterJson.isObject()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
+    }
+
     return parse(
         prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));
   }
@@ -112,7 +119,7 @@ public class ExpressionParser {
    * @return List of all expressions
    */
   private List<Expression<FilterExpression>> parse(
-      List<PathSegment> prependedPath,
+      List<String> prependedPath,
       Iterable<JsonNode> nodes,
       boolean numericBooleans,
       MutableInt nextIndex) {
@@ -141,26 +148,65 @@ public class ExpressionParser {
           And<FilterExpression> and =
               resolveAnd(andChildrenNode, prependedPath, numericBooleans, nextIndex);
           expressions.add(and);
+        } else if (Objects.equals(NOT_OPERATOR, fieldOrOp)) {
+          JsonNode andChildrenNode = next.getValue();
+          Not<FilterExpression> negated =
+              resolveNot(andChildrenNode, prependedPath, numericBooleans, nextIndex);
+          expressions.add(negated);
         } else {
           FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
+          JsonNode conditions = next.getValue();
+          Optional<Double> selectivity = resolveSelectivity(conditions);
           Collection<BaseCondition> fieldConditions =
-              conditionParser.getConditions(next.getValue(), numericBooleans);
-          validateFieldConditions(filterPath, fieldConditions);
+              conditionParser.getConditions(conditions, numericBooleans);
+          validateFieldConditions(filterPath, fieldConditions, selectivity);
+
           for (BaseCondition fieldCondition : fieldConditions) {
-            ImmutableFilterExpression expression =
-                ImmutableFilterExpression.of(
-                    filterPath, fieldCondition, nextIndex.getAndIncrement());
-            expressions.add(expression);
+            int index = nextIndex.getAndIncrement();
+
+            Builder builder =
+                ImmutableFilterExpression.builder()
+                    .filterPath(filterPath)
+                    .condition(fieldCondition)
+                    .orderIndex(index);
+
+            selectivity.ifPresent(builder::selectivity);
+
+            expressions.add(builder.build());
           }
         }
       }
     }
-
     return expressions;
   }
 
+  private Optional<Double> resolveSelectivity(JsonNode conditions) {
+    //noinspection UnstableApiUsage
+    return Streams.stream(conditions.fields())
+        .map(
+            entry ->
+                FilterHintCode.getByRawValue(entry.getKey())
+                    .filter(h -> h == FilterHintCode.SELECTIVITY)
+                    .map(
+                        h -> {
+                          JsonNode value = entry.getValue();
+                          if (!value.isNumber()) {
+                            String msg =
+                                String.format(
+                                    "Selectivity hint does not support the provided value %s (expecting a number)",
+                                    value);
+                            throw new ErrorCodeRuntimeException(
+                                ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+                          }
+                          return value.asDouble();
+                        }))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst();
+  }
+
   private void validateFieldConditions(
-      FilterPath filterPath, Collection<BaseCondition> conditions) {
+      FilterPath filterPath, Collection<BaseCondition> conditions, Optional<Double> selectivity) {
     // If some conditions imply specific and different value types it is a user error since each
     // field can have a value of only one type at a time.
     // Example: `field GT 1` and `field EQ "string"`
@@ -177,13 +223,28 @@ public class ExpressionParser {
               specificTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ")));
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
     }
+
+    // If selectivity is explicitly provided, allow at most one condition to avoid ambiguity.
+    if (selectivity.isPresent() && conditions.size() > 1) {
+      String msg =
+          String.format(
+              "Specifying multiple filter conditions in the same JSON block with a selectivity "
+                  + "hint is not supported. Combine them using \"$and\" to disambiguate. "
+                  + "Related field: '%s')",
+              filterPath.getField());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+    }
+
+    if (selectivity.isPresent() && conditions.isEmpty()) {
+      String msg =
+          String.format(
+              "Field '%s' has a selectivity hint but no condition", filterPath.getField());
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
+    }
   }
 
   private Or<FilterExpression> resolveOr(
-      JsonNode node,
-      List<PathSegment> prependedPath,
-      boolean numericBooleans,
-      MutableInt nextIndex) {
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -196,10 +257,7 @@ public class ExpressionParser {
   }
 
   private And<FilterExpression> resolveAnd(
-      JsonNode node,
-      List<PathSegment> prependedPath,
-      boolean numericBooleans,
-      MutableInt nextIndex) {
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -211,17 +269,37 @@ public class ExpressionParser {
     return And.of(orConditions);
   }
 
+  private Not<FilterExpression> resolveNot(
+      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
+    if (!node.isObject()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $not operator requires a json object as value.");
+    }
+
+    List<Expression<FilterExpression>> negatedConditions =
+        parse(prependedPath, Collections.singletonList(node), numericBooleans, nextIndex);
+
+    if (negatedConditions.size() != 1) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
+          "The $not operator requires exactly one child expression.");
+    }
+
+    return Not.of(negatedConditions.get(0));
+  }
+
   /**
-   * Resolves the collection/document prepended path and the filed path as specified in the filter
+   * Resolves the collection/document prepended path and the field path as specified in the filter
    * query.
    *
    * @param prependedPath Given collection or document path segments
-   * @param fieldPath filed path given in the filter query, expects dot notation, f.e. <code>
+   * @param fieldPath field path given in the filter query, expects dot notation, f.e. <code>
    *     car.name</code>
    * @return FilterPath
    */
-  private FilterPath getFilterPath(List<PathSegment> prependedPath, String fieldPath) {
-    String[] fieldNamePath = PERIOD_PATTERN.split(fieldPath);
+  private FilterPath getFilterPath(List<String> prependedPath, String fieldPath) {
+    String[] fieldNamePath = DocsApiUtils.PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
             .map(DocsApiUtils::convertArrayPath)
@@ -230,11 +308,7 @@ public class ExpressionParser {
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
           prependedPath.stream()
-              .map(
-                  pathSeg -> {
-                    String path = pathSeg.getPath();
-                    return DocsApiUtils.convertArrayPath(path);
-                  })
+              .map(path -> DocsApiUtils.convertArrayPath(path))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);

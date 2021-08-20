@@ -138,7 +138,7 @@ public class Server implements CassandraDaemon.Server {
     if (this.useSSL) {
       final EncryptionOptions clientEnc = TransportDescriptor.getNativeProtocolEncryptionOptions();
 
-      if (clientEnc.optional) {
+      if (clientEnc.isOptional()) {
         logger.info("Enabling optionally encrypted CQL connections between client and server");
         bootstrap.childHandler(new OptionalSecureInitializer(this, clientEnc));
       } else {

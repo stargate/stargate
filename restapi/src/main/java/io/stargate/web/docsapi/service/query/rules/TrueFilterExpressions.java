@@ -25,22 +25,21 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.util.function.Predicate;
 
 /**
- * A {@link Rule} that coverts any {@link FilterExpression} matching the given predicate to {@link
- * Literal#getTrue()}.
+ * A {@link Rule} that coverts any {@link Expression<FilterExpression>} matching the given predicate
+ * to {@link Literal#getTrue()}.
  */
 public class TrueFilterExpressions extends Rule<Expression<FilterExpression>, FilterExpression> {
 
-  private final Predicate<FilterExpression> truePredicate;
+  private final Predicate<Expression<FilterExpression>> truePredicate;
 
-  public TrueFilterExpressions(Predicate<FilterExpression> truePredicate) {
+  public TrueFilterExpressions(Predicate<Expression<FilterExpression>> truePredicate) {
     this.truePredicate = truePredicate;
   }
 
   @Override
   public Expression<FilterExpression> applyInternal(
       Expression<FilterExpression> input, ExprOptions<FilterExpression> options) {
-    // cast OK because of the isApply
-    boolean test = truePredicate.test((FilterExpression) input);
+    boolean test = truePredicate.test(input);
     if (test) {
       return Literal.getTrue();
     } else {
@@ -51,6 +50,6 @@ public class TrueFilterExpressions extends Rule<Expression<FilterExpression>, Fi
   // only instance of FilterExpression
   @Override
   protected boolean isApply(Expression<FilterExpression> input) {
-    return input instanceof FilterExpression;
+    return true;
   }
 }

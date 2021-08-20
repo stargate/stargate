@@ -17,6 +17,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava._FieldSet;
+import com.apollographql.federation.graphqljava.tracing.FederatedTracingInstrumentation;
 import com.google.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
@@ -210,22 +211,24 @@ public class SchemaProcessor {
     // the queries we generate, they're not useful for users of the schema.
     schema = removeCqlDirectives(schema);
 
-    com.apollographql.federation.graphqljava.SchemaTransformer federationTransformer =
-        Federation.transform(schema);
+    GraphQL.Builder graphqlBuilder;
     if (mappingModel.hasFederatedEntities()) {
-      federationTransformer
-          .fetchEntities(new FederatedEntityFetcher(mappingModel))
-          .resolveEntityType(
-              environment -> {
-                FederatedEntity entity = environment.getObject();
-                return environment.getSchema().getObjectType(entity.getTypeName());
-              });
+      GraphQLSchema federationReadySchema =
+          Federation.transform(schema)
+              .fetchEntities(new FederatedEntityFetcher(mappingModel))
+              .resolveEntityType(
+                  environment -> {
+                    FederatedEntity entity = environment.getObject();
+                    return environment.getSchema().getObjectType(entity.getTypeName());
+                  })
+              .build();
+      graphqlBuilder =
+          GraphQL.newGraphQL(federationReadySchema)
+              .instrumentation(new FederatedTracingInstrumentation());
+    } else {
+      graphqlBuilder = GraphQL.newGraphQL(schema);
     }
-    schema = federationTransformer.build();
-
-    return GraphQL.newGraphQL(schema)
-        .mutationExecutionStrategy(new AsyncExecutionStrategy())
-        .build();
+    return graphqlBuilder.mutationExecutionStrategy(new AsyncExecutionStrategy()).build();
   }
 
   /**

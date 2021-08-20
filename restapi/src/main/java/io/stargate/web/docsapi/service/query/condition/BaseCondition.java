@@ -27,6 +27,10 @@ import javax.validation.constraints.NotNull;
 /** Interface for the base filtering condition. */
 public interface BaseCondition extends Predicate<Row> {
 
+  /** Returns a {@link BaseCondition} that is the logical negation of this condition. */
+  @Override
+  BaseCondition negate();
+
   /**
    * @return If this condition can be executed on the persistence level. The default implementation
    *     resolves to true if the {@link #getBuiltCondition()} returns non-empty value.

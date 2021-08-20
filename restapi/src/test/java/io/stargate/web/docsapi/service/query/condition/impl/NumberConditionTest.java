@@ -37,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class NumberConditionTest {
 
   @Mock ValueFilterOperation filterOperation;
+  @Mock ValueFilterOperation filterOperation2;
 
   @Nested
   class Constructor {
@@ -117,6 +118,24 @@ class NumberConditionTest {
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class Negation {
+    @Test
+    void simple() {
+      when(filterOperation.negate()).thenReturn(filterOperation2);
+
+      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, 123);
+
+      assertThat(condition.negate())
+          .isInstanceOfSatisfying(
+              NumberCondition.class,
+              negated -> {
+                assertThat(negated.getQueryValue()).isEqualTo(123);
+                assertThat(negated.getFilterOperation()).isEqualTo(filterOperation2);
+              });
     }
   }
 }

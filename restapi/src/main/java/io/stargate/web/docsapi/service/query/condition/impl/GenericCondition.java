@@ -93,4 +93,10 @@ public abstract class GenericCondition<V> implements BaseCondition {
       return filterOperation.test(dbValueString, queryValue);
     }
   }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableGenericCondition.of(
+        getFilterOperation().negate(), getQueryValue(), isNumericBooleans());
+  }
 }

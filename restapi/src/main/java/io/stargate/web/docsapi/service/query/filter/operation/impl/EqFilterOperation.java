@@ -18,6 +18,7 @@ package io.stargate.web.docsapi.service.query.filter.operation.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
+import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -53,5 +54,10 @@ public abstract class EqFilterOperation extends NotNullValueFilterOperation {
   @Override
   public boolean compareNulls() {
     return true;
+  }
+
+  @Override
+  public ValueFilterOperation negate() {
+    return NeFilterOperation.of();
   }
 }

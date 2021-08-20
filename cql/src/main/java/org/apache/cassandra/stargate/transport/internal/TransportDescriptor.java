@@ -131,7 +131,9 @@ public class TransportDescriptor {
   }
 
   public static int getNativeTransportFrameBlockSize() {
-    return (int) ByteUnit.KIBI_BYTES.toBytes(conf.native_transport_frame_block_size_in_kb);
+    // TODO: Will need updated for protocol v5. The default of 32 was removed as part of this change
+    // https://github.com/apache/cassandra/commit/a7c4ba9eeecb365e7c4753d8eaab747edd9a632a#diff-e966f41bc2a418becfe687134ec8cf542eb051eead7fb4917e65a3a2e7c9bce3L191
+    return (int) ByteUnit.KIBI_BYTES.toBytes(32);
   }
 
   public static int getNativeTransportMaxFrameSize() {

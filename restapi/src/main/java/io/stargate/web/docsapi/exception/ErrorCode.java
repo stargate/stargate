@@ -16,7 +16,6 @@
 
 package io.stargate.web.docsapi.exception;
 
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.models.Error;
 import javax.ws.rs.core.MediaType;
@@ -50,9 +49,7 @@ public enum ErrorCode {
 
   DOCS_API_GENERAL_INVALID_FIELD_NAME(
       Response.Status.BAD_REQUEST,
-      String.format(
-          "The characters %s are not permitted in JSON field names.",
-          DocumentDB.getForbiddenCharactersMessage())),
+      "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names."),
 
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,
@@ -101,9 +98,8 @@ public enum ErrorCode {
   DOCS_API_SEARCH_OBJECT_REQUIRED(
       Response.Status.BAD_REQUEST, "Search was expecting a JSON object as input."),
 
-  DOCS_API_SEARCH_OR_NOT_SUPPORTED(
-      Response.Status.BAD_REQUEST,
-      "Searching documents with the $or condition is not yet supported."),
+  DOCS_API_SEARCH_EXPRESSION_NOT_RESOLVED(
+      Response.Status.INTERNAL_SERVER_ERROR, "Unable to resolve the given expression."),
 
   DOCS_API_SEARCH_RESULTS_NOT_FITTING(
       Response.Status.BAD_REQUEST,

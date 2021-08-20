@@ -64,6 +64,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.server.ServerProperties;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
@@ -150,8 +151,8 @@ public class Server extends Application<ApplicationConfiguration> {
 
     // Documents API
     environment.jersey().register(new DocsApiComponentsBinder(environment));
-    environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(ReactiveDocumentResourceV2.class);
+    environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(JsonSchemaResource.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
@@ -176,6 +177,9 @@ public class Server extends Application<ApplicationConfiguration> {
         new ResourceMetricsEventListener(
             metrics, httpMetricsTagProvider, RestApiActivator.MODULE_NAME);
     environment.jersey().register(metricListener);
+
+    // no html content
+    environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
   @VisibleForTesting

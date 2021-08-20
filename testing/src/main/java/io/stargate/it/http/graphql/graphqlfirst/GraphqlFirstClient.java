@@ -15,6 +15,7 @@
  */
 package io.stargate.it.http.graphql.graphqlfirst;
 
+import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;
@@ -184,6 +185,18 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   public Object executeKeyspaceQuery(String keyspace, String graphqlQuery) {
     return getGraphqlData(authToken, buildKeyspaceUri(keyspace), graphqlQuery);
+  }
+
+  public Map<String, Object> getKeyspaceFullResponse(
+      Map<String, String> headers, String keyspace, String graphqlQuery) {
+    return getGraphqlResponse(
+        ImmutableMap.<String, String>builder()
+            .putAll(headers)
+            .put("X-Cassandra-Token", authToken)
+            .build(),
+        buildKeyspaceUri(keyspace),
+        graphqlQuery,
+        HttpStatus.SC_OK);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a <b>single</b> GraphQL error. */

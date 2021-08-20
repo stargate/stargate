@@ -28,13 +28,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class DocsApiUtils {
 
+  public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
+  public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
+  public static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
+  public static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE = Pattern.compile("\\\\(\\.|\\*|,)");
 
   private DocsApiUtils() {}
 
@@ -53,7 +58,7 @@ public final class DocsApiUtils {
    */
   public static String convertArrayPath(String path) {
     if (path.contains(",")) {
-      return Arrays.stream(path.split(","))
+      return Arrays.stream(path.split(COMMA_PATTERN.pattern()))
           .map(DocsApiUtils::convertSingleArrayPath)
           .collect(Collectors.joining(","));
     } else {
@@ -61,7 +66,37 @@ public final class DocsApiUtils {
     }
   }
 
+  /**
+   * Converts any of the valid escape sequences (for periods, commas, and asterisks) into their
+   * actual character. E.g. if the input string is literally abc\.123, this function returns abc.123
+   * This allows a user to use escape sequences in where filters and when writing documents when it
+   * would otherwise be ambiguous to use the corresponding character.
+   *
+   * @param path single filter or field path
+   * @return Converted to a string with no literal unicode code points.
+   */
+  public static String convertEscapedCharacters(String path) {
+    return path.replaceAll(ESCAPED_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
+  }
+
+  public static List<String> convertEscapedCharacters(List<String> path) {
+    return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
+  }
+
   private static String convertSingleArrayPath(String path) {
+    return extractArrayPathIndex(path)
+        .map(innerPath -> "[" + leftPadTo6(innerPath.toString()) + "]")
+        .orElse(path);
+  }
+
+  /**
+   * Optionally extracts the index of the array path. Returns empty if the path is not an array
+   * path.
+   *
+   * @param path single filter or field path
+   * @return Array index or empty
+   */
+  public static Optional<Integer> extractArrayPathIndex(String path) {
     // check if we have array path
     if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
       String innerPath = path.substring(1, path.length() - 1);
@@ -77,14 +112,14 @@ public final class DocsApiUtils {
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
           }
-          return "[" + leftPadTo6(innerPath) + "]";
+          return Optional.of(idx);
         } catch (NumberFormatException e) {
           String msg = String.format("Array path %s is not valid.", path);
           throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID, msg);
         }
       }
     }
-    return path;
+    return Optional.empty();
   }
 
   public static String leftPadTo6(String value) {
@@ -114,14 +149,49 @@ public final class DocsApiUtils {
       }
       String fieldValue = value.asText();
       List<String> fieldPath =
-          Arrays.stream(fieldValue.split("\\."))
+          Arrays.stream(fieldValue.split(PERIOD_PATTERN.pattern()))
               .map(DocsApiUtils::convertArrayPath)
+              .map(DocsApiUtils::convertEscapedCharacters)
               .collect(Collectors.toList());
 
       results.add(fieldPath);
     }
 
     return results;
+  }
+
+  public static boolean containsIllegalSequences(String x) {
+    String replaced = x.replaceAll(DocsApiUtils.ESCAPED_PATTERN.pattern(), "");
+    return replaced.contains("[")
+        || replaced.contains(".")
+        || replaced.contains("'")
+        || replaced.contains("\\");
+  }
+
+  /**
+   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string that only uses square
+   * brackets to denote pathing (e.g. "$['a']['b']['c'][0]". This is to allow escaping of certain
+   * characters, such as space, $, and @.
+   */
+  public static String convertJsonToBracketedPath(String path) {
+    String[] parts = PERIOD_PATTERN.split(path);
+    StringBuilder newPath = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i];
+      if (part.startsWith("$") && i == 0) {
+        newPath.append(part);
+      } else {
+        int indexOfBrace = part.indexOf('[');
+        if (indexOfBrace < 0) {
+          newPath.append("['").append(part).append("']");
+        } else {
+          String keyPart = part.substring(0, indexOfBrace);
+          String arrayPart = part.substring(indexOfBrace);
+          newPath.append("['").append(keyPart).append("']").append(arrayPart);
+        }
+      }
+    }
+    return newPath.toString();
   }
 
   /**
@@ -190,15 +260,17 @@ public final class DocsApiUtils {
     int targetPathSize = path.size();
 
     // short-circuit if the field is not matching
+    // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
     String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
-    if (!Objects.equals(field, leaf)) {
+    if (!Objects.equals(DocsApiUtils.convertEscapedCharacters(field), leaf)) {
       return false;
     }
 
     // short-circuit if p_n after path is not empty
-    String afterPath = row.getString(QueryConstants.P_COLUMN_NAME.apply(targetPathSize));
-    if (!Objects.equals(afterPath, "")) {
+    String targetP = QueryConstants.P_COLUMN_NAME.apply(targetPathSize);
+    boolean exists = row.columnExists(targetP);
+    if (!exists || !Objects.equals(row.getString(targetP), "")) {
       return false;
     }
 
@@ -227,10 +299,14 @@ public final class DocsApiUtils {
     for (String target : pathIterable) {
       int index = p++;
       // check that row has the request path depth
-      String path = row.getString(QueryConstants.P_COLUMN_NAME.apply(index));
-      if (null != path && path.length() == 0) {
+      String targetP = QueryConstants.P_COLUMN_NAME.apply(index);
+      boolean exists = row.columnExists(targetP);
+      if (!exists) {
         return false;
       }
+
+      // get the path
+      String path = row.getString(targetP);
 
       // skip any target path that is a wildcard
       if (Objects.equals(target, DocumentDB.GLOB_VALUE)) {
@@ -246,16 +322,10 @@ public final class DocsApiUtils {
         continue;
       }
 
-      boolean pathSegment = target.contains(",");
-      // if we have the path segment, we need to check if any matches
-      if (pathSegment) {
-        boolean noneMatch =
-            Arrays.stream(target.split(",")).noneMatch(t -> Objects.equals(t, path));
-        if (noneMatch) {
-          return false;
-        }
-      } else if (!Objects.equals(path, target)) {
-        // if not equal, fail
+      boolean noneMatch =
+          Arrays.stream(target.split(COMMA_PATTERN.pattern()))
+              .noneMatch(t -> Objects.equals(DocsApiUtils.convertEscapedCharacters(t), path));
+      if (noneMatch) {
         return false;
       }
     }

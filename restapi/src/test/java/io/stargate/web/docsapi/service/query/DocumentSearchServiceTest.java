@@ -20,6 +20,8 @@ package io.stargate.web.docsapi.service.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.reactivex.rxjava3.core.Flowable;
@@ -38,6 +40,9 @@ import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.ImmutableStringCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -75,7 +80,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   class SearchDocuments {
 
     @Test
-    public void happyPath() {
+    public void happyPath() throws Exception {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -85,7 +90,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -122,6 +127,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -209,7 +215,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void limitedResults() {
+    public void limitedResults() throws Exception {
       Paginator paginator = new Paginator(null, 1);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -219,7 +225,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
@@ -247,6 +253,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -312,7 +319,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingToPopulate() {
+    public void nothingToPopulate() throws Exception {
       Paginator paginator = new Paginator(null, 1);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -322,7 +329,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       String candidatesCql =
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert candidatesAssert =
-          withQuery(TABLE, candidatesCql)
+          withQuery(TABLE, candidatesCql, "some", "field", "field", "", "find-me")
               .withPageSize(configuration.getSearchPageSize())
               .returningNothing();
 
@@ -343,7 +350,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               context);
 
       // assert results
-      results.test().assertValueCount(0).assertComplete();
+      results.test().await().assertValueCount(0).assertComplete();
 
       // assert queries execution
       candidatesAssert.assertExecuteCount().isEqualTo(1);
@@ -374,11 +381,11 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
                 assertThat(c.queries()).isEmpty();
               });
 
-      ignorePreparedExecutions();
+      resetExpectations();
     }
 
     @Test
-    public void fullSearch() {
+    public void fullSearch() throws Exception {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
 
@@ -409,6 +416,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       // assert results
       results
           .test()
+          .await()
           .assertValueAt(
               0,
               doc -> {
@@ -473,6 +481,464 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
                           assertThat(queryInfo.preparedCQL())
                               .isEqualTo(
                                   String.format(searchCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+  }
+
+  @Nested
+  class SearchSubDocuments {
+
+    @Test
+    public void searchFullDoc() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      Paginator paginator = new Paginator(null, 20);
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
+
+      String cql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+      ValidatingDataStore.QueryAssert cqlAssert =
+          withQuery(TABLE, cql, documentId)
+              .withPageSize(configuration.getSearchPageSize())
+              .returning(
+                  Arrays.asList(
+                      ImmutableMap.of(
+                          "key",
+                          documentId,
+                          "text_value",
+                          "find-me",
+                          "p0",
+                          "field",
+                          "p1",
+                          "",
+                          "leaf",
+                          "field"),
+                      ImmutableMap.of(
+                          "key",
+                          documentId,
+                          "text_value",
+                          "other",
+                          "p0",
+                          "another",
+                          "p1",
+                          "",
+                          "leaf",
+                          "another")));
+
+      Flowable<RawDocument> results =
+          service.searchSubDocuments(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              Collections.emptyList(),
+              expression,
+              paginator,
+              context);
+
+      // assert results
+      results
+          .test()
+          .await()
+          .assertValue(
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows())
+                    .hasSize(2)
+                    .anySatisfy(
+                        r -> {
+                          assertThat(r.getString("key")).isEqualTo(documentId);
+                          assertThat(r.getString("text_value")).isEqualTo("find-me");
+                          assertThat(r.getString("p0")).isEqualTo("field");
+                          assertThat(r.getString("p1")).isEqualTo("");
+                        })
+                    .anySatisfy(
+                        r -> {
+                          assertThat(r.getString("key")).isEqualTo(documentId);
+                          assertThat(r.getString("text_value")).isEqualTo("other");
+                          assertThat(r.getString("p0")).isEqualTo("another");
+                          assertThat(r.getString("p1")).isEqualTo("");
+                        });
+                return true;
+              })
+          .assertComplete();
+
+      // assert queries execution
+      cqlAssert.assertExecuteCount().isEqualTo(1);
+
+      // assert execution context
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested())
+          .hasSize(1)
+          .anySatisfy(
+              c -> {
+                assertThat(c.description())
+                    .isEqualTo("SearchSubDocuments: sub-path '', expression: 'field EQ find-me'");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+
+    @Test
+    public void searchSubDoc() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      Paginator paginator = new Paginator(null, 20);
+      ExecutionContext context = ExecutionContext.create(true);
+      List<String> subPath = Collections.singletonList("field");
+      FilterPath filterPath = ImmutableFilterPath.of(subPath);
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
+
+      String cql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
+      ValidatingDataStore.QueryAssert cqlAssert =
+          withQuery(TABLE, cql, "field", documentId)
+              .withPageSize(configuration.getSearchPageSize())
+              .returning(
+                  Arrays.asList(
+                      ImmutableMap.of(
+                          "key",
+                          documentId,
+                          "text_value",
+                          "find-me",
+                          "p0",
+                          "field",
+                          "p1",
+                          "",
+                          "leaf",
+                          "field")));
+
+      Flowable<RawDocument> results =
+          service.searchSubDocuments(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subPath,
+              expression,
+              paginator,
+              context);
+
+      // assert results
+      results
+          .test()
+          .await()
+          .assertValue(
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows())
+                    .hasSize(1)
+                    .anySatisfy(
+                        r -> {
+                          assertThat(r.getString("key")).isEqualTo(documentId);
+                          assertThat(r.getString("text_value")).isEqualTo("find-me");
+                          assertThat(r.getString("p0")).isEqualTo("field");
+                          assertThat(r.getString("p1")).isEqualTo("");
+                        });
+                return true;
+              })
+          .assertComplete();
+
+      // assert queries execution
+      cqlAssert.assertExecuteCount().isEqualTo(1);
+
+      // assert execution context
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested())
+          .hasSize(1)
+          .anySatisfy(
+              c -> {
+                assertThat(c.description())
+                    .isEqualTo(
+                        "SearchSubDocuments: sub-path 'field', expression: 'field EQ find-me'");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+
+    @Test
+    public void searchSubDocPaginated() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      Paginator paginator = new Paginator(null, 2);
+      ExecutionContext context = ExecutionContext.create(true);
+      List<String> subPath = Collections.singletonList("*");
+
+      String cql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING";
+      ValidatingDataStore.QueryAssert cqlAssert =
+          withQuery(TABLE, cql, "", documentId)
+              .withPageSize(configuration.getSearchPageSize())
+              .returning(
+                  Arrays.asList(
+                      ImmutableMap.of("key", documentId, "text_value", "v1", "p0", "field1"),
+                      ImmutableMap.of("key", documentId, "text_value", "v2", "p0", "field2"),
+                      ImmutableMap.of("key", documentId, "text_value", "v3", "p0", "field3")));
+
+      Flowable<RawDocument> results =
+          service.searchSubDocuments(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subPath,
+              Literal.getTrue(),
+              paginator,
+              context);
+
+      // assert results
+      results
+          .test()
+          .await()
+          .assertValueAt(
+              0,
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows())
+                    .singleElement()
+                    .satisfies(
+                        r -> {
+                          assertThat(r.getString("key")).isEqualTo(documentId);
+                          assertThat(r.getString("p0")).isEqualTo("field1");
+                        });
+                return true;
+              })
+          .assertValueAt(
+              1,
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows())
+                    .singleElement()
+                    .satisfies(
+                        r -> {
+                          assertThat(r.getString("key")).isEqualTo(documentId);
+                          assertThat(r.getString("p0")).isEqualTo("field2");
+                        });
+                return true;
+              })
+          .assertComplete();
+
+      // assert queries execution
+      cqlAssert.assertExecuteCount().isEqualTo(1);
+
+      // assert execution context
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested())
+          .hasSize(1)
+          .anySatisfy(
+              c -> {
+                assertThat(c.description())
+                    .isEqualTo("SearchSubDocuments: sub-path '*', expression: 'true'");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(3);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+  }
+
+  @Nested
+  class GetDocument {
+
+    @Test
+    public void getSubDoc() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      List<String> subPath = Collections.singletonList("field");
+
+      String cql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
+      ValidatingDataStore.QueryAssert cqlAssert =
+          withQuery(TABLE, cql, "field", documentId)
+              .withPageSize(configuration.getSearchPageSize())
+              .returning(
+                  Arrays.asList(
+                      ImmutableMap.of(
+                          "key", documentId, "text_value", "v1", "p0", "field", "p1", "k1"),
+                      ImmutableMap.of(
+                          "key", documentId, "text_value", "v2", "p0", "field", "p1", "k2"),
+                      ImmutableMap.of(
+                          "key", documentId, "text_value", "v3", "p0", "field", "p1", "k3")));
+
+      Flowable<RawDocument> results =
+          service.getDocument(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subPath,
+              context);
+
+      // assert results
+      results
+          .test()
+          .await()
+          .assertValue(
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows()).hasSize(3);
+                return true;
+              })
+          .assertComplete();
+
+      // assert queries execution
+      cqlAssert.assertExecuteCount().isEqualTo(1);
+
+      // assert execution context
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested())
+          .hasSize(1)
+          .anySatisfy(
+              c -> {
+                assertThat(c.description()).isEqualTo("GetFullDocument");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(3);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+    }
+  }
+
+  @Nested
+  class SelectivityHints {
+
+    @Test
+    public void predicateOrderWithExplicitSelectivity() throws Exception {
+      Paginator paginator = new Paginator(null, 20);
+      ExecutionContext context = ExecutionContext.create(true);
+      FilterPath filterPath1 = ImmutableFilterPath.of(Arrays.asList("some", "field1"));
+      FilterPath filterPath2 = ImmutableFilterPath.of(Arrays.asList("some", "field2"));
+      BaseCondition condition = ImmutableStringCondition.of(EqFilterOperation.of(), "find-me");
+      Expression<FilterExpression> expression =
+          And.of(
+              // the filter on field2 is listed first but with worse selectivity
+              FilterExpression.of(filterPath2, condition, 0, 0.9),
+              // the filter on field1 is listed second but with better selectivity
+              FilterExpression.of(filterPath1, condition, 1, 0.5));
+
+      String candidatesCql =
+          "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? ALLOW FILTERING";
+      withQuery(TABLE, candidatesCql, "some", "field1", "field1", "", "find-me")
+          .withPageSize(configuration.getSearchPageSize())
+          .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
+      String filterCql =
+          "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING";
+      withQuery(TABLE, filterCql, "some", "field2", "field2", "", "find-me", "1", 1)
+          .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
+
+      String populateCql =
+          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+
+      withQuery(TABLE, populateCql, "1")
+          .withPageSize(configuration.getSearchPageSize())
+          .returning(
+              Arrays.asList(
+                  ImmutableMap.of("key", "1", "text_value", "find-me", "p0", "some", "p1", "field"),
+                  ImmutableMap.of(
+                      "key", "1", "text_value", "other", "p0", "another", "p1", "field")));
+
+      service
+          .searchDocuments(
+              new QueryExecutor(datastore()),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              expression,
+              paginator,
+              context)
+          .test()
+          .await()
+          .assertNoErrors();
+
+      // Rely on profiling output to validate the order of filter execution
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.nested()).hasSize(3);
+
+      assertThat(executionProfile.nested())
+          .element(0)
+          .satisfies(
+              c -> {
+                // Note: the filter on field1 becomes the top filter due to its lower selectivity
+                assertThat(c.description()).isEqualTo("FILTER: some.field1 EQ find-me");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                        });
+              });
+
+      assertThat(executionProfile.nested())
+          .element(1)
+          .satisfies(
+              c -> {
+                assertThat(c.description()).isEqualTo("PARALLEL [ALL OF]");
+                assertThat(c.nested())
+                    .singleElement()
+                    .satisfies(
+                        c1 -> {
+                          // Note: the filter on field2 becomes the nested filter due to its worse
+                          // selectivity
+                          assertThat(c1.description()).isEqualTo("FILTER: some.field2 EQ find-me");
+                          assertThat(c1.queries())
+                              .singleElement()
+                              .satisfies(
+                                  queryInfo -> {
+                                    assertThat(queryInfo.execCount()).isEqualTo(1);
+                                    assertThat(queryInfo.rowCount()).isEqualTo(1);
+                                    assertThat(queryInfo.preparedCQL())
+                                        .isEqualTo(
+                                            String.format(
+                                                filterCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                                  });
+                        });
+              });
+
+      assertThat(executionProfile.nested())
+          .element(2)
+          .satisfies(
+              c -> {
+                assertThat(c.description()).isEqualTo("LoadProperties");
+                assertThat(c.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      populateCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
     }

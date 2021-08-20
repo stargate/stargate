@@ -37,7 +37,7 @@ public abstract class AbstractDataStoreTest {
   @BeforeEach
   public void createDataStore() {
     dataStore = new ValidatingDataStore(schema());
-    dataStore.reset();
+    resetExpectations();
   }
 
   @AfterEach
@@ -45,14 +45,18 @@ public abstract class AbstractDataStoreTest {
     dataStore.validate();
   }
 
-  protected <T> List<T> values(Flowable<T> flowable) {
-    TestSubscriber<T> test = flowable.test();
+  protected <T> List<T> values(Flowable<T> flowable) throws Exception {
+    TestSubscriber<T> test = flowable.test().await();
     test.assertNoErrors();
     return test.values();
   }
 
   protected void ignorePreparedExecutions() {
     dataStore.ignorePrepared();
+  }
+
+  protected void resetExpectations() {
+    dataStore.reset();
   }
 
   protected QueryExpectation withQuery(Table table, String cql, Object... params) {

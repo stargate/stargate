@@ -18,8 +18,6 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.Optional;
@@ -37,22 +35,10 @@ public abstract class ExistsCondition implements BaseCondition {
   @Value.Parameter
   public abstract Boolean getQueryValue();
 
-  /** Validates the filter value as we only accept true */
-  @Value.Check
-  protected void validate() {
-    boolean queryValue = getQueryValue();
-    if (!Boolean.TRUE.equals(queryValue)) {
-      String msg =
-          String.format(
-              "%s only supports the value `true`", FilterOperationCode.EXISTS.getRawValue());
-      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
-    }
-  }
-
   /** {@inheritDoc} */
   @Override
   public boolean isPersistenceCondition() {
-    return true;
+    return getQueryValue();
   }
 
   /** {@inheritDoc} */
@@ -70,13 +56,19 @@ public abstract class ExistsCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public boolean isEvaluateOnMissingFields() {
-    return false;
+    return !getQueryValue();
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean test(Row row) {
-    // always test true when row is there :)
-    return true;
+    // row must always be non-null here
+    // if row exists then the test is true if query value is true
+    return getQueryValue();
+  }
+
+  @Override
+  public BaseCondition negate() {
+    return ImmutableExistsCondition.of(!getQueryValue());
   }
 }

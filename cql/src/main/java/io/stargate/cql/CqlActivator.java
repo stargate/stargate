@@ -26,8 +26,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.cassandra.config.Config;
-import org.jetbrains.annotations.Nullable;
 
 public class CqlActivator extends BaseActivator {
   private CqlImpl cql;

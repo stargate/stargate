@@ -425,4 +425,26 @@ public class FilterExpressionTest {
       verifyNoMoreInteractions(condition);
     }
   }
+
+  @Nested
+  class Negate {
+
+    @Test
+    void selectivity() {
+      FilterExpression filter = ImmutableFilterExpression.of(filterPath, condition, 0, 0.2);
+
+      when(condition.negate()).thenReturn(condition2);
+
+      assertThat(filter.negate().getSelectivity()).isEqualTo(0.8);
+    }
+
+    @Test
+    void condition() {
+      FilterExpression filter = ImmutableFilterExpression.of(filterPath, condition, 0, 0.2);
+
+      when(condition.negate()).thenReturn(condition2);
+
+      assertThat(filter.negate().getCondition()).isEqualTo(condition2);
+    }
+  }
 }

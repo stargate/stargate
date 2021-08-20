@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.condition.provider.ConditionProvider;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,15 +42,25 @@ public class ConditionParser {
    * @param conditionsNode Node containing the filter ops as keys
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Collection of created conditions.
-   * @throws io.stargate.web.docsapi.exception.DocumentAPIRequestException If filter op is not
-   *     found, condition constructions fails or filter value is not supported by the filter op.
+   * @throws io.stargate.web.docsapi.exception.ErrorCodeRuntimeException If filter op is not found,
+   *     condition constructions fails or filter value is not supported by the filter op.
    */
   public Collection<BaseCondition> getConditions(JsonNode conditionsNode, boolean numericBooleans) {
+    if (!conditionsNode.isObject()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID);
+    }
+
     List<BaseCondition> results = new ArrayList<>();
     Iterator<Map.Entry<String, JsonNode>> fields = conditionsNode.fields();
     fields.forEachRemaining(
         field -> {
           String filterOp = field.getKey();
+
+          // skip hints (processed elsewhere)
+          if (FilterHintCode.getByRawValue(filterOp).isPresent()) {
+            return;
+          }
+
           Optional<FilterOperationCode> operationCode = FilterOperationCode.getByRawValue(filterOp);
           if (operationCode.isPresent()) {
             JsonNode valueNode = field.getValue();
@@ -62,13 +73,13 @@ public class ConditionParser {
               // condition empty
               String msg =
                   String.format(
-                      "Operation %s does not support the provided value %s.",
+                      "Operation '%s' does not support the provided value %s.",
                       filterOp, valueNode.toPrettyString());
               throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
             }
           } else {
             // provider can not be found
-            String msg = String.format("Operation %s is not supported.", filterOp);
+            String msg = String.format("Operation '%s' is not supported.", filterOp);
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID, msg);
           }
         });

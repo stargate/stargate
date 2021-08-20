@@ -30,6 +30,8 @@ import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -37,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class BooleanConditionTest {
 
   @Mock ValueFilterOperation filterOperation;
+  @Mock ValueFilterOperation filterOperation2;
 
   @Nested
   class Constructor {
@@ -148,6 +151,26 @@ class BooleanConditionTest {
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class Negation {
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void simple(boolean queryValue) {
+      when(filterOperation.negate()).thenReturn(filterOperation2);
+
+      BooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, queryValue, true);
+
+      assertThat(condition.negate())
+          .isInstanceOfSatisfying(
+              BooleanCondition.class,
+              negated -> {
+                assertThat(negated.getQueryValue()).isEqualTo(queryValue);
+                assertThat(negated.getFilterOperation()).isEqualTo(filterOperation2);
+                assertThat(negated.isNumericBooleans()).isEqualTo(true);
+              });
     }
   }
 }

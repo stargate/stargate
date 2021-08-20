@@ -20,9 +20,9 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
-import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
+import io.stargate.web.docsapi.service.query.rules.ExpressionUtils;
 
 /**
  * Base resolver knows what {@link DocumentsResolver} should be created for the given {@link
@@ -52,14 +52,13 @@ public final class BaseResolver {
    */
   public static DocumentsResolver resolve(
       Expression<FilterExpression> expression, ExecutionContext context, DocumentsResolver parent) {
-
     // if we are hitting the literal TRUE, then return parent
     if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
       return parent;
     }
 
     // execute cnf optimization
-    Expression<FilterExpression> cnf = RuleSet.toCNF(expression);
+    Expression<FilterExpression> cnf = ExpressionUtils.toSimplifiedCnf(expression);
 
     // since this will simplify as well, check if we have And
     // if we have And proceed to the CNF resolver

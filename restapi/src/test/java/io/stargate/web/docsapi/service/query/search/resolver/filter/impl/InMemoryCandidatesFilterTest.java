@@ -111,7 +111,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
   class PrepareQuery {
 
     @Test
-    public void fixedPath() {
+    public void fixedPath() throws Exception {
       // fixed path has limit
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
@@ -127,7 +127,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
       Single<? extends Query<? extends BoundQuery>> single =
           filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
 
-      single.test().assertValueCount(1).assertComplete();
+      single.test().await().assertValueCount(1).assertComplete();
 
       // execution context not updated with execution
       assertThat(executionContext.toProfile().nested())
@@ -139,11 +139,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
 
     @Test
-    public void globComplexPath() {
+    public void globComplexPath() throws Exception {
       // glob path has no limits and glob px has GT as condition
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "*", "field"));
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
@@ -159,7 +159,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
       Single<? extends Query<? extends BoundQuery>> single =
           filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
 
-      single.test().assertValueCount(1).assertComplete();
+      single.test().await().assertValueCount(1).assertComplete();
 
       // execution context not updated with execution
       assertThat(executionContext.toProfile().nested())
@@ -171,7 +171,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               });
 
       // ignore prepared as we did not execute
-      ignorePreparedExecutions();
+      resetExpectations();
     }
   }
 
@@ -185,7 +185,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
     @Captor ArgumentCaptor<List<Row>> testRowsCaptor;
 
     @Test
-    public void fixedPath() {
+    public void fixedPath() throws Exception {
       // fixed path has limit and page size 2 on the execution
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -199,7 +199,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -211,7 +215,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(1).assertComplete();
+      result.test().await().assertValueCount(1).assertComplete();
       queryAssert.assertExecuteCount().isEqualTo(1);
 
       // execution context
@@ -246,7 +250,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void globPathMultipleExpressions() {
+    public void globPathMultipleExpressions() throws Exception {
       // glob path has no limits and glob px has GT as condition
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "*", "field"));
@@ -264,6 +268,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 > ? AND p2 = ? AND leaf = ? AND p3 = ? AND key = ? ALLOW FILTERING",
+                  "some",
+                  "",
+                  "field",
+                  "field",
+                  "",
                   documentId)
               .withPageSize(configuration.getSearchPageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
@@ -278,7 +287,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(1).assertComplete();
+      result.test().await().assertValueCount(1).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -315,7 +324,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingReturned() {
+    public void nothingReturned() throws Exception {
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
@@ -327,7 +336,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returningNothing();
 
@@ -339,7 +352,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -363,7 +376,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void nothingReturnedButEvalOnMissing() {
+    public void nothingReturnedButEvalOnMissing() throws Exception {
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
@@ -377,7 +390,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returningNothing();
 
@@ -389,7 +406,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(1).assertComplete();
+      result.test().await().assertValueCount(1).assertComplete();
 
       queryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -413,7 +430,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
     }
 
     @Test
-    public void testNotPassed() {
+    public void testNotPassed() throws Exception {
       // fixed path has limit and page size 2 on the execution
       String documentId = RandomStringUtils.randomAlphabetic(16);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
@@ -427,7 +444,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING",
-                  documentId)
+                  "field",
+                  "field",
+                  "",
+                  documentId,
+                  1)
               .withPageSize(2)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
@@ -439,7 +460,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .blockingGet();
       Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
 
-      result.test().assertValueCount(0).assertComplete();
+      result.test().await().assertValueCount(0).assertComplete();
       queryAssert.assertExecuteCount().isEqualTo(1);
 
       // execution context

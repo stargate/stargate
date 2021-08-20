@@ -40,6 +40,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class GenericConditionTest {
 
   @Mock GenericFilterOperation<Object> filterOperation;
+  @Mock GenericFilterOperation<Object> filterOperation2;
 
   @Mock Row row;
 
@@ -234,6 +235,27 @@ class GenericConditionTest {
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class Negation {
+    @Test
+    void simple() {
+      List<?> queryValue = Collections.singletonList("test");
+      when(filterOperation.negate()).thenReturn(filterOperation2);
+
+      GenericCondition<Object> condition =
+          ImmutableGenericCondition.of(filterOperation, queryValue, true);
+
+      assertThat(condition.negate())
+          .isInstanceOfSatisfying(
+              GenericCondition.class,
+              negated -> {
+                assertThat(negated.getQueryValue()).isEqualTo(queryValue);
+                assertThat(negated.getFilterOperation()).isEqualTo(filterOperation2);
+                assertThat(negated.isNumericBooleans()).isEqualTo(true);
+              });
     }
   }
 }

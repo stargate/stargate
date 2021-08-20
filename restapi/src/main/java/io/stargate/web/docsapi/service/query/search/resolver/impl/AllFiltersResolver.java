@@ -19,13 +19,7 @@ package io.stargate.web.docsapi.service.query.search.resolver.impl;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
-import io.reactivex.rxjava3.core.Single;
-import io.stargate.db.query.BoundQuery;
-import io.stargate.db.query.Query;
-import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
-import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.CandidatesFilter;
@@ -34,9 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.tuple.Pair;
 
-public class AllFiltersResolver implements DocumentsResolver {
+public class AllFiltersResolver extends AbstractFiltersResolver {
 
   private final Collection<CandidatesFilter> candidatesFilters;
 
@@ -59,55 +52,23 @@ public class AllFiltersResolver implements DocumentsResolver {
     this.candidatesResolver = candidatesResolver;
   }
 
+  /** {@inheritDoc} */
   @Override
-  public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
-    Flowable<RawDocument> candidates =
-        candidatesResolver.getDocuments(
-            queryExecutor, configuration, keyspace, collection, paginator);
+  protected Collection<CandidatesFilter> getCandidatesFilters() {
+    return candidatesFilters;
+  }
 
-    Single<List<Pair<? extends Query<? extends BoundQuery>, CandidatesFilter>>>
-        queriesToCandidates =
-            Flowable.fromIterable(candidatesFilters)
-                .flatMap(
-                    filter -> {
-                      Single<Pair<? extends Query<? extends BoundQuery>, CandidatesFilter>>
-                          pairSingle =
-                              filter
-                                  .prepareQuery(
-                                      queryExecutor.getDataStore(),
-                                      configuration,
-                                      keyspace,
-                                      collection)
-                                  .zipWith(Single.just(filter), Pair::of);
+  /** {@inheritDoc} */
+  @Override
+  protected DocumentsResolver getCandidatesResolver() {
+    return candidatesResolver;
+  }
 
-                      return pairSingle.toFlowable();
-                    })
-                .toList()
-                .cache();
-
-    return candidates
-        .concatMapSingle(doc -> queriesToCandidates.map(prepared -> Pair.of(doc, prepared)))
-        .concatMap(
-            pair -> {
-              RawDocument doc = pair.getLeft();
-              List<Maybe<?>> sources =
-                  pair.getRight().stream()
-                      .map(
-                          queryToFilter -> {
-                            CandidatesFilter filter = queryToFilter.getRight();
-                            Query<? extends BoundQuery> query = queryToFilter.getLeft();
-                            return filter.bindAndFilter(queryExecutor, configuration, query, doc);
-                          })
-                      .collect(Collectors.toList());
-
-              // only if all filters emit the item, return the doc
-              // this means all filters are passed
-              return Maybe.zip(sources, objects -> doc).toFlowable();
-            });
+  /** {@inheritDoc} */
+  @Override
+  protected Flowable<RawDocument> resolveSources(RawDocument rawDocument, List<Maybe<?>> sources) {
+    // only if all filters emit the item, return the doc
+    // this means all filters are passed
+    return Maybe.zip(sources, objects -> rawDocument).toFlowable();
   }
 }

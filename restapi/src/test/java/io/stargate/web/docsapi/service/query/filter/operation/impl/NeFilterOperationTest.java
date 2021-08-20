@@ -148,4 +148,12 @@ class NeFilterOperationTest {
       assertThat(result).isTrue();
     }
   }
+
+  @Nested
+  class Negation {
+    @Test
+    public void negate() {
+      assertThat(ne.negate()).isInstanceOf(EqFilterOperation.class);
+    }
+  }
 }

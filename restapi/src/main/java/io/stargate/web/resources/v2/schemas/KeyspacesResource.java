@@ -18,7 +18,6 @@ package io.stargate.web.resources.v2.schemas;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
@@ -31,6 +30,7 @@ import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.resources.ResourceUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -65,7 +65,6 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 public class KeyspacesResource {
   @Inject private Db db;
-  private static final ObjectMapper mapper = new ObjectMapper();
 
   @Timed
   @GET
@@ -220,7 +219,7 @@ public class KeyspacesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+          Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           String keyspaceName = (String) requestBody.get("name");
           db.getAuthorizationService()

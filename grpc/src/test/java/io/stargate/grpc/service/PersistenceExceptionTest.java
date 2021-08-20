@@ -75,7 +75,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.UNAVAILABLE.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              Unavailable metadata = se.getTrailers().get(Service.UNAVAILABLE_KEY);
+              Unavailable metadata = se.getTrailers().get(MessageHandler.UNAVAILABLE_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.QUORUM);
               assertThat(metadata.getRequired()).isEqualTo(2);
@@ -97,7 +97,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.DEADLINE_EXCEEDED.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              WriteTimeout metadata = se.getTrailers().get(Service.WRITE_TIMEOUT_KEY);
+              WriteTimeout metadata = se.getTrailers().get(MessageHandler.WRITE_TIMEOUT_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.LOCAL_QUORUM);
               assertThat(metadata.getWriteType()).isEqualTo("BATCH");
@@ -119,7 +119,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.DEADLINE_EXCEEDED.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              ReadTimeout metadata = se.getTrailers().get(Service.READ_TIMEOUT_KEY);
+              ReadTimeout metadata = se.getTrailers().get(MessageHandler.READ_TIMEOUT_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.LOCAL_QUORUM);
               assertThat(metadata.getReceived()).isEqualTo(1);
@@ -150,7 +150,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.ABORTED.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              ReadFailure metadata = se.getTrailers().get(Service.READ_FAILURE_KEY);
+              ReadFailure metadata = se.getTrailers().get(MessageHandler.READ_FAILURE_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.TWO);
               assertThat(metadata.getReceived()).isEqualTo(0);
@@ -176,7 +176,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.FAILED_PRECONDITION.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              FunctionFailure metadata = se.getTrailers().get(Service.FUNCTION_FAILURE_KEY);
+              FunctionFailure metadata = se.getTrailers().get(MessageHandler.FUNCTION_FAILURE_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getKeyspace()).isEqualTo("ks");
               assertThat(metadata.getFunction()).isEqualTo("fn");
@@ -206,7 +206,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.ABORTED.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              WriteFailure metadata = se.getTrailers().get(Service.WRITE_FAILURE_KEY);
+              WriteFailure metadata = se.getTrailers().get(MessageHandler.WRITE_FAILURE_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.THREE);
               assertThat(metadata.getReceived()).isEqualTo(1);
@@ -225,7 +225,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.ALREADY_EXISTS.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              AlreadyExists metadata = se.getTrailers().get(Service.ALREADY_EXISTS_KEY);
+              AlreadyExists metadata = se.getTrailers().get(MessageHandler.ALREADY_EXISTS_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getKeyspace()).isEqualTo("ks");
               assertThat(metadata.getTable()).isEqualTo("table");
@@ -245,7 +245,7 @@ public class PersistenceExceptionTest extends BaseServiceTest {
               StatusRuntimeException se = (StatusRuntimeException) ex;
               assertThat(se.getStatus().getCode()).isEqualTo(Status.ABORTED.getCode());
               assertThat(se.getTrailers()).isNotNull();
-              CasWriteUnknown metadata = se.getTrailers().get(Service.CAS_WRITE_UNKNOWN_KEY);
+              CasWriteUnknown metadata = se.getTrailers().get(MessageHandler.CAS_WRITE_UNKNOWN_KEY);
               assertThat(metadata).isNotNull();
               assertThat(metadata.getConsistency()).isEqualTo(Consistency.SERIAL);
               assertThat(metadata.getReceived()).isEqualTo(2);

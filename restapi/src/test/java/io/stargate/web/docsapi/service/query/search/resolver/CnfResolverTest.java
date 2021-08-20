@@ -20,6 +20,7 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Or;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -34,7 +35,9 @@ import io.stargate.web.docsapi.service.query.filter.operation.impl.LtFilterOpera
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.InMemoryCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.impl.PersistenceCandidatesFilter;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.AllFiltersResolver;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.AnyFiltersResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
+import io.stargate.web.docsapi.service.query.search.resolver.impl.OrExpressionDocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
 import java.util.Collections;
 import org.junit.jupiter.api.Nested;
@@ -198,5 +201,101 @@ class CnfResolverTest {
                     .allSatisfy(cf -> assertThat(cf).isInstanceOf(InMemoryCandidatesFilter.class));
               });
     }
+  }
+
+  @Test
+  public void mixed4ExpressionsWithOrs() {
+    ExecutionContext context = ExecutionContext.create(true);
+    FilterPath filterPath1 = ImmutableFilterPath.of(Collections.singletonList("field1"));
+    FilterPath filterPath2 = ImmutableFilterPath.of(Collections.singletonList("field2"));
+    BaseCondition prsCondition = ImmutableStringCondition.of(GtFilterOperation.of(), "find-me");
+    BaseCondition memCondition =
+        ImmutableGenericCondition.of(
+            InFilterOperation.of(), Collections.singletonList("find-me"), false);
+    FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, prsCondition, 0);
+    FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, prsCondition, 1);
+    FilterExpression expression3 = ImmutableFilterExpression.of(filterPath1, memCondition, 2);
+    FilterExpression expression4 = ImmutableFilterExpression.of(filterPath2, memCondition, 3);
+
+    DocumentsResolver result =
+        CnfResolver.resolve(
+            And.of(expression1, Or.of(expression2, expression3), expression4), context);
+
+    // |
+    // | -> persistence candidates (1 exp)
+    // | -> or filters (2 exp)
+    // | -> in-memory filters (1 exp)
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            AllFiltersResolver.class,
+            allOf -> {
+              assertThat(allOf)
+                  .extracting("candidatesResolver")
+                  .isInstanceOfSatisfying(
+                      AnyFiltersResolver.class,
+                      anyOf2 -> {
+                        assertThat(anyOf2)
+                            .extracting("candidatesResolver")
+                            .isInstanceOf(PersistenceDocumentsResolver.class);
+                        assertThat(anyOf2)
+                            .extracting("candidatesFilters")
+                            .asList()
+                            .hasSize(2)
+                            .anySatisfy(
+                                cf -> assertThat(cf).isInstanceOf(InMemoryCandidatesFilter.class))
+                            .anySatisfy(
+                                cf ->
+                                    assertThat(cf).isInstanceOf(PersistenceCandidatesFilter.class));
+                      });
+              assertThat(allOf)
+                  .extracting("candidatesFilters")
+                  .asList()
+                  .singleElement()
+                  .satisfies(cf -> assertThat(cf).isInstanceOf(InMemoryCandidatesFilter.class));
+            });
+  }
+
+  @Test
+  public void onlyInMemoryWithOrs() {
+    ExecutionContext context = ExecutionContext.create(true);
+    FilterPath filterPath1 = ImmutableFilterPath.of(Collections.singletonList("field1"));
+    FilterPath filterPath2 = ImmutableFilterPath.of(Collections.singletonList("field2"));
+    BaseCondition memCondition =
+        ImmutableGenericCondition.of(
+            InFilterOperation.of(), Collections.singletonList("find-me"), false);
+    BaseCondition memCondition2 =
+        ImmutableGenericCondition.of(
+            InFilterOperation.of(), Collections.singletonList("find-me-again"), false);
+    FilterExpression expression1 = ImmutableFilterExpression.of(filterPath1, memCondition, 0);
+    FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, memCondition, 1);
+    FilterExpression expression3 = ImmutableFilterExpression.of(filterPath1, memCondition2, 2);
+    FilterExpression expression4 = ImmutableFilterExpression.of(filterPath2, memCondition2, 3);
+
+    DocumentsResolver result =
+        CnfResolver.resolve(
+            And.of(expression1, Or.of(expression2, expression3), expression4), context);
+
+    // |
+    // | -> or filters (2 exp)
+    // | -> in-memory filters (2 exp)
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            AllFiltersResolver.class,
+            allOf -> {
+              assertThat(allOf)
+                  .extracting("candidatesResolver")
+                  .isInstanceOfSatisfying(
+                      OrExpressionDocumentsResolver.class,
+                      orResolver -> {
+                        assertThat(orResolver).extracting("queryBuilders").asList().hasSize(2);
+                      });
+              assertThat(allOf)
+                  .extracting("candidatesFilters")
+                  .asList()
+                  .hasSize(2)
+                  .allSatisfy(cf -> assertThat(cf).isInstanceOf(InMemoryCandidatesFilter.class));
+            });
   }
 }

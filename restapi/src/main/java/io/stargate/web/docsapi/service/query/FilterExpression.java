@@ -23,6 +23,7 @@ import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
+import io.stargate.web.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,6 +53,45 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   /** @return Returns the order index of this filter expression given by the user. */
   @Value.Parameter
   public abstract int getOrderIndex();
+
+  /**
+   * The best known selectivity of this filter expression.
+   *
+   * <p>Selectivity is a value between 0 and 1 (inclusive) that represents the percentage of rows
+   * that are expected to be matched by this filter.
+   *
+   * <p>By default, filters that do not have an explicit selectivity {@link
+   * FilterHintCode#SELECTIVITY hint} provided by the query get the selectivity value of {@code 1.0}
+   * (the worst possible selectivity).
+   */
+  @Value.Default
+  // Do not use selectivity for equality comparisons. This is critical to allow expression
+  // simplification (see `ExpressionUtilsTest`) in cases where filters do not have proper
+  // selectivity hints defined (hints are optional).
+  @Value.Auxiliary
+  public double getSelectivity() {
+    return 1.0;
+  }
+
+  public static FilterExpression of(
+      FilterPath filterPath, BaseCondition condition, int orderIndex, double selectivity) {
+    return ImmutableFilterExpression.builder()
+        .filterPath(filterPath)
+        .condition(condition)
+        .orderIndex(orderIndex)
+        .selectivity(selectivity)
+        .build();
+  }
+
+  public FilterExpression negate() {
+    return ImmutableFilterExpression.builder()
+        .filterPath(getFilterPath())
+        .condition(getCondition().negate())
+        .orderIndex(getOrderIndex())
+        // The negated filter will select rows complementing the ones selected by source filter
+        .selectivity(1.0 - getSelectivity())
+        .build();
+  }
 
   /** @return Returns human-readable description of this expression. */
   public String getDescription() {
@@ -123,7 +163,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   }
 
   // if given row matches the filter path in the
-  private boolean matchesFilterPath(Row row) {
+  public boolean matchesFilterPath(Row row) {
     List<String> targetPath = getFilterPath().getPath();
     return DocsApiUtils.isRowMatchingPath(row, targetPath);
   }
@@ -172,5 +212,10 @@ public abstract class FilterExpression extends Expression<FilterExpression>
       Map<FilterExpression, Expression<FilterExpression>> m,
       ExprFactory<FilterExpression> exprFactory) {
     throw new UnsupportedOperationException("FilterExpression does not work with the vars.");
+  }
+
+  @Override
+  public String toString() {
+    return getDescription();
   }
 }
