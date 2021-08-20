@@ -20,7 +20,6 @@ import static io.stargate.grpc.codec.cql.ValueCodec.decodeValue;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
-import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -166,7 +165,6 @@ public class ValuesHandler implements PayloadHandler {
           BytesValue.newBuilder()
               .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
               .build());
-      resultSetBuilder.setPageSize(Int32Value.newBuilder().setValue(rows.rows.size()).build());
     }
     return Any.pack(resultSetBuilder.build());
   }
