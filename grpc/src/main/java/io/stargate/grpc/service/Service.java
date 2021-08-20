@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.immutables.value.Value;
 
 public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
@@ -44,6 +45,8 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
   public static final int DEFAULT_PAGE_SIZE = 100;
+  public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
+  public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
 

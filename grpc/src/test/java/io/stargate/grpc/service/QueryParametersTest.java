@@ -83,11 +83,17 @@ public class QueryParametersTest extends BaseServiceTest {
     return Stream.of(
         arguments(
             cqlQueryParameters().build(),
-            Parameters.builder().pageSize(Service.DEFAULT_PAGE_SIZE).build()),
+            Parameters.builder()
+                .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .build()),
         arguments(
             cqlQueryParameters().setKeyspace(StringValue.newBuilder().setValue("abc")).build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultKeyspace("abc")
                 .build()),
         arguments(
@@ -97,6 +103,7 @@ public class QueryParametersTest extends BaseServiceTest {
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
                 .consistencyLevel(ConsistencyLevel.THREE)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .build()),
         arguments(
             cqlQueryParameters()
@@ -105,38 +112,54 @@ public class QueryParametersTest extends BaseServiceTest {
                 .build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
                 .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
                 .build()),
         arguments(
             cqlQueryParameters()
                 .setNowInSeconds(Int32Value.newBuilder().setValue(12345).build())
                 .build(),
-            Parameters.builder().pageSize(Service.DEFAULT_PAGE_SIZE).nowInSeconds(12345).build()),
+            Parameters.builder()
+                .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .nowInSeconds(12345)
+                .build()),
         arguments(
             cqlQueryParameters()
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultTimestamp(1234567890)
                 .build()),
         arguments(
             cqlQueryParameters().setTracing(true).build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(true)
                 .build()),
         arguments(
             cqlQueryParameters().setTracing(false).build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(false)
                 .build()),
         arguments(
             cqlQueryParameters()
                 .setPageSize(Int32Value.newBuilder().setValue(99999).build())
                 .build(),
-            Parameters.builder().pageSize(99999).build()),
+            Parameters.builder()
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(99999)
+                .build()),
         arguments(
             cqlQueryParameters()
                 .setPagingState(
@@ -146,6 +169,8 @@ public class QueryParametersTest extends BaseServiceTest {
                 .build(),
             Parameters.builder()
                 .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
                 .pagingState(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'}))
                 .build()),
         arguments(
