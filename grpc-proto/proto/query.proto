@@ -185,7 +185,7 @@ message QueryParameters {
   // subsequent pages.
   // Note that this is only a suggestion, the server reserves the right to return slightly smaller
   // or bigger pages.
-  // If unset, the request won't page.
+  // If unset, it defaults to 100.
   google.protobuf.Int32Value page_size = 3;
 
   // A paging state that indicates where to resume iteration in the result set. This is used to

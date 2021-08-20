@@ -43,6 +43,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
+  public static final int DEFAULT_PAGE_SIZE = 100;
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
 
