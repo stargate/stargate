@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -60,6 +61,8 @@ import org.slf4j.LoggerFactory;
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public static final String PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final String INTERNAL_PROXY_DNS_NAME =
+      System.getProperty("stargate.proxy_protocol.internal_dns_name");
   public static final int PROXY_PORT =
       Integer.getInteger(
           "stargate.proxy_protocol.port", DatabaseDescriptor.getNativeTransportPort());
@@ -97,24 +100,36 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   public ProxyProtocolQueryInterceptor(QueryInterceptor wrapped) {
-    this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS, wrapped);
+    this(
+        new DefaultResolver(),
+        PROXY_DNS_NAME,
+        INTERNAL_PROXY_DNS_NAME,
+        PROXY_PORT,
+        RESOLVE_DELAY_SECS,
+        wrapped);
   }
 
   @VisibleForTesting
   public ProxyProtocolQueryInterceptor(
-      Resolver resolver, String proxyDnsName, int proxyPort, long resolveDelaySecs) {
-    this(resolver, proxyDnsName, proxyPort, resolveDelaySecs, null);
+      Resolver resolver,
+      String proxyDnsName,
+      String internalProxyDnsName,
+      int proxyPort,
+      long resolveDelaySecs) {
+    this(resolver, proxyDnsName, internalProxyDnsName, proxyPort, resolveDelaySecs, null);
   }
 
   private ProxyProtocolQueryInterceptor(
       Resolver resolver,
       String proxyDnsName,
+      String internalProxyDnsName,
       int proxyPort,
       long resolveDelaySecs,
       QueryInterceptor wrapped) {
     this.resolver = resolver;
-    this.proxyDnsName = proxyDnsName;
-    this.internalProxyDnsName = "internal-" + proxyDnsName;
+    this.proxyDnsName = Objects.requireNonNull(proxyDnsName);
+    this.internalProxyDnsName =
+        (internalProxyDnsName == null) ? "internal-" + proxyDnsName : internalProxyDnsName;
     this.proxyPort = proxyPort;
     this.resolveDelaySecs = resolveDelaySecs;
     this.wrapped = Optional.ofNullable(wrapped);
