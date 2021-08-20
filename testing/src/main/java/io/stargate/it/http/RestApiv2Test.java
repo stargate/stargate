@@ -198,6 +198,15 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void createKeyspaceWithInvalidJson() throws IOException {
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/schemas/keyspaces", host),
+        "{\"name\" \"badjsonkeyspace\", \"replicas\": 1}",
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void deleteKeyspace() throws IOException {
     String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
     createKeyspace(keyspaceName);
@@ -872,6 +881,20 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getRowsWithQueryAndInvalidSort() throws IOException {
+    String rowIdentifier = setupClusteringTestCase();
+
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+                host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void getRowsWithNotFound() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1418,6 +1441,18 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void addRowWithInvalidJson() throws IOException {
+    createKeyspace(keyspaceName);
+    createTable(keyspaceName, tableName);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        "{\"id\": \"af2603d2-8c03-11eb-a03f-0ada685e0000\",\"firstName: \"john\"}",
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
   public void updateRow() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1592,6 +1627,30 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(dataList.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(dataList.get(0).get("counter1")).isEqualTo("1");
     assertThat(dataList.get(0).get("counter2")).isEqualTo("-1");
+  }
+
+  @Test
+  public void updateRowWithInvalidJson() throws IOException {
+    createKeyspace(keyspaceName);
+    createTable(keyspaceName, tableName);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("firstName", "John");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    RestUtils.put(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+        "{\"firstName\": \"Robert,\"lastName\": \"Plant\"}",
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test

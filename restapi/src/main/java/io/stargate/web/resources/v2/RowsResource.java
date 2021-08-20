@@ -19,7 +19,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -44,6 +43,7 @@ import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.resources.ResourceUtils;
 import io.stargate.web.service.WhereParser;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -87,7 +87,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class RowsResource {
 
   @Inject private Db db;
-  private static final ObjectMapper mapper = new ObjectMapper();
+
   private final int DEFAULT_PAGE_SIZE = 100;
 
   @Timed
@@ -380,8 +380,7 @@ public class RowsResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          @SuppressWarnings("unchecked")
-          Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+          Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           Table table = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -602,8 +601,7 @@ public class RowsResource {
           .build();
     }
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> requestBody = mapper.readValue(payload, Map.class);
+    Map<String, Object> requestBody = ResourceUtils.readJson(payload);
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
             .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
@@ -693,18 +691,17 @@ public class RowsResource {
     return raw ? rows : new GetResponseWrapper(rows.size(), newPagingState, rows);
   }
 
-  private List<ColumnOrder> buildSortOrder(String sort)
-      throws com.fasterxml.jackson.core.JsonProcessingException {
+  private List<ColumnOrder> buildSortOrder(String sort) {
     if (Strings.isNullOrEmpty(sort)) {
       return new ArrayList<>();
     }
 
     List<ColumnOrder> order = new ArrayList<>();
-    Map<String, String> sortOrder = mapper.readValue(sort, Map.class);
+    Map<String, Object> sortOrder = ResourceUtils.readJson(sort);
 
-    for (Map.Entry<String, String> entry : sortOrder.entrySet()) {
+    for (Map.Entry<String, Object> entry : sortOrder.entrySet()) {
       Column.Order colOrder =
-          "asc".equalsIgnoreCase(entry.getValue()) ? Column.Order.ASC : Column.Order.DESC;
+          "asc".equalsIgnoreCase((String) entry.getValue()) ? Column.Order.ASC : Column.Order.DESC;
       order.add(ColumnOrder.of(entry.getKey(), colOrder));
     }
     return order;
