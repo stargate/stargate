@@ -488,12 +488,9 @@ message ResultSet {
   // The rows of CQL data.
   repeated Row rows = 2;
 
-  // Deprecated: result sets don't include this field anymore. It can be inferred from rows.size.
-  google.protobuf.Int32Value page_size = 3 [deprecated = true];
-
   // If there are more pages, a paging state that will allow the client to build a new query for the
   // next page.
-  google.protobuf.BytesValue paging_state = 4;
+  google.protobuf.BytesValue paging_state = 3;
 }
 
 // A query inside of a Batch message.
