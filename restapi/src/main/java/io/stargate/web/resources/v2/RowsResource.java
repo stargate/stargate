@@ -19,7 +19,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
@@ -88,7 +87,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class RowsResource {
 
   @Inject private Db db;
-  private static final ObjectMapper mapper = new ObjectMapper();
+
   private final int DEFAULT_PAGE_SIZE = 100;
 
   @Timed
@@ -381,7 +380,7 @@ public class RowsResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Map<String, Object> requestBody = ResourceUtils.readJson(payload, mapper);
+          Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           Table table = authenticatedDB.getTable(keyspaceName, tableName);
 
@@ -602,7 +601,7 @@ public class RowsResource {
           .build();
     }
 
-    Map<String, Object> requestBody = ResourceUtils.readJson(payload, mapper);
+    Map<String, Object> requestBody = ResourceUtils.readJson(payload);
     List<ValueModifier> changes =
         requestBody.entrySet().stream()
             .map(e -> Converters.colToValue(e.getKey(), e.getValue(), tableMetadata))
@@ -698,7 +697,7 @@ public class RowsResource {
     }
 
     List<ColumnOrder> order = new ArrayList<>();
-    Map<String, Object> sortOrder = ResourceUtils.readJson(sort, mapper);
+    Map<String, Object> sortOrder = ResourceUtils.readJson(sort);
 
     for (Map.Entry<String, Object> entry : sortOrder.entrySet()) {
       Column.Order colOrder =
