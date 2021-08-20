@@ -32,6 +32,8 @@ import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
+import io.stargate.grpc.retries.DefaultRetryPolicy;
+import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.Service.PrepareInfo;
 import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
@@ -47,6 +49,7 @@ import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -92,6 +95,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache;
   protected final Persistence persistence;
   private final StreamObserver<Response> responseObserver;
+  private final DefaultRetryPolicy retryPolicy;
 
   protected MessageHandler(
       MessageT message,
@@ -104,27 +108,70 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     this.preparedCache = preparedCache;
     this.persistence = persistence;
     this.responseObserver = responseObserver;
+    this.retryPolicy = new DefaultRetryPolicy();
   }
 
   void handle() {
     try {
       validate();
+      executeWithRetry(0);
 
-      CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
-      handleUnprepared(resultFuture)
-          .thenApply(this::buildResponse)
-          .thenCompose(this::executeTracingQueryIfNeeded)
-          .whenComplete(
-              (response, error) -> {
-                if (error != null) {
-                  handleException(error);
-                } else {
-                  setSuccess(response);
-                }
-              });
     } catch (Throwable t) {
       handleException(t);
     }
+  }
+
+  private void executeWithRetry(int retryCount) {
+    executeQuery()
+        .whenComplete(
+            (response, error) -> {
+              if (error != null) {
+                RetryDecision decision = shouldRetry(error, retryCount);
+                if (decision == RetryDecision.RETRY) {
+                  executeWithRetry(retryCount + 1);
+                } else if (decision == RetryDecision.RETHROW) {
+                  handleException(error);
+                }
+              } else {
+                setSuccess(response);
+              }
+            });
+  }
+
+  protected RetryDecision shouldRetry(Throwable throwable, int retryCount) {
+    Optional<PersistenceException> cause = unwrapCause(throwable);
+    if (!cause.isPresent()) {
+      return RetryDecision.RETHROW;
+    }
+    PersistenceException pe = cause.get();
+    switch (pe.code()) {
+      case UNAVAILABLE:
+        return retryPolicy.onUnavailable((UnavailableException) pe, retryCount);
+      case READ_TIMEOUT:
+        return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
+      default:
+        return RetryDecision.RETHROW;
+    }
+  }
+
+  protected Optional<PersistenceException> unwrapCause(Throwable throwable) {
+    if (throwable instanceof CompletionException) {
+      return unwrapCause(throwable.getCause());
+    } else if (throwable instanceof StatusException
+        || throwable instanceof StatusRuntimeException) {
+      return Optional.empty();
+    } else if (throwable instanceof PersistenceException) {
+      return Optional.of((PersistenceException) throwable);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  public CompletionStage<Response> executeQuery() {
+    CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
+    return handleUnprepared(resultFuture)
+        .thenApply(this::buildResponse)
+        .thenCompose(this::executeTracingQueryIfNeeded);
   }
 
   /** Performs any necessary validation on the message before execution starts. */
