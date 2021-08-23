@@ -27,6 +27,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import io.stargate.grpc.idempotency.IdempotencyAnalyzer;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
@@ -99,6 +100,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
+    responseBuilder.setIsIdempotent(IdempotencyAnalyzer.isIdempotent(message.getCql()));
     switch (result.kind) {
       case Void:
         break;

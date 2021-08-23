@@ -359,6 +359,9 @@ message Response {
   repeated string warnings = 2;
   // The tracing information, if it was requested for the query.
   Traces traces = 3;
+
+  // Denotes if the query is idempotent or not. If it is, it is safe to retry it client-side
+  bool isIdempotent = 5;
 }
 
 // Thrown when the coordinator knows there is not enough replicas alive to perform a query with the

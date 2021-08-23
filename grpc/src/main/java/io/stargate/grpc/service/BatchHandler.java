@@ -29,6 +29,7 @@ import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
+import io.stargate.grpc.idempotency.IdempotencyAnalyzer;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
@@ -117,6 +118,7 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
       try {
         Any data = handler.processResult((Result.Rows) result, message.getParameters());
         responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
+        responseBuilder.setIsIdempotent(IdempotencyAnalyzer.isIdempotent(message.getQueriesList()));
       } catch (Exception e) {
         throw new CompletionException(e);
       }
