@@ -26,6 +26,7 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -80,7 +81,7 @@ public class IdempotencyTest extends GrpcIntegrationTest {
                     cqlBatchQuery(
                         "INSERT INTO test (k, v) VALUES (?, ?)",
                         Values.of("b"),
-                        Values.of("123e4567-e89b-12d3-a456-426614174001")))
+                        Values.of(UUID.randomUUID())))
                 .setParameters(batchParameters(keyspace))
                 .build());
     assertThat(response).isNotNull();
