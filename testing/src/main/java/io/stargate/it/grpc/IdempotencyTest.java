@@ -48,7 +48,9 @@ public class IdempotencyTest extends GrpcIntegrationTest {
 
     Response response =
         stub.executeQuery(
-            cqlQuery("INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174000)", queryParameters(keyspace)));
+            cqlQuery(
+                "INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174000)",
+                queryParameters(keyspace)));
     assertThat(response).isNotNull();
     assertThat(response.getIsIdempotent()).isTrue();
   }
@@ -71,10 +73,14 @@ public class IdempotencyTest extends GrpcIntegrationTest {
     Response response =
         stub.executeBatch(
             QueryOuterClass.Batch.newBuilder()
-                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174000)"))
                 .addQueries(
                     cqlBatchQuery(
-                        "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of("123e4567-e89b-12d3-a456-426614174001")))
+                        "INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174000)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES (?, ?)",
+                        Values.of("b"),
+                        Values.of("123e4567-e89b-12d3-a456-426614174001")))
                 .setParameters(batchParameters(keyspace))
                 .build());
     assertThat(response).isNotNull();
@@ -88,10 +94,12 @@ public class IdempotencyTest extends GrpcIntegrationTest {
     Response response =
         stub.executeBatch(
             QueryOuterClass.Batch.newBuilder()
-                .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174001)"))
+                .addQueries(
+                    cqlBatchQuery(
+                        "INSERT INTO test (k, v) VALUES ('a', 123e4567-e89b-12d3-a456-426614174001)"))
                 .addQueries(
                     cqlBatchQuery("INSERT INTO test (k, v) VALUES (?, uuid())", Values.of("b")))
-                 .setParameters(batchParameters(keyspace))
+                .setParameters(batchParameters(keyspace))
                 .build());
     assertThat(response).isNotNull();
     assertThat(response.getIsIdempotent()).isFalse();
