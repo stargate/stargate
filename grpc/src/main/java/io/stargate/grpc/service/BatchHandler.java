@@ -118,12 +118,12 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
       try {
         Any data = handler.processResult((Result.Rows) result, message.getParameters());
         responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
-        responseBuilder.setIsIdempotent(IdempotencyAnalyzer.isIdempotent(message.getQueriesList()));
       } catch (Exception e) {
         throw new CompletionException(e);
       }
     }
 
+    responseBuilder.setIsIdempotent(IdempotencyAnalyzer.isIdempotent(message.getQueriesList()));
     responseAndTraceId.setResponseBuilder(responseBuilder);
     return responseAndTraceId;
   }
