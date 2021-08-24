@@ -18,9 +18,12 @@ package io.stargate.grpc.idempotency;
 import io.stargate.proto.QueryOuterClass;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class IdempotencyAnalyzer {
-  private static final List<String> nonIdempotentFunctions = Arrays.asList("now()", "uuid()");
+  private static final List<String> NON_IDEMPOTENT_FUNCTIONS = Arrays.asList("now()", "uuid()");
+  private static final Pattern DELETE_FROM_MAP_PATTERN =
+      Pattern.compile("[a-zA-Z0-9 ] \\["); // any table name followed by white space and '['
 
   public static boolean isIdempotent(List<QueryOuterClass.BatchQuery> queries) {
     for (QueryOuterClass.BatchQuery query : queries) {
@@ -34,24 +37,42 @@ public class IdempotencyAnalyzer {
   }
 
   public static boolean isIdempotent(String query) {
+    String q = query.toUpperCase();
     // analyze only mutations
-    if (query.contains("SELECT")) {
+    if (q.contains("SELECT")) {
       return true;
     }
 
-    // check if it is updating a Collection or Counter
-    if (query.contains("SET") && query.contains("+") && query.contains("WHERE")) {
+    // check if it is an update/insert to a set or map
+    if (q.contains("SET")
+        && q.contains("+")
+        && q.contains("{")
+        && q.contains("}")
+        && q.contains("WHERE")) {
+      return true;
+    }
+    // check if it is updating (prepend or append) a Collection or Counter
+    if (q.contains("SET") && q.contains("+") && q.contains("WHERE")) {
+      return false;
+    }
+
+    // check if it is deleting from a Map
+    if (q.contains("DELETE") && DELETE_FROM_MAP_PATTERN.matcher(q).find()) {
+      return true;
+    }
+
+    // check if it is deleting from a list
+    if (q.contains("DELETE") && q.contains("[") && q.contains("]") && q.contains("WHERE")) {
       return false;
     }
 
     // check if it is an LWT
-    if (query.contains("SET") && query.contains("WHERE") && query.contains("IF")) {
+    if (q.contains("SET") && q.contains("WHERE") && q.contains("IF")) {
       return false;
     }
-
     // check if contains non-idempotent function
-    for (String nonIdempotentFunction : nonIdempotentFunctions) {
-      if (query.contains(nonIdempotentFunction)) {
+    for (String nonIdempotentFunction : NON_IDEMPOTENT_FUNCTIONS) {
+      if (q.contains(nonIdempotentFunction.toUpperCase())) {
         return false;
       }
     }
