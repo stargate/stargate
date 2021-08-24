@@ -361,7 +361,7 @@ message Response {
   Traces traces = 3;
 
   // Denotes if the query is idempotent or not. If it is, it is safe to retry it client-side
-  bool isIdempotent = 5;
+  bool is_idempotent = 5;
 }
 
 // Thrown when the coordinator knows there is not enough replicas alive to perform a query with the
