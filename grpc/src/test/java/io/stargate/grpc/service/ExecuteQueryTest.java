@@ -55,8 +55,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -314,47 +312,6 @@ public class ExecuteQueryTest extends BaseServiceTest {
             .addActual(Column.create("c2", Column.Type.Varchar))
             .addActual(Column.create("c3", Column.Type.Uuid))
             .build(true));
-  }
-
-  @Test
-  public void shouldRetryOnReadTimeout() throws InvalidProtocolBufferException {
-    final String query = "SELECT release_version FROM system.local WHERE key = ?";
-    final String releaseVersion = "4.0.0";
-
-    ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
-    Prepared prepared =
-        new Prepared(
-            Utils.STATEMENT_ID,
-            Utils.RESULT_METADATA_ID,
-            resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
-    when(connection.prepare(eq(query), any(Parameters.class)))
-        .thenReturn(CompletableFuture.completedFuture(prepared));
-
-    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
-        .thenThrow(new ReadTimeoutException(ConsistencyLevel.QUORUM, 1, 1, false))
-        .then(
-            invocation -> {
-              BoundStatement statement =
-                  (BoundStatement) invocation.getArgument(0, Statement.class);
-              assertStatement(prepared, statement, Values.of("local"));
-              List<List<ByteBuffer>> rows =
-                  Collections.singletonList(
-                      Collections.singletonList(
-                          TypeCodecs.TEXT.encode(releaseVersion, ProtocolVersion.DEFAULT)));
-              return CompletableFuture.completedFuture(new Result.Rows(rows, resultMetadata));
-            });
-
-    when(persistence.newConnection()).thenReturn(connection);
-
-    startServer(persistence);
-
-    StargateBlockingStub stub = makeBlockingStub();
-
-    QueryOuterClass.Response response = executeQuery(stub, query, Values.of("local"));
-
-    validateResponse(releaseVersion, response);
   }
 
   private void validateResponse(String releaseVersion, QueryOuterClass.Response response)

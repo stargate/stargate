@@ -35,7 +35,7 @@ class DefaultRetryPolicyTest {
   private static final RetryPolicy retryPolicy = new DefaultRetryPolicy();
 
   @Test
-  public void should_process_read_timeouts() {
+  public void shouldProcessReadTimeouts() {
     assertOnReadTimeout(QUORUM, 2, 2, false, 0).isEqualTo(RETRY);
     assertOnReadTimeout(QUORUM, 2, 2, false, 1).isEqualTo(RETHROW);
     assertOnReadTimeout(QUORUM, 2, 2, true, 0).isEqualTo(RETHROW);
@@ -44,7 +44,7 @@ class DefaultRetryPolicyTest {
   }
 
   @Test
-  public void should_process_write_timeouts() {
+  public void shouldProcessWriteTimeouts() {
     assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 0).isEqualTo(RETRY);
     assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 1).isEqualTo(RETHROW);
     assertOnWriteTimeout(QUORUM, SIMPLE, 2, 0, 0).isEqualTo(RETHROW);

@@ -202,6 +202,7 @@ public class RetryTest extends BaseServiceTest {
 
     QueryOuterClass.Response response = executeQuery(stub, query, Values.of("local"));
 
+    assertThat(response.hasResultSet()).isTrue();
     validateResponse(releaseVersion, response);
   }
 
@@ -233,6 +234,7 @@ public class RetryTest extends BaseServiceTest {
 
     QueryOuterClass.Response response = executeQuery(stub, query, Values.of("local"));
 
+    assertThat(response.hasResultSet()).isTrue();
     validateResponse(releaseVersion, response);
   }
 
@@ -301,7 +303,6 @@ public class RetryTest extends BaseServiceTest {
 
   private void validateResponse(String releaseVersion, QueryOuterClass.Response response)
       throws InvalidProtocolBufferException {
-    assertThat(response.hasResultSet()).isTrue();
     assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
     ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
     assertThat(rs.getRowsCount()).isEqualTo(1);
