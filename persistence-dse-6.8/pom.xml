@@ -79,6 +79,11 @@
           <groupId>dnsjava</groupId>
           <artifactId>dnsjava</artifactId>
         </exclusion>
+        <!-- See https://github.com/stargate/stargate/issues/1200 -->
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-storage-blob</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -89,6 +94,10 @@
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
           <artifactId>sjk-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-storage-blob</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
