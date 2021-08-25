@@ -79,6 +79,7 @@
           <groupId>dnsjava</groupId>
           <artifactId>dnsjava</artifactId>
         </exclusion>
+        <!-- See https://github.com/stargate/stargate/issues/1200 -->
         <exclusion>
           <groupId>com.azure</groupId>
           <artifactId>azure-storage-blob</artifactId>
