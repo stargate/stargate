@@ -126,7 +126,7 @@
                             com.codahale.metrics,
                             com.codahale.metrics.*,
                             !io.micrometer.core.instrument.binder.grpc,
-                            io.micrometer.*,
+                            io.micrometer.core.instrument
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
