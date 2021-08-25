@@ -145,10 +145,11 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     }
     PersistenceException pe = cause.get();
     switch (pe.code()) {
-      case UNAVAILABLE:
-        return retryPolicy.onUnavailable((UnavailableException) pe, retryCount);
       case READ_TIMEOUT:
         return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
+      case WRITE_TIMEOUT:
+        // todo only if isIdempotent
+        return retryPolicy.onWriteTimeout((WriteTimeoutException) pe, retryCount);
       default:
         return RetryDecision.RETHROW;
     }

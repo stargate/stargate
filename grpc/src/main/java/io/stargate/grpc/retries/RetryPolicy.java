@@ -17,7 +17,6 @@ package io.stargate.grpc.retries;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
-import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
 /** Defines the behavior to adopt when a request fails. */
@@ -61,20 +60,4 @@ public interface RetryPolicy {
    */
   RetryDecision onWriteTimeout(
       @NonNull WriteTimeoutException writeTimeoutException, int retryCount);
-
-  /**
-   * Whether to retry when the server replied with an {@code UNAVAILABLE} error; this indicates that
-   * the coordinator determined that there were not enough replicas alive to perform a query with
-   * the requested consistency level.
-   *
-   * <p>{@link UnavailableException#consistency} the requested consistency level. {@link
-   * UnavailableException#required} the number of replica acknowledgements/responses required to
-   * perform the operation (with its required consistency level). {@link UnavailableException#alive}
-   * the number of replicas that were known to be alive by the coordinator node when it tried to
-   * execute the operation.
-   *
-   * @param retryCount how many times the retry policy has been invoked already for this request
-   *     (not counting the current invocation).
-   */
-  RetryDecision onUnavailable(@NonNull UnavailableException pe, int retryCount);
 }

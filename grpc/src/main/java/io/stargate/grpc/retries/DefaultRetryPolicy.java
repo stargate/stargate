@@ -20,7 +20,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.cassandra.stargate.db.WriteType;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
-import org.apache.cassandra.stargate.exceptions.UnavailableException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,11 +45,6 @@ public class DefaultRetryPolicy implements RetryPolicy {
   public static final String RETRYING_ON_WRITE_TIMEOUT =
       "Retrying on write timeout (consistency: {}, write type: {}, "
           + "required acknowledgments: {}, received acknowledgments: {}, retries: {})";
-
-  @VisibleForTesting
-  public static final String RETRYING_ON_UNAVAILABLE =
-      "Retrying on unavailable exception (consistency: {}, "
-          + "required replica: {}, alive replica: {}, retries: {})";
 
   /**
    * {@inheritDoc}
@@ -109,25 +103,6 @@ public class DefaultRetryPolicy implements RetryPolicy {
           wte.received,
           retryCount);
     }
-    return decision;
-  }
-
-  /**
-   * {@inheritDoc}
-   *
-   * <p>This implementation triggers a maximum of one retry.
-   *
-   * <p>Otherwise, the exception is rethrown.
-   */
-  @Override
-  public RetryDecision onUnavailable(@NonNull UnavailableException ue, int retryCount) {
-
-    RetryDecision decision = (retryCount == 0) ? RetryDecision.RETRY : RetryDecision.RETHROW;
-
-    if (decision == RetryDecision.RETRY && LOG.isTraceEnabled()) {
-      LOG.trace(RETRYING_ON_UNAVAILABLE, ue.consistency, ue.required, ue.alive, retryCount);
-    }
-
     return decision;
   }
 }
