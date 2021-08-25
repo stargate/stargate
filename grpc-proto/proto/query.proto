@@ -222,7 +222,8 @@ message QueryParameters {
   // If unset, it defaults to ONE.
   ConsistencyValue tracing_consistency = 10;
 
-  // Denotes if the query is idempotent or not. If it is, it may be retried server-side
+  // Denotes if the query is idempotent or not. If it is, it may be retried server-side.
+  // If unset, it defaults to false;
   bool is_idempotent = 11;
 }
 
@@ -542,6 +543,7 @@ message BatchParameters {
   bool skip_metadata = 8;
 
   // Denotes if the query is idempotent or not. If it is, it may be retried server-side
+  // If unset, it defaults to false;
   bool is_idempotent = 9;
 }
 
