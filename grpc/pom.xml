@@ -53,6 +53,10 @@
     </dependency>
     <!-- Other -->
     <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -116,11 +120,13 @@
                             org.apache.cassandra.stargate,
                             org.apache.cassandra.stargate.*,
                             org.javatuples,
-                            com.codahale.metrics,
                             com.datastax.oss.driver.api.core,
                             com.datastax.oss.driver.api.core.*,
                             com.datastax.oss.driver.shaded.guava.*,
-                            io.micrometer.*
+                            com.codahale.metrics,
+                            com.codahale.metrics.*,
+                            !io.micrometer.core.instrument.binder.grpc,
+                            io.micrometer.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

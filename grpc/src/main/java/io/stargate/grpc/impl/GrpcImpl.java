@@ -17,13 +17,13 @@ package io.stargate.grpc.impl;
 
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.Service;
 import io.stargate.grpc.service.interceptors.AuthenticationInterceptor;
 import io.stargate.grpc.service.interceptors.RemoteAddressInterceptor;
-import io.stargate.grpc.service.interceptors.metrics.MetricCollectingServerInterceptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
