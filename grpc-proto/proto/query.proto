@@ -221,6 +221,9 @@ message QueryParameters {
   // The consistency level to use to retrieve the query trace (if tracing is set).
   // If unset, it defaults to ONE.
   ConsistencyValue tracing_consistency = 10;
+
+  // Denotes if the query is idempotent or not. If it is, it may be retried server-side
+  bool is_idempotent = 11;
 }
 
 // A CQL column type.
@@ -537,6 +540,9 @@ message BatchParameters {
   // Whether to omit ResultSet.columns in the response.
   // This can be used to optimize response size when the client already knows that information.
   bool skip_metadata = 8;
+
+  // Denotes if the query is idempotent or not. If it is, it may be retried server-side
+  bool is_idempotent = 9;
 }
 
 // A batch containing multiple CQL queries.
