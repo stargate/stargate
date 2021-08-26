@@ -64,14 +64,19 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
             .addRegularColumn("v", UUIDType.instance)
             .addRegularColumn("v_lwt", IntegerType.instance)
             .addRegularColumn("list_col", ListType.getInstance(IntegerType.instance, true))
-            .addRegularColumn("counter_value", CounterColumnType.instance)
             .addRegularColumn(
                 "map", MapType.getInstance(AsciiType.instance, AsciiType.instance, true))
             .addRegularColumn("set_c", SetType.getInstance(AsciiType.instance, true))
             .build();
 
+    TableMetadata tableMetadata2 =
+        TableMetadata.builder("ks1", "my_table_with_counter")
+            .addRegularColumn("counter_value", CounterColumnType.instance)
+            .build();
+
     KeyspaceMetadata keyspaceMetadata =
-        KeyspaceMetadata.create("ks1", KeyspaceParams.local(), Tables.of(tableMetadata));
+        KeyspaceMetadata.create(
+            "ks1", KeyspaceParams.local(), Tables.of(tableMetadata, tableMetadata2));
     SchemaManager.instance.load(keyspaceMetadata);
   }
 
@@ -99,7 +104,7 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
         arguments(
             "UPDATE ks1.my_table SET v = uuid() WHERE pk = 1", false), // using uuid() function
         arguments(
-            "UPDATE ks1.my_table SET counter_value = counter_value + 1 WHERE pk = 1",
+            "UPDATE ks1.my_table_with_counter SET counter_value = counter_value + 1 WHERE pk = 1",
             false), // counter
         arguments(
             "UPDATE ks1.my_table SET v_lwt = 4 WHERE pk = 1 IF v_lwt = 1", false), // transaction
