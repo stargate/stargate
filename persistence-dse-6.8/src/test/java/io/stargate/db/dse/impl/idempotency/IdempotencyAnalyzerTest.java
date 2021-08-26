@@ -71,6 +71,7 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
 
     TableMetadata tableMetadata2 =
         TableMetadata.builder("ks1", "my_table_with_counter")
+            .addPartitionKeyColumn("pk", IntegerType.instance)
             .addRegularColumn("counter_value", CounterColumnType.instance)
             .build();
 
