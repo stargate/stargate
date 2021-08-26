@@ -27,7 +27,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
-import io.stargate.grpc.idempotency.IdempotencyAnalyzer;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
@@ -77,7 +76,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected CompletionStage<Result> executePrepared(Prepared prepared) {
+  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
     Payload values = message.getValues();
@@ -86,21 +85,24 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     QueryParameters parameters = message.getParameters();
 
     try {
-      return connection.execute(
-          bindValues(handler, prepared, values),
-          makeParameters(parameters, connection.clientInfo()),
-          queryStartNanoTime);
+      return connection
+          .execute(
+              bindValues(handler, prepared, values),
+              makeParameters(parameters, connection.clientInfo()),
+              queryStartNanoTime)
+          .thenApply(r -> new ResultAndIdempotencyInfo(r, prepared.isIdempotent));
     } catch (Exception e) {
       return failedFuture(e);
     }
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(Result result) {
+  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
+    Result result = resultAndIdempotencyInfo.result;
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
-    responseBuilder.setIsIdempotent(IdempotencyAnalyzer.isIdempotent(message.getCql()));
+    responseBuilder.setIsIdempotent(resultAndIdempotencyInfo.isIdempotent);
     switch (result.kind) {
       case Void:
         break;

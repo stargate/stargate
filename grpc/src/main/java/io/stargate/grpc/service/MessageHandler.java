@@ -110,7 +110,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     try {
       validate();
 
-      CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
+      CompletionStage<ResultAndIdempotencyInfo> resultFuture =
+          prepare(false).thenCompose(this::executePrepared);
       handleUnprepared(resultFuture)
           .thenApply(this::buildResponse)
           .thenCompose(this::executeTracingQueryIfNeeded)
@@ -140,10 +141,10 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected abstract CompletionStage<PreparedT> prepare(boolean shouldInvalidate);
 
   /** Executes the prepared object to get the CQL results. */
-  protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
+  protected abstract CompletionStage<ResultAndIdempotencyInfo> executePrepared(PreparedT prepared);
 
   /** Builds the gRPC response from the CQL result. */
-  protected abstract ResponseAndTraceId buildResponse(Result result);
+  protected abstract ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo result);
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
@@ -198,8 +199,9 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
    * UNPREPARED response when executing a query. This method allows us to recover from that case
    * (other execution errors get propagated as-is).
    */
-  private CompletionStage<Result> handleUnprepared(CompletionStage<Result> source) {
-    CompletableFuture<Result> target = new CompletableFuture<>();
+  private CompletionStage<ResultAndIdempotencyInfo> handleUnprepared(
+      CompletionStage<ResultAndIdempotencyInfo> source) {
+    CompletableFuture<ResultAndIdempotencyInfo> target = new CompletableFuture<>();
     source.whenComplete(
         (result, error) -> {
           if (error != null) {
@@ -226,7 +228,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     return target;
   }
 
-  private CompletionStage<Result> reprepareAndRetry() {
+  private CompletionStage<ResultAndIdempotencyInfo> reprepareAndRetry() {
     return prepare(true).thenCompose(this::executePrepared);
   }
 
@@ -467,5 +469,15 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     CompletableFuture<V> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(e);
     return failedFuture;
+  }
+
+  static class ResultAndIdempotencyInfo {
+    public final Result result;
+    public final boolean isIdempotent;
+
+    ResultAndIdempotencyInfo(Result result, boolean isIdempotent) {
+      this.result = result;
+      this.isIdempotent = isIdempotent;
+    }
   }
 }

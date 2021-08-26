@@ -48,6 +48,6 @@ public class Utils {
         Utils.RESULT_METADATA_ID,
         Utils.makeResultMetadata(),
         Utils.makePreparedMetadata(bindColumns),
-        false); // todo
+        false);
   }
 }
