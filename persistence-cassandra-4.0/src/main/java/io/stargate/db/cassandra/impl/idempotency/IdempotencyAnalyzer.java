@@ -62,7 +62,9 @@ public class IdempotencyAnalyzer {
 
       // check if contains non-idempotent function
       for (Function f : modification.getFunctions()) {
-        return !NON_IDEMPOTENT_FUNCTION.contains(f);
+        if (NON_IDEMPOTENT_FUNCTION.contains(f)) {
+          return false;
+        }
       }
 
       for (Operation operation : modification.allOperations()) {
