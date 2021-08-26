@@ -122,17 +122,20 @@ public abstract class Result {
     public final MD5Digest resultMetadataId;
     public final ResultMetadata resultMetadata;
     public final PreparedMetadata metadata;
+    public final boolean isIdempotent;
 
     public Prepared(
         MD5Digest statementId,
         MD5Digest resultMetadataId,
         ResultMetadata resultMetadata,
-        PreparedMetadata preparedMetadata) {
+        PreparedMetadata preparedMetadata,
+        boolean isIdempotent) {
       super(Kind.Prepared);
       this.statementId = statementId;
       this.resultMetadataId = resultMetadataId;
       this.resultMetadata = resultMetadata;
       this.metadata = preparedMetadata;
+      this.isIdempotent = isIdempotent;
     }
 
     @Override
@@ -143,7 +146,9 @@ public abstract class Result {
           + metadata
           + " (resultMetadata="
           + resultMetadata
-          + ")";
+          + ")"
+          + " idIdempotent="
+          + isIdempotent;
     }
   }
 

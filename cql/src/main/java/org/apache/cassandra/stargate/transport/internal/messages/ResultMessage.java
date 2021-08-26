@@ -375,7 +375,7 @@ public class ResultMessage extends Message.Response {
       if (version.isGreaterThan(ProtocolVersion.V1))
         resultMetadata = RowsSubCodec.METADATA_CODEC.decode(body, version);
 
-      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata);
+      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false); // todo
     }
 
     @Override
