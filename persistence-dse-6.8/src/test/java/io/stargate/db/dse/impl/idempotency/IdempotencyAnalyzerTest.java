@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.dse.impl.BaseDseTest;
 import io.stargate.db.dse.impl.StargateQueryHandler;
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.apache.cassandra.cql3.CQLStatement;
@@ -69,10 +70,13 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
             .addRegularColumn("set_c", SetType.getInstance(AsciiType.instance, true))
             .build();
 
+    HashSet<TableMetadata.Flag> counterFlags = new HashSet<>();
+    counterFlags.add(TableMetadata.Flag.COUNTER);
     TableMetadata tableMetadata2 =
         TableMetadata.builder("ks1", "my_table_with_counter")
             .addPartitionKeyColumn("pk", IntegerType.instance)
             .addRegularColumn("counter_value", CounterColumnType.instance)
+            .flags(counterFlags)
             .build();
 
     KeyspaceMetadata keyspaceMetadata =
