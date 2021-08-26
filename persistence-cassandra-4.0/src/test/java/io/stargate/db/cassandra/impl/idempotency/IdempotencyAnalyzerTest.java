@@ -93,7 +93,7 @@ class IdempotencyAnalyzerTest extends BaseCassandraTest {
 
   public static Stream<Arguments> queriesToInferIdempotence() {
     return Stream.of(
-        arguments("update ks1.my_table SET list_col = [1] WHERE pk = 1", true), // collection todo
+        arguments("update ks1.my_table SET list_col = [1] WHERE pk = 1", true), // collection
         arguments(
             "UPDATE ks1.my_table SET list_col = [1] + list_col WHERE pk = 1",
             false), // append to list
