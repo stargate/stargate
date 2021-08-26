@@ -23,6 +23,7 @@ import org.apache.cassandra.cql3.Operation;
 import org.apache.cassandra.cql3.functions.Function;
 import org.apache.cassandra.cql3.functions.TimeFcts;
 import org.apache.cassandra.cql3.functions.UuidFcts;
+import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.DeleteStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
@@ -41,10 +42,25 @@ public class IdempotencyAnalyzer {
   }
 
   public static boolean isIdempotent(CQLStatement statement) {
-
     if (statement instanceof SelectStatement) {
       return true;
     }
+
+    // if any of the BatchStatement is non-idempotent, return false
+    if (statement instanceof BatchStatement) {
+      BatchStatement batchStatement = (BatchStatement) statement;
+      for (ModificationStatement s : batchStatement.getStatements()) {
+        boolean isIdempotent = analyzeModificationStatement(s);
+        if (!isIdempotent) {
+          return false;
+        }
+      }
+    }
+
+    return analyzeModificationStatement(statement);
+  }
+
+  private static boolean analyzeModificationStatement(CQLStatement statement) {
     if (statement instanceof ModificationStatement) {
       ModificationStatement modification = (ModificationStatement) statement;
 
@@ -93,8 +109,6 @@ public class IdempotencyAnalyzer {
     }
 
     // todo handle:
-    // Batches are idempotent if their underlying statements are all
-    // idempotent.
     // Truncate, schema changes, and USE are non-idempotent.
     return true;
   }

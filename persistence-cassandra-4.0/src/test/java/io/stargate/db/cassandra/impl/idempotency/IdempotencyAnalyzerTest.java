@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.db.marshal.CounterColumnType;
@@ -42,6 +43,7 @@ import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -89,6 +91,36 @@ class IdempotencyAnalyzerTest extends BaseCassandraTest {
     CQLStatement statement = raw.prepare(ClientState.forInternalCalls());
 
     assertThat(IdempotencyAnalyzer.isIdempotent(statement)).isEqualTo(isIdempotent);
+  }
+
+  @Test
+  public void shouldReturnIdempotentIfAllStatementsWithinABatchAreIdempotent() {
+    BatchStatement.Parsed raw =
+        (BatchStatement.Parsed)
+            QueryProcessor.parseStatement(
+                "BEGIN BATCH\n"
+                    + "update ks1.my_table SET list_col = [1] WHERE pk = 1\n"
+                    + "UPDATE ks1.my_table SET map['key'] = 'V' WHERE pk = 123\n"
+                    + "APPLY BATCH;");
+
+    CQLStatement statement = raw.prepare(ClientState.forInternalCalls());
+
+    assertThat(IdempotencyAnalyzer.isIdempotent(statement)).isTrue();
+  }
+
+  @Test
+  public void shouldReturnNonIdempotentIfAllStatementsWithinABatchAreNonIdempotent() {
+    BatchStatement.Parsed raw =
+        (BatchStatement.Parsed)
+            QueryProcessor.parseStatement(
+                "BEGIN BATCH\n"
+                    + "update ks1.my_table SET list_col = [1] WHERE pk = 1\n"
+                    + "DELETE list_col[1] FROM ks1.my_table WHERE pk = 1\n"
+                    + "APPLY BATCH;");
+
+    CQLStatement statement = raw.prepare(ClientState.forInternalCalls());
+
+    assertThat(IdempotencyAnalyzer.isIdempotent(statement)).isFalse();
   }
 
   public static Stream<Arguments> queriesToInferIdempotence() {
