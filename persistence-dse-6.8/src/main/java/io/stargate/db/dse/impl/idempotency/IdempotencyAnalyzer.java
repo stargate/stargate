@@ -18,9 +18,12 @@ package io.stargate.db.dse.impl.idempotency;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.cassandra.cql3.CQLStatement;
+import org.apache.cassandra.cql3.Lists;
+import org.apache.cassandra.cql3.Operation;
 import org.apache.cassandra.cql3.functions.Function;
 import org.apache.cassandra.cql3.functions.TimeFcts;
 import org.apache.cassandra.cql3.functions.UuidFcts;
+import org.apache.cassandra.cql3.statements.DeleteStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.marshal.CounterColumnType;
@@ -62,13 +65,26 @@ public class IdempotencyAnalyzer {
         return !NON_IDEMPOTENT_FUNCTION.contains(f);
       }
 
-      for (ColumnMetadata c : modification.updatedColumns()) {
-        // check if it is updating a List
-        if (c.type instanceof ListType) {
+      for (Operation operation : modification.allOperations()) {
+        // check if it is prepending/appending a List
+        if (operation instanceof Lists.Prepender || operation instanceof Lists.Appender) {
           return false;
         }
+      }
+
+      for (ColumnMetadata c : modification.updatedColumns()) {
         // check if it is updating a Counter
         if (c.type instanceof CounterColumnType) {
+          return false;
+        }
+      }
+    }
+
+    // delete
+    if (statement instanceof DeleteStatement) {
+      for (ColumnMetadata c : ((DeleteStatement) statement).updatedColumns()) {
+        // on a List
+        if (c.type instanceof ListType) {
           return false;
         }
       }
