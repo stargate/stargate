@@ -32,12 +32,7 @@ the Stargate code, it can be helpful to have a basic understanding of that libra
 ```java
 Random random = new Random();
 GraphQLSchema schema =
-    GraphQLSchema.newSchema()
-        // Define the GraphQL schema programmatically. This will result in:
-        //
-        //    type Query {
-        //      random: Int
-        //    }
+    GraphQLSchema.newSchema() // (1)
         .query(
             GraphQLObjectType.newObject()
                 .name("Query")
@@ -47,9 +42,7 @@ GraphQLSchema schema =
                         .type(Scalars.GraphQLInt)
                         .build())
                 .build())
-        // Define how operations will be executed at runtime: each data fetcher handles the field at
-        // a particular set of coordinates:
-        .codeRegistry(
+        .codeRegistry( // (2)
             GraphQLCodeRegistry.newCodeRegistry()
                 .dataFetcher(
                     FieldCoordinates.coordinates("Query", "random"),
@@ -57,12 +50,23 @@ GraphQLSchema schema =
                 .build())
         .build();
 
-// Turn the schema into an executable object:
-GraphQL graphql = GraphQL.newGraphQL(schema).build();
+GraphQL graphql = GraphQL.newGraphQL(schema).build(); // (3)
 
 ExecutionResult result = graphql.execute("{ random }");
 System.out.println(result.getData().toString()); // prints {random=1384094011}
 ```
+
+1. `newSchema()` provides a DSL to create the GraphQL schema programmatically. This example will
+   produce:
+
+    ```graphql
+    type Query {
+      random: Int
+    }
+    ```
+2. The code registry provides the logic to execute queries at runtime. It is broken down into data
+   fetchers. Each fetcher handles a field, identified by its coordinates in the schema.
+3. Finally, we turn the `GraphQLSchema` into an executable `GraphQL`.
 
 
 ## HTTP layer
@@ -193,6 +197,11 @@ schema received from the user.
 * finally, we insert the new version in `stargate_graphql.schema_source`. The new `GraphQL` instance
   is sent to [GraphqlCache], which starts to serve it to its clients.
 
+We provide a set of CQL directives that allow users to control certain aspects of their mapping (for
+example, use a different table name than the inferred default). They are defined in [CqlDirectives],
+and referenced throughout the model-building code. You can also download a text version from a
+running Stargate instance at `graphql-files/cql_directives.graphql`.
+
 #### Deployed (`/graphql/<keyspace>`)
 
 Once a user has deployed their own GraphQL schema, it replaces the CQL-first schema for that
@@ -259,6 +268,7 @@ If you add new tests, please favor the lightweight approach.
 [BulkMutationFetcher]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/fetchers/BulkMutationFetcher.java
 [CassandraFetcher]: src/main/java/io/stargate/graphql/schema/CassandraFetcher.java
 [CassandraMigrator]: src/main/java/io/stargate/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
+[CqlDirectives]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/CqlDirectives.java
 [CqlScalar]: src/main/java/io/stargate/graphql/schema/scalars/CqlScalar.java
 [DdlSchemaBuilder]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
 [DeploySchemaFetcherBase]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
