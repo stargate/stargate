@@ -22,6 +22,7 @@ import io.stargate.db.Result;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -375,7 +376,9 @@ public class ResultMessage extends Message.Response {
       if (version.isGreaterThan(ProtocolVersion.V1))
         resultMetadata = RowsSubCodec.METADATA_CODEC.decode(body, version);
 
-      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false); // todo
+      boolean isIdempotent = byteToBoolean(CBUtil.readBytes(body));
+
+      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, isIdempotent);
     }
 
     @Override
@@ -391,6 +394,16 @@ public class ResultMessage extends Message.Response {
       METADATA_CODEC.encode(prepared.metadata, dest, version);
       if (version.isGreaterThan(ProtocolVersion.V1))
         RowsSubCodec.METADATA_CODEC.encode(prepared.resultMetadata, dest, version);
+
+      CBUtil.writeBytes(booleanToBytes(prepared), dest);
+    }
+
+    private byte[] booleanToBytes(Result.Prepared prepared) {
+      return new byte[] {(byte) (prepared.isIdempotent ? 1 : 0)};
+    }
+
+    private boolean byteToBoolean(byte[] readBytes) {
+      return BitSet.valueOf(readBytes).get(0);
     }
 
     @Override
