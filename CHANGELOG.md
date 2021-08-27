@@ -1,5 +1,69 @@
 # Changelog
 
+## [v1.0.32](https://github.com/stargate/stargate/tree/v1.0.32) (2021-08-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.31...v1.0.32)
+
+**Fixed bugs:**
+
+- Docs API should have it's own module in the http metric [\#1185](https://github.com/stargate/stargate/issues/1185)
+- Combining paging state does not maintain the order of single states [\#1162](https://github.com/stargate/stargate/issues/1162)
+- Catch JsonParseException and return 400 [\#1110](https://github.com/stargate/stargate/issues/1110)
+
+**Closed issues:**
+
+- Remove `json-simple` library dependency \(unused\) [\#1178](https://github.com/stargate/stargate/issues/1178)
+- High latency observed for \[201 POST\] /v1/keyspaces/{keyspaceName}/tables  [\#1164](https://github.com/stargate/stargate/issues/1164)
+- gRPC: Remove `page\_size` from `ResultSet` type [\#1161](https://github.com/stargate/stargate/issues/1161)
+- gRPC: set a default serial consistency level [\#1157](https://github.com/stargate/stargate/issues/1157)
+- gRPC: use a default page size [\#1156](https://github.com/stargate/stargate/issues/1156)
+- Possible lock in the reactive document service RX chain [\#1151](https://github.com/stargate/stargate/issues/1151)
+- gRPC: refactor main service class to simplify control flow [\#1148](https://github.com/stargate/stargate/issues/1148)
+- Flaky metrics test makes CI fails [\#1143](https://github.com/stargate/stargate/issues/1143)
+- GraphQL schema-first: support federated tracing [\#1113](https://github.com/stargate/stargate/issues/1113)
+- Support `$not` for the collection search [\#1071](https://github.com/stargate/stargate/issues/1071)
+- Support `$or` document search [\#1063](https://github.com/stargate/stargate/issues/1063)
+- Support $exists with false [\#1027](https://github.com/stargate/stargate/issues/1027)
+- Failed to open hints directory [\#991](https://github.com/stargate/stargate/issues/991)
+- Add documentation to the `.proto` files. [\#990](https://github.com/stargate/stargate/issues/990)
+- gRPC calls could return schema objects for DDL queries [\#929](https://github.com/stargate/stargate/issues/929)
+
+**Merged pull requests:**
+
+- Exclude azure-storage-blob dependency from DSE dependencies [\#1199](https://github.com/stargate/stargate/pull/1199) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Move `grpc` into the `default` and `dse` profiles [\#1198](https://github.com/stargate/stargate/pull/1198) ([mpenick](https://github.com/mpenick))
+- Update CODEOWNERS [\#1192](https://github.com/stargate/stargate/pull/1192) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Catch JsonProcessingException and return 400 status [\#1189](https://github.com/stargate/stargate/pull/1189) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Adding a PR template to the repo [\#1187](https://github.com/stargate/stargate/pull/1187) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- closes \#1185: docsapi to have it's own module in the metrics [\#1186](https://github.com/stargate/stargate/pull/1186) ([ivansenic](https://github.com/ivansenic))
+- Fix \#1178 by removing unused/unnecessary dep to `json-simple` from poms [\#1179](https://github.com/stargate/stargate/pull/1179) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- gRPC: propagate HTTP headers to the persistence layer [\#1176](https://github.com/stargate/stargate/pull/1176) ([olim7t](https://github.com/olim7t))
+- gRPC: set default consistency levels in the service \(fixes \#1157\) [\#1175](https://github.com/stargate/stargate/pull/1175) ([olim7t](https://github.com/olim7t))
+- gRPC: use a default page size \(fixes \#1156\) [\#1174](https://github.com/stargate/stargate/pull/1174) ([olim7t](https://github.com/olim7t))
+- gRPC: deprecate ResultSet.page\_size \(fixes \#1161\) [\#1173](https://github.com/stargate/stargate/pull/1173) ([olim7t](https://github.com/olim7t))
+- document `$not` in Swagger [\#1171](https://github.com/stargate/stargate/pull/1171) ([ivansenic](https://github.com/ivansenic))
+- Increased default size for document search to 3 [\#1166](https://github.com/stargate/stargate/pull/1166) ([EricBorczuk](https://github.com/EricBorczuk))
+- Add default Docs API page sizes to Swagger descriptions [\#1163](https://github.com/stargate/stargate/pull/1163) ([dimas-b](https://github.com/dimas-b))
+- Support more complex types grpc [\#1160](https://github.com/stargate/stargate/pull/1160) ([tomekl007](https://github.com/tomekl007))
+- relates to \#1151: switch away from the core thread in the RX [\#1159](https://github.com/stargate/stargate/pull/1159) ([ivansenic](https://github.com/ivansenic))
+- Support $not operators in Docs API WHERE clauses [\#1158](https://github.com/stargate/stargate/pull/1158) ([dimas-b](https://github.com/dimas-b))
+- gRPC: expose schema change data in responses \(fixes \#929\) [\#1154](https://github.com/stargate/stargate/pull/1154) ([olim7t](https://github.com/olim7t))
+- Do not block Rx operations when deleting "dead leaves" in Docs API [\#1153](https://github.com/stargate/stargate/pull/1153) ([dimas-b](https://github.com/dimas-b))
+- gRPC: refactor Service class to simplify control flow \(fixes \#1148\) [\#1152](https://github.com/stargate/stargate/pull/1152) ([olim7t](https://github.com/olim7t))
+- closes \#1027: support `$exists`  with false [\#1150](https://github.com/stargate/stargate/pull/1150) ([ivansenic](https://github.com/ivansenic))
+- closes \#1143: added Awaitility to the MetricsTest [\#1149](https://github.com/stargate/stargate/pull/1149) ([ivansenic](https://github.com/ivansenic))
+- gRPC: document proto files \(fixes \#990\) [\#1147](https://github.com/stargate/stargate/pull/1147) ([olim7t](https://github.com/olim7t))
+- Add $and, $or to Swagger descriptions [\#1146](https://github.com/stargate/stargate/pull/1146) ([dimas-b](https://github.com/dimas-b))
+- Bumping version for next release [\#1144](https://github.com/stargate/stargate/pull/1144) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Improve gRPC java client [\#1140](https://github.com/stargate/stargate/pull/1140) ([tomekl007](https://github.com/tomekl007))
+- Use Cassandra 4.0.0 GA [\#1139](https://github.com/stargate/stargate/pull/1139) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add $selectivity to Swagger descriptions [\#1138](https://github.com/stargate/stargate/pull/1138) ([dimas-b](https://github.com/dimas-b))
+- closes \#1063: full support for $or queries in the docs api [\#1137](https://github.com/stargate/stargate/pull/1137) ([ivansenic](https://github.com/ivansenic))
+- enable grpc in CI [\#1132](https://github.com/stargate/stargate/pull/1132) ([tomekl007](https://github.com/tomekl007))
+- gRPC: authorize requests [\#1131](https://github.com/stargate/stargate/pull/1131) ([olim7t](https://github.com/olim7t))
+- GraphQL schema-first: support federated tracing [\#1124](https://github.com/stargate/stargate/pull/1124) ([olim7t](https://github.com/olim7t))
+- Encode special characters and decode them on read [\#1105](https://github.com/stargate/stargate/pull/1105) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.31](https://github.com/stargate/stargate/tree/v1.0.31) (2021-07-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.30...v1.0.31)
