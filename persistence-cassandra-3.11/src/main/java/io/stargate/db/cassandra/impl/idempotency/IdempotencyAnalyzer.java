@@ -27,7 +27,10 @@ import org.apache.cassandra.cql3.functions.UuidFcts;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.DeleteStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
+import org.apache.cassandra.cql3.statements.SchemaAlteringStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
+import org.apache.cassandra.cql3.statements.TruncateStatement;
+import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.db.marshal.CounterColumnType;
 import org.apache.cassandra.db.marshal.ListType;
 
@@ -44,6 +47,13 @@ public class IdempotencyAnalyzer {
   public static boolean isIdempotent(CQLStatement statement) {
     if (statement instanceof SelectStatement) {
       return true;
+    }
+
+    // Truncate, schema changes, and USE are non-idempotent.
+    if (statement instanceof TruncateStatement
+        || statement instanceof SchemaAlteringStatement
+        || statement instanceof UseStatement) {
+      return false;
     }
 
     // if any of the BatchStatement is non-idempotent, return false
@@ -107,9 +117,6 @@ public class IdempotencyAnalyzer {
         }
       }
     }
-
-    // todo handle:
-    // Truncate, schema changes, and USE are non-idempotent.
     return true;
   }
 }

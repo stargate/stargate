@@ -155,7 +155,10 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
             true), // remove from set
         arguments("DELETE set_c FROM ks1.my_table WHERE pk = 123", true), // delete all from a set
         arguments("UPDATE ks1.my_table SET value = 'M' WHERE pk = 123", true), // standard update
-        arguments("INSERT INTO ks1.my_table (pk, value) VALUES (123, 'aaa');", true) // insert
+        arguments("INSERT INTO ks1.my_table (pk, value) VALUES (123, 'aaa');", true), // insert
+        arguments("TRUNCATE ks1.my_table", false), // truncate
+        arguments("ALTER TABLE ks1.my_table DROP v", false), // alter schema
+        arguments("USE ks2", false) // USE
         );
   }
 }
