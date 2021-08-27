@@ -163,7 +163,7 @@ The DML schema listens to CQL schema change events in order to adapt in real tim
 
 It's also worth noting that both versions of the API share the same cache entry: if a GraphQL-first
 schema was deployed for this keyspace, we use it, otherwise we generate a CQL-first schema. See the
-logic in `GraphqlCache.getDml()`:
+logic in `GraphqlCache.getDml()`.
 
 ### GraphQL-first
 
