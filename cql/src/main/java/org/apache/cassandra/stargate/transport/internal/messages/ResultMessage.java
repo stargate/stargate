@@ -395,11 +395,11 @@ public class ResultMessage extends Message.Response {
       if (version.isGreaterThan(ProtocolVersion.V1))
         RowsSubCodec.METADATA_CODEC.encode(prepared.resultMetadata, dest, version);
 
-      CBUtil.writeBytes(booleanToBytes(prepared), dest);
+      CBUtil.writeBytes(booleanToBytes(prepared.isIdempotent), dest);
     }
 
-    private byte[] booleanToBytes(Result.Prepared prepared) {
-      return new byte[] {(byte) (prepared.isIdempotent ? 1 : 0)};
+    private byte[] booleanToBytes(boolean b) {
+      return new byte[] {(byte) (b ? 1 : 0)};
     }
 
     private boolean byteToBoolean(byte[] readBytes) {
@@ -419,6 +419,8 @@ public class ResultMessage extends Message.Response {
       size += METADATA_CODEC.encodedSize(prepared.metadata, version);
       if (version.isGreaterThan(ProtocolVersion.V1))
         size += RowsSubCodec.METADATA_CODEC.encodedSize(prepared.resultMetadata, version);
+
+      size += CBUtil.sizeOfBytes(booleanToBytes(prepared.isIdempotent));
       return size;
     }
   }
