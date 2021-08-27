@@ -45,6 +45,21 @@ public class IdempotencyAnalyzer {
   }
 
   public static boolean isIdempotent(CQLStatement statement) {
+    // if any of the BatchStatement is non-idempotent, return false
+    if (statement instanceof BatchStatement) {
+      BatchStatement batchStatement = (BatchStatement) statement;
+      for (ModificationStatement s : batchStatement.getStatements()) {
+        boolean isIdempotent = analyzeStatement(s);
+        if (!isIdempotent) {
+          return false;
+        }
+      }
+    }
+
+    return analyzeStatement(statement);
+  }
+
+  private static boolean analyzeStatement(CQLStatement statement) {
     if (statement instanceof SelectStatement) {
       return true;
     }
@@ -56,21 +71,6 @@ public class IdempotencyAnalyzer {
       return false;
     }
 
-    // if any of the BatchStatement is non-idempotent, return false
-    if (statement instanceof BatchStatement) {
-      BatchStatement batchStatement = (BatchStatement) statement;
-      for (ModificationStatement s : batchStatement.getStatements()) {
-        boolean isIdempotent = analyzeModificationStatement(s);
-        if (!isIdempotent) {
-          return false;
-        }
-      }
-    }
-
-    return analyzeModificationStatement(statement);
-  }
-
-  private static boolean analyzeModificationStatement(CQLStatement statement) {
     if (statement instanceof ModificationStatement) {
       ModificationStatement modification = (ModificationStatement) statement;
 
