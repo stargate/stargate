@@ -17,7 +17,7 @@ package io.stargate.graphql.schema.cqlfirst;
 
 import graphql.schema.GraphQLSchema;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.graphql.schema.cqlfirst.ddl.DdlSchemaBuilder;
+import io.stargate.graphql.schema.cqlfirst.ddl.DdlSchema;
 import io.stargate.graphql.schema.cqlfirst.dml.DmlSchemaBuilder;
 
 /** Single entry point to obtain GraphQL schemas. */
@@ -39,6 +39,6 @@ public class SchemaFactory {
    * <p>This is the API exposed at {@code /graphql-schema}.
    */
   public static GraphQLSchema newDdlSchema() {
-    return new DdlSchemaBuilder().build();
+    return DdlSchema.INSTANCE;
   }
 }
