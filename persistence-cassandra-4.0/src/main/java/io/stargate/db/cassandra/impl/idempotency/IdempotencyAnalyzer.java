@@ -15,7 +15,7 @@
  */
 package io.stargate.db.cassandra.impl.idempotency;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.Lists;
@@ -38,10 +38,8 @@ public class IdempotencyAnalyzer {
   private static final Set<Function> NON_IDEMPOTENT_FUNCTION;
 
   static {
-    Set<Function> allFunctions = new HashSet<>();
-    allFunctions.addAll(TimeFcts.all());
-    allFunctions.addAll(UuidFcts.all());
-    NON_IDEMPOTENT_FUNCTION = allFunctions;
+    NON_IDEMPOTENT_FUNCTION =
+        ImmutableSet.<Function>builder().addAll(TimeFcts.all()).addAll(UuidFcts.all()).build();
   }
 
   public static boolean isIdempotent(CQLStatement statement) {
