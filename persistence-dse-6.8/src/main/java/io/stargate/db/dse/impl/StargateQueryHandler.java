@@ -131,7 +131,7 @@ public class StargateQueryHandler implements QueryHandler {
         .prepare(query, queryState, customPayload)
         .map(
             p -> {
-              Prepared prepared = QueryProcessor.instance.getPrepared(p.resultMetadataId);
+              Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
               CQLStatement statement = prepared.statement;
               boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
               return new PreparedWithIdempotent(p, idempotent);
