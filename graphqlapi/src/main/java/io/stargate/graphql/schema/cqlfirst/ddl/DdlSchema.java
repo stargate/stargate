@@ -235,6 +235,7 @@ public class DdlSchema {
           .field(newFieldDefinition().name("columns").type(list(COLUMN)))
           .field(newFieldDefinition().name("name").type(nonNull(GraphQLString)))
           .build();
+
   private static final GraphQLObjectType UDT =
       newObject()
           .name("Type")
