@@ -22,7 +22,6 @@ import io.stargate.db.Result;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -376,9 +375,11 @@ public class ResultMessage extends Message.Response {
       if (version.isGreaterThan(ProtocolVersion.V1))
         resultMetadata = RowsSubCodec.METADATA_CODEC.decode(body, version);
 
-      boolean isIdempotent = byteToBoolean(CBUtil.readBytes(body));
-
-      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, isIdempotent);
+      // it is safe to return false as isIdempotent, as this information
+      // is not used in the native protocol
+      // we need to hard-code it because the Result.Prepared is used as the external type,
+      // but also internal propagated by specific persistence backends
+      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false);
     }
 
     @Override
@@ -394,16 +395,6 @@ public class ResultMessage extends Message.Response {
       METADATA_CODEC.encode(prepared.metadata, dest, version);
       if (version.isGreaterThan(ProtocolVersion.V1))
         RowsSubCodec.METADATA_CODEC.encode(prepared.resultMetadata, dest, version);
-
-      CBUtil.writeBytes(booleanToBytes(prepared.isIdempotent), dest);
-    }
-
-    private byte[] booleanToBytes(boolean b) {
-      return new byte[] {(byte) (b ? 1 : 0)};
-    }
-
-    private boolean byteToBoolean(byte[] readBytes) {
-      return BitSet.valueOf(readBytes).get(0);
     }
 
     @Override
@@ -419,8 +410,6 @@ public class ResultMessage extends Message.Response {
       size += METADATA_CODEC.encodedSize(prepared.metadata, version);
       if (version.isGreaterThan(ProtocolVersion.V1))
         size += RowsSubCodec.METADATA_CODEC.encodedSize(prepared.resultMetadata, version);
-
-      size += CBUtil.sizeOfBytes(booleanToBytes(prepared.isIdempotent));
       return size;
     }
   }
