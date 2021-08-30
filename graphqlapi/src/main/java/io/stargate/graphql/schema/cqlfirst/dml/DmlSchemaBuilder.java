@@ -18,21 +18,49 @@ package io.stargate.graphql.schema.cqlfirst.dml;
 import static graphql.Scalars.GraphQLFloat;
 import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
+import static graphql.schema.FieldCoordinates.coordinates;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.BIGINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.DECIMAL_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.DOUBLE_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.FLOAT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.INT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.SMALLINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.TINYINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.VARINT_FUNCTION;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
-import graphql.schema.*;
+import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLInputObjectField;
+import graphql.schema.GraphQLInputObjectType;
+import graphql.schema.GraphQLInputType;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLScalarType;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeReference;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.BulkInsertMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.DeleteMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.InsertMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.QueryFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.UpdateMutationFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
@@ -57,6 +85,7 @@ public class DmlSchemaBuilder {
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
   private final Keyspace keyspace;
+  private final GraphQLCodeRegistry.Builder codeRegistryBuilder;
 
   /** Describes the different kind of types generated from a table */
   private enum DmlType {
@@ -76,6 +105,7 @@ public class DmlSchemaBuilder {
     this.fieldOutputTypes = new FieldOutputTypeCache(this.nameMapping, warnings);
     this.fieldFilterInputTypes =
         new FieldFilterInputTypeCache(this.fieldInputTypes, this.nameMapping);
+    this.codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
   }
 
   @SuppressWarnings("deprecation")
@@ -140,7 +170,7 @@ public class DmlSchemaBuilder {
     builder.additionalType(buildQueryOptionsInputType());
     builder.query(buildQueries(queryFields));
     builder.mutation(buildMutationRoot(mutationFields));
-    return builder.build();
+    return builder.codeRegistry(codeRegistryBuilder.build()).build();
   }
 
   private void addAtomicDirective(GraphQLSchema.Builder builder) {
@@ -206,8 +236,9 @@ public class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(new QueryFetcher(table, nameMapping))
             .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Query", query.getName()), new QueryFetcher(table, nameMapping));
 
     GraphQLFieldDefinition filterQuery =
         GraphQLFieldDefinition.newFieldDefinition()
@@ -226,8 +257,9 @@ public class DmlSchemaBuilder {
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
-            .dataFetcher(new QueryFetcher(table, nameMapping))
             .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Query", filterQuery.getName()), new QueryFetcher(table, nameMapping));
 
     return ImmutableList.of(query, filterQuery);
   }
@@ -262,95 +294,114 @@ public class DmlSchemaBuilder {
   }
 
   private GraphQLFieldDefinition buildUpdate(Table table) {
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name("update" + nameMapping.getGraphqlName(table))
-        .description(
-            String.format(
-                "Update mutation for the table '%s'.%s",
-                table.name(), primaryKeyDescription(table)))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("value")
-                .type(
-                    new GraphQLNonNull(
-                        new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
-        .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("ifCondition")
-                .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
-        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
-        .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(new UpdateMutationFetcher(table, nameMapping))
-        .build();
+    GraphQLFieldDefinition update =
+        GraphQLFieldDefinition.newFieldDefinition()
+            .name("update" + nameMapping.getGraphqlName(table))
+            .description(
+                String.format(
+                    "Update mutation for the table '%s'.%s",
+                    table.name(), primaryKeyDescription(table)))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("value")
+                    .type(
+                        new GraphQLNonNull(
+                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
+            .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("ifCondition")
+                    .type(
+                        new GraphQLTypeReference(
+                            nameMapping.getGraphqlName(table) + "FilterInput")))
+            .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
+            .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
+            .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Mutation", update.getName()), new UpdateMutationFetcher(table, nameMapping));
+    return update;
   }
 
   private GraphQLFieldDefinition buildBulkInsert(Table table) {
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name("bulkInsert" + nameMapping.getGraphqlName(table))
-        .description(
-            String.format(
-                "Bulk insert mutations for the table '%s'.%s",
-                table.name(), primaryKeyDescription(table)))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("values")
-                .type(
-                    new GraphQLList(
-                        new GraphQLNonNull(
-                            new GraphQLTypeReference(
-                                nameMapping.getGraphqlName(table) + "Input")))))
-        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
-        .type(
-            new GraphQLList(
-                new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult")))
-        .dataFetcher(new BulkInsertMutationFetcher(table, nameMapping))
-        .build();
+    GraphQLFieldDefinition bulkInsert =
+        GraphQLFieldDefinition.newFieldDefinition()
+            .name("bulkInsert" + nameMapping.getGraphqlName(table))
+            .description(
+                String.format(
+                    "Bulk insert mutations for the table '%s'.%s",
+                    table.name(), primaryKeyDescription(table)))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("values")
+                    .type(
+                        new GraphQLList(
+                            new GraphQLNonNull(
+                                new GraphQLTypeReference(
+                                    nameMapping.getGraphqlName(table) + "Input")))))
+            .argument(
+                GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+            .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
+            .type(
+                new GraphQLList(
+                    new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult")))
+            .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Mutation", bulkInsert.getName()),
+        new BulkInsertMutationFetcher(table, nameMapping));
+    return bulkInsert;
   }
 
   private GraphQLFieldDefinition buildInsert(Table table) {
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name("insert" + nameMapping.getGraphqlName(table))
-        .description(
-            String.format(
-                "Insert mutation for the table '%s'.%s",
-                table.name(), primaryKeyDescription(table)))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("value")
-                .type(
-                    new GraphQLNonNull(
-                        new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
-        .argument(GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
-        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
-        .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(new InsertMutationFetcher(table, nameMapping))
-        .build();
+    GraphQLFieldDefinition insert =
+        GraphQLFieldDefinition.newFieldDefinition()
+            .name("insert" + nameMapping.getGraphqlName(table))
+            .description(
+                String.format(
+                    "Insert mutation for the table '%s'.%s",
+                    table.name(), primaryKeyDescription(table)))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("value")
+                    .type(
+                        new GraphQLNonNull(
+                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
+            .argument(
+                GraphQLArgument.newArgument().name("ifNotExists").type(Scalars.GraphQLBoolean))
+            .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
+            .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
+            .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Mutation", insert.getName()), new InsertMutationFetcher(table, nameMapping));
+    return insert;
   }
 
   private GraphQLFieldDefinition buildDelete(Table table) {
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name("delete" + nameMapping.getGraphqlName(table))
-        .description(
-            String.format(
-                "Delete mutation for the table '%s'.%s",
-                table.name(), primaryKeyDescription(table)))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("value")
-                .type(
-                    new GraphQLNonNull(
-                        new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
-        .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
-        .argument(
-            GraphQLArgument.newArgument()
-                .name("ifCondition")
-                .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "FilterInput")))
-        .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
-        .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
-        .dataFetcher(new DeleteMutationFetcher(table, nameMapping))
-        .build();
+    GraphQLFieldDefinition delete =
+        GraphQLFieldDefinition.newFieldDefinition()
+            .name("delete" + nameMapping.getGraphqlName(table))
+            .description(
+                String.format(
+                    "Delete mutation for the table '%s'.%s",
+                    table.name(), primaryKeyDescription(table)))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("value")
+                    .type(
+                        new GraphQLNonNull(
+                            new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "Input"))))
+            .argument(GraphQLArgument.newArgument().name("ifExists").type(Scalars.GraphQLBoolean))
+            .argument(
+                GraphQLArgument.newArgument()
+                    .name("ifCondition")
+                    .type(
+                        new GraphQLTypeReference(
+                            nameMapping.getGraphqlName(table) + "FilterInput")))
+            .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
+            .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
+            .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Mutation", delete.getName()), new DeleteMutationFetcher(table, nameMapping));
+    return delete;
   }
 
   private List<GraphQLInputObjectField> buildFilterInputFields(Table table) {
@@ -576,12 +627,15 @@ public class DmlSchemaBuilder {
         description.append("\n- ").append(warning);
       }
     }
-    return GraphQLFieldDefinition.newFieldDefinition()
-        .name("conversionWarnings")
-        .description(description.toString())
-        .type(list(GraphQLString))
-        .dataFetcher((d) -> warnings)
-        .build();
+    GraphQLFieldDefinition field =
+        GraphQLFieldDefinition.newFieldDefinition()
+            .name("conversionWarnings")
+            .description(description.toString())
+            .type(list(GraphQLString))
+            .build();
+    codeRegistryBuilder.dataFetcher(
+        coordinates("Mutation", field.getName()), (DataFetcher<Object>) (d) -> warnings);
+    return field;
   }
 
   @FormatMethod
