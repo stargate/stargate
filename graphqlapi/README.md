@@ -1,585 +1,300 @@
-# GraphQL for Stargate
+# Stargate GraphQL
 
-Easy to use APIs for extending Stargate to access data using graphql. 
+This module builds an OSGi bundle that exposes Stargate's GraphQL services over HTTP.
 
-These APIs are used as a Stargate OSGi bundle. Add the graphql jar to the Stargate plugin folder to use.
+Here is a brief functional overview of those services (for more details, refer to the [Stargate
+online docs]).
 
-## Getting Started
+* `/graphql-schema` exposes DDL operations (describe, create table, etc). It can be used for any
+  keyspace (most operations take a `keyspace` argument).
+* for each keyspace, there is a `/graphql/<keyspace>` service for DML operations (read and insert
+  data, etc). Initially, its GraphQL schema is automatically generated from the CQL data model. We
+  call this the **CQL-first** model.
+* `/graphql-admin` allows users to deploy their own GraphQL schemas. Stargate will alter the CQL
+  schema to match what they want to map. We call this the **GraphQL-first** model. Once a
+  GraphQL-first schema has been deployed in this manner, it replaces the CQL-first one:
+  `/graphql/<keyspace>` now uses the custom schema, and the generated schema is not available
+  anymore.
 
-### Installation
+## Entry points
 
-To build the GraphQL plugin individually, run the command:
+[GraphqlActivator] manages the starting and stopping of the OSGi bundle.
 
-```sh
-./mvnw package -pl graphqlapi
+[DropwizardServer] is the HTTP server that exposes the GraphQL services as REST resources. As the
+name indicates, it's implemented with
+[Dropwizard](https://www.dropwizard.io/en/latest/).
+
+## GraphQL Java primer
+
+We rely extensively on [GraphQL Java](https://www.graphql-java.com/). Before delving further into
+the Stargate code, it can be helpful to have a basic understanding of that library:
+
+```java
+Random random = new Random();
+GraphQLSchema schema =
+    GraphQLSchema.newSchema() // (1)
+        .query(
+            GraphQLObjectType.newObject()
+                .name("Query")
+                .field(
+                    GraphQLFieldDefinition.newFieldDefinition()
+                        .name("random")
+                        .type(Scalars.GraphQLInt)
+                        .build())
+                .build())
+        .codeRegistry( // (2)
+            GraphQLCodeRegistry.newCodeRegistry()
+                .dataFetcher(
+                    FieldCoordinates.coordinates("Query", "random"),
+                    (DataFetcher<Integer>) environment -> random.nextInt())
+                .build())
+        .build();
+
+GraphQL graphql = GraphQL.newGraphQL(schema).build(); // (3)
+
+ExecutionResult result = graphql.execute("{ random }");
+System.out.println(result.getData().toString()); // prints {random=1384094011}
 ```
 
-### Using GraphQL
+1. `newSchema()` provides a DSL to create the GraphQL schema programmatically. This example will
+   produce:
 
-By default, a GraphQL endpoint is started and will generate a GraphQL schema per keyspace. You need
-at least one user-defined keyspace in your database to get started.
+    ```graphql
+    type Query {
+      random: Int
+    }
+    ```
+2. The code registry provides the logic to execute queries at runtime. It is broken down into data
+   fetchers. Each fetcher handles a field, identified by its coordinates in the schema.
+3. Finally, we turn the `GraphQLSchema` into an executable `GraphQL`.
 
-### Using the Playground
 
-The easiest way to get started is to use the built-in GraphQL playground at <http://localhost:8080/playground>.
-You can then interact with the various GraphQL schemas by entering their URL in the playground's address bar, for example <http://localhost:8080/graphql/{keyspace}>.
+## HTTP layer
 
-### Path Layout
+### Authentication
 
-By default, the server paths are structured to provide:
+[AuthenticationFilter] intercepts every HTTP request to perform token-based authentication. The
+subject is stored in the HTTP context for consumption in the REST resources.
 
-* `/graphql-schema`: An API for exploring and creating schema, in database terminology this is known
-  as: Data Definition Language (DDL). In Cassandra these are the queries used to create, modify,
-  drop keyspaces and tables e.g. `CREATE KEYSPACE ...`, `CREATE TABLE ...`, `DROP TABLE ...`.
-* `/graphql/<keyspace>`: An API for querying and modifying your Cassandra tables using GraphQL
-  fields.
+We also take advantage of this filter to create a single, reusable `DataStore` instance for the
+request (this used to be done in the data fetchers, but it lead to performance issues, see
+[#1021](https://github.com/stargate/stargate/issues/1021) and
+[#1034](https://github.com/stargate/stargate/pull/1034)).
 
-#### Keyspaces
+### Resources
 
-For each keyspace created in your Cassandra schema, a new path is created under the
-root graphql-path of `/graphql`. For example, a path
-`/graphql/library` is created for the `library` keyspace when it is added to the Cassandra schema.
+#### GraphQL services
 
-### Schema
+They are implemented as REST resources. They all extend [GraphqlResourceBase], which handles the
+various ways to query GraphQL over HTTP: POST vs GET, arguments in the query string vs the body,
+multipart, etc.
 
-Before you can get started using GraphQL APIs you must create a keyspace and at least one table. If
-your Cassandra database already has existing schema then the server has already imported your schema
-and you might skip this step. Otherwise, use the following steps to create new schema.
+The only thing that changes across subclasses is how we get hold of the `GraphQL` object to query
+(see [GraphQL layer](#graphql-layer) below), and whether multipart is supported.
 
-Inside the playground, navigate to <http://localhost:8080/graphql-schema>, then create a keyspace by
-executing:
+[StargateGraphqlContext] allows us to inject state that will be available later in the data fetchers
+(see [CassandraFetcher]). In particular, this is how we pass the authentication subject and
+datastore that were initialized in the authentication filter. The context also handles
+[batching](#batching), which will be described below.
 
-```graphql
-mutation {
-  createKeyspace(
-    name:"library", # The name of your keyspace
-    # Controls how your data is replicated,
-    dcs: { name:"dc1", replicas: 1 }  # Use at least 3 replicas in production
-  )
-}
-```
+#### Other resources
 
-After the keyspace is created you can create tables by executing:
+[PlaygroundResource] exposes the GraphQL playground (an in-browser client, served from a static HTML
+file). [FilesResource] provides downloadable versions of users' custom schemas, and CQL directive
+definitions.
 
-```graphql
-mutation {
-  books: createTable(
-    keyspaceName:"library", 
-    tableName:"books", 
-    partitionKeys: [ # The keys required to access your data
-      { name: "title", type: {basic: TEXT} }
-    ]
-    values: [ # The values associated with the keys
-      { name: "author", type: {basic: TEXT} }
-    ]
-  )
-  authors: createTable(
-    keyspaceName:"library", 
-    tableName:"authors", 
-    partitionKeys: [
-      { name: "name", type: {basic: TEXT} }
-    ]
-    clusteringKeys: [ # Secondary key used to access values within the partition
-      { name: "title", type: {basic: TEXT} }
-    ]
-  )
-}
-```
 
-You can also create the schema using `cqlsh` and the server will automatically
-apply your schema changes.
+## GraphQL layer
 
-```cql
-CREATE KEYSPACE library WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': '3'};
+[GraphqlCache] provides the `GraphQL` instances used by the HTTP layer. The lifecycle of those
+objects varies depending on the service:
 
-CREATE TABLE library.books (
-    title text PRIMARY KEY,
-    author text
-);
+### CQL-first
 
-CREATE TABLE library.authors (
-    name text,
-    title text,
-    PRIMARY KEY (name, title)
-) WITH CLUSTERING ORDER BY (title ASC);
-```
+#### DDL (`/graphql-schema`)
 
-#### Conversion warnings
+The DDL service never changes, we only need to cache one instance. The schema is built by
+[DdlSchemaBuilder].
 
-If a GraphQL API is not generated for an existing CQL table schema then there might have been a
-failure with the conversion. The failure will create a warning that can be retrieved using the
-`conversionWarnings` operation under the table's keyspace URL:
-`http://localhost/graphql/<keyspace>`. 
+The data fetchers are in the package [cqlfirst.ddl.fetchers]. Their implementation is pretty
+straightforward: translate the GraphQL operations into CQL queries for the persistence layer.
 
-To query the conversion warnings use:
+Our fetchers are generally loosely typed, a lot of them return raw data as a `Map<String, Object>`.
+But there is a case where that doesn't work, and that's when one of the inner fields can be
+parameterized:
 
-```graphql
-query {
-  conversionWarnings
-}
-```
-
-#### Schema queries
-You can also query the schema for tables and their types
 ```graphql
 query {
   keyspace(name: "library") {
-    name
-    table(name: "books") {
-      name
-      columns {
-        name
-        type {
-          basic
-        }
-      }
-    }
+    books: table(name: "books") { columns { name } }
+    authors: table(name: "authors") { columns { name } }
   }
 }
 ```
 
-#### Adding columns
-```graphql
-mutation {
-  alterTableAdd(
-    keyspaceName:"library",
-    tableName:"books",
-    toAdd:[{
-      name: "isbn",
-      type: {
-        basic: TEXT
-      }
-    }]
-  )
-}
-```
+In that situation, there is no way to return both tables with a `Map<String, Object>`, because the
+map keys are the actual field types, not their aliases. The solution is to use a strongly-typed DTO,
+such as [KeyspaceDto]. (In hindsight, it might have been better to use this approach more often, but
+the current version works so there's no strong need to change it.)
 
-#### Removing columns
-```graphql
-mutation {
-    alterTableDrop(
-    keyspaceName:"library",
-    tableName:"books",
-    toDrop:["isbn"]
-  )
-}
-```
+#### DML (`/graphql/<keyspace>`)
 
-#### Dropping tables
-```graphql
-mutation {
-  dropTable(keyspaceName:"library",
-    tableName:"books")
-}
-```
+We cache one `GraphQL` per keyspace.
 
-### API Generation
+The schema is built by [DmlSchemaBuilder]. This time things are a bit more dynamic, we read from a
+`Keyspace` and generate the schema accordingly. For example if there is a `"User"` table, we'll have
+a `User` GraphQL type, an `insertUser` operation, etc.
 
-For each table in your Cassandra schema, several fields are created for handling
-queries and mutations. For example, the GraphQL API generated for the `books`
-table looks like this:
+The schema often references the same types over and over. For example, each time a table can be
+queried by an `int`, the query operation will have an `IntFilterInput` argument that defines various
+search operators (`eq`, `lte`, etc). In the builder code, every occurrence of a given type must be
+represented by the same `GraphQLType` instance, so we must keep track of the types we have generated
+so far, and reuse them if they appear again. This is handled by [FieldTypeCache] and its subclasses.
 
-```graphql
-schema {
-  query: Query
-  mutation: Mutation
-}
+We name our GraphQL types and fields after CQL tables and columns. But GraphQL identifiers have more
+restrictive naming rules, so we sometimes need to convert names. This is covered by [NameMapping],
+which also caches the results.
 
-type Query {
-  books(value: BooksInput, filter: BooksFilterInput, orderBy: [BooksOrder], options: QueryOptions): BooksResult
-  booksFilter(filter: BooksFilterInput!, orderBy: [BooksOrder], options: QueryOptions): BooksResult
-}
+CQL also has a wider range of primitive types. [CqlScalar] defines a number of custom GraphQL
+scalars to match the CQL types that have no direct equivalent. See the `*Coercing` classes for the
+details of the type coercion rules.
 
-type Mutation {
-  insertbooks(value: BooksInput!, ifNotExists: Boolean, options: UpdateOptions): BooksMutationResult
-  updatebooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
-  deletebooks(value: BooksInput!, ifExists: Boolean, ifCondition: BooksFilterInput, options: UpdateOptions): BooksMutationResult
-}
-```
+The data fetchers are in the package [cqlfirst.dml.fetchers]. There is one fetcher per type of
+query, it gets initialized with the `Table` that this particular operation was created for.
 
-#### Queries:
+The DML schema listens to CQL schema change events in order to adapt in real time. See
+`GraphqlCache.onKeyspaceChanged()`, which gets registered in the [GraphqlCache] constructor.
 
-* `books()`: Query book values by equality. If no `value` argument is provided then the first 100 (
-  default pagesize) values are returned.
+It's also worth noting that both versions of the API share the same cache entry: if a GraphQL-first
+schema was deployed for this keyspace, we use it, otherwise we generate a CQL-first schema. See the
+logic in `GraphqlCache.getDml()`.
 
-* `booksFilter`: (**Deprecated**) Query book values by filtering the result with additional
-  operators e.g. `gt` (greater than), `lt` (less than), `in` (in a list of values) etc.
-  The `books()` equality style query is preferable if your queries don't require the use
-  of non-equality operators.
+### GraphQL-first
 
-#### Mutations:
+#### Admin (`/graphql-admin`)
 
-* `insertbooks()`: Insert a new book. This is an "upsert" operation that will update the value of
-  existing books if they already exists unless `ifNotExists`
-  is set to `true`. Using `ifNotExists` causes the mutation to use a lightweight transaction (LWT)
-  adding significant overhead.
+The admin service never changes, we only need to cache one instance. The schema is built by
+[AdminSchemaBuilder].
 
-* `updatebooks()`: Update an existing book. This is also an "upsert" and will create a new book if
-  one doesn't exists unless `ifExists` is set to `true`. Using `ifExists` or `ifCondition` causes
-  the mutation to use a lightweight transaction (LWT) adding significant overhead.
+The data fetchers are in the package [graphqlfirst.fetchers.admin]. Most of the fetchers are
+trivial, with the exception of [DeploySchemaFetcherBase]: this is where we process a custom GraphQL
+schema received from the user.
 
-* `deletebooks()`: Deletes a book. Using `ifExists` or `ifCondition` causes the mutation to use a
-  lightweight transaction (LWT) adding significant overhead.
+* we first check if a previous custom schema was deployed for this keyspace. This is stored in a
+  table `stargate_graphql.schema_source`. We also use a lightweight transaction as a rudimentary
+  concurrency control mechanism to ensure that two deployments cannot run concurrently. This is all
+  handled by [SchemaSourceDao].
+* [SchemaProcessor] parses the user's GraphQL schema, and builds:
+  * [MappingModel], a representation of the equivalent CQL model. This starts in
+    `MappingModel.build()`, and then branches out to `*ModelBuilder` helper classes for each kind of
+    GraphQL element (types, operations, etc).
+  * the `GraphQL` instance. We use the user's schema directly (it is valid if we got this far), and
+    [MappingModel] generates the data fetchers.
+* [CassandraMigrator] checks if that theoretical CQL model matches the actual contents of the
+  database. If it doesn't, there are various user-configurable migration strategies to handle the
+  differences: error out, or try to alter the CQL model. In the latter case, the check returns a list
+  of migration queries, that we can now execute.
+* finally, we insert the new version in `stargate_graphql.schema_source`. The new `GraphQL` instance
+  is sent to [GraphqlCache], which starts to serve it to its clients.
 
-As more tables are added to a keyspace additional fields will be added to the
-`Query` and `Mutation` types to handle queries and mutations for those
-new tables.
+We provide a set of CQL directives that allow users to control certain aspects of their mapping (for
+example, use a different table name than the inferred default). They are defined in [CqlDirectives],
+and referenced throughout the model-building code. You can also download a text version from a
+running Stargate instance at `graphql-files/cql_directives.graphql`.
 
-### Using the API
+#### Deployed (`/graphql/<keyspace>`)
 
-See the [QuickStart](https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html) for
-more information.
+Once a user has deployed their own GraphQL schema, it replaces the CQL-first schema for that
+keyspace. As already mentioned, [GraphqlCache] contains logic to determine which variant to load.
 
+There are two ways that a GraphQL-first `GraphQL` instance can be created:
 
-## Using Apollo Client
+* if the deploy operation just happened in this Stargate process, then [DeploySchemaFetcherBase]
+  already has the `GraphQL`, and puts it directly in the cache with `GraphqlCache.putDml`.
+* if the deployment happened via another Stargate instance, or if Stargate just restarted, we need
+  to reload the schema from `stargate_graphql.schema_source`. This uses a simplified version of the
+  deployment process described in the previous section, see
+  `GraphqlCache.LazySchemaFirstGraphqlHolder`.
 
-This is a basic guide for getting started with Apollo Client 2.x in Node. First
-you'll need to install dependencies. These examples also utilize the `books`
-schema created in the schema section.
+Unlike CQL-first, GraphQL-first does not react to external CQL schema changes: the user is supposed
+to have full control over the GraphQL schema, so we can't just change it behind their back. So our
+assumption is that once users go GraphQL-first, they will evolve their CQL schema via successive
+deploy operations, not by directly altering the database. If things get out of sync, there are no
+guarantees: queries might start to fail, or a saved schema might fail to reload.
 
-### Node
+The data fetchers are in the package [graphqlfirst.fetchers.deployed]. They rely on the
+representation that was built by [MappingModel]. For example, the query fetcher relies on a query
+model that defines the target table, which parameters of the GraphQL operation will be mapped to
+`WHERE` clauses, etc. This part of the code is quite tedious because our mapping rules are very
+flexible: there are many different ways to define operations and map the results. The best way to
+get familiar with a fetcher is to look at the integration tests and trace their execution.
 
-```sh
-$ npm init # Follow prompts
-$ npm install apollo-client apollo-cache-inmemory apollo-link-http \
-  apollo-link-error apollo-link graphql graphql-tag node-fetch --save
-```
+### Batching
 
-Copy this into a file of your chose or your `main` entry point, usually
-`index.js`.
-
-```js
-const { HttpLink } = require('apollo-link-http')
-const { InMemoryCache } = require('apollo-cache-inmemory')
-const { ApolloClient } = require('apollo-client')
-const fetch = require('node-fetch')
-const gql = require('graphql-tag')
-
-const client = new ApolloClient({
-  link: new HttpLink({
-    uri: 'http://localhost:8080/graphql/library',
-    fetch: fetch
-  }),
-  cache: new InMemoryCache()
-})
-
-const query = 
-client.query({ 
-  query: gql`
-    {
-       books {
-         values {
-           author
-         }
-       }
-    }
-  `
-}).then(result => {
-  console.log(result)
-})
-```
-
-Then run the example.
-
-```sh
-$ node index.js # Use the name of the file you created in the previous step
-{
-  data: { books: { values: [Array], __typename: 'BooksResult' } },
-  loading: false,
-  networkStatus: 7,
-  stale: false
-}
-```
-
-
-## API Features
-
-### Query Options
-
-Query field operations have an `options` argument which can be used to control
-the behavior queries.
-
-```
-input QueryOptions {
-  consistency: QueryConsistency
-  limit: Int
-  pageSize: Int
-  pageState: String
-}
-```
-
-#### Consistency
-
-Query consistency controls the number of replicas that must agree before returning
-your query result. This is used to tune the balance between data consistency and
-availability for reads. `SERIAL` and `LOCAL_SERIAL` are for use when doing
-conditional inserts and updates which are also known as lightweight transactions
-(LWTs), they are similar to `QUORUM` and `LOCAL_QUORUM`, respectively. More
-information about read consistency levels can be found in [How is the
-consistency level configured?].
+Batching is a cross-cutting concern, both CQL-first and GraphQL-first support the `@atomic`
+directive to indicate that a set of mutations must be executed as a single CQL batch:
 
 ```graphql
-enum QueryConsistency {
-  LOCAL_ONE    # Only wait for one replica in the local data center
-  LOCAL_QUORUM # Wait for a quorum, `floor(total_replicas / 2 + 1)`, of replicas in the local data center
-  ALL          # Wait for all replicas in all data centers
-  SERIAL       # Used to read the latest value checking for inflight updates
-  LOCAL_SERIAL # Same as `SERIAL, but only in the local data center
+mutation @atomic {
+  ... // mutations
 }
 ```
 
-#### Limit
-
-Limit sets the maximum number of values a query returns. 
-
-#### PageSize and PageState
-
-Query paging can be controlled by modifying the values of `pagingSize` and
-`pageState` in the input type `QueryOptions` argument. The default `pageSize` is
-100 values.
+[StargateGraphqlContext] (via its inner class `BatchContext`) provides coordination services that
+allows independent fetchers to accumulate queries, and track which is the last one that must execute
+the batch.
 
 
-The `pageState` is returned in the data result of queries. It is a marker that
-can be passed to subsequent queries to get the next page.
+## Testing
 
-``` graphql
-query {
-    books (options:{pageSize: 10}) {
-      values {
-        # ...
-      }
-      pageState # Return the page state
-    }
-}
-```
+### Manually
 
-The `pageState` value is returned in the result:
+The easiest way is to use the built-in GraphQL playground at http://localhost:8080/playground.
 
-```json
-{
-  "data": {
-    "books": {
-      "pageState": "CENhdGNoLTIyAPB////+AA==",
-      "values": [
-        ...
-      ]
-    }
-  }
-}
-```
+You can then interact with the various GraphQL schemas by entering their URL in the playground's
+address bar, for example http://localhost:8080/graphql/{keyspace}.
 
-`pageState` from the previous result can be passed into a followup query to get
-the next page:
+### Integration tests
 
-```graphql
-query {
-    books (options:{pageSize: 10, pageState: "CENhdGNoLTIyAPB////+AA=="}) {
-      # ...
-    }
-}
-```
+The integration tests are located in the [testing] module. There use two different approaches:
 
-### Order By
+* the tests that extend [ApolloTestBase] use the [Apollo client] library. They provide a good
+  example of using a "real-world" client, but require a lot of boilerplate: external definition
+  files, code generation...
+* the other tests use a more lightweight approach that takes GraphQL queries as plain strings, and
+  returns raw JSON responses. See [GraphqlClient] and its subclasses.
 
-The order of values returned can be controlled by passing an enumeration value
-argument, `orderBy`, for the given field.
+If you add new tests, please favor the lightweight approach.
 
-Given the schema below this would return the books written by `"Herman
-Melville"` in order of his books by page length.
+[AdminSchemaBuilder]: src/main/java/io/stargate/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
+[ApolloTestBase]: ../testing/src/main/java/io/stargate/it/http/graphql/cqlfirst/ApolloTestBase.java
+[AuthenticationFilter]: src/main/java/io/stargate/graphql/web/resources/AuthenticationFilter.java
+[CassandraFetcher]: src/main/java/io/stargate/graphql/schema/CassandraFetcher.java
+[CassandraMigrator]: src/main/java/io/stargate/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
+[CqlDirectives]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/CqlDirectives.java
+[CqlScalar]: src/main/java/io/stargate/graphql/schema/scalars/CqlScalar.java
+[DdlSchemaBuilder]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
+[DeploySchemaFetcherBase]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
+[DmlSchemaBuilder]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
+[DropwizardServer]: src/main/java/io/stargate/graphql/web/DropwizardServer.java
+[FieldTypeCache]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/FieldTypeCache.java
+[FilesResource]: src/main/java/io/stargate/graphql/web/resources/FilesResource.java
+[GraphqlActivator]: src/main/java/io/stargate/graphql/GraphqlActivator.java
+[GraphqlCache]: src/main/java/io/stargate/graphql/web/resources/GraphqlCache.java
+[GraphqlClient]: ../testing/src/main/java/io/stargate/it/http/graphql/GraphqlClient.java
+[GraphqlResourceBase]: src/main/java/io/stargate/graphql/web/resources/GraphqlResourceBase.java
+[KeyspaceDto]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
+[MappingModel]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/MappingModel.java
+[NameMapping]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/NameMapping.java
+[PlaygroundResource]: src/main/java/io/stargate/graphql/web/resources/PlaygroundResource.java
+[SchemaProcessor]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
+[SchemaSourceDao]: src/main/java/io/stargate/graphql/persistence/graphqlfirst/SchemaSourceDao.java
+[StargateGraphqlContext]: src/main/java/io/stargate/graphql/web/StargateGraphqlContext.java
+[cqlfirst.ddl.fetchers]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/fetchers
+[cqlfirst.dml.fetchers]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/fetchers
+[graphqlfirst.fetchers.admin]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/admin
+[graphqlfirst.fetchers.deployed]: graphqlapi/src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/deployed
+[testing]: ../testing/src/main/java/io/stargate/it/http/graphql
 
-```graphql
-query {
-  bookBySize(value:{author:"Herman Melville"}, orderBy: pages_DESC) {
-    values {
-      title
-      pages
-    }
-  }
-}
-```
-
-Each query field has an `orderBy` argument and a specific order enumeration
-type, in this case, `BookBySizeOrder`.
-
-```graphql
-type Query {
-  bookBySize(options: QueryOptions, value: BookBySizeInput, orderBy: [BookBySizeOrder]): BookBySizeResult
-  
-  # ...
-}
-
-enum BookBySizeOrder {
-  author_ASC
-  author_DESC
-  pages_ASC
-  pages_DESC
-  title_ASC
-  title_DESC
-}
-
-# ...
-
-```
-
-### Filtering
-
-Filter queries allow for the use of additional operators to control which values
-are returned. 
-
-The `filter` parameter allows for using more flexible conditional operators,
-`eq` (equal), `gte` (greater than, or equal), `lte` (less than, or equal), etc.
-This query returns all the books by "Herman Melville" with a length between 100
-and 800 pages.
-
-```graphql
-query {
-  bookBySize(filter:{author: {eq: "Herman Melville"}, pages: {gte: 100, lte: 800}}) {
-    values {
-      title
-      pages
-    }
-  }
-}
-```
-
-The `in` operator allow for filtering a specific set of values. This query returns the books
-by `Herman Melville` in the provided `in` set.
-
-```graphql
-query {
-  bookBySize(filter:{author: {eq: "Herman Melville"}, title: {in: ["Moby Dick", "Redburn"]}) {
-    values {
-      title
-      pages
-    }
-  }
-}
-```
-
-### Mutation Options
-
-Mutation field operations have an `options` argument which can be used to control
-the behavior mutations (inserts, updates, and deletes).
-
-```graphql
-input MutationOptions {
-  consistency: MutationConsistency
-  serialConsistency: SerialConsistency
-  ttl: Int = -1
-}
-```
-
-#### Consistency
-
-Mutation consistency controls the number of replicas that must acknowledge a
-mutation before returning. This is used to tune the balance between data
-consistency and availability for writes. More information about write
-consistency levels can be found in [How is the consistency level configured?].
-
-
-```graphql
-enum MutationConsistency {
-  LOCAL_ONE    # Acknowledge only a single replica in the local data center
-  LOCAL_QUORUM # Acknowledge a quorum of replicas in the local data center
-  ALL          # Acknowledge all replicas
-}
-```
-
-#### Serial Consistency
-
-Serial consistency is used in conjunction with conditional inserts and updates
-(LWTs) and in all other mutations types it is ignored if provided.
-
-```graphql
-enum SerialConsistency {
-  SERIAL       # Linearizable consistency for conditional inserts and updates
-  LOCAL_SERIAL # Same as `SERIAL`, but local to a single data center
-}
-```
-
-#### Time-to-live (TTL)
-
-Time-to-live (TTL), defined in seconds, controls the amount of time a value
-lives in the database before expiring e.g. `ttl: 60` means the associated values
-are no longer readable after 60 seconds. More information about TTL can be found
-in [Expiring data with time-to-live].
-
-### Conditional Inserts, Updates, and Deletes
-
-Conditional mutations are mechanism to add or modify field values only when a
-provided condition, `ifExists`, `ifNotExists, and `ifCondition`, is satisfied.
-These conditional mutations require the use lightweight transactions (LWTs)
-which are significantly more expensive than regular mutations. More information
-about LWTs can be found in [Using lightweight transactions].
-
-
-The following book will only be added if an existing entry does not exist. The
-`applied` field can be used to determine if the mutation succeeded. If the
-mutation succeeded then `applied: true` is returned.
-
-```graphql
-mutation {
-  insertbooks(value: {title: "Don Quixote", author: "Miguel De Cervantes"}, ifNotExists: true) {
-    applied
-    value {
-      title
-      author
-    }
-  }
-}
-```
-
-Result:
-
-```json
-{
-  "data": {
-    "insertbooks": {
-      "applied": true,
-      "value": {
-        "author": "Miguel De Cervantes",
-        "title": "Don Quixote"
-      }
-    }
-  }
-}
-```
-
-#### Return values
-
-When mutations fail with `applied: false`, the most up-to-date, existing values are returned in the
-result. Using the previous query, if the book already exists then the result would return a value
-for the `author`. Values that are part of the partition and clustering keys are always returned in
-the result, independent of whether the mutation was applied.
-
-```graphql
-mutation {
-  insertbooks(value: {title: "Don Quixote", author: "Herman Melville"}, ifNotExists: true) {
-    applied
-    value {
-      title
-      author
-    }
-  }
-}
-```
-
-Result:
-
-```json
-{
-  "data": {
-    "insertbooks": {
-      "applied": false,
-      "value": {
-        "author": "Miguel De Cervantes",
-        "title": "Don Quixote"
-      }
-    }
-  }
-}
-```
-
-[Expiring data with time-to-live]: https://docs.datastax.com/en/cql-oss/3.x/cql/cql_using/useExpire.html
-[Using lightweight transactions]: https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/dml/dmlLtwtTransactions.html
-[How is the consistency level configured?]: https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/dml/dmlConfigConsistency.html
+[Apollo client]: https://www.apollographql.com/docs/android/essentials/get-started-java/
+[Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html
