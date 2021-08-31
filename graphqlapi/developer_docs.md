@@ -244,11 +244,6 @@ mutation @atomic {
 allows independent fetchers to accumulate queries, and track which is the last one that must execute
 the batch.
 
-In the CQL-first code, [MutationFetcher] and [BulkMutationFetcher] are equipped to detect the
-directive and use the batch context. In the GraphQL-first code, there is a single
-[MutationFetcher][graphqlfirst.MutationFetcher] parent class that handles both regular and bulk
-operations. The GraphQL-first design is cleaner IMHO, so it would probably be a good idea to
-retrofit the CQL-first fetchers to use it at some point in the future.
 
 ## Integration tests
 
@@ -265,7 +260,6 @@ If you add new tests, please favor the lightweight approach.
 [AdminSchemaBuilder]: src/main/java/io/stargate/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
 [ApolloTestBase]: ../testing/src/main/java/io/stargate/it/http/graphql/cqlfirst/ApolloTestBase.java
 [AuthenticationFilter]: src/main/java/io/stargate/graphql/web/resources/AuthenticationFilter.java
-[BulkMutationFetcher]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/fetchers/BulkMutationFetcher.java
 [CassandraFetcher]: src/main/java/io/stargate/graphql/schema/CassandraFetcher.java
 [CassandraMigrator]: src/main/java/io/stargate/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
 [CqlDirectives]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/CqlDirectives.java
@@ -282,7 +276,6 @@ If you add new tests, please favor the lightweight approach.
 [GraphqlResourceBase]: src/main/java/io/stargate/graphql/web/resources/GraphqlResourceBase.java
 [KeyspaceDto]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
 [MappingModel]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/MappingModel.java
-[MutationFetcher]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/fetchers/MutationFetcher.java
 [NameMapping]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/NameMapping.java
 [PlaygroundResource]: src/main/java/io/stargate/graphql/web/resources/PlaygroundResource.java
 [SchemaProcessor]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
@@ -290,7 +283,6 @@ If you add new tests, please favor the lightweight approach.
 [StargateGraphqlContext]: src/main/java/io/stargate/graphql/web/StargateGraphqlContext.java
 [cqlfirst.ddl.fetchers]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/fetchers
 [cqlfirst.dml.fetchers]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/fetchers
-[graphqlfirst.MutationFetcher]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/deployed/MutationFetcher.java
 [graphqlfirst.fetchers.admin]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/admin
 [graphqlfirst.fetchers.deployed]: graphqlapi/src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/deployed
 [testing]: ../testing/src/main/java/io/stargate/it/http/graphql
