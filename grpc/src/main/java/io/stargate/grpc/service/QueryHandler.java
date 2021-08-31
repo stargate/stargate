@@ -102,7 +102,6 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
-    responseBuilder.setIsIdempotent(resultAndIdempotencyInfo.isIdempotent);
     switch (result.kind) {
       case Void:
         break;

@@ -129,7 +129,6 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
     }
 
-    responseBuilder.setIsIdempotent(resultAndIdempotencyInfo.isIdempotent);
     responseAndTraceId.setResponseBuilder(responseBuilder);
     return responseAndTraceId;
   }
