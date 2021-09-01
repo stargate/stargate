@@ -34,6 +34,24 @@ import org.apache.cassandra.db.marshal.ListType;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.SchemaTransformation;
 
+/**
+ * The IdempotencyAnalyzer responsibility is to analyze `CqlStatement`s and infer whether the query
+ * is idempotent or not. All prepared queries are analyzed. If yes, it is safe to retry such a query
+ * on the client or/and server-side. If it is not, the query should not be retried because it may
+ * result in an inconsistent state of a Database.
+ *
+ * <ul>
+ *   The analyzer returns that query is non-idempotent in the following scenarios: List appends,
+ *   prepends, or element deletions.
+ *   <li>Counter increments / decrements.
+ *   <li>Mutations that use non-idempotent functions such as `now()` and `uuid()`
+ *   <li>LWTs
+ *   <li>Truncate, schema changes, and USE
+ * </ul>
+ *
+ * <p>Batches are idempotent if their underlying statements are all idempotent. It is done by
+ * examining queries within a `BatchStatement`. It is worth noting that all reads are idempotent.
+ */
 public class IdempotencyAnalyzer {
   private static final Set<Function> NON_IDEMPOTENT_FUNCTION;
 
