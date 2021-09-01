@@ -26,6 +26,8 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
+import io.stargate.db.dse.impl.idempotency.IdempotencyAnalyzer;
+import io.stargate.db.dse.impl.idempotency.PreparedWithIdempotent;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -125,7 +127,15 @@ public class StargateQueryHandler implements QueryHandler {
   @Override
   public Single<ResultMessage.Prepared> prepare(
       String query, QueryState queryState, Map<String, ByteBuffer> customPayload) {
-    return QueryProcessor.instance.prepare(query, queryState, customPayload);
+    return QueryProcessor.instance
+        .prepare(query, queryState, customPayload)
+        .map(
+            p -> {
+              Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
+              CQLStatement statement = prepared.statement;
+              boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
+              return new PreparedWithIdempotent(p, idempotent);
+            });
   }
 
   @Override

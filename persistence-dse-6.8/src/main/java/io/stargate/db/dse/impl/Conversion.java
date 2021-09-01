@@ -8,6 +8,7 @@ import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.datastore.common.util.ColumnUtils;
+import io.stargate.db.dse.impl.idempotency.PreparedWithIdempotent;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
@@ -541,6 +542,7 @@ public class Conversion {
         return new Result.SchemaChange(toSchemaChangeMetadata(resultMessage));
       case PREPARED:
         ResultMessage.Prepared prepared = (ResultMessage.Prepared) resultMessage;
+        PreparedWithIdempotent preparedWithIdempotent = (PreparedWithIdempotent) prepared;
         QueryHandler.Prepared preparedStatement =
             QueryProcessor.instance.getPrepared(prepared.statementId);
         return new Result.Prepared(
@@ -549,7 +551,8 @@ public class Conversion {
             toResultMetadata(prepared.resultMetadata, null),
             toPreparedMetadata(
                 prepared.metadata.names,
-                preparedStatement.statement.getPartitionKeyBindVariableIndexes()));
+                preparedStatement.statement.getPartitionKeyBindVariableIndexes()),
+            preparedWithIdempotent.isIdempotent());
     }
 
     throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);

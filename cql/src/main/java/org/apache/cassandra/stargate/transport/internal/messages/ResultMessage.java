@@ -375,7 +375,11 @@ public class ResultMessage extends Message.Response {
       if (version.isGreaterThan(ProtocolVersion.V1))
         resultMetadata = RowsSubCodec.METADATA_CODEC.decode(body, version);
 
-      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata);
+      // it is safe to return false as isIdempotent, as this information
+      // is not used in the native protocol
+      // we need to hard-code it because the Result.Prepared is used as the external type,
+      // but also internal propagated by specific persistence backends
+      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false);
     }
 
     @Override
