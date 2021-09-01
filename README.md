@@ -39,10 +39,11 @@ Stargate contains the following components:
 
     - persistence-api: Interface for working with persistence services
     - persistence-common: Utilities shared by the persistence services
-    - persistence-cassandra-3.11: Joins C* ring as coordinator only node (does not store data),
+    - persistence-cassandra-3.11: Joins C* 3.11 cluster as coordinator only node (does not store data),
     mocks C* system tables for native driver integration,
     executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
     converts internal C* objects and ResultSets to Stargate Datastore objects.
+    - persistence-cassandra-4.0: (same as above but for Cassandra 4.0)
 
 - **Authentication Services**: Responsible for authentication to Stargate
 
