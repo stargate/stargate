@@ -276,8 +276,7 @@ public class RetryTest extends BaseServiceTest {
         .hasMessageContaining("Operation timed out - received only 1 responses");
   }
 
-  // todo
-  //  @Test
+  @Test
   public void shouldNotRetryOnWriteTimeoutIfWriteTypeBatchLogButNonIdempotent() {
     final String query = "SELECT release_version FROM system.local WHERE key = ?";
     final String releaseVersion = "4.0.0";

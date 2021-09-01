@@ -30,7 +30,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseAndTraceId;
+import io.stargate.grpc.service.Service.ResponseBuilderWithDetails;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -97,10 +97,11 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
+  protected ResponseBuilderWithDetails buildResponse(
+      ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
     Result result = resultAndIdempotencyInfo.result;
-    ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
-    responseAndTraceId.setTracingId(result.getTracingId());
+    ResponseBuilderWithDetails responseBuilderWithDetails = new ResponseBuilderWithDetails();
+    responseBuilderWithDetails.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
     switch (result.kind) {
       case Void:
@@ -141,8 +142,9 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         throw new CompletionException(
             Status.INTERNAL.withDescription("Unhandled result kind").asException());
     }
-    responseAndTraceId.setResponseBuilder(responseBuilder);
-    return responseAndTraceId;
+    responseBuilderWithDetails.setResponseBuilder(responseBuilder);
+    responseBuilderWithDetails.setIdempotent(responseBuilderWithDetails.isIdempotent);
+    return responseBuilderWithDetails;
   }
 
   @Override

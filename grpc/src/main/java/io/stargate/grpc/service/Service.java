@@ -130,10 +130,15 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     }
   }
 
-  static class ResponseAndTraceId {
+  static class ResponseBuilderWithDetails {
 
     @Nullable UUID tracingId;
     Response.Builder responseBuilder;
+    boolean isIdempotent;
+
+    public void setIdempotent(boolean idempotent) {
+      isIdempotent = idempotent;
+    }
 
     void setTracingId(UUID tracingId) {
       this.tracingId = tracingId;

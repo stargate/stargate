@@ -35,7 +35,7 @@ import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseAndTraceId;
+import io.stargate.grpc.service.Service.ResponseBuilderWithDetails;
 import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
@@ -124,21 +124,22 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   private void executeWithRetry(int retryCount) {
     executeQuery()
         .whenComplete(
-            (response, error) -> {
+            (responseAndIdempotencyInfo, error) -> {
               if (error != null) {
-                RetryDecision decision = shouldRetry(error, retryCount);
+                RetryDecision decision =
+                    shouldRetry(error, retryCount, responseAndIdempotencyInfo.isIdempotent);
                 if (decision == RetryDecision.RETRY) {
                   executeWithRetry(retryCount + 1);
                 } else if (decision == RetryDecision.RETHROW) {
                   handleException(error);
                 }
               } else {
-                setSuccess(response);
+                setSuccess(responseAndIdempotencyInfo.response);
               }
             });
   }
 
-  protected RetryDecision shouldRetry(Throwable throwable, int retryCount) {
+  protected RetryDecision shouldRetry(Throwable throwable, int retryCount, boolean isIdempotent) {
     Optional<PersistenceException> cause = unwrapCause(throwable);
     if (!cause.isPresent()) {
       return RetryDecision.RETHROW;
@@ -148,8 +149,11 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       case READ_TIMEOUT:
         return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
       case WRITE_TIMEOUT:
-        // todo only if isIdempotent
-        return retryPolicy.onWriteTimeout((WriteTimeoutException) pe, retryCount);
+        if (isIdempotent) {
+          return retryPolicy.onWriteTimeout((WriteTimeoutException) pe, retryCount);
+        } else {
+          return RetryDecision.RETHROW;
+        }
       default:
         return RetryDecision.RETHROW;
     }
@@ -168,7 +172,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     }
   }
 
-  public CompletionStage<Response> executeQuery() {
+  public CompletionStage<ResponseAndIdempotencyInfo> executeQuery() {
     CompletionStage<ResultAndIdempotencyInfo> resultFuture =
         prepare(false).thenCompose(this::executePrepared);
     return handleUnprepared(resultFuture)
@@ -192,7 +196,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected abstract CompletionStage<ResultAndIdempotencyInfo> executePrepared(PreparedT prepared);
 
   /** Builds the gRPC response from the CQL result. */
-  protected abstract ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo result);
+  protected abstract ResponseBuilderWithDetails buildResponse(ResultAndIdempotencyInfo result);
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
@@ -289,12 +293,14 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     return resultBuilder;
   }
 
-  protected CompletionStage<Response> executeTracingQueryIfNeeded(
-      ResponseAndTraceId responseAndTraceId) {
-    Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
-    return (responseAndTraceId.tracingIdIsEmpty())
-        ? CompletableFuture.completedFuture(responseBuilder.build())
-        : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
+  protected CompletionStage<ResponseAndIdempotencyInfo> executeTracingQueryIfNeeded(
+      ResponseBuilderWithDetails responseBuilderWithDetails) {
+    Response.Builder responseBuilder = responseBuilderWithDetails.responseBuilder;
+    return (responseBuilderWithDetails.tracingIdIsEmpty())
+        ? CompletableFuture.completedFuture(
+            ResponseAndIdempotencyInfo.from(responseBuilderWithDetails))
+        : new QueryTracingFetcher(
+                responseBuilderWithDetails.tracingId, connection, getTracingConsistency())
             .fetch()
             .handle(
                 (traces, error) -> {
@@ -305,7 +311,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                   }
                   // If error != null, ignore and still return the main result with an empty trace
                   // TODO log error?
-                  return responseBuilder.build();
+                  return new ResponseAndIdempotencyInfo(
+                      responseBuilder.build(), responseBuilderWithDetails.isIdempotent);
                 });
   }
 
@@ -526,6 +533,23 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     ResultAndIdempotencyInfo(Result result, boolean isIdempotent) {
       this.result = result;
       this.isIdempotent = isIdempotent;
+    }
+  }
+
+  static class ResponseAndIdempotencyInfo {
+    public final Response response;
+    public final boolean isIdempotent;
+
+    ResponseAndIdempotencyInfo(Response response, boolean isIdempotent) {
+      this.response = response;
+      this.isIdempotent = isIdempotent;
+    }
+
+    public static ResponseAndIdempotencyInfo from(
+        ResponseBuilderWithDetails responseBuilderWithDetails) {
+      return new ResponseAndIdempotencyInfo(
+          responseBuilderWithDetails.responseBuilder.build(),
+          responseBuilderWithDetails.isIdempotent);
     }
   }
 }
