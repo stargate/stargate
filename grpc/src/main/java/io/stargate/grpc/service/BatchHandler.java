@@ -32,7 +32,7 @@ import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseBuilderWithDetails;
+import io.stargate.grpc.service.Service.ResponseWithTracingId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
@@ -89,28 +89,23 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   }
 
   @Override
-  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(
-      BatchAndIdempotencyInfo preparedBatch) {
+  protected CompletionStage<Result> executePrepared(BatchAndIdempotencyInfo preparedBatch) {
     long queryStartNanoTime = System.nanoTime();
     BatchParameters parameters = message.getParameters();
     try {
-      return connection
-          .batch(
-              preparedBatch.batch,
-              makeParameters(parameters, connection.clientInfo()),
-              queryStartNanoTime)
-          .thenApply(r -> new ResultAndIdempotencyInfo(r, preparedBatch.isIdempotent));
+      return connection.batch(
+          preparedBatch.batch,
+          makeParameters(parameters, connection.clientInfo()),
+          queryStartNanoTime);
     } catch (Exception e) {
-      return failedFuture(e);
+      return failedFuture(e, preparedBatch.isIdempotent);
     }
   }
 
   @Override
-  protected ResponseBuilderWithDetails buildResponse(
-      ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
-    Result result = resultAndIdempotencyInfo.result;
-    ResponseBuilderWithDetails responseBuilderWithDetails = new ResponseBuilderWithDetails();
-    responseBuilderWithDetails.setTracingId(result.getTracingId());
+  protected ResponseWithTracingId buildResponse(Result result) {
+    ResponseWithTracingId responseWithTracingId = new ResponseWithTracingId();
+    responseWithTracingId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
 
     if (result.kind != Result.Kind.Void && result.kind != Result.Kind.Rows) {
@@ -130,9 +125,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
     }
 
-    responseBuilderWithDetails.setResponseBuilder(responseBuilder);
-    responseBuilderWithDetails.setIdempotent(resultAndIdempotencyInfo.isIdempotent);
-    return responseBuilderWithDetails;
+    responseWithTracingId.setResponseBuilder(responseBuilder);
+    return responseWithTracingId;
   }
 
   @Override

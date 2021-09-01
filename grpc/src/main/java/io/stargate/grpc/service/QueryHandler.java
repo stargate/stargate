@@ -30,7 +30,7 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseBuilderWithDetails;
+import io.stargate.grpc.service.Service.ResponseWithTracingId;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -76,7 +76,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(Prepared prepared) {
+  protected CompletionStage<Result> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
     Payload values = message.getValues();
@@ -85,23 +85,19 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     QueryParameters parameters = message.getParameters();
 
     try {
-      return connection
-          .execute(
-              bindValues(handler, prepared, values),
-              makeParameters(parameters, connection.clientInfo()),
-              queryStartNanoTime)
-          .thenApply(r -> new ResultAndIdempotencyInfo(r, prepared.isIdempotent));
+      return connection.execute(
+          bindValues(handler, prepared, values),
+          makeParameters(parameters, connection.clientInfo()),
+          queryStartNanoTime);
     } catch (Exception e) {
-      return failedFuture(e);
+      return failedFuture(e, prepared.isIdempotent);
     }
   }
 
   @Override
-  protected ResponseBuilderWithDetails buildResponse(
-      ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
-    Result result = resultAndIdempotencyInfo.result;
-    ResponseBuilderWithDetails responseBuilderWithDetails = new ResponseBuilderWithDetails();
-    responseBuilderWithDetails.setTracingId(result.getTracingId());
+  protected ResponseWithTracingId buildResponse(Result result) {
+    ResponseWithTracingId responseWithTracingId = new ResponseWithTracingId();
+    responseWithTracingId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
     switch (result.kind) {
       case Void:
@@ -142,9 +138,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         throw new CompletionException(
             Status.INTERNAL.withDescription("Unhandled result kind").asException());
     }
-    responseBuilderWithDetails.setResponseBuilder(responseBuilder);
-    responseBuilderWithDetails.setIdempotent(responseBuilderWithDetails.isIdempotent);
-    return responseBuilderWithDetails;
+    responseWithTracingId.setResponseBuilder(responseBuilder);
+    return responseWithTracingId;
   }
 
   @Override
