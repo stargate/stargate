@@ -47,7 +47,7 @@ mvn -B verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
 -P \${C4}it-cassandra-4.0 \
 -P \${DSE}dse -P \${DSE}it-dse-6.8 \
--P default,grpc \
+-P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
 echoinfo "Test complete"

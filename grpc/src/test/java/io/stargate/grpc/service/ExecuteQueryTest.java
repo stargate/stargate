@@ -73,7 +73,8 @@ public class ExecuteQueryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -140,7 +141,8 @@ public class ExecuteQueryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata(columns));
+            Utils.makePreparedMetadata(columns),
+            false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 

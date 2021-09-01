@@ -69,7 +69,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            true);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -96,7 +97,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)));
+                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            true);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -123,7 +125,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)));
+                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            true);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -154,7 +157,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            true);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -186,7 +190,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            true);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -218,7 +223,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            true);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -250,7 +256,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            true);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -282,7 +289,8 @@ public class RetryTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)));
+            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 

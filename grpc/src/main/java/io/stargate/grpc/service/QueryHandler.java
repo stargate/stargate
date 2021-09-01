@@ -76,7 +76,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected CompletionStage<Result> executePrepared(Prepared prepared) {
+  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
     Payload values = message.getValues();
@@ -85,17 +85,20 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     QueryParameters parameters = message.getParameters();
 
     try {
-      return connection.execute(
-          bindValues(handler, prepared, values),
-          makeParameters(parameters, connection.clientInfo()),
-          queryStartNanoTime);
+      return connection
+          .execute(
+              bindValues(handler, prepared, values),
+              makeParameters(parameters, connection.clientInfo()),
+              queryStartNanoTime)
+          .thenApply(r -> new ResultAndIdempotencyInfo(r, prepared.isIdempotent));
     } catch (Exception e) {
       return failedFuture(e);
     }
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(Result result) {
+  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
+    Result result = resultAndIdempotencyInfo.result;
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -153,27 +156,26 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
-    if (parameters.hasConsistency()) {
-      builder.consistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
-    }
+    builder.consistencyLevel(
+        parameters.hasConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
+            : Service.DEFAULT_CONSISTENCY);
 
     if (parameters.hasKeyspace()) {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
     }
 
-    if (parameters.hasPageSize()) {
-      builder.pageSize(parameters.getPageSize().getValue());
-    }
+    builder.pageSize(
+        parameters.hasPageSize() ? parameters.getPageSize().getValue() : Service.DEFAULT_PAGE_SIZE);
 
     if (parameters.hasPagingState()) {
       builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().getValue().toByteArray()));
     }
 
-    if (parameters.hasSerialConsistency()) {
-      builder.serialConsistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
-    }
+    builder.serialConsistencyLevel(
+        parameters.hasSerialConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber())
+            : Service.DEFAULT_SERIAL_CONSISTENCY);
 
     if (parameters.hasTimestamp()) {
       builder.defaultTimestamp(parameters.getTimestamp().getValue());

@@ -47,10 +47,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
+class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
@@ -83,24 +84,30 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
   }
 
   @Override
-  protected CompletionStage<io.stargate.db.Batch> prepare(boolean shouldInvalidate) {
+  protected CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
     return new BatchPreparer().prepare(shouldInvalidate);
   }
 
   @Override
-  protected CompletionStage<Result> executePrepared(io.stargate.db.Batch preparedBatch) {
+  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(
+      BatchAndIdempotencyInfo preparedBatch) {
     long queryStartNanoTime = System.nanoTime();
     BatchParameters parameters = message.getParameters();
     try {
-      return connection.batch(
-          preparedBatch, makeParameters(parameters, connection.clientInfo()), queryStartNanoTime);
+      return connection
+          .batch(
+              preparedBatch.batch,
+              makeParameters(parameters, connection.clientInfo()),
+              queryStartNanoTime)
+          .thenApply(r -> new ResultAndIdempotencyInfo(r, preparedBatch.isIdempotent));
     } catch (Exception e) {
       return failedFuture(e);
     }
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(Result result) {
+  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
+    Result result = resultAndIdempotencyInfo.result;
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
@@ -137,19 +144,19 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
   private Parameters makeParameters(BatchParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
-    if (parameters.hasConsistency()) {
-      builder.consistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber()));
-    }
+    builder.consistencyLevel(
+        parameters.hasConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
+            : Service.DEFAULT_CONSISTENCY);
 
     if (parameters.hasKeyspace()) {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
     }
 
-    if (parameters.hasSerialConsistency()) {
-      builder.serialConsistencyLevel(
-          ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber()));
-    }
+    builder.serialConsistencyLevel(
+        parameters.hasSerialConsistency()
+            ? ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber())
+            : Service.DEFAULT_SERIAL_CONSISTENCY);
 
     if (parameters.hasTimestamp()) {
       builder.defaultTimestamp(parameters.getTimestamp().getValue());
@@ -177,7 +184,8 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
 
     private final AtomicInteger queryIndex = new AtomicInteger();
     private final List<Statement> statements = new CopyOnWriteArrayList<>();
-    private final CompletableFuture<io.stargate.db.Batch> future = new CompletableFuture<>();
+    private final CompletableFuture<BatchAndIdempotencyInfo> future = new CompletableFuture<>();
+    private final AtomicBoolean isIdempotent = new AtomicBoolean(true);
 
     /**
      * Initiates the initial prepares. When these prepares finish they'll pull the next available
@@ -185,7 +193,7 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
      *
      * @return A future which completes with an internal batch statement with all queries prepared.
      */
-    CompletionStage<io.stargate.db.Batch> prepare(boolean shouldInvalidate) {
+    CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
       int numToPrepare = Math.min(message.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
       assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
@@ -201,7 +209,9 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
       // statements and complete the future.
       if (index >= message.getQueriesCount()) {
         future.complete(
-            new io.stargate.db.Batch(BatchType.fromId(message.getTypeValue()), statements));
+            new BatchAndIdempotencyInfo(
+                new io.stargate.db.Batch(BatchType.fromId(message.getTypeValue()), statements),
+                isIdempotent.get()));
         return;
       }
 
@@ -224,6 +234,9 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
                   future.completeExceptionally(t);
                 } else {
                   try {
+                    // if any statement in a batch is non idempotent, then all statements are non
+                    // idempotent
+                    isIdempotent.compareAndSet(true, prepared.isIdempotent);
                     PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
                     statements.add(bindValues(handler, prepared, query.getValues()));
                     next(shouldInvalidate); // Prepare the next query in the batch
@@ -232,6 +245,16 @@ class BatchHandler extends MessageHandler<Batch, io.stargate.db.Batch> {
                   }
                 }
               });
+    }
+  }
+
+  static class BatchAndIdempotencyInfo {
+    public final io.stargate.db.Batch batch;
+    public final boolean isIdempotent;
+
+    BatchAndIdempotencyInfo(io.stargate.db.Batch batch, boolean isIdempotent) {
+      this.batch = batch;
+      this.isIdempotent = isIdempotent;
     }
   }
 }
