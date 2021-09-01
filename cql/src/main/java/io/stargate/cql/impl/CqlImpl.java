@@ -150,7 +150,7 @@ public class CqlImpl {
         Boolean.parseBoolean(System.getProperty("stargate.cql.native.epoll.enabled", "true"));
 
     if (enableEpoll && !Epoll.isAvailable() && NativeLibrary.osType == NativeLibrary.OSType.LINUX) {
-      logger.warn("epoll not available", Epoll.unavailabilityCause());
+      logger.warn("epoll requested but not available", Epoll.unavailabilityCause());
     }
 
     return enableEpoll && Epoll.isAvailable();

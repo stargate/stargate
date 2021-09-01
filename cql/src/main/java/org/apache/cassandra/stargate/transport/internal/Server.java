@@ -21,13 +21,7 @@ import io.micrometer.core.instrument.Tags;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
@@ -131,8 +125,9 @@ public class Server implements CassandraDaemon.Server {
             .childOption(ChannelOption.SO_LINGER, 0)
             .childOption(ChannelOption.SO_KEEPALIVE, TransportDescriptor.getRpcKeepAlive())
             .childOption(ChannelOption.ALLOCATOR, CBUtil.allocator)
-            .childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
-            .childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024);
+            .childOption(
+                ChannelOption.WRITE_BUFFER_WATER_MARK,
+                new WriteBufferWaterMark(8 * 1024, 32 * 1024));
     if (workerGroup != null) bootstrap = bootstrap.group(workerGroup);
 
     if (this.useSSL) {
