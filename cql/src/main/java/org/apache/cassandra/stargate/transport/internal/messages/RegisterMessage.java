@@ -25,9 +25,9 @@ import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Connection;
+import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.apache.cassandra.stargate.transport.internal.Event;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.stargate.transport.internal.Server;
 import org.apache.cassandra.stargate.transport.internal.ServerConnection;
 
 public class RegisterMessage extends Message.Request {
@@ -67,12 +67,12 @@ public class RegisterMessage extends Message.Request {
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     assert connection instanceof ServerConnection;
     Connection.Tracker tracker = connection.getTracker();
-    assert tracker instanceof Server.ConnectionTracker;
+    assert tracker instanceof CqlServer.ConnectionTracker;
     for (Event.Type type : eventTypes) {
       if (type.minimumVersion.isGreaterThan(connection.getVersion()))
         throw new ProtocolException(
             "Event " + type.name() + " not valid for protocol version " + connection.getVersion());
-      ((Server.ConnectionTracker) tracker).register(type, connection().channel());
+      ((CqlServer.ConnectionTracker) tracker).register(type, connection().channel());
     }
     return CompletableFuture.completedFuture(new ReadyMessage());
   }

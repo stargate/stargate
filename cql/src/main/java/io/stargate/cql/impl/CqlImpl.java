@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
-import org.apache.cassandra.stargate.transport.internal.Server;
+import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.apache.cassandra.stargate.transport.internal.TransportDescriptor;
 import org.apache.cassandra.utils.NativeLibrary;
 import org.slf4j.Logger;
@@ -42,7 +42,7 @@ public class CqlImpl {
 
   private static final Logger logger = LoggerFactory.getLogger(CqlImpl.class);
 
-  private Collection<Server> servers = Collections.emptyList();
+  private Collection<CqlServer> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
 
   private final Persistence persistence;
@@ -80,8 +80,8 @@ public class CqlImpl {
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
 
-    Server.Builder builder =
-        new Server.Builder(persistence, authentication)
+    CqlServer.Builder builder =
+        new CqlServer.Builder(persistence, authentication)
             .withEventLoopGroup(workerGroup)
             .withHost(nativeAddr);
 
@@ -104,7 +104,7 @@ public class CqlImpl {
 
     String additionalPorts = System.getProperty("stargate.cql.additional_ports");
     if (additionalPorts != null) {
-      List<Server> additionalServers =
+      List<CqlServer> additionalServers =
           Arrays.stream(additionalPorts.split("\\s*,\\s*"))
               .map(
                   s -> {
@@ -135,13 +135,13 @@ public class CqlImpl {
         Double.parseDouble(System.getProperty("stargate.cql.metrics.updatePeriodSeconds", "0.1"));
     ClientMetrics.instance.init(
         servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricsUpdatePeriodSeconds);
-    servers.forEach(Server::start);
+    servers.forEach(CqlServer::start);
     persistence.setRpcReady(true);
   }
 
   public void stop() {
     persistence.setRpcReady(false);
-    servers.forEach(Server::stop);
+    servers.forEach(CqlServer::stop);
     ClientMetrics.instance.shutdown();
   }
 

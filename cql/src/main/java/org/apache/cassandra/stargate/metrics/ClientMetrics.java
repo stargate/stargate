@@ -41,7 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
-import org.apache.cassandra.stargate.transport.internal.Server;
+import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +78,7 @@ public final class ClientMetrics {
   private ScheduledExecutorService executorService;
 
   // dependencies
-  private Collection<Server> servers = Collections.emptyList();
+  private Collection<CqlServer> servers = Collections.emptyList();
   private MeterRegistry meterRegistry;
   private ClientInfoMetricsTagProvider clientInfoTagProvider;
 
@@ -135,7 +135,7 @@ public final class ClientMetrics {
    *     use 0.1). If zero or less task will not be scheduled.
    */
   public synchronized void init(
-      Collection<Server> servers,
+      Collection<CqlServer> servers,
       MeterRegistry meterRegistry,
       ClientInfoMetricsTagProvider clientInfoTagProvider,
       double updatePeriodSeconds) {
@@ -230,7 +230,7 @@ public final class ClientMetrics {
   void updateConnectedClients() {
     Map<Tags, Integer> total = new HashMap<>();
 
-    for (Server server : servers) {
+    for (CqlServer server : servers) {
       server
           .countConnectedClientsByConnectionTags()
           .forEach((tags, count) -> total.compute(tags, (t, v) -> v == null ? count : v + count));
@@ -242,7 +242,7 @@ public final class ClientMetrics {
   void updateConnectedClientsByUser() {
     Map<String, Integer> counts = new HashMap<>();
 
-    for (Server server : servers) {
+    for (CqlServer server : servers) {
       server
           .countConnectedClientsByUser()
           .forEach(

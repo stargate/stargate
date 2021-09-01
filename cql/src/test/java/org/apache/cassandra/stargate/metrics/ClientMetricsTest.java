@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.cassandra.stargate.transport.internal.Server;
+import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,23 +51,23 @@ class ClientMetricsTest {
 
   // manual mocks, init before all
   ClientInfoMetricsTagProvider clientTagProvider;
-  Server server1;
-  Server server2;
+  CqlServer server1;
+  CqlServer server2;
   ClientInfo clientInfo1;
   ClientInfo clientInfo2;
 
   @BeforeAll
   public void initMocks() {
     clientTagProvider = mock(ClientInfoMetricsTagProvider.class);
-    server1 = mock(Server.class);
-    server2 = mock(Server.class);
+    server1 = mock(CqlServer.class);
+    server2 = mock(CqlServer.class);
     clientInfo1 = mock(ClientInfo.class);
     clientInfo2 = mock(ClientInfo.class);
 
     when(clientTagProvider.getClientInfoTags(clientInfo1)).thenReturn(Tags.of("client", "one"));
     when(clientTagProvider.getClientInfoTags(clientInfo2)).thenReturn(Tags.of("client", "two"));
 
-    List<Server> servers = Arrays.asList(server1, server2);
+    List<CqlServer> servers = Arrays.asList(server1, server2);
     clientMetrics.init(servers, meterRegistry, clientTagProvider, 0d);
   }
 
