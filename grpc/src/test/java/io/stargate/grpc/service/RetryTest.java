@@ -358,4 +358,33 @@ public class RetryTest extends BaseServiceTest {
       return CompletableFuture.completedFuture(new Result.Void());
     };
   }
+
+  @Test
+  public void shouldNotRetryBatchRequestOnWriteTimeoutWhenNonIdempotent() {
+    Prepared prepared =
+        new Prepared(
+            Utils.STATEMENT_ID,
+            Utils.RESULT_METADATA_ID,
+            Utils.makeResultMetadata(),
+            Utils.makePreparedMetadata(
+                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            false);
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.batch(any(Batch.class), any(Parameters.class), anyLong()))
+        .thenThrow(new WriteTimeoutException(WriteType.BATCH_LOG, ConsistencyLevel.QUORUM, 3, 3))
+        .then(correctBatchResponse(prepared));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(() -> stub.executeBatch(createBatch()))
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining(
+            "DEADLINE_EXCEEDED: Operation timed out - received only 3 responses.");
+  }
 }
