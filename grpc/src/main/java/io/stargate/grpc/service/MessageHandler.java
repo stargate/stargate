@@ -35,7 +35,7 @@ import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseWithTracingId;
+import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
@@ -212,7 +212,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
 
   /** Builds the gRPC response from the CQL result. */
-  protected abstract ResponseWithTracingId buildResponse(Result result);
+  protected abstract ResponseAndTraceId buildResponse(Result result);
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
@@ -309,12 +309,11 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   protected CompletionStage<Response> executeTracingQueryIfNeeded(
-      ResponseWithTracingId responseWithTracingId) {
-    Response.Builder responseBuilder = responseWithTracingId.responseBuilder;
-    return (responseWithTracingId.tracingIdIsEmpty())
+      ResponseAndTraceId responseAndTraceId) {
+    Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
+    return (responseAndTraceId.tracingIdIsEmpty())
         ? CompletableFuture.completedFuture(responseBuilder.build())
-        : new QueryTracingFetcher(
-                responseWithTracingId.tracingId, connection, getTracingConsistency())
+        : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
             .fetch()
             .handle(
                 (traces, error) -> {

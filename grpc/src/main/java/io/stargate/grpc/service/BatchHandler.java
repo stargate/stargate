@@ -32,7 +32,7 @@ import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseWithTracingId;
+import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
@@ -103,9 +103,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   }
 
   @Override
-  protected ResponseWithTracingId buildResponse(Result result) {
-    ResponseWithTracingId responseWithTracingId = new ResponseWithTracingId();
-    responseWithTracingId.setTracingId(result.getTracingId());
+  protected ResponseAndTraceId buildResponse(Result result) {
+    ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
+    responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
 
     if (result.kind != Result.Kind.Void && result.kind != Result.Kind.Rows) {
@@ -125,8 +125,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
     }
 
-    responseWithTracingId.setResponseBuilder(responseBuilder);
-    return responseWithTracingId;
+    responseAndTraceId.setResponseBuilder(responseBuilder);
+    return responseAndTraceId;
   }
 
   @Override
