@@ -44,10 +44,11 @@ public interface RetryPolicy {
    * <b>server-side</b> timeout during a write query, i.e. some replicas did not reply to the
    * coordinator in time.
    *
-   * <p>Note that this method will only be invoked for {@link isIdempotent()} idempotent} requests:
-   * when a write times out, it is impossible to determine with 100% certainty whether the mutation
-   * was applied or not, so the write is never safe to retry; the driver will rethrow the error
-   * directly, without invoking the retry policy.
+   * <p>Note that this method will only be invoked for {@link
+   * io.stargate.db.Result.Prepared#isIdempotent()} idempotent} requests: when a write times out, it
+   * is impossible to determine with 100% certainty whether the mutation was applied or not, so the
+   * write is never safe to retry; the driver will rethrow the error directly, without invoking the
+   * retry policy.
    *
    * <p>{@link WriteTimeoutException#consistency} the requested consistency level. {@link
    * WriteTimeoutException#writeType} the type of the write for which the timeout was raised. {@link
