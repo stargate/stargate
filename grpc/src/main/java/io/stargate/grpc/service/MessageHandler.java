@@ -335,7 +335,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   protected void handleException(Throwable throwable) {
-    if (throwable instanceof CompletionException) {
+    if (throwable instanceof CompletionException
+        || throwable instanceof ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
