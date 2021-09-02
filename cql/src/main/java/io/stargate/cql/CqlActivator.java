@@ -69,11 +69,10 @@ public class CqlActivator extends BaseActivator {
 
   @Override
   protected void stopService() {
-    if (cql == null) { // Not started
-      return;
+    if (cql != null) { // can only stop if started (and not yet stopped)
+      cql.stop();
+      cql = null;
     }
-    cql.stop();
-    cql = null;
   }
 
   @Override

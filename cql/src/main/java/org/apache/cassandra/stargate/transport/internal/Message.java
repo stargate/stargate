@@ -465,7 +465,7 @@ public abstract class Message {
      */
     private long channelPayloadBytesInFlight;
 
-    private final Server.EndpointPayloadTracker endpointPayloadTracker;
+    private final CqlServer.EndpointPayloadTracker endpointPayloadTracker;
 
     private boolean paused;
 
@@ -585,7 +585,7 @@ public abstract class Message {
     private final boolean useLegacyFlusher;
 
     public Dispatcher(
-        boolean useLegacyFlusher, Server.EndpointPayloadTracker endpointPayloadTracker) {
+        boolean useLegacyFlusher, CqlServer.EndpointPayloadTracker endpointPayloadTracker) {
       super(false);
       this.useLegacyFlusher = useLegacyFlusher;
       this.endpointPayloadTracker = endpointPayloadTracker;

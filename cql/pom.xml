@@ -112,7 +112,7 @@
         <configuration>
           <unpackBundle>true</unpackBundle>
           <instructions>
-            <Bundle-Name>RestAPI</Bundle-Name>
+            <Bundle-Name>CQL</Bundle-Name>
             <Bundle-Description>CQL service for Stargate</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.cql</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.cql.CqlActivator</Bundle-Activator>

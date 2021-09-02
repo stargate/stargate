@@ -233,8 +233,8 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   /**
-   * Clients should override this method to create multiple Services that may be be registered in
-   * the OSGi container.
+   * Clients should override this method to create multiple Services that may be registered in the
+   * OSGi container.
    *
    * @return list of services that has the service for OSGi registration and the properties that
    *     will be passed.
@@ -244,7 +244,7 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   /**
-   * Clients should override this method to create the Service that may be be registered in the OSGi
+   * Clients should override this method to create the Service that may be registered in the OSGi
    * container. The dependent services will contain all services registered by the {@link
    * this#dependencies()}.
    *

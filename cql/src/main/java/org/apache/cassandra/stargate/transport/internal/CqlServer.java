@@ -28,6 +28,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
@@ -77,12 +78,12 @@ import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Server implements CassandraDaemon.Server {
+public class CqlServer implements CassandraDaemon.Server {
   static {
     InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(Server.class);
+  private static final Logger logger = LoggerFactory.getLogger(CqlServer.class);
   private static final boolean useEpoll = CqlImpl.useEpoll();
 
   private final ConnectionTracker connectionTracker = new ConnectionTracker();
@@ -95,7 +96,7 @@ public class Server implements CassandraDaemon.Server {
 
   private EventLoopGroup workerGroup;
 
-  private Server(Builder builder) {
+  private CqlServer(Builder builder) {
     this.persistence = builder.persistence;
     this.authentication = builder.authentication;
     this.socket = builder.getSocket();
@@ -131,8 +132,9 @@ public class Server implements CassandraDaemon.Server {
             .childOption(ChannelOption.SO_LINGER, 0)
             .childOption(ChannelOption.SO_KEEPALIVE, TransportDescriptor.getRpcKeepAlive())
             .childOption(ChannelOption.ALLOCATOR, CBUtil.allocator)
-            .childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 32 * 1024)
-            .childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 8 * 1024);
+            .childOption(
+                ChannelOption.WRITE_BUFFER_WATER_MARK,
+                new WriteBufferWaterMark(8 * 1024, 32 * 1024));
     if (workerGroup != null) bootstrap = bootstrap.group(workerGroup);
 
     if (this.useSSL) {
@@ -255,8 +257,8 @@ public class Server implements CassandraDaemon.Server {
       return this;
     }
 
-    public Server build() {
-      return new Server(this);
+    public CqlServer build() {
+      return new CqlServer(this);
     }
 
     private InetSocketAddress getSocket() {
@@ -443,9 +445,9 @@ public class Server implements CassandraDaemon.Server {
     public static final Boolean USE_PROXY_PROTOCOL =
         Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
-    private final Server server;
+    private final CqlServer server;
 
-    public Initializer(Server server) {
+    public Initializer(CqlServer server) {
       this.server = server;
     }
 
@@ -514,7 +516,7 @@ public class Server implements CassandraDaemon.Server {
   protected abstract static class AbstractSecureIntializer extends Initializer {
     private final EncryptionOptions encryptionOptions;
 
-    protected AbstractSecureIntializer(Server server, EncryptionOptions encryptionOptions) {
+    protected AbstractSecureIntializer(CqlServer server, EncryptionOptions encryptionOptions) {
       super(server);
       this.encryptionOptions = encryptionOptions;
     }
@@ -530,7 +532,7 @@ public class Server implements CassandraDaemon.Server {
   }
 
   private static class OptionalSecureInitializer extends AbstractSecureIntializer {
-    public OptionalSecureInitializer(Server server, EncryptionOptions encryptionOptions) {
+    public OptionalSecureInitializer(CqlServer server, EncryptionOptions encryptionOptions) {
       super(server, encryptionOptions);
     }
 
@@ -570,7 +572,7 @@ public class Server implements CassandraDaemon.Server {
   }
 
   private static class SecureInitializer extends AbstractSecureIntializer {
-    public SecureInitializer(Server server, EncryptionOptions encryptionOptions) {
+    public SecureInitializer(CqlServer server, EncryptionOptions encryptionOptions) {
       super(server, encryptionOptions);
     }
 
@@ -607,14 +609,14 @@ public class Server implements CassandraDaemon.Server {
   }
 
   private static class EventNotifier implements EventListenerWithChannelFilter {
-    private final Server server;
+    private final CqlServer server;
 
     // We keep track of the latest status change events we have sent to avoid sending duplicates
     // since StorageService may send duplicate notifications (CASSANDRA-7816, CASSANDRA-8236,
     // CASSANDRA-9156)
     private final Map<InetAddressAndPort, LatestEvent> latestEvents = new ConcurrentHashMap<>();
 
-    private EventNotifier(Server server) {
+    private EventNotifier(CqlServer server) {
       this.server = server;
     }
 
