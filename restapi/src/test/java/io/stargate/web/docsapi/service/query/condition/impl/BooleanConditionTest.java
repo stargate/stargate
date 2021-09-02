@@ -65,7 +65,7 @@ class BooleanConditionTest {
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, value, true);
+          ImmutableBooleanCondition.of(filterOperation, value, false);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -73,6 +73,42 @@ class BooleanConditionTest {
               builtCondition -> {
                 assertThat(builtCondition.predicate()).isEqualTo(eq);
                 assertThat(builtCondition.value().get()).isEqualTo(value);
+                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+              });
+    }
+
+    @Test
+    public void numericConditionsTrue() {
+      Predicate eq = Predicate.EQ;
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
+
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, true, true);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
+
+      assertThat(result)
+          .hasValueSatisfying(
+              builtCondition -> {
+                assertThat(builtCondition.predicate()).isEqualTo(eq);
+                assertThat(builtCondition.value().get()).isEqualTo(1);
+                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+              });
+    }
+
+    @Test
+    public void numericConditionsFalse() {
+      Predicate eq = Predicate.EQ;
+      when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
+
+      ImmutableBooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, false, true);
+      Optional<BuiltCondition> result = condition.getBuiltCondition();
+
+      assertThat(result)
+          .hasValueSatisfying(
+              builtCondition -> {
+                assertThat(builtCondition.predicate()).isEqualTo(eq);
+                assertThat(builtCondition.value().get()).isEqualTo(0);
                 assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
               });
     }

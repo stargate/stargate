@@ -58,9 +58,11 @@ public abstract class BooleanCondition implements BaseCondition {
     return getFilterOperation()
         .getQueryPredicate()
         .map(
-            predicate ->
-                BuiltCondition.of(
-                    QueryConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, getQueryValue()));
+            predicate -> {
+              // note that if we have numeric booleans then we need to adapt the query value
+              Object value = isNumericBooleans() ? (getQueryValue() ? 1 : 0) : getQueryValue();
+              return BuiltCondition.of(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, value);
+            });
   }
 
   /** {@inheritDoc} */

@@ -1843,6 +1843,30 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void searchSinglePersistenceFilterWithBooleanValue() throws Exception {
+    JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": true}");
+    JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": false}");
+    JsonNode matchingWrongPath = OBJECT_MAPPER.readTree("{\"someStuff\": {\"value\": true}}");
+    RestUtils.put(authToken, collectionPath + "/matching", matching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/non-matching", nonMatching.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/wrong-path", matchingWrongPath.toString(), 200);
+
+    // Any filter on full collection search should only match the level of nesting of the where
+    // clause
+    String r =
+        RestUtils.get(
+            authToken,
+            hostWithPort
+                + "/v2/namespaces/"
+                + keyspace
+                + "/collections/collection?page-size=2&where={\"value\": {\"$eq\": true}}&raw=true",
+            200);
+
+    String expected = "{\"matching\":{\"value\":true}}";
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(expected));
+  }
+
+  @Test
   public void searchMultiPersistenceFilter() throws Exception {
     JsonNode matching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 5}}");
     JsonNode nonMatching = OBJECT_MAPPER.readTree("{\"value\": \"a\", \"n\": { \"value\": 10}}");
