@@ -114,7 +114,7 @@ objects varies depending on the service:
 #### DDL (`/graphql-schema`)
 
 The DDL service never changes, we only need to cache one instance. The schema is built by
-[DdlSchemaBuilder].
+[DdlSchema].
 
 The data fetchers are in the package [cqlfirst.ddl.fetchers]. Their implementation is pretty
 straightforward: translate the GraphQL operations into CQL queries for the persistence layer.
@@ -273,7 +273,7 @@ If you add new tests, please favor the lightweight approach.
 [CassandraMigrator]: src/main/java/io/stargate/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
 [CqlDirectives]: src/main/java/io/stargate/graphql/schema/graphqlfirst/processor/CqlDirectives.java
 [CqlScalar]: src/main/java/io/stargate/graphql/schema/scalars/CqlScalar.java
-[DdlSchemaBuilder]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
+[DdlSchema]: src/main/java/io/stargate/graphql/schema/cqlfirst/ddl/DdlSchema.java
 [DeploySchemaFetcherBase]: src/main/java/io/stargate/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
 [DmlSchemaBuilder]: src/main/java/io/stargate/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
 [DropwizardServer]: src/main/java/io/stargate/graphql/web/DropwizardServer.java
