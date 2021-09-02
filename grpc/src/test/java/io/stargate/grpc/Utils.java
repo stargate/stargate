@@ -47,6 +47,7 @@ public class Utils {
         Utils.STATEMENT_ID,
         Utils.RESULT_METADATA_ID,
         Utils.makeResultMetadata(),
-        Utils.makePreparedMetadata(bindColumns));
+        Utils.makePreparedMetadata(bindColumns),
+        false);
   }
 }

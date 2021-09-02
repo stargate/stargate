@@ -78,7 +78,8 @@ public class HeadersTest extends BaseServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata());
+            Utils.makePreparedMetadata(),
+            true);
     when(connection.prepare(any(String.class), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
