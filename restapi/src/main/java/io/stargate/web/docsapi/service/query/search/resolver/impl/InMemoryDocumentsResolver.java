@@ -119,6 +119,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   query,
                   configuration.getSearchPageSize(),
+                  false,
                   paginator.getCurrentDbPageState(),
                   context);
             })

@@ -110,6 +110,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   boundQueries,
                   configuration.getSearchPageSize(),
+                  false,
                   paginator.getCurrentDbPageState(),
                   context);
             })

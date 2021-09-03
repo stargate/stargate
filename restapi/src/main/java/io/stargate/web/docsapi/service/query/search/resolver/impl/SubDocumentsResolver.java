@@ -106,6 +106,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
                   keyDepth,
                   query,
                   configuration.getSearchPageSize(),
+                  false,
                   paginator.getCurrentDbPageState(),
                   context);
             })

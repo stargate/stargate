@@ -206,6 +206,7 @@ public class DocumentSearchService {
               return queryExecutor.queryDocs(
                   boundQuery,
                   configuration.getSearchPageSize(),
+                  false,
                   paginator.getCurrentDbPageState(),
                   context);
             });
@@ -240,7 +241,7 @@ public class DocumentSearchService {
             prepared -> {
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
-                  boundQuery, configuration.getSearchPageSize(), null, context);
+                  boundQuery, configuration.getSearchPageSize(), false, null, context);
             });
   }
 
@@ -285,7 +286,7 @@ public class DocumentSearchService {
 
               // fetch, take one and then populate into the original doc
               return queryExecutor
-                  .queryDocs(query, configuration.getSearchPageSize(), null, context)
+                  .queryDocs(query, configuration.getSearchPageSize(), false, null, context)
                   .firstElement()
                   .map(document::populateFrom)
                   .toFlowable();

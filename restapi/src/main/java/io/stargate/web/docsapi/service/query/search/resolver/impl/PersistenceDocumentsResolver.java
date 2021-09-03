@@ -98,6 +98,7 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   query,
                   configuration.getSearchPageSize(),
+                  false,
                   paginator.getCurrentDbPageState(),
                   context);
             });

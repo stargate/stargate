@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -62,23 +63,52 @@ public class QueryExecutor {
     this.dataStore = dataStore;
   }
 
+  /**
+   * Runs the provided query, then groups the rows into {@link RawDocument} objects with key depth
+   * of 1.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
   public Flowable<RawDocument> queryDocs(
-      List<BoundQuery> queries, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
-    return queryDocs(1, queries, pageSize, pagingState, context);
+      BoundQuery query,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return queryDocs(1, query, pageSize, exponentPageSize, pagingState, context);
   }
 
-  public Flowable<RawDocument> queryDocs(
-      BoundQuery query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
-    return queryDocs(1, ImmutableList.of(query), pageSize, pagingState, context);
-  }
-
+  /**
+   * Runs the provided query, then groups the rows into {@link RawDocument} objects according to
+   * {@code keyDepth} primary key values.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
   public Flowable<RawDocument> queryDocs(
       int keyDepth,
       BoundQuery query,
       int pageSize,
+      boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
-    return queryDocs(keyDepth, ImmutableList.of(query), pageSize, pagingState, context);
+    return queryDocs(
+        keyDepth, ImmutableList.of(query), pageSize, exponentPageSize, pagingState, context);
+  }
+
+  /**
+   * Runs the provided queries in parallel and merges their result sets according to the selected
+   * primary key columns, then groups the merged rows into {@link RawDocument} objects with key
+   * depth of 1.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
+  public Flowable<RawDocument> queryDocs(
+      List<BoundQuery> queries,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return queryDocs(1, queries, pageSize, exponentPageSize, pagingState, context);
   }
 
   /**
@@ -100,6 +130,8 @@ public class QueryExecutor {
    * @param keyDepth the number of primary key columns to use for distinguishing documents.
    * @param queries the queries to run (one or more).
    * @param pageSize the storage-level page size to use (1 or greater).
+   * @param exponentPageSize if the storage-level page size should be exponentially increase with
+   *     every next hop to the data store
    * @param pagingState the storage-level page state to use (may be {@code null}).
    * @param context the query execution context for profiling.
    * @return a flow of documents grouped by the primary key values up to {@code keyDepth} and
@@ -110,6 +142,7 @@ public class QueryExecutor {
       int keyDepth,
       List<BoundQuery> queries,
       int pageSize,
+      boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
     if (pageSize <= 0) {
@@ -127,7 +160,7 @@ public class QueryExecutor {
 
     PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
-    return execute(queries, comparator, pageSize, pagingStates, context)
+    return execute(queries, comparator, pageSize, exponentPageSize, pagingStates, context)
         .map(p -> toSeed(p, comparator, idColumns))
         .concatWith(Single.just(TERM))
         .scan(tracker::combine)
@@ -165,6 +198,7 @@ public class QueryExecutor {
       List<BoundQuery> queries,
       Comparator<DocProperty> comparator,
       int pageSize,
+      boolean exponentPageSize,
       List<ByteBuffer> pagingState,
       ExecutionContext context) {
     List<Flowable<DocProperty>> flows = new ArrayList<>(queries.size());
@@ -177,7 +211,7 @@ public class QueryExecutor {
       }
 
       flows.add(
-          execute(query, pageSize, queryPagingState)
+          execute(query, pageSize, exponentPageSize, queryPagingState)
               .flatMap(
                   rs -> Flowable.fromIterable(properties(finalIdx, query, rs, context)),
                   1)); // max concurrency 1
@@ -186,16 +220,26 @@ public class QueryExecutor {
     return Flowables.orderedMerge(flows, comparator, false, 1); // prefetch 1
   }
 
-  public Flowable<ResultSet> execute(BoundQuery query, int pageSize, ByteBuffer pagingState) {
-    // An empty paging state means the query was exhaused during previous execution
+  public Flowable<ResultSet> execute(
+      BoundQuery query, int pageSize, boolean exponentPageSize, ByteBuffer pagingState) {
+    // An empty paging state means the query was exhausted during previous execution
     if (pagingState != null && pagingState.remaining() == 0) {
       return Flowable.empty();
     }
 
+    AtomicInteger effectivePageSize = new AtomicInteger(pageSize);
     return fetchPage(query, pageSize, pagingState)
         .compose( // Expand BREADTH_FIRST to reduce the number of "proactive" page requests
             FlowableTransformers.expand(
-                rs -> fetchNext(rs, pageSize, query), ExpandStrategy.BREADTH_FIRST, 1));
+                rs -> {
+                  // TODO set some maximum in case of the exponential increase?
+                  // in case we have the exponent page size, increase the current value by itself
+                  int nextPageSize =
+                      exponentPageSize ? effectivePageSize.updateAndGet(x -> x * 2) : pageSize;
+                  return fetchNext(rs, nextPageSize, query);
+                },
+                ExpandStrategy.BREADTH_FIRST,
+                1));
   }
 
   private Flowable<ResultSet> fetchPage(BoundQuery query, int pageSize, ByteBuffer pagingState) {
