@@ -99,12 +99,7 @@ public class ExecuteQueryTest extends BaseServiceTest {
 
     QueryOuterClass.Response response = executeQuery(stub, query, Values.of("local"));
 
-    assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
-    assertThat(rs.getRowsCount()).isEqualTo(1);
-    assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
-    assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
+    validateResponse(releaseVersion, response);
   }
 
   @Test
@@ -319,6 +314,16 @@ public class ExecuteQueryTest extends BaseServiceTest {
             .addActual(Column.create("c2", Column.Type.Varchar))
             .addActual(Column.create("c3", Column.Type.Uuid))
             .build(true));
+  }
+
+  private void validateResponse(String releaseVersion, QueryOuterClass.Response response)
+      throws InvalidProtocolBufferException {
+    assertThat(response.hasResultSet()).isTrue();
+    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
+    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    assertThat(rs.getRowsCount()).isEqualTo(1);
+    assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
+    assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
   }
 
   private static class ColumnMetadataBuilder {

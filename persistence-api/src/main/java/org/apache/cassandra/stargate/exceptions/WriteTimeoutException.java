@@ -23,6 +23,14 @@ import org.apache.cassandra.stargate.db.WriteType;
 public class WriteTimeoutException extends RequestTimeoutException {
   public final WriteType writeType;
 
+  /**
+   * @param writeType the type of the write for which the timeout was raised.
+   * @param consistency the requested consistency level.
+   * @param received the number of replica that had acknowledged/responded to the operation before
+   *     it failed.
+   * @param blockFor the minimum number of replica acknowledgements/responses that were required to
+   *     fulfill the operation.
+   */
   public WriteTimeoutException(
       WriteType writeType, ConsistencyLevel consistency, int received, int blockFor) {
     super(ExceptionCode.WRITE_TIMEOUT, consistency, received, blockFor);

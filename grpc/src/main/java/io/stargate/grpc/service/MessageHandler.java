@@ -15,6 +15,8 @@
  */
 package io.stargate.grpc.service;
 
+import static io.stargate.grpc.retries.RetryDecision.*;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
@@ -32,6 +34,8 @@ import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.tracing.QueryTracingFetcher;
 import io.stargate.grpc.payload.PayloadHandler;
+import io.stargate.grpc.retries.DefaultRetryPolicy;
+import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.Service.PrepareInfo;
 import io.stargate.grpc.service.Service.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
@@ -47,6 +51,7 @@ import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -92,6 +97,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache;
   protected final Persistence persistence;
   private final StreamObserver<Response> responseObserver;
+  private final DefaultRetryPolicy retryPolicy;
 
   protected MessageHandler(
       MessageT message,
@@ -104,27 +110,97 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     this.preparedCache = preparedCache;
     this.persistence = persistence;
     this.responseObserver = responseObserver;
+    this.retryPolicy = new DefaultRetryPolicy();
   }
 
   void handle() {
     try {
       validate();
+      executeWithRetry(0);
 
-      CompletionStage<ResultAndIdempotencyInfo> resultFuture =
-          prepare(false).thenCompose(this::executePrepared);
-      handleUnprepared(resultFuture)
-          .thenApply(this::buildResponse)
-          .thenCompose(this::executeTracingQueryIfNeeded)
-          .whenComplete(
-              (response, error) -> {
-                if (error != null) {
-                  handleException(error);
-                } else {
-                  setSuccess(response);
-                }
-              });
     } catch (Throwable t) {
       handleException(t);
+    }
+  }
+
+  private void executeWithRetry(int retryCount) {
+    executeQuery()
+        .whenComplete(
+            (response, error) -> {
+              if (error != null) {
+                RetryDecision decision = shouldRetry(error, retryCount);
+                switch (decision) {
+                  case RETRY:
+                    executeWithRetry(retryCount + 1);
+                    break;
+                  case RETHROW:
+                    handleException(error);
+                    break;
+                  default:
+                    throw new UnsupportedOperationException(
+                        "The retry decision: " + decision + " is not supported.");
+                }
+              } else {
+                setSuccess(response);
+              }
+            });
+  }
+
+  private CompletionStage<Response> executeQuery() {
+    CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
+    return handleUnprepared(resultFuture)
+        .thenApply(this::buildResponse)
+        .thenCompose(this::executeTracingQueryIfNeeded);
+  }
+
+  private RetryDecision shouldRetry(Throwable throwable, int retryCount) {
+    Optional<PersistenceException> cause = unwrapCause(throwable);
+    if (!cause.isPresent()) {
+      return RETHROW;
+    }
+    PersistenceException pe = cause.get();
+    switch (pe.code()) {
+      case READ_TIMEOUT:
+        return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
+      case WRITE_TIMEOUT:
+        if (isIdempotent(throwable)) {
+          return retryPolicy.onWriteTimeout((WriteTimeoutException) pe, retryCount);
+        } else {
+          return RETHROW;
+        }
+      default:
+        return RETHROW;
+    }
+  }
+
+  private boolean isIdempotent(Throwable throwable) {
+    Optional<ExceptionWithIdempotencyInfo> exception =
+        unwrapExceptionWithIdempotencyInfo(throwable);
+    return exception.map(ExceptionWithIdempotencyInfo::isIdempotent).orElse(false);
+  }
+
+  private Optional<ExceptionWithIdempotencyInfo> unwrapExceptionWithIdempotencyInfo(
+      Throwable throwable) {
+    if (throwable instanceof CompletionException) {
+      return unwrapExceptionWithIdempotencyInfo(throwable.getCause());
+    } else if (throwable instanceof ExceptionWithIdempotencyInfo) {
+      return Optional.of((ExceptionWithIdempotencyInfo) throwable);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  protected Optional<PersistenceException> unwrapCause(Throwable throwable) {
+    if (throwable instanceof CompletionException
+        || throwable instanceof ExceptionWithIdempotencyInfo) {
+      return unwrapCause(throwable.getCause());
+    } else if (throwable instanceof StatusException
+        || throwable instanceof StatusRuntimeException) {
+      return Optional.empty();
+    } else if (throwable instanceof PersistenceException) {
+      return Optional.of((PersistenceException) throwable);
+    } else {
+      return Optional.empty();
     }
   }
 
@@ -141,10 +217,10 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected abstract CompletionStage<PreparedT> prepare(boolean shouldInvalidate);
 
   /** Executes the prepared object to get the CQL results. */
-  protected abstract CompletionStage<ResultAndIdempotencyInfo> executePrepared(PreparedT prepared);
+  protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
 
   /** Builds the gRPC response from the CQL result. */
-  protected abstract ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo result);
+  protected abstract ResponseAndTraceId buildResponse(Result result);
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
@@ -199,9 +275,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
    * UNPREPARED response when executing a query. This method allows us to recover from that case
    * (other execution errors get propagated as-is).
    */
-  private CompletionStage<ResultAndIdempotencyInfo> handleUnprepared(
-      CompletionStage<ResultAndIdempotencyInfo> source) {
-    CompletableFuture<ResultAndIdempotencyInfo> target = new CompletableFuture<>();
+  private CompletionStage<Result> handleUnprepared(CompletionStage<Result> source) {
+    CompletableFuture<Result> target = new CompletableFuture<>();
     source.whenComplete(
         (result, error) -> {
           if (error != null) {
@@ -228,7 +303,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     return target;
   }
 
-  private CompletionStage<ResultAndIdempotencyInfo> reprepareAndRetry() {
+  private CompletionStage<Result> reprepareAndRetry() {
     return prepare(true).thenCompose(this::executePrepared);
   }
 
@@ -267,7 +342,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   protected void handleException(Throwable throwable) {
-    if (throwable instanceof CompletionException) {
+    if (throwable instanceof CompletionException
+        || throwable instanceof ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
@@ -465,19 +541,22 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     return trailer;
   }
 
-  protected <V> CompletionStage<V> failedFuture(Exception e) {
+  protected <V> CompletionStage<V> failedFuture(Exception e, boolean isIdempotent) {
     CompletableFuture<V> failedFuture = new CompletableFuture<>();
-    failedFuture.completeExceptionally(e);
+    failedFuture.completeExceptionally(new ExceptionWithIdempotencyInfo(e, isIdempotent));
     return failedFuture;
   }
 
-  static class ResultAndIdempotencyInfo {
-    public final Result result;
-    public final boolean isIdempotent;
+  public static class ExceptionWithIdempotencyInfo extends Exception {
+    private final boolean isIdempotent;
 
-    ResultAndIdempotencyInfo(Result result, boolean isIdempotent) {
-      this.result = result;
+    public ExceptionWithIdempotencyInfo(Exception e, boolean isIdempotent) {
+      super(e);
       this.isIdempotent = isIdempotent;
+    }
+
+    public boolean isIdempotent() {
+      return isIdempotent;
     }
   }
 }
