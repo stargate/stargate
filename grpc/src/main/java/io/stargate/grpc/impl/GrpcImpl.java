@@ -39,9 +39,9 @@ import org.slf4j.LoggerFactory;
 
 public class GrpcImpl {
   private static final Logger logger = LoggerFactory.getLogger(GrpcImpl.class);
-  private static final Integer EXECUTOR_SIZE =
-      Integer.getInteger(
-          "stargate.grpc.executor_size", Runtime.getRuntime().availableProcessors() * 2);
+  private static final Integer EXECUTOR_SIZE = Integer.getInteger("stargate.grpc.executor_size", 8);
+  private static final Integer SHUTDOWN_TIMEOUT_SECONDS =
+      Integer.getInteger("stargate.grpc.shutdown_timeout_seconds", 60);
 
   private final Server server;
   private final ScheduledExecutorService executor;
@@ -87,12 +87,18 @@ public class GrpcImpl {
 
   public void stop() {
     try {
-      server.shutdown().awaitTermination();
+      server.shutdown();
       // Since we provided our own executor, it's our responsibility to shut it down.
       // Note that we don't handle restarts because GrpcActivator never reuses an existing instance
       // (and that wouldn't work anyway, because Server doesn't support it either).
       executor.shutdown();
-      if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+
+      long timeoutMillis = TimeUnit.SECONDS.toMillis(SHUTDOWN_TIMEOUT_SECONDS);
+      long start = System.currentTimeMillis();
+
+      if (!server.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS)
+          || !executor.awaitTermination(
+              timeoutMillis - (System.currentTimeMillis() - start), TimeUnit.MILLISECONDS)) {
         logger.warn("Timed out while waiting for executor shutdown");
       }
     } catch (InterruptedException e) {
