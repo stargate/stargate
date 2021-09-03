@@ -89,25 +89,21 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   }
 
   @Override
-  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(
-      BatchAndIdempotencyInfo preparedBatch) {
+  protected CompletionStage<Result> executePrepared(BatchAndIdempotencyInfo preparedBatch) {
     long queryStartNanoTime = System.nanoTime();
     BatchParameters parameters = message.getParameters();
     try {
-      return connection
-          .batch(
-              preparedBatch.batch,
-              makeParameters(parameters, connection.clientInfo()),
-              queryStartNanoTime)
-          .thenApply(r -> new ResultAndIdempotencyInfo(r, preparedBatch.isIdempotent));
+      return connection.batch(
+          preparedBatch.batch,
+          makeParameters(parameters, connection.clientInfo()),
+          queryStartNanoTime);
     } catch (Exception e) {
-      return failedFuture(e);
+      return failedFuture(e, preparedBatch.isIdempotent);
     }
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
-    Result result = resultAndIdempotencyInfo.result;
+  protected ResponseAndTraceId buildResponse(Result result) {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);

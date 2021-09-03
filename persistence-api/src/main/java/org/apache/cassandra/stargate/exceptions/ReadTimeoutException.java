@@ -22,6 +22,14 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class ReadTimeoutException extends RequestTimeoutException {
   public final boolean dataPresent;
 
+  /**
+   * @param consistency the requested consistency level.
+   * @param received the number of replica that had acknowledged/responded to the operation before
+   *     it failed.
+   * @param blockFor the minimum number of replica acknowledgements/responses that were required to
+   *     fulfill the operation.
+   * @param dataPresent whether the actual data was amongst the received replica responses.
+   */
   public ReadTimeoutException(
       ConsistencyLevel consistency, int received, int blockFor, boolean dataPresent) {
     super(ExceptionCode.READ_TIMEOUT, consistency, received, blockFor);

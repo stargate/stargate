@@ -76,7 +76,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected CompletionStage<ResultAndIdempotencyInfo> executePrepared(Prepared prepared) {
+  protected CompletionStage<Result> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
     Payload values = message.getValues();
@@ -85,20 +85,17 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     QueryParameters parameters = message.getParameters();
 
     try {
-      return connection
-          .execute(
-              bindValues(handler, prepared, values),
-              makeParameters(parameters, connection.clientInfo()),
-              queryStartNanoTime)
-          .thenApply(r -> new ResultAndIdempotencyInfo(r, prepared.isIdempotent));
+      return connection.execute(
+          bindValues(handler, prepared, values),
+          makeParameters(parameters, connection.clientInfo()),
+          queryStartNanoTime);
     } catch (Exception e) {
-      return failedFuture(e);
+      return failedFuture(e, prepared.isIdempotent);
     }
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(ResultAndIdempotencyInfo resultAndIdempotencyInfo) {
-    Result result = resultAndIdempotencyInfo.result;
+  protected ResponseAndTraceId buildResponse(Result result) {
     ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
     responseAndTraceId.setTracingId(result.getTracingId());
     Response.Builder responseBuilder = makeResponseBuilder(result);
