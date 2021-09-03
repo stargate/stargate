@@ -17,6 +17,7 @@ package io.stargate.grpc.impl;
 
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
@@ -59,6 +60,7 @@ public class GrpcImpl {
             .intercept(new AuthenticationInterceptor(authenticationService))
             .intercept(new RemoteAddressInterceptor())
             .intercept(new HeadersInterceptor())
+            .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new Service(persistence, metrics))
             .build();
   }

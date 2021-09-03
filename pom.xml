@@ -29,14 +29,15 @@
     <slf4j.version>1.7.30</slf4j.version>
     <logback.version>1.2.3</logback.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
-    <micrometer.version>1.6.5</micrometer.version>
-    <prometheus.version>0.9.0</prometheus.version>
+    <micrometer.version>1.7.3</micrometer.version>
+    <prometheus.version>0.10.0</prometheus.version>
     <junit.version>5.7.0</junit.version>
     <mockito.version>3.5.13</mockito.version>
     <jacoco.version>0.8.6</jacoco.version>
     <errorprone.version>2.3.4</errorprone.version>
     <commons-io.version>2.7</commons-io.version>
     <immutables.version>2.5.6</immutables.version>
+    <grpc.version>1.35.0</grpc.version>
   </properties>
   <dependencies>
     <dependency>
