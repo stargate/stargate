@@ -2,8 +2,6 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.google.common.base.Splitter;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Single;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -14,7 +12,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue;
-import io.stargate.db.query.builder.AbstractBound;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.ValueModifier;
@@ -28,9 +25,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
-import io.stargate.web.docsapi.service.RawDocument;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -378,51 +373,6 @@ public class DocumentDB {
     } else {
       return dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM);
     }
-  }
-
-  public void authorizeSelect(String keyspace, String collection) throws UnauthorizedException {
-    // Run generic authorizeDataRead for now
-    getAuthorizationService()
-        .authorizeDataRead(getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-  }
-
-  public Flowable<RawDocument> executeSelect(
-      String keyspace,
-      String collection,
-      List<BuiltCondition> predicates,
-      int pageSize,
-      ByteBuffer pagingState,
-      ExecutionContext context) {
-    return Single.fromCallable(
-            () -> {
-              // Run generic authorizeDataRead for now
-              getAuthorizationService()
-                  .authorizeDataRead(
-                      getAuthenticationSubject(), keyspace, collection, SourceAPI.REST);
-              return this.builder()
-                  .select()
-                  .column(DocumentDB.allColumns())
-                  .writeTimeColumn("leaf")
-                  .from(keyspace, collection)
-                  .where(predicates)
-                  .build()
-                  .bind();
-            })
-        .flatMapPublisher(q -> executor.queryDocs(q, pageSize, pagingState, context));
-  }
-
-  public Flowable<RawDocument> executeSelect(
-      AbstractBound<?> query, int pageSize, ByteBuffer pagingState, ExecutionContext context) {
-    return executor.queryDocs(query, pageSize, pagingState, context);
-  }
-
-  public Flowable<RawDocument> executeSelect(
-      int keyDepth,
-      AbstractBound<?> query,
-      int pageSize,
-      ByteBuffer pagingState,
-      ExecutionContext context) {
-    return executor.queryDocs(keyDepth, query, pageSize, pagingState, context);
   }
 
   public BoundQuery getInsertStatement(
