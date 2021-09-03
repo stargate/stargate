@@ -15,6 +15,8 @@
  */
 package io.stargate.grpc.service;
 
+import static io.stargate.grpc.retries.RetryDecision.*;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
@@ -127,10 +129,16 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
             (response, error) -> {
               if (error != null) {
                 RetryDecision decision = shouldRetry(error, retryCount);
-                if (decision == RetryDecision.RETRY) {
-                  executeWithRetry(retryCount + 1);
-                } else if (decision == RetryDecision.RETHROW) {
-                  handleException(error);
+                switch (decision) {
+                  case RETRY:
+                    executeWithRetry(retryCount + 1);
+                    break;
+                  case RETHROW:
+                    handleException(error);
+                    break;
+                  default:
+                    throw new UnsupportedOperationException(
+                        "The retry decision: " + decision + " is not supported.");
                 }
               } else {
                 setSuccess(response);
@@ -138,10 +146,17 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
             });
   }
 
+  private CompletionStage<Response> executeQuery() {
+    CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
+    return handleUnprepared(resultFuture)
+        .thenApply(this::buildResponse)
+        .thenCompose(this::executeTracingQueryIfNeeded);
+  }
+
   private RetryDecision shouldRetry(Throwable throwable, int retryCount) {
     Optional<PersistenceException> cause = unwrapCause(throwable);
     if (!cause.isPresent()) {
-      return RetryDecision.RETHROW;
+      return RETHROW;
     }
     PersistenceException pe = cause.get();
     switch (pe.code()) {
@@ -151,10 +166,10 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
         if (isIdempotent(throwable)) {
           return retryPolicy.onWriteTimeout((WriteTimeoutException) pe, retryCount);
         } else {
-          return RetryDecision.RETHROW;
+          return RETHROW;
         }
       default:
-        return RetryDecision.RETHROW;
+        return RETHROW;
     }
   }
 
@@ -187,13 +202,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     } else {
       return Optional.empty();
     }
-  }
-
-  public CompletionStage<Response> executeQuery() {
-    CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
-    return handleUnprepared(resultFuture)
-        .thenApply(this::buildResponse)
-        .thenCompose(this::executeTracingQueryIfNeeded);
   }
 
   /** Performs any necessary validation on the message before execution starts. */

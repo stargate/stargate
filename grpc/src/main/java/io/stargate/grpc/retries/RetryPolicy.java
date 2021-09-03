@@ -27,13 +27,7 @@ public interface RetryPolicy {
    * <b>server-side</b> timeout during a read query, i.e. some replicas did not reply to the
    * coordinator in time.
    *
-   * <p>{@link ReadTimeoutException#consistency} the requested consistency level. {@link
-   * ReadTimeoutException#blockFor} the minimum number of replica acknowledgements/responses that
-   * were required to fulfill the operation. {@link ReadTimeoutException#received} the number of
-   * replica that had acknowledged/responded to the operation before it failed. {@link
-   * ReadTimeoutException#dataPresent} whether the actual data was amongst the received replica
-   * responses.
-   *
+   * @param readTimeoutException the exception used to determine if the query should be retried.
    * @param retryCount how many times the retry policy has been invoked already for this request
    *     (not counting the current invocation).
    */
@@ -50,12 +44,7 @@ public interface RetryPolicy {
    * write is never safe to retry; the driver will rethrow the error directly, without invoking the
    * retry policy.
    *
-   * <p>{@link WriteTimeoutException#consistency} the requested consistency level. {@link
-   * WriteTimeoutException#writeType} the type of the write for which the timeout was raised. {@link
-   * WriteTimeoutException#blockFor} the minimum number of replica acknowledgements/responses that
-   * were required to fulfill the operation. {@link WriteTimeoutException#received} the number of
-   * replica that had acknowledged/responded to the operation before it failed.
-   *
+   * @param writeTimeoutException the exception used to determine if the query should be retried.
    * @param retryCount how many times the retry policy has been invoked already for this request
    *     (not counting the current invocation).
    */
