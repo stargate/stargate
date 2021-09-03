@@ -25,14 +25,14 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
-import io.stargate.grpc.service.Service;
+import io.stargate.grpc.service.GrpcService;
 
 /**
  * An interceptor that checks calls for per-call credentials. The metadata header {@code
  * "X-Cassandra-Token"} is used to pass the credentials to the RPC calls. The value is authenticated
  * using {@link AuthenticationService#validateToken(String)}. The resulting {@link
  * io.stargate.auth.AuthenticationSubject} is bound to the call context using the key {@link
- * Service#AUTHENTICATION_KEY}.
+ * GrpcService#AUTHENTICATION_KEY}.
  */
 public class AuthenticationInterceptor implements ServerInterceptor {
   public static final Metadata.Key<String> TOKEN_KEY =
@@ -54,7 +54,8 @@ public class AuthenticationInterceptor implements ServerInterceptor {
         return new NopListener<>();
       }
       Context context = Context.current();
-      context = context.withValue(Service.AUTHENTICATION_KEY, authentication.validateToken(token));
+      context =
+          context.withValue(GrpcService.AUTHENTICATION_KEY, authentication.validateToken(token));
       return Contexts.interceptCall(context, call, headers, next);
     } catch (UnauthorizedException e) {
       call.close(

@@ -31,8 +31,8 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseAndTraceId;
+import io.stargate.grpc.service.GrpcService.PrepareInfo;
+import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
@@ -147,7 +147,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
     builder.consistencyLevel(
         parameters.hasConsistency()
             ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
-            : Service.DEFAULT_CONSISTENCY);
+            : GrpcService.DEFAULT_CONSISTENCY);
 
     if (parameters.hasKeyspace()) {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
@@ -156,7 +156,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
     builder.serialConsistencyLevel(
         parameters.hasSerialConsistency()
             ? ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber())
-            : Service.DEFAULT_SERIAL_CONSISTENCY);
+            : GrpcService.DEFAULT_SERIAL_CONSISTENCY);
 
     if (parameters.hasTimestamp()) {
       builder.defaultTimestamp(parameters.getTimestamp().getValue());

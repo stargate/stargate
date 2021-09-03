@@ -38,10 +38,11 @@ public class MockInterceptor implements ServerInterceptor {
     when(user.isFromExternalAuth()).thenReturn(true);
     when(subject.asUser()).thenReturn(user);
     Context context = Context.current();
-    context = context.withValue(Service.AUTHENTICATION_KEY, subject);
+    context = context.withValue(GrpcService.AUTHENTICATION_KEY, subject);
     context =
         context.withValue(
-            Service.REMOTE_ADDRESS_KEY, call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
+            GrpcService.REMOTE_ADDRESS_KEY,
+            call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
     return Contexts.interceptCall(context, call, headers, next);
   }
 }

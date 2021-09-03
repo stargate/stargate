@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
-public class HeadersTest extends BaseServiceTest {
+public class HeadersTest extends BaseGrpcServiceTest {
 
   private static final Key<String> HEADER1_KEY =
       Key.of("header1", Metadata.ASCII_STRING_MARSHALLER);

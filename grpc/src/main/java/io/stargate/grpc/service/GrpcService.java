@@ -40,7 +40,7 @@ import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.immutables.value.Value;
 
-public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
+public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
@@ -74,7 +74,7 @@ public class Service extends io.stargate.proto.StargateGrpc.StargateImplBase {
     String cql();
   }
 
-  public Service(Persistence persistence, Metrics metrics) {
+  public GrpcService(Persistence persistence, Metrics metrics) {
     this.persistence = persistence;
     this.metrics = metrics;
     assert this.metrics != null;

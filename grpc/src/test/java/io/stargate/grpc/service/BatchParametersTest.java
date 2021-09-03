@@ -42,7 +42,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class BatchParametersTest extends BaseServiceTest {
+public class BatchParametersTest extends BaseGrpcServiceTest {
   @ParameterizedTest
   @MethodSource({"batchParameterValues"})
   public void batchParameters(BatchParameters actual, Parameters expected) {
@@ -79,14 +79,14 @@ public class BatchParametersTest extends BaseServiceTest {
         arguments(
             batchParameters().build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .build()),
         arguments(
             batchParameters().setKeyspace(StringValue.newBuilder().setValue("abc")).build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultKeyspace("abc")
                 .build()),
         arguments(
@@ -95,7 +95,7 @@ public class BatchParametersTest extends BaseServiceTest {
                 .build(),
             Parameters.builder()
                 .consistencyLevel(ConsistencyLevel.THREE)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .build()),
         arguments(
             batchParameters()
@@ -103,7 +103,7 @@ public class BatchParametersTest extends BaseServiceTest {
                     ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_SERIAL))
                 .build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
                 .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
                 .build()),
         arguments(
@@ -111,8 +111,8 @@ public class BatchParametersTest extends BaseServiceTest {
                 .setNowInSeconds(Int32Value.newBuilder().setValue(12345).build())
                 .build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .nowInSeconds(12345)
                 .build()),
         arguments(
@@ -120,22 +120,22 @@ public class BatchParametersTest extends BaseServiceTest {
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultTimestamp(1234567890)
                 .build()),
         arguments(
             batchParameters().setTracing(true).build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(true)
                 .build()),
         arguments(
             batchParameters().setTracing(false).build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(false)
                 .build()),
         arguments(

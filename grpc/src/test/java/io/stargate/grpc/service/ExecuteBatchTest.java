@@ -47,7 +47,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class ExecuteBatchTest extends BaseServiceTest {
+public class ExecuteBatchTest extends BaseGrpcServiceTest {
 
   @BeforeAll
   public static void setup() {

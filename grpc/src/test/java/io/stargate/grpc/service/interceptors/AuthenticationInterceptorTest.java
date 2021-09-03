@@ -32,7 +32,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
-import io.stargate.grpc.service.Service;
+import io.stargate.grpc.service.GrpcService;
 import org.junit.jupiter.api.Test;
 
 public class AuthenticationInterceptorTest {
@@ -57,7 +57,7 @@ public class AuthenticationInterceptorTest {
         call,
         metadata,
         (c, h) -> {
-          AuthenticationSubject subject = Service.AUTHENTICATION_KEY.get();
+          AuthenticationSubject subject = GrpcService.AUTHENTICATION_KEY.get();
           assertThat(subject).isNotNull();
           AuthenticatedUser user = subject.asUser();
           assertThat(user.name()).isEqualTo("def");

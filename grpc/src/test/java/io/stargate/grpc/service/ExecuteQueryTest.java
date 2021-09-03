@@ -60,7 +60,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class ExecuteQueryTest extends BaseServiceTest {
+public class ExecuteQueryTest extends BaseGrpcServiceTest {
   @Test
   public void simpleQuery() throws InvalidProtocolBufferException {
     final String query = "SELECT release_version FROM system.local WHERE key = ?";

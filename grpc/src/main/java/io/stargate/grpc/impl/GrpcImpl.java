@@ -20,7 +20,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.grpc.service.Service;
+import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.interceptors.AuthenticationInterceptor;
 import io.stargate.grpc.service.interceptors.HeadersInterceptor;
 import io.stargate.grpc.service.interceptors.RemoteAddressInterceptor;
@@ -59,7 +59,7 @@ public class GrpcImpl {
             .intercept(new AuthenticationInterceptor(authenticationService))
             .intercept(new RemoteAddressInterceptor())
             .intercept(new HeadersInterceptor())
-            .addService(new Service(persistence, metrics))
+            .addService(new GrpcService(persistence, metrics))
             .build();
   }
 

@@ -23,11 +23,11 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
-import io.stargate.grpc.service.Service;
+import io.stargate.grpc.service.GrpcService;
 
 /**
  * An interceptor that attaches the remote address to the call context using the key {@link
- * Service#REMOTE_ADDRESS_KEY}.
+ * GrpcService#REMOTE_ADDRESS_KEY}.
  */
 public class RemoteAddressInterceptor implements ServerInterceptor {
 
@@ -37,7 +37,8 @@ public class RemoteAddressInterceptor implements ServerInterceptor {
     Context context = Context.current();
     context =
         context.withValue(
-            Service.REMOTE_ADDRESS_KEY, call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
+            GrpcService.REMOTE_ADDRESS_KEY,
+            call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR));
     return Contexts.interceptCall(context, call, headers, next);
   }
 }
