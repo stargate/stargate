@@ -18,6 +18,8 @@
 package io.stargate.web.docsapi.service.query.search.resolver.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.Or;
@@ -84,13 +86,14 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      when(configuration.getSearchPageSize()).thenReturn(100);
+      lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
+      lenient().when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
     }
 
     @Test
     public void twoPersistenceConditions() throws Exception {
-      int pageSize = 1;
+      int pageSize = 10;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       BaseCondition condition = ImmutableStringCondition.of(GtFilterOperation.of(), "query-value");
@@ -108,7 +111,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(5)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -119,7 +122,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   1d)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(5)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
@@ -180,7 +183,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -191,7 +194,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   1d)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
@@ -239,7 +242,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
 
     @Test
     public void twoPersistenceConditionsNothingReturned() throws Exception {
-      int pageSize = 1;
+      int pageSize = 2;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       BaseCondition condition = ImmutableStringCondition.of(GtFilterOperation.of(), "query-value");
@@ -257,7 +260,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -268,7 +271,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   1d)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
@@ -321,7 +324,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -343,7 +346,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "field",
                   "")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -408,7 +411,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -418,7 +421,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "field",
                   "")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -488,7 +491,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -498,7 +501,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "field",
                   "")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -560,7 +563,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       ValidatingDataStore.QueryAssert query2Assert =
@@ -571,7 +574,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "field",
                   "")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(2)
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
@@ -620,7 +623,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -688,7 +691,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -749,7 +752,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -820,7 +823,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(

@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.query.search.resolver.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -90,7 +91,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      when(configuration.getSearchPageSize()).thenReturn(100);
+      when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
       lenient().when(filterExpression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
       lenient().when(filterExpression.getCondition()).thenReturn(condition);
@@ -113,7 +114,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
@@ -189,7 +190,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "",
                   "reviews",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of(
@@ -291,7 +292,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
@@ -380,7 +381,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
@@ -450,7 +451,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getStoragePageSize(pageSize))
               .returningNothing();
 
       DocumentsResolver resolver =

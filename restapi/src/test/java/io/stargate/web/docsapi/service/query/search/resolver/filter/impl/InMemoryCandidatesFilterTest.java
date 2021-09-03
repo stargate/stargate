@@ -87,7 +87,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
   public void init() {
     executionContext = ExecutionContext.create(true);
     queryExecutor = new QueryExecutor(datastore());
-    lenient().when(configuration.getSearchPageSize()).thenReturn(100);
+    lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
   }
 
   @Nested
@@ -274,7 +274,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getMaxStoragePageSize())
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =

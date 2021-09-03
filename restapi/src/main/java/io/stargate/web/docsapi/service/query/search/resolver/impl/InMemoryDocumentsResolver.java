@@ -52,6 +52,8 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
 
   private final ExecutionContext context;
 
+  private final boolean evaluateOnMissing;
+
   public InMemoryDocumentsResolver(FilterExpression expression, ExecutionContext context) {
     this(Collections.singletonList(expression), context);
   }
@@ -67,7 +69,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
     }
 
     // if we have a single one that evaluate son the
-    boolean evaluateOnMissing =
+    evaluateOnMissing =
         expressions.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
 
     this.expressions = expressions;
@@ -116,12 +118,15 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               // once ready bind (no values) and fire
               BoundQuery query = prepared.bind();
 
+              // in case we have a full search then base the page size on the
+              // otherwise start with the requested page size
+              int pageSize =
+                  evaluateOnMissing
+                      ? configuration.getStoragePageSize(paginator.docPageSize)
+                      : paginator.docPageSize
+                          + 1; // take always one more than needed to stop pre-fetching
               return queryExecutor.queryDocs(
-                  query,
-                  configuration.getSearchPageSize(),
-                  false,
-                  paginator.getCurrentDbPageState(),
-                  context);
+                  query, pageSize, true, paginator.getCurrentDbPageState(), context);
             })
 
         // then filter to match the expression (in-memory filters have no predicates on the values)

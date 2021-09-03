@@ -68,7 +68,7 @@ public class DocumentSearchService {
     // if we have true immediately, means we can only do full search
     if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
 
-      // for the sake of correctness make sure we don't have have false
+      // for the sake of correctness make sure we don't have a false
       if (Literal.getFalse().equals(expression)) {
         return Flowable.empty();
       }
@@ -83,7 +83,7 @@ public class DocumentSearchService {
               nestedFullSearch(context))
 
           // load only for the page size
-          .take((paginator.docPageSize));
+          .take(paginator.docPageSize);
     } else {
       // otherwise resolve the expression
       DocumentsResolver documentsResolver = BaseResolver.resolve(expression, context);
@@ -205,8 +205,8 @@ public class DocumentSearchService {
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
                   boundQuery,
-                  configuration.getSearchPageSize(),
-                  false,
+                  configuration.getStoragePageSize(paginator.docPageSize),
+                  true,
                   paginator.getCurrentDbPageState(),
                   context);
             });
@@ -239,9 +239,11 @@ public class DocumentSearchService {
         .cache()
         .flatMapPublisher(
             prepared -> {
+              // since we have the doc id, use the max storage page size to grab all the rows for
+              // that doc
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
-                  boundQuery, configuration.getSearchPageSize(), false, null, context);
+                  boundQuery, configuration.getMaxStoragePageSize(), false, null, context);
             });
   }
 
@@ -285,8 +287,10 @@ public class DocumentSearchService {
               BoundQuery query = p.getRight().bind(document.id());
 
               // fetch, take one and then populate into the original doc
+              // since we have the doc id, use the max storage page size to grab all the rows for
+              // that doc
               return queryExecutor
-                  .queryDocs(query, configuration.getSearchPageSize(), false, null, context)
+                  .queryDocs(query, configuration.getMaxStoragePageSize(), false, null, context)
                   .firstElement()
                   .map(document::populateFrom)
                   .toFlowable();

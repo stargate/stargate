@@ -102,8 +102,9 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
 
     // execute query
     // page size 2 with limit 1 to ensure no additional pages fetched (only on fixed path)
+    // use max storage page size otherwise as we have the doc id
     FilterPath filterPath = queryBuilder.getFilterPath();
-    int pageSize = filterPath.isFixed() ? 2 : configuration.getSearchPageSize();
+    int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
     return queryExecutor.queryDocs(query, pageSize, false, null, context).take(1).singleElement();
   }
 

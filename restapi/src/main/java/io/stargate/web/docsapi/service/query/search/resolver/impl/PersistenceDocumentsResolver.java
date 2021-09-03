@@ -97,8 +97,9 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
               // execute by respecting the paging state
               return queryExecutor.queryDocs(
                   query,
-                  configuration.getSearchPageSize(),
-                  false,
+                  paginator.docPageSize
+                      + 1, // take always one more than needed to stop pre-fetching
+                  true,
                   paginator.getCurrentDbPageState(),
                   context);
             });

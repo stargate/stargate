@@ -59,9 +59,15 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private final ExecutionContext context;
 
+  private final boolean evaluateOnMissing;
+
   public OrExpressionDocumentsResolver(Or<FilterExpression> expression, ExecutionContext context) {
+    List<FilterExpression> children = getChildren(expression);
+
     this.expression = expression;
-    this.queryBuilders = buildQueries(getChildren(expression));
+    this.evaluateOnMissing =
+        children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
+    this.queryBuilders = buildQueries(evaluateOnMissing, children);
     this.context = createContext(context, expression);
   }
 
@@ -107,12 +113,15 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
                   preparedQueries.stream().map(Query::bind).collect(Collectors.toList());
 
               // execute them all by respecting the paging state
+              // if we have evaluate on missing then we have single query, so go for the
+              // getStoragePageSize
+              // otherwise determine the page size for each query based on the requested docs
+              int pageSize =
+                  evaluateOnMissing
+                      ? configuration.getStoragePageSize(paginator.docPageSize)
+                      : determinePageSize(paginator.docPageSize, boundQueries.size());
               return queryExecutor.queryDocs(
-                  boundQueries,
-                  configuration.getSearchPageSize(),
-                  false,
-                  paginator.getCurrentDbPageState(),
-                  context);
+                  boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);
             })
         .filter(
             doc -> {
@@ -131,6 +140,15 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             });
   }
 
+  // page size in the queries executed is determined by slicing the number of requested documents
+  // and queries
+  // for example, having 20 docs requested with 3 OR queries would make it 6
+  // this is to level out the pressure of finding the documents and favor queries that are taken
+  // into account first
+  private int determinePageSize(int docPageSize, int numberOfQueries) {
+    return Math.max(2, Math.floorDiv(docPageSize, numberOfQueries));
+  }
+
   private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
     String[] columns;
     if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
@@ -144,10 +162,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     return columns;
   }
 
-  private List<AbstractSearchQueryBuilder> buildQueries(List<FilterExpression> children) {
+  private List<AbstractSearchQueryBuilder> buildQueries(
+      boolean evaluateOnMissing, List<FilterExpression> children) {
     // if any condition is evaluated on missing, then we can do a full search only
-    boolean evaluateOnMissing =
-        children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
     if (evaluateOnMissing) {
       return Collections.singletonList(new FullSearchQueryBuilder());
     }

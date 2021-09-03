@@ -9,8 +9,12 @@ public interface DocsApiConfiguration {
     return DocumentDB.MAX_PAGE_SIZE;
   }
 
-  default int getSearchPageSize() {
-    return DocumentDB.SEARCH_PAGE_SIZE;
+  default int getStoragePageSize(int numberOfDocuments) {
+    return Math.min(numberOfDocuments * 16, DocumentDB.MAX_STORAGE_PAGE_SIZE);
+  }
+
+  default int getMaxStoragePageSize() {
+    return DocumentDB.MAX_STORAGE_PAGE_SIZE;
   }
 
   default int getMaxDepth() {
