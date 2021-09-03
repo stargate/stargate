@@ -64,6 +64,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   private final Metrics metrics;
 
   private final ScheduledExecutorService executor;
+  private final int schemaAgreementRetries;
 
   /** Used as key for the the local prepare cache. */
   @Value.Immutable
@@ -79,9 +80,18 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   }
 
   public GrpcService(Persistence persistence, Metrics metrics, ScheduledExecutorService executor) {
+    this(persistence, metrics, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
+  }
+
+  Service(
+      Persistence persistence,
+      Metrics metrics,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries) {
     this.persistence = persistence;
     this.metrics = metrics;
     this.executor = executor;
+    this.schemaAgreementRetries = schemaAgreementRetries;
     assert this.metrics != null;
   }
 
@@ -91,7 +101,13 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
         .ifPresent(
             connection ->
                 new QueryHandler(
-                        query, connection, preparedCache, persistence, executor, responseObserver)
+                        query,
+                        connection,
+                        preparedCache,
+                        persistence,
+                        executor,
+                        schemaAgreementRetries,
+                        responseObserver)
                     .handle());
   }
 

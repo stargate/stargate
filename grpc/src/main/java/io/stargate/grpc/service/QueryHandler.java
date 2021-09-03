@@ -50,6 +50,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final PrepareInfo prepareInfo;
   private final ScheduledExecutorService executor;
+  private final int schemaAgreementRetries;
 
   QueryHandler(
       Query query,
@@ -57,9 +58,11 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       ScheduledExecutorService executor,
+      int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
     super(query, connection, preparedCache, persistence, responseObserver);
     this.executor = executor;
+    this.schemaAgreementRetries = schemaAgreementRetries;
     QueryParameters queryParameters = query.getParameters();
     this.prepareInfo =
         ImmutablePrepareInfo.builder()
@@ -125,13 +128,15 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
-          return failedFuture(e);
+          return failedFuture(e, false);
         }
       case SetKeyspace:
         return failedFuture(
-            Status.INVALID_ARGUMENT.withDescription("USE <keyspace> not supported").asException());
+            Status.INVALID_ARGUMENT.withDescription("USE <keyspace> not supported").asException(),
+            false);
       default:
-        return failedFuture(Status.INTERNAL.withDescription("Unhandled result kind").asException());
+        return failedFuture(
+            Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
   }
 
@@ -205,7 +210,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private CompletionStage<Void> waitForSchemaAgreement() {
     CompletableFuture<Void> agreementFuture = new CompletableFuture<>();
-    waitForSchemaAgreement(Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES, agreementFuture);
+    waitForSchemaAgreement(schemaAgreementRetries, agreementFuture);
     return agreementFuture;
   }
 
@@ -220,7 +225,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
           Status.DEADLINE_EXCEEDED
               .withDescription(
                   "Failed to reach schema agreement after "
-                      + (200 * Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES)
+                      + (200 * schemaAgreementRetries)
                       + " milliseconds.")
               .asException());
       return;

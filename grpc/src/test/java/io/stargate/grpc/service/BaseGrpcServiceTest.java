@@ -15,6 +15,10 @@
  */
 package io.stargate.grpc.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+
 import com.google.protobuf.Any;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -51,6 +55,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -58,10 +63,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 @ExtendWith(MockitoExtension.class)
 public class BaseGrpcServiceTest {
@@ -74,11 +75,16 @@ public class BaseGrpcServiceTest {
 
   protected Connection connection = spy(mock(Connection.class));
 
+  private ScheduledExecutorService executor;
+
   @AfterEach
   public void cleanUp() {
     try {
       if (server != null) {
         server.shutdown().awaitTermination();
+      }
+      if (executor != null) {
+        executor.shutdownNow();
       }
       if (clientChannel != null) {
         clientChannel.shutdown().awaitTermination(60, TimeUnit.SECONDS);
@@ -125,14 +131,13 @@ public class BaseGrpcServiceTest {
 
   protected void startServer(Persistence persistence) {
     assertThat(server).isNull();
+    executor = Executors.newScheduledThreadPool(1);
     server =
         InProcessServerBuilder.forName(SERVER_NAME)
             .directExecutor()
             .intercept(new MockInterceptor())
             .intercept(new HeadersInterceptor())
-            .addService(
-                new GrpcService(
-                    persistence, mock(Metrics.class), mock(ScheduledExecutorService.class)))
+            .addService(new GrpcService(persistence, mock(Metrics.class), executor, 2))
             .build();
     try {
       server.start();
