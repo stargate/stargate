@@ -48,7 +48,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class QueryParametersTest extends BaseServiceTest {
+public class QueryParametersTest extends BaseGrpcServiceTest {
   @ParameterizedTest
   @MethodSource({"queryParameterValues"})
   public void queryParameters(QueryParameters actual, Parameters expected) {
@@ -84,16 +84,16 @@ public class QueryParametersTest extends BaseServiceTest {
         arguments(
             cqlQueryParameters().build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .build()),
         arguments(
             cqlQueryParameters().setKeyspace(StringValue.newBuilder().setValue("abc")).build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultKeyspace("abc")
                 .build()),
         arguments(
@@ -101,9 +101,9 @@ public class QueryParametersTest extends BaseServiceTest {
                 .setConsistency(ConsistencyValue.newBuilder().setValue(Consistency.THREE))
                 .build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
                 .consistencyLevel(ConsistencyLevel.THREE)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .build()),
         arguments(
             cqlQueryParameters()
@@ -111,8 +111,8 @@ public class QueryParametersTest extends BaseServiceTest {
                     ConsistencyValue.newBuilder().setValue(Consistency.LOCAL_SERIAL))
                 .build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
                 .serialConsistencyLevel(ConsistencyLevel.LOCAL_SERIAL)
                 .build()),
         arguments(
@@ -120,9 +120,9 @@ public class QueryParametersTest extends BaseServiceTest {
                 .setNowInSeconds(Int32Value.newBuilder().setValue(12345).build())
                 .build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .nowInSeconds(12345)
                 .build()),
         arguments(
@@ -130,25 +130,25 @@ public class QueryParametersTest extends BaseServiceTest {
                 .setTimestamp(Int64Value.newBuilder().setValue(1234567890).build())
                 .build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .defaultTimestamp(1234567890)
                 .build()),
         arguments(
             cqlQueryParameters().setTracing(true).build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(true)
                 .build()),
         arguments(
             cqlQueryParameters().setTracing(false).build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .tracingRequested(false)
                 .build()),
         arguments(
@@ -156,8 +156,8 @@ public class QueryParametersTest extends BaseServiceTest {
                 .setPageSize(Int32Value.newBuilder().setValue(99999).build())
                 .build(),
             Parameters.builder()
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .pageSize(99999)
                 .build()),
         arguments(
@@ -168,9 +168,9 @@ public class QueryParametersTest extends BaseServiceTest {
                         .build())
                 .build(),
             Parameters.builder()
-                .pageSize(Service.DEFAULT_PAGE_SIZE)
-                .consistencyLevel(Service.DEFAULT_CONSISTENCY)
-                .serialConsistencyLevel(Service.DEFAULT_SERIAL_CONSISTENCY)
+                .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
+                .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
+                .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
                 .pagingState(ByteBuffer.wrap(new byte[] {'a', 'b', 'c'}))
                 .build()),
         arguments(

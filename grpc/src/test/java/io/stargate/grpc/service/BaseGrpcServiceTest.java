@@ -63,7 +63,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class BaseServiceTest {
+public class BaseGrpcServiceTest {
   private static final String SERVER_NAME = "ServiceTests";
 
   private Server server;
@@ -129,7 +129,7 @@ public class BaseServiceTest {
             .directExecutor()
             .intercept(new MockInterceptor())
             .intercept(new HeadersInterceptor())
-            .addService(new Service(persistence, mock(Metrics.class)))
+            .addService(new GrpcService(persistence, mock(Metrics.class)))
             .build();
     try {
       server.start();

@@ -59,7 +59,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class PersistenceExceptionTest extends BaseServiceTest {
+public class PersistenceExceptionTest extends BaseGrpcServiceTest {
 
   private static MD5Digest UNPREPARED_ID = MD5Digest.compute(new byte[] {0});
 

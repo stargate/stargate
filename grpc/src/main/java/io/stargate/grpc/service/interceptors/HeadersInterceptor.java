@@ -22,7 +22,7 @@ import io.grpc.Metadata.Key;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
-import io.stargate.grpc.service.Service;
+import io.stargate.grpc.service.GrpcService;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +39,7 @@ public class HeadersInterceptor implements ServerInterceptor {
       stringHeaders.put(key, value);
     }
     Context context = Context.current();
-    context = context.withValue(Service.HEADERS_KEY, stringHeaders);
+    context = context.withValue(GrpcService.HEADERS_KEY, stringHeaders);
     return Contexts.interceptCall(context, call, headers, next);
   }
 }

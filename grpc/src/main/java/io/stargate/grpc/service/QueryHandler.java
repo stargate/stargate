@@ -29,8 +29,8 @@ import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.Service.PrepareInfo;
-import io.stargate.grpc.service.Service.ResponseAndTraceId;
+import io.stargate.grpc.service.GrpcService.PrepareInfo;
+import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -156,14 +156,16 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     builder.consistencyLevel(
         parameters.hasConsistency()
             ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
-            : Service.DEFAULT_CONSISTENCY);
+            : GrpcService.DEFAULT_CONSISTENCY);
 
     if (parameters.hasKeyspace()) {
       builder.defaultKeyspace(parameters.getKeyspace().getValue());
     }
 
     builder.pageSize(
-        parameters.hasPageSize() ? parameters.getPageSize().getValue() : Service.DEFAULT_PAGE_SIZE);
+        parameters.hasPageSize()
+            ? parameters.getPageSize().getValue()
+            : GrpcService.DEFAULT_PAGE_SIZE);
 
     if (parameters.hasPagingState()) {
       builder.pagingState(ByteBuffer.wrap(parameters.getPagingState().getValue().toByteArray()));
@@ -172,7 +174,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     builder.serialConsistencyLevel(
         parameters.hasSerialConsistency()
             ? ConsistencyLevel.fromCode(parameters.getSerialConsistency().getValue().getNumber())
-            : Service.DEFAULT_SERIAL_CONSISTENCY);
+            : GrpcService.DEFAULT_SERIAL_CONSISTENCY);
 
     if (parameters.hasTimestamp()) {
       builder.defaultTimestamp(parameters.getTimestamp().getValue());
