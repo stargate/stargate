@@ -55,7 +55,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
-public class RetryTest extends BaseServiceTest {
+public class RetryTest extends BaseGrpcServiceTest {
 
   @Test
   public void shouldNotRetryOnReadTimeoutWhenDataPresent() {
