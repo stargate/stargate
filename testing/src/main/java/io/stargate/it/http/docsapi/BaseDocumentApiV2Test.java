@@ -541,7 +541,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
 
     String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
-    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(obj);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
   }
 
   @Test
