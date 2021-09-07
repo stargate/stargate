@@ -33,9 +33,19 @@ import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.TypedValue.Codec;
-import io.stargate.db.schema.*;
+import io.stargate.db.schema.AbstractTable;
+import io.stargate.db.schema.CollectionIndexingType;
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
+import io.stargate.db.schema.ColumnUtils;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
+import io.stargate.db.schema.SchemaEntity;
+import io.stargate.db.schema.SecondaryIndex;
+import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import jdk.nashorn.internal.ir.FunctionCall;
 import org.javatuples.Pair;
 
 /** Convenience builder for creating queries. */
@@ -79,7 +88,8 @@ import org.javatuples.Pair;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* from (where* perPartitionLimit? limit? orderBy*) allowFiltering?"),
+              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* "
+                  + "from (where* perPartitionLimit? limit? groupBy* orderBy*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -142,6 +152,7 @@ public class QueryBuilderImpl {
 
   private @Nullable Value<Integer> limit;
   private @Nullable Value<Integer> perPartitionLimit;
+  private final List<Column> groupBys = new ArrayList<>();
   private List<ColumnOrder> orders = new ArrayList<>();
 
   private Replication replication;
@@ -727,6 +738,28 @@ public class QueryBuilderImpl {
   public void perPartitionLimit(Integer limit) {
     if (limit != null) {
       this.perPartitionLimit = Value.of(limit);
+    }
+  }
+
+  @DSLAction
+  public void groupBy(Column column) {
+    groupBys.add(column);
+  }
+
+  @DSLAction
+  public void groupBy(String name) {
+    groupBy(Column.reference(name));
+  }
+
+  @DSLAction
+  public void groupBy(Iterable<Column> columns) {
+    columns.forEach(this::groupBy);
+  }
+
+  @DSLAction
+  public void groupBy(Column... columns) {
+    for (Column column : columns) {
+      groupBy(column);
     }
   }
 
@@ -1535,6 +1568,8 @@ public class QueryBuilderImpl {
               internalWhereValues.add(where.value());
             })
         .end();
+
+    builder.lazyStart("GROUP BY").addAll(groupBys, builder::append).end();
 
     builder
         .lazyStart("ORDER BY")
