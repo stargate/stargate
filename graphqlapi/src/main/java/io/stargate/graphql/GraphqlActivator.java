@@ -15,7 +15,6 @@
  */
 package io.stargate.graphql;
 
-import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -62,19 +61,16 @@ public class GraphqlActivator extends BaseActivator {
   private final ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
 
-  private final GraphqlHealthCheck graphqlHealthCheck = new GraphqlHealthCheck();
-
   @GuardedBy("this")
   private DropwizardServer server;
 
   public GraphqlActivator() {
-    super("GraphQL");
+    super("GraphQL", true);
   }
 
   @Override
   @Nullable
   protected ServiceAndProperties createService() {
-    healthCheckRegistry.get().register("graphql", graphqlHealthCheck);
     maybeStartService();
     return null;
   }
@@ -111,10 +107,8 @@ public class GraphqlActivator extends BaseActivator {
                 ENABLE_GRAPHQL_PLAYGROUND);
         LOG.info("Starting GraphQL");
         server.run("server", "config.yaml");
-        graphqlHealthCheck.healthy = true;
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
-        graphqlHealthCheck.healthy = false;
       }
     }
   }
@@ -127,19 +121,6 @@ public class GraphqlActivator extends BaseActivator {
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }
-      graphqlHealthCheck.healthy = false;
-    }
-  }
-
-  private static class GraphqlHealthCheck extends HealthCheck {
-
-    private volatile boolean healthy = false;
-
-    @Override
-    protected Result check() throws Exception {
-      return healthy
-          ? Result.healthy("Ready to process requests")
-          : Result.unhealthy("Server not started");
     }
   }
 }
