@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class SchemaAgreementTest extends BaseServiceTest {
+public class SchemaAgreementTest extends BaseGrpcServiceTest {
 
   @Test
   @DisplayName("Should succeed if schema agreement reached")

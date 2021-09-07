@@ -83,7 +83,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     this(persistence, metrics, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
   }
 
-  Service(
+  GrpcService(
       Persistence persistence,
       Metrics metrics,
       ScheduledExecutorService executor,
