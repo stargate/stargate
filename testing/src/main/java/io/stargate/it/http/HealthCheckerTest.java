@@ -48,6 +48,7 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     ",",
     "?check=deadlocks",
     "?check=graphql",
+    "?check=grpc",
     "?check=deadlocks&check=graphql",
     "?check=datastore",
     "?check=storage"
