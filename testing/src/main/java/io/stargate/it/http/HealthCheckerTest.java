@@ -48,6 +48,7 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     ",",
     "?check=deadlocks",
     "?check=graphql",
+    "?check=grpc",
     "?check=deadlocks&check=graphql",
     "?check=datastore",
     "?check=storage"
@@ -84,6 +85,6 @@ public class HealthCheckerTest extends BaseOsgiIntegrationTest {
     assertThat(json)
         .extracting("graphql", InstanceOfAssertFactories.MAP)
         .containsEntry("healthy", true)
-        .containsEntry("message", "Ready to process requests");
+        .containsEntry("message", "Available");
   }
 }
