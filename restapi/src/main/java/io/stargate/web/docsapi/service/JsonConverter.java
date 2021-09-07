@@ -121,6 +121,11 @@ public class JsonConverter {
         if (isArray && !writeAllPathsAsObjects) {
           int index = Integer.parseInt(p.substring(1, p.length() - 1));
 
+          boolean shouldBeArray = isArray && !ref.isArray();
+          if (i == 0 && shouldBeArray) {
+            doc = mapper.createArrayNode();
+            ref = doc;
+          }
           ArrayNode arrayRef = (ArrayNode) ref;
 
           int currentSize = arrayRef.size();
