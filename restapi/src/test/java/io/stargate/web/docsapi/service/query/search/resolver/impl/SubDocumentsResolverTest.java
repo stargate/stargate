@@ -91,7 +91,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
+      when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
       lenient().when(filterExpression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
       lenient().when(filterExpression.getCondition()).thenReturn(condition);
@@ -114,7 +114,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent", "p1", "first"),
@@ -190,7 +190,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "",
                   "reviews",
                   documentId)
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of(
@@ -292,7 +292,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
@@ -381,7 +381,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", "1", "p0", "parent1", "p1", "first"),
@@ -451,7 +451,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returningNothing();
 
       DocumentsResolver resolver =

@@ -75,7 +75,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   public void init() {
     lenient().when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
     lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
-    lenient().when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
+    lenient().when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
   }
 
   @Nested
@@ -396,7 +396,8 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert searchAssert =
           withQuery(TABLE, searchCql)
               .withPageSize(
-                  configuration.getStoragePageSize(paginator.docPageSize)) // see DocsConfiguration
+                  configuration.getApproximateStoragePageSize(
+                      paginator.docPageSize)) // see DocsConfiguration
               .returning(
                   Arrays.asList(
                       ImmutableMap.of(
@@ -505,7 +506,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, documentId)
-              .withPageSize(configuration.getStoragePageSize(paginator.docPageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of(
@@ -606,7 +607,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, "field", documentId)
-              .withPageSize(configuration.getStoragePageSize(paginator.docPageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -687,7 +688,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, "", documentId)
-              .withPageSize(configuration.getStoragePageSize(paginator.docPageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
               .returning(
                   Arrays.asList(
                       ImmutableMap.of("key", documentId, "text_value", "v1", "p0", "field1"),

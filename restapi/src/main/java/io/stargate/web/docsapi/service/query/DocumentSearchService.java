@@ -205,7 +205,7 @@ public class DocumentSearchService {
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
                   boundQuery,
-                  configuration.getStoragePageSize(paginator.docPageSize),
+                  configuration.getApproximateStoragePageSize(paginator.docPageSize),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);

@@ -118,13 +118,13 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               // once ready bind (no values) and fire
               BoundQuery query = prepared.bind();
 
-              // in case we have a full search then base the page size on the
-              // otherwise start with the requested page size
+              // in case we have a full search then base the page size on the app. doc size
+              // otherwise start with the requested page size, plus one more than needed to stop
+              // pre-fetching
               int pageSize =
                   evaluateOnMissing
-                      ? configuration.getStoragePageSize(paginator.docPageSize)
-                      : paginator.docPageSize
-                          + 1; // take always one more than needed to stop pre-fetching
+                      ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
+                      : paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
                   query, pageSize, true, paginator.getCurrentDbPageState(), context);
             })

@@ -118,7 +118,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // otherwise determine the page size for each query based on the requested docs
               int pageSize =
                   evaluateOnMissing
-                      ? configuration.getStoragePageSize(paginator.docPageSize)
+                      ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
                       : determinePageSize(paginator.docPageSize, boundQueries.size());
               return queryExecutor.queryDocs(
                   boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);

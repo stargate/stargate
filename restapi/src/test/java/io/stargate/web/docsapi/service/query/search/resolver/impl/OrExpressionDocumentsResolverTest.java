@@ -87,7 +87,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
       lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
-      lenient().when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
+      lenient().when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
     }
 
@@ -623,7 +623,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -691,7 +691,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -752,7 +752,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(
@@ -823,7 +823,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
                       ImmutableMap.of(

@@ -88,7 +88,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      lenient().when(configuration.getStoragePageSize(anyInt())).thenCallRealMethod();
+      lenient().when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
       when(baseCondition.isPersistenceCondition()).thenReturn(false);
       when(filterExpression.getCondition()).thenReturn(baseCondition);
@@ -162,7 +162,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
           withQuery(
                   TABLE,
                   "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, p4, p5, p6, p7, WRITETIME(leaf) FROM %s")
-              .withPageSize(configuration.getStoragePageSize(pageSize))
+              .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =

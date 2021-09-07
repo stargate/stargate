@@ -106,7 +106,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   keyDepth,
                   query,
-                  configuration.getStoragePageSize(paginator.docPageSize),
+                  configuration.getApproximateStoragePageSize(paginator.docPageSize),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);

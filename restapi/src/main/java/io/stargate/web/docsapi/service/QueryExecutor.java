@@ -37,6 +37,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.rx.RxUtils;
 import java.nio.ByteBuffer;
@@ -232,10 +233,13 @@ public class QueryExecutor {
         .compose( // Expand BREADTH_FIRST to reduce the number of "proactive" page requests
             FlowableTransformers.expand(
                 rs -> {
-                  // TODO set some maximum in case of the exponential increase?
                   // in case we have the exponent page size, increase the current value by itself
+                  // but ensure we are never over maximum
                   int nextPageSize =
-                      exponentPageSize ? effectivePageSize.updateAndGet(x -> x * 2) : pageSize;
+                      exponentPageSize
+                          ? effectivePageSize.updateAndGet(
+                              x -> Math.min(x * 2, DocumentDB.MAX_STORAGE_PAGE_SIZE))
+                          : pageSize;
                   return fetchNext(rs, nextPageSize, query);
                 },
                 ExpandStrategy.BREADTH_FIRST,
