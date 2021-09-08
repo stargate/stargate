@@ -224,4 +224,50 @@ public class SampleKeyspaces {
                           .build())
                   .build())
           .build();
+
+  public static final Keyspace IOT =
+      ImmutableKeyspace.builder()
+          .name("iot")
+          .addTables(
+              ImmutableTable.builder()
+                  .keyspace("iot")
+                  .name("readings")
+                  .addColumns(
+                      ImmutableColumn.builder()
+                          .keyspace("iot")
+                          .table("readings")
+                          .name("id")
+                          .type(Type.Int)
+                          .kind(Column.Kind.PartitionKey)
+                          .build(),
+                      ImmutableColumn.builder()
+                          .keyspace("iot")
+                          .table("readings")
+                          .name("year")
+                          .type(Type.Int)
+                          .kind(Column.Kind.Clustering)
+                          .build(),
+                      ImmutableColumn.builder()
+                          .keyspace("iot")
+                          .table("readings")
+                          .name("month")
+                          .type(Type.Int)
+                          .kind(Column.Kind.Clustering)
+                          .build(),
+                      ImmutableColumn.builder()
+                          .keyspace("iot")
+                          .table("readings")
+                          .name("day")
+                          .type(Type.Int)
+                          .kind(Column.Kind.Clustering)
+                          .build(),
+                      ImmutableColumn.builder()
+                          .keyspace("iot")
+                          .table("readings")
+                          .name("value")
+                          .type(Type.Float)
+                          .kind(Column.Kind.Clustering)
+                          .build())
+                  .build())
+          .build();
 }

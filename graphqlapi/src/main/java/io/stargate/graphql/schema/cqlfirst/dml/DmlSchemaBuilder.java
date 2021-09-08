@@ -19,20 +19,45 @@ import static graphql.Scalars.GraphQLFloat;
 import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLList.list;
-import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.*;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.BIGINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.DECIMAL_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.DOUBLE_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.FLOAT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.INT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.SMALLINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.TINYINT_FUNCTION;
+import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.VARINT_FUNCTION;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import graphql.Scalars;
 import graphql.introspection.Introspection;
-import graphql.schema.*;
+import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLInputObjectField;
+import graphql.schema.GraphQLInputObjectType;
+import graphql.schema.GraphQLInputType;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLScalarType;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeReference;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.graphql.schema.CassandraFetcher;
 import io.stargate.graphql.schema.SchemaConstants;
-import io.stargate.graphql.schema.cqlfirst.dml.fetchers.*;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.BulkInsertMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.DeleteMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.InsertMutationFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.QueryFetcher;
+import io.stargate.graphql.schema.cqlfirst.dml.fetchers.UpdateMutationFetcher;
 import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction;
 import io.stargate.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
@@ -203,6 +228,11 @@ public class DmlSchemaBuilder {
                     .type(new GraphQLList(new GraphQLTypeReference(graphqlName + "Order"))))
             .argument(
                 GraphQLArgument.newArgument()
+                    .name("groupBy")
+                    .description("The columns to group results by.")
+                    .type(new GraphQLTypeReference(graphqlName + "GroupByInput")))
+            .argument(
+                GraphQLArgument.newArgument()
                     .name("options")
                     .type(new GraphQLTypeReference("QueryOptions")))
             .type(buildEntityResultOutput(table))
@@ -250,6 +280,7 @@ public class DmlSchemaBuilder {
     additionalTypes.add(buildOrderType(table));
     additionalTypes.add(buildMutationResult(table));
     additionalTypes.add(buildFilterInput(table));
+    additionalTypes.add(buildGroupByInput(table));
     return additionalTypes;
   }
 
@@ -259,6 +290,23 @@ public class DmlSchemaBuilder {
         .description(getTypeDescription(table, DmlType.FilterInput))
         .fields(buildFilterInputFields(table))
         .build();
+  }
+
+  private GraphQLType buildGroupByInput(Table table) {
+    GraphQLInputObjectType.Builder builder =
+        GraphQLInputObjectType.newInputObject()
+            .name(nameMapping.getGraphqlName(table) + "GroupByInput");
+    for (Column column : table.primaryKeyColumns()) {
+      String graphqlName = nameMapping.getGraphqlName(table, column);
+      if (graphqlName != null) {
+        builder.field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name(graphqlName)
+                .type(Scalars.GraphQLBoolean)
+                .build());
+      }
+    }
+    return builder.build();
   }
 
   private GraphQLFieldDefinition buildUpdate(Table table) {

@@ -34,6 +34,7 @@ import io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.Aggregation
 import io.stargate.graphql.web.StargateGraphqlContext;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -106,9 +107,26 @@ public class QueryFetcher extends DmlFetcher<Map<String, Object>> {
         .from(table.keyspace(), table.name())
         .where(buildClause(table, environment))
         .limit(limit)
+        .groupBy(buildGroupBy(environment))
         .orderBy(buildOrderBy(environment))
         .build()
         .bind();
+  }
+
+  private List<Column> buildGroupBy(DataFetchingEnvironment environment) {
+    if (!environment.containsArgument("groupBy")) {
+      return Collections.emptyList();
+    }
+    ImmutableList.Builder<Column> groupBys = ImmutableList.builder();
+    Map<String, Boolean> input = environment.getArgument("groupBy");
+    // Start from the table definition so that we add the clauses in PK declaration order
+    for (Column column : table.primaryKeyColumns()) {
+      String graphqlName = nameMapping.getGraphqlName(table, column);
+      if (input.getOrDefault(graphqlName, false)) {
+        groupBys.add(column);
+      }
+    }
+    return groupBys.build();
   }
 
   private List<ColumnOrder> buildOrderBy(DataFetchingEnvironment environment) {
