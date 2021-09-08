@@ -11,6 +11,10 @@
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
     <dse.version>6.8.13</dse.version>
+    <!-- DSE 6.8 seems to depend on Guava 18.0 but should work with 23.x (maybe even to 25)
+      -->
+    <guava.version>23.6-jre</guava.version>
+
   </properties>
   <repositories>
     <repository>
