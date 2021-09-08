@@ -2,106 +2,51 @@
 
 ## gRPC Java Client 
 
+### Setup
+
 Let's see how to configure a java project to use the Stargate gRPC API.
-We will use the protobuf files (`query.proto` and `stargate.proto`) to generate the gRPC client stub.
+The generated code based on protobuf files (`query.proto` and `stargate.proto`) is shipped with the `grpc-proto` dependency.
 
-Firstly, you need to add the protobuf files to your project. 
-You can copy-paste both of them or add a `stargate-grpc-proto` module as a git submodule to your repo:   
-`git submodule add https://github.com/stargate/stargate-grpc-proto`
+To see a guide how it compiles the Java code see: [gRPC setup project dependencies].
+In your client application, you only need to add one dependency:
 
-It will copy all necessary proto-files to your repository.
-Once we have those files, we need to add all the needed dependencies to your project.
-To see how to achieve that, see: [gRPC setup project dependencies].
-If you are using maven, please add the following dependencies to your `pom.xml`:
 ```xml
 <dependencies>
     <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
-      <version>1.40.1</version>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-protobuf</artifactId>
-      <version>1.40.1</version>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-stub</artifactId>
-      <version>1.40.1</version>
-    </dependency>
-    <dependency> <!-- necessary for Java 9+ -->
-      <groupId>org.apache.tomcat</groupId>
-      <artifactId>annotations-api</artifactId>
-      <version>6.0.53</version>
-      <scope>provided</scope>
+        <groupId>io.stargate.grpc</groupId>
+        <artifactId>grpc-proto</artifactId>
+        <version>1.0.32</version>
     </dependency>
 </dependencies>
 ```
-
-Besides those, you need to add:
+The last missing piece is to add a functional channel service provider. We pick netty:
 ```xml
 <dependencies>
     <dependency>
-       <groupId>io.grpc</groupId>
-       <artifactId>grpc-core</artifactId>
-       <version>1.40.1</version>
-    </dependency>
-    <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-api</artifactId>
-        <version>1.40.1</version>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+            <version>1.40.1</version>
     </dependency>
 </dependencies>
 ```
-We need those dependencies to be able to use the gRPC-stub API. 
+If you do not add it, you will observe the following error:
+`No functional channel service provider found. Try adding a dependency on the grpc-okhttp, grpc-netty, or grpc-netty-shaded artifact`.
 
-Finally, we need a way to generate the java classes based on the protobuf files.
-We will use the `protobuf-maven-plugin` for this purpose:
+Once we have all needed dependencies we should be able to use the Stargate gRPC-stub API. 
+After this step, you should have `StargateGrpc` available on your class path (from the `grpc-proto` dependency).
+It contains the logic for interacting with Stargate gRPC API.
 
-```xml
-<build>
-  <extensions>
-    <extension>
-      <groupId>kr.motd.maven</groupId>
-      <artifactId>os-maven-plugin</artifactId>
-      <version>1.6.2</version>
-    </extension>
-  </extensions>
-  <plugins>
-    <plugin>
-      <groupId>org.xolstice.maven.plugins</groupId>
-      <artifactId>protobuf-maven-plugin</artifactId>
-      <version>0.6.1</version>
-      <configuration>
-        <protocArtifact>com.google.protobuf:protoc:3.17.3:exe:${os.detected.classifier}</protocArtifact>
-        <pluginId>grpc-java</pluginId>
-        <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.40.1:exe:${os.detected.classifier}</pluginArtifact>
-        <protoSourceRoot>stargate-grpc-proto</protoSourceRoot>
-      </configuration>
-      <executions>
-        <execution>
-          <goals>
-            <goal>compile</goal>
-            <goal>compile-custom</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-</build>
+### Usage
+
+Once we have the generated code, we are ready to create the client based on that.
+Before delving into the code, we need to generate the auth token that will be used to perform Authorization, 
+to see how to do it, please visit the [Stargate Authz documentation].
+For the development purpose, this should be good enough:
+```shell script
+curl -X POST localhost:8081/v1/auth/token/generate --header "Content-Type: application/json" --data '{"key":"cassandra","secret":"cassandra"}'
 ```
-
-Please note that we are configuring `<protoSourceRoot>` to point to `stargate-grpc-proto`.
-This is a directory added via git submodule to your project. 
-In case you use a different mechanism (copy-paste) to import the protobuf files to your project,
-you need to adapt this `<protoSourceRoot>` accordingly.
-
-Finally, we can compile our code:
-`mvn clean compile`
-After this step, you should have `StargateGrpc` class generated in your target directory.
-It contains the logic for interacting with Stargate gRPC API. This logic is generated based on the protobuf files.
-
+assuming that Stargate is running on the `localhost:8081`  
+ 
 
 ## Timeouts (Deadlines)
 The gRPC client (generated stub) [deadline] should be set for all your clients.
@@ -121,3 +66,4 @@ If the client sets the deadline to > 5 seconds, there will be a situation when a
 
 [deadline]: https://grpc.io/blog/deadlines/ 
 [gRPC setup project dependencies]: https://github.com/grpc/grpc-java/blob/master/README.md#download
+[Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
