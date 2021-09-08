@@ -54,24 +54,15 @@ public final class MeterRegistryConfiguration {
                   p -> {
                     try {
                       double percentile = Double.parseDouble(p);
-                      if (percentile < 0
-                          || percentile > 1
-                          || Double.isNaN(percentile)
-                          || Double.isInfinite(percentile)) {
-                        logger.warn(
-                            "Value {} can not be used as the percentile for the http.server.request.metrics, was expecting a double [0, 1].",
-                            percentile);
-                        return DoubleStream.empty();
-                      } else {
+                      if (Double.isFinite(percentile) && percentile >= 0.0 && percentile <= 1.0) {
                         return DoubleStream.of(percentile);
                       }
-                    } catch (Exception e) {
-                      logger.warn(
-                          "Value {} can not be used as the percentile for the http.server.request.metrics, was expecting a double [0, 1].",
-                          p,
-                          e);
-                      return DoubleStream.empty();
+                    } catch (NumberFormatException e) {
                     }
+                    logger.warn(
+                        "Value \"{}\" can not be used as the percentile for the {}, was expecting a double [0, 1].",
+                        p, HTTP_PERCENTILES_PROPERTY);
+                    return DoubleStream.empty();
                   })
               .toArray();
 
