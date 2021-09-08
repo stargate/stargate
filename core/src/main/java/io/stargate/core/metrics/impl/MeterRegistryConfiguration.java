@@ -61,7 +61,8 @@ public final class MeterRegistryConfiguration {
                     }
                     logger.warn(
                         "Value \"{}\" can not be used as the percentile for the {}, was expecting a double [0, 1].",
-                        p, HTTP_PERCENTILES_PROPERTY);
+                        p,
+                        HTTP_PERCENTILES_PROPERTY);
                     return DoubleStream.empty();
                   })
               .toArray();
