@@ -16,6 +16,9 @@
       cassandra-all's POM).
     -->
     <cassandra.bundled-driver.version>3.0.1</cassandra.bundled-driver.version>
+    <!-- Cassandra 3.11 depends on Guava 18.0 but works with 23.x (maybe even to 25)
+      -->
+    <guava.version>23.6-jre</guava.version>
   </properties>
   <dependencies>
     <dependency>

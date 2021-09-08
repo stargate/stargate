@@ -16,6 +16,10 @@
       cassandra-all's POM).
     -->
     <cassandra.bundled-driver.version>3.11.0</cassandra.bundled-driver.version>
+    <!-- Cassandra 4.0 depends on Guava 27.0-jre
+      -->
+    <guava.version>27.0-jre</guava.version>
+
   </properties>
   <dependencies>
     <dependency>
