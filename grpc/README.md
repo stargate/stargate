@@ -46,6 +46,54 @@ For the development purpose, this should be good enough:
 curl -X POST localhost:8081/v1/auth/token/generate --header "Content-Type: application/json" --data '{"key":"cassandra","secret":"cassandra"}'
 ```
 assuming that Stargate is running on the `localhost:8081`  
+
+Once we have that, we can connect to the gRPC API. Firstly, we need to generate the `Channel` that is used to perform connection:
+```java
+public ManagedChannel createChannel(String host, int port) {
+    return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+}
+```
+
+For local development of stargate, it will be:
+```java
+ManagedChannel channel = createChannel("localhost", 8090);
+```
+
+Next, we can generate the `StargateGrpc` stub. There are two ways of interacting with the gRPC API.
+
+The first one is synchronous (blocking):
+```java
+StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel);
+```
+
+The second one is async (non-blocking):
+```java
+StargateGrpc.StargateStub = = StargateGrpc.newStub(channel);
+```
+
+We can use the `blockingStub` to issue a Request to a Stargate node:
+```java
+QueryOuterClass.Response response = blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS)
+                .withCallCredentials(new StargateBearerToken("token-value"))
+                .executeQuery(QueryOuterClass.Query
+                        .newBuilder().setCql("select * from system.local")
+                        .build());
+System.out.println(response);
+```
+
+It firstly overrides the default [deadline](README.md#timeouts-deadlines).
+Next, we need setup the `CallCredentials`, using the `token-value` generated in the previous step.
+Finally, we are building and executing a single query. 
+If we print out the result set, it will have the following structure:
+```yaml
+result_set {
+  data {
+    type_url: "type.googleapis.com/stargate.ResultSet"
+    value: "some_binary_data"
+  }
+}
+```    
+The value contains the binary data, that we can deserialize using:
  
 
 ## Timeouts (Deadlines)
