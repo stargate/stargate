@@ -16,6 +16,7 @@
 package io.stargate.grpc.impl;
 
 import io.grpc.Server;
+import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
@@ -30,13 +31,20 @@ import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GrpcImpl {
   private static final Logger logger = LoggerFactory.getLogger(GrpcImpl.class);
+  private static final Integer EXECUTOR_SIZE = Integer.getInteger("stargate.grpc.executor_size", 8);
+  private static final Integer SHUTDOWN_TIMEOUT_SECONDS =
+      Integer.getInteger("stargate.grpc.shutdown_timeout_seconds", 60);
 
   private final Server server;
+  private final ScheduledExecutorService executor;
 
   public GrpcImpl(
       Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
@@ -55,13 +63,17 @@ public class GrpcImpl {
 
     int port = Integer.getInteger("stargate.grpc.port", 8090);
 
+    executor =
+        Executors.newScheduledThreadPool(
+            EXECUTOR_SIZE, GrpcUtil.getThreadFactory("grpc-stargate-executor", true));
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
+            .executor(executor)
             .intercept(new AuthenticationInterceptor(authenticationService))
             .intercept(new RemoteAddressInterceptor())
             .intercept(new HeadersInterceptor())
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
-            .addService(new GrpcService(persistence, metrics))
+            .addService(new GrpcService(persistence, metrics, executor))
             .build();
   }
 
@@ -75,7 +87,20 @@ public class GrpcImpl {
 
   public void stop() {
     try {
-      server.shutdown().awaitTermination();
+      server.shutdown();
+      // Since we provided our own executor, it's our responsibility to shut it down.
+      // Note that we don't handle restarts because GrpcActivator never reuses an existing instance
+      // (and that wouldn't work anyway, because Server doesn't support it either).
+      executor.shutdown();
+
+      long timeoutMillis = TimeUnit.SECONDS.toMillis(SHUTDOWN_TIMEOUT_SECONDS);
+      long start = System.currentTimeMillis();
+
+      if (!server.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS)
+          || !executor.awaitTermination(
+              timeoutMillis - (System.currentTimeMillis() - start), TimeUnit.MILLISECONDS)) {
+        logger.warn("Timed out while waiting for executor shutdown");
+      }
     } catch (InterruptedException e) {
       logger.error("Failed waiting for gRPC shutdown", e);
     }

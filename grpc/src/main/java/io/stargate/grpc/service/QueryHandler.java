@@ -40,21 +40,29 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final PrepareInfo prepareInfo;
+  private final ScheduledExecutorService executor;
+  private final int schemaAgreementRetries;
 
   QueryHandler(
       Query query,
       Connection connection,
       Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
     super(query, connection, preparedCache, persistence, responseObserver);
+    this.executor = executor;
+    this.schemaAgreementRetries = schemaAgreementRetries;
     QueryParameters queryParameters = query.getParameters();
     this.prepareInfo =
         ImmutablePrepareInfo.builder()
@@ -95,51 +103,57 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(Result result) {
-    ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
-    responseAndTraceId.setTracingId(result.getTracingId());
+  protected CompletionStage<ResponseAndTraceId> buildResponse(Result result) {
     Response.Builder responseBuilder = makeResponseBuilder(result);
     switch (result.kind) {
       case Void:
-        break;
+        return CompletableFuture.completedFuture(ResponseAndTraceId.from(result, responseBuilder));
       case SchemaChange:
-        // TODO make this non-blocking (see #1145)
-        persistence.waitForSchemaAgreement();
-        Result.SchemaChangeMetadata metadata = ((Result.SchemaChange) result).metadata;
-        SchemaChange.Builder schemaChangeBuilder =
-            SchemaChange.newBuilder()
-                .setChangeType(SchemaChange.Type.valueOf(metadata.change))
-                .setTarget(SchemaChange.Target.valueOf(metadata.target))
-                .setKeyspace(metadata.keyspace);
-        if (metadata.name != null) {
-          schemaChangeBuilder.setName(StringValue.of(metadata.name));
-        }
-        if (metadata.argTypes != null) {
-          schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
-        }
-        responseBuilder.setSchemaChange(schemaChangeBuilder.build());
-        break;
+        return waitForSchemaAgreement()
+            .thenApply(
+                __ -> {
+                  SchemaChange schemaChange = buildSchemaChange((Result.SchemaChange) result);
+                  responseBuilder.setSchemaChange(schemaChange);
+                  return ResponseAndTraceId.from(result, responseBuilder);
+                });
       case Rows:
         Payload values = message.getValues();
         PayloadHandler handler = PayloadHandlers.get(values.getType());
         try {
-          responseBuilder.setResultSet(
+          Payload.Builder resultSet =
               Payload.newBuilder()
                   .setType(message.getValues().getType())
-                  .setData(handler.processResult((Result.Rows) result, message.getParameters())));
+                  .setData(handler.processResult((Result.Rows) result, message.getParameters()));
+          responseBuilder.setResultSet(resultSet);
+          return CompletableFuture.completedFuture(
+              ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
-          throw new CompletionException(e);
+          return failedFuture(e, false);
         }
-        break;
       case SetKeyspace:
-        throw new CompletionException(
-            Status.INVALID_ARGUMENT.withDescription("USE <keyspace> not supported").asException());
+        return failedFuture(
+            Status.INVALID_ARGUMENT.withDescription("USE <keyspace> not supported").asException(),
+            false);
       default:
-        throw new CompletionException(
-            Status.INTERNAL.withDescription("Unhandled result kind").asException());
+        return failedFuture(
+            Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
-    responseAndTraceId.setResponseBuilder(responseBuilder);
-    return responseAndTraceId;
+  }
+
+  private SchemaChange buildSchemaChange(Result.SchemaChange result) {
+    Result.SchemaChangeMetadata metadata = result.metadata;
+    SchemaChange.Builder schemaChangeBuilder =
+        SchemaChange.newBuilder()
+            .setChangeType(SchemaChange.Type.valueOf(metadata.change))
+            .setTarget(SchemaChange.Target.valueOf(metadata.target))
+            .setKeyspace(metadata.keyspace);
+    if (metadata.name != null) {
+      schemaChangeBuilder.setName(StringValue.of(metadata.name));
+    }
+    if (metadata.argTypes != null) {
+      schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
+    }
+    return schemaChangeBuilder.build();
   }
 
   @Override
@@ -192,5 +206,33 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         });
 
     return builder.tracingRequested(parameters.getTracing()).build();
+  }
+
+  private CompletionStage<Void> waitForSchemaAgreement() {
+    CompletableFuture<Void> agreementFuture = new CompletableFuture<>();
+    waitForSchemaAgreement(schemaAgreementRetries, agreementFuture);
+    return agreementFuture;
+  }
+
+  private void waitForSchemaAgreement(
+      int remainingAttempts, CompletableFuture<Void> agreementFuture) {
+    if (persistence.isInSchemaAgreement()) {
+      agreementFuture.complete(null);
+      return;
+    }
+    if (remainingAttempts <= 1) {
+      agreementFuture.completeExceptionally(
+          Status.DEADLINE_EXCEEDED
+              .withDescription(
+                  "Failed to reach schema agreement after "
+                      + (200 * schemaAgreementRetries)
+                      + " milliseconds.")
+              .asException());
+      return;
+    }
+    executor.schedule(
+        () -> waitForSchemaAgreement(remainingAttempts - 1, agreementFuture),
+        200,
+        TimeUnit.MILLISECONDS);
   }
 }

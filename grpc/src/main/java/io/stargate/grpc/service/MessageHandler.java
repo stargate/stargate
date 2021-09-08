@@ -149,7 +149,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   private CompletionStage<Response> executeQuery() {
     CompletionStage<Result> resultFuture = prepare(false).thenCompose(this::executePrepared);
     return handleUnprepared(resultFuture)
-        .thenApply(this::buildResponse)
+        .thenCompose(this::buildResponse)
         .thenCompose(this::executeTracingQueryIfNeeded);
   }
 
@@ -220,7 +220,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
 
   /** Builds the gRPC response from the CQL result. */
-  protected abstract ResponseAndTraceId buildResponse(Result result);
+  protected abstract CompletionStage<ResponseAndTraceId> buildResponse(Result result);
 
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();

@@ -103,9 +103,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   }
 
   @Override
-  protected ResponseAndTraceId buildResponse(Result result) {
-    ResponseAndTraceId responseAndTraceId = new ResponseAndTraceId();
-    responseAndTraceId.setTracingId(result.getTracingId());
+  protected CompletionStage<ResponseAndTraceId> buildResponse(Result result) {
     Response.Builder responseBuilder = makeResponseBuilder(result);
 
     if (result.kind != Result.Kind.Void && result.kind != Result.Kind.Rows) {
@@ -125,8 +123,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
     }
 
-    responseAndTraceId.setResponseBuilder(responseBuilder);
-    return responseAndTraceId;
+    return CompletableFuture.completedFuture(ResponseAndTraceId.from(result, responseBuilder));
   }
 
   @Override
