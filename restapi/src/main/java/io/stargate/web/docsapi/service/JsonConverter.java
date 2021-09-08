@@ -143,7 +143,12 @@ public class JsonConverter {
           if (i == 0 && shouldBeArray) {
             doc = mapper.createArrayNode();
             ref = doc;
+          } else if (shouldBeArray) {
+            markObjectAtPathAsDead(ref, parentPath, collector);
+            ref = changeCurrentNodeToArray(row, parentRef, i);
+            pathWriteTimes.put(parentPath, rowWriteTime);
           }
+
           ArrayNode arrayRef = (ArrayNode) ref;
 
           int currentSize = arrayRef.size();
