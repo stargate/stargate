@@ -111,9 +111,10 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
     FilterPath filterPath = queryBuilder.getFilterPath();
 
     // page size 2 with limit 1 to ensure no extra page fetching (only on fixed path)
-    int pageSize = filterPath.isFixed() ? 2 : configuration.getSearchPageSize();
+    // use max storage page size otherwise as we have the doc id
+    int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
     return queryExecutor
-        .queryDocs(query, pageSize, null, context)
+        .queryDocs(query, pageSize, false, null, context)
         .take(1)
         .map(RawDocument::rows)
         .switchIfEmpty(
