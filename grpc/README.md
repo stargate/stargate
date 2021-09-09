@@ -63,21 +63,30 @@ Next, we can generate the `StargateGrpc` stub. There are two ways of interacting
 
 The first one is synchronous (blocking):
 ```java
-StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel).withCallCredentials(new StargateBearerToken("token-value"));
+StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel)
+                                                    .withCallCredentials(new StargateBearerToken("token-value"))
+                                                    .withDeadlineAfter(5, TimeUnit.SECONDS);
 ```
 
 The second one is async (non-blocking):
 ```java
-StargateGrpc.StargateStub = = StargateGrpc.newStub(channel).withCallCredentials(new StargateBearerToken("token-value"));
+StargateGrpc.StargateStub = = StargateGrpc.newStub(channel)
+                                .withCallCredentials(new StargateBearerToken("token-value"))
+                                .withDeadlineAfter(5, TimeUnit.SECONDS);
 ```
 
 Please note, that we need setup the `CallCredentials`, using the `token-value` generated in the previous step.
+We also override the default [deadline](README.md#timeouts-deadlines).
 
 We will assume that all queries are executed within the existing keyspace `ks` and table `test`.
 The table definition is following:
 ```cql
 CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))
 ``` 
+
+The Stargate gRPC API provides a way to execute two types of queries:
+- standard CQL queries
+- batch queries (contains N CQL queries)
 
 #### Standard Query
 
@@ -88,13 +97,11 @@ import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass;
 
 Response response =
-        blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS)
-                    .executeQuery(
+        blockingStub.executeQuery(
                         QueryOuterClass.Query
                                     .newBuilder().setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)").build());
 ```
-It overrides the default [deadline](README.md#timeouts-deadlines).
-Finally, we are building and executing a single query. 
+This will build and execute a single query. 
 
 
 Next, we can retrieve the inserted record(s):
@@ -128,6 +135,25 @@ The `getString()` and `getInt()` perform deserialization of data. The API provid
 For the full list of available types, see `Value` section in the [query.proto] file. 
  
 #### Batch Query
+
+In case we want to execute N queries, we can use the `executeBatch` method:
+```java
+     QueryOuterClass.Response response =
+                blockingStub.executeBatch(
+                        QueryOuterClass.Batch.newBuilder()
+                                .addQueries(QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO test (k, v) VALUES ('a', 1)").build())
+                                .addQueries(
+                                        QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO test (k, v) VALUES ('b', 2)").build())
+                                .build());
+
+```
+
+It takes the `Batch` as an argument. A Batch can contain N queries. We are adding two queries via `addQueries` method.
+
+#### Async API
+
+Up to this point, we were using the blocking version of the generated stub. 
+  
 
 ## Timeouts (Deadlines)
 The gRPC client (generated stub) [deadline] should be set for all your clients.
