@@ -536,6 +536,15 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testPutSimpleArray() throws IOException {
+    JsonNode obj = OBJECT_MAPPER.readTree("[1, 2, 3, 4, 5]");
+    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
+
+    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
+    assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(wrapResponse(obj, "1", null));
+  }
+
+  @Test
   public void testPutReplacingObject() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));

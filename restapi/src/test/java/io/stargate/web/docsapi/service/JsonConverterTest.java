@@ -53,7 +53,8 @@ public class JsonConverterTest {
     assertThat(result.toString())
         .isEqualTo(
             mapper
-                .readTree("{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
+                .readTree(
+                    "{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\", \"g\": {\"h\": \"something\"}}")
                 .toString());
 
     // This state should have no dead leaves, as it's the initial write
@@ -81,11 +82,12 @@ public class JsonConverterTest {
         .isEqualTo(
             mapper
                 .readTree(
-                    "{\"a\":{\"b\":{\"c\":{\"d\":\"replaced\"}}},\"d\":{\"e\":{\"f\":{\"g\":\"replaced\"}}},\"f\":\"abc\"}")
+                    "{\"a\":{\"b\":{\"c\":{\"d\":\"replaced\"}}},\"d\":{\"e\":{\"f\":{\"g\":\"replaced\"}}},\"f\":\"abc\",\"g\":{\"h\": [\"replaced\"]}}")
                 .toString());
 
-    // This state should have 2 dead leaves, since $.a.b.c was changed from `true` to an object,
-    // And $.d.e was changed from an array to an object
+    // This state should have 3 dead leaves, since $.a.b.c was changed from `true` to an object,
+    // $.d.e was changed from an array to an object,
+    // and $.g.h was changed to an array.
     Map<String, List<JsonNode>> expected = new HashMap<>();
     List<JsonNode> list = new ArrayList<>();
     ObjectNode node = mapper.createObjectNode();
@@ -93,15 +95,19 @@ public class JsonConverterTest {
     list.add(node);
     expected.put("$.a.b.c", list);
     Map<String, Set<DeadLeaf>> deadLeaves = collector.getLeaves();
-    assertThat(deadLeaves.keySet().size()).isEqualTo(2);
+    assertThat(deadLeaves.keySet().size()).isEqualTo(3);
     assertThat(deadLeaves.containsKey("$.a.b.c")).isTrue();
     assertThat(deadLeaves.containsKey("$.d.e")).isTrue();
+    assertThat(deadLeaves.containsKey("$.g.h")).isTrue();
     Set<DeadLeaf> leaves = deadLeaves.get("$.a.b.c");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
     leaves = deadLeaves.get("$.d.e");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.ARRAYLEAF)).isTrue();
+    leaves = deadLeaves.get("$.g.h");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
 
     collector = new DeadLeafCollectorImpl();
     initial.addAll(makeThirdRowData(false));
@@ -123,13 +129,14 @@ public class JsonConverterTest {
 
     assertThat(result.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
 
-    // This state should have 3 dead branches representing keys a, d, and f, since everything was
+    // This state should have 4 dead branches representing keys a, d, f, and g, since everything was
     // blown away by the latest change
     deadLeaves = collector.getLeaves();
-    assertThat(deadLeaves.keySet().size()).isEqualTo(3);
+    assertThat(deadLeaves.keySet().size()).isEqualTo(4);
     assertThat(deadLeaves.containsKey("$.a")).isTrue();
     assertThat(deadLeaves.containsKey("$.d")).isTrue();
     assertThat(deadLeaves.containsKey("$.f")).isTrue();
+    assertThat(deadLeaves.containsKey("$.g")).isTrue();
     leaves = deadLeaves.get("$.a");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
@@ -137,6 +144,9 @@ public class JsonConverterTest {
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
     leaves = deadLeaves.get("$.f");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    leaves = deadLeaves.get("$.g");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
   }
@@ -164,7 +174,8 @@ public class JsonConverterTest {
     assertThat(result.toString())
         .isEqualTo(
             mapper
-                .readTree("{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
+                .readTree(
+                    "{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\",\"g\":{\"h\":\"something\"}}")
                 .toString());
 
     // This state should have no dead leaves, as it's the initial write
@@ -192,11 +203,12 @@ public class JsonConverterTest {
         .isEqualTo(
             mapper
                 .readTree(
-                    "{\"a\":{\"b\":{\"c\":{\"d\":\"replaced\"}}},\"d\":{\"e\":{\"f\":{\"g\":\"replaced\"}}},\"f\":\"abc\"}")
+                    "{\"a\":{\"b\":{\"c\":{\"d\":\"replaced\"}}},\"d\":{\"e\":{\"f\":{\"g\":\"replaced\"}}},\"f\":\"abc\",\"g\":{\"h\":[\"replaced\"]}}")
                 .toString());
 
-    // This state should have 2 dead leaves, since $.a.b.c was changed from `true` to an object,
-    // And $.d.e was changed from an array to an object
+    // This state should have 3 dead leaves, since $.a.b.c was changed from `true` to an object,
+    // $.d.e was changed from an array to an object,
+    // and $.g.h was changed to an array.
     Map<String, List<JsonNode>> expected = new HashMap<>();
     List<JsonNode> list = new ArrayList<>();
     ObjectNode node = mapper.createObjectNode();
@@ -204,15 +216,19 @@ public class JsonConverterTest {
     list.add(node);
     expected.put("$.a.b.c", list);
     Map<String, Set<DeadLeaf>> deadLeaves = collector.getLeaves();
-    assertThat(deadLeaves.keySet().size()).isEqualTo(2);
+    assertThat(deadLeaves.keySet().size()).isEqualTo(3);
     assertThat(deadLeaves.containsKey("$.a.b.c")).isTrue();
     assertThat(deadLeaves.containsKey("$.d.e")).isTrue();
+    assertThat(deadLeaves.containsKey("$.g.h")).isTrue();
     Set<DeadLeaf> leaves = deadLeaves.get("$.a.b.c");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
     leaves = deadLeaves.get("$.d.e");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.ARRAYLEAF)).isTrue();
+    leaves = deadLeaves.get("$.g.h");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
 
     collector = new DeadLeafCollectorImpl();
     initial.addAll(makeThirdRowData(true));
@@ -237,10 +253,11 @@ public class JsonConverterTest {
     // This state should have 3 dead branches representing keys a, d, and f, since everything was
     // blown away by the latest change
     deadLeaves = collector.getLeaves();
-    assertThat(deadLeaves.keySet().size()).isEqualTo(3);
+    assertThat(deadLeaves.keySet().size()).isEqualTo(4);
     assertThat(deadLeaves.containsKey("$.a")).isTrue();
     assertThat(deadLeaves.containsKey("$.d")).isTrue();
     assertThat(deadLeaves.containsKey("$.f")).isTrue();
+    assertThat(deadLeaves.containsKey("$.g")).isTrue();
     leaves = deadLeaves.get("$.a");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
@@ -248,6 +265,9 @@ public class JsonConverterTest {
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
     leaves = deadLeaves.get("$.f");
+    assertThat(leaves.size()).isEqualTo(1);
+    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    leaves = deadLeaves.get("$.g");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
   }
@@ -274,7 +294,8 @@ public class JsonConverterTest {
     assertThat(result.toString())
         .isEqualTo(
             mapper
-                .readTree("{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\"}")
+                .readTree(
+                    "{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\",\"g\":{\"h\":\"something\"}}")
                 .toString());
 
     result = service.convertToJsonDoc(new ArrayList<>(), false, false);
@@ -296,15 +317,18 @@ public class JsonConverterTest {
     Map<String, Object> data1 = new HashMap<>();
     Map<String, Object> data2 = new HashMap<>();
     Map<String, Object> data3 = new HashMap<>();
+    Map<String, Object> data4 = new HashMap<>();
     data0.put("key", "1");
     data1.put("key", "1");
     data2.put("key", "1");
     data3.put("key", "1");
+    data4.put("key", "1");
 
     data0.put("writetime(leaf)", 0L);
     data1.put("writetime(leaf)", 0L);
     data2.put("writetime(leaf)", 0L);
     data3.put("writetime(leaf)", 0L);
+    data4.put("writetime(leaf)", 0L);
 
     data0.put("p0", "");
     data0.put("p1", "");
@@ -333,10 +357,18 @@ public class JsonConverterTest {
     data3.put("p3", "");
     data3.put("leaf", "f");
 
+    data4.put("p0", "g");
+    data4.put("p1", "h");
+    data4.put("text_value", "something");
+    data4.put("p2", "");
+    data4.put("p3", "");
+    data4.put("leaf", "h");
+
     rows.add(makeRow(data0, numericBooleans));
     rows.add(makeRow(data1, numericBooleans));
     rows.add(makeRow(data2, numericBooleans));
     rows.add(makeRow(data3, numericBooleans));
+    rows.add(makeRow(data4, numericBooleans));
 
     return rows;
   }
@@ -366,6 +398,18 @@ public class JsonConverterTest {
     data2.put("leaf", "g");
     data2.put("p4", "");
     rows.add(makeRow(data2, numericBooleans));
+
+    Map<String, Object> data3 = new HashMap<>();
+    data3.put("key", "1");
+    data3.put("writetime(leaf)", 1L);
+    data3.put("p0", "g");
+    data3.put("p1", "h");
+    data3.put("p2", "[0]");
+    data3.put("p3", "");
+    data3.put("text_value", "replaced");
+    data3.put("leaf", "[0]");
+    data3.put("p4", "");
+    rows.add(makeRow(data3, numericBooleans));
     return rows;
   }
 

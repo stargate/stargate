@@ -50,6 +50,24 @@ public class JsonConverter {
     return convertToJsonDoc(rows, collector, writeAllPathsAsObjects, numericBooleans, maxDepth);
   }
 
+  /**
+   * Takes a List of rows from a documents table, iterating over it and constructing a JSON object
+   * (or array) that is represented by those rows. Note: Because the system avoids
+   * read-before-write, it is possible for the same "path" in a document to contain two different
+   * sets of data from two different versions of the document. When this is encountered during the
+   * conversion, the version that has the latest writetime is accepted, and the older version is
+   * collected in the DeadLeafCollector to be purged in the background.
+   *
+   * @param rows Rows from the database
+   * @param collector a DeadLeafCollector implementation, to handle deletion of old and conflicting
+   *     data
+   * @param writeAllPathsAsObjects Instead of writing arrays such as [1, 2], write an object such as
+   *     {"0": 1, "1": 2}
+   * @param numericBooleans If these rows do not support boolean values and are using tinyint
+   *     instead
+   * @param maxDepth The rows' max depth (i.e. the highest pN value)
+   * @return the JsonNode represented by converting the @param rows
+   */
   private JsonNode convertToJsonDoc(
       List<Row> rows,
       DeadLeafCollector collector,
@@ -120,6 +138,16 @@ public class JsonConverter {
 
         if (isArray && !writeAllPathsAsObjects) {
           int index = Integer.parseInt(p.substring(1, p.length() - 1));
+
+          boolean shouldBeArray = isArray && !ref.isArray();
+          if (i == 0 && shouldBeArray) {
+            doc = mapper.createArrayNode();
+            ref = doc;
+          } else if (shouldBeArray) {
+            markObjectAtPathAsDead(ref, parentPath, collector);
+            ref = changeCurrentNodeToArray(row, parentRef, i);
+            pathWriteTimes.put(parentPath, rowWriteTime);
+          }
 
           ArrayNode arrayRef = (ArrayNode) ref;
 

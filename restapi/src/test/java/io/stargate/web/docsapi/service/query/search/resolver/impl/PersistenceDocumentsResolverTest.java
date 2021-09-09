@@ -89,7 +89,6 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
     public void init() {
       executionContext = ExecutionContext.create(true);
       queryExecutor = new QueryExecutor(datastore());
-      when(configuration.getSearchPageSize()).thenReturn(100);
     }
 
     @Test
@@ -110,7 +109,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(pageSize + 1)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
@@ -120,6 +119,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
               queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
+          .take(1)
           .test()
           .await()
           .assertValue(
@@ -173,7 +173,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "",
                   1.0,
                   2.0)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(pageSize + 1)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
@@ -208,7 +208,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
 
     @Test
     public void multipleDocuments() throws Exception {
-      int pageSize = 1;
+      int pageSize = 10;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));
       BaseCondition condition = ImmutableStringCondition.of(LtFilterOperation.of(), "query-value");
@@ -223,7 +223,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(pageSize + 1)
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       DocumentsResolver resolver =
@@ -286,7 +286,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "field",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(pageSize + 1)
               .returningNothing();
 
       DocumentsResolver resolver =
@@ -321,7 +321,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
                   "value",
                   "",
                   "query-value")
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(pageSize + 1)
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =

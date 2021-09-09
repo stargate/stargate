@@ -20,7 +20,6 @@ package io.stargate.web.docsapi.service.query.search.resolver.impl;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -74,7 +73,6 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
   public void init() {
     executionContext = ExecutionContext.create(true);
     queryExecutor = new QueryExecutor(datastore());
-    lenient().when(configuration.getSearchPageSize()).thenReturn(100);
   }
 
   @Nested
