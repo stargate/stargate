@@ -63,27 +63,46 @@ Next, we can generate the `StargateGrpc` stub. There are two ways of interacting
 
 The first one is synchronous (blocking):
 ```java
-StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel);
+StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel).withCallCredentials(new StargateBearerToken("token-value"));
 ```
 
 The second one is async (non-blocking):
 ```java
-StargateGrpc.StargateStub = = StargateGrpc.newStub(channel);
+StargateGrpc.StargateStub = = StargateGrpc.newStub(channel).withCallCredentials(new StargateBearerToken("token-value"));
 ```
 
-We can use the `blockingStub` to issue a Request to a Stargate node:
+Please note, that we need setup the `CallCredentials`, using the `token-value` generated in the previous step.
+
+We will assume that all queries are executed within the existing keyspace `ks` and table `test`.
+The table definition is following:
+```cql
+CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))
+``` 
+
+#### Standard Query
+
+We can start from inserting a record using gRPC stub:
+
 ```java
-QueryOuterClass.Response response = blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS)
-                .withCallCredentials(new StargateBearerToken("token-value"))
-                .executeQuery(QueryOuterClass.Query
-                        .newBuilder().setCql("select * from system.local")
-                        .build());
-System.out.println(response);
+import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass;
+
+Response response =
+        blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS)
+                    .executeQuery(
+                        QueryOuterClass.Query
+                                    .newBuilder().setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)").build());
+```
+It overrides the default [deadline](README.md#timeouts-deadlines).
+Finally, we are building and executing a single query. 
+
+
+Next, we can retrieve the inserted record(s):
+```java
+Response response = stub.executeQuery(QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
+
 ```
 
-It firstly overrides the default [deadline](README.md#timeouts-deadlines).
-Next, we need setup the `CallCredentials`, using the `token-value` generated in the previous step.
-Finally, we are building and executing a single query. 
 If we print out the result set, it will have the following structure:
 ```yaml
 result_set {
@@ -93,8 +112,22 @@ result_set {
   }
 }
 ```    
-The value contains the binary data, that we can deserialize using:
+The value contains the binary data, that we can deserialize. 
+Firstly, we need to unwrap the `ResultSet`:
+```java
+ResultSet rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+
+rs.getRows(0).getValues(0).getString(); // it will return value for k = "a"
+rs.getRows(0).getValues(1).getInt(); // it will return value for v = 1             
+```
+We can get all rows `getRowsList()` and iterate over the result 
+OR get the specific row using its index and passing it to the `getRows(int index)` method. We picked the formed approach.
+Our retrieval query (`SELECT k, v FROM test"`) stated explicitly which columns should be retrieved.
+Thanks to that, we can safely get the values using their positions via the `getValues()` method.
+The `getString()` and `getInt()` perform deserialization of data. The API provides utility methods for deserialization for more types.
+For the full list of available types, see `Value` section in the [query.proto] file. 
  
+#### Batch Query
 
 ## Timeouts (Deadlines)
 The gRPC client (generated stub) [deadline] should be set for all your clients.
@@ -115,3 +148,4 @@ If the client sets the deadline to > 5 seconds, there will be a situation when a
 [deadline]: https://grpc.io/blog/deadlines/ 
 [gRPC setup project dependencies]: https://github.com/grpc/grpc-java/blob/master/README.md#download
 [Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
+[query.proto]: ../grpc-proto/proto/query.proto
