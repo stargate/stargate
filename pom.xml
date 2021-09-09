@@ -38,7 +38,7 @@
     <commons-io.version>2.7</commons-io.version>
     <immutables.version>2.5.6</immutables.version>
     <grpc.version>1.35.0</grpc.version>
-    <guava.version>29.0-jre</guava.version>
+    <guava.version>30.0-jre</guava.version>
   </properties>
   <dependencies>
     <dependency>
