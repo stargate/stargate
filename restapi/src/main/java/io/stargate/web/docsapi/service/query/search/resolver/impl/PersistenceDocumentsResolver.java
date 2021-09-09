@@ -95,11 +95,11 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
               BoundQuery query = prepared.bind();
 
               // execute by respecting the paging state
+              // take always one more than needed to stop pre-fetching
+              // use exponential page size to increase when more is needed
+              int pageSize = paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
-                  query,
-                  configuration.getSearchPageSize(),
-                  paginator.getCurrentDbPageState(),
-                  context);
+                  query, pageSize, true, paginator.getCurrentDbPageState(), context);
             });
   }
 

@@ -102,10 +102,12 @@ public class SubDocumentsResolver implements DocumentsResolver {
               BoundQuery query = prepared.bind();
 
               // execute by respecting the paging state
+              // go for max storage page size as we have the document
               return queryExecutor.queryDocs(
                   keyDepth,
                   query,
-                  configuration.getSearchPageSize(),
+                  configuration.getApproximateStoragePageSize(paginator.docPageSize),
+                  true,
                   paginator.getCurrentDbPageState(),
                   context);
             })

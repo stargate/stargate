@@ -83,7 +83,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
   public void init() {
     executionContext = ExecutionContext.create(true);
     queryExecutor = new QueryExecutor(datastore());
-    lenient().when(configuration.getSearchPageSize()).thenReturn(100);
+    lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
   }
 
   @Nested
@@ -264,7 +264,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
                   1.0,
                   2.0,
                   documentId)
-              .withPageSize(configuration.getSearchPageSize())
+              .withPageSize(configuration.getMaxStoragePageSize())
               .returning(Arrays.asList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
