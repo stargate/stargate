@@ -6,7 +6,6 @@ import static io.stargate.health.HealthCheckerActivator.SCHEMA_CHECK_NAME;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheck.Result;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -40,7 +39,7 @@ public class CheckerResource {
     // for production use with dependency injection
   }
 
-  @VisibleForTesting
+  //  @VisibleForTesting // the only use of Guava from this module
   CheckerResource(BundleService bundleService, HealthCheckRegistry healthCheckRegistry) {
     this.bundleService = bundleService;
     this.healthCheckRegistry = healthCheckRegistry;

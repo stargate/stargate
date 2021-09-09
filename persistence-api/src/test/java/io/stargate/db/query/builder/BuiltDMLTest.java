@@ -2,7 +2,6 @@ package io.stargate.db.query.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.base.Preconditions;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.ImmutableModification;
@@ -12,6 +11,7 @@ import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.QueryType;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.schema.Column;
+import java.util.Objects;
 
 public abstract class BuiltDMLTest<B extends BoundDMLQuery> extends BuiltQueryTest {
 
@@ -28,14 +28,14 @@ public abstract class BuiltDMLTest<B extends BoundDMLQuery> extends BuiltQueryTe
 
   private void checkBoundSet() {
     // Note: it's a programming error in the test, not a test failure.
-    Preconditions.checkState(bound != null, "The setBound() method should have been called before");
+    Objects.requireNonNull(bound, "The setBound() method should have been called before");
   }
 
   protected Column column(String columnName) {
     checkBoundSet();
     Column column = bound.table().column(columnName);
     // Note: it's a programming error in the test, not a test failure.
-    Preconditions.checkArgument(column != null, "Cannot use non-existing column %s", columnName);
+    Objects.requireNonNull(column, "Cannot use non-existing column " + columnName);
     return column;
   }
 
