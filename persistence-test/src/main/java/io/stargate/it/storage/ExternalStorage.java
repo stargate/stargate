@@ -21,7 +21,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.stargate.it.exec.ProcessRunner;
 import java.io.File;
 import java.io.IOException;
@@ -229,7 +229,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
     private File installDir() {
       File ccmConfig = new File(clusterDir(), "cluster.conf");
-      ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+      ObjectMapper mapper = new YAMLMapper();
       try {
         Map<?, ?> config = mapper.readValue(ccmConfig, Map.class);
         String dir = (String) config.get("install_dir");

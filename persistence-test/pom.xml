@@ -52,12 +52,12 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <!-- 09-Sep-2021, tatu: Cassandra 3.11/4.0 backends depend on Jackson 2.9
-          but do work with 2.12.5
+      <!-- 09-Sep-2021, tatu: Cassandra 3.11/4.0 backends depend on Jackson 2.9;
+          should work with 2.12.5, but seem to have issues currently
         -->
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.12.5</version>
+      <version>2.9.10</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
