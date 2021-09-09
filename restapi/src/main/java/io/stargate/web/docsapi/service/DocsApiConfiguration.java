@@ -19,7 +19,6 @@ public interface DocsApiConfiguration {
    *     fields.
    */
   default int getApproximateStoragePageSize(int numberOfDocuments) {
-    // TODO Should 16 be configurable
     return Math.min(numberOfDocuments * 16, DocumentDB.MAX_STORAGE_PAGE_SIZE);
   }
 
