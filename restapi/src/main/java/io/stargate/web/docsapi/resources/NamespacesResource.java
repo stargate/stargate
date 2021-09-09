@@ -22,6 +22,8 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.web.docsapi.models.BuiltInApiFunction;
+import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
@@ -36,6 +38,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +59,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.glassfish.jersey.server.ManagedAsync;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -110,6 +114,34 @@ public class NamespacesResource {
           Object response = raw ? namespaces : new ResponseWrapper(namespaces);
           return Response.status(Response.Status.OK).entity(response).build();
         });
+  }
+
+  @GET
+  @ManagedAsync
+  @ApiOperation(value = "View all built-in reserved functions")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = BuiltInApiFunctionResponse.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("/{namespace-id: [a-zA-Z_0-9]+}/functions")
+  public Response getBuiltInFunctions(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "The namespace to use for the request.", required = true)
+          @PathParam("namespace-id")
+          final String namespaceName,
+      @Context HttpServletRequest request) {
+    List<BuiltInApiFunction> functions = Arrays.asList(BuiltInApiFunction.values());
+    return Response.status(Response.Status.OK)
+        .entity(new BuiltInApiFunctionResponse(functions))
+        .build();
   }
 
   @Timed

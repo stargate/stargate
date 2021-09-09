@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ValueNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.google.common.base.Splitter;
 import io.stargate.auth.UnauthorizedException;
@@ -13,6 +14,8 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
+import io.stargate.web.docsapi.models.BuiltInApiFunction;
+import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.resources.Db;
 import java.io.IOException;
@@ -47,6 +50,7 @@ public class DocumentService {
   private final ObjectMapper mapper;
   private final DocsSchemaChecker schemaChecker;
   private final JsonSchemaHandler jsonSchemaHandler;
+  private final ReactiveDocumentService reactiveDocumentService;
 
   @Inject
   public DocumentService(
@@ -54,12 +58,14 @@ public class DocumentService {
       ObjectMapper mapper,
       DocsApiConfiguration docsApiConfiguration,
       DocsSchemaChecker schemaChecker,
-      JsonSchemaHandler jsonSchemaHandler) {
+      JsonSchemaHandler jsonSchemaHandler,
+      ReactiveDocumentService reactiveDocumentService) {
     this.timeSource = timeSource;
     this.mapper = mapper;
     this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
     this.jsonSchemaHandler = jsonSchemaHandler;
+    this.reactiveDocumentService = reactiveDocumentService;
   }
 
   private boolean isEmptyObject(JsonNode v) {
@@ -86,7 +92,7 @@ public class DocumentService {
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
    *     ImmutablePair.
    */
-  private ImmutablePair<List<Object[]>, List<String>> shredPayload(
+  public ImmutablePair<List<Object[]>, List<String>> shredPayload(
       JsonSurfer surfer,
       DocumentDB db,
       List<String> path,
@@ -446,6 +452,50 @@ public class DocumentService {
       idsWritten.addAll(ids);
     }
     return idsWritten;
+  }
+
+  public JsonNode executeBuiltInFunction(
+      String authToken,
+      String keyspace,
+      String collection,
+      String id,
+      ExecuteBuiltInFunction funcPayload,
+      List<PathSegment> path,
+      Db dbFactory,
+      Map<String, String> headers)
+      throws UnauthorizedException {
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
+    List<String> pathString = path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
+    if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_PUSH) {
+      List<String> processedPath = reactiveDocumentService.processSubDocumentPath(pathString);
+      ArrayNode data =
+          (ArrayNode)
+              reactiveDocumentService.getArrayAfterPush(
+                  db,
+                  keyspace,
+                  collection,
+                  id,
+                  pathString,
+                  funcPayload.getValue(),
+                  ExecutionContext.NOOP_CONTEXT);
+      List<Object[]> bindParams =
+          shredPayload(JsonSurferGson.INSTANCE, db, processedPath, id, data.toString(), false, true)
+              .left;
+      db.deleteThenInsertBatch(
+          keyspace,
+          collection,
+          id,
+          bindParams,
+          processedPath,
+          timeSource.currentTimeMicros(),
+          ExecutionContext.NOOP_CONTEXT.nested("ASYNC INSERT"));
+      return data;
+    } else if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_POP) {
+      return reactiveDocumentService.executePop(
+          db, keyspace, collection, id, pathString, ExecutionContext.NOOP_CONTEXT);
+    }
+    throw new IllegalStateException(
+        "Invalid operation found at execution time: " + funcPayload.getFunction().name);
   }
 
   public void putAtPath(

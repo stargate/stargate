@@ -489,10 +489,58 @@ public class ReactiveDocumentService {
   }
 
   // we need to transform the stuff to support array elements
-  private List<String> processSubDocumentPath(List<String> subDocumentPath) {
+  public List<String> processSubDocumentPath(List<String> subDocumentPath) {
     return subDocumentPath.stream()
         .map(path -> DocsApiUtils.convertArrayPath(path))
         .collect(Collectors.toList());
+  }
+
+  public JsonNode getArrayAfterPush(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> processedPath,
+      Object value,
+      ExecutionContext context) {
+    Maybe<DocumentResponseWrapper<? extends JsonNode>> maybeArrayData =
+        getDocument(db, namespace, collection, documentId, processedPath, null, context);
+    return maybeArrayData
+        .map(
+            array -> {
+              JsonNode data = array.getData();
+              if (!data.isArray()) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+                    "The path provided to push to has no array");
+              }
+              ArrayNode arrayData = (ArrayNode) data;
+              if (value == null) {
+                arrayData.addNull();
+              } else if (value instanceof Boolean) {
+                System.out.println("Found a boolean");
+                arrayData.add((Boolean) value);
+              } else if (value instanceof String) {
+                System.out.println("Found a String");
+                arrayData.add((String) value);
+              } else {
+                System.out.println("Found a number");
+                arrayData.add((Double) value);
+              }
+              System.out.println(arrayData.toString());
+              return arrayData;
+            })
+        .blockingGet();
+  }
+
+  public JsonNode executePop(
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      List<String> path,
+      ExecutionContext context) {
+    return null;
   }
 
   public ObjectNode createJsonMap(
