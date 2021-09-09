@@ -123,8 +123,8 @@
     </dependency>
     <dependency>
       <groupId>com.github.jsurfer</groupId>
-      <artifactId>jsurfer-gson</artifactId>
-      <version>1.6.0</version>
+      <artifactId>jsurfer-jackson</artifactId>
+      <version>1.6.2</version>
     </dependency>
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>

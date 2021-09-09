@@ -5,13 +5,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ValueNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.google.common.base.Splitter;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -34,7 +30,7 @@ import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
-import org.jsfr.json.JsonSurferGson;
+import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.compiler.JsonPathCompiler;
 import org.jsfr.json.path.JsonPath;
 import org.jsfr.json.path.PathOperator;
@@ -66,16 +62,12 @@ public class DocumentService {
     this.jsonSchemaHandler = jsonSchemaHandler;
   }
 
-  private boolean isEmptyObject(Object v) {
-    return v instanceof JsonElement
-        && ((JsonElement) v).isJsonObject()
-        && ((JsonObject) v).size() == 0;
+  private boolean isEmptyObject(JsonNode v) {
+    return v.isObject() && v.isEmpty();
   }
 
-  private boolean isEmptyArray(Object v) {
-    return v instanceof JsonElement
-        && ((JsonElement) v).isJsonArray()
-        && ((JsonArray) v).size() == 0;
+  private boolean isEmptyArray(JsonNode v) {
+    return v.isArray() && v.isEmpty();
   }
 
   /**
@@ -124,7 +116,8 @@ public class DocumentService {
           .configBuilder()
           .bind(
               "$..*",
-              (v, parsingContext) -> {
+              (v0, parsingContext) -> {
+                final JsonNode v = (JsonNode) v0;
                 String fieldName = parsingContext.getCurrentFieldName();
                 if (fieldName != null && DocsApiUtils.containsIllegalSequences(fieldName)) {
                   String msg =
@@ -135,8 +128,7 @@ public class DocumentService {
                       ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
                 }
 
-                if (v instanceof JsonPrimitive
-                    || v instanceof JsonNull
+                if (v.isValueNode() // scalar or explicit null
                     || isEmptyObject(v)
                     || isEmptyArray(v)) {
                   JsonPath p =
@@ -191,11 +183,11 @@ public class DocumentService {
 
                   bindMap.put("leaf", leaf);
 
-                  if (v instanceof JsonPrimitive) {
-                    JsonPrimitive value = (JsonPrimitive) v;
+                  if (v.isValueNode() && !v.isNull()) {
+                    ValueNode value = (ValueNode) v;
 
                     if (value.isNumber()) {
-                      bindMap.put("dbl_value", value.getAsDouble());
+                      bindMap.put("dbl_value", value.asDouble());
                       bindMap.put("bool_value", null);
                       bindMap.put("text_value", null);
                     } else if (value.isBoolean()) {
@@ -203,12 +195,12 @@ public class DocumentService {
                       bindMap.put(
                           "bool_value",
                           convertToBackendBooleanValue(
-                              value.getAsBoolean(), db.treatBooleansAsNumeric()));
+                              value.asBoolean(), db.treatBooleansAsNumeric()));
                       bindMap.put("text_value", null);
                     } else {
                       bindMap.put("dbl_value", null);
                       bindMap.put("bool_value", null);
-                      bindMap.put("text_value", value.getAsString());
+                      bindMap.put("text_value", value.asText());
                     }
                   } else if (isEmptyObject(v)) {
                     bindMap.put("dbl_value", null);
@@ -380,7 +372,7 @@ public class DocumentService {
       throws IOException, UnauthorizedException {
 
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
-    JsonSurfer surfer = JsonSurferGson.INSTANCE;
+    JsonSurfer surfer = JsonSurferJackson.INSTANCE;
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
     List<String> idsWritten = new ArrayList<>();
@@ -470,7 +462,7 @@ public class DocumentService {
       ExecutionContext context)
       throws UnauthorizedException, ProcessingException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
-    JsonSurfer surfer = JsonSurferGson.INSTANCE;
+    JsonSurfer surfer = JsonSurferJackson.INSTANCE;
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
 
