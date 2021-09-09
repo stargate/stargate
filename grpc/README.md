@@ -141,9 +141,9 @@ In case we want to execute N queries, we can use the `executeBatch` method:
      QueryOuterClass.Response response =
                 blockingStub.executeBatch(
                         QueryOuterClass.Batch.newBuilder()
-                                .addQueries(QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO test (k, v) VALUES ('a', 1)").build())
+                                .addQueries(QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)").build())
                                 .addQueries(
-                                        QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO test (k, v) VALUES ('b', 2)").build())
+                                        QueryOuterClass.BatchQuery.newBuilder().setCql("INSERT INTO ks.test (k, v) VALUES ('b', 2)").build())
                                 .build());
 
 ```
@@ -153,6 +153,69 @@ It takes the `Batch` as an argument. A Batch can contain N queries. We are addin
 #### Async API
 
 Up to this point, we were using the blocking version of the generated stub. 
+We can also interact with the Stargate API using the async version of the stub.
+To do so, we need to pass the [StreamObserver] that will be called asynchronously when the results are available.
+
+Every StreamObserver needs to implement 3 methods: `onNext()`, `onError()` and `onComplete()`.
+For example:
+```java
+StreamObserver<QueryOuterClass.Response> streamObserver = new StreamObserver<QueryOuterClass.Response>() {
+           @Override
+           public void onNext(QueryOuterClass.Response response) {
+               try {
+                   System.out.println("response:" + response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class));
+               } catch (InvalidProtocolBufferException e) {
+                   throw new RuntimeException(e);
+               }
+           }
+           @Override
+           public void onError(Throwable throwable) {
+               System.out.println("Error: " + throwable);
+           }
+           @Override
+           public void onCompleted() {
+               System.out.println("completed");
+           }
+       };
+```
+Please note that this is a very simplified version only for demonstration purposes and should not be used on production.
+
+Once we have the Observer, we can pass it to the `executeQuery` method on the async stub:
+```java
+stub.executeQuery(QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build(), streamObserver);
+```
+This query will return immediately because it is non-blocking. 
+If your program (or test) is progressing to the end, you may not be able to see the results. 
+Your program may exist before the will arrives. 
+After some time, when the data arrives, the `streamObserver` will be called.
+
+The output of our program will look like this:
+```yaml
+response:columns {
+  type {
+    basic: VARCHAR
+  }
+  name: "k"
+}
+columns {
+  type {
+    basic: INT
+  }
+  name: "v"
+}
+rows {
+  values {
+    string: "a"
+  }
+  values {
+    int: 1
+  }
+}
+
+completed
+```   
+Please note, that at the end we have a `completed` emitted. This is called by the `onCompleted` method.
+
   
 
 ## Timeouts (Deadlines)
@@ -175,3 +238,4 @@ If the client sets the deadline to > 5 seconds, there will be a situation when a
 [gRPC setup project dependencies]: https://github.com/grpc/grpc-java/blob/master/README.md#download
 [Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
 [query.proto]: ../grpc-proto/proto/query.proto
+[StreamObserver]: https://grpc.github.io/grpc-java/javadoc/io/grpc/stub/StreamObserver.html
