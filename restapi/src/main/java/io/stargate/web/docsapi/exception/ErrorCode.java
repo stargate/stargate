@@ -74,6 +74,8 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "When selecting `fields`, the field referenced by `where` must be in the selection."),
 
+  DOCS_API_ARRAY_POP_OUT_OF_BOUNDS(Response.Status.BAD_REQUEST, "No data available to pop."),
+
   DOCS_API_PATCH_ARRAY_NOT_ACCEPTED(
       Response.Status.BAD_REQUEST,
       "A patch operation must be done with a JSON object, not an array."),

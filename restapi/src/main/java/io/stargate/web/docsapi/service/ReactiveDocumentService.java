@@ -495,6 +495,20 @@ public class ReactiveDocumentService {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Retrieves the specified path in the document as an array, appends the @param value, and returns
+   * what the array will look like after the append. Note that this doesn't write the array back to
+   * the data store.
+   *
+   * @param db
+   * @param namespace
+   * @param collection
+   * @param documentId
+   * @param processedPath
+   * @param value
+   * @param context
+   * @return a JSON representation of the array after pushing the new value
+   */
   public JsonNode getArrayAfterPush(
       DocumentDB db,
       String namespace,
@@ -503,9 +517,7 @@ public class ReactiveDocumentService {
       List<String> processedPath,
       Object value,
       ExecutionContext context) {
-    Maybe<DocumentResponseWrapper<? extends JsonNode>> maybeArrayData =
-        getDocument(db, namespace, collection, documentId, processedPath, null, context);
-    return maybeArrayData
+    return getDocument(db, namespace, collection, documentId, processedPath, null, context)
         .map(
             array -> {
               JsonNode data = array.getData();
@@ -518,29 +530,70 @@ public class ReactiveDocumentService {
               if (value == null) {
                 arrayData.addNull();
               } else if (value instanceof Boolean) {
-                System.out.println("Found a boolean");
                 arrayData.add((Boolean) value);
               } else if (value instanceof String) {
-                System.out.println("Found a String");
                 arrayData.add((String) value);
+              } else if (value instanceof Integer) {
+                arrayData.add((Integer) value);
               } else {
-                System.out.println("Found a number");
-                arrayData.add((Double) value);
+                arrayData.add((Integer) value);
               }
-              System.out.println(arrayData.toString());
               return arrayData;
             })
         .blockingGet();
   }
 
-  public JsonNode executePop(
+  /**
+   * Retrieves the specified path in the document as an array, pops the last (i.e. highest-index)
+   * value, and returns both what the array will look like after the pop and the value that was
+   * popped. Note that this doesn't write the array back to the data store.
+   *
+   * @param db
+   * @param namespace
+   * @param collection
+   * @param documentId
+   * @param processedPath
+   * @param context
+   * @return a Pair containing the JSON representation of the array after popping the value and the
+   *     value itself
+   */
+  public Pair<ArrayNode, Object> getArrayAndValueAfterPop(
       DocumentDB db,
-      String keyspace,
+      String namespace,
       String collection,
-      String id,
-      List<String> path,
+      String documentId,
+      List<String> processedPath,
       ExecutionContext context) {
-    return null;
+    return getDocument(db, namespace, collection, documentId, processedPath, null, context)
+        .map(
+            array -> {
+              JsonNode data = array.getData();
+              if (data == null || !data.isArray()) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+                    "The path provided to pop from has no array");
+              }
+              ArrayNode arrayData = (ArrayNode) data;
+              if (arrayData.size() == 0) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_ARRAY_POP_OUT_OF_BOUNDS);
+              }
+              JsonNode value = arrayData.get(arrayData.size() - 1);
+              Object finalValue;
+              if (value.canConvertToInt()) {
+                finalValue = value.asInt();
+              } else if (value.isDouble()) {
+                finalValue = value.asDouble();
+              } else if (value.isTextual()) {
+                finalValue = value.asText();
+              } else if (value.isBoolean()) {
+                finalValue = value.asBoolean();
+              } else {
+                finalValue = null;
+              }
+              arrayData.remove(arrayData.size() - 1);
+              return Pair.with(arrayData, finalValue);
+            })
+        .blockingGet();
   }
 
   public ObjectNode createJsonMap(

@@ -349,14 +349,17 @@ public class DocumentResourceV2 {
               required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The operation to perform", required = true)
-          @NotNull(message = "payload not provided")
-          @NotBlank(message = "payload must not be empty")
-          @Valid
+      @ApiParam(value = "The operation to perform", required = true) @Valid
           ExecuteBuiltInFunction payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
       @Context HttpServletRequest request) {
     return handle(
         () -> {
+          ExecutionContext context = ExecutionContext.create(profile);
           JsonNode result =
               documentService.executeBuiltInFunction(
                   authToken,
@@ -366,12 +369,12 @@ public class DocumentResourceV2 {
                   payload,
                   path,
                   dbFactory,
+                  context,
                   getAllHeaders(request));
           return Response.ok()
               .entity(
                   mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(
-                          id, null, result, ExecutionContext.NOOP_CONTEXT.toProfile())))
+                      new DocumentResponseWrapper<>(id, null, result, context.toProfile())))
               .build();
         });
   }

@@ -5,8 +5,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ValueNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ValueNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.google.common.base.Splitter;
 import io.stargate.auth.UnauthorizedException;
@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.javatuples.Pair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.compiler.JsonPathCompiler;
@@ -462,24 +463,20 @@ public class DocumentService {
       ExecuteBuiltInFunction funcPayload,
       List<PathSegment> path,
       Db dbFactory,
+      ExecutionContext context,
       Map<String, String> headers)
       throws UnauthorizedException {
     DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
     List<String> pathString = path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
+    List<String> processedPath = reactiveDocumentService.processSubDocumentPath(pathString);
     if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_PUSH) {
-      List<String> processedPath = reactiveDocumentService.processSubDocumentPath(pathString);
       ArrayNode data =
           (ArrayNode)
               reactiveDocumentService.getArrayAfterPush(
-                  db,
-                  keyspace,
-                  collection,
-                  id,
-                  pathString,
-                  funcPayload.getValue(),
-                  ExecutionContext.NOOP_CONTEXT);
+                  db, keyspace, collection, id, pathString, funcPayload.getValue(), context);
       List<Object[]> bindParams =
-          shredPayload(JsonSurferGson.INSTANCE, db, processedPath, id, data.toString(), false, true)
+          shredPayload(
+                  JsonSurferJackson.INSTANCE, db, processedPath, id, data.toString(), false, true)
               .left;
       db.deleteThenInsertBatch(
           keyspace,
@@ -488,11 +485,37 @@ public class DocumentService {
           bindParams,
           processedPath,
           timeSource.currentTimeMicros(),
-          ExecutionContext.NOOP_CONTEXT.nested("ASYNC INSERT"));
+          context.nested("ASYNC INSERT"));
       return data;
     } else if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_POP) {
-      return reactiveDocumentService.executePop(
-          db, keyspace, collection, id, pathString, ExecutionContext.NOOP_CONTEXT);
+      Pair<ArrayNode, Object> data =
+          reactiveDocumentService.getArrayAndValueAfterPop(
+              db, keyspace, collection, id, pathString, context);
+      if (data == null) {
+        throw new ErrorCodeRuntimeException(
+                ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+                "The path provided to pop from has no array");
+      }
+      List<Object[]> bindParams =
+          shredPayload(
+                  JsonSurferJackson.INSTANCE,
+                  db,
+                  processedPath,
+                  id,
+                  data.getValue0().toString(),
+                  false,
+                  true)
+              .left;
+      db.deleteThenInsertBatch(
+          keyspace,
+          collection,
+          id,
+          bindParams,
+          processedPath,
+          timeSource.currentTimeMicros(),
+          context.nested("ASYNC INSERT"));
+      Object value = data.getValue1();
+      return mapper.valueToTree(value);
     }
     throw new IllegalStateException(
         "Invalid operation found at execution time: " + funcPayload.getFunction().name);
