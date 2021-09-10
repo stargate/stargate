@@ -3260,6 +3260,244 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void testErrorCasesPushPopFunction() throws IOException {
+    JsonNode doc1 =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+
+    // Try to push to a non-array
+    String currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/function",
+            "{\"operation\": \"$push\", \"value\": \"new_value\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"The path provided to push to has no array\",\"code\":400}"));
+
+    // Try to push to a non-existent path
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/randomword/function",
+            "{\"operation\": \"$push\", \"value\": \"new_value\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"The path provided to push to has no array\",\"code\":400}"));
+
+    // Try to pop from a non-array
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/function",
+            "{\"operation\": \"$pop\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"The path provided to pop from has no array\",\"code\":400}"));
+
+    // Try to pop from a non-existent path
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/randomword/function",
+            "{\"operation\": \"$pop\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"The path provided to pop from has no array\",\"code\":400}"));
+  }
+
+  @Test
+  public void testBuiltInPushPopFunction() throws IOException {
+    JsonNode doc1 =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+
+    // Push some data to one of the arrays
+    // A string
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": \"new_value\"}",
+        200);
+    String currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\"]"));
+
+    // An integer
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": 123}",
+        200);
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123]"));
+
+    // A double
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": 99.99}",
+        200);
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99]"));
+
+    // A boolean
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": false}",
+        200);
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99,false]"));
+
+    // An object
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": {\"a\":\"b\"}}",
+        200);
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99,false,{\"a\":\"b\"}]"));
+
+    // An array
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/quiz/sport/q1/options/function",
+        "{\"operation\": \"$push\", \"value\": [1, true, \"a\"]}",
+        200);
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99,false,{\"a\":\"b\"},[1,true,\"a\"]]"));
+
+    // Now pop them off one by one
+    // The array
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("[1,true,\"a\"]"));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99,false,{\"a\":\"b\"}]"));
+
+    // The object
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("{\"a\":\"b\"}"));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99,false]"));
+
+    // The boolean
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("false"));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123,99.99]"));
+
+    // The double
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("99.99"));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\",123]"));
+
+    // The integer
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("123"));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\",\"new_value\"]"));
+
+    // The string
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/options/function",
+            "{\"operation\": \"$pop\"}",
+            200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("\"new_value\""));
+    currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1/quiz/sport/q1/options?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\"]"));
+  }
+
+  @Test
   public void testPaginationFilterDocWithFields() throws IOException {
     JsonNode doc1 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));

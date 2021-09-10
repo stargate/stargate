@@ -18,6 +18,7 @@ import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Iterator;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -292,6 +293,26 @@ public class NamespaceResourceIntTest extends BaseOsgiIntegrationTest {
       assertThat(r)
           .isEqualTo(
               "{\"description\":\"Request invalid: minimum amount of `replicas` for a datacenter is one.\",\"code\":422}");
+    }
+  }
+
+  @Nested
+  @ExtendWith(CqlSessionExtension.class)
+  @CqlSessionSpec()
+  class GetBuiltInFunctions {
+    @Test
+    public void happyPath(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String path = basePath + "/" + keyspace.toString() + "/functions";
+      String result = RestUtils.get(authToken, path, HttpStatus.SC_OK);
+      JsonNode json = OBJECT_MAPPER.readTree(result);
+      assertThat(json.hasNonNull("functions")).isTrue();
+      assertThat(json.at("/functions").isArray()).isTrue();
+      Iterator<JsonNode> it = json.requiredAt("/functions").iterator();
+      while (it.hasNext()) {
+        JsonNode next = it.next();
+        assertThat(next.hasNonNull("name")).isTrue();
+        assertThat(next.hasNonNull("description")).isTrue();
+      }
     }
   }
 

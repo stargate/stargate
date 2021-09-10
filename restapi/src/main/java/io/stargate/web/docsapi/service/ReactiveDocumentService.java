@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -529,14 +530,18 @@ public class ReactiveDocumentService {
               ArrayNode arrayData = (ArrayNode) data;
               if (value == null) {
                 arrayData.addNull();
+              } else if (value instanceof Map || value instanceof List) {
+                arrayData.add(objectMapper.valueToTree(value));
               } else if (value instanceof Boolean) {
                 arrayData.add((Boolean) value);
               } else if (value instanceof String) {
                 arrayData.add((String) value);
               } else if (value instanceof Integer) {
-                arrayData.add((Integer) value);
+                arrayData.add(Long.valueOf((Integer) value));
+              } else if (value instanceof Long) {
+                arrayData.add((Long) value);
               } else {
-                arrayData.add((Integer) value);
+                arrayData.add((Double) value);
               }
               return arrayData;
             })
@@ -579,14 +584,22 @@ public class ReactiveDocumentService {
               }
               JsonNode value = arrayData.get(arrayData.size() - 1);
               Object finalValue;
-              if (value.canConvertToInt()) {
-                finalValue = value.asInt();
-              } else if (value.isDouble()) {
-                finalValue = value.asDouble();
+              if (value.isDouble() || value.canConvertToLong()) {
+                double dblValue = value.asDouble();
+                long longValue = (long) dblValue;
+                if ((double) longValue == value.asDouble()) {
+                  finalValue = longValue;
+                } else {
+                  finalValue = dblValue;
+                }
               } else if (value.isTextual()) {
                 finalValue = value.asText();
               } else if (value.isBoolean()) {
                 finalValue = value.asBoolean();
+              } else if (value.isObject()) {
+                finalValue = objectMapper.treeToValue(value, Map.class);
+              } else if (value.isArray()) {
+                finalValue = objectMapper.treeToValue(value, List.class);
               } else {
                 finalValue = null;
               }

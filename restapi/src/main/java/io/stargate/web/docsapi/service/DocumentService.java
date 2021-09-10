@@ -474,6 +474,11 @@ public class DocumentService {
           (ArrayNode)
               reactiveDocumentService.getArrayAfterPush(
                   db, keyspace, collection, id, pathString, funcPayload.getValue(), context);
+      if (data == null) {
+        throw new ErrorCodeRuntimeException(
+            ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+            "The path provided to push to has no array");
+      }
       List<Object[]> bindParams =
           shredPayload(
                   JsonSurferJackson.INSTANCE, db, processedPath, id, data.toString(), false, true)
@@ -493,8 +498,8 @@ public class DocumentService {
               db, keyspace, collection, id, pathString, context);
       if (data == null) {
         throw new ErrorCodeRuntimeException(
-                ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
-                "The path provided to pop from has no array");
+            ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+            "The path provided to pop from has no array");
       }
       List<Object[]> bindParams =
           shredPayload(
