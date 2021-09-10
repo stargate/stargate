@@ -53,6 +53,8 @@ public class StargateGraphqlContext implements HTTPRequestHeaders {
   // For more information.
   private final BatchContext batchContext = new BatchContext();
 
+  private volatile boolean overloaded;
+
   public StargateGraphqlContext(
       HttpServletRequest request,
       AuthorizationService authorizationService,
@@ -92,6 +94,14 @@ public class StargateGraphqlContext implements HTTPRequestHeaders {
 
   public GraphqlCache getGraphqlCache() {
     return graphqlCache;
+  }
+
+  public void setOverloaded() {
+    this.overloaded = true;
+  }
+
+  public boolean isOverloaded() {
+    return overloaded;
   }
 
   /**

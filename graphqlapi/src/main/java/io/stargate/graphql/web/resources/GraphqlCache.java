@@ -32,6 +32,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao;
+import io.stargate.graphql.schema.CassandraFetcherExceptionHandler;
 import io.stargate.graphql.schema.cqlfirst.SchemaFactory;
 import io.stargate.graphql.schema.graphqlfirst.AdminSchemaBuilder;
 import io.stargate.graphql.schema.graphqlfirst.migration.CassandraMigrator;
@@ -73,7 +74,7 @@ public class GraphqlCache implements KeyspaceChangeListener {
     this.enableGraphqlFirst = enableGraphqlFirst;
 
     this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
-    this.schemaFirstAdminGraphql = GraphQL.newGraphQL(new AdminSchemaBuilder().build()).build();
+    this.schemaFirstAdminGraphql = newGraphql(new AdminSchemaBuilder().build());
     this.defaultKeyspace = findDefaultKeyspace(dataStoreFactory.createInternal());
 
     persistence.registerEventListener(this);
@@ -139,8 +140,10 @@ public class GraphqlCache implements KeyspaceChangeListener {
 
   private static GraphQL newGraphql(GraphQLSchema schema) {
     return GraphQL.newGraphQL(schema)
+        .defaultDataFetcherExceptionHandler(CassandraFetcherExceptionHandler.INSTANCE)
         // Use parallel execution strategy for mutations (serial is default)
-        .mutationExecutionStrategy(new AsyncExecutionStrategy())
+        .mutationExecutionStrategy(
+            new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
         .build();
   }
 

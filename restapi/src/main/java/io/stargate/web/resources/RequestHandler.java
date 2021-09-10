@@ -25,6 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,13 @@ public class RequestHandler {
               new Error(
                   "Resource not found: " + nfe.getMessage(),
                   Response.Status.NOT_FOUND.getStatusCode()))
+          .build();
+    } catch (OverloadedException e) {
+      logger.info("Overloaded", e);
+      return Response.status(Response.Status.TOO_MANY_REQUESTS)
+          .entity(
+              new Error(
+                  "Database is overloaded", Response.Status.TOO_MANY_REQUESTS.getStatusCode()))
           .build();
     } catch (IllegalArgumentException iae) {
       logger.info("Bad request (IllegalArgumentException->BAD_REQUEST): {}", iae.getMessage());
