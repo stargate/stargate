@@ -232,20 +232,20 @@ public class AuthnTableBasedService implements AuthenticationService {
   }
 
   @Override
-  public AuthenticationSubject validateToken(String t) throws UnauthorizedException {
-    if (Strings.isNullOrEmpty(t)) {
+  public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
+    if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
 
     try {
       return (AuthenticationSubject)
           tokenCache.get(
-              t,
+              token,
               (Callable<AuthenticationSubject>)
                   () -> {
                     UUID uuid;
                     try {
-                      uuid = UUID.fromString(t);
+                      uuid = UUID.fromString(token);
                     } catch (IllegalArgumentException exception) {
                       throw new UnauthorizedException("authorization failed - bad token");
                     }
@@ -281,7 +281,7 @@ public class AuthnTableBasedService implements AuthenticationService {
                           .ttl(tokenTTL)
                           .value("username", username)
                           .value("created_timestamp", timestamp)
-                          .where("auth_token", Predicate.EQ, UUID.fromString(t))
+                          .where("auth_token", Predicate.EQ, UUID.fromString(token))
                           .build()
                           .execute(ConsistencyLevel.LOCAL_QUORUM)
                           .get();
@@ -290,7 +290,7 @@ public class AuthnTableBasedService implements AuthenticationService {
                       throw new RuntimeException(e);
                     }
 
-                    return AuthenticationSubject.of(t, username);
+                    return AuthenticationSubject.of(token, username);
                   });
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
