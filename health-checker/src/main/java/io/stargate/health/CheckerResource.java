@@ -39,7 +39,6 @@ public class CheckerResource {
     // for production use with dependency injection
   }
 
-  //  @VisibleForTesting // the only use of Guava from this module
   CheckerResource(BundleService bundleService, HealthCheckRegistry healthCheckRegistry) {
     this.bundleService = bundleService;
     this.healthCheckRegistry = healthCheckRegistry;
