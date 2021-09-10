@@ -18,12 +18,9 @@ package io.stargate.grpc.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.db.AuthenticatedUser;
-import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
@@ -34,7 +31,6 @@ import io.stargate.proto.QueryOuterClass.Response;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
@@ -44,6 +40,7 @@ import org.immutables.value.Value;
 
 public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
+  public static final Context.Key<Connection> CONNECTION_KEY = Context.key("connection");
   public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
       Context.key("authentication");
   public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
@@ -97,59 +94,21 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
-    newConnection(responseObserver)
-        .ifPresent(
-            connection ->
-                new QueryHandler(
-                        query,
-                        connection,
-                        preparedCache,
-                        persistence,
-                        executor,
-                        schemaAgreementRetries,
-                        responseObserver)
-                    .handle());
+    new QueryHandler(
+            query,
+            CONNECTION_KEY.get(),
+            preparedCache,
+            persistence,
+            executor,
+            schemaAgreementRetries,
+            responseObserver)
+        .handle();
   }
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
-    newConnection(responseObserver)
-        .ifPresent(
-            connection ->
-                new BatchHandler(batch, connection, preparedCache, persistence, responseObserver)
-                    .handle());
-  }
-
-  private Optional<Connection> newConnection(StreamObserver<Response> responseObserver) {
-    try {
-      AuthenticationSubject authenticationSubject = AUTHENTICATION_KEY.get();
-      AuthenticatedUser user = authenticationSubject.asUser();
-      Connection connection;
-      if (!user.isFromExternalAuth()) {
-        SocketAddress remoteAddress = REMOTE_ADDRESS_KEY.get();
-        InetSocketAddress inetSocketAddress = DUMMY_ADDRESS;
-        if (remoteAddress instanceof InetSocketAddress) {
-          inetSocketAddress = (InetSocketAddress) remoteAddress;
-        }
-        connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
-      } else {
-        connection = persistence.newConnection();
-      }
-      connection.login(user);
-      if (user.token() != null) {
-        connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
-      }
-      Map<String, String> headers = HEADERS_KEY.get();
-      connection.setCustomProperties(headers);
-      return Optional.of(connection);
-    } catch (Throwable throwable) {
-      responseObserver.onError(
-          Status.UNKNOWN
-              .withDescription(throwable.getMessage())
-              .withCause(throwable)
-              .asRuntimeException());
-      return Optional.empty();
-    }
+    new BatchHandler(batch, CONNECTION_KEY.get(), preparedCache, persistence, responseObserver)
+        .handle();
   }
 
   static class ResponseAndTraceId {
