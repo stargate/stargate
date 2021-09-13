@@ -27,13 +27,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class CassandraPersistenceActivatorTest {
+class Cassandra311PersistenceActivatorTest {
   File baseDir;
 
   @BeforeEach
   void setUp() throws IOException {
     System.clearProperty("stargate.unsafe.cassandra_config_path");
-    baseDir = Files.createTempDirectory("stargate-cassandra-4.0-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
   }
 
   @AfterEach
@@ -50,7 +50,7 @@ class CassandraPersistenceActivatorTest {
 
   @Test
   void testMakeConfigWithCustomConfig() throws IOException {
-    // This is the path to the default Cassandra 4.0 cassandra.yaml
+    // This is the path to the default Cassandra 3.11.8 cassandra.yaml
     // with row_cache_size_in_mb set to 1024 to test the override.
     System.setProperty(
         "stargate.unsafe.cassandra_config_path", "src/test/resources/cassandra.yaml");
