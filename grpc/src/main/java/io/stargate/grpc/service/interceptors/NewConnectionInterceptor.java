@@ -49,10 +49,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final LoadingCache<RequestInfo, Connection> connectionCache =
-      Caffeine.newBuilder()
-          .maximumSize(10_000) // TODO: Make configurable?
-          .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::newConnection);
+      Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build(this::newConnection);
 
   public NewConnectionInterceptor(
       Persistence persistence, AuthenticationService authenticationService) {
@@ -70,19 +67,10 @@ public class NewConnectionInterceptor implements ServerInterceptor {
         return new NopListener<>();
       }
 
-      Map<String, String> stringHeaders = new HashMap<>();
-      for (String key : headers.keys()) {
-        if (key.endsWith("-bin") || key.startsWith("grpc-")) {
-          continue;
-        }
-        String value = headers.get(Key.of(key, Metadata.ASCII_STRING_MARSHALLER));
-        stringHeaders.put(key, value);
-      }
-
       RequestInfo info =
           ImmutableRequestInfo.builder()
-              .headers(stringHeaders)
               .token(token)
+              .headers(convertAndFilterHeaders(headers))
               .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
               .build();
 
@@ -119,6 +107,21 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     }
     connection.setCustomProperties(info.headers());
     return connection;
+  }
+
+  private static Map<String, String> convertAndFilterHeaders(Metadata headers) {
+    Map<String, String> stringHeaders = new HashMap<>();
+    for (String key : headers.keys()) {
+      // Ignore gRPC specific (in addition to binary) headers because they're not used by Connection
+      // and some of the values contain unique values for each request which prevents effective
+      // caching.
+      if (key.endsWith("-bin") || key.startsWith("grpc-")) {
+        continue;
+      }
+      String value = headers.get(Key.of(key, Metadata.ASCII_STRING_MARSHALLER));
+      stringHeaders.put(key, value);
+    }
+    return stringHeaders;
   }
 
   private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}

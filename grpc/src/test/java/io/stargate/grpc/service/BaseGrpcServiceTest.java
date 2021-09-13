@@ -30,6 +30,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.Server;
+import io.grpc.ServerInterceptor;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.stargate.core.metrics.api.Metrics;
@@ -40,7 +41,6 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
 import io.stargate.grpc.codec.cql.ValueCodecs;
-import io.stargate.grpc.service.interceptors.HeadersInterceptor;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
 import io.stargate.proto.QueryOuterClass.Payload;
@@ -130,13 +130,16 @@ public class BaseGrpcServiceTest {
   }
 
   protected void startServer(Persistence persistence) {
+    startServer(new MockInterceptor(persistence));
+  }
+
+  protected void startServer(ServerInterceptor interceptor) {
     assertThat(server).isNull();
     executor = Executors.newScheduledThreadPool(1);
     server =
         InProcessServerBuilder.forName(SERVER_NAME)
             .directExecutor()
-            .intercept(new MockInterceptor())
-            .intercept(new HeadersInterceptor())
+            .intercept(interceptor)
             .addService(new GrpcService(persistence, mock(Metrics.class), executor, 2))
             .build();
     try {

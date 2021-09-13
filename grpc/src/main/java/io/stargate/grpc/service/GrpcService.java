@@ -19,7 +19,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
-import io.stargate.auth.AuthenticationSubject;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
@@ -28,9 +27,6 @@ import io.stargate.db.Result.Prepared;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,15 +37,9 @@ import org.immutables.value.Value;
 public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   public static final Context.Key<Connection> CONNECTION_KEY = Context.key("connection");
-  public static final Context.Key<AuthenticationSubject> AUTHENTICATION_KEY =
-      Context.key("authentication");
-  public static final Context.Key<SocketAddress> REMOTE_ADDRESS_KEY = Context.key("remoteAddress");
-  public static final Context.Key<Map<String, String>> HEADERS_KEY = Context.key("headers");
   public static final int DEFAULT_PAGE_SIZE = 100;
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
-
-  private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
 
   // TODO: Add a maximum size and add tuning options
   private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache =
