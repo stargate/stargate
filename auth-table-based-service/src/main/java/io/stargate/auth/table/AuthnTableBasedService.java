@@ -35,7 +35,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.mindrot.jbcrypt.BCrypt;
@@ -46,7 +45,6 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthnTableBasedService.class);
 
-  private DataStore dataStore;
   private static final String AUTH_KEYSPACE =
       System.getProperty("stargate.auth_keyspace", "data_endpoint_auth");
   private static final String AUTH_TABLE = System.getProperty("stargate.auth_table", "token");
@@ -55,8 +53,10 @@ public class AuthnTableBasedService implements AuthenticationService {
   private static final boolean shouldInitializeAuthKeyspace =
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
-  private final Cache<Object, Object> tokenCache =
-      CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).recordStats().build();
+  private final Cache<String, AuthenticationSubject> tokenCache =
+      CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build();
+
+  private DataStore dataStore;
 
   public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
     this.dataStore = dataStoreFactory.createInternal();
@@ -233,66 +233,77 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   @Override
   public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
+    // if not there fail fast
     if (Strings.isNullOrEmpty(token)) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
 
+    // otherwise, look in the cache and optionally fetch if missing
     try {
-      return (AuthenticationSubject)
-          tokenCache.get(
-              token,
-              (Callable<AuthenticationSubject>)
-                  () -> {
-                    UUID uuid;
-                    try {
-                      uuid = UUID.fromString(token);
-                    } catch (IllegalArgumentException exception) {
-                      throw new UnauthorizedException("authorization failed - bad token");
-                    }
-
-                    String username;
-                    try {
-                      ResultSet resultSet =
-                          dataStore
-                              .queryBuilder()
-                              .select()
-                              .star()
-                              .from(AUTH_KEYSPACE, AUTH_TABLE)
-                              .where("auth_token", Predicate.EQ, uuid)
-                              .build()
-                              .execute(ConsistencyLevel.LOCAL_QUORUM)
-                              .get();
-
-                      if (resultSet.hasNoMoreFetchedRows()) {
-                        throw new UnauthorizedException("authorization failed");
-                      }
-
-                      Row row = resultSet.one();
-                      if (row.isNull("username")) {
-                        throw new RuntimeException("unable to get username from token table");
-                      }
-
-                      int timestamp = row.getInt("created_timestamp");
-                      username = row.getString("username");
-
-                      dataStore
-                          .queryBuilder()
-                          .update(AUTH_KEYSPACE, AUTH_TABLE)
-                          .ttl(tokenTTL)
-                          .value("username", username)
-                          .value("created_timestamp", timestamp)
-                          .where("auth_token", Predicate.EQ, UUID.fromString(token))
-                          .build()
-                          .execute(ConsistencyLevel.LOCAL_QUORUM)
-                          .get();
-                    } catch (InterruptedException | ExecutionException e) {
-                      logger.error("Failed to validate token", e);
-                      throw new RuntimeException(e);
-                    }
-
-                    return AuthenticationSubject.of(token, username);
-                  });
+      return tokenCache.get(token, () -> getAuthenticationSubject(token));
     } catch (ExecutionException e) {
+      // properly inspect the cause of the execution exception
+      // and re-throw if UnauthorizedException or RuntimeException
+      // otherwise wrap in the RuntimeException
+      Throwable cause = e.getCause();
+      if (cause instanceof UnauthorizedException) {
+        throw (UnauthorizedException) cause;
+      } else if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  // fetches the authentication subject from the data store
+  private AuthenticationSubject getAuthenticationSubject(String token)
+      throws UnauthorizedException {
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(token);
+    } catch (IllegalArgumentException exception) {
+      throw new UnauthorizedException("authorization failed - bad token");
+    }
+
+    try {
+      ResultSet resultSet =
+          dataStore
+              .queryBuilder()
+              .select()
+              .star()
+              .from(AUTH_KEYSPACE, AUTH_TABLE)
+              .where("auth_token", Predicate.EQ, uuid)
+              .build()
+              .execute(ConsistencyLevel.LOCAL_QUORUM)
+              .get();
+
+      if (resultSet.hasNoMoreFetchedRows()) {
+        throw new UnauthorizedException("authorization failed");
+      }
+
+      Row row = resultSet.one();
+      if (row.isNull("username")) {
+        throw new RuntimeException("unable to get username from token table");
+      }
+
+      int timestamp = row.getInt("created_timestamp");
+      String username = row.getString("username");
+
+      // update of the TTL can be done in the async way
+      dataStore
+          .queryBuilder()
+          .update(AUTH_KEYSPACE, AUTH_TABLE)
+          .ttl(tokenTTL)
+          .value("username", username)
+          .value("created_timestamp", timestamp)
+          .where("auth_token", Predicate.EQ, uuid)
+          .build()
+          .execute(ConsistencyLevel.LOCAL_QUORUM);
+
+      return AuthenticationSubject.of(token, username);
+    } catch (InterruptedException | ExecutionException e) {
+      logger.error("Failed to validate token", e);
       throw new RuntimeException(e);
     }
   }
