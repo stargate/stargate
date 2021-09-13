@@ -35,6 +35,11 @@ public class NewConnectionInterceptor implements ServerInterceptor {
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
 
+  private final Persistence persistence;
+  private final AuthenticationService authenticationService;
+  private final LoadingCache<RequestInfo, Connection> connectionCache =
+      Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build(this::newConnection);
+
   @Value.Immutable
   interface RequestInfo {
 
@@ -45,11 +50,6 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     @Nullable
     SocketAddress remoteAddress();
   }
-
-  private final Persistence persistence;
-  private final AuthenticationService authenticationService;
-  private final LoadingCache<RequestInfo, Connection> connectionCache =
-      Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build(this::newConnection);
 
   public NewConnectionInterceptor(
       Persistence persistence, AuthenticationService authenticationService) {
