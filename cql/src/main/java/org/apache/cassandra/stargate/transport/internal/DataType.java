@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

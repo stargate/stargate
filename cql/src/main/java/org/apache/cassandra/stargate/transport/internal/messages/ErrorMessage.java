@@ -17,15 +17,15 @@
  */
 package org.apache.cassandra.stargate.transport.internal.messages;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.CodecException;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
@@ -465,7 +465,7 @@ public class ErrorMessage extends Message.Response {
     }
 
     // Unexpected exception
-    if (unexpectedExceptionHandler == null || !unexpectedExceptionHandler.apply(e))
+    if (unexpectedExceptionHandler == null || !unexpectedExceptionHandler.test(e))
       logger.error("Unexpected exception during request", e);
 
     return new ErrorMessage(new ServerError(e), streamId);

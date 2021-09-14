@@ -18,7 +18,7 @@
 
 package org.apache.cassandra.stargate.transport.internal.frame.checksum;
 
-import com.google.common.collect.ImmutableTable;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableTable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;

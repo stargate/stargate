@@ -17,8 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -56,6 +55,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import org.apache.cassandra.net.ResourceLimits;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
@@ -814,7 +814,7 @@ public abstract class Message {
     }
 
     @Override
-    public boolean apply(Throwable exception) {
+    public boolean test(Throwable exception) {
       String message;
       try {
         message = "Unexpected exception during request; channel = " + channel;
