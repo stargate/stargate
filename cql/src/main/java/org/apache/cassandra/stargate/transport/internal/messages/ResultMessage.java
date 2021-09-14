@@ -379,7 +379,7 @@ public class ResultMessage extends Message.Response {
       // is not used in the native protocol
       // we need to hard-code it because the Result.Prepared is used as the external type,
       // but also internal propagated by specific persistence backends
-      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false);
+      return new Result.Prepared(id, resultMetadataId, resultMetadata, metadata, false, false);
     }
 
     @Override

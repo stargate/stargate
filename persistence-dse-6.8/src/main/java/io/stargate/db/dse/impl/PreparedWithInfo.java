@@ -13,21 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.db.cassandra.impl.idempotency;
+package io.stargate.db.dse.impl;
 
-import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
-public class PreparedWithIdempotent extends ResultMessage.Prepared {
+public class PreparedWithInfo extends ResultMessage.Prepared {
   private final boolean idempotent;
+  private final boolean useKeyspace;
 
-  public PreparedWithIdempotent(
-      boolean idempotent, Prepared prepare, ParsedStatement.Prepared prepared) {
-    super(prepare.statementId, prepared);
+  public PreparedWithInfo(Prepared prepared, boolean idempotent, boolean useKeyspace) {
+    super(
+        prepared.statementId,
+        prepared.resultMetadataId,
+        prepared.metadata,
+        prepared.resultMetadata);
     this.idempotent = idempotent;
+    this.useKeyspace = useKeyspace;
   }
 
   public boolean isIdempotent() {
     return idempotent;
+  }
+
+  public boolean isUseKeyspace() {
+    return useKeyspace;
   }
 }

@@ -70,7 +70,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
-            true);
+            true,
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -98,7 +99,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
                 Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
-            true);
+            true,
+            false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -126,7 +128,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
                 Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
-            true);
+            true,
+            false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -158,7 +161,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
-            true);
+            true,
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -191,7 +195,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
-            true);
+            true,
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -224,7 +229,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
-            true);
+            true,
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -257,7 +263,8 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
-            true);
+            true,
+            false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
@@ -289,6 +296,7 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             resultMetadata,
             Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            false,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
@@ -368,6 +376,7 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
                 Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));

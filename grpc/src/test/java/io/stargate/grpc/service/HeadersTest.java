@@ -97,7 +97,8 @@ public class HeadersTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(),
-            true);
+            true,
+            false);
     when(connection.prepare(any(String.class), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))

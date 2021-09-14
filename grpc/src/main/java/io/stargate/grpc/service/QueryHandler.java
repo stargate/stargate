@@ -130,10 +130,6 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         } catch (Exception e) {
           return failedFuture(e, false);
         }
-      case SetKeyspace:
-        return failedFuture(
-            Status.INVALID_ARGUMENT.withDescription("USE <keyspace> not supported").asException(),
-            false);
       default:
         return failedFuture(
             Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);

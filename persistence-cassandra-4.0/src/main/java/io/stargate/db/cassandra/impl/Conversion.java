@@ -7,7 +7,6 @@ import io.stargate.db.BatchType;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
-import io.stargate.db.cassandra.impl.idempotency.PreparedWithIdempotent;
 import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -45,7 +44,27 @@ import org.apache.cassandra.service.pager.PagingState.RowMark;
 import org.apache.cassandra.stargate.cql3.functions.FunctionName;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
-import org.apache.cassandra.stargate.exceptions.*;
+import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
+import org.apache.cassandra.stargate.exceptions.AuthenticationException;
+import org.apache.cassandra.stargate.exceptions.CDCWriteException;
+import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
+import org.apache.cassandra.stargate.exceptions.ConfigurationException;
+import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
+import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
+import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
+import org.apache.cassandra.stargate.exceptions.OperationExecutionException;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
+import org.apache.cassandra.stargate.exceptions.ReadFailureException;
+import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
+import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
+import org.apache.cassandra.stargate.exceptions.SyntaxException;
+import org.apache.cassandra.stargate.exceptions.TruncateException;
+import org.apache.cassandra.stargate.exceptions.UnauthorizedException;
+import org.apache.cassandra.stargate.exceptions.UnavailableException;
+import org.apache.cassandra.stargate.exceptions.WriteFailureException;
+import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.ServerError;
@@ -399,8 +418,9 @@ public class Conversion {
                     .build()));
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
-    if (!names.isEmpty() && ColumnSpecification.allInSameTable(names))
+    if (!names.isEmpty() && ColumnSpecification.allInSameTable(names)) {
       flags.add(Result.Flag.GLOBAL_TABLES_SPEC);
+    }
 
     return new Result.PreparedMetadata(flags, columns, indexes);
   }
@@ -438,7 +458,7 @@ public class Conversion {
         return new Result.SchemaChange(toSchemaChangeMetadata(resultMessage));
       case PREPARED:
         ResultMessage.Prepared prepared = (ResultMessage.Prepared) resultMessage;
-        PreparedWithIdempotent preparedWithIdempotent = (PreparedWithIdempotent) prepared;
+        PreparedWithInfo preparedWithInfo = (PreparedWithInfo) prepared;
         QueryHandler.Prepared preparedStatement =
             QueryProcessor.instance.getPrepared(prepared.statementId);
         return new Result.Prepared(
@@ -448,7 +468,8 @@ public class Conversion {
             toPreparedMetadata(
                 prepared.metadata.names,
                 preparedStatement.statement.getPartitionKeyBindVariableIndexes()),
-            preparedWithIdempotent.isIdempotent());
+            preparedWithInfo.isIdempotent(),
+            preparedWithInfo.isUseKeyspace());
     }
     throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);
   }
