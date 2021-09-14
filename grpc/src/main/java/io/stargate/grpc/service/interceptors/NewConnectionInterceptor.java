@@ -25,6 +25,7 @@ import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -79,9 +80,17 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       Context context = Context.current();
       context = context.withValue(GrpcService.CONNECTION_KEY, connection);
       return Contexts.interceptCall(context, call, headers, next);
-    } catch (Exception e) {
-      call.close(
-          Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        call.close(
+            Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
+      } else {
+        call.close(
+            Status.INTERNAL
+                .withDescription("Error attempting to create connection to persistence")
+                .withCause(e),
+            new Metadata());
+      }
     }
     return new NopListener<>();
   }

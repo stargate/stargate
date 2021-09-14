@@ -551,7 +551,8 @@ public class Conversion {
             toPreparedMetadata(
                 prepared.metadata.names,
                 preparedStatement.statement.getPartitionKeyBindVariableIndexes()),
-            preparedWithInfo.isIdempotent(), preparedWithInfo.isUseKeyspace());
+            preparedWithInfo.isIdempotent(),
+            preparedWithInfo.isUseKeyspace());
     }
 
     throw new ProtocolException("Unexpected type for RESULT message: " + resultMessage.kind);
