@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import org.apache.cassandra.config.Config;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -27,21 +28,21 @@ import org.junit.jupiter.api.BeforeAll;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class CassandraPersistenceIT extends PersistenceTest {
+class Cassandra40PersistenceIT extends PersistenceTest {
 
   private static CassandraPersistence persistence;
   private static File baseDir;
 
   @BeforeAll
   public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
-    baseDir = Files.createTempDirectory("stargate-cassandra-3.11-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-4.0-test").toFile();
     baseDir.deleteOnExit();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
     System.setProperty("stargate.datacenter", backend.datacenter());
     System.setProperty("stargate.rack", backend.rack());
-    ClassLoader classLoader = CassandraPersistenceIT.class.getClassLoader();
+    ClassLoader classLoader = Cassandra40PersistenceIT.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
     if (resource != null) {
@@ -50,12 +51,14 @@ class CassandraPersistenceIT extends PersistenceTest {
     }
 
     persistence = new CassandraPersistence();
-    persistence.initialize(makeConfig(baseDir));
+    Config config = makeConfig(baseDir);
+    config.enable_materialized_views = true;
+    persistence.initialize(config);
   }
 
   @AfterAll
   public static void cleanup() throws IOException {
-    // TODO: persistence.destroy() - note: it gets an NPE in NativeTransportService.destroy ATM
+    // TODO: persistence.destroy() - it fails with a NPE in NativeTransportService.destroy ATM
     //    if (persistence != null) {
     //      persistence.destroy();
     //    }
