@@ -36,9 +36,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link CassandraPersistence}. See also integration tests: {@link
- * CassandraPersistenceIT}.
+ * Cassandra40PersistenceIT}.
  */
-class CassandraPersistenceTest {
+class Cassandra40PersistenceTest {
   private static final IPartitioner partitioner = Murmur3Partitioner.instance;
   private static final VersionedValue.VersionedValueFactory valueFactory =
       new VersionedValue.VersionedValueFactory(partitioner);
