@@ -35,11 +35,18 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       Metadata.Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
 
   private static final InetSocketAddress DUMMY_ADDRESS = new InetSocketAddress(9042);
+  private static final int CACHE_TTL_SECS =
+      Integer.getInteger("stargate.grpc.connection_cache_ttl_seconds", 60);
+  private static final int CACHE_MAX_SIZE =
+      Integer.getInteger("stargate.grpc.connection_cache_max_size", 10_000);
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
   private final LoadingCache<RequestInfo, Connection> connectionCache =
-      Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build(this::newConnection);
+      Caffeine.newBuilder()
+          .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECS))
+          .maximumSize(CACHE_MAX_SIZE)
+          .build(this::newConnection);
 
   @Value.Immutable
   interface RequestInfo {
@@ -102,10 +109,13 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     Connection connection;
     if (!user.isFromExternalAuth()) {
       SocketAddress remoteAddress = info.remoteAddress();
-      InetSocketAddress inetSocketAddress = DUMMY_ADDRESS;
-      if (remoteAddress instanceof InetSocketAddress) {
-        inetSocketAddress = (InetSocketAddress) remoteAddress;
-      }
+      // This is best effort attempt to set the remote address, if the remote address is not the
+      // correct type then use a dummy value. Note: `remoteAddress` is almost always a
+      // `InetSocketAddress`.
+      InetSocketAddress inetSocketAddress =
+          remoteAddress instanceof InetSocketAddress
+              ? (InetSocketAddress) remoteAddress
+              : DUMMY_ADDRESS;
       connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
     } else {
       connection = persistence.newConnection();
