@@ -146,7 +146,7 @@ In case we want to execute N queries, we can use the `executeBatch` method:
 
 ```
 
-It takes the `Batch` as an argument. A Batch can contain N queries. We are adding two queries via `addQueries` method.
+It takes the `Batch` as an argument. A Batch can contain N queries of type INSERT, UPDATE, or DELETE. We are adding two queries via `addQueries` method.
 
 #### Async API
 
