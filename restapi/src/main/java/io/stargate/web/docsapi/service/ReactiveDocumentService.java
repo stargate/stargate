@@ -695,7 +695,7 @@ public class ReactiveDocumentService {
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
-        .flatMap(
+        .map(
             arrayAndValue -> {
               if (arrayAndValue == null) {
                 throw new ErrorCodeRuntimeException(
