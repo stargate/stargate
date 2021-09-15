@@ -2,7 +2,7 @@ package io.stargate.db.limiter;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
