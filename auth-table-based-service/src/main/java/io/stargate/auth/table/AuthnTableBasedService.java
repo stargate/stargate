@@ -16,8 +16,8 @@
 package io.stargate.auth.table;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import com.datastax.oss.driver.shaded.guava.common.cache.Cache;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
@@ -59,7 +59,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
   private final Cache<String, AuthenticationSubject> tokenCache =
-      CacheBuilder.newBuilder()
+      Caffeine.newBuilder()
           .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECONDS))
           .maximumSize(CACHE_MAX_SIZE)
           .build();
@@ -248,8 +248,16 @@ public class AuthnTableBasedService implements AuthenticationService {
 
     // otherwise, look in the cache and optionally fetch if missing
     try {
-      return tokenCache.get(token, () -> getAuthenticationSubject(token));
-    } catch (ExecutionException e) {
+      return tokenCache.get(
+          token,
+          v -> {
+            try {
+              return getAuthenticationSubject(v);
+            } catch (UnauthorizedException e) {
+              throw new RuntimeException(e);
+            }
+          });
+    } catch (RuntimeException e) {
       // properly inspect the cause of the execution exception
       // and re-throw if UnauthorizedException or RuntimeException
       // otherwise wrap in the RuntimeException
@@ -259,7 +267,7 @@ public class AuthnTableBasedService implements AuthenticationService {
       } else if (cause instanceof RuntimeException) {
         throw (RuntimeException) cause;
       } else {
-        throw new RuntimeException(e);
+        throw e;
       }
     }
   }
