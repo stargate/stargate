@@ -19,8 +19,8 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;

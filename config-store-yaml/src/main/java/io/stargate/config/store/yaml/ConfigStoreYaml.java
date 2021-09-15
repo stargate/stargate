@@ -16,9 +16,6 @@
 package io.stargate.config.store.yaml;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.MapType;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.base.Ticker;
 import com.datastax.oss.driver.shaded.guava.common.cache.CacheBuilder;
@@ -26,6 +23,9 @@ import com.datastax.oss.driver.shaded.guava.common.cache.CacheLoader;
 import com.datastax.oss.driver.shaded.guava.common.cache.LoadingCache;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.MapType;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;

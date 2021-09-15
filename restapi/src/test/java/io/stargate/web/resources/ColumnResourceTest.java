@@ -12,7 +12,6 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

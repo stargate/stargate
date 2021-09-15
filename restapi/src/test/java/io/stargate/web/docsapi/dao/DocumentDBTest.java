@@ -125,8 +125,8 @@ public class DocumentDBTest {
             "table",
             "k",
             1,
-                Arrays.asList("a", "b", "c", "d", "e"),
-                Arrays.asList("a", "few", "keys"));
+            Arrays.asList("a", "b", "c", "d", "e"),
+            Arrays.asList("a", "few", "keys"));
     assertThat(query.queryString())
         .isEqualTo(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 IN ?");
