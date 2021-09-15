@@ -147,6 +147,7 @@ In case we want to execute N queries, we can use the `executeBatch` method:
 ```
 
 It takes the `Batch` as an argument. A Batch can contain N queries of type INSERT, UPDATE, or DELETE. We are adding two queries via `addQueries` method.
+See the [Batch Documentation] if you want to read more about how the Batch request is handled.
 
 #### Async API
 
@@ -238,3 +239,4 @@ If the client sets the deadline to > 5 seconds, there will be a situation when a
 [Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
 [query.proto]: ../grpc-proto/proto/query.proto
 [StreamObserver]: https://grpc.github.io/grpc-java/javadoc/io/grpc/stub/StreamObserver.html
+[Batch Documentation]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_reference/cql_commands/cqlBatch.html
