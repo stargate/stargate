@@ -7,7 +7,7 @@
 Let's see how to configure a java project to use the Stargate gRPC API.
 The generated code based on protobuf files (`query.proto` and `stargate.proto`) is shipped with the `grpc-proto` dependency.
 
-To see a guide how it compiles the Java code see: [gRPC setup project dependencies].
+To see a guide how the Java code is compiled from the proto files see: [gRPC setup project dependencies]. This is purely background information and not required for using the client discussed here.
 In your client application, you only need to add one dependency:
 
 ```xml
