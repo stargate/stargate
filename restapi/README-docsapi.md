@@ -124,18 +124,18 @@ CQL-supported operators:
 * `$eq` - equals; expects a single text, numerical, or boolean value
 * `$lt(e)` - less than (or equal); expects a single text or numerical value (text values are compared lexically by C*)
 * `$gt(e)` - greater than (or equal); expects a single text or numerical value (text values are compared lexically by C*)
-* `$exists` - a value exists for the field; with the value `true` it is a supported operator
+* `$exists` - a value exists for the field; with the value `true` it is a CQL-supported operator
 
 CQL-unsupported operators:
 * `$in` - matching any value in a list; expects a list of values e.g. `where={"name":{"$in":["Alice", "Bob"]}}`
-* `$nin` - not matching any value in a list; expects a list of values just like $in and resolves to `true` if the field does not exist
+* `$nin` - not matching any value in a list; expects a list of values just like $in and matches a document if the field does not exist
 * `$ne` - not equals; expects a single text, numerical, or boolean value 
 * `$and` - matching multiple filter operators
 * `$or` - matching at least one of many different filter operators
-* `$exists` - a value exists for the field; with the value `false` it is not a supported operator
+* `$exists` - a value exists for the field; with the value `false` it is not a CQL-supported operator
 
 Certain operators (`$nin`, `$ne`, and `$exists: false`) require loading whole documents in memory, as they need
-to evaluate that data is missing in an exhaustive fashion. `$in` does not require this and only matches on a single row.
+to evaluate that data is missing in an exhaustive fashion. `$in` does not require this and only needs to load a single row.
 
 Using a CQL-unsupported operator with a CQL-supported operator is allowed, but will potentially involve bringing large amounts of data into memory
 to fulfill the search.
@@ -189,5 +189,5 @@ It is expected when adding or changing features that both Unit tests and Integra
 [Server]: src/main/java/io/stargate/web/impl/Server.java
 
 [Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-document.html
-[Json schema info]: https://json-schema.org/
+[Json schema docs]: https://json-schema.org/
 [unit testing directory]: src/test/java
