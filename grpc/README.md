@@ -8,7 +8,7 @@ Let's see how to configure a java project to use the Stargate gRPC API.
 The generated code based on protobuf files (`query.proto` and `stargate.proto`) is shipped with the `grpc-proto` dependency.
 
 To see a guide how the Java code is compiled from the proto files see: [gRPC setup project dependencies]. This is purely background information and not required for using the client discussed here.
-In your client application, you only need to add one dependency:
+In your client application, you only need to add two dependencies which are the client and a functional channel service provider (we pick netty here).
 
 ```xml
 <dependencies>
@@ -17,18 +17,12 @@ In your client application, you only need to add one dependency:
         <artifactId>grpc-proto</artifactId>
         <version>1.0.32</version>
     </dependency>
-</dependencies>
-```
-The last missing piece is to add a functional channel service provider. We pick netty:
-```xml
-<dependencies>
     <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.40.1</version>
+         <groupId>io.grpc</groupId>
+         <artifactId>grpc-netty-shaded</artifactId>
+         <version>1.40.1</version>
     </dependency>
 </dependencies>
-```
 If you do not add it, you will observe the following error:
 `No functional channel service provider found. Try adding a dependency on the grpc-okhttp, grpc-netty, or grpc-netty-shaded artifact`.
 
