@@ -184,7 +184,7 @@ stub.executeQuery(QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks
 ```
 This query will return immediately because it is non-blocking. 
 If your program (or test) is progressing to the end, you may not be able to see the results. 
-Your program may exist before the will arrives. 
+Your program may exit before the data arrives. 
 After some time, when the data arrives, the `streamObserver` will be called.
 
 The output of our program will look like this:
