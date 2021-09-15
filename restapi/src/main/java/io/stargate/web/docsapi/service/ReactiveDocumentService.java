@@ -74,6 +74,7 @@ public class ReactiveDocumentService {
   @Inject JsonConverter jsonConverter;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
+  @Inject DocsApiConfiguration docsApiConfiguration;
 
   public ReactiveDocumentService() {}
 
@@ -82,12 +83,14 @@ public class ReactiveDocumentService {
       DocumentSearchService searchService,
       JsonConverter jsonConverter,
       ObjectMapper objectMapper,
-      TimeSource timeSource) {
+      TimeSource timeSource,
+      DocsApiConfiguration docsApiConfiguration) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
     this.jsonConverter = jsonConverter;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
+    this.docsApiConfiguration = docsApiConfiguration;
   }
 
   /**
@@ -651,7 +654,7 @@ public class ReactiveDocumentService {
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
-        .flatMap(
+        .map(
             jsonArray -> {
               if (jsonArray == null) {
                 throw new ErrorCodeRuntimeException(
@@ -661,12 +664,14 @@ public class ReactiveDocumentService {
               List<String> processedPath = processSubDocumentPath(pathString);
 
               List<Object[]> bindParams =
-                  shredPayload(
+                  DocsApiUtils.shredPayload(
                           JsonSurferJackson.INSTANCE,
                           db,
                           processedPath,
                           id,
                           jsonArray.toString(),
+                          docsApiConfiguration.getMaxDepth(),
+                          docsApiConfiguration.getMaxArrayLength(),
                           false,
                           true)
                       .left;
@@ -700,12 +705,14 @@ public class ReactiveDocumentService {
               List<String> processedPath = processSubDocumentPath(pathString);
 
               List<Object[]> bindParams =
-                  shredPayload(
+                  DocsApiUtils.shredPayload(
                           JsonSurferJackson.INSTANCE,
                           db,
                           processedPath,
                           id,
                           arrayAndValue.getValue0().toString(),
+                          docsApiConfiguration.getMaxDepth(),
+                          docsApiConfiguration.getMaxArrayLength(),
                           false,
                           true)
                       .left;
