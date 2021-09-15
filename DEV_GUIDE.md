@@ -1,3 +1,9 @@
+## Stargate Developer Guide
+
+Want to build Stargate locally or even start contributing to the project? This is the right place to get started. 
+
+If you're developing on MacOS, we've added notes throughout to highlight a few specific differences.
+ 
 ## Code conventions
 
 We use [google-java-format](https://github.com/google/google-java-format) for Java code, and
@@ -11,9 +17,24 @@ To fix formatting issues from the command line, run the following:
 mvn xml-format:xml-format fmt:format
 ```
 
-## Building
+## Java Version 
 
-**__For building locally and running, Stargate only supports jdk 8 at the moment due to it's backend dependencies.__**
+Stargate currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
+
+Download JDK 8 from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
+
+Install the JDK and add it to your path. 
+
+For example: if you are using a newer version of MacOS, then you are likely using Z-Shell (zsh) by default. So open your `~/.zshrc` file and add the path there:
+
+```sh
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+## Building with Maven
+
+Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/master/mvnw) script as you would ordinarily use the `mvn` command.
 
 To build locally run the following:
 
@@ -21,25 +42,26 @@ To build locally run the following:
 ./mvnw clean package
 ```
 
-You can also build a single module with
+You can also build a single module like this:
 
 ```sh
 ./mvnw package -pl restapi -am
 ```
 
-* If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` exception, upgrade your local `wget`
+> * **_NOTE:_** If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` 
+> exception on Linux, upgrade your local `wget`.
 
 ## Running Locally
 
 ### Prerequisite
 
 Before starting Stargate locally, you will need an instance of Apache Cassandra&reg;.
-The easiest way to do this is with a docker image (see [Cassandra docker images](https://hub.docker.com/_/cassandra)).
+The easiest way to do this is with a Docker image (see [Cassandra docker images](https://hub.docker.com/_/cassandra)).
 
-*NOTE* due to the way networking works with Docker for Mac, the Docker method only works on Linux. Use CCM (see below) for
-use with Macs.
+> **_NOTE:_** due to the way networking works with Docker for Mac, the Docker method only works on Linux. 
+> We recommend CCM (see below) for use with MacOS.
 
-Docker: Start a Cassandra 3.11 instance
+Docker: Start a Cassandra 3.11 instance:
 
 ```sh
 docker run --name local-cassandra \
@@ -56,13 +78,13 @@ ccm create stargate -v 3.11.8 -n 1 -s -b
 
 ### Start commands
 
-Before starting on MacOSX you'll need to add an additional loopback
+> **_NOTE:_**  Before starting Stargate on MacOS you'll need to add an additional loopback:
 
 ```sh
 sudo ifconfig lo0 alias 127.0.0.2
 ```
 
-Start Stargate from the command line with
+Start Stargate from the command line as follows:
 
 ```sh
 ./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
@@ -70,23 +92,20 @@ Start Stargate from the command line with
 # See all cli options with -h
 ```
 
-Or use a pre-built docker image
-Docker Hub: <https://hub.docker.com/r/stargateio/>
+Or use a pre-built image from [Docker Hub](https://hub.docker.com/r/stargateio/):
 
 ```sh
 docker pull stargateio/stargate-3_11:v0.0.2
-```
 
-```sh
 docker run --name stargate -d stargateio/stargate-3_11:v0.0.2 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --simple-snitch
 ```
 
-`starctl` respects the `JAVA_OPTS` environment variable.
-For example, to set a java system property with spaces in its value one can run `starctl` as follows.
-Note the double quotes embedded in the env. var value - it is re-evalutated (once) as a `bash` token before being
-passed to the JVM. This is required to break the single value of `JAVA_OPTS` into a sequence of tokens.
-This kind of processing is not required for ordinary command line arguments, therefore they do not need any extra
-quoting.
+The `starctl` script respects the `JAVA_OPTS` environment variable.
+For example, to set a Java system property with spaces in its value, run `starctl` as shown below.
+Note the double quotes embedded in the environment var value - it is re-evalutated (once) as a `bash` 
+token before being passed to the JVM. This is required to break the single value of `JAVA_OPTS` into 
+a sequence of tokens. This kind of processing is not required for ordinary command line arguments, 
+therefore they do not need any extra quoting.
 
 ```sh script
 env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluster' ...
@@ -96,7 +115,7 @@ env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluste
 
 If you're an IntelliJ user you can create the *JAR Application* run configuration, pointing to the `stargate-lib/stargate-starter-[VERSION].jar` and specifying `stargate-lib/` as the working directory.
 
-Then please disable **Instrumenting agent** in `Settings | Build, Execution, Deployment | Debugger | Async Stacktraces`.
+Then disable **Instrumenting agent** in `Settings | Build, Execution, Deployment | Debugger | Async Stacktraces`.
 This will allow you to debug directly using the IntelliJ debug run option.
 You can debug any run configuration and tests as well.
 
@@ -112,14 +131,13 @@ Alternatively, use the `JAVA_OPTS` environment variable to pass debugging option
 env JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005' ./starctl --cluster-name stargate ...
 ```
 
-and then follow the steps found [here](https://www.baeldung.com/intellij-remote-debugging)
-
+Then follow the steps found [here](https://www.baeldung.com/intellij-remote-debugging).
 
 ## Connecting
 
 ### CQL
 
-Connect to CQL as normal on port 9042
+Connect to CQL as normal on port 9042:
 
 ```sh
 $ cqlsh 127.0.0.2 9042
@@ -130,7 +148,7 @@ Use HELP for help.
 
 ### REST
 
-Get an auth token to use on subsequent requests
+First, get an auth token to use on subsequent requests: 
 
 ```sh
 # Generate an auth token
@@ -141,6 +159,8 @@ curl -L -X POST 'http://127.0.0.2:8081/v1/auth' \
     "password": "cassandra"
 }'
 ```
+
+Then use the token when accessing the REST API:
 
 ```sh
 # Get all keyspaces using the auth token from the previous request
@@ -155,10 +175,13 @@ curl -L -X GET '127.0.0.2:8082/v1/keyspaces' \
 Integration tests require that Cassandra Cluster Manager ([ccm](https://github.com/riptano/ccm))
 be installed and accessible via the OS `PATH`.
 
-Note: Integration tests use `ccm` to start transient storage nodes that are normally destroyed at 
+The tests use `ccm` to start transient storage nodes that are normally destroyed at 
 the end of the test run. However, if the test JVM is killed during execution, the external storage
 node may continue running and may interfere with subsequent test executions. In this case, the
 transient storage process needs to be stopped manually (e.g. by using the `kill` command).
+
+> **_NOTE:_** to run integration tests on MacOS, you'll need to enable several different loopback addresses 
+> using the instructions [below](#loopback-addresses).
 
 ### Ordinary Execution
 
@@ -171,8 +194,8 @@ To run integration tests in the default configuration, run:
 This will run integration tests for Cassandra 3.11 and 4.0. 
 On a reasonably powerful laptop it takes about 40 minutes.
 
-Note: Support for DSE is not turned on by default.
-To build and test Stargate with the DSE 6.8 persistence module, run:
+Note: Support for DSE is disabled by default.
+To build and test Stargate with the DSE 6.8 persistence module, specify the `dse` and `it-dse-6.8` Maven profiles:
 
 ```sh
 ./mvnw verify -P dse -P it-dse-6.8
@@ -184,14 +207,14 @@ To run integration tests with all Cassandra and DSE persistence modules, run:
 ./mvnw verify -P it-cassandra-3.11 -P it-cassandra-4.0 -P dse -P it-dse-6.8
 ```
 
-Note: Enabling only one of the `it-*` profiles will automatically disable the others.
+Note: Enabling only one of the `it-*` Maven profiles will automatically disable the others.
 
 ### Debugging Integration Tests
 
-When debugging integration tests, it may be preferable to manually control the storage node.
-It does not matter how exactly the storage node is started (docker, ccm or manual run) as
-long as port `7000` is properly forwarded from `127.0.0.1` to the storage node. If the storage
-is managed manually, use the following options to convey connection information to the test JVM:
+When debugging integration tests, you may prefer to manually control the storage node.
+It does not matter how exactly the storage node is started (Docker, ccm or manual run) as
+long as port `7000` is properly forwarded from `127.0.0.1` to the storage node. If you are managing 
+the storage node manually, use the following options to convey connection information to the test JVM:
 * `-Dstargate.test.backend.use.external=true`
 * `-Dstargate.test.backend.cluster_name=<CLUSTER_NAME>`
 * `-Dstargate.test.backend.dc=<DATA_CENTER_NAME>`
@@ -203,47 +226,47 @@ started with debugging options (using consecutive ports starting with 5100), for
 -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=localhost:5100
 ```
 
-It is expected that the user has several java debuggers waiting for connections on ports `510N` -
+You can run multiple Java debuggers waiting for connections on ports `510N` and up -
 one for each Stargate node required for the test. Note that most of the tests start only
 one Stargate node.
 
-Check the picture below to understand how to set up the remote listening debug run configuration in IntelliJ.
-That configuration has to be started before running the integration test in the debug mode.
-Note that you will have two or more JVMs in the debug model then, one running the actual integration tests and at least one running the Stargate node. 
+The picture below shows the remote listening debug run configuration in IntelliJ.
+That configuration must be started before running the integration test in the debug mode.
+You wlll observe two or more JVMs in the debug model, one running the integration tests and at least one running Stargate. 
 
 ![image](assets/remote-debug-listener.png#center)
 
 ### Running / Debugging Integration Tests in an IDE
 
-Integration tests can be started / debugged individually in an IDE.
+You can start and debug integration tests individually in an IDE.
 
-If `ccm` is used to manage storage nodes during tests, it should be accessible from the IDE's
+If you're using `ccm` to manage storage nodes during tests, it must be accessible from the IDE's
 execution environment (`PATH`).
 
 ### Specifying Storage Backend
 
-When tests are started manually via an IDE or JUnit Console Launcher, the type and version
-of the storage backend can be specified using the following java system properties.
+When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
+of the storage backend using the following Java system properties:
 
 * `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.8`)
-* `-Dccm.dse=<true|false>` - whether the storage cluster is DSE or OSS Cassandra.
+* `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 
 ### Adding New Integration Tests
 
-There are two custom JUnit 5 extensions used by Stargate code when running integration tests.
+There are two custom JUnit 5 extensions used when running integration tests.
 
 * `ExternalStorage` - manages starting and stopping storage nodes (Cassandra and/or DSE) through
   [ccm]((https://github.com/riptano/ccm)).
-  This extension is defined in the `persistence-test`  module.
-  The `@ClusterSpec` annotation work in conjunction with `ExternalStorage` and defines parameters
+  This extension is defined in the `persistence-test` module.
+  The `@ClusterSpec` annotation works in conjunction with `ExternalStorage` and defines parameters
   of the external storage nodes.
   When this extension is active, it will automatically inject test method parameters of type
   `ClusterConnectionInfo`.
 
 * `StargateContainer` - manages starting and stopping Stargate nodes (OSGi containers).
   This extension is defined in the `testing` module.
-  The `@StargateSpec` annotation work in conjunction with `StargateContainer` and defines parameters
+  The `@StargateSpec` annotation works in conjunction with `StargateContainer` and defines parameters
   of the Stargate nodes.
   When this extension is active, it will automatically inject test method parameters of type
   `StargateConnectionInfo` and `StargateEnvironmentInfo`.
@@ -258,7 +281,7 @@ annotation to activate both extensions in the right order.
 The code element holding `@ClustgerSpec` or `@StargateSpec` annotations controls the lifecycle of
 the nodes they define. If the "spec" is present at the class level (inherited), the corresponding 
 nodes will be started/stopped according to `@BeforeAll` / `@AfterAll` JUnit 5 callbacks. Similarly,
-if the spec is present at the method level, the nodes' lifecycle will follow `@BeforeEach` /
+if the spec is present at the method level, each node's lifecycle will follow `@BeforeEach` /
 `@AfterEach` callbacks. An exception to this rule is when the spec has the `shared` property set 
 to `true`, in which case the corresponding nodes will not be stopped until another test is executed
 and that test requests _different_ node parameters (when that happens the old nodes will be stopped,
@@ -271,12 +294,96 @@ Parameter injection works with any method where JUnit 5 supports parameter injec
 (e.g. constructors, `@Test` methods, `@Before*` methods) if the corresponding storage / Stargate
 nodes are available.
 
+### <a name="loopback-addresses"></a> Creating Loopback Addresses for Integration Tests on MacOS
+
+The integration tests use multiple loopback addresses which you will need to create individually on MacOS. 
+We recommend persisting the network aliases using a RunAtLoad launch daemon which OSX automatically loads 
+on startup. For example:
+
+Create a shell script:
+```
+sudo vim /Library/LaunchDaemons/com.ccm.lo0.alias.sh
+```
+
+Contents of the script:
+```
+#!/bin/sh
+sudo /sbin/ifconfig lo0 alias 127.0.0.2;
+sudo /sbin/ifconfig lo0 alias 127.0.0.3;
+sudo /sbin/ifconfig lo0 alias 127.0.0.4;
+sudo /sbin/ifconfig lo0 alias 127.0.0.5;
+sudo /sbin/ifconfig lo0 alias 127.0.0.6;
+sudo /sbin/ifconfig lo0 alias 127.0.0.7;
+sudo /sbin/ifconfig lo0 alias 127.0.0.8;
+sudo /sbin/ifconfig lo0 alias 127.0.0.9;
+sudo /sbin/ifconfig lo0 alias 127.0.0.10;
+sudo /sbin/ifconfig lo0 alias 127.0.0.11;
+
+sudo /sbin/ifconfig lo0 alias 127.0.2.1;
+sudo /sbin/ifconfig lo0 alias 127.0.2.2;
+sudo /sbin/ifconfig lo0 alias 127.0.2.3;
+sudo /sbin/ifconfig lo0 alias 127.0.2.4;
+sudo /sbin/ifconfig lo0 alias 127.0.2.5;
+sudo /sbin/ifconfig lo0 alias 127.0.2.6;
+sudo /sbin/ifconfig lo0 alias 127.0.2.7;
+sudo /sbin/ifconfig lo0 alias 127.0.2.8;
+sudo /sbin/ifconfig lo0 alias 127.0.2.9;
+
+sudo /sbin/ifconfig lo0 alias 127.0.1.11;
+sudo /sbin/ifconfig lo0 alias 127.0.1.12;
+```
+
+Set access of the script:
+```
+sudo chmod 755 /Library/LaunchDaemons/com.ccm.lo0.alias.sh
+```
+
+Create a plist to launch the script:
+```
+sudo vim /Library/LaunchDaemons/com.ccm.lo0.alias.plist
+```
+
+Contents of the plist:
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ccm.lo0.alias</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Library/LaunchDaemons/com.ccm.lo0.alias.sh</string>
+    </array>
+    <key>StandardErrorPath</key>
+    <string>/var/log/loopback-alias.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/loopback-alias.log</string>
+</dict>
+</plist>
+```
+
+Set access of the plist:
+```
+sudo chmod 0644 /Library/LaunchDaemons/com.ccm.lo0.alias.plist
+sudo chown root:staff /Library/LaunchDaemons/com.ccm.lo0.alias.plist
+```
+
+Launch the daemon now. MacOS will automatically reload it on startup.
+```
+sudo launchctl load /Library/LaunchDaemons/com.ccm.lo0.alias.plist
+```
+
+Verify you can ping 127.0.0.2 and 127.0.0.3, etc.
+
+If you ever want to permanently kill the daemon, simply delete its plist from /Library/LaunchDaemons/.
 
 ## Updating Licenses Report
 
-To update the licenses-report.txt you'll need to install [fossa-cli](https://github.com/fossas/fossa-cli). Once
-you have that installed locally run the following from the root of stargate/stargate.
-
+To update the `licenses-report.txt` you'll need to install [fossa-cli](https://github.com/fossas/fossa-cli). Once
+you have that installed locally run the following from the root `stargate` directory.
 
 ```sh
 FOSSA_API_KEY=<TOKEN> fossa
@@ -286,26 +393,12 @@ FOSSA_API_KEY=<TOKEN> fossa report licenses > foo.txt
 It's best to write the report to a temporary file and use your diff
 tool of choice to merge the two together since fossa-cli generates a ton of duplicates.
 
-Finally, before committing your changes you'll want to clean up
+Finally, before committing your changes you'll want to clean up:
 
 ```sh
 rm foo.txt .fossa.yml
 ```
 
-# MAC Developer Notes
 
-It's critically important to ensure that you have the correct JDK v8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
 
-Download and install Maven from this link: https://maven.apache.org/download.cgi or use the included [maven wrapper](https://github.com/stargate/stargate/blob/master/mvnw) script as you would ordinarily use the `mvn` command.
-
-Download the JDK from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
-
-Install that version of the JDK and then be sure to add it to your path. If you are using a newer version of the Mac OS, then you are likely using Z-Shell by default. So open your ~/.zshrc file and add the path there. Here is an example:
-
-```sh
-export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-Now you should be able to successfully compile the Stargate project using the command ```./mvnw clean package```
 
