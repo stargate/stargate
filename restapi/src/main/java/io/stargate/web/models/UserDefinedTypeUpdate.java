@@ -15,9 +15,9 @@
  */
 package io.stargate.web.models;
 
+import com.datastax.oss.driver.shaded.guava.common.base.MoreObjects;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.MoreObjects;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.validation.constraints.NotNull;

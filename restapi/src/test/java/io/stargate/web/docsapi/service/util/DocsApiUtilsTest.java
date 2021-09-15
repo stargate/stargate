@@ -25,7 +25,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableList;
 import io.stargate.db.datastore.MapBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Table;
@@ -155,9 +154,9 @@ class DocsApiUtilsTest {
     public void asList() {
       List<String> converted =
           DocsApiUtils.convertEscapedCharacters(
-              ImmutableList.of("\\. is a period", "I can represent asterisks too: \\*"));
+              Arrays.asList("\\. is a period", "I can represent asterisks too: \\*"));
       assertThat(converted)
-          .isEqualTo(ImmutableList.of(". is a period", "I can represent asterisks too: *"));
+          .isEqualTo(Arrays.asList(". is a period", "I can represent asterisks too: *"));
     }
   }
 

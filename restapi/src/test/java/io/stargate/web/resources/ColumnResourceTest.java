@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import io.stargate.auth.AuthorizationService;
@@ -13,6 +12,8 @@ import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.GenericType;
@@ -39,7 +40,7 @@ class ColumnResourceTest {
     Table table = mock(Table.class);
     Column column1 = ImmutableColumn.create("c1", Column.Kind.Static, Column.Type.Text);
     Column column2 = ImmutableColumn.create("c2", Column.Kind.Regular, Column.Type.Int);
-    List<Column> columns = ImmutableList.of(column1, column2);
+    List<Column> columns = Arrays.asList(column1, column2);
 
     AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
     when(db.getRestDataStoreForToken("token", Collections.emptyMap())).thenReturn(authenticatedDB);
@@ -57,7 +58,7 @@ class ColumnResourceTest {
     assertThat(columnDefinitions)
         .usingRecursiveComparison()
         .isEqualTo(
-            ImmutableList.of(
+            Arrays.asList(
                 new ColumnDefinition("c1", "text", true),
                 new ColumnDefinition("c2", "int", false)));
   }

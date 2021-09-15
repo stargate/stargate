@@ -2,8 +2,8 @@ package io.stargate.web.docsapi.resources;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.examples.WriteDocResponse;

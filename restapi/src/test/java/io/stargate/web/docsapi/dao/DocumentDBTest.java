@@ -13,7 +13,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -99,7 +98,7 @@ public class DocumentDBTest {
   public void getPrefixDeleteStatement() {
     BoundQuery query =
         documentDB.getPrefixDeleteStatement(
-            "keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c"));
+            "keyspace", "table", "k", 1, Arrays.asList("a", "b", "c"));
     assertThat(query.queryString())
         .isEqualTo(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?");
@@ -110,7 +109,7 @@ public class DocumentDBTest {
   public void getSubpathArrayDeleteStatement() {
     BoundQuery query =
         documentDB.getSubpathArrayDeleteStatement(
-            "keyspace", "table", "k", 1, ImmutableList.of("a", "b", "c", "d"));
+            "keyspace", "table", "k", 1, Arrays.asList("a", "b", "c", "d"));
     assertThat(query.queryString())
         .isEqualTo(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 >= ? AND p4 <= ?");
@@ -126,20 +125,20 @@ public class DocumentDBTest {
             "table",
             "k",
             1,
-            ImmutableList.of("a", "b", "c", "d", "e"),
-            ImmutableList.of("a", "few", "keys"));
+                Arrays.asList("a", "b", "c", "d", "e"),
+                Arrays.asList("a", "few", "keys"));
     assertThat(query.queryString())
         .isEqualTo(
             "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ? AND p4 = ? AND p5 IN ?");
     assertThat(javaValues(query.values()))
-        .isEqualTo(asList(1L, "k", "a", "b", "c", "d", "e", ImmutableList.of("a", "few", "keys")));
+        .isEqualTo(asList(1L, "k", "a", "b", "c", "d", "e", Arrays.asList("a", "few", "keys")));
   }
 
   @Test
   public void getExactPathDeleteStatement() {
     BoundQuery query =
         documentDB.getExactPathDeleteStatement(
-            "keyspace", "table", "key", 1, ImmutableList.of("a", "b", "c", "d", "e"));
+            "keyspace", "table", "key", 1, Arrays.asList("a", "b", "c", "d", "e"));
     StringBuilder expected =
         new StringBuilder("DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ?");
     for (int i = 0; i < 64; i++) {
@@ -150,7 +149,7 @@ public class DocumentDBTest {
     List<Object> expectedValues = new ArrayList<>();
     expectedValues.add(1L);
     expectedValues.add("key");
-    expectedValues.addAll(ImmutableList.of("a", "b", "c", "d", "e"));
+    expectedValues.addAll(Arrays.asList("a", "b", "c", "d", "e"));
     for (int i = 5; i < 64; i++) {
       expectedValues.add("");
     }
@@ -182,7 +181,7 @@ public class DocumentDBTest {
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = ImmutableList.of("a", "b", "c");
+    List<String> path = Arrays.asList("a", "b", "c");
     Map<String, Object> map = documentDB.newBindMap(path);
     map.put("key", "key");
     map.put("leaf", "c");
@@ -216,8 +215,8 @@ public class DocumentDBTest {
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = ImmutableList.of("a", "b", "c");
-    List<String> patchedKeys = ImmutableList.of("eric");
+    List<String> path = Arrays.asList("a", "b", "c");
+    List<String> patchedKeys = Arrays.asList("eric");
     Map<String, Object> map = documentDB.newBindMap(path);
     map.put("key", "key");
     map.put("leaf", "c");
@@ -266,7 +265,7 @@ public class DocumentDBTest {
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = ImmutableList.of("a", "b", "c");
+    List<String> path = Arrays.asList("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
     vars.get(0)[0] = 1L;

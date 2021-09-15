@@ -17,8 +17,8 @@ package io.stargate.web.docsapi.service;
 
 import static io.stargate.web.docsapi.service.CombinedPagingState.EXHAUSTED_PAGE_STATE;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import hu.akarnokd.rxjava3.operators.ExpandStrategy;
 import hu.akarnokd.rxjava3.operators.FlowableTransformers;
 import hu.akarnokd.rxjava3.operators.Flowables;

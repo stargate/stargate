@@ -1,5 +1,6 @@
 package io.stargate.web.docsapi.service;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -7,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.google.common.base.Splitter;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;

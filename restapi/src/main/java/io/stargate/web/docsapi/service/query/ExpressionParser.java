@@ -23,7 +23,7 @@ import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Streams;
+import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.query.ImmutableFilterExpression.Builder;

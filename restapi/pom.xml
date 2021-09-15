@@ -112,9 +112,9 @@
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>27.0-jre</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <version>25.1-jre</version>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
