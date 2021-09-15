@@ -26,12 +26,6 @@
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -91,7 +85,6 @@
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               org.javatuples,
-              com.datastax.oss.driver.shaded.guava.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

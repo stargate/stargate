@@ -1,13 +1,12 @@
 package io.stargate.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -42,8 +41,7 @@ class AuthenticationSubjectTest {
   @Test
   public void serializationRoundTripWithCustom() {
     AuthenticatedUser user =
-        AuthenticatedUser.of(
-            "name1", "token2", true, ImmutableMap.of("key1", "val1", "key2", "val2"));
+        AuthenticatedUser.of("name1", "token2", true, immutableMap("key1", "val1", "key2", "val2"));
     Map<String, ByteBuffer> bytes = Serializer.serialize(user);
     AuthenticationSubject subject = AuthenticationSubject.of(Serializer.load(bytes));
 
@@ -51,7 +49,7 @@ class AuthenticationSubjectTest {
     assertThat(subject.token()).isEqualTo("token2");
     assertThat(subject.isFromExternalAuth()).isEqualTo(true);
     assertThat(subject.customProperties())
-        .containsExactlyEntriesOf(ImmutableMap.of("key1", "val1", "key2", "val2"));
+        .containsExactlyEntriesOf(immutableMap("key1", "val1", "key2", "val2"));
   }
 
   @Test
@@ -67,12 +65,12 @@ class AuthenticationSubjectTest {
   public void fullInputsLocal() {
     AuthenticationSubject subject =
         AuthenticationSubject.of(
-            "token1", "user2", false, ImmutableMap.of("key1", "val1", "key2", "val2"));
+            "token1", "user2", false, immutableMap("key1", "val1", "key2", "val2"));
     assertThat(subject.token()).isEqualTo("token1");
     assertThat(subject.roleName()).isEqualTo("user2");
     assertThat(subject.isFromExternalAuth()).isEqualTo(false);
     assertThat(subject.customProperties())
-        .containsExactlyEntriesOf(ImmutableMap.of("key1", "val1", "key2", "val2"));
+        .containsExactlyEntriesOf(immutableMap("key1", "val1", "key2", "val2"));
   }
 
   @Test
@@ -97,10 +95,21 @@ class AuthenticationSubjectTest {
   @Test
   public void convertToAuthenticatedUser() {
     AuthenticatedUser user =
-        AuthenticationSubject.of("token1", "user2", true, ImmutableMap.of("p1", "v1")).asUser();
+        AuthenticationSubject.of("token1", "user2", true, immutableMap("p1", "v1")).asUser();
     assertThat(user.token()).isEqualTo("token1");
     assertThat(user.name()).isEqualTo("user2");
     assertThat(user.isFromExternalAuth()).isEqualTo(true);
-    assertThat(user.customProperties()).isEqualTo(ImmutableMap.of("p1", "v1"));
+    assertThat(user.customProperties()).isEqualTo(immutableMap("p1", "v1"));
+  }
+
+  private Map<String, String> immutableMap(String key, String value) {
+    return Collections.singletonMap(key, value);
+  }
+
+  private Map<String, String> immutableMap(String k1, String v1, String k2, String v2) {
+    Map<String, String> map = new HashMap<>();
+    map.put(k1, v1);
+    map.put(k2, v2);
+    return Collections.unmodifiableMap(map);
   }
 }

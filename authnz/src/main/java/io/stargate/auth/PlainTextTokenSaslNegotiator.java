@@ -17,7 +17,6 @@
  */
 package io.stargate.auth;
 
-import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Authenticator.SaslNegotiator;
@@ -86,7 +85,6 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
    * @return a pair contain the username and password
    * @throws AuthenticationException if either the authnId or password is null
    */
-  @VisibleForTesting
   public static Credentials decodeCredentials(byte[] bytes) throws AuthenticationException {
     logger.trace("Decoding credentials from client token");
     byte[] user = null;
