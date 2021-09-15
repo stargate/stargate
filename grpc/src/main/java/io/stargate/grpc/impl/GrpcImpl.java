@@ -23,9 +23,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.GrpcService;
-import io.stargate.grpc.service.interceptors.AuthenticationInterceptor;
-import io.stargate.grpc.service.interceptors.HeadersInterceptor;
-import io.stargate.grpc.service.interceptors.RemoteAddressInterceptor;
+import io.stargate.grpc.service.interceptors.NewConnectionInterceptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
@@ -69,9 +67,7 @@ public class GrpcImpl {
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             .executor(executor)
-            .intercept(new AuthenticationInterceptor(authenticationService))
-            .intercept(new RemoteAddressInterceptor())
-            .intercept(new HeadersInterceptor())
+            .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, metrics, executor))
             .build();

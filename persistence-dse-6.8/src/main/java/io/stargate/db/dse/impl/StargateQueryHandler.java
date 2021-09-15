@@ -27,7 +27,6 @@ import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.dse.impl.idempotency.IdempotencyAnalyzer;
-import io.stargate.db.dse.impl.idempotency.PreparedWithIdempotent;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -134,7 +133,8 @@ public class StargateQueryHandler implements QueryHandler {
               Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
               CQLStatement statement = prepared.statement;
               boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
-              return new PreparedWithIdempotent(p, idempotent);
+              boolean useKeyspace = statement instanceof UseStatement;
+              return new PreparedWithInfo(p, idempotent, useKeyspace);
             });
   }
 
