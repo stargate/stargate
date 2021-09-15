@@ -127,7 +127,7 @@ rs.getRows(0).getValues(1).getInt(); // it will return value for v = 1
 ```
 We can get all rows `getRowsList()` and iterate over the result 
 OR get the specific row using its index and passing it to the `getRows(int index)` method. We picked the latter approach in the example above.
-Our retrieval query (`SELECT k, v FROM test"`) stated explicitly which columns should be retrieved.
+Our retrieval query (`SELECT k, v FROM ks.test"`) stated explicitly which columns should be retrieved.
 Thanks to that, we can safely get the values using their positions via the `getValues()` method.
 The `getString()` and `getInt()` perform deserialization of data. The API provides utility methods for deserialization for more types.
 For the full list of available types, see `Value` section in the [query.proto] file. 
