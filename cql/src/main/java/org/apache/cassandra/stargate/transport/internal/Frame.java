@@ -17,7 +17,6 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -144,7 +143,6 @@ public class Frame {
       this.factory = factory;
     }
 
-    @VisibleForTesting
     Frame decodeFrame(ByteBuf buffer) throws Exception {
       if (discardingTooLongFrame) {
         bytesToDiscard = discard(buffer, bytesToDiscard);
