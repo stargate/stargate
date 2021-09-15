@@ -50,7 +50,7 @@ public ManagedChannel createChannel(String host, int port) {
 Please note that `usePlaintext()` should only be used for development and testing.
 When using in a production environment it should use a load balancer that terminates TLS.
 
-For local development of stargate, it will be:
+For local development of Stargate, it will be:
 ```java
 ManagedChannel channel = createChannel("localhost", 8090);
 ```
