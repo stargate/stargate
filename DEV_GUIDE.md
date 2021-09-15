@@ -130,20 +130,21 @@ Use HELP for help.
 
 ### REST
 
-Curl over port 8082
+Get an auth token to use on subsequent requests
 
 ```sh
 # Generate an auth token
-curl -L -X POST 'http://localhost:8081/v1/auth' \
+curl -L -X POST 'http://127.0.0.2:8081/v1/auth' \
 -H 'Content-Type: application/json' \
 --data-raw '{
-    "username": "username",
-    "password": "password"
+    "username": "cassandra",
+    "password": "cassandra"
 }'
+```
 
-
+```sh
 # Get all keyspaces using the auth token from the previous request
-curl -L -X GET 'localhost:8082/v1/keyspaces' \
+curl -L -X GET '127.0.0.2:8082/v1/keyspaces' \
 --header 'accept: application/json' \
 --header 'content-type: application/json' \
 --header 'X-Cassandra-Token: <AUTH_TOKEN>'

@@ -123,19 +123,22 @@ public abstract class Result {
     public final ResultMetadata resultMetadata;
     public final PreparedMetadata metadata;
     public final boolean isIdempotent;
+    public final boolean isUseKeyspace;
 
     public Prepared(
         MD5Digest statementId,
         MD5Digest resultMetadataId,
         ResultMetadata resultMetadata,
         PreparedMetadata preparedMetadata,
-        boolean isIdempotent) {
+        boolean isIdempotent,
+        boolean isUseKeyspace) {
       super(Kind.Prepared);
       this.statementId = statementId;
       this.resultMetadataId = resultMetadataId;
       this.resultMetadata = resultMetadata;
       this.metadata = preparedMetadata;
       this.isIdempotent = isIdempotent;
+      this.isUseKeyspace = isUseKeyspace;
     }
 
     @Override

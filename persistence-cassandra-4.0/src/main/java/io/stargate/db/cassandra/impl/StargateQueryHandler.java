@@ -25,7 +25,6 @@ import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.AuthenticatedUser.Serializer;
 import io.stargate.db.cassandra.impl.idempotency.IdempotencyAnalyzer;
-import io.stargate.db.cassandra.impl.idempotency.PreparedWithIdempotent;
 import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
@@ -154,7 +153,8 @@ public class StargateQueryHandler implements QueryHandler {
     ResultMessage.Prepared prepare = QueryProcessor.instance.prepare(s, clientState, map);
     Prepared prepared = QueryProcessor.instance.getPrepared(prepare.statementId);
     boolean idempotent = IdempotencyAnalyzer.isIdempotent(prepared.statement);
-    return new PreparedWithIdempotent(idempotent, prepare);
+    boolean useKeyspace = prepared.statement instanceof UseStatement;
+    return new PreparedWithInfo(idempotent, useKeyspace, prepare);
   }
 
   @Override
