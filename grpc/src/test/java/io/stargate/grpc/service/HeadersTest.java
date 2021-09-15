@@ -18,15 +18,23 @@ package io.stargate.grpc.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.grpc.Metadata;
 import io.grpc.Metadata.Key;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.Statement;
+import io.stargate.grpc.StargateBearerToken;
 import io.stargate.grpc.Utils;
+import io.stargate.grpc.service.interceptors.NewConnectionInterceptor;
 import io.stargate.proto.StargateGrpc;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -48,18 +56,28 @@ public class HeadersTest extends BaseGrpcServiceTest {
 
   @Test
   @DisplayName("Should propagate gRPC string headers as connection properties")
-  public void propagateStringHeaders() {
+  public void propagateStringHeaders() throws UnauthorizedException {
     // Given
     StargateGrpc.StargateBlockingStub stub =
         makeBlockingStubWithClientHeaders(
-            headers -> {
-              headers.put(HEADER1_KEY, "value1");
-              headers.put(HEADER2_KEY, "value2");
-              headers.put(HEADER3_KEY_BIN, new byte[] {});
-            });
+                headers -> {
+                  headers.put(HEADER1_KEY, "value1");
+                  headers.put(HEADER2_KEY, "value2");
+                  headers.put(HEADER3_KEY_BIN, new byte[] {});
+                })
+            .withCallCredentials(new StargateBearerToken("token"));
     mockAnyQueryAsVoid();
-    when(persistence.newConnection()).thenReturn(connection);
-    startServer(persistence);
+    when(persistence.newConnection(any())).thenReturn(connection);
+
+    AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
+
+    AuthenticationSubject authenticationSubject = mock(AuthenticationSubject.class);
+    when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
+
+    AuthenticationService authenticationService = mock(AuthenticationService.class);
+    when(authenticationService.validateToken(anyString())).thenReturn(authenticationSubject);
+
+    startServer(new NewConnectionInterceptor(persistence, authenticationService));
 
     // When
     executeQuery(stub, "mock query");
@@ -79,7 +97,8 @@ public class HeadersTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(),
-            true);
+            true,
+            false);
     when(connection.prepare(any(String.class), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))

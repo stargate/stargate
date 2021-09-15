@@ -24,6 +24,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.grpc.Attributes;
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
@@ -32,10 +34,15 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.Persistence;
+import io.stargate.db.Persistence.Connection;
 import io.stargate.grpc.service.GrpcService;
+import java.net.InetSocketAddress;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-public class AuthenticationInterceptorTest {
+public class NewConnectionInterceptorTest {
+
   @Test
   public void correctCredentials() throws UnauthorizedException {
     AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
@@ -47,20 +54,32 @@ public class AuthenticationInterceptorTest {
     AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken("abc")).thenReturn(authenticationSubject);
 
+    Connection connection = mock(Connection.class);
+    when(connection.loggedUser()).thenReturn(Optional.of(authenticatedUser));
+
+    Persistence persistence = mock(Persistence.class);
+    when(persistence.newConnection(any())).thenReturn(connection);
+
     ServerCall call = mock(ServerCall.class);
 
-    Metadata metadata = new Metadata();
-    metadata.put(AuthenticationInterceptor.TOKEN_KEY, "abc");
+    Attributes attributes =
+        Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
+            .build();
+    when(call.getAttributes()).thenReturn(attributes);
 
-    AuthenticationInterceptor interceptor = new AuthenticationInterceptor(authenticationService);
+    Metadata metadata = new Metadata();
+    metadata.put(NewConnectionInterceptor.TOKEN_KEY, "abc");
+
+    NewConnectionInterceptor interceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(
         call,
         metadata,
         (c, h) -> {
-          AuthenticationSubject subject = GrpcService.AUTHENTICATION_KEY.get();
-          assertThat(subject).isNotNull();
-          AuthenticatedUser user = subject.asUser();
-          assertThat(user.name()).isEqualTo("def");
+          Optional<AuthenticatedUser> user = GrpcService.CONNECTION_KEY.get().loggedUser();
+          assertThat(user).isPresent();
+          assertThat(user.get().name()).isEqualTo("def");
           return null;
         });
 
@@ -70,13 +89,16 @@ public class AuthenticationInterceptorTest {
 
   @Test
   public void emptyCredentials() throws UnauthorizedException {
+    Persistence persistence = mock(Persistence.class);
+
     AuthenticationService authenticationService = mock(AuthenticationService.class);
 
     ServerCallHandler next = mock(ServerCallHandler.class);
     ServerCall call = mock(ServerCall.class);
 
     Metadata metadata = new Metadata();
-    AuthenticationInterceptor interceptor = new AuthenticationInterceptor(authenticationService);
+    NewConnectionInterceptor interceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(call, times(1))
@@ -92,15 +114,24 @@ public class AuthenticationInterceptorTest {
 
   @Test
   public void invalidCredentials() throws UnauthorizedException {
+    Persistence persistence = mock(Persistence.class);
+
     AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken("invalid")).thenThrow(new UnauthorizedException(""));
 
     ServerCallHandler next = mock(ServerCallHandler.class);
     ServerCall call = mock(ServerCall.class);
 
+    Attributes attributes =
+        Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
+            .build();
+    when(call.getAttributes()).thenReturn(attributes);
+
     Metadata metadata = new Metadata();
-    metadata.put(AuthenticationInterceptor.TOKEN_KEY, "invalid");
-    AuthenticationInterceptor interceptor = new AuthenticationInterceptor(authenticationService);
+    metadata.put(NewConnectionInterceptor.TOKEN_KEY, "invalid");
+    NewConnectionInterceptor interceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(call, times(1))

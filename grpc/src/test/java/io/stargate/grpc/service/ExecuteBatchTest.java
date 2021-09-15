@@ -64,6 +64,7 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(
                 Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
@@ -115,6 +116,7 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(),
+            false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
@@ -170,6 +172,7 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
             Utils.makePreparedMetadata(columns),
+            false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));

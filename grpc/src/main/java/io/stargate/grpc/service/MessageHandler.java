@@ -15,7 +15,7 @@
  */
 package io.stargate.grpc.service;
 
-import static io.stargate.grpc.retries.RetryDecision.*;
+import static io.stargate.grpc.retries.RetryDecision.RETHROW;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.GeneratedMessageV3;
@@ -251,6 +251,13 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                   if (error != null) {
                     myEntry.completeExceptionally(error);
                     // Don't cache failures:
+                    preparedCache.invalidate(prepareInfo);
+                  } else if (prepared.isUseKeyspace) {
+                    myEntry.completeExceptionally(
+                        Status.INVALID_ARGUMENT
+                            .withDescription("USE <keyspace> not supported")
+                            .asException());
+                    // Don't cache `USE <keyspace>` statements:
                     preparedCache.invalidate(prepareInfo);
                   } else {
                     myEntry.complete(prepared);
@@ -548,6 +555,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   public static class ExceptionWithIdempotencyInfo extends Exception {
+
     private final boolean isIdempotent;
 
     public ExceptionWithIdempotencyInfo(Exception e, boolean isIdempotent) {
