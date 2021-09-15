@@ -26,7 +26,6 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import com.google.common.collect.ImmutableList;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
@@ -39,6 +38,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,7 +105,7 @@ public class DataTypeTest extends BaseOsgiIntegrationTest {
 
   private static List<TypeSample<?>> generateAllTypes(CqlIdentifier keyspaceId) {
     List<TypeSample<?>> primitiveTypes =
-        ImmutableList.of(
+        Arrays.asList(
             typeSample(DataTypes.ASCII, GenericType.STRING, "sample ascii"),
             typeSample(DataTypes.BIGINT, GenericType.LONG, Long.MAX_VALUE),
             typeSample(

@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.google.common.collect.ImmutableList;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -61,7 +61,7 @@ public class InsertTest extends BetterbotzTestBase {
     Map<String, Object> productInSelectResponse = JsonPath.read(response, "$.Products.values[0]");
 
     for (Map<String, Object> product :
-        ImmutableList.of(productInInsertResponse, productInSelectResponse)) {
+        Arrays.asList(productInInsertResponse, productInSelectResponse)) {
       assertIsProduct(
           product,
           ID,

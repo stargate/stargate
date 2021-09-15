@@ -24,9 +24,9 @@ import com.datastax.oss.driver.api.core.type.TupleType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,7 +79,7 @@ public class TypeSample<JavaTypeT> {
     return typeSample(
         DataTypes.listOf(type.cqlType),
         GenericType.listOf(type.javaType),
-        ImmutableList.of(type.value));
+        Arrays.asList(type.value));
   }
 
   public static <JavaTypeT> TypeSample<Set<JavaTypeT>> setOf(TypeSample<JavaTypeT> type) {

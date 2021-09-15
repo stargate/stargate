@@ -15,7 +15,7 @@
  */
 package io.stargate.it.http.graphql.graphqlfirst;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.graphql.GraphqlClient;

@@ -1,6 +1,6 @@
 package io.stargate.it.proxy;
 
-import com.google.common.net.InetAddresses;
+import com.datastax.oss.driver.shaded.guava.common.net.InetAddresses;
 import io.stargate.it.storage.StargateParameters;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;

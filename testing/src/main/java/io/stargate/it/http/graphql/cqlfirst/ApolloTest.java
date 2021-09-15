@@ -31,8 +31,8 @@ import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -368,7 +368,7 @@ public class ApolloTest extends ApolloTestBase {
   public void queryWithPaging() {
     ApolloClient client = getApolloClient("/graphql/" + keyspace);
 
-    for (String name : ImmutableList.of("a", "b", "c")) {
+    for (String name : Arrays.asList("a", "b", "c")) {
       insertProduct(
           client,
           ProductsInput.builder()

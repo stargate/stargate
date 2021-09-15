@@ -21,12 +21,12 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.google.common.collect.ImmutableList;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Arrays;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -91,8 +91,8 @@ public class UdtTest extends GraphqlFirstTestBase {
         "INSERT INTO \"Foo\"(k, v, vs1, vs2) VALUES(?, ?, ?, ?)",
         keyType.newValue(1),
         valueType.newValue(2),
-        ImmutableList.of(valueType.newValue(3)),
-        ImmutableList.of(valueType.newValue(4)));
+        Arrays.asList(valueType.newValue(3)),
+        Arrays.asList(valueType.newValue(4)));
   }
 
   @Test

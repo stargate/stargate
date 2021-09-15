@@ -19,12 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -138,7 +138,7 @@ public class FederationTest extends GraphqlFirstTestBase {
   public void federatedTracing() {
     Object response =
         CLIENT.getKeyspaceFullResponse(
-            ImmutableMap.of("apollo-federation-include-trace", "ftv1"),
+            Collections.singletonMap("apollo-federation-include-trace", "ftv1"),
             KEYSPACE,
             "query {\n"
                 + "_entities(representations: [ "
