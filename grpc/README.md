@@ -74,7 +74,7 @@ StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(ch
 
 The second one is async (non-blocking):
 ```java
-StargateGrpc.StargateStub = = StargateGrpc.newStub(channel)
+StargateGrpc.StargateStub = fStargateGrpc.newStub(channel)
                                 .withCallCredentials(new StargateBearerToken("token-value"))
                                 .withDeadlineAfter(5, TimeUnit.SECONDS);
 ```
