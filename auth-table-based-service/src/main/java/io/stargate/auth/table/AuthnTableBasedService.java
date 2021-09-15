@@ -45,6 +45,11 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthnTableBasedService.class);
 
+  private static final int CACHE_TTL_SECONDS =
+      Integer.getInteger("stargate.auth_tablebased.token_cache_ttl_seconds", 60);
+  private static final int CACHE_MAX_SIZE =
+      Integer.getInteger("stargate.auth_tablebased.token_cache_max_size", 100_000);
+
   private static final String AUTH_KEYSPACE =
       System.getProperty("stargate.auth_keyspace", "data_endpoint_auth");
   private static final String AUTH_TABLE = System.getProperty("stargate.auth_table", "token");
@@ -54,7 +59,10 @@ public class AuthnTableBasedService implements AuthenticationService {
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
 
   private final Cache<String, AuthenticationSubject> tokenCache =
-      CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(1)).build();
+      CacheBuilder.newBuilder()
+          .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECONDS))
+          .maximumSize(CACHE_MAX_SIZE)
+          .build();
 
   private DataStore dataStore;
 
