@@ -133,7 +133,7 @@
                             org.javatuples,
                             com.codahale.metrics,
                             io.micrometer.core.*,
-                            com.datastax.oss.driver.shaded.guava.*,
+                            com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
