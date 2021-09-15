@@ -3265,8 +3265,44 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
     RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
 
-    // Try to push to a non-array
+    // Try to hit function endpoint with no operation provided
     String currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/function",
+            "{\"value\": \"new_value\"}",
+            422);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"Request invalid: a valid `operation` is required.\",\"code\":422}"));
+
+    // Try to hit function endpoint with invalid operation provided
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/function",
+            "{\"operation\":\"$madeupfunction\",\"value\": \"new_value\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"No BuiltInApiFunction found for name: $madeupfunction\",\"code\":400}"));
+
+    // Try to push to an array with no value provided
+    currentDoc =
+        RestUtils.post(
+            authToken,
+            collectionPath + "/1/quiz/sport/q1/function",
+            "{\"operation\":\"$push\"}",
+            400);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(
+            OBJECT_MAPPER.readTree(
+                "{\"description\":\"Provided value must not be null\",\"code\":400}"));
+
+    // Try to push to a non-array
+    currentDoc =
         RestUtils.post(
             authToken,
             collectionPath + "/1/quiz/sport/q1/function",
@@ -3283,11 +3319,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             collectionPath + "/1/quiz/sport/randomword/function",
             "{\"operation\": \"$push\", \"value\": \"new_value\"}",
-            400);
-    assertThat(OBJECT_MAPPER.readTree(currentDoc))
-        .isEqualTo(
-            OBJECT_MAPPER.readTree(
-                "{\"description\":\"The path provided to push to has no array\",\"code\":400}"));
+            404);
 
     // Try to pop from a non-array
     currentDoc =
@@ -3307,11 +3339,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
             authToken,
             collectionPath + "/1/quiz/sport/randomword/function",
             "{\"operation\": \"$pop\"}",
-            400);
-    assertThat(OBJECT_MAPPER.readTree(currentDoc))
-        .isEqualTo(
-            OBJECT_MAPPER.readTree(
-                "{\"description\":\"The path provided to pop from has no array\",\"code\":400}"));
+            404);
   }
 
   @Test

@@ -59,7 +59,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.glassfish.jersey.server.ManagedAsync;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -117,7 +116,6 @@ public class NamespacesResource {
   }
 
   @GET
-  @ManagedAsync
   @ApiOperation(value = "View all built-in reserved functions")
   @ApiResponses(
       value = {

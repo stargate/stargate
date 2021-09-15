@@ -51,6 +51,8 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names."),
 
+  DOCS_API_INVALID_BUILTIN_FUNCTION(Response.Status.BAD_REQUEST, "Invalid Built-In function name."),
+
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,
       String.format(

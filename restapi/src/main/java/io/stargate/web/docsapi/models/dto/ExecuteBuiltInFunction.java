@@ -3,9 +3,6 @@ package io.stargate.web.docsapi.models.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.stargate.web.docsapi.exception.ErrorCode;
-import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -19,18 +16,13 @@ public class ExecuteBuiltInFunction {
   @NotBlank(message = "a valid `operation` is required")
   private final String operation;
 
-  private final BuiltInApiFunction function;
+  @JsonProperty("value")
   private final Object value;
 
   @JsonCreator
   public ExecuteBuiltInFunction(
       @JsonProperty("operation") String operation, @JsonProperty("value") Object value) {
     this.operation = operation;
-    this.function = BuiltInApiFunction.fromName(operation);
-    if (this.function.requiresValue() && value == null) {
-      throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Provided value must not be null");
-    }
     this.value = value;
   }
 
@@ -38,10 +30,6 @@ public class ExecuteBuiltInFunction {
   @JsonProperty("operation")
   public String getOperation() {
     return operation;
-  }
-
-  public BuiltInApiFunction getFunction() {
-    return function;
   }
 
   @ApiModelProperty(value = "The value to use for the operation", example = "some_value")

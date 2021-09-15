@@ -8,6 +8,9 @@ import io.reactivex.rxjava3.functions.Function;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
@@ -31,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -382,7 +386,9 @@ public class ReactiveDocumentResourceV2 {
               required = true)
           @PathParam("document-path")
           List<PathSegment> path,
-      @ApiParam(value = "The operation to perform", required = true) @Valid
+      @ApiParam(value = "The operation to perform", required = true)
+          @NotNull(message = "payload not provided")
+          @Valid
           ExecuteBuiltInFunction payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
@@ -396,6 +402,11 @@ public class ReactiveDocumentResourceV2 {
             () -> {
               DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
               schemaChecker.checkValidity(namespace, collection, db);
+              BuiltInApiFunction function = BuiltInApiFunction.fromName(payload.getOperation());
+              if (function.requiresValue() && payload.getValue() == null) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Provided value must not be null");
+              }
               return db;
             })
         .flatMap(

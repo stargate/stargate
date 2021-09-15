@@ -1,6 +1,8 @@
 package io.stargate.web.docsapi.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
@@ -29,6 +31,8 @@ public enum BuiltInApiFunction {
         return apiFunc;
       }
     }
-    throw new IllegalArgumentException("No BuiltInApiFunction found for name: " + name);
+    throw new ErrorCodeRuntimeException(
+        ErrorCode.DOCS_API_INVALID_BUILTIN_FUNCTION,
+        "No BuiltInApiFunction found for name: " + name);
   }
 }

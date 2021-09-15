@@ -629,16 +629,17 @@ public class ReactiveDocumentService {
           List<String> pathString =
               path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
           Maybe<JsonNode> result = null;
-          if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_PUSH) {
+          BuiltInApiFunction function = BuiltInApiFunction.fromName(funcPayload.getOperation());
+          if (function == BuiltInApiFunction.ARRAY_PUSH) {
             result =
                 handlePush(
                     db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
-          } else if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_POP) {
+          } else if (function == BuiltInApiFunction.ARRAY_POP) {
             result = handlePop(db, keyspace, collection, id, pathString, context);
           }
           if (result == null) {
             throw new IllegalStateException(
-                "Invalid operation found at execution time: " + funcPayload.getFunction().name);
+                "Invalid operation found at execution time: " + function.name);
           }
           return result.map(
               json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
