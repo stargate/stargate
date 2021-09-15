@@ -23,6 +23,7 @@ In your client application, you only need to add two dependencies which are the 
          <version>1.40.1</version>
     </dependency>
 </dependencies>
+```
 If you do not add it, you will observe the following error:
 `No functional channel service provider found. Try adding a dependency on the grpc-okhttp, grpc-netty, or grpc-netty-shaded artifact`.
 
