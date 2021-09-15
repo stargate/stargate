@@ -119,7 +119,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
-  @Mock private ReactiveDocumentService reactiveDocumentService;
   @Mock private JsonSchemaHandler jsonSchemaHandler;
   @Mock private AuthenticationService authenticationService;
   @Mock private AuthorizationService authorizationService;
@@ -162,9 +161,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     db = new Db(authenticationService, authorizationService, dataStoreFactory);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
-    service =
-        new DocumentService(
-            timeSource, mapper, config, schemaChecker, jsonSchemaHandler, reactiveDocumentService);
+    service = new DocumentService(timeSource, mapper, config, schemaChecker, jsonSchemaHandler);
     resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
   }
 

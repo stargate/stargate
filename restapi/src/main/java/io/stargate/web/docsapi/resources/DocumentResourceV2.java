@@ -2,7 +2,6 @@ package io.stargate.web.docsapi.resources;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -10,7 +9,6 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.MultiDocsResponse;
-import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
@@ -34,7 +32,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -307,74 +304,6 @@ public class DocumentResourceV2 {
               .entity(
                   mapper.writeValueAsString(
                       new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
-              .build();
-        });
-  }
-
-  @POST
-  @ManagedAsync
-  @ApiOperation(
-      value =
-          "Execute a built-in function (e.g. $push and $pop) against this document. Performance may vary.")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
-      })
-  @Path("collections/{collection-id}/{document-id}/{document-path: .*}/function")
-  @Consumes({MediaType.APPLICATION_JSON})
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response executeBuiltInFunction(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
-          String id,
-      @ApiParam(
-              value = "the path in the JSON that you want to execute the operation on",
-              required = true)
-          @PathParam("document-path")
-          List<PathSegment> path,
-      @ApiParam(value = "The operation to perform", required = true) @Valid
-          ExecuteBuiltInFunction payload,
-      @ApiParam(
-              value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false")
-          @QueryParam("profile")
-          Boolean profile,
-      @Context HttpServletRequest request) {
-    return handle(
-        () -> {
-          ExecutionContext context = ExecutionContext.create(profile);
-          JsonNode result =
-              documentService.executeBuiltInFunction(
-                  authToken,
-                  namespace,
-                  collection,
-                  id,
-                  payload,
-                  path,
-                  dbFactory,
-                  context,
-                  getAllHeaders(request));
-          return Response.ok()
-              .entity(
-                  mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(id, null, result, context.toProfile())))
               .build();
         });
   }

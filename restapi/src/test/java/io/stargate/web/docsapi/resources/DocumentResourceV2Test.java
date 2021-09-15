@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
@@ -214,34 +213,5 @@ public class DocumentResourceV2Test {
             headers, ui, authToken, keyspace, collection, id, path, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(204);
-  }
-
-  @Test
-  public void executeBuiltInFunction() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    ExecuteBuiltInFunction payload = new ExecuteBuiltInFunction("$pop", null);
-    List<PathSegment> path = new ArrayList<>();
-
-    Response r =
-        documentResourceV2.executeBuiltInFunction(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            id,
-            path,
-            payload,
-            false,
-            httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
-        .isEqualTo(id);
   }
 }

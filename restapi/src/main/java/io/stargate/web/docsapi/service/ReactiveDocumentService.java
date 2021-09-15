@@ -32,12 +32,15 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
@@ -56,7 +59,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.ws.rs.core.PathSegment;
 import org.javatuples.Pair;
+import org.jsfr.json.JsonSurferJackson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -510,7 +515,7 @@ public class ReactiveDocumentService {
    * @param context
    * @return a JSON representation of the array after pushing the new value
    */
-  public JsonNode getArrayAfterPush(
+  public Maybe<JsonNode> getArrayAfterPush(
       DocumentDB db,
       String namespace,
       String collection,
@@ -544,8 +549,7 @@ public class ReactiveDocumentService {
                 arrayData.add((Double) value);
               }
               return arrayData;
-            })
-        .blockingGet();
+            });
   }
 
   /**
@@ -562,7 +566,7 @@ public class ReactiveDocumentService {
    * @return a Pair containing the JSON representation of the array after popping the value and the
    *     value itself
    */
-  public Pair<ArrayNode, Object> getArrayAndValueAfterPop(
+  public Maybe<Pair<ArrayNode, Object>> getArrayAndValueAfterPop(
       DocumentDB db,
       String namespace,
       String collection,
@@ -605,8 +609,117 @@ public class ReactiveDocumentService {
               }
               arrayData.remove(arrayData.size() - 1);
               return Pair.with(arrayData, finalValue);
-            })
-        .blockingGet();
+            });
+  }
+
+  public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      ExecuteBuiltInFunction funcPayload,
+      List<PathSegment> path,
+      ExecutionContext context)
+      throws UnauthorizedException {
+    return Maybe.defer(
+        () -> {
+          List<String> pathString =
+              path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
+          Maybe<JsonNode> result = null;
+          if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_PUSH) {
+            result =
+                handlePush(
+                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
+          } else if (funcPayload.getFunction() == BuiltInApiFunction.ARRAY_POP) {
+            result = handlePop(db, keyspace, collection, id, pathString, context);
+          }
+          if (result == null) {
+            throw new IllegalStateException(
+                "Invalid operation found at execution time: " + funcPayload.getFunction().name);
+          }
+          return result.map(
+              json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
+        });
+  }
+
+  private Maybe<JsonNode> handlePush(
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      Object valueToPush,
+      List<String> pathString,
+      ExecutionContext context) {
+    return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
+        .flatMap(
+            jsonArray -> {
+              if (jsonArray == null) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+                    "The path provided to push to has no array");
+              }
+              List<String> processedPath = processSubDocumentPath(pathString);
+
+              List<Object[]> bindParams =
+                  shredPayload(
+                          JsonSurferJackson.INSTANCE,
+                          db,
+                          processedPath,
+                          id,
+                          jsonArray.toString(),
+                          false,
+                          true)
+                      .left;
+              db.deleteThenInsertBatch(
+                  keyspace,
+                  collection,
+                  id,
+                  bindParams,
+                  processedPath,
+                  timeSource.currentTimeMicros(),
+                  context.nested("ASYNC INSERT"));
+              return jsonArray;
+            });
+  }
+
+  private Maybe<JsonNode> handlePop(
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      List<String> pathString,
+      ExecutionContext context) {
+    return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
+        .flatMap(
+            arrayAndValue -> {
+              if (arrayAndValue == null) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
+                    "The path provided to pop from has no array");
+              }
+              List<String> processedPath = processSubDocumentPath(pathString);
+
+              List<Object[]> bindParams =
+                  shredPayload(
+                          JsonSurferJackson.INSTANCE,
+                          db,
+                          processedPath,
+                          id,
+                          arrayAndValue.getValue0().toString(),
+                          false,
+                          true)
+                      .left;
+              db.deleteThenInsertBatch(
+                  keyspace,
+                  collection,
+                  id,
+                  bindParams,
+                  processedPath,
+                  timeSource.currentTimeMicros(),
+                  context.nested("ASYNC INSERT"));
+              Object value = arrayAndValue.getValue1();
+              return objectMapper.valueToTree(value);
+            });
   }
 
   public ObjectNode createJsonMap(
