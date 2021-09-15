@@ -172,6 +172,7 @@ StreamObserver<QueryOuterClass.Response> streamObserver = new StreamObserver<Que
            }
            @Override
            public void onCompleted() {
+               // close resources, finish processing 
                System.out.println("completed");
            }
        };
