@@ -131,6 +131,20 @@ Our retrieval query (`SELECT k, v FROM ks.test"`) stated explicitly which column
 Thanks to that, we can safely get the values using their positions via the `getValues()` method.
 The `getString()` and `getInt()` perform deserialization of data. These methods were used because we knew the underlying type of the corresponding columns. The API provides utility methods for deserialization for more types as well.
 For the full list of available types, see `Value` section in the [query.proto] file. 
+
+If you want to iterate over all results, you may do:
+```java
+for(QueryOuterClass.Row row: rs.getRowsList()){
+      System.out.println(row.getValuesList());
+}
+```
+
+It will allow you to operate on a single row. When executing the above snippet, it will return:
+```yaml
+[string: "a"
+, int: 1
+]
+```
  
 #### Batch Query
 
