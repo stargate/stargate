@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import com.google.common.collect.Lists;
+import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
 import graphql.ExceptionWhileDataFetching;
 import graphql.GraphQLException;
 import graphql.execution.DataFetcherResult;

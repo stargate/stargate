@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import com.google.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import graphql.language.FieldDefinition;
 import java.util.Arrays;
 import java.util.Map;

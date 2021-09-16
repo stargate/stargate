@@ -42,9 +42,9 @@
       <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>29.0-jre</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <version>25.1-jre</version>
     </dependency>
     <dependency>
       <groupId>com.graphql-java</groupId>

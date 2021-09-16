@@ -1,7 +1,7 @@
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import graphql.GraphqlErrorHelper;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.graphql.schema.graphqlfirst.migration.MigrationQuery;

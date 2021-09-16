@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 
-import com.google.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
 import io.stargate.auth.SourceAPI;

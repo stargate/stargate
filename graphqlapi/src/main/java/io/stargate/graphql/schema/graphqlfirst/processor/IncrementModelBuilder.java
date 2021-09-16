@@ -15,8 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.base.Joiner;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.InputValueDefinition;

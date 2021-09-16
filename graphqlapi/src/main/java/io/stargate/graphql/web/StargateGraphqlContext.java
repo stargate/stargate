@@ -17,7 +17,7 @@ package io.stargate.graphql.web;
 
 import com.apollographql.federation.graphqljava.tracing.FederatedTracingInstrumentation;
 import com.apollographql.federation.graphqljava.tracing.HTTPRequestHeaders;
-import com.google.common.base.MoreObjects;
+import com.datastax.oss.driver.shaded.guava.common.base.MoreObjects;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Parameters;

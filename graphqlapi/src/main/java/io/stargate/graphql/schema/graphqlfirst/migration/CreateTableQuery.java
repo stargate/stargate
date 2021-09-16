@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.migration;
 
-import com.google.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;

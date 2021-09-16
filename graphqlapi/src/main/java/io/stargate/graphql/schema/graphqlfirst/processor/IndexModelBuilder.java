@@ -15,8 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.base.CharMatcher;
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import graphql.language.Directive;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;

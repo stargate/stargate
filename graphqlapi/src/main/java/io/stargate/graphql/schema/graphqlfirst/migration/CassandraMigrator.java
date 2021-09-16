@@ -15,8 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.migration;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import graphql.GraphqlErrorException;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Keyspace;

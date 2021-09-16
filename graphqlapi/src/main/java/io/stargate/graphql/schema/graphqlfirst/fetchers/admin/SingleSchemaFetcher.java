@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import graphql.schema.DataFetchingEnvironment;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.graphql.persistence.graphqlfirst.SchemaSource;

@@ -15,8 +15,8 @@
  */
 package io.stargate.graphql.schema.cqlfirst.dml;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.BiMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.HashBiMap;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
