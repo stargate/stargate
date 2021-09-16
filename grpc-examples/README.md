@@ -229,4 +229,8 @@ completed
 ```   
 Please note, that at the end we have a `completed` emitted. This is called by the `onCompleted` method.
 
-  
+[gRPC setup project dependencies]: https://github.com/grpc/grpc-java/blob/master/README.md#download
+[Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
+[query.proto]: ../grpc-proto/proto/query.proto
+[StreamObserver]: https://grpc.github.io/grpc-java/javadoc/io/grpc/stub/StreamObserver.html
+[Batch Documentation]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_reference/cql_commands/cqlBatch.html

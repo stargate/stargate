@@ -19,9 +19,4 @@ If the client sets the deadline to > 5 seconds, there will be a situation when a
 However, if you are executing DDL queries (e.g.: `"CREATE KEYSPACE IF NOT EXISTS ks WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'};"` or `CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))`)
 you may need to increase the deadline above 5 seconds.
 
-[deadline]: https://grpc.io/blog/deadlines/ 
-[gRPC setup project dependencies]: https://github.com/grpc/grpc-java/blob/master/README.md#download
-[Stargate Authz documentation]: https://stargate.io/docs/stargate/1.0/developers-guide/authnz.html
-[query.proto]: ../grpc-proto/proto/query.proto
-[StreamObserver]: https://grpc.github.io/grpc-java/javadoc/io/grpc/stub/StreamObserver.html
-[Batch Documentation]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_reference/cql_commands/cqlBatch.html
+[deadline]: https://grpc.io/blog/deadlines/
