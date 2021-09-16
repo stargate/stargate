@@ -91,7 +91,6 @@
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               org.javatuples,
-              com.datastax.oss.driver.shaded.guava.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
