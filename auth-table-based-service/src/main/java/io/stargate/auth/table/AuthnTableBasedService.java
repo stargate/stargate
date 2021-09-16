@@ -15,6 +15,8 @@
  */
 package io.stargate.auth.table;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
@@ -28,6 +30,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -41,7 +44,11 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthnTableBasedService.class);
 
-  private DataStore dataStore;
+  private static final int CACHE_TTL_SECONDS =
+      Integer.getInteger("stargate.auth_tablebased.token_cache_ttl_seconds", 60);
+  private static final int CACHE_MAX_SIZE =
+      Integer.getInteger("stargate.auth_tablebased.token_cache_max_size", 100_000);
+
   private static final String AUTH_KEYSPACE =
       System.getProperty("stargate.auth_keyspace", "data_endpoint_auth");
   private static final String AUTH_TABLE = System.getProperty("stargate.auth_table", "token");
@@ -49,6 +56,14 @@ public class AuthnTableBasedService implements AuthenticationService {
       Integer.parseInt(System.getProperty("stargate.auth_tokenttl", "1800"));
   private static final boolean shouldInitializeAuthKeyspace =
       Boolean.parseBoolean(System.getProperty("stargate.auth_tablebased_init", "true"));
+
+  private final Cache<String, AuthenticationSubject> tokenCache =
+      Caffeine.newBuilder()
+          .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECONDS))
+          .maximumSize(CACHE_MAX_SIZE)
+          .build();
+
+  private DataStore dataStore;
 
   public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
     this.dataStore = dataStoreFactory.createInternal();
@@ -225,10 +240,40 @@ public class AuthnTableBasedService implements AuthenticationService {
 
   @Override
   public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
+    // if not there fail fast
     if ((token == null) || token.isEmpty()) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
 
+    // otherwise, look in the cache and optionally fetch if missing
+    try {
+      return tokenCache.get(
+          token,
+          v -> {
+            try {
+              return getAuthenticationSubject(v);
+            } catch (UnauthorizedException e) {
+              throw new RuntimeException(e);
+            }
+          });
+    } catch (RuntimeException e) {
+      // properly inspect the cause of the execution exception
+      // and re-throw if UnauthorizedException or RuntimeException
+      // otherwise wrap in the RuntimeException
+      Throwable cause = e.getCause();
+      if (cause instanceof UnauthorizedException) {
+        throw (UnauthorizedException) cause;
+      } else if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  // fetches the authentication subject from the data store
+  private AuthenticationSubject getAuthenticationSubject(String token)
+      throws UnauthorizedException {
     UUID uuid;
     try {
       uuid = UUID.fromString(token);
@@ -236,7 +281,6 @@ public class AuthnTableBasedService implements AuthenticationService {
       throw new UnauthorizedException("authorization failed - bad token");
     }
 
-    String username;
     try {
       ResultSet resultSet =
           dataStore
@@ -259,24 +303,24 @@ public class AuthnTableBasedService implements AuthenticationService {
       }
 
       int timestamp = row.getInt("created_timestamp");
-      username = row.getString("username");
+      String username = row.getString("username");
 
+      // update of the TTL can be done in the async way
       dataStore
           .queryBuilder()
           .update(AUTH_KEYSPACE, AUTH_TABLE)
           .ttl(tokenTTL)
           .value("username", username)
           .value("created_timestamp", timestamp)
-          .where("auth_token", Predicate.EQ, UUID.fromString(token))
+          .where("auth_token", Predicate.EQ, uuid)
           .build()
-          .execute(ConsistencyLevel.LOCAL_QUORUM)
-          .get();
+          .execute(ConsistencyLevel.LOCAL_QUORUM);
+
+      return AuthenticationSubject.of(token, username);
     } catch (InterruptedException | ExecutionException e) {
       logger.error("Failed to validate token", e);
       throw new RuntimeException(e);
     }
-
-    return AuthenticationSubject.of(token, username);
   }
 
   @Override
