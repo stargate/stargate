@@ -54,7 +54,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -439,6 +438,54 @@ public class ReactiveDocumentService {
         });
   }
 
+  /**
+   * Executes a function against the given document and path, returning a different result based on
+   * the ExecuteBuiltInFunction's operation type.
+   *
+   * <p>Currently supports the functions $push and $pop, which write to the end of or remove a value
+   * from the end of an array, respectively.
+   *
+   * @param db
+   * @param keyspace the keyspace to execute the function against
+   * @param collection the collection to execute the function against
+   * @param id the document ID to execute the function against
+   * @param funcPayload information about the function to execute
+   * @param path the path within the document
+   * @param context execution context
+   * @return Maybe containing DocumentResponseWrapper with result node of the function
+   * @throws UnauthorizedException
+   */
+  public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
+      DocumentDB db,
+      String keyspace,
+      String collection,
+      String id,
+      ExecuteBuiltInFunction funcPayload,
+      List<PathSegment> path,
+      ExecutionContext context)
+      throws UnauthorizedException {
+    return Maybe.defer(
+        () -> {
+          List<String> pathString =
+              path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
+          Maybe<JsonNode> result = null;
+          BuiltInApiFunction function = BuiltInApiFunction.fromName(funcPayload.getOperation());
+          if (function == BuiltInApiFunction.ARRAY_PUSH) {
+            result =
+                handlePush(
+                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
+          } else if (function == BuiltInApiFunction.ARRAY_POP) {
+            result = handlePop(db, keyspace, collection, id, pathString, context);
+          }
+          if (result == null) {
+            throw new IllegalStateException(
+                "Invalid operation found at execution time: " + function.name);
+          }
+          return result.map(
+              json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
+        });
+  }
+
   private Collection<List<String>> getFinalInDocumentFieldPaths(
       Collection<List<String>> fieldPaths,
       FilterPath filterPath,
@@ -498,7 +545,7 @@ public class ReactiveDocumentService {
   }
 
   // we need to transform the stuff to support array elements
-  public List<String> processSubDocumentPath(List<String> subDocumentPath) {
+  private List<String> processSubDocumentPath(List<String> subDocumentPath) {
     return subDocumentPath.stream()
         .map(path -> DocsApiUtils.convertArrayPath(path))
         .collect(Collectors.toList());
@@ -518,7 +565,7 @@ public class ReactiveDocumentService {
    * @param context
    * @return a JSON representation of the array after pushing the new value
    */
-  public Maybe<JsonNode> getArrayAfterPush(
+  private Maybe<JsonNode> getArrayAfterPush(
       DocumentDB db,
       String namespace,
       String collection,
@@ -536,21 +583,7 @@ public class ReactiveDocumentService {
                     "The path provided to push to has no array");
               }
               ArrayNode arrayData = (ArrayNode) data;
-              if (value == null) {
-                arrayData.addNull();
-              } else if (value instanceof Map || value instanceof List) {
-                arrayData.add(objectMapper.valueToTree(value));
-              } else if (value instanceof Boolean) {
-                arrayData.add((Boolean) value);
-              } else if (value instanceof String) {
-                arrayData.add((String) value);
-              } else if (value instanceof Integer) {
-                arrayData.add(Long.valueOf((Integer) value));
-              } else if (value instanceof Long) {
-                arrayData.add((Long) value);
-              } else {
-                arrayData.add((Double) value);
-              }
+              arrayData.insertPOJO(arrayData.size(), value);
               return arrayData;
             });
   }
@@ -569,7 +602,7 @@ public class ReactiveDocumentService {
    * @return a Pair containing the JSON representation of the array after popping the value and the
    *     value itself
    */
-  public Maybe<Pair<ArrayNode, Object>> getArrayAndValueAfterPop(
+  private Maybe<Pair<ArrayNode, JsonNode>> getArrayAndValueAfterPop(
       DocumentDB db,
       String namespace,
       String collection,
@@ -589,61 +622,42 @@ public class ReactiveDocumentService {
               if (arrayData.size() == 0) {
                 throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_ARRAY_POP_OUT_OF_BOUNDS);
               }
-              JsonNode value = arrayData.get(arrayData.size() - 1);
-              Object finalValue;
-              if (value.isDouble() || value.canConvertToLong()) {
-                double dblValue = value.asDouble();
-                long longValue = (long) dblValue;
-                if ((double) longValue == value.asDouble()) {
-                  finalValue = longValue;
-                } else {
-                  finalValue = dblValue;
-                }
-              } else if (value.isTextual()) {
-                finalValue = value.asText();
-              } else if (value.isBoolean()) {
-                finalValue = value.asBoolean();
-              } else if (value.isObject()) {
-                finalValue = objectMapper.treeToValue(value, Map.class);
-              } else if (value.isArray()) {
-                finalValue = objectMapper.treeToValue(value, List.class);
-              } else {
-                finalValue = null;
-              }
-              arrayData.remove(arrayData.size() - 1);
-              return Pair.with(arrayData, finalValue);
+              JsonNode value = arrayData.remove(arrayData.size() - 1);
+              return Pair.with(arrayData, value);
             });
   }
 
-  public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
+  private void writeNewArrayState(
       DocumentDB db,
       String keyspace,
       String collection,
       String id,
-      ExecuteBuiltInFunction funcPayload,
-      List<PathSegment> path,
+      JsonNode jsonArray,
+      List<String> pathString,
       ExecutionContext context)
       throws UnauthorizedException {
-    return Maybe.defer(
-        () -> {
-          List<String> pathString =
-              path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
-          Maybe<JsonNode> result = null;
-          BuiltInApiFunction function = BuiltInApiFunction.fromName(funcPayload.getOperation());
-          if (function == BuiltInApiFunction.ARRAY_PUSH) {
-            result =
-                handlePush(
-                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
-          } else if (function == BuiltInApiFunction.ARRAY_POP) {
-            result = handlePop(db, keyspace, collection, id, pathString, context);
-          }
-          if (result == null) {
-            throw new IllegalStateException(
-                "Invalid operation found at execution time: " + function.name);
-          }
-          return result.map(
-              json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
-        });
+    List<String> processedPath = processSubDocumentPath(pathString);
+
+    List<Object[]> bindParams =
+        DocsApiUtils.shredPayload(
+                JsonSurferJackson.INSTANCE,
+                db,
+                processedPath,
+                id,
+                jsonArray.toString(),
+                docsApiConfiguration.getMaxDepth(),
+                docsApiConfiguration.getMaxArrayLength(),
+                false,
+                true)
+            .left;
+    db.deleteThenInsertBatch(
+        keyspace,
+        collection,
+        id,
+        bindParams,
+        processedPath,
+        timeSource.currentTimeMicros(),
+        context.nested("ASYNC INSERT"));
   }
 
   private Maybe<JsonNode> handlePush(
@@ -657,33 +671,7 @@ public class ReactiveDocumentService {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
         .map(
             jsonArray -> {
-              if (jsonArray == null) {
-                throw new ErrorCodeRuntimeException(
-                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
-                    "The path provided to push to has no array");
-              }
-              List<String> processedPath = processSubDocumentPath(pathString);
-
-              List<Object[]> bindParams =
-                  DocsApiUtils.shredPayload(
-                          JsonSurferJackson.INSTANCE,
-                          db,
-                          processedPath,
-                          id,
-                          jsonArray.toString(),
-                          docsApiConfiguration.getMaxDepth(),
-                          docsApiConfiguration.getMaxArrayLength(),
-                          false,
-                          true)
-                      .left;
-              db.deleteThenInsertBatch(
-                  keyspace,
-                  collection,
-                  id,
-                  bindParams,
-                  processedPath,
-                  timeSource.currentTimeMicros(),
-                  context.nested("ASYNC INSERT"));
+              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context);
               return jsonArray;
             });
   }
@@ -698,35 +686,9 @@ public class ReactiveDocumentService {
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
         .map(
             arrayAndValue -> {
-              if (arrayAndValue == null) {
-                throw new ErrorCodeRuntimeException(
-                    ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
-                    "The path provided to pop from has no array");
-              }
-              List<String> processedPath = processSubDocumentPath(pathString);
-
-              List<Object[]> bindParams =
-                  DocsApiUtils.shredPayload(
-                          JsonSurferJackson.INSTANCE,
-                          db,
-                          processedPath,
-                          id,
-                          arrayAndValue.getValue0().toString(),
-                          docsApiConfiguration.getMaxDepth(),
-                          docsApiConfiguration.getMaxArrayLength(),
-                          false,
-                          true)
-                      .left;
-              db.deleteThenInsertBatch(
-                  keyspace,
-                  collection,
-                  id,
-                  bindParams,
-                  processedPath,
-                  timeSource.currentTimeMicros(),
-                  context.nested("ASYNC INSERT"));
-              Object value = arrayAndValue.getValue1();
-              return objectMapper.valueToTree(value);
+              writeNewArrayState(
+                  db, keyspace, collection, id, arrayAndValue.getValue0(), pathString, context);
+              return arrayAndValue.getValue1();
             });
   }
 

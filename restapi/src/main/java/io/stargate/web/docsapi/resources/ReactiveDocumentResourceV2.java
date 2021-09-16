@@ -352,7 +352,7 @@ public class ReactiveDocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value =
-          "Execute a built-in function (e.g. $push and $pop) against this document. Performance may vary.")
+          "Execute a built-in function (e.g. $push and $pop) against a value in this document. Performance may vary.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
