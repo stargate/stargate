@@ -278,7 +278,7 @@ either directly on the test class or on one of its super-classes.
 Integration tests that need both storage and Stargate nodes, should use the `@UseStargateContainer`
 annotation to activate both extensions in the right order.
 
-The code element holding `@ClustgerSpec` or `@StargateSpec` annotations controls the lifecycle of
+The code element holding `@ClusterSpec` or `@StargateSpec` annotations controls the lifecycle of
 the nodes they define. If the "spec" is present at the class level (inherited), the corresponding 
 nodes will be started/stopped according to `@BeforeAll` / `@AfterAll` JUnit 5 callbacks. Similarly,
 if the spec is present at the method level, each node's lifecycle will follow `@BeforeEach` /
@@ -308,29 +308,26 @@ sudo vim /Library/LaunchDaemons/com.ccm.lo0.alias.sh
 Contents of the script:
 ```
 #!/bin/sh
-sudo /sbin/ifconfig lo0 alias 127.0.0.2;
-sudo /sbin/ifconfig lo0 alias 127.0.0.3;
-sudo /sbin/ifconfig lo0 alias 127.0.0.4;
-sudo /sbin/ifconfig lo0 alias 127.0.0.5;
-sudo /sbin/ifconfig lo0 alias 127.0.0.6;
-sudo /sbin/ifconfig lo0 alias 127.0.0.7;
-sudo /sbin/ifconfig lo0 alias 127.0.0.8;
-sudo /sbin/ifconfig lo0 alias 127.0.0.9;
-sudo /sbin/ifconfig lo0 alias 127.0.0.10;
-sudo /sbin/ifconfig lo0 alias 127.0.0.11;
 
-sudo /sbin/ifconfig lo0 alias 127.0.2.1;
-sudo /sbin/ifconfig lo0 alias 127.0.2.2;
-sudo /sbin/ifconfig lo0 alias 127.0.2.3;
-sudo /sbin/ifconfig lo0 alias 127.0.2.4;
-sudo /sbin/ifconfig lo0 alias 127.0.2.5;
-sudo /sbin/ifconfig lo0 alias 127.0.2.6;
-sudo /sbin/ifconfig lo0 alias 127.0.2.7;
-sudo /sbin/ifconfig lo0 alias 127.0.2.8;
-sudo /sbin/ifconfig lo0 alias 127.0.2.9;
+# create loopback addresses used by Stargate integration tests
 
-sudo /sbin/ifconfig lo0 alias 127.0.1.11;
-sudo /sbin/ifconfig lo0 alias 127.0.1.12;
+# 127.0.0.2 - 127.0.0.11
+for ((i=2;i<12;i++))
+do
+    sudo /sbin/ifconfig lo0 alias 127.0.0.$i;
+done
+
+# 127.0.2.1 - 127.0.2.48
+for ((i=1;i<49;i++))
+do
+    sudo /sbin/ifconfig lo0 alias 127.0.2.$i;
+done
+
+# 127.0.1.11 - 127.0.1.12
+for ((i=11;i<13;i++))
+do
+    sudo /sbin/ifconfig lo0 alias 127.0.1.$i;
+done
 ```
 
 Set access of the script:
