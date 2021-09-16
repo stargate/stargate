@@ -18,7 +18,6 @@ package io.stargate.auth.jwt;
 import static io.stargate.auth.jwt.AuthnJwtService.CLAIMS_FIELD;
 import static io.stargate.auth.jwt.AuthnJwtService.STARGATE_PREFIX;
 
-import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -75,7 +74,6 @@ public class AuthzJwtService implements AuthorizationService {
     return result.withRowInspector(row -> hasCorrectClaims(stargateClaims, row));
   }
 
-  @VisibleForTesting
   static boolean hasCorrectClaims(JSONObject stargateClaims, io.stargate.db.datastore.Row row) {
     if (row == null) {
       return true;
