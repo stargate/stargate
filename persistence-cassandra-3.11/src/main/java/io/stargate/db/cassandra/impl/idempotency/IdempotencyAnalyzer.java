@@ -15,7 +15,7 @@
  */
 package io.stargate.db.cassandra.impl.idempotency;
 
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import java.util.Set;
 import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.cql3.CQLStatement;

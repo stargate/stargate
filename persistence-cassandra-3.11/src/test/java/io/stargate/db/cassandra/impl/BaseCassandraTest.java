@@ -1,6 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
-import io.stargate.db.cassandra.CassandraPersistenceActivator;
+import io.stargate.db.cassandra.Cassandra311PersistenceActivator;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,7 +22,7 @@ public class BaseCassandraTest {
       DatabaseDescriptor.daemonInitialization(
           () -> {
             try {
-              return CassandraPersistenceActivator.makeConfig(baseDir);
+              return Cassandra311PersistenceActivator.makeConfig(baseDir);
             } catch (IOException e) {
               throw new UncheckedIOException(e);
             }

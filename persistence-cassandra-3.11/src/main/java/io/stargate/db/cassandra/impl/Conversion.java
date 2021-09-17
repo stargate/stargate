@@ -15,9 +15,9 @@
  */
 package io.stargate.db.cassandra.impl;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
+import com.datastax.oss.driver.shaded.guava.common.base.Strings;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.db.BatchType;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
