@@ -35,7 +35,7 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <version>25.1-jre</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>

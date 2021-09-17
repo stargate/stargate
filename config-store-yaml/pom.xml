@@ -44,6 +44,11 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-shaded-guava</artifactId>
+	<scope>provided</scope>
+      </dependency>
+      <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
       </dependency>
@@ -56,11 +61,6 @@
         <artifactId>mockito-inline</artifactId>
         <version>3.5.10</version>
         <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-shaded-guava</artifactId>
-        <version>25.1-jre</version>
       </dependency>
     </dependencies>
 	<build>
@@ -81,6 +81,7 @@
                                         io.stargate.core.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
+                                        com.datastax.oss.driver.shaded.guava.common.*,
                                         ]]>
 						</Import-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
