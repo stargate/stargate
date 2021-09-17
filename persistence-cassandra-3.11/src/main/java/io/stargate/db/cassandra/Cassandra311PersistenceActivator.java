@@ -49,7 +49,8 @@ import org.slf4j.LoggerFactory;
 
 public class Cassandra311PersistenceActivator extends BaseActivator {
 
-  private static final Logger logger = LoggerFactory.getLogger(Cassandra311PersistenceActivator.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(Cassandra311PersistenceActivator.class);
 
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
