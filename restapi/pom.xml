@@ -108,7 +108,6 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <version>25.1-jre</version>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
@@ -247,8 +246,8 @@
                             com.codahale.metrics,
                             com.codahale.metrics.*,
                             io.micrometer.core.*,
-                            !com.datastax.oss.driver.shaded.guava.*,
-                            com.datastax.oss.driver.*,
+                            com.datastax.oss.driver.api.*,
+                            com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

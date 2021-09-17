@@ -60,7 +60,6 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <version>25.1-jre</version>
     </dependency>
     <dependency>
       <groupId>com.google.errorprone</groupId>
@@ -117,7 +116,9 @@
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
-              com.datastax.oss.driver.*
+              com.datastax.oss.driver.api.*,
+              com.datastax.oss.driver.internal.*,
+              com.datastax.oss.driver.shaded.guava.common.*,
             ]]></Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
