@@ -5,6 +5,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.fasterxml.jackson.databind.JsonNode;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
@@ -222,12 +223,7 @@ public class ReactiveDocumentResourceV2 {
     boolean isSearch = where != null || pageSizeParam != null;
 
     // init sequence
-    Single.fromCallable(
-            () -> {
-              DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db);
-              return db;
-            })
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -330,12 +326,7 @@ public class ReactiveDocumentResourceV2 {
     int pageSize = Optional.ofNullable(pageSizeParam).orElse(3);
     final Paginator paginator = new Paginator(pageStateParam, pageSize);
     // init sequence
-    Single.fromCallable(
-            () -> {
-              DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db);
-              return db;
-            })
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -400,8 +391,7 @@ public class ReactiveDocumentResourceV2 {
       @Suspended AsyncResponse asyncResponse) {
     Single.fromCallable(
             () -> {
-              DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db);
+              DocumentDB db = getValidDbFromToken(authToken, request, namespace, collection);
               BuiltInApiFunction function = BuiltInApiFunction.fromName(payload.getOperation());
               if (function.requiresValue() && payload.getValue() == null) {
                 throw new ErrorCodeRuntimeException(
@@ -420,6 +410,14 @@ public class ReactiveDocumentResourceV2 {
         .safeSubscribe(
             AsyncObserver.forResponseWithHandler(
                 asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  private DocumentDB getValidDbFromToken(
+      String authToken, HttpServletRequest request, String namespace, String collection)
+      throws UnauthorizedException {
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
+    schemaChecker.checkValidity(namespace, collection, db);
+    return db;
   }
 
   private Function<DocumentResponseWrapper<? extends JsonNode>, Response> rawDocumentHandler(
