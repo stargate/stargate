@@ -71,9 +71,9 @@ public class ReactiveDocumentService {
   @Inject ExpressionParser expressionParser;
   @Inject DocumentSearchService searchService;
   @Inject JsonConverter jsonConverter;
+  @Inject DocsShredder docsShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
-  @Inject DocsApiConfiguration docsApiConfiguration;
 
   public ReactiveDocumentService() {}
 
@@ -81,15 +81,15 @@ public class ReactiveDocumentService {
       ExpressionParser expressionParser,
       DocumentSearchService searchService,
       JsonConverter jsonConverter,
+      DocsShredder docsShredder,
       ObjectMapper objectMapper,
-      TimeSource timeSource,
-      DocsApiConfiguration docsApiConfiguration) {
+      TimeSource timeSource) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
     this.jsonConverter = jsonConverter;
+    this.docsShredder = docsShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
-    this.docsApiConfiguration = docsApiConfiguration;
   }
 
   /**
@@ -639,14 +639,12 @@ public class ReactiveDocumentService {
     List<String> processedPath = processSubDocumentPath(pathString);
 
     List<Object[]> bindParams =
-        DocsApiUtils.shredPayload(
+        docsShredder.shredPayload(
                 JsonSurferJackson.INSTANCE,
                 db,
                 processedPath,
                 id,
                 jsonArray.toString(),
-                docsApiConfiguration.getMaxDepth(),
-                docsApiConfiguration.getMaxArrayLength(),
                 false,
                 true)
             .left;

@@ -34,23 +34,23 @@ public class DocumentService {
   private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
 
   private final TimeSource timeSource;
-  private final DocsApiConfiguration docsApiConfiguration;
   private final ObjectMapper mapper;
   private final DocsSchemaChecker schemaChecker;
   private final JsonSchemaHandler jsonSchemaHandler;
+  private final DocsShredder docsShredder;
 
   @Inject
   public DocumentService(
       TimeSource timeSource,
       ObjectMapper mapper,
-      DocsApiConfiguration docsApiConfiguration,
       DocsSchemaChecker schemaChecker,
-      JsonSchemaHandler jsonSchemaHandler) {
+      JsonSchemaHandler jsonSchemaHandler,
+      DocsShredder docsShredder) {
     this.timeSource = timeSource;
     this.mapper = mapper;
-    this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
     this.jsonSchemaHandler = jsonSchemaHandler;
+    this.docsShredder = docsShredder;
   }
 
   private Optional<String> convertToJsonPtr(Optional<String> path) {
@@ -136,14 +136,12 @@ public class DocumentService {
               .map(
                   data -> {
                     bindVariableList.addAll(
-                        DocsApiUtils.shredJson(
+                        docsShredder.shredJson(
                                 surfer,
                                 finalDb,
                                 Collections.emptyList(),
                                 data.getKey(),
                                 data.getValue(),
-                                docsApiConfiguration.getMaxDepth(),
-                                docsApiConfiguration.getMaxArrayLength(),
                                 false)
                             .left);
                     return data.getKey();
@@ -204,16 +202,7 @@ public class DocumentService {
     }
 
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        DocsApiUtils.shredPayload(
-            surfer,
-            db,
-            convertedPath,
-            id,
-            payload,
-            docsApiConfiguration.getMaxDepth(),
-            docsApiConfiguration.getMaxArrayLength(),
-            patching,
-            isJson);
+        docsShredder.shredPayload(surfer, db, convertedPath, id, payload, patching, isJson);
 
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;
