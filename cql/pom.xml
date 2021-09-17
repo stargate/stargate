@@ -66,7 +66,7 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <version>25.1-jre</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.xerial.snappy</groupId>
@@ -133,6 +133,7 @@
                             org.javatuples,
                             com.codahale.metrics,
                             io.micrometer.core.*,
+                            com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
