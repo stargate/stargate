@@ -2,11 +2,11 @@ package io.stargate.db.cassandra.impl;
 
 import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
@@ -86,7 +86,7 @@ import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistence
+public class Cassandra40Persistence
     extends AbstractCassandraPersistence<
         Config,
         KeyspaceMetadata,
@@ -95,7 +95,7 @@ public class CassandraPersistence
         UserType,
         IndexMetadata,
         ViewMetadata> {
-  private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
+  private static final Logger logger = LoggerFactory.getLogger(Cassandra40Persistence.class);
 
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
@@ -129,7 +129,7 @@ public class CassandraPersistence
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
 
-  public CassandraPersistence() {
+  public Cassandra40Persistence() {
     super("Apache Cassandra");
   }
 
@@ -298,7 +298,7 @@ public class CassandraPersistence
 
     // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -310,7 +310,7 @@ public class CassandraPersistence
     // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
     InetAddressAndPort localAddress = FBUtilities.getLocalAddressAndPort();
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
             .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
@@ -326,8 +326,8 @@ public class CassandraPersistence
   boolean isStorageInSchemaAgreement() {
     // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
-            .filter(CassandraPersistence::isStorageNode)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -408,7 +408,7 @@ public class CassandraPersistence
 
     @Override
     public Persistence persistence() {
-      return CassandraPersistence.this;
+      return Cassandra40Persistence.this;
     }
 
     @Override
@@ -540,8 +540,8 @@ public class CassandraPersistence
 
     public SchemaCheck() {
       super(
-          CassandraPersistence.this::isInSchemaAgreement,
-          CassandraPersistence.this::isStorageInSchemaAgreement,
+          Cassandra40Persistence.this::isInSchemaAgreement,
+          Cassandra40Persistence.this::isStorageInSchemaAgreement,
           SCHEMA_SYNC_GRACE_PERIOD,
           new SystemTimeSource());
     }

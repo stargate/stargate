@@ -228,7 +228,7 @@
             <Bundle-Name>Cassandra-Persistence</Bundle-Name>
             <Bundle-Description>Cassandra DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db.cassandra_4_0</Bundle-SymbolicName>
-            <Bundle-Activator>io.stargate.db.cassandra.CassandraPersistenceActivator</Bundle-Activator>
+            <Bundle-Activator>io.stargate.db.cassandra.Cassandra40PersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.osgi.framework,
               io.stargate.core.*,
@@ -240,7 +240,7 @@
               org.javatuples,
               !com.codahale.metrics.graphite.*,
               com.codahale.metrics,
-              com.datastax.oss.driver.shaded.guava.*,
+              com.datastax.oss.driver.shaded.guava.common.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>

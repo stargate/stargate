@@ -1,14 +1,14 @@
 package io.stargate.db.cassandra;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.db.cassandra.impl.CassandraPersistence;
+import io.stargate.db.cassandra.impl.Cassandra40Persistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
@@ -33,9 +33,10 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistenceActivator extends BaseActivator {
+public class Cassandra40PersistenceActivator extends BaseActivator {
 
-  private static final Logger logger = LoggerFactory.getLogger(CassandraPersistenceActivator.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(Cassandra40PersistenceActivator.class);
 
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
@@ -49,7 +50,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
-  public CassandraPersistenceActivator() {
+  public Cassandra40PersistenceActivator() {
     super("persistence-cassandra-4.0");
   }
 
@@ -138,7 +139,7 @@ public class CassandraPersistenceActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    CassandraPersistence cassandraDB = new CassandraPersistence();
+    Cassandra40Persistence cassandraDB = new Cassandra40Persistence();
     @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "CassandraPersistence");
