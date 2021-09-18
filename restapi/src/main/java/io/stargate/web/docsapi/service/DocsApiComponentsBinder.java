@@ -19,6 +19,7 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bind(TimeSource.SYSTEM).to(TimeSource.class);
 
     bindAsContract(JsonConverter.class);
+    bindAsContract(DocsShredder.class);
     bindAsContract(DocsSchemaChecker.class);
     bindAsContract(DocumentService.class);
     bindAsContract(CollectionService.class);

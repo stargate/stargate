@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class DocsApiUtils {
-
   public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");

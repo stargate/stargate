@@ -91,6 +91,8 @@ class ReactiveDocumentServiceTest {
 
   @Mock JsonConverter jsonConverter;
 
+  @Mock DocsShredder docsShredder;
+
   @Mock TimeSource timeSource;
 
   @Mock DocumentDB documentDB;
@@ -119,7 +121,7 @@ class ReactiveDocumentServiceTest {
   public void init() {
     reactiveDocumentService =
         new ReactiveDocumentService(
-            expressionParser, searchService, jsonConverter, objectMapper, timeSource);
+            expressionParser, searchService, jsonConverter, docsShredder, objectMapper, timeSource);
     lenient()
         .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
         .thenReturn(CompletableFuture.completedFuture(deleteResultSet));

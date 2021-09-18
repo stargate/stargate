@@ -5,9 +5,15 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.fasterxml.jackson.databind.JsonNode;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
+import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
+import io.stargate.web.docsapi.examples.WriteDocResponse;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
@@ -26,11 +32,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -214,12 +223,7 @@ public class ReactiveDocumentResourceV2 {
     boolean isSearch = where != null || pageSizeParam != null;
 
     // init sequence
-    Single.fromCallable(
-            () -> {
-              DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db);
-              return db;
-            })
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -322,12 +326,7 @@ public class ReactiveDocumentResourceV2 {
     int pageSize = Optional.ofNullable(pageSizeParam).orElse(3);
     final Paginator paginator = new Paginator(pageStateParam, pageSize);
     // init sequence
-    Single.fromCallable(
-            () -> {
-              DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
-              schemaChecker.checkValidity(namespace, collection, db);
-              return db;
-            })
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -338,6 +337,87 @@ public class ReactiveDocumentResourceV2 {
         .safeSubscribe(
             AsyncObserver.forResponseWithHandler(
                 asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  @POST
+  @ManagedAsync
+  @ApiOperation(
+      value =
+          "Execute a built-in function (e.g. $push and $pop) against a value in this document. Performance may vary.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+      })
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}/function")
+  @Consumes({MediaType.APPLICATION_JSON})
+  @Produces(MediaType.APPLICATION_JSON)
+  public void executeBuiltInFunction(
+      @Context HttpHeaders headers,
+      @Context UriInfo ui,
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(
+              value = "the path in the JSON that you want to execute the operation on",
+              required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @ApiParam(value = "The operation to perform", required = true)
+          @NotNull(message = "payload not provided")
+          @Valid
+          ExecuteBuiltInFunction payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    Single.fromCallable(
+            () -> {
+              DocumentDB db = getValidDbFromToken(authToken, request, namespace, collection);
+              BuiltInApiFunction function = BuiltInApiFunction.fromName(payload.getOperation());
+              if (function.requiresValue() && payload.getValue() == null) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Provided value must not be null");
+              }
+              return db;
+            })
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+              return reactiveDocumentService
+                  .executeBuiltInFunction(db, namespace, collection, id, payload, path, context)
+                  .map(rawDocumentHandler(raw))
+                  .defaultIfEmpty(Response.status(Response.Status.NOT_FOUND).build());
+            })
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  private DocumentDB getValidDbFromToken(
+      String authToken, HttpServletRequest request, String namespace, String collection)
+      throws UnauthorizedException {
+    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
+    schemaChecker.checkValidity(namespace, collection, db);
+    return db;
   }
 
   private Function<DocumentResponseWrapper<? extends JsonNode>, Response> rawDocumentHandler(
