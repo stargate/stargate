@@ -108,6 +108,7 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>

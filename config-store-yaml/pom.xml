@@ -46,7 +46,7 @@
       <dependency>
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-shaded-guava</artifactId>
-	<scope>provided</scope>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>ch.qos.logback</groupId>
