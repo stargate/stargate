@@ -21,12 +21,14 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
+import io.stargate.proto.QueryOuterClass.Inet;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -223,15 +225,27 @@ public class ValueCodecTest {
         arguments(Type.Inet, Values.UNSET, "Expected bytes type"),
         arguments(
             Type.Inet,
-            Values.of(new byte[] {}),
+            Value.newBuilder()
+                .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(new byte[] {})))
+                .build(),
             "Expected 4 or 16 bytes for an IPv4 or IPv6 address"),
         arguments(
             Type.Inet,
-            Values.of(new byte[] {1, 2}),
+            Value.newBuilder()
+                .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(new byte[] {1, 2})))
+                .build(),
             "Expected 4 or 16 bytes for an IPv4 or IPv6 address"),
         arguments(
             Type.Inet,
-            Values.of(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}),
+            Value.newBuilder()
+                .setInet(
+                    Inet.newBuilder()
+                        .setValue(
+                            ByteString.copyFrom(
+                                new byte[] {
+                                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+                                })))
+                .build(),
             "Expected 4 or 16 bytes for an IPv4 or IPv6 address"));
   }
 
@@ -348,9 +362,7 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidUuidValues() {
     return Stream.of(
         arguments(Type.Uuid, Values.NULL, "Expected UUID type"),
-        arguments(Type.Timeuuid, Values.UNSET, "Expected UUID type"),
-        arguments(
-            Type.Timeuuid, Values.of(UUID.randomUUID()), "is not a Type 1 (time-based) UUID"));
+        arguments(Type.Timeuuid, Values.UNSET, "Expected UUID type"));
   }
 
   public static Stream<Arguments> listValues() {
