@@ -722,10 +722,10 @@ public class DocumentDB {
       bindMap.put("p" + i, value);
     }
 
-    bindMap.put("leaf", TypedValue.UNSET);
-    bindMap.put("text_value", TypedValue.UNSET);
-    bindMap.put("dbl_value", TypedValue.UNSET);
-    bindMap.put("bool_value", TypedValue.UNSET);
+    bindMap.put("leaf", null);
+    bindMap.put("text_value", null);
+    bindMap.put("dbl_value", null);
+    bindMap.put("bool_value", null);
 
     return bindMap;
   }
