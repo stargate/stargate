@@ -176,7 +176,7 @@ public class DocsShredder {
     String leaf = null;
     int i = path.size();
 
-    List<String> unboundPaths = new ArrayList<>();
+    String[] unboundPaths = new String[DocumentDB.MAX_DEPTH];
     while (it.hasNext()) {
       if (i >= docsApiConfiguration.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
@@ -197,7 +197,7 @@ public class DocsShredder {
           firstLevelKeys.add(innerPath);
         }
         String convertedPath = convertPathValueForArrays(innerPath, op);
-        unboundPaths.set(i++, convertedPath);
+        unboundPaths[i++] = convertedPath;
         leaf = convertedPath;
       }
     }
@@ -208,36 +208,36 @@ public class DocsShredder {
 
   private Map<String, Object> addAllToBindMap(
       Map<String, Object> bindMap,
-      List<String> unboundPaths,
+      String[] unboundPaths,
       JsonNode jsonValue,
       String leaf,
       boolean treatBooleansAsNumeric) {
     bindMap = addUnboundPaths(bindMap, unboundPaths);
-    bindMap.put("leaf", leaf);
+    bindMap.put(DocumentDB.LEAF_VALUE_NAME, leaf);
 
     if (jsonValue.isValueNode() && !jsonValue.isNull()) {
       ValueNode value = (ValueNode) jsonValue;
 
       if (value.isNumber()) {
-        bindMap.put("dbl_value", value.asDouble());
+        bindMap.put(DocumentDB.DOUBLE_VALUE_NAME, value.asDouble());
       } else if (value.isBoolean()) {
         bindMap.put(
-            "bool_value", convertToBackendBooleanValue(value.asBoolean(), treatBooleansAsNumeric));
+            DocumentDB.BOOL_VALUE_NAME,
+            convertToBackendBooleanValue(value.asBoolean(), treatBooleansAsNumeric));
       } else {
-        bindMap.put("text_value", value.asText());
+        bindMap.put(DocumentDB.TEXT_VALUE_NAME, value.asText());
       }
     } else if (isEmptyObject(jsonValue)) {
-      bindMap.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
+      bindMap.put(DocumentDB.TEXT_VALUE_NAME, DocumentDB.EMPTY_OBJECT_MARKER);
     } else if (isEmptyArray(jsonValue)) {
-      bindMap.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
+      bindMap.put(DocumentDB.TEXT_VALUE_NAME, DocumentDB.EMPTY_ARRAY_MARKER);
     }
     return bindMap;
   }
 
-  private Map<String, Object> addUnboundPaths(
-      Map<String, Object> bindMap, List<String> unboundPaths) {
-    for (int i = 0; i < unboundPaths.size(); i++) {
-      String unboundPath = unboundPaths.get(i);
+  private Map<String, Object> addUnboundPaths(Map<String, Object> bindMap, String[] unboundPaths) {
+    for (int i = 0; i < unboundPaths.length; i++) {
+      String unboundPath = unboundPaths[i];
       if (unboundPath != null) {
         bindMap.put("p" + i, unboundPath);
       }
@@ -340,18 +340,12 @@ public class DocsShredder {
         bindMap.put("p" + (i + path.size()), fieldName);
         leaf = fieldName;
       }
-      bindMap.put("leaf", leaf);
+      bindMap.put(DocumentDB.LEAF_VALUE_NAME, leaf);
 
-      if (value.equals("null")) {
-        bindMap.put("dbl_value", null);
-        bindMap.put("bool_value", null);
-        bindMap.put("text_value", null);
-      } else if (value.equals("true") || value.equals("false")) {
-        bindMap.put("dbl_value", null);
+      if (value.equals("true") || value.equals("false")) {
         bindMap.put(
-            "bool_value",
+            DocumentDB.BOOL_VALUE_NAME,
             convertToBackendBooleanValue(Boolean.parseBoolean(value), db.treatBooleansAsNumeric()));
-        bindMap.put("text_value", null);
       } else {
         boolean isNumber;
         Double doubleValue = null;
@@ -362,13 +356,9 @@ public class DocsShredder {
           isNumber = false;
         }
         if (isNumber) {
-          bindMap.put("dbl_value", doubleValue);
-          bindMap.put("bool_value", null);
-          bindMap.put("text_value", null);
+          bindMap.put(DocumentDB.DOUBLE_VALUE_NAME, doubleValue);
         } else {
-          bindMap.put("dbl_value", null);
-          bindMap.put("bool_value", null);
-          bindMap.put("text_value", value);
+          bindMap.put(DocumentDB.TEXT_VALUE_NAME, value);
         }
       }
       logger.debug("{}", bindMap.values());
