@@ -1,8 +1,8 @@
 package io.stargate.web.docsapi.service;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
-import com.google.common.base.Splitter;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;

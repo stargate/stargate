@@ -1,6 +1,6 @@
 package io.stargate.db.datastore.common;
 
-import com.google.common.base.Joiner;
+import com.datastax.oss.driver.shaded.guava.common.base.Joiner;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;

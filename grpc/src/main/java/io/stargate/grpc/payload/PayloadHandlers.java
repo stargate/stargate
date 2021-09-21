@@ -15,8 +15,8 @@
  */
 package io.stargate.grpc.payload;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.grpc.Status;
 import io.stargate.grpc.payload.cql.ValuesHandler;

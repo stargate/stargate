@@ -53,6 +53,11 @@
     </dependency>
     <!-- Other -->
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
     </dependency>
