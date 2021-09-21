@@ -229,9 +229,7 @@ public class WhereParser {
     Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
     conditions.add(
         BuiltCondition.of(
-            LHS.mapAccess(context.fieldName.toLowerCase(), mapKey),
-            context.operator.predicate,
-            mapValue));
+            LHS.mapAccess(context.fieldName, mapKey), context.operator.predicate, mapValue));
   }
 
   private static void evaluateIn(List<BuiltCondition> conditions, QueryContext context)
