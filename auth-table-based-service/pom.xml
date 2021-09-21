@@ -32,6 +32,12 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <!-- 21-Sep-2021, tatu: If you need to use Guava for NON-test code (runtime),
+             note that you need to BOTH change scope to "runtime" AND add
+             OSGi import: see f.ex "cql/pom.xml" for example of how to do it.
+             But make sure you really want Guava and there is no alternative as
+             we are trying to reduce Guava usage to avoid version conflicts
+      -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
