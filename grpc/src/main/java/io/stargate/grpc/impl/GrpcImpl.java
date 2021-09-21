@@ -66,7 +66,9 @@ public class GrpcImpl {
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("grpc-stargate-executor", true));
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
-            .executor(executor)
+            // `Persistence` operations are done asynchronously so there isn't a need for a separate
+            // thread pool for handling gRPC callbacks in `GrpcService`.
+            .directExecutor()
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, metrics, executor))
