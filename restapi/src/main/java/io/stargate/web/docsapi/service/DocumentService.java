@@ -1,6 +1,5 @@
 package io.stargate.web.docsapi.service;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
