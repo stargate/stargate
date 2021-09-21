@@ -45,366 +45,7 @@ public class DocsShredderTest {
 
   @Test
   public void shredJson_happyPath() {
-    Object[] expectedRow0 =
-        new Object[] {
-          "documentId",
-          "some",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "some",
-          "value",
-          null,
-          null
-        };
-    Object[] expectedRow1 =
-        new Object[] {
-          "documentId",
-          "array",
-          "[000000]",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "[000000]",
-          null,
-          1.0,
-          null
-        };
-    Object[] expectedRow2 =
-        new Object[] {
-          "documentId",
-          "array",
-          "[000001]",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "[000001]",
-          null,
-          null,
-          true
-        };
-    Object[] expectedRow3 =
-        new Object[] {
-          "documentId",
-          "array",
-          "[000002]",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "[000002]",
-          null,
-          3.0,
-          null
-        };
-    Object[] expectedRow4 =
-        new Object[] {
-          "documentId",
-          "nested",
-          "structure",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "structure",
-          null,
-          23.456,
-          null
-        };
+    List<Object[]> expectedRows = getExpectedRows();
     when(db.newBindMap(anyList())).thenCallRealMethod();
     when(db.treatBooleansAsNumeric()).thenReturn(false);
     String payload =
@@ -412,12 +53,12 @@ public class DocsShredderTest {
     ImmutablePair<List<Object[]>, List<String>> results =
         service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, false);
     List<Object[]> bindParams = results.left;
-    assertThat(bindParams.size()).isEqualTo(5);
-    assertThat(arraysMatch(bindParams.get(0), expectedRow0)).isTrue();
-    assertThat(arraysMatch(bindParams.get(1), expectedRow1)).isTrue();
-    assertThat(arraysMatch(bindParams.get(2), expectedRow2)).isTrue();
-    assertThat(arraysMatch(bindParams.get(3), expectedRow3)).isTrue();
-    assertThat(arraysMatch(bindParams.get(4), expectedRow4)).isTrue();
+    assertThat(bindParams.size()).isEqualTo(expectedRows.size());
+    assertThat(arraysMatch(bindParams.get(0), expectedRows.get(0))).isTrue();
+    assertThat(arraysMatch(bindParams.get(1), expectedRows.get(1))).isTrue();
+    assertThat(arraysMatch(bindParams.get(2), expectedRows.get(2))).isTrue();
+    assertThat(arraysMatch(bindParams.get(3), expectedRows.get(3))).isTrue();
+    assertThat(arraysMatch(bindParams.get(4), expectedRows.get(4))).isTrue();
 
     Set<String> firstLevelKeyset = new HashSet<>(results.right);
     assertThat(firstLevelKeyset.size()).isEqualTo(3);
@@ -426,13 +67,88 @@ public class DocsShredderTest {
 
   @Test
   public void shredJson_happyPathAtNestedPath() {
+    List<Object[]> expectedRows = getNestedExpectedRows();
+    when(db.newBindMap(anyList())).thenCallRealMethod();
+    when(db.treatBooleansAsNumeric()).thenReturn(false);
+    List<String> prependedPath = ImmutableList.of("nested", "path", "spot");
+    String payload =
+        "{\"some\":\"value\", \"array\":[1, true, 3], \"nested\": {\"structure\": 23.456}}";
+    ImmutablePair<List<Object[]>, List<String>> results =
+        service.shredJson(surfer, db, prependedPath, "documentId", payload, false);
+    List<Object[]> bindParams = results.left;
+    assertThat(bindParams.size()).isEqualTo(expectedRows.size());
+    assertThat(arraysMatch(bindParams.get(0), expectedRows.get(0))).isTrue();
+    assertThat(arraysMatch(bindParams.get(1), expectedRows.get(1))).isTrue();
+    assertThat(arraysMatch(bindParams.get(2), expectedRows.get(2))).isTrue();
+    assertThat(arraysMatch(bindParams.get(3), expectedRows.get(3))).isTrue();
+    assertThat(arraysMatch(bindParams.get(4), expectedRows.get(4))).isTrue();
+
+    Set<String> firstLevelKeyset = new HashSet<>(results.right);
+    assertThat(firstLevelKeyset.size()).isEqualTo(3);
+    assertThat(firstLevelKeyset).contains("some", "array", "nested");
+  }
+
+  @Test
+  public void shredJson_happyPathEmptyObject() {
+    List<Object[]> expectedRows = getExpectedEmptyObjectRows();
+    when(db.newBindMap(anyList())).thenCallRealMethod();
+    when(db.treatBooleansAsNumeric()).thenReturn(false);
+    String payload = "{\"some\":{}, \"array\":[[], true, 3], \"nested\": {\"structure\": 23.456}}";
+    ImmutablePair<List<Object[]>, List<String>> results =
+        service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, false);
+    List<Object[]> bindParams = results.left;
+    assertThat(bindParams.size()).isEqualTo(expectedRows.size());
+    assertThat(arraysMatch(bindParams.get(0), expectedRows.get(0))).isTrue();
+    assertThat(arraysMatch(bindParams.get(1), expectedRows.get(1))).isTrue();
+    assertThat(arraysMatch(bindParams.get(2), expectedRows.get(2))).isTrue();
+    assertThat(arraysMatch(bindParams.get(3), expectedRows.get(3))).isTrue();
+    assertThat(arraysMatch(bindParams.get(4), expectedRows.get(4))).isTrue();
+
+    Set<String> firstLevelKeyset = new HashSet<>(results.right);
+    assertThat(firstLevelKeyset.size()).isEqualTo(3);
+    assertThat(firstLevelKeyset).contains("some", "array", "nested");
+  }
+
+  @Test
+  public void shredJson_emptyObject() {
+    String payload = "{}";
+    ImmutablePair<List<Object[]>, List<String>> results =
+        service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, false);
+    List<Object[]> bindParams = results.left;
+    assertThat(bindParams.size()).isEqualTo(0);
+
+    Set<String> firstLevelKeyset = new HashSet<>(results.right);
+    assertThat(firstLevelKeyset.size()).isEqualTo(0);
+  }
+
+  @Test
+  public void shredJson_errorPatching() {
+    String payload = "[1, true, 3]";
+    assertThatThrownBy(
+            () ->
+                service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, true))
+        .hasMessage("A patch operation must be done with a JSON object, not an array.");
+  }
+
+  @Test
+  public void shredJson_errorMaxDepth() {
+    String payload =
+        "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"tooDeep\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    assertThatThrownBy(
+            () ->
+                service.shredJson(
+                    surfer, db, Collections.emptyList(), "documentId", payload, false))
+        .hasMessage("Max depth of 64 exceeded.");
+  }
+
+  private List<Object[]> getExpectedRows() {
     Object[] expectedRow0 =
         new Object[] {
           "documentId",
-          "nested",
-          "path",
-          "spot",
           "some",
+          "",
+          "",
+          "",
           "",
           "",
           "",
@@ -501,11 +217,11 @@ public class DocsShredderTest {
     Object[] expectedRow1 =
         new Object[] {
           "documentId",
-          "nested",
-          "path",
-          "spot",
           "array",
           "[000000]",
+          "",
+          "",
+          "",
           "",
           "",
           "",
@@ -573,11 +289,11 @@ public class DocsShredderTest {
     Object[] expectedRow2 =
         new Object[] {
           "documentId",
-          "nested",
-          "path",
-          "spot",
           "array",
           "[000001]",
+          "",
+          "",
+          "",
           "",
           "",
           "",
@@ -645,11 +361,11 @@ public class DocsShredderTest {
     Object[] expectedRow3 =
         new Object[] {
           "documentId",
-          "nested",
-          "path",
-          "spot",
           "array",
           "[000002]",
+          "",
+          "",
+          "",
           "",
           "",
           "",
@@ -718,10 +434,10 @@ public class DocsShredderTest {
         new Object[] {
           "documentId",
           "nested",
-          "path",
-          "spot",
-          "nested",
           "structure",
+          "",
+          "",
+          "",
           "",
           "",
           "",
@@ -786,28 +502,10 @@ public class DocsShredderTest {
           23.456,
           null
         };
-    when(db.newBindMap(anyList())).thenCallRealMethod();
-    when(db.treatBooleansAsNumeric()).thenReturn(false);
-    List<String> prependedPath = ImmutableList.of("nested", "path", "spot");
-    String payload =
-        "{\"some\":\"value\", \"array\":[1, true, 3], \"nested\": {\"structure\": 23.456}}";
-    ImmutablePair<List<Object[]>, List<String>> results =
-        service.shredJson(surfer, db, prependedPath, "documentId", payload, false);
-    List<Object[]> bindParams = results.left;
-    assertThat(bindParams.size()).isEqualTo(5);
-    assertThat(arraysMatch(bindParams.get(0), expectedRow0)).isTrue();
-    assertThat(arraysMatch(bindParams.get(1), expectedRow1)).isTrue();
-    assertThat(arraysMatch(bindParams.get(2), expectedRow2)).isTrue();
-    assertThat(arraysMatch(bindParams.get(3), expectedRow3)).isTrue();
-    assertThat(arraysMatch(bindParams.get(4), expectedRow4)).isTrue();
-
-    Set<String> firstLevelKeyset = new HashSet<>(results.right);
-    assertThat(firstLevelKeyset.size()).isEqualTo(3);
-    assertThat(firstLevelKeyset).contains("some", "array", "nested");
+    return ImmutableList.of(expectedRow0, expectedRow1, expectedRow2, expectedRow3, expectedRow4);
   }
 
-  @Test
-  public void shredJson_happyPathEmptyObject() {
+  private List<Object[]> getExpectedEmptyObjectRows() {
     Object[] expectedRow0 =
         new Object[] {
           "documentId",
@@ -1168,53 +866,372 @@ public class DocsShredderTest {
           23.456,
           null
         };
-    when(db.newBindMap(anyList())).thenCallRealMethod();
-    when(db.treatBooleansAsNumeric()).thenReturn(false);
-    String payload = "{\"some\":{}, \"array\":[[], true, 3], \"nested\": {\"structure\": 23.456}}";
-    ImmutablePair<List<Object[]>, List<String>> results =
-        service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, false);
-    List<Object[]> bindParams = results.left;
-    assertThat(bindParams.size()).isEqualTo(5);
-    assertThat(arraysMatch(bindParams.get(0), expectedRow0)).isTrue();
-    assertThat(arraysMatch(bindParams.get(1), expectedRow1)).isTrue();
-    assertThat(arraysMatch(bindParams.get(2), expectedRow2)).isTrue();
-    assertThat(arraysMatch(bindParams.get(3), expectedRow3)).isTrue();
-    assertThat(arraysMatch(bindParams.get(4), expectedRow4)).isTrue();
 
-    Set<String> firstLevelKeyset = new HashSet<>(results.right);
-    assertThat(firstLevelKeyset.size()).isEqualTo(3);
-    assertThat(firstLevelKeyset).contains("some", "array", "nested");
+    return ImmutableList.of(expectedRow0, expectedRow1, expectedRow2, expectedRow3, expectedRow4);
   }
 
-  @Test
-  public void shredJson_emptyObject() {
-    String payload = "{}";
-    ImmutablePair<List<Object[]>, List<String>> results =
-        service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, false);
-    List<Object[]> bindParams = results.left;
-    assertThat(bindParams.size()).isEqualTo(0);
+  private List<Object[]> getNestedExpectedRows() {
+    Object[] expectedRow0 =
+        new Object[] {
+          "documentId",
+          "nested",
+          "path",
+          "spot",
+          "some",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "some",
+          "value",
+          null,
+          null
+        };
+    Object[] expectedRow1 =
+        new Object[] {
+          "documentId",
+          "nested",
+          "path",
+          "spot",
+          "array",
+          "[000000]",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "[000000]",
+          null,
+          1.0,
+          null
+        };
+    Object[] expectedRow2 =
+        new Object[] {
+          "documentId",
+          "nested",
+          "path",
+          "spot",
+          "array",
+          "[000001]",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "[000001]",
+          null,
+          null,
+          true
+        };
+    Object[] expectedRow3 =
+        new Object[] {
+          "documentId",
+          "nested",
+          "path",
+          "spot",
+          "array",
+          "[000002]",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "[000002]",
+          null,
+          3.0,
+          null
+        };
+    Object[] expectedRow4 =
+        new Object[] {
+          "documentId",
+          "nested",
+          "path",
+          "spot",
+          "nested",
+          "structure",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "structure",
+          null,
+          23.456,
+          null
+        };
 
-    Set<String> firstLevelKeyset = new HashSet<>(results.right);
-    assertThat(firstLevelKeyset.size()).isEqualTo(0);
-  }
-
-  @Test
-  public void shredJson_errorPatching() {
-    String payload = "[1, true, 3]";
-    assertThatThrownBy(
-            () ->
-                service.shredJson(surfer, db, Collections.emptyList(), "documentId", payload, true))
-        .hasMessage("A patch operation must be done with a JSON object, not an array.");
-  }
-
-  @Test
-  public void shredJson_errorMaxDepth() {
-    String payload =
-        "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"tooDeep\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
-    assertThatThrownBy(
-            () ->
-                service.shredJson(
-                    surfer, db, Collections.emptyList(), "documentId", payload, false))
-        .hasMessage("Max depth of 64 exceeded.");
+    return ImmutableList.of(expectedRow0, expectedRow1, expectedRow2, expectedRow3, expectedRow4);
   }
 }
