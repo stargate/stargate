@@ -58,8 +58,12 @@ public class DocumentDB {
   public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
   public static final String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
 
+  public static final String LEAF_VALUE_NAME = "leaf";
+  public static final String TEXT_VALUE_NAME = "text_value";
+  public static final String DOUBLE_VALUE_NAME = "dbl_value";
+  public static final String BOOL_VALUE_NAME = "bool_value";
   private static final String[] VALUE_COLUMN_NAMES =
-      new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
+      new String[] {LEAF_VALUE_NAME, TEXT_VALUE_NAME, DOUBLE_VALUE_NAME, BOOL_VALUE_NAME};
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   final DataStore dataStore;
@@ -83,18 +87,18 @@ public class DocumentDB {
     }
     allColumnNames.addAll(allPathColumnNames);
     allColumnTypes.addAll(allPathColumnTypes);
-    allColumnNames.add("leaf");
+    allColumnNames.add(LEAF_VALUE_NAME);
     allColumnTypes.add(Type.Text);
-    allColumns.add(Column.create("leaf", Type.Text));
-    allColumnNames.add("text_value");
+    allColumns.add(Column.create(LEAF_VALUE_NAME, Type.Text));
+    allColumnNames.add(TEXT_VALUE_NAME);
     allColumnTypes.add(Type.Text);
-    allColumns.add(Column.create("text_value", Type.Text));
-    allColumnNames.add("dbl_value");
+    allColumns.add(Column.create(TEXT_VALUE_NAME, Type.Text));
+    allColumnNames.add(DOUBLE_VALUE_NAME);
     allColumnTypes.add(Type.Double);
-    allColumns.add(Column.create("dbl_value", Type.Double));
-    allColumnNames.add("bool_value");
+    allColumns.add(Column.create(DOUBLE_VALUE_NAME, Type.Double));
+    allColumnNames.add(BOOL_VALUE_NAME);
     allColumnTypes.add(Type.Boolean);
-    allColumns.add(Column.create("bool_value", Type.Boolean));
+    allColumns.add(Column.create(BOOL_VALUE_NAME, Type.Boolean));
 
     if (MAX_ARRAY_LENGTH > 1000000) {
       throw new IllegalStateException(
@@ -193,13 +197,13 @@ public class DocumentDB {
       for (String columnName : allPathColumnNames) {
         columns.add(Column.create(columnName, Kind.Clustering, Type.Text));
       }
-      columns.add(Column.create("leaf", Type.Text));
-      columns.add(Column.create("text_value", Type.Text));
-      columns.add(Column.create("dbl_value", Type.Double));
+      columns.add(Column.create(LEAF_VALUE_NAME, Type.Text));
+      columns.add(Column.create(TEXT_VALUE_NAME, Type.Text));
+      columns.add(Column.create(DOUBLE_VALUE_NAME, Type.Double));
       if (treatBooleansAsNumeric()) {
-        columns.add(Column.create("bool_value", Type.Tinyint));
+        columns.add(Column.create(BOOL_VALUE_NAME, Type.Tinyint));
       } else {
-        columns.add(Column.create("bool_value", Type.Boolean));
+        columns.add(Column.create(BOOL_VALUE_NAME, Type.Boolean));
       }
       dataStore
           .queryBuilder()
@@ -722,10 +726,10 @@ public class DocumentDB {
       bindMap.put("p" + i, value);
     }
 
-    bindMap.put("leaf", null);
-    bindMap.put("text_value", null);
-    bindMap.put("dbl_value", null);
-    bindMap.put("bool_value", null);
+    bindMap.put(LEAF_VALUE_NAME, null);
+    bindMap.put(TEXT_VALUE_NAME, null);
+    bindMap.put(DOUBLE_VALUE_NAME, null);
+    bindMap.put(BOOL_VALUE_NAME, null);
 
     return bindMap;
   }
