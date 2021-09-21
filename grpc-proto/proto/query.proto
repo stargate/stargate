@@ -55,11 +55,16 @@ message UdtValue {
   map<string, Value> fields = 1;
 }
 
-// A UUID value (for CQL types uuid and timeuuid).
+// A 128-bit (16-byte) UUID type encoded using big-endian byte order. For example, the UUID
+// "00112233-4455-6677-8899-aabbccddeeff" would be store as the bytes:
+// | 0x00 0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88 0x99 0xAA 0xBB 0xCC 0xDD 0xEE 0xFF |
+// | MSB                                                                        LSB  |
 message Uuid {
   bytes value = 1;
 }
 
+// Either an IPv4 or IPv6 address stored as either 4 or 16 bytes, respectively. The addresses are
+// encoded using big-endian byte order.
 message Inet {
   bytes value = 1;
 }

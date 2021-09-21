@@ -118,6 +118,8 @@ public class Values {
   }
 
   public static Value of(UUID value) {
+    // The encoding format of our UUID is 16-bytes in big-endian byte order. Note: The initial byte
+    // order of `ByteBuffer` is always big-endian.
     ByteBuffer bytes = ByteBuffer.allocate(16);
     bytes.putLong(0, value.getMostSignificantBits());
     bytes.putLong(8, value.getLeastSignificantBits());
