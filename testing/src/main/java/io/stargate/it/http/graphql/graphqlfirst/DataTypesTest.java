@@ -20,8 +20,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
@@ -29,6 +28,7 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -146,14 +146,14 @@ public class DataTypesTest extends GraphqlFirstTestBase {
       arguments("Time", "\"10:15:30.123456789\"", "10:15:30.123456789", null),
 
       // Collections:
-      arguments("[Int]", "[1,2,3]", ImmutableList.of(1, 2, 3), null),
+      arguments("[Int]", "[1,2,3]", Arrays.asList(1, 2, 3), null),
       // Switching to a CQL set doesn't change the in/out values, but the underlying CQL queries
       // will change so cover it
-      arguments("[Int]", "[1,2,3]", ImmutableList.of(1, 2, 3), "set<int>"),
+      arguments("[Int]", "[1,2,3]", Arrays.asList(1, 2, 3), "set<int>"),
       arguments(
           "[[Int]]",
           "[[1,2,3],[4,5,6]]",
-          ImmutableList.of(ImmutableList.of(1, 2, 3), ImmutableList.of(4, 5, 6)),
+          Arrays.asList(Arrays.asList(1, 2, 3), Arrays.asList(4, 5, 6)),
           null),
 
       // UDTs:
@@ -162,7 +162,7 @@ public class DataTypesTest extends GraphqlFirstTestBase {
       arguments(
           "[Address]",
           "[ { street: \"1 Main St\" }, { street: \"2 Main St\" } ]",
-          ImmutableList.of(
+          Arrays.asList(
               ImmutableMap.of("street", "1 Main St"), ImmutableMap.of("street", "2 Main St")),
           null),
       arguments(

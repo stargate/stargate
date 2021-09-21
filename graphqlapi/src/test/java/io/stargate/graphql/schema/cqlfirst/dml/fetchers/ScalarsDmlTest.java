@@ -5,7 +5,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.data.CqlDuration;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import graphql.ExecutionResult;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;

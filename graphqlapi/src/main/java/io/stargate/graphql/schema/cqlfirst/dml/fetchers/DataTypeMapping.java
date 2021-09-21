@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.cqlfirst.dml.fetchers;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.TupleValue;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.google.common.collect.Sets;
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;

@@ -2,7 +2,7 @@ package io.stargate.db.query.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.base.Preconditions;
+import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import io.stargate.db.query.BoundDMLQuery;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.ImmutableModification;

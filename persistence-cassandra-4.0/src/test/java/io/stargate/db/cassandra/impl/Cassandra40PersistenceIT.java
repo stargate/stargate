@@ -1,6 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
-import static io.stargate.db.cassandra.CassandraPersistenceActivator.makeConfig;
+import static io.stargate.db.cassandra.Cassandra40PersistenceActivator.makeConfig;
 
 import io.stargate.db.Persistence;
 import io.stargate.it.PersistenceTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeAll;
  */
 class Cassandra40PersistenceIT extends PersistenceTest {
 
-  private static CassandraPersistence persistence;
+  private static Cassandra40Persistence persistence;
   private static File baseDir;
 
   @BeforeAll
@@ -50,7 +50,7 @@ class Cassandra40PersistenceIT extends PersistenceTest {
       System.setProperty("logback.configurationFile", file.getAbsolutePath());
     }
 
-    persistence = new CassandraPersistence();
+    persistence = new Cassandra40Persistence();
     Config config = makeConfig(baseDir);
     config.enable_materialized_views = true;
     persistence.initialize(config);

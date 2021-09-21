@@ -1,6 +1,6 @@
 package io.stargate.it.proxy;
 
-import com.google.common.net.InetAddresses;
+import com.datastax.oss.driver.shaded.guava.common.net.InetAddresses;
 import io.stargate.it.storage.ExternalResource;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateContainer;

@@ -60,7 +60,7 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <version>25.1-jre</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.errorprone</groupId>
@@ -69,26 +69,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- Until we move to java 9 (which has Map.of(...) and friends), Guava's immutable
-           collections are the simplest way to get collection literals and we use it for some
-           tests. -->
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>27.0-jre</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -132,7 +117,9 @@
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
-              com.datastax.oss.driver.*
+              com.datastax.oss.driver.api.*,
+              com.datastax.oss.driver.internal.*,
+              com.datastax.oss.driver.shaded.guava.common.*,
             ]]></Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>

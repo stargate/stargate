@@ -1,7 +1,7 @@
 package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
-import com.google.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;

@@ -15,7 +15,7 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.fetchers.admin;
 
-import com.google.common.io.CharStreams;
+import com.datastax.oss.driver.shaded.guava.common.io.CharStreams;
 import graphql.schema.DataFetchingEnvironment;
 import java.io.IOException;
 import java.io.InputStream;

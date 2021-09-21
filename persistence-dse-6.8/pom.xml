@@ -184,6 +184,11 @@
       <version>1.10.0-dse+20200217</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

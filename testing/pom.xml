@@ -154,9 +154,9 @@
       <version>4.4.11</version>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>29.0-jre</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>

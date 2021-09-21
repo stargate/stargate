@@ -1,27 +1,12 @@
-/*
- * Copyright The Stargate Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.stargate.db.cassandra.impl;
 
 import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
@@ -41,7 +26,6 @@ import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
 import io.stargate.db.schema.TableName;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,11 +41,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.concurrent.LocalAwareExecutorService;
-import org.apache.cassandra.config.CFMetaData;
-import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.ViewDefinition;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
@@ -73,13 +54,17 @@ import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
+import org.apache.cassandra.locator.InetAddressAndPort;
+import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.schema.Schema;
+import org.apache.cassandra.schema.SchemaChangeListener;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.ViewMetadata;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.ClientWarn;
-import org.apache.cassandra.service.MigrationListener;
-import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
@@ -101,28 +86,28 @@ import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CassandraPersistence
+public class Cassandra40Persistence
     extends AbstractCassandraPersistence<
         Config,
         KeyspaceMetadata,
-        CFMetaData,
-        ColumnDefinition,
+        TableMetadata,
+        ColumnMetadata,
         UserType,
         IndexMetadata,
-        ViewDefinition> {
-
-  private static final Logger logger = LoggerFactory.getLogger(CassandraPersistence.class);
+        ViewMetadata> {
+  private static final Logger logger = LoggerFactory.getLogger(Cassandra40Persistence.class);
 
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
 
   /*
    * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
-   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS. Because it's
-   * unknown how long a schema migration takes this waits for an extra MIGRATION_DELAY_IN_MS.
+   * live token owner doesn't become live within MigrationManager.MIGRATION_DELAY_IN_MS.
    */
   private static final int STARTUP_DELAY_MS =
-      Integer.getInteger("stargate.startup_delay_ms", 3 * MigrationManager.MIGRATION_DELAY_IN_MS);
+      Integer.getInteger(
+          "stargate.startup_delay_ms",
+          3 * 60000); // MigrationManager.MIGRATION_DELAY_IN_MS is private
 
   // SCHEMA_SYNC_GRACE_PERIOD should be longer than MigrationManager.MIGRATION_DELAY_IN_MS to allow
   // the schema pull tasks to be initiated, plus some time for executing the pull requests plus
@@ -130,10 +115,7 @@ public class CassandraPersistence
   // DatabaseDescriptor.getRpcTimeout() (10 sec) and there are no retries. We assume that the merge
   // operation should complete within the default MIGRATION_DELAY_IN_MS.
   private static final Duration SCHEMA_SYNC_GRACE_PERIOD =
-      Duration.ofMillis(
-          Long.getLong(
-              "stargate.schema_sync_grace_period_ms",
-              2 * MigrationManager.MIGRATION_DELAY_IN_MS + 10_000));
+      Duration.ofMillis(Long.getLong("stargate.schema_sync_grace_period_ms", 2 * 60_000 + 10_000));
 
   private final SchemaCheck schemaCheck = new SchemaCheck();
 
@@ -144,10 +126,10 @@ public class CassandraPersistence
   private QueryInterceptor interceptor;
 
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
-  private MigrationListener migrationListener;
+  private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
 
-  public CassandraPersistence() {
+  public Cassandra40Persistence() {
     super("Apache Cassandra");
   }
 
@@ -167,20 +149,20 @@ public class CassandraPersistence
 
   @Override
   protected void registerInternalSchemaListener(Runnable runOnSchemaChange) {
-    migrationListener =
+    schemaChangeListener =
         new SimpleCallbackMigrationListener() {
           @Override
           void onSchemaChange() {
             runOnSchemaChange.run();
           }
         };
-    MigrationManager.instance.register(migrationListener);
+    org.apache.cassandra.schema.Schema.instance.registerListener(schemaChangeListener);
   }
 
   @Override
   protected void unregisterInternalSchemaListener() {
-    if (migrationListener != null) {
-      MigrationManager.instance.unregister(migrationListener);
+    if (schemaChangeListener != null) {
+      org.apache.cassandra.schema.Schema.instance.unregisterListener(schemaChangeListener);
     }
   }
 
@@ -203,7 +185,7 @@ public class CassandraPersistence
     executor =
         SHARED.newExecutor(
             DatabaseDescriptor.getNativeTransportMaxThreads(),
-            Integer.MAX_VALUE,
+            DatabaseDescriptor::setNativeTransportMaxThreads,
             "transport",
             "Native-Transport-Requests");
 
@@ -219,6 +201,7 @@ public class CassandraPersistence
 
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
     interceptor = new DefaultQueryInterceptor();
+
     interceptor.initialize();
     stargateHandler().register(interceptor);
     stargateHandler().setAuthorizationService(this.authorizationService);
@@ -234,7 +217,7 @@ public class CassandraPersistence
 
   @Override
   public void registerEventListener(EventListener listener) {
-    MigrationManager.instance.register(new EventListenerWrapper(listener));
+    Schema.instance.registerListener(new EventListenerWrapper(listener));
     interceptor.register(listener);
   }
 
@@ -269,9 +252,7 @@ public class CassandraPersistence
     CompletableFuture<T> future = new CompletableFuture<>();
     executor.submit(
         () -> {
-          if (captureWarnings) {
-            ClientWarn.instance.captureWarnings();
-          }
+          if (captureWarnings) ClientWarn.instance.captureWarnings();
           try {
             @SuppressWarnings("unchecked")
             T resultWithWarnings =
@@ -294,12 +275,12 @@ public class CassandraPersistence
     return future;
   }
 
-  private static boolean shouldCheckSchema(InetAddress ep) {
+  private static boolean shouldCheckSchema(InetAddressAndPort ep) {
     EndpointState epState = Gossiper.instance.getEndpointStateForEndpoint(ep);
     return epState != null && !Gossiper.instance.isDeadState(epState);
   }
 
-  private static boolean isStorageNode(InetAddress ep) {
+  private static boolean isStorageNode(InetAddressAndPort ep) {
     return !Gossiper.instance.isGossipOnlyMember(ep);
   }
 
@@ -312,11 +293,12 @@ public class CassandraPersistence
     // probably the right answer in that case. In practice, this shouldn't be a problem though.
 
     // Important: This must include all nodes including fat clients, otherwise we'll get write
-    // errors with INCOMPATIBLE_SCHEMA.
+    // errors
+    // with INCOMPATIBLE_SCHEMA.
 
     // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -326,9 +308,9 @@ public class CassandraPersistence
   @Override
   public boolean isInSchemaAgreementWithStorage() {
     // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
-    InetAddress localAddress = FBUtilities.getBroadcastAddress();
+    InetAddressAndPort localAddress = FBUtilities.getLocalAddressAndPort();
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
             .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
@@ -344,8 +326,8 @@ public class CassandraPersistence
   boolean isStorageInSchemaAgreement() {
     // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(CassandraPersistence::shouldCheckSchema)
-            .filter(CassandraPersistence::isStorageNode)
+            .filter(Cassandra40Persistence::shouldCheckSchema)
+            .filter(Cassandra40Persistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -384,8 +366,7 @@ public class CassandraPersistence
     boolean isConnectedAndInAgreement = false;
     for (int i = 0; i < delayMillis; i += 1000) {
       if (Gossiper.instance.getLiveTokenOwners().size() > 0 && isInSchemaAgreement()) {
-        logger.debug(
-            "current schema version: {}", org.apache.cassandra.config.Schema.instance.getVersion());
+        logger.debug("current schema version: {}", Schema.instance.getVersion());
         isConnectedAndInAgreement = true;
         break;
       }
@@ -427,7 +408,7 @@ public class CassandraPersistence
 
     @Override
     public Persistence persistence() {
-      return CassandraPersistence.this;
+      return Cassandra40Persistence.this;
     }
 
     @Override
@@ -452,18 +433,16 @@ public class CassandraPersistence
         Parameters parameters, long queryStartNanoTime, Supplier<Request> requestSupplier) {
       return runOnExecutor(
           () -> {
-            QueryState queryState =
-                new QueryState(
-                    parameters
-                        .defaultKeyspace()
-                        .map(k -> cloneWithKeyspace(clientState, k))
-                        .orElse(clientState));
+            QueryState queryState = new QueryState(clientState);
             Request request = requestSupplier.get();
             if (parameters.tracingRequested()) {
-              request.setTracingRequested();
+              ReflectionUtils.setTracingRequested(request);
             }
             request.setCustomPayload(parameters.customPayload().orElse(null));
-            Message.Response response = request.execute(queryState, queryStartNanoTime);
+
+            Message.Response response =
+                ReflectionUtils.execute(request, queryState, queryStartNanoTime);
+
             // There is only 2 types of response that can come out: either a ResultMessage (which
             // itself can of different kind), or an ErrorMessage.
             if (response instanceof ErrorMessage) {
@@ -473,6 +452,7 @@ public class CassandraPersistence
               throw Conversion.convertInternalException(
                   (Throwable) ((ErrorMessage) response).error);
             }
+
             @SuppressWarnings("unchecked")
             T result =
                 (T)
@@ -482,21 +462,6 @@ public class CassandraPersistence
             return result;
           },
           parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4));
-    }
-
-    private ClientState cloneWithKeyspace(ClientState original, String keyspace) {
-      ClientState clone =
-          original.isInternal
-              ? ClientState.forInternalCalls()
-              : ClientState.forExternalCalls(original.getRemoteAddress());
-      clone.login(original.getUser());
-      if (original.isNoCompactMode()) {
-        clone.setNoCompactMode();
-      }
-      if (keyspace != null) {
-        clone.setKeyspace(keyspace);
-      }
-      return clone;
     }
 
     @Override
@@ -515,7 +480,8 @@ public class CassandraPersistence
               return new QueryMessage(queryString, options);
             } else {
               MD5Digest id = Conversion.toInternal(((BoundStatement) statement).preparedId());
-              return new ExecuteMessage(id, options);
+              // The 'resultMetadataId' is a protocol v5 feature we don't yet support
+              return new ExecuteMessage(id, null, options);
             }
           });
     }
@@ -527,7 +493,7 @@ public class CassandraPersistence
           // The queryStartNanoTime is not used by prepared message, so it doesn't really matter
           // that it's only computed now.
           System.nanoTime(),
-          () -> new PrepareMessage(query));
+          () -> new PrepareMessage(query, parameters.defaultKeyspace().orElse(null)));
     }
 
     @Override
@@ -574,14 +540,15 @@ public class CassandraPersistence
 
     public SchemaCheck() {
       super(
-          CassandraPersistence.this::isInSchemaAgreement,
-          CassandraPersistence.this::isStorageInSchemaAgreement,
+          Cassandra40Persistence.this::isInSchemaAgreement,
+          Cassandra40Persistence.this::isStorageInSchemaAgreement,
           SCHEMA_SYNC_GRACE_PERIOD,
           new SystemTimeSource());
     }
 
     @Override
-    public void onChange(InetAddress endpoint, ApplicationState state, VersionedValue value) {
+    public void onChange(
+        InetAddressAndPort endpoint, ApplicationState state, VersionedValue value) {
       // Reset the schema sync grace period timeout on any schema change notifications
       // even if there are no actual changes.
       if (state == ApplicationState.SCHEMA) {
@@ -590,25 +557,25 @@ public class CassandraPersistence
     }
 
     @Override
-    public void onJoin(InetAddress endpoint, EndpointState epState) {}
+    public void onJoin(InetAddressAndPort endpoint, EndpointState epState) {}
 
     @Override
     public void beforeChange(
-        InetAddress endpoint,
+        InetAddressAndPort endpoint,
         EndpointState currentState,
         ApplicationState newStateKey,
         VersionedValue newValue) {}
 
     @Override
-    public void onAlive(InetAddress endpoint, EndpointState state) {}
+    public void onAlive(InetAddressAndPort endpoint, EndpointState state) {}
 
     @Override
-    public void onDead(InetAddress endpoint, EndpointState state) {}
+    public void onDead(InetAddressAndPort endpoint, EndpointState state) {}
 
     @Override
-    public void onRemove(InetAddress endpoint) {}
+    public void onRemove(InetAddressAndPort endpoint) {}
 
     @Override
-    public void onRestart(InetAddress endpoint, EndpointState state) {}
+    public void onRestart(InetAddressAndPort endpoint, EndpointState state) {}
   }
 }

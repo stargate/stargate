@@ -18,7 +18,7 @@ package io.stargate.graphql.schema.graphqlfirst.processor;
 import com.apollographql.federation.graphqljava.Federation;
 import com.apollographql.federation.graphqljava._FieldSet;
 import com.apollographql.federation.graphqljava.tracing.FederatedTracingInstrumentation;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorException;

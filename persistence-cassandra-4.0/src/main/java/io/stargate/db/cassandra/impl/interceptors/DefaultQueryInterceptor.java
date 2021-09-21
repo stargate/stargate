@@ -4,7 +4,7 @@ import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocal
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers;
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeersV2;
 
-import com.google.common.collect.Sets;
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.stargate.db.EventListener;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;

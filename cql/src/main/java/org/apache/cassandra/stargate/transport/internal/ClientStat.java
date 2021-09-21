@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.net.InetAddress;
 import java.util.Map;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;

@@ -5,14 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Resources;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -27,6 +26,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -790,7 +790,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     assertThat(documentIds.size()).isEqualTo(27);
     Iterator<JsonNode> iter = documentIds.iterator();
     List<String> expectedIds =
-        ImmutableList.of(
+        Arrays.asList(
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
             "r", "s", "t", "u", "v", "w", "x", "y", "z", "aa");
     int i = 0;
@@ -3619,7 +3619,7 @@ public abstract class BaseDocumentApiV2Test extends BaseOsgiIntegrationTest {
     }
     docsSeen.add(key);
     assertThat(docsSeen.size()).isEqualTo(2);
-    assertThat(docsSeen.containsAll(ImmutableList.of("2", "3"))).isTrue();
+    assertThat(docsSeen.containsAll(Arrays.asList("2", "3"))).isTrue();
   }
 
   private JsonNode wrapResponse(JsonNode node, String id, String pagingState) {

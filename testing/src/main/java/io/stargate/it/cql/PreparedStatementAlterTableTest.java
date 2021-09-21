@@ -15,11 +15,11 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.internal.core.util.concurrent.CompletableFutures;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import com.google.common.collect.ImmutableList;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -76,7 +76,7 @@ public class PreparedStatementAlterTableTest extends BaseOsgiIntegrationTest {
     ByteBuffer idAfter = ps.getResultMetadataId();
     assertThat(Bytes.toHexString(idAfter)).isNotEqualTo(Bytes.toHexString(idBefore));
     for (ColumnDefinitions columnDefinitions :
-        ImmutableList.of(
+        Arrays.asList(
             ps.getResultSetDefinitions(),
             bs.getPreparedStatement().getResultSetDefinitions(),
             rows.getColumnDefinitions())) {

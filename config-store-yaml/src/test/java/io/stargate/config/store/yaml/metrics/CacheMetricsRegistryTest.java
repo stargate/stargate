@@ -19,10 +19,10 @@ import static io.stargate.config.store.yaml.metrics.MetricsHelper.getMetricValue
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.LoadingCache;
+import com.datastax.oss.driver.shaded.guava.common.cache.CacheBuilder;
+import com.datastax.oss.driver.shaded.guava.common.cache.CacheLoader;
+import com.datastax.oss.driver.shaded.guava.common.cache.CacheStats;
+import com.datastax.oss.driver.shaded.guava.common.cache.LoadingCache;
 import io.stargate.config.store.yaml.FakeTicker;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;

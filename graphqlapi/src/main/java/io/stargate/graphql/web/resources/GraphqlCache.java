@@ -15,8 +15,8 @@
  */
 package io.stargate.graphql.web.resources;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.datastax.oss.driver.shaded.guava.common.base.Supplier;
+import com.datastax.oss.driver.shaded.guava.common.base.Suppliers;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import edu.umd.cs.findbugs.annotations.Nullable;

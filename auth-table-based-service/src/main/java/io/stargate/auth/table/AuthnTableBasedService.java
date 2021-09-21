@@ -15,7 +15,6 @@
  */
 package io.stargate.auth.table;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.stargate.auth.AuthenticationService;
@@ -242,7 +241,7 @@ public class AuthnTableBasedService implements AuthenticationService {
   @Override
   public AuthenticationSubject validateToken(String token) throws UnauthorizedException {
     // if not there fail fast
-    if (Strings.isNullOrEmpty(token)) {
+    if ((token == null) || token.isEmpty()) {
       throw new UnauthorizedException("authorization failed - missing token");
     }
 

@@ -89,6 +89,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
       <artifactId>rxjava</artifactId>
       <version>2.2.15</version>
@@ -212,7 +217,7 @@
             <Bundle-Name>Cassandra-Persistence</Bundle-Name>
             <Bundle-Description>Cassandra DB component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.db.cassandra_3_11</Bundle-SymbolicName>
-            <Bundle-Activator>io.stargate.db.cassandra.CassandraPersistenceActivator</Bundle-Activator>
+            <Bundle-Activator>io.stargate.db.cassandra.Cassandra311PersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
                             org.osgi.framework,
                             io.stargate.core.*,
@@ -224,7 +229,7 @@
                             org.javatuples,
                             !com.codahale.metrics.graphite.*,
                             com.codahale.metrics,
-                            com.datastax.oss.driver.shaded.guava.*,
+                            com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,{maven-dependencies}</Bundle-ClassPath>

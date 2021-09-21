@@ -19,7 +19,7 @@ import static com.codahale.metrics.MetricRegistry.name;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.cache.Cache;
+import com.datastax.oss.driver.shaded.guava.common.cache.Cache;
 
 public class CacheMetricsRegistry {
   public static final String CACHE_NAME = "file-cache";

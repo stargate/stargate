@@ -17,8 +17,8 @@ package io.stargate.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Type;

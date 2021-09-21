@@ -40,12 +40,12 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateTable;
-import com.google.common.collect.ImmutableList;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -115,7 +115,7 @@ public class GeoTypeTest extends BaseOsgiIntegrationTest {
 
   private static List<TypeSample<?>> generateAllTypes(CqlIdentifier keyspaceId) {
     List<TypeSample<?>> primitiveTypes =
-        ImmutableList.of(
+        Arrays.asList(
             typeSample(
                 DseDataTypes.POINT, GenericType.of(Point.class), Point.fromCoordinates(1, 2)),
             typeSample(

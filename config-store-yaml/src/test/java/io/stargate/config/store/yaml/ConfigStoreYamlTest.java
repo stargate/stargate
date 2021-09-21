@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import io.stargate.config.store.yaml.metrics.CacheMetricsRegistry;

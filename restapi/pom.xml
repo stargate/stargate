@@ -31,12 +31,6 @@
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
@@ -112,9 +106,9 @@
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>27.0-jre</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
@@ -253,7 +247,8 @@
                             com.codahale.metrics,
                             com.codahale.metrics.*,
                             io.micrometer.core.*,
-                            com.datastax.oss.driver.*,
+                            com.datastax.oss.driver.api.*,
+                            com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

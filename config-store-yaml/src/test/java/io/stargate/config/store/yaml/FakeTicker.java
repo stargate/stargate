@@ -15,7 +15,7 @@
  */
 package io.stargate.config.store.yaml;
 
-import com.google.common.base.Ticker;
+import com.datastax.oss.driver.shaded.guava.common.base.Ticker;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 

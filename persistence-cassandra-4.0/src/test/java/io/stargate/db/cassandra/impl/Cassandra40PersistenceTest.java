@@ -35,7 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for {@link CassandraPersistence}. See also integration tests: {@link
+ * Unit tests for {@link Cassandra40Persistence}. See also integration tests: {@link
  * Cassandra40PersistenceIT}.
  */
 class Cassandra40PersistenceTest {
@@ -46,7 +46,7 @@ class Cassandra40PersistenceTest {
   private static final UUID id1 = UUID.randomUUID();
   private static final UUID id2 = UUID.randomUUID();
 
-  private static final CassandraPersistence persistence = new CassandraPersistence();
+  private static final Cassandra40Persistence persistence = new Cassandra40Persistence();
 
   private static InetAddressAndPort storage1;
   private static InetAddressAndPort storage2;

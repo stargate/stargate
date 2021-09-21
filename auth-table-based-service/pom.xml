@@ -31,12 +31,17 @@
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <!-- 21-Sep-2021, tatu: If you need to use Guava for NON-test code (runtime),
+             note that you need to BOTH change scope to "runtime" AND add
+             OSGi import: see f.ex "cql/pom.xml" for example of how to do it.
+             But make sure you really want Guava and there is no alternative as
+             we are trying to reduce Guava usage to avoid version conflicts
+      -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -96,7 +101,6 @@
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
               org.javatuples,
-              com.datastax.oss.driver.shaded.guava.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

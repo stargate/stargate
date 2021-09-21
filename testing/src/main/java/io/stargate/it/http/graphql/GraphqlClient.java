@@ -19,12 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import io.stargate.it.http.RestUtils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,10 @@ public abstract class GraphqlClient {
   protected Map<String, Object> getGraphqlData(String authToken, String url, String graphqlQuery) {
     Map<String, Object> response =
         getGraphqlResponse(
-            ImmutableMap.of("X-Cassandra-Token", authToken), url, graphqlQuery, HttpStatus.SC_OK);
+            Collections.singletonMap("X-Cassandra-Token", authToken),
+            url,
+            graphqlQuery,
+            HttpStatus.SC_OK);
     assertThat(response).isNotNull();
     assertThat(response.get("errors")).isNull();
     @SuppressWarnings("unchecked")
@@ -67,7 +70,10 @@ public abstract class GraphqlClient {
       String authToken, String url, String graphqlQuery, int expectedStatus) {
     Map<String, Object> response =
         getGraphqlResponse(
-            ImmutableMap.of("X-Cassandra-Token", authToken), url, graphqlQuery, expectedStatus);
+            Collections.singletonMap("X-Cassandra-Token", authToken),
+            url,
+            graphqlQuery,
+            expectedStatus);
     assertThat(response).isNotNull();
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");

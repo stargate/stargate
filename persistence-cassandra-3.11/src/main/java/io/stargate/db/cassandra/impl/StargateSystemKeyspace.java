@@ -18,7 +18,7 @@ package io.stargate.db.cassandra.impl;
 import static org.apache.cassandra.cql3.QueryProcessor.executeInternal;
 import static org.apache.cassandra.cql3.QueryProcessor.executeOnceInternal;
 
-import com.google.common.util.concurrent.Futures;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Futures;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.HashSet;

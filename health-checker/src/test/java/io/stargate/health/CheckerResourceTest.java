@@ -9,9 +9,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheck.Result;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,7 +129,10 @@ class CheckerResourceTest {
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
     assertThat(checker.checkReadiness(Collections.singleton("test-unhealthy")).getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(ImmutableSet.of("test-ok", "test-unhealthy")).getStatus())
+    assertThat(
+            checker
+                .checkReadiness(new HashSet<>(Arrays.asList("test-ok", "test-unhealthy")))
+                .getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
     assertThat(checker.checkReadiness(Collections.singleton("test-ok")).getStatus())
         .isEqualTo(OK.getStatusCode());
@@ -152,7 +155,10 @@ class CheckerResourceTest {
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
     assertThat(checker.checkReadiness(Collections.singleton("test-unhealthy")).getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
-    assertThat(checker.checkReadiness(ImmutableSet.of("test-ok", "test-unhealthy")).getStatus())
+    assertThat(
+            checker
+                .checkReadiness(new HashSet<>(Arrays.asList("test-ok", "test-unhealthy")))
+                .getStatus())
         .isEqualTo(SERVICE_UNAVAILABLE.getStatusCode());
     assertThat(checker.checkReadiness(Collections.singleton("test-ok")).getStatus())
         .isEqualTo(OK.getStatusCode());

@@ -19,7 +19,7 @@ import static graphql.language.ListType.newListType;
 import static graphql.language.NonNullType.newNonNullType;
 import static graphql.language.TypeName.newTypeName;
 
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import graphql.Scalars;
 import graphql.language.ListType;
 import graphql.language.Node;

@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.netty.handler.ssl.SslHandler;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;

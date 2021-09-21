@@ -17,8 +17,8 @@
  */
 package org.apache.cassandra.stargate.transport.internal;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.base.Predicate;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
