@@ -129,7 +129,6 @@ public class DocsShredder {
                           value, parsingContext, db, path, key, patching);
                   Map<String, Object> boundVariables = result.left;
                   firstLevelKeys.addAll(result.right);
-                  logger.debug("{}", boundVariables.values());
                   bindVariableList.add(boundVariables.values().toArray());
                 }
               })
@@ -190,7 +189,7 @@ public class DocsShredder {
         // DocsApiUtils#convertJsonToBracketedPath
         String innerPath =
             DocsApiUtils.convertEscapedCharacters(pathValue.substring(1, pathValue.length() - 1));
-        if (isPatchingWithArrayValue(i, path.size(), patching)) {
+        if (isPatchingWithArrayValue(i, path.size(), op, patching)) {
           throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
         }
         if (isAtTopLevel(i, path.size())) {
@@ -245,8 +244,9 @@ public class DocsShredder {
     return bindMap;
   }
 
-  private boolean isPatchingWithArrayValue(int index, int pathSize, boolean patching) {
-    return isAtTopLevel(index, pathSize) && patching;
+  private boolean isPatchingWithArrayValue(
+      int index, int pathSize, PathOperator op, boolean patching) {
+    return isAtTopLevel(index, pathSize) && op.getType() == PathOperator.Type.ARRAY && patching;
   }
 
   private boolean isAtTopLevel(int index, int pathSize) {
@@ -342,7 +342,11 @@ public class DocsShredder {
       }
       bindMap.put(DocumentDB.LEAF_VALUE_NAME, leaf);
 
-      if (value.equals("true") || value.equals("false")) {
+      if (value.equals("null")) {
+        bindMap.put("dbl_value", null);
+        bindMap.put("bool_value", null);
+        bindMap.put("text_value", null);
+      } else if (value.equals("true") || value.equals("false")) {
         bindMap.put(
             DocumentDB.BOOL_VALUE_NAME,
             convertToBackendBooleanValue(Boolean.parseBoolean(value), db.treatBooleansAsNumeric()));
@@ -361,7 +365,6 @@ public class DocsShredder {
           bindMap.put(DocumentDB.TEXT_VALUE_NAME, value);
         }
       }
-      logger.debug("{}", bindMap.values());
       bindVariableList.add(bindMap.values().toArray());
     }
     return ImmutablePair.of(bindVariableList, firstLevelKeys);
