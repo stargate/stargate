@@ -99,6 +99,19 @@ public class CqlActivator extends BaseActivator {
       c.rpc_address = listenAddress;
       c.native_transport_port = cqlPort;
 
+      c.native_transport_max_concurrent_connections =
+          Long.getLong("stargate.cql.native_transport_max_concurrent_connections", -1);
+      c.native_transport_max_concurrent_connections_per_ip =
+          Long.getLong("stargate.cql.native_transport_max_concurrent_connections_per_ip", -1);
+      c.native_transport_max_concurrent_requests_in_bytes =
+          Long.getLong(
+              "stargate.cql.native_transport_max_concurrent_requests_in_bytes",
+              Runtime.getRuntime().maxMemory() / 10);
+      c.native_transport_max_concurrent_requests_in_bytes_per_ip =
+          Long.getLong(
+              "stargate.cql.native_transport_max_concurrent_requests_in_bytes_per_ip",
+              Runtime.getRuntime().maxMemory() / 40);
+
       return c;
     } catch (UnknownHostException e) {
       throw new RuntimeException(e);
