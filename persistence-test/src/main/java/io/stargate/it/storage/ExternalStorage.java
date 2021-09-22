@@ -322,7 +322,15 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
             new LogOutputStream() {
               @Override
               protected void processLine(String line, int logLevel) {
-                LOG.info("storage log: {}>> {}", relPath, line);
+                //                LOG.info("storage log: {}>> {}", relPath, line);
+                // !!! TESTING ONLY:
+                boolean isDebug = line.startsWith("DEBUG: ");
+                LOG.info(
+                    "storage log: [logLevel: {}, debug? {}] {}>> {}",
+                    logLevel,
+                    isDebug,
+                    relPath,
+                    line);
               }
             }) {
           FileUtils.copyFile(file, dumper);
