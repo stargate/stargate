@@ -2,11 +2,11 @@ package io.stargate.db.dse.impl;
 
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;

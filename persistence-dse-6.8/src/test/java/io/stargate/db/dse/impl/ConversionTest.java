@@ -3,7 +3,6 @@ package io.stargate.db.dse.impl;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import java.net.InetAddress;
@@ -110,7 +109,7 @@ class ConversionTest extends BaseDseTest {
   class RequestFailureReasons {
     private RequestFailureReason convert(
         org.apache.cassandra.exceptions.RequestFailureReason internal) {
-      return Conversion.toExternal(ImmutableMap.of(InetAddress.getLoopbackAddress(), internal))
+      return Conversion.toExternal(Collections.singletonMap(InetAddress.getLoopbackAddress(), internal))
           .values()
           .iterator()
           .next();

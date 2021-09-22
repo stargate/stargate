@@ -3,7 +3,7 @@ package io.stargate.db.dse.impl.interceptors;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
 
-import com.google.common.collect.Sets;
+import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
 import io.stargate.db.dse.ClientStateWithBoundPort;

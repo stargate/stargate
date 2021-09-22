@@ -330,7 +330,7 @@
               org.javatuples,
               !com.codahale.metrics.graphite.*,
               com.codahale.metrics,
-              com.datastax.oss.driver.shaded.guava.*,
+              com.datastax.oss.driver.shaded.guava.common.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,dnsjava-2.1.8.jar,{maven-dependencies}</Bundle-ClassPath>

@@ -1,8 +1,8 @@
 package io.stargate.db.dse;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
