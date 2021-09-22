@@ -1,5 +1,67 @@
 # Changelog
 
+## [v1.0.33](https://github.com/stargate/stargate/tree/v1.0.33) (2021-09-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.32...v1.0.33)
+
+**Fixed bugs:**
+
+- fixed Cassandra predicate when searching docs with a boolean value [\#1212](https://github.com/stargate/stargate/pull/1212) ([ivansenic](https://github.com/ivansenic))
+
+**Closed issues:**
+
+- Reduce noise from CI build wrt "gsutil rsync" [\#1263](https://github.com/stargate/stargate/issues/1263)
+- Change representation of `Uuid` type to use `bytes`  [\#1248](https://github.com/stargate/stargate/issues/1248)
+- Readiness check URI is truncated to include only the first query parameter [\#1243](https://github.com/stargate/stargate/issues/1243)
+- Make fragments of Document and Sub-Document available using WHERE query parameter [\#1242](https://github.com/stargate/stargate/issues/1242)
+- Remove usage of `com.datastax.oss:java-driver-shaded-guava` \(com.datastax.oss.driver.shaded.guava.\*\) [\#1237](https://github.com/stargate/stargate/issues/1237)
+- Reduce noise by `MeterRegistryConfiguration` validation wrt invalid Double values [\#1231](https://github.com/stargate/stargate/issues/1231)
+- Replace direct Guava usage by Stargate \(use shaded everywhere applicable\) to reduce Guava conflict w/ Cassandra backend [\#1229](https://github.com/stargate/stargate/issues/1229)
+- Create Docs API technical README.md [\#1228](https://github.com/stargate/stargate/issues/1228)
+- Replace "jsurfer-gson" with "jsurfer-jackson" \(version 1.6.2\) [\#1227](https://github.com/stargate/stargate/issues/1227)
+- Trying to read a document that is an array results in error [\#1224](https://github.com/stargate/stargate/issues/1224)
+- Use health-check provide via `BaseActivator` in the graphql module, instead of custom mechanism [\#1221](https://github.com/stargate/stargate/issues/1221)
+- Add health checks to grpc service [\#1219](https://github.com/stargate/stargate/issues/1219)
+- rename: `io.stargate.grpc.service.Service` to `io.stargate.grpc.service.GrpcService` [\#1215](https://github.com/stargate/stargate/issues/1215)
+- Small naming issues, use of deprecated options in CQL module [\#1210](https://github.com/stargate/stargate/issues/1210)
+- Infer and propagate information about indepotency of gRPC queries [\#1196](https://github.com/stargate/stargate/issues/1196)
+- Grow document search page size exponentially  [\#1183](https://github.com/stargate/stargate/issues/1183)
+- gRPC: Waiting for schema agreement should be asynchronous  [\#1145](https://github.com/stargate/stargate/issues/1145)
+- Add ability to "push" to an array path in a document [\#854](https://github.com/stargate/stargate/issues/854)
+- Use direct guava artifacts instead of com.datastax.oss.driver.shaded.guava [\#814](https://github.com/stargate/stargate/issues/814)
+
+**Merged pull requests:**
+
+- \(WIP\) Fix \#1263: add "-q" option for `gsutil` to remove progress bar noise. [\#1264](https://github.com/stargate/stargate/pull/1264) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix a merge-induced formatting fail \(not caught be CI\) [\#1261](https://github.com/stargate/stargate/pull/1261) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Use `bytes` types to encode UUID types [\#1256](https://github.com/stargate/stargate/pull/1256) ([mpenick](https://github.com/mpenick))
+- Remove use of unshaded guava \(fix \#1229\) [\#1253](https://github.com/stargate/stargate/pull/1253) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Dev guide macos [\#1252](https://github.com/stargate/stargate/pull/1252) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- CQL: Expose backpressure options and set sensible defaults [\#1250](https://github.com/stargate/stargate/pull/1250) ([olim7t](https://github.com/olim7t))
+- Minor renaming to improve readability of results \(Cass 3.11 vs 4.0 IT\) [\#1246](https://github.com/stargate/stargate/pull/1246) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update REST commands [\#1245](https://github.com/stargate/stargate/pull/1245) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add document API developer docs [\#1244](https://github.com/stargate/stargate/pull/1244) ([EricBorczuk](https://github.com/EricBorczuk))
+- Add a gRPC interceptor that caches `Connection` [\#1241](https://github.com/stargate/stargate/pull/1241) ([mpenick](https://github.com/mpenick))
+- Add new endpoints for "built-in" functions, add two built in funcs $push and $pop [\#1240](https://github.com/stargate/stargate/pull/1240) ([EricBorczuk](https://github.com/EricBorczuk))
+- use cache in AuthnTableBasedService [\#1239](https://github.com/stargate/stargate/pull/1239) ([tomekl007](https://github.com/tomekl007))
+- Reference example for gRPC java client [\#1236](https://github.com/stargate/stargate/pull/1236) ([tomekl007](https://github.com/tomekl007))
+- Fix \#1227: replace gson-backed j\[son\]surfer with jackson-backed one [\#1234](https://github.com/stargate/stargate/pull/1234) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1231: improve WARN message for `MeterRegistryConfiguration` wrt invalid config value [\#1232](https://github.com/stargate/stargate/pull/1232) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Arrays can now be read in every case, even at the root of the document [\#1225](https://github.com/stargate/stargate/pull/1225) ([EricBorczuk](https://github.com/EricBorczuk))
+- use health-check from `BaseActivator` for graphQL module [\#1222](https://github.com/stargate/stargate/pull/1222) ([tomekl007](https://github.com/tomekl007))
+- closes \#1183: exponential storage page size and appropriate sizes in all resolvers and fetchers [\#1218](https://github.com/stargate/stargate/pull/1218) ([ivansenic](https://github.com/ivansenic))
+- document gRPC deadlines [\#1217](https://github.com/stargate/stargate/pull/1217) ([tomekl007](https://github.com/tomekl007))
+- rename Service to GrpcService [\#1216](https://github.com/stargate/stargate/pull/1216) ([tomekl007](https://github.com/tomekl007))
+- Fix for \#1210: fix bundle name of `cql` module, Server-\>CqlServer, javadoc fixes [\#1211](https://github.com/stargate/stargate/pull/1211) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add reference to c\*4.0 persistence module in readme \(no longer an extension\) [\#1209](https://github.com/stargate/stargate/pull/1209) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1204](https://github.com/stargate/stargate/pull/1204) ([github-actions[bot]](https://github.com/apps/github-actions))
+- GraphQL: Add developer docs [\#1202](https://github.com/stargate/stargate/pull/1202) ([olim7t](https://github.com/olim7t))
+- Exclude azure-storage-blob dependency from DSE dependencies [\#1199](https://github.com/stargate/stargate/pull/1199) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Infer and propagate information about indepotency of gRPC queries [\#1194](https://github.com/stargate/stargate/pull/1194) ([tomekl007](https://github.com/tomekl007))
+- Retries for gRPC [\#1190](https://github.com/stargate/stargate/pull/1190) ([tomekl007](https://github.com/tomekl007))
+- gRPC: wait for schema agreement asynchronously \(fixes \#1145\) [\#1172](https://github.com/stargate/stargate/pull/1172) ([olim7t](https://github.com/olim7t))
+- Add metrics support for gRPC [\#976](https://github.com/stargate/stargate/pull/976) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.32](https://github.com/stargate/stargate/tree/v1.0.32) (2021-08-25)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.31...v1.0.32)
