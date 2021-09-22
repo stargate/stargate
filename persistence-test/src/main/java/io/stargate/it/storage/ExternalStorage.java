@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.LogOutputStream;
 import org.apache.commons.io.FileUtils;
@@ -308,28 +309,31 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       }
 
       LOG.warn("Dumping storage logs due to previous test failures.");
-
       Path configDir = configDirectory();
 
-      Collection<File> files = FileUtils.listFiles(configDir.toFile(), new String[] {"log"}, true);
+      final Collection<File> files =
+          FileUtils.listFiles(configDir.toFile(), new String[] {"log"}, true);
+      int filesProcessed = 0;
+      final AtomicInteger printedLines = new AtomicInteger(0);
+      final AtomicInteger skippedLines = new AtomicInteger(0);
       for (File file : files) {
         String relPath = configDir.relativize(file.toPath()).toString();
         if (!relPath.contains(File.separator + "logs" + File.separator)) {
           continue;
         }
 
+        ++filesProcessed;
         try (LogOutputStream dumper =
             new LogOutputStream() {
               @Override
               protected void processLine(String line, int logLevel) {
                 // Let's filter out DEBUG entries: unfortunately "logLevel" is always default 999
                 // so need to just check prefix of the line itself
-                // !!! TESTING ONLY:
                 if (line.startsWith("DEBUG ")) {
-                  LOG.info("storage log: SKIP-DEBUG {}>> {}", relPath, line);
+                  skippedLines.incrementAndGet();
                 } else {
-                  //                  LOG.info("storage log: {}>> {}", relPath, line);
-                  LOG.info("storage log: INCLUDE {}>> {}", relPath, line);
+                  printedLines.incrementAndGet();
+                  LOG.info("storage log: {}>> {}", relPath, line);
                 }
               }
             }) {
@@ -338,6 +342,11 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
           throw new IllegalStateException(e);
         }
       }
+      LOG.warn(
+          "Finished dumping storage logs ({} files): printed {} lines, skipped {} DEBUG lines",
+          filesProcessed,
+          printedLines.get(),
+          skippedLines.get());
     }
 
     @Override
