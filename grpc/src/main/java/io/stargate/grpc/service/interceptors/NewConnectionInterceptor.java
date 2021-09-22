@@ -103,7 +103,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   private Connection newConnection(RequestInfo info) throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject = authenticationService.validateToken(info.token());
+    AuthenticationSubject authenticationSubject = authenticationService.validateToken(info.token(), info.headers());
 
     AuthenticatedUser user = authenticationSubject.asUser();
     Connection connection;
