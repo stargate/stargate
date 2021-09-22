@@ -109,7 +109,8 @@ class ConversionTest extends BaseDseTest {
   class RequestFailureReasons {
     private RequestFailureReason convert(
         org.apache.cassandra.exceptions.RequestFailureReason internal) {
-      return Conversion.toExternal(Collections.singletonMap(InetAddress.getLoopbackAddress(), internal))
+      return Conversion.toExternal(
+              Collections.singletonMap(InetAddress.getLoopbackAddress(), internal))
           .values()
           .iterator()
           .next();
