@@ -322,15 +322,15 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
             new LogOutputStream() {
               @Override
               protected void processLine(String line, int logLevel) {
-                //                LOG.info("storage log: {}>> {}", relPath, line);
+                // Let's filter out DEBUG entries: unfortunately "logLevel" is always default 999
+                // so need to just check prefix of the line itself
                 // !!! TESTING ONLY:
-                boolean isDebug = line.startsWith("DEBUG: ");
-                LOG.info(
-                    "storage log: [logLevel: {}, debug? {}] {}>> {}",
-                    logLevel,
-                    isDebug,
-                    relPath,
-                    line);
+                if (line.startsWith("DEBUG ")) {
+                  LOG.info("storage log: SKIP-DEBUG {}>> {}", relPath, line);
+                } else {
+                  //                  LOG.info("storage log: {}>> {}", relPath, line);
+                  LOG.info("storage log: INCLUDE {}>> {}", relPath, line);
+                }
               }
             }) {
           FileUtils.copyFile(file, dumper);
