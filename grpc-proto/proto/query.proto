@@ -55,11 +55,18 @@ message UdtValue {
   map<string, Value> fields = 1;
 }
 
-// A UUID value (for CQL types uuid and timeuuid).
+// A 128-bit (16-byte) UUID type encoded using big-endian byte order. For example, the UUID
+// "00112233-4455-6677-8899-aabbccddeeff" would be store as the bytes:
+// | 0x00 0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88 0x99 0xAA 0xBB 0xCC 0xDD 0xEE 0xFF |
+// | MSB                                                                        LSB  |
 message Uuid {
-  // TODO: Is this going to have endian problems representing it this way?
-  fixed64 msb = 1;
-  fixed64 lsb = 2;
+  bytes value = 1;
+}
+
+// Either an IPv4 or IPv6 address stored as either 4 or 16 bytes, respectively. The addresses are
+// encoded using big-endian byte order.
+message Inet {
+  bytes value = 1;
 }
 
 message Varint {
@@ -99,11 +106,14 @@ message Value {
     // CQL types: ascii, varchar, text
     string string = 7;
 
-    // CQL types: blob, inet, custom
+    // CQL types: blob, custom
     bytes bytes = 8;
 
+    // CQL types: inet
+    Inet inet = 9;
+
     // CQL types: uuid, timeuuid
-    Uuid uuid = 9;
+    Uuid uuid = 10;
 
     // CQL types: date
     // An unsigned integer representing days with Unix epoch (January, 1 1970) at 2^31.
@@ -111,24 +121,24 @@ message Value {
     // 0:    -5877641-06-23
     // 2^31: 1970-1-1
     // 2^32: 5881580-07-11
-    uint32 date = 10;
+    uint32 date = 11;
 
     // CQL types: time
     // An unsigned integer representing the number of nanoseconds since midnight. Valid values are
     // in the range 0 to 86399999999999 (inclusive).
-    uint64 time = 11;
+    uint64 time = 12;
 
     // CQL types: list, set, map, tuple
-    Collection collection = 12;
+    Collection collection = 13;
 
     // CQL types: user defined types
-    UdtValue udt = 13;
+    UdtValue udt = 14;
 
     // CQL types: varint
-    Varint varint = 14;
+    Varint varint = 15;
 
     // CQL types: decimal
-    Decimal decimal = 15;
+    Decimal decimal = 16;
   }
 }
 

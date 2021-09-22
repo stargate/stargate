@@ -15,7 +15,7 @@
  */
 package io.stargate.grpc.codec.cql;
 
-import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
+import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -23,34 +23,28 @@ import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
 public class UuidCodec implements ValueCodec {
-  private TypeCodec<UUID> innerCodec;
-
-  public UuidCodec(@NonNull TypeCodec<UUID> innerCodec) {
-    this.innerCodec = innerCodec;
-  }
-
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
     if (value.getInnerCase() != InnerCase.UUID) {
       throw new IllegalArgumentException("Expected UUID type");
     }
-    UUID uuid = new UUID(value.getUuid().getMsb(), value.getUuid().getLsb());
-    return innerCodec.encode(uuid, PROTOCOL_VERSION);
+    ByteString uuid = value.getUuid().getValue();
+    int size = uuid.size();
+    if (size != 16) {
+      throw new IllegalArgumentException("Expected 16 bytes for a UUID");
+    }
+    ByteBuffer bytes = ByteBuffer.allocate(16);
+    uuid.copyTo(bytes);
+    bytes.flip();
+    return bytes;
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
-    UUID uuid = innerCodec.decode(bytes, PROTOCOL_VERSION);
-    assert uuid != null;
     return Value.newBuilder()
-        .setUuid(
-            Uuid.newBuilder()
-                .setMsb(uuid.getMostSignificantBits())
-                .setLsb(uuid.getLeastSignificantBits())
-                .build())
+        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
         .build();
   }
 }

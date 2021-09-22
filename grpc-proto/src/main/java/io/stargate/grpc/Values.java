@@ -18,6 +18,7 @@ package io.stargate.grpc;
 import com.google.protobuf.ByteString;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Collection;
+import io.stargate.proto.QueryOuterClass.Inet;
 import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Values {
+
   public static Value NULL = Value.newBuilder().setNull(Null.newBuilder().build()).build();
   public static Value UNSET = Value.newBuilder().setUnset(Unset.newBuilder().build()).build();
 
@@ -79,7 +81,9 @@ public class Values {
   }
 
   public static Value of(InetAddress value) {
-    return of(value.getAddress());
+    return Value.newBuilder()
+        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(value.getAddress())))
+        .build();
   }
 
   public static Value of(long value) {
@@ -114,11 +118,13 @@ public class Values {
   }
 
   public static Value of(UUID value) {
+    // The encoding format of our UUID is 16-bytes in big-endian byte order. Note: The initial byte
+    // order of `ByteBuffer` is always big-endian.
+    ByteBuffer bytes = ByteBuffer.allocate(16);
+    bytes.putLong(0, value.getMostSignificantBits());
+    bytes.putLong(8, value.getLeastSignificantBits());
     return Value.newBuilder()
-        .setUuid(
-            Uuid.newBuilder()
-                .setMsb(value.getMostSignificantBits())
-                .setLsb(value.getLeastSignificantBits()))
+        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)))
         .build();
   }
 
