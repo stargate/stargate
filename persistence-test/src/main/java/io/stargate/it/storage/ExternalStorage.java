@@ -148,7 +148,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
     private final UUID id = UUID.randomUUID();
     private final ClusterSpec spec;
-    private final AtomicBoolean errorInTest = new AtomicBoolean();
+    private final AtomicInteger errorsInTest = new AtomicInteger(0);
 
     protected Cluster(ClusterSpec spec) {
       this.spec = spec;
@@ -164,11 +164,11 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     public abstract String infoForTestLog();
 
     private void markError() {
-      errorInTest.set(true);
+      errorsInTest.incrementAndGet();
     }
 
-    public boolean errorsDetected() {
-      return errorInTest.get();
+    public int errorsDetected() {
+      return errorsInTest.get();
     }
   }
 
@@ -293,7 +293,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
           }
         } catch (Exception e) {
           // This should not affect test result validity, hence logging as WARN
-          LOG.warn("Exception during CCM cluster shutdown: {}", e, e);
+          LOG.warn("Exception during CCM cluster shutdown: " + e.getMessage(), e);
         }
       }
     }
@@ -304,11 +304,14 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     }
 
     private void dumpLogs() {
-      if (!errorsDetected()) {
+      final int errors = errorsDetected();
+      if (errors == 0) {
+        LOG.info("Skipping dumping storage cluster ({}) logs: no test failures.", infoForTestLog());
         return;
       }
 
-      LOG.warn("Dumping storage logs due to previous test failures.");
+      LOG.warn(
+          "Dumping storage cluster ({}) logs due to {}} test failures.", infoForTestLog(), errors);
       Path configDir = configDirectory();
 
       final Collection<File> files =
