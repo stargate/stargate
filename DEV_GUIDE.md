@@ -317,17 +317,18 @@ do
     sudo /sbin/ifconfig lo0 alias 127.0.0.$i;
 done
 
-# 127.0.2.1 - 127.0.2.48
-for ((i=1;i<49;i++))
-do
-    sudo /sbin/ifconfig lo0 alias 127.0.2.$i;
-done
-
 # 127.0.1.11 - 127.0.1.12
 for ((i=11;i<13;i++))
 do
     sudo /sbin/ifconfig lo0 alias 127.0.1.$i;
 done
+
+# 127.0.2.1 - 127.0.2.60
+for ((i=1;i<61;i++))
+do
+    sudo /sbin/ifconfig lo0 alias 127.0.2.$i;
+done
+
 ```
 
 Set access of the script:

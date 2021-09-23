@@ -16,8 +16,8 @@
 package io.stargate.grpc.codec.cql;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.grpc.Status;
 import io.stargate.db.schema.Column.Type;
@@ -42,9 +42,9 @@ public class ValueCodecs {
               .put(Type.Text, new StringCodec(TypeCodecs.TEXT))
               .put(Type.Time, new TimeCodec())
               .put(Type.Timestamp, new BigintCodec())
-              .put(Type.Timeuuid, new UuidCodec(TypeCodecs.TIMEUUID))
+              .put(Type.Timeuuid, new UuidCodec())
               .put(Type.Tinyint, new TinyintCodec())
-              .put(Type.Uuid, new UuidCodec(TypeCodecs.UUID))
+              .put(Type.Uuid, new UuidCodec())
               .put(Type.Varchar, new StringCodec(TypeCodecs.TEXT))
               .put(Type.Varint, new VarintCodec())
               .put(Type.List, new CollectionCodec())

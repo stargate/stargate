@@ -17,7 +17,9 @@ package io.stargate.grpc.service.interceptors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -38,6 +40,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.grpc.service.GrpcService;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +55,8 @@ public class NewConnectionInterceptorTest {
     when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
 
     AuthenticationService authenticationService = mock(AuthenticationService.class);
-    when(authenticationService.validateToken("abc")).thenReturn(authenticationSubject);
+    when(authenticationService.validateToken(eq("abc"), any(Map.class)))
+        .thenReturn(authenticationSubject);
 
     Connection connection = mock(Connection.class);
     when(connection.loggedUser()).thenReturn(Optional.of(authenticatedUser));
@@ -108,7 +112,7 @@ public class NewConnectionInterceptorTest {
                     s.getCode() == Status.UNAUTHENTICATED.getCode()
                         && s.getDescription().equals("No token provided")),
             any(Metadata.class));
-    verify(authenticationService, never()).validateToken(any(String.class));
+    verify(authenticationService, never()).validateToken(anyString(), any(Map.class));
     verify(next, never()).startCall(any(ServerCall.class), any(Metadata.class));
   }
 
@@ -117,7 +121,8 @@ public class NewConnectionInterceptorTest {
     Persistence persistence = mock(Persistence.class);
 
     AuthenticationService authenticationService = mock(AuthenticationService.class);
-    when(authenticationService.validateToken("invalid")).thenThrow(new UnauthorizedException(""));
+    when(authenticationService.validateToken(eq("invalid"), any(Map.class)))
+        .thenThrow(new UnauthorizedException(""));
 
     ServerCallHandler next = mock(ServerCallHandler.class);
     ServerCall call = mock(ServerCall.class);
@@ -141,7 +146,7 @@ public class NewConnectionInterceptorTest {
                     s.getCode() == Status.UNAUTHENTICATED.getCode()
                         && s.getDescription().equals("Invalid token")),
             any(Metadata.class));
-    verify(authenticationService, times(1)).validateToken("invalid");
+    verify(authenticationService, times(1)).validateToken(eq("invalid"), any(Map.class));
     verify(next, never()).startCall(any(ServerCall.class), any(Metadata.class));
   }
 }

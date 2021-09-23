@@ -1,7 +1,7 @@
 package io.stargate.db.datastore.common;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;

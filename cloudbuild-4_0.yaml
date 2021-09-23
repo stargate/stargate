@@ -18,6 +18,7 @@ steps:
     waitFor: [ '-' ]
     args:
       - '-m'
+      - '-q'
       - 'rsync'
       - '-r'
       - '-x'
@@ -43,6 +44,7 @@ steps:
     waitFor: [ 'cassandra-4.0' ]
     args:
       - '-m'
+      - '-q'
       - 'rsync'
       - '-r'
       - '-x'
