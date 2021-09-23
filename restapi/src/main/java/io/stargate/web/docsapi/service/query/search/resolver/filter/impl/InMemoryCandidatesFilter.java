@@ -30,9 +30,9 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.impl.DocumentSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterPathSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.CandidatesFilter;
@@ -86,14 +86,19 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
     FilterPath filterPath = queryBuilder.getFilterPath();
     // resolve depth we need
     String[] neededColumns =
-        QueryConstants.ALL_COLUMNS_NAMES.apply(filterPath.getPath().size() + 1);
+        DocsApiConstants.ALL_COLUMNS_NAMES.apply(filterPath.getPath().size() + 1);
     // we can only fetch one row if path is fixed
     Integer limit = filterPath.isFixed() ? 1 : null;
     return RxUtils.singleFromFuture(
             () -> {
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(
-                      dataStore::queryBuilder, keyspace, collection, limit, neededColumns);
+                      dataStore::queryBuilder,
+                      keyspace,
+                      collection,
+                      limit,
+                      configuration.getMaxDepth(),
+                      neededColumns);
               return dataStore.prepare(query);
             })
         .cache();
@@ -114,7 +119,7 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
     // use max storage page size otherwise as we have the doc id
     int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
     return queryExecutor
-        .queryDocs(query, pageSize, false, null, context)
+        .queryDocs(query, pageSize, configuration.getMaxStoragePageSize(), false, null, context)
         .take(1)
         .map(RawDocument::rows)
         .switchIfEmpty(

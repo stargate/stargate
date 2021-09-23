@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Collection;
 import java.util.List;
 
@@ -38,9 +38,9 @@ public class SubDocumentSearchQueryBuilder extends PathSearchQueryBuilder {
 
   /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
-    Collection<BuiltCondition> predicates = super.getPredicates();
-    predicates.add(BuiltCondition.of(QueryConstants.KEY_COLUMN_NAME, Predicate.EQ, documentId));
+  public Collection<BuiltCondition> getPredicates(int maxDepth) {
+    Collection<BuiltCondition> predicates = super.getPredicates(maxDepth);
+    predicates.add(BuiltCondition.of(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ, documentId));
     return predicates;
   }
 }

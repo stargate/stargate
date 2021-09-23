@@ -11,10 +11,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -84,7 +84,7 @@ public class JsonConverter {
     for (Row row : rows) {
       Long rowWriteTime = row.getLong(writeTimeCol.name());
       String rowLeaf = row.getString("leaf");
-      if (rowLeaf.equals(DocumentDB.ROOT_DOC_MARKER)) {
+      if (rowLeaf.equals(DocsApiConstants.ROOT_DOC_MARKER)) {
         continue;
       }
 
@@ -263,9 +263,9 @@ public class JsonConverter {
 
     if (!row.isNull("text_value")) {
       String value = row.getString("text_value");
-      if (value.equals(DocumentDB.EMPTY_OBJECT_MARKER)) {
+      if (value.equals(DocsApiConstants.EMPTY_OBJECT_MARKER)) {
         n = mapper.createObjectNode();
-      } else if (value.equals(DocumentDB.EMPTY_ARRAY_MARKER)) {
+      } else if (value.equals(DocsApiConstants.EMPTY_ARRAY_MARKER)) {
         n = mapper.createArrayNode();
       } else {
         n = new TextNode(value);

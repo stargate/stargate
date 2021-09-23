@@ -27,9 +27,9 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.impl.DocumentSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.filter.CandidatesFilter;
 import io.stargate.web.rx.RxUtils;
@@ -85,8 +85,9 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
                       keyspace,
                       collection,
                       limit,
-                      QueryConstants.KEY_COLUMN_NAME,
-                      QueryConstants.LEAF_COLUMN_NAME);
+                      configuration.getMaxDepth(),
+                      DocsApiConstants.KEY_COLUMN_NAME,
+                      DocsApiConstants.LEAF_COLUMN_NAME);
               return dataStore.prepare(query);
             })
         .cache();
@@ -105,7 +106,10 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
     // use max storage page size otherwise as we have the doc id
     FilterPath filterPath = queryBuilder.getFilterPath();
     int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
-    return queryExecutor.queryDocs(query, pageSize, false, null, context).take(1).singleElement();
+    return queryExecutor
+        .queryDocs(query, pageSize, configuration.getMaxStoragePageSize(), false, null, context)
+        .take(1)
+        .singleElement();
   }
 
   private ExecutionContext createContext(

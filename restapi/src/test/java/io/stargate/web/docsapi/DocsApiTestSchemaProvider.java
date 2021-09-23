@@ -26,7 +26,7 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableKeyspace;
 import io.stargate.db.schema.ImmutableSchema;
 import io.stargate.db.schema.ImmutableTable;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import org.apache.commons.lang3.RandomStringUtils;
 
 // utility class that can construct the schema for the docs api tests
@@ -50,31 +50,31 @@ public class DocsApiTestSchemaProvider {
             .name(collectionName)
             .addColumns(
                 ImmutableColumn.builder()
-                    .name(QueryConstants.KEY_COLUMN_NAME)
+                    .name(DocsApiConstants.KEY_COLUMN_NAME)
                     .type(Column.Type.Text)
                     .kind(PartitionKey)
                     .build())
             .addColumns(
                 ImmutableColumn.builder()
-                    .name(QueryConstants.LEAF_COLUMN_NAME)
+                    .name(DocsApiConstants.LEAF_COLUMN_NAME)
                     .type(Column.Type.Text)
                     .kind(Regular)
                     .build())
             .addColumns(
                 ImmutableColumn.builder()
-                    .name(QueryConstants.STRING_VALUE_COLUMN_NAME)
+                    .name(DocsApiConstants.STRING_VALUE_COLUMN_NAME)
                     .type(Column.Type.Text)
                     .kind(Regular)
                     .build())
             .addColumns(
                 ImmutableColumn.builder()
-                    .name(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
+                    .name(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME)
                     .type(Column.Type.Double)
                     .kind(Regular)
                     .build())
             .addColumns(
                 ImmutableColumn.builder()
-                    .name(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME)
+                    .name(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME)
                     .type(Column.Type.Boolean)
                     .kind(Regular)
                     .build());
@@ -82,7 +82,7 @@ public class DocsApiTestSchemaProvider {
     for (int i = 0; i < maxDepth; i++) {
       ImmutableColumn column =
           ImmutableColumn.builder()
-              .name(QueryConstants.P_COLUMN_NAME.apply(i))
+              .name(DocsApiConstants.P_COLUMN_NAME.apply(i))
               .type(Column.Type.Text)
               .kind(Clustering)
               .build();

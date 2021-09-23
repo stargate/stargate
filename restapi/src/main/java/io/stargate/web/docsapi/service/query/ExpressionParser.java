@@ -63,7 +63,8 @@ public class ExpressionParser {
   /**
    * Constructs the filter expression for the given filter query represented by the JSON node.
    *
-   * <p>This method will {@link #parse(List, JsonNode, boolean)} the filter query first and then:
+   * <p>This method will {@link #parse(List, JsonNode, int, boolean)} the filter query first and
+   * then:
    *
    * <ol>
    *   <li>1. Combine all expression in with And operation
@@ -72,12 +73,17 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
+   * @param maxArrayLength the maximum allowed array length from configuration
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
    */
   public Expression<FilterExpression> constructFilterExpression(
-      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
-    List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson, numericBooleans);
+      List<String> prependedPath,
+      JsonNode filterJson,
+      int maxArrayLength,
+      boolean numericBooleans) {
+    List<Expression<FilterExpression>> parse =
+        parse(prependedPath, filterJson, maxArrayLength, numericBooleans);
 
     // if this is empty we can simply return true
     if (parse.isEmpty()) {
@@ -95,17 +101,25 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
+   * @param maxArrayLength the maximum allowed array length from configuration
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @return List of all expressions
    */
   private List<Expression<FilterExpression>> parse(
-      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
+      List<String> prependedPath,
+      JsonNode filterJson,
+      int maxArrayLength,
+      boolean numericBooleans) {
     if (!filterJson.isObject()) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_OBJECT_REQUIRED);
     }
 
     return parse(
-        prependedPath, Collections.singletonList(filterJson), numericBooleans, new MutableInt(0));
+        prependedPath,
+        Collections.singletonList(filterJson),
+        maxArrayLength,
+        numericBooleans,
+        new MutableInt(0));
   }
 
   /**
@@ -114,6 +128,7 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param nodes JSON nodes to resolve
+   * @param maxArrayLength the maximum allowed array length from configuration
    * @param numericBooleans If number booleans should be used when creating conditions.
    * @param nextIndex index counter for the expressions
    * @return List of all expressions
@@ -121,6 +136,7 @@ public class ExpressionParser {
   private List<Expression<FilterExpression>> parse(
       List<String> prependedPath,
       Iterable<JsonNode> nodes,
+      int maxArrayLength,
       boolean numericBooleans,
       MutableInt nextIndex) {
     List<Expression<FilterExpression>> expressions = new ArrayList<>();
@@ -141,20 +157,22 @@ public class ExpressionParser {
         if (Objects.equals(OR_OPERATOR, fieldOrOp)) {
           JsonNode orChildrenNode = next.getValue();
           Or<FilterExpression> or =
-              resolveOr(orChildrenNode, prependedPath, numericBooleans, nextIndex);
+              resolveOr(orChildrenNode, prependedPath, maxArrayLength, numericBooleans, nextIndex);
           expressions.add(or);
         } else if (Objects.equals(AND_OPERATOR, fieldOrOp)) {
           JsonNode andChildrenNode = next.getValue();
           And<FilterExpression> and =
-              resolveAnd(andChildrenNode, prependedPath, numericBooleans, nextIndex);
+              resolveAnd(
+                  andChildrenNode, prependedPath, maxArrayLength, numericBooleans, nextIndex);
           expressions.add(and);
         } else if (Objects.equals(NOT_OPERATOR, fieldOrOp)) {
           JsonNode andChildrenNode = next.getValue();
           Not<FilterExpression> negated =
-              resolveNot(andChildrenNode, prependedPath, numericBooleans, nextIndex);
+              resolveNot(
+                  andChildrenNode, prependedPath, maxArrayLength, numericBooleans, nextIndex);
           expressions.add(negated);
         } else {
-          FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp);
+          FilterPath filterPath = getFilterPath(prependedPath, fieldOrOp, maxArrayLength);
           JsonNode conditions = next.getValue();
           Optional<Double> selectivity = resolveSelectivity(conditions);
           Collection<BaseCondition> fieldConditions =
@@ -244,7 +262,11 @@ public class ExpressionParser {
   }
 
   private Or<FilterExpression> resolveOr(
-      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
+      JsonNode node,
+      List<String> prependedPath,
+      int maxArrayLength,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -252,12 +274,16 @@ public class ExpressionParser {
     }
 
     List<Expression<FilterExpression>> orConditions =
-        parse(prependedPath, node, numericBooleans, nextIndex);
+        parse(prependedPath, node, maxArrayLength, numericBooleans, nextIndex);
     return Or.of(orConditions);
   }
 
   private And<FilterExpression> resolveAnd(
-      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
+      JsonNode node,
+      List<String> prependedPath,
+      int maxArrayLength,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
     if (!node.isArray()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -265,12 +291,16 @@ public class ExpressionParser {
     }
 
     List<Expression<FilterExpression>> orConditions =
-        parse(prependedPath, node, numericBooleans, nextIndex);
+        parse(prependedPath, node, maxArrayLength, numericBooleans, nextIndex);
     return And.of(orConditions);
   }
 
   private Not<FilterExpression> resolveNot(
-      JsonNode node, List<String> prependedPath, boolean numericBooleans, MutableInt nextIndex) {
+      JsonNode node,
+      List<String> prependedPath,
+      int maxArrayLength,
+      boolean numericBooleans,
+      MutableInt nextIndex) {
     if (!node.isObject()) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_SEARCH_FILTER_INVALID,
@@ -278,7 +308,12 @@ public class ExpressionParser {
     }
 
     List<Expression<FilterExpression>> negatedConditions =
-        parse(prependedPath, Collections.singletonList(node), numericBooleans, nextIndex);
+        parse(
+            prependedPath,
+            Collections.singletonList(node),
+            maxArrayLength,
+            numericBooleans,
+            nextIndex);
 
     if (negatedConditions.size() != 1) {
       throw new ErrorCodeRuntimeException(
@@ -298,17 +333,18 @@ public class ExpressionParser {
    *     car.name</code>
    * @return FilterPath
    */
-  private FilterPath getFilterPath(List<String> prependedPath, String fieldPath) {
+  private FilterPath getFilterPath(
+      List<String> prependedPath, String fieldPath, int maxArrayLength) {
     String[] fieldNamePath = DocsApiUtils.PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
-            .map(DocsApiUtils::convertArrayPath)
+            .map(p -> DocsApiUtils.convertArrayPath(p, maxArrayLength))
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
           prependedPath.stream()
-              .map(path -> DocsApiUtils.convertArrayPath(path))
+              .map(path -> DocsApiUtils.convertArrayPath(path, maxArrayLength))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);

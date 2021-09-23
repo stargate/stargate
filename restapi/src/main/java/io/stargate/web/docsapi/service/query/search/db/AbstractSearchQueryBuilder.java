@@ -22,7 +22,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 public abstract class AbstractSearchQueryBuilder {
 
   /** @return All fixed predicates. */
-  protected abstract Collection<BuiltCondition> getPredicates();
+  protected abstract Collection<BuiltCondition> getPredicates(int maxDepth);
 
   /** @return Predicates that depends on the binding value. */
   protected abstract Map<String, Predicate> getBindPredicates();
@@ -45,12 +45,17 @@ public abstract class AbstractSearchQueryBuilder {
    * @param queryBuilder Method for query builder.
    * @param keyspace keyspace
    * @param table table
+   * @param maxDepth max depth
    * @param columns columns to query, must now be empty
    * @return Completable future that returns prepared query
    */
   public BuiltQuery<? extends BoundQuery> buildQuery(
-      Supplier<QueryBuilder> queryBuilder, String keyspace, String table, String... columns) {
-    return buildQuery(queryBuilder, keyspace, table, null, columns);
+      Supplier<QueryBuilder> queryBuilder,
+      String keyspace,
+      String table,
+      int maxDepth,
+      String... columns) {
+    return buildQuery(queryBuilder, keyspace, table, null, maxDepth, columns);
   }
 
   /**
@@ -60,6 +65,7 @@ public abstract class AbstractSearchQueryBuilder {
    * @param keyspace keyspace
    * @param table table
    * @param limit limit
+   * @param maxDepth max depth
    * @param columns columns to query, must now be empty
    * @return Completable future that returns prepared query
    */
@@ -68,15 +74,16 @@ public abstract class AbstractSearchQueryBuilder {
       String keyspace,
       String table,
       Integer limit,
+      Integer maxDepth,
       String... columns) {
     QueryBuilder.QueryBuilder__21 builder =
         queryBuilder
             .get()
             .select()
             .column(columns)
-            .writeTimeColumn(QueryConstants.LEAF_COLUMN_NAME) // TODO needed?
+            .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
             .from(keyspace, table)
-            .where(getPredicates());
+            .where(getPredicates(maxDepth));
 
     // then all bind able predicates
     for (Map.Entry<String, Predicate> entry : getBindPredicates().entrySet()) {

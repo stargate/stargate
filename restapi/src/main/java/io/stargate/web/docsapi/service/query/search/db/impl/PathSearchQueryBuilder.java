@@ -19,8 +19,7 @@ package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
+  public Collection<BuiltCondition> getPredicates(int maxDepth) {
     return getPathPredicates();
   }
 
@@ -68,21 +67,21 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
       String[] pathSegmentSplit = next.split(DocsApiUtils.COMMA_PATTERN.pattern());
       if (pathSegmentSplit.length == 1) {
         String pathSegment = pathSegmentSplit[0];
-        if (pathSegment.equals(DocumentDB.GLOB_VALUE)
-            || pathSegment.equals(DocumentDB.GLOB_ARRAY_VALUE)) {
+        if (pathSegment.equals(DocsApiConstants.GLOB_VALUE)
+            || pathSegment.equals(DocsApiConstants.GLOB_ARRAY_VALUE)) {
           predicates.add(
-              BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(i), Predicate.GT, ""));
+              BuiltCondition.of(DocsApiConstants.P_COLUMN_NAME.apply(i), Predicate.GT, ""));
         } else {
           predicates.add(
               BuiltCondition.of(
-                  QueryConstants.P_COLUMN_NAME.apply(i),
+                  DocsApiConstants.P_COLUMN_NAME.apply(i),
                   Predicate.EQ,
                   DocsApiUtils.convertEscapedCharacters(pathSegment)));
         }
       } else {
         predicates.add(
             BuiltCondition.of(
-                QueryConstants.P_COLUMN_NAME.apply(i),
+                DocsApiConstants.P_COLUMN_NAME.apply(i),
                 Predicate.IN,
                 DocsApiUtils.convertEscapedCharacters(Arrays.asList(pathSegmentSplit))));
       }

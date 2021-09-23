@@ -25,6 +25,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -92,7 +93,8 @@ public class Db {
     return new DocumentDB(
         authenticatedDB.getDataStore(),
         authenticatedDB.getAuthenticationSubject(),
-        getAuthorizationService());
+        getAuthorizationService(),
+        DocsApiConfiguration.DEFAULT);
   }
 
   private AuthenticatedDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)

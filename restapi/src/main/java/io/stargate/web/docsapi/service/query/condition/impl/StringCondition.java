@@ -18,7 +18,7 @@ package io.stargate.web.docsapi.service.query.condition.impl;
 
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.web.docsapi.service.query.filter.operation.ValueFilterOperation;
@@ -56,7 +56,7 @@ public abstract class StringCondition implements BaseCondition {
         .map(
             predicate ->
                 BuiltCondition.of(
-                    QueryConstants.STRING_VALUE_COLUMN_NAME, predicate, getQueryValue()));
+                    DocsApiConstants.STRING_VALUE_COLUMN_NAME, predicate, getQueryValue()));
   }
 
   /** {@inheritDoc} */

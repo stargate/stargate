@@ -81,13 +81,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(true);
@@ -107,25 +107,25 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       Row row2 =
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(true);
@@ -145,13 +145,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(false);
@@ -171,25 +171,25 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       Row row2 =
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(false);
@@ -209,25 +209,25 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       Row row2 =
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "extra",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "extra",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
 
@@ -249,13 +249,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(condition.test(row)).thenReturn(true);
 
@@ -274,13 +274,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(condition.test(row)).thenReturn(true);
 
@@ -299,13 +299,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "[000001]",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(condition.test(row)).thenReturn(true);
 
@@ -324,13 +324,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(condition.test(row)).thenReturn(false);
 
@@ -350,13 +350,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
       when(condition.test(row)).thenReturn(false);
 
@@ -372,7 +372,7 @@ public class FilterExpressionTest {
     public void pathNotMatchingLeafDoesNotMatchField() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       Row row =
-          MapBackedRow.of(TABLE, ImmutableMap.of(QueryConstants.LEAF_COLUMN_NAME, "whatever"));
+          MapBackedRow.of(TABLE, ImmutableMap.of(DocsApiConstants.LEAF_COLUMN_NAME, "whatever"));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
@@ -388,11 +388,11 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "more"));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
@@ -409,13 +409,13 @@ public class FilterExpressionTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);

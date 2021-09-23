@@ -319,7 +319,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -342,7 +342,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -406,7 +406,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -417,7 +417,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -486,7 +486,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -497,7 +497,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -557,7 +557,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value > ? ALLOW FILTERING",
                   "path",
                   "field",
                   "field",
@@ -569,7 +569,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? ALLOW FILTERING",
                   "path",
                   "field",
                   "field",
@@ -622,7 +622,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -690,7 +690,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -751,7 +751,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -822,7 +822,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(

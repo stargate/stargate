@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -75,7 +76,8 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
   @Nested
   class GetDocuments {
 
-    @Mock DocsApiConfiguration configuration;
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
+    DocsApiConfiguration configuration;
 
     @Mock FilterExpression filterExpression;
 

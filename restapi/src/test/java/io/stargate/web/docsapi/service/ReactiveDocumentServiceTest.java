@@ -85,6 +85,8 @@ class ReactiveDocumentServiceTest {
 
   ObjectMapper objectMapper = new ObjectMapper();
 
+  DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
+
   @Mock ExpressionParser expressionParser;
 
   @Mock DocumentSearchService searchService;
@@ -121,7 +123,13 @@ class ReactiveDocumentServiceTest {
   public void init() {
     reactiveDocumentService =
         new ReactiveDocumentService(
-            expressionParser, searchService, jsonConverter, docsShredder, objectMapper, timeSource);
+            expressionParser,
+            searchService,
+            jsonConverter,
+            docsShredder,
+            objectMapper,
+            timeSource,
+            config);
     lenient()
         .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
         .thenReturn(CompletableFuture.completedFuture(deleteResultSet));
@@ -159,7 +167,10 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), true))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -213,7 +224,10 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), true))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -267,7 +281,10 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), true))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -316,7 +333,10 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), true))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -648,7 +668,10 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), true))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              true))
           .thenReturn(expression);
       when(searchService.searchSubDocuments(
               queryExecutor,
@@ -783,7 +806,8 @@ class ReactiveDocumentServiceTest {
       when(filterPath.getParentPath()).thenReturn(Arrays.asList("prePath", "parentPath"));
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
-      when(expressionParser.constructFilterExpression(prePath, objectMapper.readTree(where), true))
+      when(expressionParser.constructFilterExpression(
+              prePath, objectMapper.readTree(where), config.getMaxArrayLength(), true))
           .thenReturn(expression);
       when(searchService.searchSubDocuments(
               queryExecutor,
@@ -847,7 +871,10 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), false))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              false))
           .thenReturn(expression);
       doThrow(UnauthorizedException.class)
           .when(authService)
@@ -889,7 +916,10 @@ class ReactiveDocumentServiceTest {
       String fields = "[\"myField\"]";
       when(filterPath.getField()).thenReturn("yourField");
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), false))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              false))
           .thenReturn(expression);
 
       Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
@@ -938,7 +968,10 @@ class ReactiveDocumentServiceTest {
           .when(expression)
           .collectK(any(), anyInt());
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(), objectMapper.readTree(where), false))
+              Collections.emptyList(),
+              objectMapper.readTree(where),
+              config.getMaxArrayLength(),
+              false))
           .thenReturn(expression);
 
       Maybe<DocumentResponseWrapper<? extends JsonNode>> result =

@@ -74,6 +74,7 @@ public class ReactiveDocumentService {
   @Inject DocsShredder docsShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
+  @Inject DocsApiConfiguration configuration;
 
   public ReactiveDocumentService() {}
 
@@ -83,13 +84,15 @@ public class ReactiveDocumentService {
       JsonConverter jsonConverter,
       DocsShredder docsShredder,
       ObjectMapper objectMapper,
-      TimeSource timeSource) {
+      TimeSource timeSource,
+      DocsApiConfiguration configuration) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
     this.jsonConverter = jsonConverter;
     this.docsShredder = docsShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
+    this.configuration = configuration;
   }
 
   /**
@@ -304,7 +307,8 @@ public class ReactiveDocumentService {
                           subDocumentPath.stream()
                               .map(
                                   p ->
-                                      DocsApiUtils.extractArrayPathIndex(p)
+                                      DocsApiUtils.extractArrayPathIndex(
+                                              p, configuration.getMaxArrayLength())
                                           .map(Object::toString)
                                           .orElse(DocsApiUtils.convertEscapedCharacters(p)))
                               .collect(Collectors.joining("/", "/", ""));
@@ -523,7 +527,10 @@ public class ReactiveDocumentService {
         JsonNode whereNode = objectMapper.readTree(where);
         expression =
             expressionParser.constructFilterExpression(
-                prependPath, whereNode, db.treatBooleansAsNumeric());
+                prependPath,
+                whereNode,
+                configuration.getMaxArrayLength(),
+                db.treatBooleansAsNumeric());
       } catch (JsonProcessingException ex) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_WHERE_JSON_INVALID);
       }
@@ -536,7 +543,8 @@ public class ReactiveDocumentService {
     if (null != fields) {
       try {
         JsonNode fieldsNode = objectMapper.readTree(fields);
-        fieldPaths = DocsApiUtils.convertFieldsToPaths(fieldsNode);
+        fieldPaths =
+            DocsApiUtils.convertFieldsToPaths(fieldsNode, configuration.getMaxArrayLength());
       } catch (JsonProcessingException ex) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
       }
@@ -547,7 +555,7 @@ public class ReactiveDocumentService {
   // we need to transform the stuff to support array elements
   private List<String> processSubDocumentPath(List<String> subDocumentPath) {
     return subDocumentPath.stream()
-        .map(path -> DocsApiUtils.convertArrayPath(path))
+        .map(path -> DocsApiUtils.convertArrayPath(path, configuration.getMaxArrayLength()))
         .collect(Collectors.toList());
   }
 
@@ -641,11 +649,11 @@ public class ReactiveDocumentService {
     List<Object[]> bindParams =
         docsShredder.shredPayload(
                 JsonSurferJackson.INSTANCE,
-                db,
                 processedPath,
                 id,
                 jsonArray.toString(),
                 false,
+                db.treatBooleansAsNumeric(),
                 true)
             .left;
     db.deleteThenInsertBatch(

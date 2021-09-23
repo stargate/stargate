@@ -73,7 +73,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -106,7 +106,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -142,7 +142,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result).isInstanceOf(Not.class);
       assertThat(result.getChildren()).hasSize(1);
@@ -163,7 +163,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result).isInstanceOf(And.class);
       assertThat(result.getChildren()).hasSize(2);
@@ -201,7 +201,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .hasMessageContaining("The $not operator requires a json object as value.")
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
@@ -216,7 +216,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .hasMessageContaining("The $not operator requires exactly one child expression.")
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
@@ -231,7 +231,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .hasMessageContaining("The $not operator requires exactly one child expression.")
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
@@ -248,7 +248,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -345,7 +345,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -377,7 +377,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -409,7 +409,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -440,7 +440,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -472,7 +472,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -505,7 +505,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -538,7 +538,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Arrays.asList("first", "second"), root, false);
+          service.constructFilterExpression(Arrays.asList("first", "second"), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -572,7 +572,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result).isInstanceOf(And.class);
       List<? extends Expression<?>> children = ((And<?>) result).getChildren();
@@ -641,7 +641,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
       assertThat(result).isInstanceOf(And.class);
 
       List<? extends Expression<?>> children = ((And<?>) result).getChildren();
@@ -701,7 +701,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .satisfies(
@@ -780,7 +780,8 @@ class ExpressionParserIntTest {
 
       Throwable t =
           catchThrowable(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+              () ->
+                  service.constructFilterExpression(Collections.emptyList(), root, 999999, false));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -794,7 +795,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .satisfies(
@@ -873,7 +874,8 @@ class ExpressionParserIntTest {
 
       Throwable t =
           catchThrowable(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+              () ->
+                  service.constructFilterExpression(Collections.emptyList(), root, 999999, false));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -887,7 +889,8 @@ class ExpressionParserIntTest {
 
       Throwable t =
           catchThrowable(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false));
+              () ->
+                  service.constructFilterExpression(Collections.emptyList(), root, 999999, false));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -903,7 +906,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -925,7 +928,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
       assertThat(result).isInstanceOf(And.class);
       List<? extends Expression<?>> children = ((And<?>) result).getChildren();
 
@@ -969,7 +972,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       Expression<FilterExpression> result =
-          service.constructFilterExpression(Collections.emptyList(), root, false);
+          service.constructFilterExpression(Collections.emptyList(), root, 999999, false);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -988,7 +991,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
@@ -1004,7 +1007,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
@@ -1017,7 +1020,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .isInstanceOfSatisfying(
               ErrorCodeRuntimeException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.DOCS_API_SEARCH_FILTER_INVALID))
@@ -1041,7 +1044,7 @@ class ExpressionParserIntTest {
       JsonNode root = mapper.readTree(json);
 
       assertThatThrownBy(
-              () -> service.constructFilterExpression(Collections.emptyList(), root, false))
+              () -> service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_SEARCH_FILTER_INVALID)
           .hasMessageContaining(type1)
@@ -1059,7 +1062,7 @@ class ExpressionParserIntTest {
       // Assert that no exception is thrown. Parsing is verified by other tests.
       // `$in` does not imply a specific value type, therefore it is compatible with specific
       // `$eq` conditions.
-      assertThat(service.constructFilterExpression(Collections.emptyList(), root, false))
+      assertThat(service.constructFilterExpression(Collections.emptyList(), root, 999999, false))
           .isNotNull();
     }
   }

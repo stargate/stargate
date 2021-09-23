@@ -50,12 +50,12 @@ import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
 import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.resources.Db;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -115,7 +115,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   private final AtomicLong now = new AtomicLong();
   private final TimeSource timeSource = now::get;
-  private final DocsApiConfiguration config = new DocsApiConfiguration() {};
+  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
   private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
@@ -137,7 +137,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private DocumentResourceV2 resource;
 
   private static Column[] clusteringColumns() {
-    Column[] columns = new Column[DocumentDB.MAX_DEPTH];
+    Column[] columns = new Column[64];
     for (int i = 0; i < columns.length; i++) {
       columns[i] = ImmutableColumn.builder().name("p" + i).type(Type.Text).kind(Clustering).build();
     }
@@ -163,7 +163,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
     service =
-        new DocumentService(timeSource, mapper, schemaChecker, jsonSchemaHandler, docsShredder);
+        new DocumentService(
+            timeSource, mapper, schemaChecker, jsonSchemaHandler, docsShredder, config);
     resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
   }
 
@@ -186,7 +187,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     map.put("key", id);
     map.put("writetime(leaf)", timestamp);
     String leaf = null;
-    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+    for (int i = 0; i < config.getMaxDepth(); i++) {
       String p;
       if (i < path.length) {
         p = path[i];
@@ -282,13 +283,29 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             table,
             insert,
             fillParams(
-                70, "id1", "d", SEPARATOR, "d", DocumentDB.EMPTY_OBJECT_MARKER, null, null, 100L))
+                70,
+                "id1",
+                "d",
+                SEPARATOR,
+                "d",
+                DocsApiConstants.EMPTY_OBJECT_MARKER,
+                null,
+                null,
+                100L))
         .returningNothing();
     withQuery(
             table,
             insert,
             fillParams(
-                70, "id1", "e", SEPARATOR, "e", DocumentDB.EMPTY_ARRAY_MARKER, null, null, 100L))
+                70,
+                "id1",
+                "e",
+                SEPARATOR,
+                "e",
+                DocsApiConstants.EMPTY_ARRAY_MARKER,
+                null,
+                null,
+                100L))
         .returningNothing();
     withQuery(table, insert, fillParams(70, "id1", "f", SEPARATOR, "f", null, null, null, 100L))
         .returningNothing();

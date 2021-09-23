@@ -29,8 +29,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQueryBuilder;
@@ -83,14 +83,19 @@ public class SubDocumentsResolver implements DocumentsResolver {
       String keyspace,
       String collection,
       Paginator paginator) {
-    String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth());
+    String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth());
 
     // prepare the query
     return RxUtils.singleFromFuture(
             () -> {
               DataStore dataStore = queryExecutor.getDataStore();
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
+                  queryBuilder.buildQuery(
+                      dataStore::queryBuilder,
+                      keyspace,
+                      collection,
+                      configuration.getMaxDepth(),
+                      columns);
               return dataStore.prepare(query);
             })
 
@@ -107,6 +112,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
                   keyDepth,
                   query,
                   configuration.getApproximateStoragePageSize(paginator.docPageSize),
+                  configuration.getMaxStoragePageSize(),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);

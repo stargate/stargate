@@ -19,11 +19,10 @@ package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterPath;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,10 +58,10 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
   }
 
   @Override
-  public Collection<BuiltCondition> getPredicates() {
-    Collection<BuiltCondition> predicates = super.getPredicates();
-    predicates.addAll(getFieldPredicates());
-    predicates.addAll(getRemainingPathPredicates());
+  public Collection<BuiltCondition> getPredicates(int maxDepth) {
+    Collection<BuiltCondition> predicates = super.getPredicates(maxDepth);
+    predicates.addAll(getFieldPredicates(maxDepth));
+    predicates.addAll(getRemainingPathPredicates(maxDepth));
     return predicates;
   }
 
@@ -70,35 +69,34 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
     return filterPath;
   }
 
-  private List<BuiltCondition> getFieldPredicates() {
+  private List<BuiltCondition> getFieldPredicates(int maxDepth) {
     int parentSize = filterPath.getParentPath().size();
-
-    // TODO convert to config read
-    if (parentSize >= DocumentDB.MAX_DEPTH) {
+    if (parentSize >= maxDepth) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
     } else {
       String field = DocsApiUtils.convertEscapedCharacters(filterPath.getField());
       if (matchField) {
         // apply to both p and leaf, as index is on leaf and we want it kicking in
         return Arrays.asList(
-            BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(parentSize), Predicate.EQ, field),
-            BuiltCondition.of(QueryConstants.LEAF_COLUMN_NAME, Predicate.EQ, field));
+            BuiltCondition.of(
+                DocsApiConstants.P_COLUMN_NAME.apply(parentSize), Predicate.EQ, field),
+            BuiltCondition.of(DocsApiConstants.LEAF_COLUMN_NAME, Predicate.EQ, field));
       } else {
         // TODO confirm this is really needed
         //  confirm this could be needed only on non-empty path
         return Collections.singletonList(
-            BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(parentSize), Predicate.GT, ""));
+            BuiltCondition.of(DocsApiConstants.P_COLUMN_NAME.apply(parentSize), Predicate.GT, ""));
       }
     }
   }
 
-  private List<BuiltCondition> getRemainingPathPredicates() {
+  private List<BuiltCondition> getRemainingPathPredicates(int maxDepth) {
     int fullSize = filterPath.getPath().size();
-    if (fullSize >= DocumentDB.MAX_DEPTH) {
+    if (fullSize >= maxDepth) {
       return Collections.emptyList();
     } else {
       return Collections.singletonList(
-          BuiltCondition.of(QueryConstants.P_COLUMN_NAME.apply(fullSize), Predicate.EQ, ""));
+          BuiltCondition.of(DocsApiConstants.P_COLUMN_NAME.apply(fullSize), Predicate.EQ, ""));
     }
   }
 }

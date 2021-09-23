@@ -97,7 +97,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       String populateCql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE key = ?";
       ValidatingDataStore.QueryAssert populateFirstAssert =
           withQuery(TABLE, populateCql, "1")
               .withPageSize(configuration.getMaxStoragePageSize())
@@ -232,7 +232,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       String populateCql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE key = ?";
       ValidatingDataStore.QueryAssert populateFirstAssert =
           withQuery(TABLE, populateCql, "1")
               .withPageSize(configuration.getMaxStoragePageSize())
@@ -392,7 +392,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       ExecutionContext context = ExecutionContext.create(true);
 
       String searchCql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s";
       ValidatingDataStore.QueryAssert searchAssert =
           withQuery(TABLE, searchCql)
               .withPageSize(
@@ -503,7 +503,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       String cql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE key = ?";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
@@ -604,7 +604,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
 
       String cql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, "field", documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
@@ -685,7 +685,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       List<String> subPath = Collections.singletonList("*");
 
       String cql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, "", documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(paginator.docPageSize))
@@ -772,7 +772,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
       List<String> subPath = Collections.singletonList("field");
 
       String cql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING";
       ValidatingDataStore.QueryAssert cqlAssert =
           withQuery(TABLE, cql, "field", documentId)
               .withPageSize(configuration.getMaxStoragePageSize())
@@ -857,7 +857,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
           .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       String populateCql =
-          "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE key = ?";
+          "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE key = ?";
 
       withQuery(TABLE, populateCql, "1")
           .withPageSize(configuration.getMaxStoragePageSize())

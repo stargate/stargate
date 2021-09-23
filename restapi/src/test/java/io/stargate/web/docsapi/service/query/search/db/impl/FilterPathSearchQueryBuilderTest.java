@@ -25,12 +25,12 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.ImmutableFilterPath;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +47,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
+  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
 
   @Override
   protected Schema schema() {
@@ -63,7 +64,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -83,7 +85,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
               datastore()::queryBuilder,
               KEYSPACE_NAME,
               COLLECTION_NAME,
-              QueryConstants.P_COLUMN_NAME.apply(0));
+              config.getMaxDepth(),
+              DocsApiConstants.P_COLUMN_NAME.apply(0));
 
       String expected =
           String.format(
@@ -99,7 +102,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, 5);
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, 5, 5);
 
       String expected =
           String.format(
@@ -115,7 +118,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -131,7 +135,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -147,7 +152,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -163,7 +169,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -179,7 +186,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(
@@ -191,7 +199,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
     @Test
     public void maxDepthExceeded() {
       List<String> path =
-          IntStream.range(0, DocumentDB.MAX_DEPTH + 1)
+          IntStream.range(0, config.getMaxDepth() + 1)
               .mapToObj(Integer::toString)
               .collect(Collectors.toList());
       FilterPath filterPath = ImmutableFilterPath.of(path);
@@ -199,7 +207,12 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
       Throwable t =
           catchThrowable(
-              () -> builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME));
+              () ->
+                  builder.buildQuery(
+                      datastore()::queryBuilder,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      config.getMaxDepth()));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)

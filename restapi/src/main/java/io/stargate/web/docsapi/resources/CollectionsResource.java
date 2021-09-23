@@ -14,6 +14,7 @@ import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.docsapi.models.dto.CreateCollection;
 import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
@@ -303,7 +304,8 @@ public class CollectionsResource {
                   new DocumentDB(
                       authenticatedDB.getDataStore(),
                       authenticatedDB.getAuthenticationSubject(),
-                      db.getAuthorizationService()),
+                      db.getAuthorizationService(),
+                      DocsApiConfiguration.DEFAULT),
                   body.getUpgradeType());
 
           if (success) {

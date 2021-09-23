@@ -297,16 +297,11 @@ public class ReactiveDocumentResourceV2 {
           @QueryParam("fields")
           String fields,
       @ApiParam(
-              value =
-                  "the max number of documents to return, max "
-                      + DocumentDB.MAX_PAGE_SIZE
-                      + ", default 3",
+              value = "the max number of documents to return, max 20, default 3",
               defaultValue = "3")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of documents to return is one")
-          @Max(
-              value = DocumentDB.MAX_PAGE_SIZE,
-              message = "the max number of documents to return is " + DocumentDB.MAX_PAGE_SIZE)
+          @Max(value = 20, message = "the max number of documents to return is 20")
           Integer pageSizeParam,
       @ApiParam(
               value = "Cassandra page state, used for pagination on consecutive requests",

@@ -38,6 +38,7 @@ public class DocumentService {
   private final DocsSchemaChecker schemaChecker;
   private final JsonSchemaHandler jsonSchemaHandler;
   private final DocsShredder docsShredder;
+  private final DocsApiConfiguration config;
 
   @Inject
   public DocumentService(
@@ -45,12 +46,14 @@ public class DocumentService {
       ObjectMapper mapper,
       DocsSchemaChecker schemaChecker,
       JsonSchemaHandler jsonSchemaHandler,
-      DocsShredder docsShredder) {
+      DocsShredder docsShredder,
+      DocsApiConfiguration config) {
     this.timeSource = timeSource;
     this.mapper = mapper;
     this.schemaChecker = schemaChecker;
     this.jsonSchemaHandler = jsonSchemaHandler;
     this.docsShredder = docsShredder;
+    this.config = config;
   }
 
   private Optional<String> convertToJsonPtr(Optional<String> path) {
@@ -138,11 +141,11 @@ public class DocumentService {
                     bindVariableList.addAll(
                         docsShredder.shredJson(
                                 surfer,
-                                finalDb,
                                 Collections.emptyList(),
                                 data.getKey(),
                                 data.getValue(),
-                                false)
+                                false,
+                                finalDb.treatBooleansAsNumeric())
                             .left);
                     return data.getKey();
                   })
@@ -198,11 +201,12 @@ public class DocumentService {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
-      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr));
+      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr, config.getMaxArrayLength()));
     }
 
     ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        docsShredder.shredPayload(surfer, db, convertedPath, id, payload, patching, isJson);
+        docsShredder.shredPayload(
+            surfer, convertedPath, id, payload, patching, db.treatBooleansAsNumeric(), isJson);
 
     List<Object[]> bindVariableList = shreddingResults.left;
     List<String> firstLevelKeys = shreddingResults.right;
@@ -246,7 +250,7 @@ public class DocumentService {
     List<String> convertedPath = new ArrayList<>(path.size());
     for (PathSegment pathSegment : path) {
       String pathStr = pathSegment.getPath();
-      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr));
+      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr, config.getMaxArrayLength()));
     }
 
     long now = timeSource.currentTimeMicros();

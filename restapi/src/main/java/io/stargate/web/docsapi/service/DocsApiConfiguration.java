@@ -1,7 +1,5 @@
 package io.stargate.web.docsapi.service;
 
-import io.stargate.web.docsapi.dao.DocumentDB;
-
 /** The configuration for the document API. */
 public interface DocsApiConfiguration {
 
@@ -9,9 +7,7 @@ public interface DocsApiConfiguration {
   DocsApiConfiguration DEFAULT = new DocsApiConfiguration() {};
 
   /** @return Returns max allowed document page size that user can request. */
-  default int getMaxPageSize() {
-    return DocumentDB.MAX_PAGE_SIZE;
-  }
+  int MAX_PAGE_SIZE = 20;
 
   /**
    * @return Returns approximate storage page size to use when querying database, based on the
@@ -19,23 +15,28 @@ public interface DocsApiConfiguration {
    *     fields.
    */
   default int getApproximateStoragePageSize(int numberOfDocuments) {
-    return Math.min(numberOfDocuments * 16, DocumentDB.MAX_STORAGE_PAGE_SIZE);
+    return Math.min(numberOfDocuments * 16, getMaxStoragePageSize());
   }
 
   /**
    * @return The maximum storage page size that should be allowed when doing any doc API queries.
    */
   default int getMaxStoragePageSize() {
-    return DocumentDB.MAX_STORAGE_PAGE_SIZE;
+    return Integer.getInteger("stargate.document_search_page_size", 1000);
   }
 
   /** @return The maximum JSON depth for the documents stored. */
   default int getMaxDepth() {
-    return DocumentDB.MAX_DEPTH;
+    return Integer.getInteger("stargate.document_max_depth", 64);
   }
 
   /** @return The maximum array length for a single field in the docs API. */
   default int getMaxArrayLength() {
-    return DocumentDB.MAX_ARRAY_LENGTH;
+    Integer val = Integer.getInteger("stargate.document_max_array_len", 1000000);
+    if (val > 1000000) {
+      throw new IllegalStateException(
+          "stargate.document_max_array_len cannot be greater than 1000000.");
+    }
+    return val;
   }
 }

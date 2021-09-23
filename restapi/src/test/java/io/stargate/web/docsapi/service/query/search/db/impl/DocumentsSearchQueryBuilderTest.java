@@ -26,6 +26,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.ImmutableFilterPath;
@@ -45,6 +46,7 @@ class DocumentsSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
+  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
 
   @Mock FilterExpression filterExpression;
 
@@ -86,7 +88,8 @@ class DocumentsSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       FilterExpressionSearchQueryBuilder builder = new DocumentSearchQueryBuilder(filterExpression);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          builder.buildQuery(
+              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
 
       String expected =
           String.format(

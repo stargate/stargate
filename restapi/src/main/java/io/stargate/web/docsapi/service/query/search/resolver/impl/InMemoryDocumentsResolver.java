@@ -27,8 +27,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterPathSearchQueryBuilder;
@@ -99,7 +99,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
             .map(qb -> qb.getFilterPath().getPath().size() + 1)
             .orElse(configuration.getMaxDepth());
 
-    String[] neededColumns = QueryConstants.ALL_COLUMNS_NAMES.apply(neededDepth);
+    String[] neededColumns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(neededDepth);
 
     // prepare the query
     return RxUtils.singleFromFuture(
@@ -107,7 +107,11 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               DataStore dataStore = queryExecutor.getDataStore();
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(
-                      dataStore::queryBuilder, keyspace, collection, neededColumns);
+                      dataStore::queryBuilder,
+                      keyspace,
+                      collection,
+                      configuration.getMaxDepth(),
+                      neededColumns);
               return dataStore.prepare(query);
             })
 
@@ -126,7 +130,12 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
                       ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
                       : paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
-                  query, pageSize, true, paginator.getCurrentDbPageState(), context);
+                  query,
+                  pageSize,
+                  configuration.getMaxStoragePageSize(),
+                  true,
+                  paginator.getCurrentDbPageState(),
+                  context);
             })
 
         // then filter to match the expression (in-memory filters have no predicates on the values)

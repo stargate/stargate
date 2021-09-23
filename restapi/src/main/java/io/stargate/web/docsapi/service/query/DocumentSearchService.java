@@ -189,13 +189,18 @@ public class DocumentSearchService {
     return RxUtils.singleFromFuture(
             () -> {
               int maxDepth = configuration.getMaxDepth();
-              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+              String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
               DataStore dataStore = queryExecutor.getDataStore();
 
               FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder();
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
+                  queryBuilder.buildQuery(
+                      dataStore::queryBuilder,
+                      keyspace,
+                      collection,
+                      configuration.getMaxDepth(),
+                      columns);
 
               return dataStore.prepare(query);
             })
@@ -206,6 +211,7 @@ public class DocumentSearchService {
               return queryExecutor.queryDocs(
                   boundQuery,
                   configuration.getApproximateStoragePageSize(paginator.docPageSize),
+                  configuration.getMaxStoragePageSize(),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);
@@ -225,14 +231,19 @@ public class DocumentSearchService {
     return RxUtils.singleFromFuture(
             () -> {
               int maxDepth = configuration.getMaxDepth();
-              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+              String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
               DataStore dataStore = queryExecutor.getDataStore();
 
               SubDocumentSearchQueryBuilder queryBuilder =
                   new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
+                  queryBuilder.buildQuery(
+                      dataStore::queryBuilder,
+                      keyspace,
+                      collection,
+                      configuration.getMaxDepth(),
+                      columns);
 
               return dataStore.prepare(query);
             })
@@ -243,7 +254,12 @@ public class DocumentSearchService {
               // that doc
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
-                  boundQuery, configuration.getMaxStoragePageSize(), false, null, context);
+                  boundQuery,
+                  configuration.getMaxStoragePageSize(),
+                  configuration.getMaxStoragePageSize(),
+                  false,
+                  null,
+                  context);
             });
   }
 
@@ -261,7 +277,7 @@ public class DocumentSearchService {
                 () -> {
                   // columns from depth
                   int maxDepth = configuration.getMaxDepth();
-                  String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+                  String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
                   // data store need for build and prepare
                   DataStore dataStore = queryExecutor.getDataStore();
@@ -270,7 +286,11 @@ public class DocumentSearchService {
                   PopulateSearchQueryBuilder queryBuilder = new PopulateSearchQueryBuilder();
                   BuiltQuery<? extends BoundQuery> query =
                       queryBuilder.buildQuery(
-                          dataStore::queryBuilder, keyspace, collection, columns);
+                          dataStore::queryBuilder,
+                          keyspace,
+                          collection,
+                          configuration.getMaxDepth(),
+                          columns);
 
                   return dataStore.prepare(query);
                 })
@@ -290,7 +310,13 @@ public class DocumentSearchService {
               // since we have the doc id, use the max storage page size to grab all the rows for
               // that doc
               return queryExecutor
-                  .queryDocs(query, configuration.getMaxStoragePageSize(), false, null, context)
+                  .queryDocs(
+                      query,
+                      configuration.getMaxStoragePageSize(),
+                      configuration.getMaxStoragePageSize(),
+                      false,
+                      null,
+                      context)
                   .firstElement()
                   .map(document::populateFrom)
                   .toFlowable();

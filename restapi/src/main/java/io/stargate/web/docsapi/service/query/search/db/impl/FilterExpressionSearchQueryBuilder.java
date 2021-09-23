@@ -55,8 +55,8 @@ public class FilterExpressionSearchQueryBuilder extends FilterPathSearchQueryBui
    * <p>Adds predicates for each expression.
    */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
-    Collection<BuiltCondition> predicates = super.getPredicates();
+  public Collection<BuiltCondition> getPredicates(int maxDepth) {
+    Collection<BuiltCondition> predicates = super.getPredicates(maxDepth);
 
     expressions.forEach(e -> e.getCondition().getBuiltCondition().ifPresent(predicates::add));
 

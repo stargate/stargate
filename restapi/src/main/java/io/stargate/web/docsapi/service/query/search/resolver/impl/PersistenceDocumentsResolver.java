@@ -26,8 +26,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
@@ -82,8 +82,9 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
                       dataStore::queryBuilder,
                       keyspace,
                       collection,
-                      QueryConstants.KEY_COLUMN_NAME,
-                      QueryConstants.LEAF_COLUMN_NAME);
+                      configuration.getMaxDepth(),
+                      DocsApiConstants.KEY_COLUMN_NAME,
+                      DocsApiConstants.LEAF_COLUMN_NAME);
               return dataStore.prepare(query);
             })
 
@@ -99,7 +100,12 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
               // use exponential page size to increase when more is needed
               int pageSize = paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
-                  query, pageSize, true, paginator.getCurrentDbPageState(), context);
+                  query,
+                  pageSize,
+                  configuration.getMaxStoragePageSize(),
+                  true,
+                  paginator.getCurrentDbPageState(),
+                  context);
             });
   }
 

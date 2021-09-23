@@ -30,8 +30,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
@@ -86,12 +86,12 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
         queryBuilders.stream()
             .map(qb -> columnsForQuery(qb, configuration.getMaxDepth()))
             .max(Comparator.comparingInt(o -> o.length))
-            .orElseGet(() -> QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth()));
+            .orElseGet(() -> DocsApiConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth()));
 
     // resolve if no path are there, used in the filtering
     boolean noPaths =
         Arrays.stream(columns)
-            .noneMatch(c -> Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
+            .noneMatch(c -> Objects.equals(c, DocsApiConstants.P_COLUMN_NAME.apply(0)));
 
     return Flowable.fromIterable(queryBuilders)
         .concatMap(
@@ -100,7 +100,11 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
                         () -> {
                           BuiltQuery<? extends BoundQuery> query =
                               queryBuilder.buildQuery(
-                                  dataStore::queryBuilder, keyspace, collection, columns);
+                                  dataStore::queryBuilder,
+                                  keyspace,
+                                  collection,
+                                  configuration.getMaxDepth(),
+                                  columns);
                           return dataStore.prepare(query);
                         })
                     .toFlowable())
@@ -121,7 +125,12 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
                       ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
                       : determinePageSize(paginator.docPageSize, boundQueries.size());
               return queryExecutor.queryDocs(
-                  boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);
+                  boundQueries,
+                  pageSize,
+                  configuration.getMaxStoragePageSize(),
+                  true,
+                  paginator.getCurrentDbPageState(),
+                  context);
             })
         .filter(
             doc -> {
@@ -152,12 +161,12 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
   private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
     String[] columns;
     if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
-      columns = new String[] {QueryConstants.KEY_COLUMN_NAME, QueryConstants.LEAF_COLUMN_NAME};
+      columns = new String[] {DocsApiConstants.KEY_COLUMN_NAME, DocsApiConstants.LEAF_COLUMN_NAME};
     } else if (queryBuilder instanceof FilterPathSearchQueryBuilder) {
       FilterPathSearchQueryBuilder fpqb = (FilterPathSearchQueryBuilder) queryBuilder;
-      columns = QueryConstants.ALL_COLUMNS_NAMES.apply(fpqb.getFilterPath().getPath().size() + 1);
+      columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(fpqb.getFilterPath().getPath().size() + 1);
     } else {
-      columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+      columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
     }
     return columns;
   }

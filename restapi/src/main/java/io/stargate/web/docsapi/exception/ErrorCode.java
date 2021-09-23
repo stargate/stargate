@@ -57,7 +57,7 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       String.format(
           "The parameter `page-size` is limited to %d.",
-          DocsApiConfiguration.DEFAULT.getMaxPageSize())),
+          DocsApiConfiguration.DEFAULT.MAX_PAGE_SIZE)),
 
   DOCS_API_GENERAL_UPGRADE_INVALID(
       Response.Status.BAD_REQUEST, "The collection cannot be upgraded in given manner."),

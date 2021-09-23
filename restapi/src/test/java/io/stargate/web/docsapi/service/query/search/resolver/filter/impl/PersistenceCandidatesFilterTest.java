@@ -55,6 +55,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -66,7 +67,8 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
 
-  @Mock DocsApiConfiguration configuration;
+  @Mock(answer = Answers.CALLS_REAL_METHODS)
+  DocsApiConfiguration configuration;
 
   @Mock FilterExpression filterExpression;
 

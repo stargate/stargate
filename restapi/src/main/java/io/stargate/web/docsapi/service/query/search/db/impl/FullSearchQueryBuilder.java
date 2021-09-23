@@ -33,7 +33,7 @@ public class FullSearchQueryBuilder extends AbstractSearchQueryBuilder {
   }
 
   @Override
-  protected Collection<BuiltCondition> getPredicates() {
+  protected Collection<BuiltCondition> getPredicates(int maxDepth) {
     return Collections.emptyList();
   }
 
