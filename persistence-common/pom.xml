@@ -13,15 +13,20 @@
   </properties>
   <dependencies>
     <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <version>${cassandra.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-api</artifactId>
-      <version>${project.version}</version>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>

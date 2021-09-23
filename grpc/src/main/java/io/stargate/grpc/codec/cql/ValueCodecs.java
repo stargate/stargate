@@ -16,8 +16,8 @@
 package io.stargate.grpc.codec.cql;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.grpc.Status;
 import io.stargate.db.schema.Column.Type;

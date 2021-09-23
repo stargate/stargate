@@ -15,7 +15,7 @@
  */
 package io.stargate.grpc.retries;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.cassandra.stargate.db.WriteType;

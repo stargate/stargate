@@ -8,8 +8,8 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.bdp.db.nodes.BootstrapState;
 import com.datastax.bdp.db.util.ProductVersion;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import io.stargate.db.Result;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Result.Rows;

@@ -11,7 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.google.common.collect.ImmutableMap;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -125,7 +124,8 @@ class StargateQueryHandlerTest extends BaseDseTest {
             IllegalStateException.class,
             () ->
                 queryHandler.authorizeByToken(
-                    ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
+                    Collections.singletonMap(
+                        "stargate.auth.subject.token", ByteBuffer.allocate(10)),
                     statement));
 
     assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
