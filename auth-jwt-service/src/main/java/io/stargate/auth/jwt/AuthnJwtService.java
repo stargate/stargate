@@ -77,7 +77,8 @@ public class AuthnJwtService implements AuthenticationService {
     try {
       roleName = getRoleForJWT(claimsSet.getJSONObjectClaim(CLAIMS_FIELD));
     } catch (IllegalArgumentException | ParseException e) {
-      logger.info("Failed to parse claim from JWT", e);
+      logger.info(
+          "Failed to parse claim from JWT ({}): {}", e.getClass().getName(), e.getMessage());
       throw new UnauthorizedException("Failed to parse claim from JWT", e);
     }
 
@@ -122,10 +123,11 @@ public class AuthnJwtService implements AuthenticationService {
     try {
       claimsSet = jwtProcessor.process(token, null); // context is an optional param so passing null
     } catch (ParseException | JOSEException e) {
-      logger.info("Failed to process JWT", e);
+      logger.info("Failed to process JWT ({}): {}", e.getClass().getName(), e.getMessage());
       throw new UnauthorizedException("Failed to process JWT: " + e.getMessage(), e);
     } catch (BadJOSEException badJOSEException) {
-      logger.info("Tried to validate invalid JWT", badJOSEException);
+      logger.info(
+          "Tried to validate invalid JWT (BadJOSEException): {}", badJOSEException.getMessage());
       throw new UnauthorizedException(
           "Invalid JWT: " + badJOSEException.getMessage(), badJOSEException);
     }
