@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.34](https://github.com/stargate/stargate/tree/v1.0.34) (2021-09-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.33...v1.0.34)
+
+**Merged pull requests:**
+
+- Headers needed to correctly validate token in all envs [\#1267](https://github.com/stargate/stargate/pull/1267) ([mpenick](https://github.com/mpenick))
+- Bumping version for next release [\#1266](https://github.com/stargate/stargate/pull/1266) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.33](https://github.com/stargate/stargate/tree/v1.0.33) (2021-09-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.32...v1.0.33)
