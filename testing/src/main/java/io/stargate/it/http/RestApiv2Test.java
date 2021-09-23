@@ -2738,6 +2738,69 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
   }
 
+  @Test
+  public void testMixedCaseTable() throws IOException {
+    createKeyspace(keyspaceName);
+
+    String tableName = "MixedCaseTable";
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("ID", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("Lastname", "text"));
+    columnDefinitions.add(new ColumnDefinition("Firstname", "text"));
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("ID"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    // ensure table name is preserved
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    TableResponse tableResponse =
+        objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    assertThat(tableResponse.getName()).isEqualTo(tableName);
+
+    // insert a row
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("ID", rowIdentifier);
+    row.put("Firstname", "John");
+    row.put("Lastname", "Doe");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    // retrieve the row by ID and ensure column names are as expected
+    String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+
+    @SuppressWarnings("rawtypes")
+    GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
+    List<Map<String, Object>> data =
+        objectMapper.convertValue(
+            getResponseWrapper.getData(), new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("Firstname")).isEqualTo("John");
+    assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
+  }
+
   private void createTable(String keyspaceName, String tableName) throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);

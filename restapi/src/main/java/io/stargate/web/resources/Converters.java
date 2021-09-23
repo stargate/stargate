@@ -183,7 +183,7 @@ public class Converters {
       value = toCqlValue(type, val);
     }
 
-    return BuiltCondition.of(name.toLowerCase(), Predicate.EQ, value);
+    return BuiltCondition.of(name, Predicate.EQ, value);
   }
 
   public static ValueModifier colToValue(String name, Object value, Table tableData) {
