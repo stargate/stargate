@@ -18,7 +18,6 @@ package io.stargate.web.docsapi.service;
 import static io.stargate.web.docsapi.service.CombinedPagingState.EXHAUSTED_PAGE_STATE;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import hu.akarnokd.rxjava3.operators.ExpandStrategy;
 import hu.akarnokd.rxjava3.operators.FlowableTransformers;
 import hu.akarnokd.rxjava3.operators.Flowables;
@@ -280,7 +279,7 @@ public class QueryExecutor {
       DocProperty property, Comparator<DocProperty> comparator, List<Column> keyColumns) {
     Row row = property.row();
     String id = row.getString(QueryConstants.KEY_COLUMN_NAME);
-    Builder<String> docKey = ImmutableList.builder();
+    ImmutableList.Builder<String> docKey = ImmutableList.builder();
     for (Column c : keyColumns) {
       docKey.add(Objects.requireNonNull(row.getString(c.name())));
     }

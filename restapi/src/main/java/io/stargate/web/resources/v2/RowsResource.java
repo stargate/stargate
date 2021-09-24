@@ -24,7 +24,6 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.TypedKeyValue;
 import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.db.ImmutableParameters;
-import io.stargate.db.ImmutableParameters.Builder;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundDMLQuery;
@@ -667,7 +666,8 @@ public class RowsResource {
 
     UnaryOperator<Parameters> parametersModifier =
         p -> {
-          Builder parametersBuilder = ImmutableParameters.builder().pageSize(pageSize);
+          ImmutableParameters.Builder parametersBuilder =
+              ImmutableParameters.builder().pageSize(pageSize);
           if (pageState != null) {
             parametersBuilder.pagingState(pageState);
           }

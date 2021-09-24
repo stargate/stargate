@@ -2,7 +2,6 @@ package io.stargate.db.dse;
 
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
@@ -204,7 +203,7 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    Builder<ServicePointer<?>> dependencies = ImmutableList.builder();
+    ImmutableList.Builder<ServicePointer<?>> dependencies = ImmutableList.builder();
     dependencies.add(metrics);
 
     if (AUTHZ_PROCESSOR_ID != null) {

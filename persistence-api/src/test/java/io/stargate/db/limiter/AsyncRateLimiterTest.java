@@ -135,6 +135,7 @@ public class AsyncRateLimiterTest {
   }
 
   private static class AcquireAndExecute implements Tester {
+    @Override
     public long startTasks(
         AsyncRateLimiter limiter, int permitsPerCall, int count, AtomicLong counter) {
       long start;
