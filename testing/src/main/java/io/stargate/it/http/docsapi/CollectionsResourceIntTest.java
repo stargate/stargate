@@ -224,7 +224,7 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
     public void upgrade(@TestKeyspace CqlIdentifier keyspace, CqlSession cqlSession)
         throws IOException {
       // ignore if not dse
-      assumeTrue(isDse);
+      assumeTrue(isDse, "Test disabled when not running on DSE");
 
       // Create a brand new collection, it should already have SAI so drop it before calling
       String newColl = "{\"name\": \"newcollection\"}";
@@ -245,7 +245,7 @@ public class CollectionsResourceIntTest extends BaseOsgiIntegrationTest {
     @Test
     public void upgradeNotAvailable(@TestKeyspace CqlIdentifier keyspace) throws IOException {
       // ignore if not dse
-      assumeTrue(isDse);
+      assumeTrue(isDse, "Test disabled when not running on DSE");
 
       // Create a brand new collection, it should already have SAI so it requires no upgrade
       String newColl = "{\"name\": \"othercollection\"}";

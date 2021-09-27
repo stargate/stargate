@@ -46,6 +46,7 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
+import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,8 +138,21 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   @Override
   public void handleTestExecutionException(ExtensionContext context, Throwable throwable)
       throws Throwable {
-    LOG.warn("Error in {}", context.getUniqueId(), throwable);
-    getResource(context).ifPresent(Cluster::markError);
+    // 24-Sep-2021, tatu: When using "assume()" methods for dynamic disabling/skipping
+    //    of tests, we still get an exception -- but those are not fails, need to filter out
+    //    so that we do not unnecessarily dump output logs
+    if ((throwable instanceof TestAbortedException) // opentest4j
+        || "AssumptionViolatedException".equals(throwable.getClass().getSimpleName()) // junit
+    ) {
+      LOG.warn(
+          "Test skipped due to failed Assume in {}: {}",
+          context.getUniqueId(),
+          throwable.getMessage());
+      getResource(context).ifPresent(Cluster::markSkippedTest);
+    } else {
+      LOG.warn("Test error in {}", context.getUniqueId(), throwable);
+      getResource(context).ifPresent(Cluster::markErroredTest);
+    }
     throw throwable;
   }
 
@@ -148,6 +162,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     private final UUID id = UUID.randomUUID();
     private final ClusterSpec spec;
     private final AtomicInteger errorsInTest = new AtomicInteger(0);
+    private final AtomicInteger skippedTests = new AtomicInteger(0);
 
     protected Cluster(ClusterSpec spec) {
       this.spec = spec;
@@ -162,8 +177,16 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
     public abstract String infoForTestLog();
 
-    private void markError() {
+    private void markSkippedTest() {
+      skippedTests.incrementAndGet();
+    }
+
+    private void markErroredTest() {
       errorsInTest.incrementAndGet();
+    }
+
+    public int testsSkipped() {
+      return skippedTests.get();
     }
 
     public int errorsDetected() {
@@ -305,12 +328,18 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     private void dumpLogs() {
       final int errors = errorsDetected();
       if (errors == 0) {
-        LOG.info("Skipping dumping storage cluster ({}) logs: no test failures.", infoForTestLog());
+        LOG.info(
+            "Skipping dumping storage cluster ({}) logs: no test failures ({} tests skipped).",
+            infoForTestLog(),
+            testsSkipped());
         return;
       }
 
       LOG.warn(
-          "Dumping storage cluster ({}) logs due to {}} test failures.", infoForTestLog(), errors);
+          "Dumping storage cluster ({}) logs due to {} test failures ({} tests skipped).",
+          infoForTestLog(),
+          errors,
+          testsSkipped());
       Path configDir = configDirectory();
 
       final Collection<File> files =
