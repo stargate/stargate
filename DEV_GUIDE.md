@@ -209,6 +209,27 @@ To run integration tests with all Cassandra and DSE persistence modules, run:
 
 Note: Enabling only one of the `it-*` Maven profiles will automatically disable the others.
 
+### Running a Single Integration Test
+If you're working with a single test to get something working or adding a new test, you may want to run with
+just that one test rather than waiting for the entire IT suite to complete. To do this, first make sure you 
+have done a recent build, for example:
+
+```sh
+./mvnw clean install -DskipTests
+```
+
+Then you can run the individual test using the `-Dit.test` option, for example:
+
+```sh
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test
+```
+
+You can even run a single case (method):
+
+```sh
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test#testMixedCaseTable
+```
+
 ### Debugging Integration Tests
 
 When debugging integration tests, you may prefer to manually control the storage node.
