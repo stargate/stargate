@@ -49,6 +49,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
+  @Override
   default boolean test(String dbValue, String filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
@@ -59,6 +60,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
+  @Override
   default boolean test(Double dbValue, Number filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;
@@ -70,6 +72,7 @@ public interface ComparingValueFilterOperation extends ValueFilterOperation {
   }
 
   /** {@inheritDoc} */
+  @Override
   default boolean test(Boolean dbValue, Boolean filterValue) {
     if (null == dbValue && !compareNulls()) {
       return false;

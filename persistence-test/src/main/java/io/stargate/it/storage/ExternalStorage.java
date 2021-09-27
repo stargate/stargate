@@ -18,7 +18,6 @@ package io.stargate.it.storage;
 import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList.Builder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -230,7 +229,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
       this.ccm = builder.build();
 
-      Builder<StorageNode> nodes = ImmutableList.builder();
+      ImmutableList.Builder<StorageNode> nodes = ImmutableList.builder();
       for (int i = 0; i < numNodes; i++) {
         nodes.add(new StorageNode(this, i));
       }

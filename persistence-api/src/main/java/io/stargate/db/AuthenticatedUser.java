@@ -16,7 +16,6 @@
 package io.stargate.db;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap.Builder;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +76,8 @@ public interface AuthenticatedUser extends Serializable {
     private static final String ROLE = "stargate.auth.subject.role";
     private static final String EXTERNAL = "stargate.auth.subject.fromExternalAuth";
 
-    private static void encode(Builder<String, ByteBuffer> map, String key, String value) {
+    private static void encode(
+        ImmutableMap.Builder<String, ByteBuffer> map, String key, String value) {
       if (value == null) {
         return;
       }
@@ -87,7 +87,7 @@ public interface AuthenticatedUser extends Serializable {
     }
 
     public static Map<String, ByteBuffer> serialize(AuthenticatedUser user) {
-      Builder<String, ByteBuffer> map = ImmutableMap.builder();
+      ImmutableMap.Builder<String, ByteBuffer> map = ImmutableMap.builder();
       encode(map, TOKEN, user.token());
       encode(map, ROLE, user.name());
 
@@ -112,7 +112,7 @@ public interface AuthenticatedUser extends Serializable {
         throw new IllegalStateException("token and roleName must be provided");
       }
 
-      Builder<String, String> map = ImmutableMap.builder();
+      ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
       for (Entry<String, ByteBuffer> e : customPayload.entrySet()) {
         String key = e.getKey();
         if (key.startsWith(CUSTOM_PAYLOAD_NAME_PREFIX)) {

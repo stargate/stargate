@@ -7,6 +7,7 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
+import io.stargate.web.docsapi.exception.UncheckedJacksonException;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -198,10 +199,21 @@ public class DocsShredder {
           .withErrorStrategy(new RuntimeExceptionPassHandlingStrategy())
           .buildAndSurf(jsonPayload);
       return ImmutablePair.of(bindVariableList, firstLevelKeys);
+    } catch (ErrorCodeRuntimeException e) {
+      throw e;
+    } catch (UncheckedJacksonException e) {
+      Throwable je = e.getCause();
+      // Since we know it's a regular kind of invalid JSON (and not catastrophic
+      // processing problem), only warn and no stack trace needed.
+      logger.warn(
+          "Invalid JSON payload encountered during JSON read ({}): {}",
+          je.getClass().getName(),
+          je.getMessage());
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", je);
     } catch (RuntimeException e) {
-      if (e instanceof ErrorCodeRuntimeException) {
-        throw e;
-      }
+      // We don't actually know it IS malformed JSON (perhaps we got NPE?) but this is what
+      // has been reported so far so keep consistent. And log the stack trace.
       logger.error("Error occurred during JSON read", e);
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);

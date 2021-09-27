@@ -62,6 +62,7 @@ public abstract class Table extends AbstractTable {
   }
 
   @Value.Default
+  @Override
   public String comment() {
     return "";
   }
