@@ -47,7 +47,6 @@ public class RequestHandler {
                   Response.Status.NOT_FOUND.getStatusCode()))
           .build();
     } catch (OverloadedException e) {
-      logger.info("Overloaded", e);
       return Response.status(Response.Status.TOO_MANY_REQUESTS)
           .entity(
               new Error(
