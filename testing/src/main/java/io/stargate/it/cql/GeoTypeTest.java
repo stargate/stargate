@@ -61,7 +61,7 @@ public class GeoTypeTest extends BaseOsgiIntegrationTest {
 
   @BeforeAll
   public static void validateAssumptions(ClusterConnectionInfo backend) {
-    Assumptions.assumeTrue(backend.isDse());
+    Assumptions.assumeTrue(backend.isDse(), "Test disabled when not running on DSE");
   }
 
   @BeforeAll

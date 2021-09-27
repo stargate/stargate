@@ -228,8 +228,7 @@ public class BatchStatementTest extends BaseOsgiIntegrationTest {
   @Test
   @DisplayName("Should execute counter batch")
   public void counterTest(CqlSession session, TestInfo name) {
-    assumeTrue(backend.supportsCounters());
-
+    assumeTrue(backend.supportsCounters(), "Test disabled if backend does not support counters()");
     BatchStatementBuilder builder = BatchStatement.builder(DefaultBatchType.COUNTER);
 
     for (int i = 1; i <= 3; i++) {
