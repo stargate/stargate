@@ -341,23 +341,21 @@ public class GraphqlResourceBase {
       ExecutionInput input, GraphQL graphql, @Suspended AsyncResponse asyncResponse) {
     graphql
         .executeAsync(input)
-        .thenApply(
-            result -> {
-              StargateGraphqlContext context = (StargateGraphqlContext) input.getContext();
-              if (context.isOverloaded()) {
+        .whenComplete(
+            (result, error) -> {
+              if (error != null) {
+                LOG.error("Unexpected error while processing GraphQL request", error);
                 replyWithGraphqlError(
-                    Status.TOO_MANY_REQUESTS, "Database is overloaded", asyncResponse);
-                return true;
+                    Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
               } else {
-                return asyncResponse.resume(result.toSpecification());
+                StargateGraphqlContext context = (StargateGraphqlContext) input.getContext();
+                if (context.isOverloaded()) {
+                  replyWithGraphqlError(
+                      Status.TOO_MANY_REQUESTS, "Database is overloaded", asyncResponse);
+                } else {
+                  asyncResponse.resume(result.toSpecification());
+                }
               }
-            })
-        .exceptionally(
-            error -> {
-              LOG.error("Unexpected error while processing GraphQL request", error);
-              replyWithGraphqlError(
-                  Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
-              return null;
             });
   }
 
