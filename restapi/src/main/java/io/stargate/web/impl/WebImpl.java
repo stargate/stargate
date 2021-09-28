@@ -66,8 +66,8 @@ public class WebImpl {
   }
 
   public void start() throws Exception {
-    Server server =
-        new Server(
+    RestApiServer server =
+        new RestApiServer(
             this.authenticationService,
             this.authorizationService,
             this.metrics,

@@ -33,8 +33,10 @@ public class SwaggerUIResource {
 
   private static final Logger logger = LoggerFactory.getLogger(SwaggerUIResource.class);
 
-  private static Pattern fileExtensionPattern =
+  private static final Pattern fileExtensionPattern =
       Pattern.compile("([^\\s]+(\\.(?i)(css|png|js|map|html))$)");
+
+  private static final Pattern bearerTokenPattern = Pattern.compile("^Bearer\\s");
 
   private Bundle bundle;
   private String indexFile;
@@ -90,7 +92,7 @@ public class SwaggerUIResource {
       token =
           Strings.isNullOrEmpty(bearerToken)
               ? bearerToken
-              : bearerToken.replaceFirst("^Bearer\\s", "");
+              : bearerTokenPattern.matcher(bearerToken).replaceFirst("");
     }
 
     // Using an HTML file with templated text that's been read in as a String. Yes,  we could use

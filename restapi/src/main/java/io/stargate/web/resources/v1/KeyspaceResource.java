@@ -13,13 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources;
+package io.stargate.web.resources.v1;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.web.resources.AuthenticatedDB;
+import io.stargate.web.resources.Db;
+import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
