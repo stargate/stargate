@@ -15,8 +15,8 @@ online docs]).
 
 [RestApiActivator] manages the starting and stopping of the OSGi bundle, which runs both the Documents API and the more general REST API.
 
-[Server] is the HTTP server that exposes the Documents API services as REST resources. It is implemented with
-[Dropwizard](https://www.dropwizard.io/en/latest/).
+[RestApiServer] is the HTTP server that exposes both the REST and Documents API services as REST resources.
+It is implemented with [Dropwizard](https://www.dropwizard.io/en/latest/).
 
 ### Authentication
 
@@ -24,7 +24,7 @@ Every HTTP request performs token-based authentication. This is done by calling 
 This method will either return an instance of [DocumentDB] which can be used for querying the underlying persistence and contains the authenticated subject,
 or will throw an `UnauthorizedException` causing the appropriate 4XX response to be returned.
 
-The DocumentDB gets stored in a simple cache (using [Caffeine](https://github.com/ben-manes/caffeine)) so the subsequent requests within a short
+The `DocumentDB` gets stored in a simple cache (using [Caffeine](https://github.com/ben-manes/caffeine)) so the subsequent requests within a short
 time-frame using the same token and headers need not suffer performance penalties.
 
 ### Resources
@@ -186,7 +186,7 @@ It is expected when adding or changing features that both Unit tests and Integra
 [NamespaceResourceIntTest]: testing/src/main/java/io/stargate/it/http/docsapi/NamespaceResourceIntTest.java
 [ReactiveDocumentResource]: src/main/java/io/stargate/web/docsapi/resources/ReactiveDocumentResourceV2.java
 [RestApiActivator]: src/main/java/io/stargate/web/RestApiActivator.java
-[Server]: src/main/java/io/stargate/web/impl/Server.java
+[RestApiServer]: src/main/java/io/stargate/web/impl/RestApiServer.java
 
 [Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-document.html
 [Json schema docs]: https://json-schema.org/
