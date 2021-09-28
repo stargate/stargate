@@ -22,7 +22,6 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Collection;
 import java.util.Map;
@@ -30,7 +29,6 @@ import java.util.function.Supplier;
 
 /** Abstract class that can create a query for a document search. */
 public abstract class AbstractSearchQueryBuilder {
-  protected DocsApiConfiguration config;
 
   /** @return All fixed predicates. */
   protected abstract Collection<BuiltCondition> getPredicates();

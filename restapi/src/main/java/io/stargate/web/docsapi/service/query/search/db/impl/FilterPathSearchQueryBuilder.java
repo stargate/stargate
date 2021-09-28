@@ -38,6 +38,8 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
 
   private final boolean matchField;
 
+  protected DocsApiConfiguration config;
+
   /**
    * @param filterPath Filter path
    * @param matchField If field name should be matches as well, adds extra predicates

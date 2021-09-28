@@ -47,8 +47,7 @@ class PopulateSearchQueryBuilderTest extends AbstractDataStoreTest {
     public void happyPath() {
       PopulateSearchQueryBuilder queryBuilder = new PopulateSearchQueryBuilder();
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(

@@ -47,8 +47,7 @@ class FullSearchQueryBuilderTest extends AbstractDataStoreTest {
     public void happyPath() {
       FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder();
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format("SELECT WRITETIME(leaf) FROM %s.%s", KEYSPACE_NAME, COLLECTION_NAME);

@@ -84,7 +84,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
   @BeforeEach
   public void init() {
     executionContext = ExecutionContext.create(true);
-    queryExecutor = new QueryExecutor(datastore());
+    queryExecutor = new QueryExecutor(datastore(), configuration);
     lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
   }
 
@@ -101,7 +101,7 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
       Throwable throwable =
           catchThrowable(
               () ->
-                  PersistenceCandidatesFilter.forExpression(filterExpression)
+                  PersistenceCandidatesFilter.forExpression(filterExpression, configuration)
                       .apply(executionContext));
 
       assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
@@ -125,9 +125,10 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? AND key = ? LIMIT ? ALLOW FILTERING");
 
       CandidatesFilter filter =
-          PersistenceCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          PersistenceCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Single<? extends Query<? extends BoundQuery>> single =
-          filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME);
 
       single.test().await().assertValueCount(1).assertComplete();
 
@@ -158,9 +159,10 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
           "SELECT key, leaf, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 > ? AND p2 = ? AND leaf = ? AND p3 = ? AND text_value = ? AND key = ? ALLOW FILTERING");
 
       CandidatesFilter filter =
-          PersistenceCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          PersistenceCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Single<? extends Query<? extends BoundQuery>> single =
-          filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME);
 
       single.test().await().assertValueCount(1).assertComplete();
 
@@ -210,12 +212,11 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               .returning(Arrays.asList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
-          PersistenceCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          PersistenceCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(1).assertComplete();
 
@@ -271,13 +272,11 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
 
       CandidatesFilter filter =
           PersistenceCandidatesFilter.forExpressions(
-                  Arrays.asList(filterExpression, filterExpression2))
+                  Arrays.asList(filterExpression, filterExpression2), configuration)
               .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(1).assertComplete();
 
@@ -324,12 +323,11 @@ class PersistenceCandidatesFilterTest extends AbstractDataStoreTest {
               .returningNothing();
 
       CandidatesFilter filter =
-          PersistenceCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          PersistenceCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(0).assertComplete();
 

@@ -50,6 +50,7 @@ public class FilterExpressionSearchQueryBuilder extends FilterPathSearchQueryBui
   protected FilterExpressionSearchQueryBuilder(FilterPath filterPath, DocsApiConfiguration config) {
     super(filterPath, true, config);
     this.expressions = Collections.emptyList();
+    System.out.println("here3");
   }
 
   /**

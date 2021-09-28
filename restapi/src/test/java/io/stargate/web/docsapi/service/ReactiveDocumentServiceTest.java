@@ -167,10 +167,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              true))
+              Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -224,10 +221,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              true))
+              Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -281,10 +275,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              true))
+              Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -333,10 +324,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              true))
+              Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, expression, paginator, context))
@@ -668,10 +656,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              true))
+              Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchSubDocuments(
               queryExecutor,
@@ -806,8 +791,7 @@ class ReactiveDocumentServiceTest {
       when(filterPath.getParentPath()).thenReturn(Arrays.asList("prePath", "parentPath"));
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
-      when(expressionParser.constructFilterExpression(
-              prePath, objectMapper.readTree(where), config.getMaxArrayLength(), true))
+      when(expressionParser.constructFilterExpression(prePath, objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchSubDocuments(
               queryExecutor,
@@ -871,10 +855,7 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String where = "{}";
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              false))
+              Collections.emptyList(), objectMapper.readTree(where), false))
           .thenReturn(expression);
       doThrow(UnauthorizedException.class)
           .when(authService)
@@ -916,10 +897,7 @@ class ReactiveDocumentServiceTest {
       String fields = "[\"myField\"]";
       when(filterPath.getField()).thenReturn("yourField");
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              false))
+              Collections.emptyList(), objectMapper.readTree(where), false))
           .thenReturn(expression);
 
       Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
@@ -968,10 +946,7 @@ class ReactiveDocumentServiceTest {
           .when(expression)
           .collectK(any(), anyInt());
       when(expressionParser.constructFilterExpression(
-              Collections.emptyList(),
-              objectMapper.readTree(where),
-              config.getMaxArrayLength(),
-              false))
+              Collections.emptyList(), objectMapper.readTree(where), false))
           .thenReturn(expression);
 
       Maybe<DocumentResponseWrapper<? extends JsonNode>> result =

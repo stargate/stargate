@@ -68,7 +68,7 @@ class DocumentsSearchQueryBuilderTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   new DocumentSearchQueryBuilder(
-                      Arrays.asList(filterExpression, filterExpression)));
+                      Arrays.asList(filterExpression, filterExpression), config));
 
       assertThat(t).isInstanceOf(IllegalArgumentException.class);
     }
@@ -86,10 +86,10 @@ class DocumentsSearchQueryBuilderTest extends AbstractDataStoreTest {
       when(filterExpression.getCondition()).thenReturn(condition);
       when(condition.getBuiltCondition()).thenReturn(Optional.empty());
 
-      FilterExpressionSearchQueryBuilder builder = new DocumentSearchQueryBuilder(filterExpression);
+      FilterExpressionSearchQueryBuilder builder =
+          new DocumentSearchQueryBuilder(filterExpression, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(

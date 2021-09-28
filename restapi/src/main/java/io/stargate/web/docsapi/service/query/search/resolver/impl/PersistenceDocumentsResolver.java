@@ -84,7 +84,6 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
                       dataStore::queryBuilder,
                       keyspace,
                       collection,
-                      config.getMaxDepth(),
                       DocsApiConstants.KEY_COLUMN_NAME,
                       DocsApiConstants.LEAF_COLUMN_NAME);
               return dataStore.prepare(query);

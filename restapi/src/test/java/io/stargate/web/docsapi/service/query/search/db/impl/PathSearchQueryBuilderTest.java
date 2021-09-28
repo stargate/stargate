@@ -55,8 +55,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -71,8 +70,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -87,8 +85,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -103,8 +100,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -119,8 +115,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -135,8 +130,7 @@ class PathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format("SELECT WRITETIME(leaf) FROM %s.%s", KEYSPACE_NAME, COLLECTION_NAME);

@@ -62,10 +62,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -79,13 +79,13 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
           builder.buildQuery(
               datastore()::queryBuilder,
               KEYSPACE_NAME,
               COLLECTION_NAME,
-              config.getMaxDepth(),
               DocsApiConstants.P_COLUMN_NAME.apply(0));
 
       String expected =
@@ -100,9 +100,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, 5, 5);
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, 5);
 
       String expected =
           String.format(
@@ -116,10 +117,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Arrays.asList("path", "to", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -133,10 +134,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Arrays.asList("path", "*", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -150,10 +151,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Arrays.asList("path", "[*]", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -167,10 +168,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Arrays.asList("path", "one,two,three", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -184,10 +185,10 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
       List<String> path = Arrays.asList("path", "[000000],[000001],[000002]", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -204,15 +205,11 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
               .collect(Collectors.toList());
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
-      FilterPathSearchQueryBuilder builder = new FilterPathSearchQueryBuilder(filterPath, true);
+      FilterPathSearchQueryBuilder builder =
+          new FilterPathSearchQueryBuilder(filterPath, true, config);
       Throwable t =
           catchThrowable(
-              () ->
-                  builder.buildQuery(
-                      datastore()::queryBuilder,
-                      KEYSPACE_NAME,
-                      COLLECTION_NAME,
-                      config.getMaxDepth()));
+              () -> builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)

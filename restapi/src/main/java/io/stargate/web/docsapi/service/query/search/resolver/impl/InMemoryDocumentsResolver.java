@@ -109,11 +109,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               DataStore dataStore = queryExecutor.getDataStore();
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(
-                      dataStore::queryBuilder,
-                      keyspace,
-                      collection,
-                      config.getMaxDepth(),
-                      neededColumns);
+                      dataStore::queryBuilder, keyspace, collection, neededColumns);
               return dataStore.prepare(query);
             })
 

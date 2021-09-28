@@ -196,12 +196,7 @@ public class DocumentSearchService {
 
               FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder();
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(
-                      dataStore::queryBuilder,
-                      keyspace,
-                      collection,
-                      configuration.getMaxDepth(),
-                      columns);
+                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
 
               return dataStore.prepare(query);
             })
@@ -238,12 +233,7 @@ public class DocumentSearchService {
               SubDocumentSearchQueryBuilder queryBuilder =
                   new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(
-                      dataStore::queryBuilder,
-                      keyspace,
-                      collection,
-                      configuration.getMaxDepth(),
-                      columns);
+                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
 
               return dataStore.prepare(query);
             })
@@ -281,11 +271,7 @@ public class DocumentSearchService {
                   PopulateSearchQueryBuilder queryBuilder = new PopulateSearchQueryBuilder();
                   BuiltQuery<? extends BoundQuery> query =
                       queryBuilder.buildQuery(
-                          dataStore::queryBuilder,
-                          keyspace,
-                          collection,
-                          configuration.getMaxDepth(),
-                          columns);
+                          dataStore::queryBuilder, keyspace, collection, columns);
 
                   return dataStore.prepare(query);
                 })

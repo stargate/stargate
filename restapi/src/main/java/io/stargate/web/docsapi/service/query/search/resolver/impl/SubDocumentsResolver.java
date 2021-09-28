@@ -90,8 +90,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
             () -> {
               DataStore dataStore = queryExecutor.getDataStore();
               BuiltQuery<? extends BoundQuery> query =
-                  queryBuilder.buildQuery(
-                      dataStore::queryBuilder, keyspace, collection, config.getMaxDepth(), columns);
+                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, columns);
               return dataStore.prepare(query);
             })
 

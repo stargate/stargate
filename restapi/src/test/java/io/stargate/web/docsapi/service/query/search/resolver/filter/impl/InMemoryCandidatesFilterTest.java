@@ -88,7 +88,7 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
   @BeforeEach
   public void init() {
     executionContext = ExecutionContext.create(true);
-    queryExecutor = new QueryExecutor(datastore());
+    queryExecutor = new QueryExecutor(datastore(), configuration);
     lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
   }
 
@@ -103,7 +103,8 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
       Throwable throwable =
           catchThrowable(
               () ->
-                  InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext));
+                  InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+                      .apply(executionContext));
 
       assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
     }
@@ -125,9 +126,10 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND key = ? LIMIT ? ALLOW FILTERING");
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Single<? extends Query<? extends BoundQuery>> single =
-          filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME);
 
       single.test().await().assertValueCount(1).assertComplete();
 
@@ -157,9 +159,10 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
           "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 > ? AND p2 = ? AND leaf = ? AND p3 = ? AND key = ? ALLOW FILTERING");
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Single<? extends Query<? extends BoundQuery>> single =
-          filter.prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME);
 
       single.test().await().assertValueCount(1).assertComplete();
 
@@ -210,12 +213,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(1).assertComplete();
       queryAssert.assertExecuteCount().isEqualTo(1);
@@ -281,13 +283,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
 
       CandidatesFilter filter =
           InMemoryCandidatesFilter.forExpressions(
-                  Arrays.asList(filterExpression, filterExpression2))
+                  Arrays.asList(filterExpression, filterExpression2), configuration)
               .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(1).assertComplete();
 
@@ -347,12 +347,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .returningNothing();
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(0).assertComplete();
 
@@ -401,12 +400,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .returningNothing();
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(1).assertComplete();
 
@@ -455,12 +453,11 @@ class InMemoryCandidatesFilterTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       CandidatesFilter filter =
-          InMemoryCandidatesFilter.forExpression(filterExpression).apply(executionContext);
+          InMemoryCandidatesFilter.forExpression(filterExpression, configuration)
+              .apply(executionContext);
       Query<? extends BoundQuery> query =
-          filter
-              .prepareQuery(datastore(), configuration, KEYSPACE_NAME, COLLECTION_NAME)
-              .blockingGet();
-      Maybe<?> result = filter.bindAndFilter(queryExecutor, configuration, query, rawDocument);
+          filter.prepareQuery(datastore(), KEYSPACE_NAME, COLLECTION_NAME).blockingGet();
+      Maybe<?> result = filter.bindAndFilter(queryExecutor, query, rawDocument);
 
       result.test().await().assertValueCount(0).assertComplete();
       queryAssert.assertExecuteCount().isEqualTo(1);

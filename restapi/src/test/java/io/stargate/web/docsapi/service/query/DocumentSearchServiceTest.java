@@ -119,7 +119,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
@@ -245,7 +245,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
@@ -344,7 +344,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,
@@ -410,7 +410,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               Literal.getTrue(),
@@ -534,7 +534,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchSubDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               documentId,
@@ -624,7 +624,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchSubDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               documentId,
@@ -697,7 +697,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.searchSubDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               documentId,
@@ -787,7 +787,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       Flowable<RawDocument> results =
           service.getDocument(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               documentId,
@@ -869,7 +869,7 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
 
       service
           .searchDocuments(
-              new QueryExecutor(datastore()),
+              new QueryExecutor(datastore(), configuration),
               KEYSPACE_NAME,
               COLLECTION_NAME,
               expression,

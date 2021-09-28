@@ -70,9 +70,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     this.expression = expression;
     this.evaluateOnMissing =
         children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
+    this.config = config;
     this.queryBuilders = buildQueries(evaluateOnMissing, children);
     this.context = createContext(context, expression);
-    this.config = config;
   }
 
   /** {@inheritDoc} */
@@ -100,11 +100,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
                         () -> {
                           BuiltQuery<? extends BoundQuery> query =
                               queryBuilder.buildQuery(
-                                  dataStore::queryBuilder,
-                                  keyspace,
-                                  collection,
-                                  config.getMaxDepth(),
-                                  columns);
+                                  dataStore::queryBuilder, keyspace, collection, columns);
                           return dataStore.prepare(query);
                         })
                     .toFlowable())

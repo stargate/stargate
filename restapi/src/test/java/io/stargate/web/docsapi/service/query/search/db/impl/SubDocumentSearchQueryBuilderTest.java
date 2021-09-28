@@ -55,8 +55,7 @@ class SubDocumentSearchQueryBuilderTest extends AbstractDataStoreTest {
 
       SubDocumentSearchQueryBuilder builder = new SubDocumentSearchQueryBuilder(docId, path);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(

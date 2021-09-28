@@ -71,7 +71,7 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   new FilterExpressionSearchQueryBuilder(
-                      Arrays.asList(filterExpression, filterExpression)));
+                      Arrays.asList(filterExpression, filterExpression), config));
 
       assertThat(t).isInstanceOf(IllegalArgumentException.class);
     }
@@ -96,10 +96,9 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
       when(condition.getBuiltCondition()).thenReturn(Optional.of(builtCondition));
 
       FilterExpressionSearchQueryBuilder builder =
-          new FilterExpressionSearchQueryBuilder(filterExpression);
+          new FilterExpressionSearchQueryBuilder(filterExpression, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
@@ -113,10 +112,9 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
       when(condition.getBuiltCondition()).thenReturn(Optional.empty());
 
       FilterExpressionSearchQueryBuilder builder =
-          new FilterExpressionSearchQueryBuilder(filterExpression);
+          new FilterExpressionSearchQueryBuilder(filterExpression, config);
       BuiltQuery<? extends BoundQuery> query =
-          builder.buildQuery(
-              datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, config.getMaxDepth());
+          builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
       String expected =
           String.format(
