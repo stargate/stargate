@@ -38,8 +38,8 @@ public class SubDocumentSearchQueryBuilder extends PathSearchQueryBuilder {
 
   /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates(int maxDepth) {
-    Collection<BuiltCondition> predicates = super.getPredicates(maxDepth);
+  public Collection<BuiltCondition> getPredicates() {
+    Collection<BuiltCondition> predicates = super.getPredicates();
     predicates.add(BuiltCondition.of(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ, documentId));
     return predicates;
   }

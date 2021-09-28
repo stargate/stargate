@@ -54,12 +54,17 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
 
   private final boolean evaluateOnMissing;
 
-  public InMemoryDocumentsResolver(FilterExpression expression, ExecutionContext context) {
-    this(Collections.singletonList(expression), context);
+  private DocsApiConfiguration config;
+
+  public InMemoryDocumentsResolver(
+      FilterExpression expression, ExecutionContext context, DocsApiConfiguration config) {
+    this(Collections.singletonList(expression), context, config);
   }
 
   public InMemoryDocumentsResolver(
-      Collection<FilterExpression> expressions, ExecutionContext context) {
+      Collection<FilterExpression> expressions,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     boolean hasPersistence =
         expressions.stream().anyMatch(e -> e.getCondition().isPersistenceCondition());
 
@@ -76,18 +81,15 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
     this.queryBuilder =
         evaluateOnMissing
             ? new FullSearchQueryBuilder()
-            : new FilterExpressionSearchQueryBuilder(expressions);
+            : new FilterExpressionSearchQueryBuilder(expressions, config);
     this.context = createContext(context, expressions);
+    this.config = config;
   }
 
   /** {@inheritDoc} */
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
 
     // if we have a filter path query then need all the columns on the filter, plus one additional
     // to match
@@ -97,7 +99,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
             .filter(FilterPathSearchQueryBuilder.class::isInstance)
             .map(FilterPathSearchQueryBuilder.class::cast)
             .map(qb -> qb.getFilterPath().getPath().size() + 1)
-            .orElse(configuration.getMaxDepth());
+            .orElse(config.getMaxDepth());
 
     String[] neededColumns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(neededDepth);
 
@@ -110,7 +112,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
                       dataStore::queryBuilder,
                       keyspace,
                       collection,
-                      configuration.getMaxDepth(),
+                      config.getMaxDepth(),
                       neededColumns);
               return dataStore.prepare(query);
             })
@@ -127,15 +129,10 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
               // pre-fetching
               int pageSize =
                   evaluateOnMissing
-                      ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
+                      ? config.getApproximateStoragePageSize(paginator.docPageSize)
                       : paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
-                  query,
-                  pageSize,
-                  configuration.getMaxStoragePageSize(),
-                  true,
-                  paginator.getCurrentDbPageState(),
-                  context);
+                  query, pageSize, true, paginator.getCurrentDbPageState(), context);
             })
 
         // then filter to match the expression (in-memory filters have no predicates on the values)

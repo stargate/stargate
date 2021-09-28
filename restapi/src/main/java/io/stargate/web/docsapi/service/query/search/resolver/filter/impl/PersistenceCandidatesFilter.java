@@ -48,8 +48,12 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
 
   private final ExecutionContext context;
 
+  private DocsApiConfiguration config;
+
   private PersistenceCandidatesFilter(
-      Collection<FilterExpression> expressions, ExecutionContext context) {
+      Collection<FilterExpression> expressions,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     boolean hasInMemory =
         expressions.stream().anyMatch(e -> !e.getCondition().isPersistenceCondition());
 
@@ -58,23 +62,24 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
           "PersistenceCandidatesDocumentsResolver works only with the persistence conditions.");
     }
 
-    this.queryBuilder = new DocumentSearchQueryBuilder(expressions);
+    this.queryBuilder = new DocumentSearchQueryBuilder(expressions, config);
     this.context = createContext(context, expressions);
+    this.config = config;
   }
 
   public static Function<ExecutionContext, CandidatesFilter> forExpression(
-      FilterExpression expression) {
-    return forExpressions(Collections.singletonList(expression));
+      FilterExpression expression, DocsApiConfiguration config) {
+    return forExpressions(Collections.singletonList(expression), config);
   }
 
   public static Function<ExecutionContext, CandidatesFilter> forExpressions(
-      Collection<FilterExpression> expressions) {
-    return context -> new PersistenceCandidatesFilter(expressions, context);
+      Collection<FilterExpression> expressions, DocsApiConfiguration config) {
+    return context -> new PersistenceCandidatesFilter(expressions, context, config);
   }
 
   @Override
   public Single<? extends Query<? extends BoundQuery>> prepareQuery(
-      DataStore dataStore, DocsApiConfiguration configuration, String keyspace, String collection) {
+      DataStore dataStore, String keyspace, String collection) {
     return RxUtils.singleFromFuture(
             () -> {
               FilterPath filterPath = queryBuilder.getFilterPath();
@@ -85,7 +90,6 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
                       keyspace,
                       collection,
                       limit,
-                      configuration.getMaxDepth(),
                       DocsApiConstants.KEY_COLUMN_NAME,
                       DocsApiConstants.LEAF_COLUMN_NAME);
               return dataStore.prepare(query);
@@ -96,7 +100,6 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
   @Override
   public Maybe<RawDocument> bindAndFilter(
       QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
       Query<? extends BoundQuery> preparedQuery,
       RawDocument document) {
     BoundQuery query = preparedQuery.bind(document.id());
@@ -105,11 +108,8 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
     // page size 2 with limit 1 to ensure no additional pages fetched (only on fixed path)
     // use max storage page size otherwise as we have the doc id
     FilterPath filterPath = queryBuilder.getFilterPath();
-    int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
-    return queryExecutor
-        .queryDocs(query, pageSize, configuration.getMaxStoragePageSize(), false, null, context)
-        .take(1)
-        .singleElement();
+    int pageSize = filterPath.isFixed() ? 2 : config.getMaxStoragePageSize();
+    return queryExecutor.queryDocs(query, pageSize, false, null, context).take(1).singleElement();
   }
 
   private ExecutionContext createContext(

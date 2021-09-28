@@ -61,7 +61,10 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private final boolean evaluateOnMissing;
 
-  public OrExpressionDocumentsResolver(Or<FilterExpression> expression, ExecutionContext context) {
+  private DocsApiConfiguration config;
+
+  public OrExpressionDocumentsResolver(
+      Or<FilterExpression> expression, ExecutionContext context, DocsApiConfiguration config) {
     List<FilterExpression> children = getChildren(expression);
 
     this.expression = expression;
@@ -69,24 +72,21 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
         children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
     this.queryBuilders = buildQueries(evaluateOnMissing, children);
     this.context = createContext(context, expression);
+    this.config = config;
   }
 
   /** {@inheritDoc} */
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
     DataStore dataStore = queryExecutor.getDataStore();
 
     // find the max size of columns in all queries and use that for now
     String[] columns =
         queryBuilders.stream()
-            .map(qb -> columnsForQuery(qb, configuration.getMaxDepth()))
+            .map(qb -> columnsForQuery(qb, config.getMaxDepth()))
             .max(Comparator.comparingInt(o -> o.length))
-            .orElseGet(() -> DocsApiConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth()));
+            .orElseGet(() -> DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()));
 
     // resolve if no path are there, used in the filtering
     boolean noPaths =
@@ -103,7 +103,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
                                   dataStore::queryBuilder,
                                   keyspace,
                                   collection,
-                                  configuration.getMaxDepth(),
+                                  config.getMaxDepth(),
                                   columns);
                           return dataStore.prepare(query);
                         })
@@ -122,15 +122,10 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // otherwise determine the page size for each query based on the requested docs
               int pageSize =
                   evaluateOnMissing
-                      ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
+                      ? config.getApproximateStoragePageSize(paginator.docPageSize)
                       : determinePageSize(paginator.docPageSize, boundQueries.size());
               return queryExecutor.queryDocs(
-                  boundQueries,
-                  pageSize,
-                  configuration.getMaxStoragePageSize(),
-                  true,
-                  paginator.getCurrentDbPageState(),
-                  context);
+                  boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);
             })
         .filter(
             doc -> {
@@ -182,7 +177,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     List<AbstractSearchQueryBuilder> persistenceQueries =
         children.stream()
             .filter(e -> e.getCondition().isPersistenceCondition())
-            .map(FilterExpressionSearchQueryBuilder::new)
+            .map(
+                isPersistenceCondition ->
+                    new FilterExpressionSearchQueryBuilder(isPersistenceCondition, config))
             .collect(Collectors.toList());
 
     // for the memory ones, we can collect only distinct filter paths
@@ -191,7 +188,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             .filter(e -> !e.getCondition().isPersistenceCondition())
             .map(FilterExpression::getFilterPath)
             .distinct()
-            .map(fp -> new FilterPathSearchQueryBuilder(fp, true))
+            .map(fp -> new FilterPathSearchQueryBuilder(fp, true, config))
             .collect(Collectors.toList());
 
     // merge and return

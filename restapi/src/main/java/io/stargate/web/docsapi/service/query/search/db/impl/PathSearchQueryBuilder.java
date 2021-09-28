@@ -55,7 +55,7 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates(int maxDepth) {
+  public Collection<BuiltCondition> getPredicates() {
     return getPathPredicates();
   }
 

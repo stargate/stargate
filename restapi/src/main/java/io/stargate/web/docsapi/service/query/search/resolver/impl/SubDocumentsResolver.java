@@ -63,27 +63,27 @@ public class SubDocumentsResolver implements DocumentsResolver {
 
   private final int keyDepth;
 
+  private DocsApiConfiguration config;
+
   public SubDocumentsResolver(
       Expression<FilterExpression> expression,
       String documentId,
       List<String> subDocumentPath,
-      ExecutionContext context) {
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     this.expression = expression;
     this.context = createContext(context, subDocumentPath);
     this.queryBuilder = new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
     // key depth explained:
     //  - one extra for the document id
     this.keyDepth = subDocumentPath.size() + 1;
+    this.config = config;
   }
 
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
-    String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth());
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
+    String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth());
 
     // prepare the query
     return RxUtils.singleFromFuture(
@@ -91,11 +91,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
               DataStore dataStore = queryExecutor.getDataStore();
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(
-                      dataStore::queryBuilder,
-                      keyspace,
-                      collection,
-                      configuration.getMaxDepth(),
-                      columns);
+                      dataStore::queryBuilder, keyspace, collection, config.getMaxDepth(), columns);
               return dataStore.prepare(query);
             })
 
@@ -111,8 +107,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   keyDepth,
                   query,
-                  configuration.getApproximateStoragePageSize(paginator.docPageSize),
-                  configuration.getMaxStoragePageSize(),
+                  config.getApproximateStoragePageSize(paginator.docPageSize),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);

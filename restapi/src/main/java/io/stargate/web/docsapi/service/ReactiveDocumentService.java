@@ -527,10 +527,7 @@ public class ReactiveDocumentService {
         JsonNode whereNode = objectMapper.readTree(where);
         expression =
             expressionParser.constructFilterExpression(
-                prependPath,
-                whereNode,
-                configuration.getMaxArrayLength(),
-                db.treatBooleansAsNumeric());
+                prependPath, whereNode, db.treatBooleansAsNumeric());
       } catch (JsonProcessingException ex) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_WHERE_JSON_INVALID);
       }

@@ -21,6 +21,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
@@ -41,10 +42,12 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
    * @param filterPath Filter path
    * @param matchField If field name should be matches as well, adds extra predicates
    */
-  public FilterPathSearchQueryBuilder(FilterPath filterPath, boolean matchField) {
+  public FilterPathSearchQueryBuilder(
+      FilterPath filterPath, boolean matchField, DocsApiConfiguration config) {
     super(filterPath.getParentPath());
     this.filterPath = filterPath;
     this.matchField = matchField;
+    this.config = config;
   }
 
   @Override
@@ -58,10 +61,10 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
   }
 
   @Override
-  public Collection<BuiltCondition> getPredicates(int maxDepth) {
-    Collection<BuiltCondition> predicates = super.getPredicates(maxDepth);
-    predicates.addAll(getFieldPredicates(maxDepth));
-    predicates.addAll(getRemainingPathPredicates(maxDepth));
+  public Collection<BuiltCondition> getPredicates() {
+    Collection<BuiltCondition> predicates = super.getPredicates();
+    predicates.addAll(getFieldPredicates(config.getMaxDepth()));
+    predicates.addAll(getRemainingPathPredicates(config.getMaxDepth()));
     return predicates;
   }
 

@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import java.util.Collection;
@@ -31,12 +32,13 @@ import java.util.Map;
  */
 public class DocumentSearchQueryBuilder extends FilterExpressionSearchQueryBuilder {
 
-  public DocumentSearchQueryBuilder(FilterExpression expression) {
-    this(Collections.singleton(expression));
+  public DocumentSearchQueryBuilder(FilterExpression expression, DocsApiConfiguration config) {
+    this(Collections.singleton(expression), config);
   }
 
-  public DocumentSearchQueryBuilder(Collection<FilterExpression> expressions) {
-    super(expressions);
+  public DocumentSearchQueryBuilder(
+      Collection<FilterExpression> expressions, DocsApiConfiguration config) {
+    super(expressions, config);
   }
 
   @Override

@@ -58,49 +58,43 @@ public class QueryExecutor {
 
   private final DataStore dataStore;
 
-  public QueryExecutor(DataStore dataStore) {
+  private final DocsApiConfiguration config;
+
+  public QueryExecutor(DataStore dataStore, DocsApiConfiguration configuration) {
     this.dataStore = dataStore;
+    this.config = configuration;
   }
 
   /**
    * Runs the provided query, then groups the rows into {@link RawDocument} objects with key depth
    * of 1.
    *
-   * @see #queryDocs(int, List, int, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
    */
   public Flowable<RawDocument> queryDocs(
       BoundQuery query,
       int pageSize,
-      int maxStoragePageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
-    return queryDocs(
-        1, query, pageSize, maxStoragePageSize, exponentPageSize, pagingState, context);
+    return queryDocs(1, query, pageSize, exponentPageSize, pagingState, context);
   }
 
   /**
    * Runs the provided query, then groups the rows into {@link RawDocument} objects according to
    * {@code keyDepth} primary key values.
    *
-   * @see #queryDocs(int, List, int, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
    */
   public Flowable<RawDocument> queryDocs(
       int keyDepth,
       BoundQuery query,
       int pageSize,
-      int maxStoragePageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
     return queryDocs(
-        keyDepth,
-        ImmutableList.of(query),
-        pageSize,
-        maxStoragePageSize,
-        exponentPageSize,
-        pagingState,
-        context);
+        keyDepth, ImmutableList.of(query), pageSize, exponentPageSize, pagingState, context);
   }
 
   /**
@@ -108,17 +102,15 @@ public class QueryExecutor {
    * primary key columns, then groups the merged rows into {@link RawDocument} objects with key
    * depth of 1.
    *
-   * @see #queryDocs(int, List, int, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
    */
   public Flowable<RawDocument> queryDocs(
       List<BoundQuery> queries,
       int pageSize,
-      int maxStoragePageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
-    return queryDocs(
-        1, queries, pageSize, maxStoragePageSize, exponentPageSize, pagingState, context);
+    return queryDocs(1, queries, pageSize, exponentPageSize, pagingState, context);
   }
 
   /**
@@ -140,7 +132,6 @@ public class QueryExecutor {
    * @param keyDepth the number of primary key columns to use for distinguishing documents.
    * @param queries the queries to run (one or more).
    * @param pageSize the storage-level page size to use (1 or greater).
-   * @param maxStoragePageSize the maximum page size that storage should be capped at.
    * @param exponentPageSize if the storage-level page size should be exponentially increase with
    *     every next hop to the data store
    * @param pagingState the storage-level page state to use (may be {@code null}).
@@ -153,7 +144,6 @@ public class QueryExecutor {
       int keyDepth,
       List<BoundQuery> queries,
       int pageSize,
-      int maxStoragePageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
@@ -172,14 +162,7 @@ public class QueryExecutor {
 
     PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
-    return execute(
-            queries,
-            comparator,
-            pageSize,
-            maxStoragePageSize,
-            exponentPageSize,
-            pagingStates,
-            context)
+    return execute(queries, comparator, pageSize, exponentPageSize, pagingStates, context)
         .map(p -> toSeed(p, comparator, idColumns))
         .concatWith(Single.just(TERM))
         .scan(tracker::combine)
@@ -217,7 +200,6 @@ public class QueryExecutor {
       List<BoundQuery> queries,
       Comparator<DocProperty> comparator,
       int pageSize,
-      int maxStoragePageSize,
       boolean exponentPageSize,
       List<ByteBuffer> pagingState,
       ExecutionContext context) {
@@ -231,7 +213,7 @@ public class QueryExecutor {
       }
 
       flows.add(
-          execute(query, pageSize, exponentPageSize, queryPagingState, maxStoragePageSize)
+          execute(query, pageSize, exponentPageSize, queryPagingState)
               .flatMap(
                   rs -> Flowable.fromIterable(properties(finalIdx, query, rs, context)),
                   1)); // max concurrency 1
@@ -241,11 +223,7 @@ public class QueryExecutor {
   }
 
   public Flowable<ResultSet> execute(
-      BoundQuery query,
-      int pageSize,
-      boolean exponentPageSize,
-      ByteBuffer pagingState,
-      int maxStoragePageSize) {
+      BoundQuery query, int pageSize, boolean exponentPageSize, ByteBuffer pagingState) {
     // An empty paging state means the query was exhausted during previous execution
     if (pagingState != null && pagingState.remaining() == 0) {
       return Flowable.empty();
@@ -260,7 +238,8 @@ public class QueryExecutor {
                   // but ensure we are never over maximum
                   int nextPageSize =
                       exponentPageSize
-                          ? effectivePageSize.updateAndGet(x -> Math.min(x * 2, maxStoragePageSize))
+                          ? effectivePageSize.updateAndGet(
+                              x -> Math.min(x * 2, config.getMaxStoragePageSize()))
                           : pageSize;
                   return fetchNext(rs, nextPageSize, query);
                 },

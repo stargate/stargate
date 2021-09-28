@@ -86,12 +86,13 @@ public class DocumentSearchService {
           .take(paginator.docPageSize);
     } else {
       // otherwise resolve the expression
-      DocumentsResolver documentsResolver = BaseResolver.resolve(expression, context);
+      DocumentsResolver documentsResolver =
+          BaseResolver.resolve(expression, context, configuration);
 
       // load the candidates
       Flowable<RawDocument> candidates =
           documentsResolver
-              .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+              .getDocuments(queryExecutor, keyspace, collection, paginator)
 
               // limit to requested page size only to stop fetching extra docs
               .take(paginator.docPageSize);
@@ -136,9 +137,9 @@ public class DocumentSearchService {
 
     // create the resolver and return results
     SubDocumentsResolver subDocumentsResolver =
-        new SubDocumentsResolver(expression, documentId, subDocumentPath, context);
+        new SubDocumentsResolver(expression, documentId, subDocumentPath, context, configuration);
     return subDocumentsResolver
-        .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+        .getDocuments(queryExecutor, keyspace, collection, paginator)
 
         // limit to requested page size only to stop fetching extra docs
         .take(paginator.docPageSize);
@@ -211,7 +212,6 @@ public class DocumentSearchService {
               return queryExecutor.queryDocs(
                   boundQuery,
                   configuration.getApproximateStoragePageSize(paginator.docPageSize),
-                  configuration.getMaxStoragePageSize(),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);
@@ -254,12 +254,7 @@ public class DocumentSearchService {
               // that doc
               BoundQuery boundQuery = prepared.bind();
               return queryExecutor.queryDocs(
-                  boundQuery,
-                  configuration.getMaxStoragePageSize(),
-                  configuration.getMaxStoragePageSize(),
-                  false,
-                  null,
-                  context);
+                  boundQuery, configuration.getMaxStoragePageSize(), false, null, context);
             });
   }
 
@@ -310,13 +305,7 @@ public class DocumentSearchService {
               // since we have the doc id, use the max storage page size to grab all the rows for
               // that doc
               return queryExecutor
-                  .queryDocs(
-                      query,
-                      configuration.getMaxStoragePageSize(),
-                      configuration.getMaxStoragePageSize(),
-                      false,
-                      null,
-                      context)
+                  .queryDocs(query, configuration.getMaxStoragePageSize(), false, null, context)
                   .firstElement()
                   .map(document::populateFrom)
                   .toFlowable();

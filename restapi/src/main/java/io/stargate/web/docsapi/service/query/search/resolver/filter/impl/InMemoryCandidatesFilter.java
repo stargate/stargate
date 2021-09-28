@@ -55,8 +55,12 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
 
   private final ExecutionContext context;
 
+  private DocsApiConfiguration config;
+
   private InMemoryCandidatesFilter(
-      Collection<FilterExpression> expressions, ExecutionContext context) {
+      Collection<FilterExpression> expressions,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     boolean hasPersistence =
         expressions.stream().anyMatch(e -> e.getCondition().isPersistenceCondition());
 
@@ -66,23 +70,24 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
     }
 
     this.expressions = expressions;
-    this.queryBuilder = new DocumentSearchQueryBuilder(expressions);
+    this.queryBuilder = new DocumentSearchQueryBuilder(expressions, config);
     this.context = createContext(context, expressions);
+    this.config = config;
   }
 
   public static Function<ExecutionContext, CandidatesFilter> forExpression(
-      FilterExpression expression) {
-    return forExpressions(Collections.singletonList(expression));
+      FilterExpression expression, DocsApiConfiguration config) {
+    return forExpressions(Collections.singletonList(expression), config);
   }
 
   public static Function<ExecutionContext, CandidatesFilter> forExpressions(
-      Collection<FilterExpression> expressions) {
-    return context -> new InMemoryCandidatesFilter(expressions, context);
+      Collection<FilterExpression> expressions, DocsApiConfiguration config) {
+    return context -> new InMemoryCandidatesFilter(expressions, context, config);
   }
 
   @Override
   public Single<? extends Query<? extends BoundQuery>> prepareQuery(
-      DataStore dataStore, DocsApiConfiguration configuration, String keyspace, String collection) {
+      DataStore dataStore, String keyspace, String collection) {
     FilterPath filterPath = queryBuilder.getFilterPath();
     // resolve depth we need
     String[] neededColumns =
@@ -93,12 +98,7 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
             () -> {
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(
-                      dataStore::queryBuilder,
-                      keyspace,
-                      collection,
-                      limit,
-                      configuration.getMaxDepth(),
-                      neededColumns);
+                      dataStore::queryBuilder, keyspace, collection, limit, neededColumns);
               return dataStore.prepare(query);
             })
         .cache();
@@ -107,7 +107,6 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
   @Override
   public Maybe<?> bindAndFilter(
       QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
       Query<? extends BoundQuery> preparedQuery,
       RawDocument document) {
     BoundQuery query = preparedQuery.bind(document.id());
@@ -117,9 +116,9 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
 
     // page size 2 with limit 1 to ensure no extra page fetching (only on fixed path)
     // use max storage page size otherwise as we have the doc id
-    int pageSize = filterPath.isFixed() ? 2 : configuration.getMaxStoragePageSize();
+    int pageSize = filterPath.isFixed() ? 2 : config.getMaxStoragePageSize();
     return queryExecutor
-        .queryDocs(query, pageSize, configuration.getMaxStoragePageSize(), false, null, context)
+        .queryDocs(query, pageSize, false, null, context)
         .take(1)
         .map(RawDocument::rows)
         .switchIfEmpty(

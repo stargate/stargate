@@ -30,6 +30,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Multimap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Multimaps;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -65,11 +66,14 @@ public final class CnfResolver {
    *
    * @param expression {@link FilterExpression}
    * @param context {@link ExecutionContext}
+   * @param config {@link DocsApiConfiguration}
    * @return DocumentsResolver
    */
   public static DocumentsResolver resolve(
-      Expression<FilterExpression> expression, ExecutionContext context) {
-    return resolve(expression, context, null);
+      Expression<FilterExpression> expression,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
+    return resolve(expression, context, null, config);
   }
 
   /**
@@ -78,10 +82,14 @@ public final class CnfResolver {
    * @param expression {@link FilterExpression}
    * @param context {@link ExecutionContext}
    * @param parent parent resolver or <code>null</code>
+   * @param config {@link DocsApiConfiguration}
    * @return DocumentsResolver
    */
   public static DocumentsResolver resolve(
-      Expression<FilterExpression> expression, ExecutionContext context, DocumentsResolver parent) {
+      Expression<FilterExpression> expression,
+      ExecutionContext context,
+      DocumentsResolver parent,
+      DocsApiConfiguration config) {
     // from the children inside and
     And<FilterExpression> andExpression = (And<FilterExpression>) expression;
     List<Expression<FilterExpression>> children = andExpression.getChildren();
@@ -89,16 +97,16 @@ public final class CnfResolver {
     UserOrderWeightResolver weightResolver = UserOrderWeightResolver.of();
 
     // try to get the next persistence resolver
-    return nextPersistenceResolver(expression, children, weightResolver, context, parent)
+    return nextPersistenceResolver(expression, children, weightResolver, context, parent, config)
         // if not persistent ones exists, go for the ORs
         .orElseGet(
             () ->
-                nextOrResolver(expression, children, weightResolver, context, parent)
+                nextOrResolver(expression, children, weightResolver, context, parent, config)
                     // if this is not working, go for the memory
                     .orElseGet(
                         () ->
                             nextInMemoryResolver(
-                                    expression, children, weightResolver, context, parent)
+                                    expression, children, weightResolver, context, parent, config)
                                 .orElseThrow(
                                     () ->
                                         // this should never happen
@@ -111,7 +119,8 @@ public final class CnfResolver {
       List<Expression<FilterExpression>> children,
       ExpressionWeightResolver<FilterExpression> weightResolver,
       ExecutionContext context,
-      DocumentsResolver parent) {
+      DocumentsResolver parent,
+      DocsApiConfiguration config) {
 
     // find available and next most important set of persistence expressions
     // these would be the ones on the same filter path
@@ -128,17 +137,18 @@ public final class CnfResolver {
                             () -> new IllegalArgumentException("No persistence expressions."));
 
                 // construct current
-                DocumentsResolver current = new PersistenceDocumentsResolver(selected, context);
+                DocumentsResolver current =
+                    new PersistenceDocumentsResolver(selected, context, config);
                 // then simplify root
                 Expression<FilterExpression> simplified =
                     simplifyCnfExpression(root, ImmutableList.copyOf(selected));
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               } else {
                 // if we have candidates, then do all memory filters at once
                 List<Function<ExecutionContext, CandidatesFilter>> all =
                     indexByFilterPath(nextExpressions).asMap().values().stream()
-                        .map(PersistenceCandidatesFilter::forExpressions)
+                        .map(value -> PersistenceCandidatesFilter.forExpressions(value, config))
                         .collect(Collectors.toList());
                 DocumentsResolver current = new AllFiltersResolver(all, context, parent);
 
@@ -147,7 +157,7 @@ public final class CnfResolver {
                     simplifyCnfExpression(root, ImmutableList.copyOf(nextExpressions));
 
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               }
             });
   }
@@ -157,7 +167,8 @@ public final class CnfResolver {
       List<Expression<FilterExpression>> children,
       ExpressionWeightResolver<FilterExpression> weightResolver,
       ExecutionContext context,
-      DocumentsResolver parent) {
+      DocumentsResolver parent,
+      DocsApiConfiguration config) {
 
     // find all available in memory expressions
     return allInMemoryExpressionExpressions(children)
@@ -172,17 +183,18 @@ public final class CnfResolver {
                         .orElseThrow(() -> new IllegalArgumentException("No memory expressions."));
 
                 // construct current
-                DocumentsResolver current = new InMemoryDocumentsResolver(selected, context);
+                DocumentsResolver current =
+                    new InMemoryDocumentsResolver(selected, context, config);
                 // then simplify root
                 Expression<FilterExpression> simplified =
                     simplifyCnfExpression(root, ImmutableList.copyOf(selected));
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               } else {
                 // if we have candidates, then do all memory filters at once
                 List<Function<ExecutionContext, CandidatesFilter>> all =
                     indexByFilterPath(inMemoryExpressions).asMap().values().stream()
-                        .map(InMemoryCandidatesFilter::forExpressions)
+                        .map(value -> InMemoryCandidatesFilter.forExpressions(value, config))
                         .collect(Collectors.toList());
                 DocumentsResolver current = new AllFiltersResolver(all, context, parent);
 
@@ -190,7 +202,7 @@ public final class CnfResolver {
                 Expression<FilterExpression> simplified =
                     simplifyCnfExpression(root, ImmutableList.copyOf(inMemoryExpressions));
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               }
             });
   }
@@ -200,7 +212,8 @@ public final class CnfResolver {
       List<Expression<FilterExpression>> children,
       ExpressionWeightResolver<FilterExpression> weightResolver,
       ExecutionContext context,
-      DocumentsResolver parent) {
+      DocumentsResolver parent,
+      DocsApiConfiguration config) {
 
     // find next OR expression
     return nextOrExpression(children, weightResolver)
@@ -214,10 +227,10 @@ public final class CnfResolver {
               // take best one
               if (null == parent) {
                 // construct current
-                DocumentsResolver current = new OrExpressionDocumentsResolver(or, context);
+                DocumentsResolver current = new OrExpressionDocumentsResolver(or, context, config);
 
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               } else {
                 // collect all children
                 Set<FilterExpression> expressions = new HashSet<>();
@@ -229,9 +242,9 @@ public final class CnfResolver {
                         .map(
                             exp -> {
                               if (exp.getCondition().isPersistenceCondition()) {
-                                return PersistenceCandidatesFilter.forExpression(exp);
+                                return PersistenceCandidatesFilter.forExpression(exp, config);
                               } else {
-                                return InMemoryCandidatesFilter.forExpression(exp);
+                                return InMemoryCandidatesFilter.forExpression(exp, config);
                               }
                             })
                         .collect(Collectors.toList());
@@ -240,7 +253,7 @@ public final class CnfResolver {
                 AnyFiltersResolver current = new AnyFiltersResolver(input, context, parent);
 
                 // and resolve further
-                return BaseResolver.resolve(simplified, context, current);
+                return BaseResolver.resolve(simplified, context, current, config);
               }
             });
   }

@@ -42,16 +42,13 @@ public abstract class AbstractFiltersResolver implements DocumentsResolver {
   protected abstract Flowable<RawDocument> resolveSources(
       RawDocument rawDocument, List<Maybe<?>> sources);
 
+  protected DocsApiConfiguration config;
+
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
     Flowable<RawDocument> candidates =
-        getCandidatesResolver()
-            .getDocuments(queryExecutor, configuration, keyspace, collection, paginator);
+        getCandidatesResolver().getDocuments(queryExecutor, keyspace, collection, paginator);
 
     Single<List<Pair<? extends Query<? extends BoundQuery>, CandidatesFilter>>>
         queriesToCandidates =
@@ -61,11 +58,7 @@ public abstract class AbstractFiltersResolver implements DocumentsResolver {
                       Single<Pair<? extends Query<? extends BoundQuery>, CandidatesFilter>>
                           pairSingle =
                               filter
-                                  .prepareQuery(
-                                      queryExecutor.getDataStore(),
-                                      configuration,
-                                      keyspace,
-                                      collection)
+                                  .prepareQuery(queryExecutor.getDataStore(), keyspace, collection)
                                   .zipWith(Single.just(filter), Pair::of);
 
                       return pairSingle.toFlowable();
@@ -84,7 +77,7 @@ public abstract class AbstractFiltersResolver implements DocumentsResolver {
                           queryToFilter -> {
                             CandidatesFilter filter = queryToFilter.getRight();
                             Query<? extends BoundQuery> query = queryToFilter.getLeft();
-                            return filter.bindAndFilter(queryExecutor, configuration, query, doc);
+                            return filter.bindAndFilter(queryExecutor, query, doc);
                           })
                       .collect(Collectors.toList());
 

@@ -65,7 +65,7 @@ public class DocumentDB {
       throw new IllegalStateException("Backend does not support any known index types.");
     }
 
-    executor = new QueryExecutor(dataStore);
+    executor = new QueryExecutor(dataStore, config);
   }
 
   public QueryExecutor getQueryExecutor() {
