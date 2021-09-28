@@ -1,32 +1,29 @@
 package io.stargate.web.docsapi.service;
 
-import io.dropwizard.setup.Environment;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import javax.inject.Singleton;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 
 public class DocsApiComponentsBinder extends AbstractBinder {
-  private final Environment environment;
-
-  public DocsApiComponentsBinder(Environment environment) {
-    this.environment = environment;
-  }
 
   protected void configure() {
+    // configuration
     DocsApiConfiguration conf = DocsApiConfiguration.DEFAULT;
-    bind(conf).to(DocsApiConfiguration.class);
-    bind(TimeSource.SYSTEM).to(TimeSource.class);
+    bind(conf).to(DocsApiConfiguration.class).in(Singleton.class);
+    bind(TimeSource.SYSTEM).to(TimeSource.class).in(Singleton.class);
 
-    bindAsContract(JsonConverter.class);
-    bindAsContract(DocsShredder.class);
-    bindAsContract(DocsSchemaChecker.class);
-    bindAsContract(DocumentService.class);
-    bindAsContract(CollectionService.class);
-    bindAsContract(JsonSchemaHandler.class);
-    bindAsContract(ExpressionParser.class);
-    bindAsContract(ConditionParser.class);
-    bindAsContract(DocumentSearchService.class);
-    bindAsContract(ReactiveDocumentService.class);
+    // services
+    bindAsContract(JsonConverter.class).in(Singleton.class);
+    bindAsContract(DocsShredder.class).in(Singleton.class);
+    bindAsContract(DocsSchemaChecker.class).in(Singleton.class);
+    bindAsContract(DocumentService.class).in(Singleton.class);
+    bindAsContract(CollectionService.class).in(Singleton.class);
+    bindAsContract(JsonSchemaHandler.class).in(Singleton.class);
+    bindAsContract(ExpressionParser.class).in(Singleton.class);
+    bindAsContract(ConditionParser.class).in(Singleton.class);
+    bindAsContract(DocumentSearchService.class).in(Singleton.class);
+    bindAsContract(ReactiveDocumentService.class).in(Singleton.class);
   }
 }

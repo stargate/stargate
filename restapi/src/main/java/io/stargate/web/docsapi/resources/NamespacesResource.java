@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -66,6 +67,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     tags = {"documents"})
 @Path("/v2/schemas/namespaces")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class NamespacesResource {
 
   @Inject private Db db;
