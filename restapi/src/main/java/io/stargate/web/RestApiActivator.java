@@ -21,7 +21,7 @@ import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.web.impl.WebImpl;
+import io.stargate.web.impl.RestApiRunner;
 import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class RestApiActivator extends BaseActivator {
 
   public static final String MODULE_NAME = "restapi";
   private static final Logger logger = LoggerFactory.getLogger(RestApiActivator.class);
-  private final WebImpl web = new WebImpl();
+  private final RestApiRunner runner = new RestApiRunner();
   private final ServicePointer<AuthenticationService> authenticationService =
       ServicePointer.create(
           AuthenticationService.class,
@@ -53,16 +53,17 @@ public class RestApiActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    web.setAuthenticationService(authenticationService.get());
-    web.setMetrics(metrics.get());
-    web.setHttpMetricsTagProvider(httpTagProvider.get());
-    web.setAuthorizationService(authorizationService.get());
-    web.setDataStoreFactory(dataStoreFactory.get());
+    runner.setAuthenticationService(authenticationService.get());
+    runner.setMetrics(metrics.get());
+    runner.setHttpMetricsTagProvider(httpTagProvider.get());
+    runner.setAuthorizationService(authorizationService.get());
+    runner.setDataStoreFactory(dataStoreFactory.get());
     try {
-      this.web.start();
+      runner.start();
     } catch (Exception e) {
-      logger.error("Failed", e);
+      logger.error("Running RestApiRunner Failed", e);
     }
+    // Shouldn't we return something to avoid add logging for "service null"?
     return null;
   }
 

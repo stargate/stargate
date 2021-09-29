@@ -26,8 +26,8 @@ import javax.ws.rs.NotFoundException;
 
 public class AuthenticatedDB {
 
-  private DataStore dataStore;
-  private AuthenticationSubject authenticationSubject;
+  private final DataStore dataStore;
+  private final AuthenticationSubject authenticationSubject;
 
   public AuthenticatedDB(DataStore dataStore, AuthenticationSubject authenticationSubject) {
     this.dataStore = dataStore;
@@ -68,16 +68,8 @@ public class AuthenticatedDB {
     return dataStore;
   }
 
-  public void setDataStore(DataStore dataStore) {
-    this.dataStore = dataStore;
-  }
-
   public AuthenticationSubject getAuthenticationSubject() {
     return authenticationSubject;
-  }
-
-  public void setAuthenticationSubject(AuthenticationSubject authenticationSubject) {
-    this.authenticationSubject = authenticationSubject;
   }
 
   /**

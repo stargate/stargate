@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources;
+package io.stargate.web.resources.v1;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
@@ -45,6 +45,10 @@ import io.stargate.web.models.RowUpdate;
 import io.stargate.web.models.Rows;
 import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
+import io.stargate.web.resources.AuthenticatedDB;
+import io.stargate.web.resources.Converters;
+import io.stargate.web.resources.Db;
+import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;

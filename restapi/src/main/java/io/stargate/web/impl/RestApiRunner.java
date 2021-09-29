@@ -21,7 +21,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 
-public class WebImpl {
+public class RestApiRunner {
 
   private AuthenticationService authenticationService;
   private AuthorizationService authorizationService;
@@ -29,20 +29,12 @@ public class WebImpl {
   private HttpMetricsTagProvider httpMetricsTagProvider;
   private DataStoreFactory dataStoreFactory;
 
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
-  }
-
   public void setAuthenticationService(AuthenticationService authenticationService) {
     this.authenticationService = authenticationService;
   }
 
   public void setAuthorizationService(AuthorizationService authorizationService) {
     this.authorizationService = authorizationService;
-  }
-
-  public Metrics getMetrics() {
-    return metrics;
   }
 
   public void setMetrics(Metrics metrics) {
@@ -53,21 +45,13 @@ public class WebImpl {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
   }
 
-  public AuthorizationService getAuthorizationService() {
-    return authorizationService;
-  }
-
-  public DataStoreFactory getDataStoreFactory() {
-    return dataStoreFactory;
-  }
-
   public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
     this.dataStoreFactory = dataStoreFactory;
   }
 
   public void start() throws Exception {
-    Server server =
-        new Server(
+    RestApiServer server =
+        new RestApiServer(
             this.authenticationService,
             this.authorizationService,
             this.metrics,

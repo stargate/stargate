@@ -25,7 +25,7 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.ParameterizedType.TupleType;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.web.impl.Server;
+import io.stargate.web.impl.RestApiServer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -401,7 +401,7 @@ public class ConvertersTest {
 
   private static ObjectMapper testObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
-    Server.configureObjectMapper(mapper);
+    RestApiServer.configureObjectMapper(mapper);
     return mapper;
   }
 

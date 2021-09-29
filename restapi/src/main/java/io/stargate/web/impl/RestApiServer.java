@@ -38,12 +38,12 @@ import io.stargate.web.docsapi.resources.JsonSchemaResource;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
-import io.stargate.web.resources.ColumnResource;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
-import io.stargate.web.resources.KeyspaceResource;
-import io.stargate.web.resources.RowResource;
-import io.stargate.web.resources.TableResource;
+import io.stargate.web.resources.v1.ColumnResource;
+import io.stargate.web.resources.v1.KeyspaceResource;
+import io.stargate.web.resources.v1.RowResource;
+import io.stargate.web.resources.v1.TableResource;
 import io.stargate.web.resources.v2.RowsResource;
 import io.stargate.web.resources.v2.schemas.ColumnsResource;
 import io.stargate.web.resources.v2.schemas.IndexesResource;
@@ -67,7 +67,8 @@ import org.glassfish.jersey.server.ServerProperties;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
-public class Server extends Application<ApplicationConfiguration> {
+/** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
+public class RestApiServer extends Application<ApplicationConfiguration> {
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -75,7 +76,7 @@ public class Server extends Application<ApplicationConfiguration> {
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final DataStoreFactory dataStoreFactory;
 
-  public Server(
+  public RestApiServer(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       Metrics metrics,
@@ -136,16 +137,22 @@ public class Server extends Application<ApplicationConfiguration> {
                 bind(environment.getObjectMapper()).to(ObjectMapper.class);
               }
             });
-    environment.jersey().register(KeyspaceResource.class);
-    environment.jersey().register(TableResource.class);
-    environment.jersey().register(RowResource.class);
-    environment.jersey().register(ColumnResource.class);
+
+    // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
-    environment.jersey().register(RowsResource.class);
-    environment.jersey().register(TablesResource.class);
-    environment.jersey().register(KeyspacesResource.class);
+
+    // Rest API V1 endpoints (legacy):
+    environment.jersey().register(ColumnResource.class);
+    environment.jersey().register(KeyspaceResource.class);
+    environment.jersey().register(RowResource.class);
+    environment.jersey().register(TableResource.class);
+
+    // Rest API V2 endpoints
     environment.jersey().register(ColumnsResource.class);
     environment.jersey().register(IndexesResource.class);
+    environment.jersey().register(KeyspacesResource.class);
+    environment.jersey().register(RowsResource.class);
+    environment.jersey().register(TablesResource.class);
     environment.jersey().register(UserDefinedTypesResource.class);
 
     // Documents API
@@ -156,9 +163,7 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
 
-    environment.jersey().register(ApiListingResource.class);
-    environment.jersey().register(SwaggerSerializers.class);
-
+    // Swagger endpoints
     environment
         .jersey()
         .register(
@@ -168,8 +173,10 @@ public class Server extends Application<ApplicationConfiguration> {
                 bind(FrameworkUtil.getBundle(RestApiActivator.class)).to(Bundle.class);
               }
             });
-
+    environment.jersey().register(SwaggerSerializers.class);
+    environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerUIResource.class);
+
     enableCors(environment);
 
     ResourceMetricsEventListener metricListener =
