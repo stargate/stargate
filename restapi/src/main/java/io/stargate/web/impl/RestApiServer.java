@@ -164,9 +164,6 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
     environment.jersey().register(NamespacesResource.class);
 
     // Swagger endpoints
-    environment.jersey().register(ApiListingResource.class);
-    environment.jersey().register(SwaggerSerializers.class);
-
     environment
         .jersey()
         .register(
@@ -176,8 +173,10 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
                 bind(FrameworkUtil.getBundle(RestApiActivator.class)).to(Bundle.class);
               }
             });
-
+    environment.jersey().register(SwaggerSerializers.class);
+    environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerUIResource.class);
+
     enableCors(environment);
 
     ResourceMetricsEventListener metricListener =
