@@ -61,6 +61,7 @@ public class CollectionsResource {
   @Inject private Db db;
   @Inject private CollectionService collectionService;
   @Inject private DocsSchemaChecker schemaChecker;
+  @Inject private DocsApiConfiguration configuration;
 
   @GET
   @ApiOperation(
@@ -305,7 +306,7 @@ public class CollectionsResource {
                       authenticatedDB.getDataStore(),
                       authenticatedDB.getAuthenticationSubject(),
                       db.getAuthorizationService(),
-                      DocsApiConfiguration.DEFAULT),
+                      configuration),
                   body.getUpgradeType());
 
           if (success) {

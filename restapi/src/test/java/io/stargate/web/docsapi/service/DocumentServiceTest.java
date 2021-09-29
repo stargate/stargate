@@ -159,7 +159,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     when(dataStoreFactory.createInternal(any())).thenReturn(datastore());
     when(dataStoreFactory.create(any(), any())).thenReturn(datastore());
 
-    db = new Db(authenticationService, authorizationService, dataStoreFactory);
+    db = new Db(authenticationService, authorizationService, dataStoreFactory, config);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
     service =

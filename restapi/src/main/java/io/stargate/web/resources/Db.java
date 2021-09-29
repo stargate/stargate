@@ -50,17 +50,21 @@ public class Db {
           .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getRestDataStoreForTokenInternal);
 
+  private final DocsApiConfiguration config;
+
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
+      DataStoreFactory dataStoreFactory,
+      DocsApiConfiguration config) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.dataStore =
         dataStoreFactory.createInternal(DataStoreOptions.defaultsWithAutoPreparedQueries());
+    this.config = config;
   }
 
   public DataStore getDataStore() {
@@ -94,7 +98,7 @@ public class Db {
         authenticatedDB.getDataStore(),
         authenticatedDB.getAuthenticationSubject(),
         getAuthorizationService(),
-        DocsApiConfiguration.DEFAULT);
+        config);
   }
 
   private AuthenticatedDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)

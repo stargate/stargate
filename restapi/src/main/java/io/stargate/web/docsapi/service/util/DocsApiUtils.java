@@ -22,6 +22,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.query.TypedValue;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,6 +56,7 @@ public final class DocsApiUtils {
    * </ol>
    *
    * @param path single filter or field path
+   * @param maxArrayLength the maximum allowed array length
    * @return Converted to represent expected path in DB, keeping the segmentation.
    */
   public static String convertArrayPath(String path, int maxArrayLength) {
@@ -65,6 +67,17 @@ public final class DocsApiUtils {
     } else {
       return convertSingleArrayPath(path, maxArrayLength);
     }
+  }
+
+  /**
+   * Alternative for DocsApiUtils#convertArrayPath(java.lang.String, int)
+   *
+   * @param path single filter or field path
+   * @param config a {@link DocsApiConfiguration} that has a max array length defined
+   * @return Converted to represent expected path in DB, keeping the segmentation.
+   */
+  public static String convertArrayPath(String path, DocsApiConfiguration config) {
+    return convertArrayPath(path, config.getMaxArrayLength());
   }
 
   /**
@@ -95,9 +108,10 @@ public final class DocsApiUtils {
    * path.
    *
    * @param path single filter or field path
+   * @param maxArrayLength the maximum allowed array length
    * @return Array index or empty
    */
-  public static Optional<Integer> extractArrayPathIndex(String path, int maxArraylength) {
+  public static Optional<Integer> extractArrayPathIndex(String path, int maxArrayLength) {
     // check if we have array path
     if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
       String innerPath = path.substring(1, path.length() - 1);
@@ -107,8 +121,8 @@ public final class DocsApiUtils {
         try {
           // this can fail, thus wrap in the try
           int idx = Integer.parseInt(innerPath);
-          if (idx > maxArraylength - 1) {
-            String msg = String.format("Max array length of %s exceeded.", maxArraylength);
+          if (idx > maxArrayLength - 1) {
+            String msg = String.format("Max array length of %s exceeded.", maxArrayLength);
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
           }
@@ -120,6 +134,17 @@ public final class DocsApiUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Alternative for DocsApiUtils#extractArrayPathIndex(java.lang.String, int)
+   *
+   * @param path single filter or field path
+   * @param config a {@link DocsApiConfiguration} containing the maximum array length
+   * @return Array index or empty
+   */
+  public static Optional<Integer> extractArrayPathIndex(String path, DocsApiConfiguration config) {
+    return extractArrayPathIndex(path, config.getMaxArrayLength());
   }
 
   public static String leftPadTo6(String value) {
@@ -160,6 +185,18 @@ public final class DocsApiUtils {
     }
 
     return results;
+  }
+
+  /**
+   * Alternative for DocsApiUtils#convertFieldsToPaths(JsonNode, int)
+   *
+   * @param fieldsJson array json node
+   * @param config a {@link DocsApiConfiguration} containing the max array length
+   * @return collection of paths representing all fields
+   */
+  public static Collection<List<String>> convertFieldsToPaths(
+      JsonNode fieldsJson, DocsApiConfiguration config) {
+    return convertFieldsToPaths(fieldsJson, config.getMaxArrayLength());
   }
 
   public static boolean containsIllegalSequences(String x) {
