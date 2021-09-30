@@ -11,7 +11,11 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.QueryType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -413,5 +417,18 @@ class BuiltSelectTest extends BuiltQueryTest {
         newBuilder().select().star().from(KS_NAME, "t1").perPartitionLimit().limit(456).build(),
         "SELECT * FROM ks.t1 PER PARTITION LIMIT ? LIMIT 456",
         markerFor("[per-partition-limit]", Type.Int));
+  }
+
+  @Test
+  public void testGroupBy() {
+    assertBuiltQuery(
+        newBuilder()
+            .select()
+            .star()
+            .from(KS_NAME, "t1")
+            .groupBy(Column.reference("c1"), Column.reference("c2"))
+            .build(),
+        "SELECT * FROM ks.t1 GROUP BY c1, c2",
+        emptyList());
   }
 }
