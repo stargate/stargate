@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -73,6 +74,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Path("/v1/keyspaces/{keyspaceName}/tables")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class TableResource {
   @Inject private Db db;
 

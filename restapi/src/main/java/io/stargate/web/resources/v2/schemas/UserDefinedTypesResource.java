@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -84,6 +85,7 @@ import org.javatuples.Pair;
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 @Path("/v2/schemas/keyspaces/{keyspaceName}/types")
+@Singleton
 public class UserDefinedTypesResource {
 
   public static final String HEADER_TOKEN_AUTHENTICATION = "X-Cassandra-Token";

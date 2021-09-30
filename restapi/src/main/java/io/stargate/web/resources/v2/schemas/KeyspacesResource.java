@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -63,6 +64,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     tags = {"schemas"})
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class KeyspacesResource {
   @Inject private Db db;
 
