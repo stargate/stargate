@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
 
 public class StargateGraphqlContext implements HTTPRequestHeaders {
 
@@ -96,6 +97,10 @@ public class StargateGraphqlContext implements HTTPRequestHeaders {
     return graphqlCache;
   }
 
+  /**
+   * Records the fact that at least one CQL query in the current execution failed with {@link
+   * OverloadedException}. This will be translated into an HTTP 429 error at the resource layer.
+   */
   public void setOverloaded() {
     this.overloaded = true;
   }
