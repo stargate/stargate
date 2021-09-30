@@ -156,7 +156,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
     environment.jersey().register(UserDefinedTypesResource.class);
 
     // Documents API
-    environment.jersey().register(new DocsApiComponentsBinder(environment));
+    environment.jersey().register(new DocsApiComponentsBinder());
     environment.jersey().register(ReactiveDocumentResourceV2.class);
     environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(JsonSchemaResource.class);

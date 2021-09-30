@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -60,6 +61,7 @@ import org.slf4j.LoggerFactory;
     consumes = MediaType.APPLICATION_JSON,
     tags = {"documents"})
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class DocumentResourceV2 {
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
 

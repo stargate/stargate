@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
@@ -60,6 +61,7 @@ import org.glassfish.jersey.server.ManagedAsync;
     consumes = MediaType.APPLICATION_JSON,
     tags = {"documents"})
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class ReactiveDocumentResourceV2 {
 
   private static final String WHERE_DESCRIPTION =
