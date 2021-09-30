@@ -17,7 +17,6 @@ import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
@@ -28,7 +27,6 @@ import io.swagger.annotations.ApiResponses;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -93,7 +91,7 @@ public class CollectionsResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
-          Keyspace ks = docDB.schema().keyspace(namespace);
+          Keyspace ks = docDB.getKeyspace(namespace);
           if (ks == null) {
             throw new NotFoundException(String.format("keyspace '%s' not found", namespace));
           }
@@ -104,7 +102,8 @@ public class CollectionsResource {
                   .filter(table -> schemaChecker.isValid(namespace, table.name(), docDB))
                   .collect(Collectors.toList());
 
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   docDB.getAuthenticationSubject(),
                   Collections.singletonList(namespace),
@@ -114,7 +113,7 @@ public class CollectionsResource {
 
           List<DocCollection> result =
               tables.stream()
-                  .map(table -> collectionService.getCollectionInfo(table, db))
+                  .map(table -> collectionService.getCollectionInfo(table, docDB))
                   .collect(Collectors.toList());
 
           Object response = raw ? result : new ResponseWrapper<>(result);
@@ -155,8 +154,7 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -209,8 +207,7 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB docDB = db.getDocDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
@@ -221,7 +218,7 @@ public class CollectionsResource {
                   SourceAPI.REST,
                   ResourceKind.TABLE);
 
-          Table toDelete = docDB.schema().keyspace(namespace).table(collection);
+          Table toDelete = docDB.getTable(namespace, collection);
           if (toDelete == null || !schemaChecker.isValid(namespace, collection, docDB)) {
             String msg = String.format("Collection '%s' not found.", collection);
             return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
@@ -274,25 +271,24 @@ public class CollectionsResource {
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(servletRequest);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(servletRequest));
 
           db.getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   namespace,
                   collection,
                   Scope.ALTER,
                   SourceAPI.REST,
                   ResourceKind.TABLE);
 
-          Table table = authenticatedDB.getTable(namespace, collection);
+          Table table = docDB.getTable(namespace, collection);
           if (table == null) {
             String msg = String.format("Collection %s not found.", collection);
             return ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST.toResponse(msg);
           }
 
-          DocCollection info = collectionService.getCollectionInfo(table, db);
+          DocCollection info = collectionService.getCollectionInfo(table, docDB);
           if (!info.getUpgradeAvailable()
               || !Objects.equals(info.getUpgradeType(), body.getUpgradeType())) {
             return ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID.toResponse();
@@ -300,17 +296,11 @@ public class CollectionsResource {
 
           boolean success =
               collectionService.upgradeCollection(
-                  namespace,
-                  collection,
-                  new DocumentDB(
-                      authenticatedDB.getDataStore(),
-                      authenticatedDB.getAuthenticationSubject(),
-                      db.getAuthorizationService()),
-                  body.getUpgradeType());
+                  namespace, collection, docDB, body.getUpgradeType());
 
           if (success) {
-            table = authenticatedDB.getTable(namespace, collection);
-            info = collectionService.getCollectionInfo(table, db);
+            table = docDB.getTable(namespace, collection);
+            info = collectionService.getCollectionInfo(table, docDB);
 
             Object response = raw ? info : new ResponseWrapper<>(info);
             return Response.status(Response.Status.OK).entity(response).build();

@@ -65,7 +65,7 @@ public class JsonSchemaHandler {
   }
 
   private String getRawJsonSchemaForCollection(DocumentDB db, String namespace, String collection) {
-    String comment = db.schema().keyspace(namespace).table(collection).comment();
+    String comment = db.getTable(namespace, collection).comment();
     return comment.isEmpty() ? null : comment;
   }
 
