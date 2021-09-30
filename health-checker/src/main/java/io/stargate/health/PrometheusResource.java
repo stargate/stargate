@@ -17,6 +17,7 @@ package io.stargate.health;
 
 import io.stargate.core.metrics.api.MetricsScraper;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -28,6 +29,7 @@ import javax.ws.rs.core.Response;
  * /metrics</code> endpoint.
  */
 @Path("/metrics")
+@Singleton
 public class PrometheusResource {
 
   @Inject private MetricsScraper scraper;
