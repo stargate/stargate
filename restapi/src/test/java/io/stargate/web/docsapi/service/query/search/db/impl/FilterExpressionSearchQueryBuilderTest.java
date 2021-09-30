@@ -49,7 +49,8 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
-  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
+
+  @Mock DocsApiConfiguration config;
 
   @Mock FilterExpression filterExpression;
 
@@ -92,6 +93,7 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void happyPath() {
+      when(config.getMaxDepth()).thenReturn(64);
       BuiltCondition builtCondition = BuiltCondition.of("text_value", Predicate.EQ, "value");
       when(condition.getBuiltCondition()).thenReturn(Optional.of(builtCondition));
 
@@ -109,6 +111,7 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void noCondition() {
+      when(config.getMaxDepth()).thenReturn(64);
       when(condition.getBuiltCondition()).thenReturn(Optional.empty());
 
       FilterExpressionSearchQueryBuilder builder =

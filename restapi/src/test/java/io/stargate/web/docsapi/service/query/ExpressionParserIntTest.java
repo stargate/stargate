@@ -49,18 +49,23 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 // INT test in terms that it works against components and has no mocks
 // TODO ISE: move to the testing when DI allows
+@ExtendWith(MockitoExtension.class)
 class ExpressionParserIntTest {
 
   ExpressionParser service;
 
   ObjectMapper mapper = new ObjectMapper();
 
-  DocsApiConfiguration configuration = DocsApiConfiguration.DEFAULT;
+  @Mock DocsApiConfiguration configuration;
 
   @BeforeEach
   public void init() {
@@ -471,6 +476,7 @@ class ExpressionParserIntTest {
 
     @Test
     public void singleFieldArrayIndex() throws Exception {
+      Mockito.when(configuration.getMaxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
@@ -504,6 +510,7 @@ class ExpressionParserIntTest {
 
     @Test
     public void singleFieldArraySplitIndex() throws Exception {
+      Mockito.when(configuration.getMaxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 

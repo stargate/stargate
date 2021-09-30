@@ -39,6 +39,8 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +49,8 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
-  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
+
+  @Mock DocsApiConfiguration config;
 
   @Override
   protected Schema schema() {
@@ -59,6 +62,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldOnly() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -76,6 +80,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldWithColumns() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -97,6 +102,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldWithLimit() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Collections.singletonList("field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -114,6 +120,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentPath() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Arrays.asList("path", "to", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -131,6 +138,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentGlob() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Arrays.asList("path", "*", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -148,6 +156,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentArrayGlob() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Arrays.asList("path", "[*]", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -165,6 +174,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentPathSplit() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Arrays.asList("path", "one,two,three", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 
@@ -182,6 +192,7 @@ class FilterPathSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void fieldAndParentArrayPathSplit() {
+      Mockito.when(config.getMaxDepth()).thenReturn(64);
       List<String> path = Arrays.asList("path", "[000000],[000001],[000002]", "field");
       FilterPath filterPath = ImmutableFilterPath.of(path);
 

@@ -85,7 +85,7 @@ class ReactiveDocumentServiceTest {
 
   ObjectMapper objectMapper = new ObjectMapper();
 
-  DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
+  @Mock DocsApiConfiguration config;
 
   @Mock ExpressionParser expressionParser;
 

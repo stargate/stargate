@@ -24,7 +24,6 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -38,7 +37,6 @@ class SubDocumentSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
-  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
 
   @Override
   protected Schema schema() {

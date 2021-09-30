@@ -12,7 +12,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
-import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -187,7 +186,7 @@ public class DocumentDBTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB =
         new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
-    List<String> path = ImmutableList.of("a", "b", "c");
+    List<String> path = Arrays.asList("a", "b", "c");
     Map<String, Object> map = DocsApiUtils.newBindMap(path, config.getMaxDepth());
     map.put("key", "key");
     map.put("leaf", "c");
@@ -222,8 +221,8 @@ public class DocumentDBTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB =
         new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
-    List<String> path = ImmutableList.of("a", "b", "c");
-    List<String> patchedKeys = ImmutableList.of("eric");
+    List<String> path = Arrays.asList("a", "b", "c");
+    List<String> patchedKeys = Arrays.asList("eric");
     Map<String, Object> map = DocsApiUtils.newBindMap(path, config.getMaxDepth());
     map.put("key", "key");
     map.put("leaf", "c");
@@ -273,7 +272,7 @@ public class DocumentDBTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB =
         new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
-    List<String> path = ImmutableList.of("a", "b", "c");
+    List<String> path = Arrays.asList("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
     vars.get(0)[0] = 1L;

@@ -17,6 +17,7 @@
 
 package io.stargate.web.docsapi.service.util;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.Mockito.when;
@@ -59,6 +60,14 @@ class DocsApiUtilsTest {
       String result = DocsApiUtils.convertArrayPath(String.format("[%d]", index), 999999);
 
       assertThat(result).isEqualTo(String.format("[000%d]", index));
+    }
+
+    @Test
+    public void limitExceeded() {
+      int index = RandomUtils.nextInt(100, 999);
+
+      assertThatThrownBy(() -> DocsApiUtils.convertArrayPath(String.format("[%d]", index), 1))
+          .hasMessageContaining("Max array length of 1 exceeded.");
     }
 
     @Test
