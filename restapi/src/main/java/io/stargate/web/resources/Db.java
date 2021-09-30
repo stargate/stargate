@@ -25,6 +25,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -49,17 +50,21 @@ public class Db {
           .expireAfterWrite(Duration.ofMinutes(1))
           .build(this::getRestDataStoreForTokenInternal);
 
+  private final DocsApiConfiguration config;
+
   private final DataStoreFactory dataStoreFactory;
 
   public Db(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory) {
+      DataStoreFactory dataStoreFactory,
+      DocsApiConfiguration config) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
     this.dataStore =
         dataStoreFactory.createInternal(DataStoreOptions.defaultsWithAutoPreparedQueries());
+    this.config = config;
   }
 
   public DataStore getDataStore() {
@@ -77,7 +82,8 @@ public class Db {
     return new DocumentDB(
         constructDataStore(authenticationSubject, tokenAndHeaders),
         authenticationSubject,
-        getAuthorizationService());
+        getAuthorizationService(),
+        config);
   }
 
   private AuthenticatedDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)

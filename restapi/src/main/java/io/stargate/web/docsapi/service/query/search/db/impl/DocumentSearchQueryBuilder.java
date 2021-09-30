@@ -18,8 +18,9 @@
 package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,18 +32,19 @@ import java.util.Map;
  */
 public class DocumentSearchQueryBuilder extends FilterExpressionSearchQueryBuilder {
 
-  public DocumentSearchQueryBuilder(FilterExpression expression) {
-    this(Collections.singleton(expression));
+  public DocumentSearchQueryBuilder(FilterExpression expression, DocsApiConfiguration config) {
+    this(Collections.singleton(expression), config);
   }
 
-  public DocumentSearchQueryBuilder(Collection<FilterExpression> expressions) {
-    super(expressions);
+  public DocumentSearchQueryBuilder(
+      Collection<FilterExpression> expressions, DocsApiConfiguration config) {
+    super(expressions, config);
   }
 
   @Override
   protected Map<String, Predicate> getBindPredicates() {
     Map<String, Predicate> bindPredicates = new HashMap<>(1);
-    bindPredicates.put(QueryConstants.KEY_COLUMN_NAME, Predicate.EQ);
+    bindPredicates.put(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ);
     bindPredicates.putAll(super.getBindPredicates());
     return bindPredicates;
   }

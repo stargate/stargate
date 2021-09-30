@@ -72,7 +72,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
   @BeforeEach
   public void init() {
     executionContext = ExecutionContext.create(true);
-    queryExecutor = new QueryExecutor(datastore());
+    queryExecutor = new QueryExecutor(datastore(), configuration);
   }
 
   @Nested
@@ -120,19 +120,18 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       doAnswer(i -> query1)
           .when(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> query2)
           .when(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument);
+          .bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument);
       doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument);
+          .bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument);
       DocumentsResolver candidatesResolver =
-          (queryExecutor1, configuration1, keyspace, collection, paginator) ->
-              Flowable.just(rawDocument);
+          (queryExecutor1, keyspace, collection, paginator) -> Flowable.just(rawDocument);
 
       DocumentsResolver resolver =
           new AllFiltersResolver(
@@ -141,20 +140,16 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
               candidatesResolver);
       Flowable<RawDocument> results =
           resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
+              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
       results.test().await().assertValue(rawDocument).assertComplete();
 
       resetExpectations();
 
-      verify(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument);
-      verify(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument);
+      verify(candidatesFilter).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter2).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter).bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument);
+      verify(candidatesFilter2).bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument);
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
 
@@ -165,18 +160,18 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       doAnswer(i -> query1)
           .when(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> query2)
           .when(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter)
-          .bindAndFilter(eq(queryExecutor), eq(configuration), eq(query1.blockingGet()), any());
+          .bindAndFilter(eq(queryExecutor), eq(query1.blockingGet()), any());
       doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter2)
-          .bindAndFilter(eq(queryExecutor), eq(configuration), eq(query2.blockingGet()), any());
+          .bindAndFilter(eq(queryExecutor), eq(query2.blockingGet()), any());
       DocumentsResolver candidatesResolver =
-          (queryExecutor1, configuration1, keyspace, collection, paginator) ->
+          (queryExecutor1, keyspace, collection, paginator) ->
               Flowable.just(rawDocument, rawDocument2);
 
       DocumentsResolver resolver =
@@ -186,7 +181,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
               candidatesResolver);
       Flowable<RawDocument> results =
           resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
+              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
       results
           .test()
@@ -197,18 +192,12 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
 
       resetExpectations();
 
-      verify(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument);
-      verify(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument);
-      verify(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument2);
-      verify(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument2);
+      verify(candidatesFilter).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter2).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter).bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument);
+      verify(candidatesFilter2).bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument);
+      verify(candidatesFilter).bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument2);
+      verify(candidatesFilter2).bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument2);
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
 
@@ -219,19 +208,18 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       doAnswer(i -> query1)
           .when(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> query2)
           .when(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
+          .prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
       doAnswer(i -> Maybe.just("you shall pass"))
           .when(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument);
+          .bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument);
       doAnswer(i -> Maybe.empty())
           .when(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument);
+          .bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument);
       DocumentsResolver candidatesResolver =
-          (queryExecutor1, configuration1, keyspace, collection, paginator) ->
-              Flowable.just(rawDocument);
+          (queryExecutor1, keyspace, collection, paginator) -> Flowable.just(rawDocument);
 
       DocumentsResolver resolver =
           new AllFiltersResolver(
@@ -240,20 +228,16 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
               candidatesResolver);
       Flowable<RawDocument> results =
           resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
+              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
       results.test().await().assertValueCount(0).assertComplete();
 
       resetExpectations();
 
-      verify(candidatesFilter)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter2)
-          .prepareQuery(datastore, configuration, KEYSPACE_NAME, COLLECTION_NAME);
-      verify(candidatesFilter)
-          .bindAndFilter(queryExecutor, configuration, query1.blockingGet(), rawDocument);
-      verify(candidatesFilter2)
-          .bindAndFilter(queryExecutor, configuration, query2.blockingGet(), rawDocument);
+      verify(candidatesFilter).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter2).prepareQuery(datastore, KEYSPACE_NAME, COLLECTION_NAME);
+      verify(candidatesFilter).bindAndFilter(queryExecutor, query1.blockingGet(), rawDocument);
+      verify(candidatesFilter2).bindAndFilter(queryExecutor, query2.blockingGet(), rawDocument);
       verifyNoMoreInteractions(candidatesFilter, candidatesFilter2);
     }
 
@@ -262,7 +246,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
       withAnySelectFrom(TABLE).returningNothing();
 
       DocumentsResolver candidatesResolver =
-          (queryExecutor1, configuration1, keyspace, collection, paginator) -> Flowable.empty();
+          (queryExecutor1, keyspace, collection, paginator) -> Flowable.empty();
 
       DocumentsResolver resolver =
           new AllFiltersResolver(
@@ -271,7 +255,7 @@ class AllFiltersResolverTest extends AbstractDataStoreTest {
               candidatesResolver);
       Flowable<RawDocument> results =
           resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
+              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, new Paginator(null, 1));
 
       results.test().await().assertValueCount(0).assertComplete();
 

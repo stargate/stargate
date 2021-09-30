@@ -36,8 +36,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
-import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.rx.RxUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -59,8 +58,11 @@ public class QueryExecutor {
 
   private final DataStore dataStore;
 
-  public QueryExecutor(DataStore dataStore) {
+  private final DocsApiConfiguration config;
+
+  public QueryExecutor(DataStore dataStore, DocsApiConfiguration configuration) {
     this.dataStore = dataStore;
+    this.config = configuration;
   }
 
   /**
@@ -237,7 +239,7 @@ public class QueryExecutor {
                   int nextPageSize =
                       exponentPageSize
                           ? effectivePageSize.updateAndGet(
-                              x -> Math.min(x * 2, DocumentDB.MAX_STORAGE_PAGE_SIZE))
+                              x -> Math.min(x * 2, config.getMaxStoragePageSize()))
                           : pageSize;
                   return fetchNext(rs, nextPageSize, query);
                 },
@@ -278,7 +280,8 @@ public class QueryExecutor {
   private Accumulator toSeed(
       DocProperty property, Comparator<DocProperty> comparator, List<Column> keyColumns) {
     Row row = property.row();
-    String id = row.getString(QueryConstants.KEY_COLUMN_NAME);
+
+    String id = row.getString(DocsApiConstants.KEY_COLUMN_NAME);
     ImmutableList.Builder<String> docKey = ImmutableList.builder();
     for (Column c : keyColumns) {
       docKey.add(Objects.requireNonNull(row.getString(c.name())));

@@ -90,9 +90,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
     @BeforeEach
     public void init() {
       executionContext = ExecutionContext.create(true);
-      queryExecutor = new QueryExecutor(datastore());
+      queryExecutor = new QueryExecutor(datastore(), configuration);
       when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
+      when(configuration.getMaxStoragePageSize()).thenReturn(1000);
       lenient().when(filterExpression.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
       lenient().when(filterExpression.getCondition()).thenReturn(condition);
       lenient().when(filterExpression2.getExprType()).thenReturn(FilterExpression.EXPR_TYPE);
@@ -111,7 +112,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
@@ -121,10 +122,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                       ImmutableMap.of("key", "1", "p0", "parent", "p1", "second")));
 
       DocumentsResolver resolver =
-          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
+          new SubDocumentsResolver(
+              filterExpression, documentId, subDocumentPath, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -186,7 +187,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND p1 = ? AND key = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 > ? AND p1 = ? AND key = ? ALLOW FILTERING",
                   "",
                   "reviews",
                   documentId)
@@ -211,10 +212,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
                           "p3",
                           "date")));
       DocumentsResolver resolver =
-          new SubDocumentsResolver(filterExpression, documentId, subDocumentPath, executionContext);
+          new SubDocumentsResolver(
+              filterExpression, documentId, subDocumentPath, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -289,7 +290,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
@@ -303,10 +304,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -378,7 +379,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 > ? AND key = ? ALLOW FILTERING",
                   "",
                   documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
@@ -392,10 +393,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertValueCount(0).assertComplete();
 
@@ -448,7 +449,7 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND key = ? ALLOW FILTERING",
                   "parent",
                   documentId)
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
@@ -459,10 +460,10 @@ class SubDocumentsResolverTest extends AbstractDataStoreTest {
               Or.of(filterExpression, filterExpression2),
               documentId,
               subDocumentPath,
-              executionContext);
+              executionContext,
+              configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertValueCount(0).assertComplete();
 

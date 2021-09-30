@@ -53,6 +53,8 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
   @Nested
   class Constructor {
 
+    @Mock DocsApiConfiguration configuration;
+
     @Mock FilterExpression filterExpression;
 
     @Mock BaseCondition baseCondition;
@@ -63,7 +65,8 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       when(filterExpression.getCondition()).thenReturn(baseCondition);
 
       Throwable throwable =
-          catchThrowable(() -> new InMemoryDocumentsResolver(filterExpression, null));
+          catchThrowable(
+              () -> new InMemoryDocumentsResolver(filterExpression, null, configuration));
 
       assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
     }
@@ -87,9 +90,10 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
     @BeforeEach
     public void init() {
       executionContext = ExecutionContext.create(true);
-      queryExecutor = new QueryExecutor(datastore());
+      queryExecutor = new QueryExecutor(datastore(), configuration);
       lenient().when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
+      when(configuration.getMaxStoragePageSize()).thenReturn(1000);
       when(baseCondition.isPersistenceCondition()).thenReturn(false);
       when(filterExpression.getCondition()).thenReturn(baseCondition);
     }
@@ -106,7 +110,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -114,10 +118,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -161,15 +164,14 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, p4, p5, p6, p7, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, p4, p5, p6, p7, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -218,7 +220,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -227,10 +229,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
 
       DocumentsResolver resolver =
           new InMemoryDocumentsResolver(
-              Arrays.asList(filterExpression, filterExpression2), executionContext);
+              Arrays.asList(filterExpression, filterExpression2), executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -266,7 +267,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -274,10 +275,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -326,7 +326,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -334,10 +334,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
               .returningNothing();
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertNoValues().assertComplete();
 
@@ -357,7 +356,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND p2 = ? AND leaf = ? AND p3 = ? ALLOW FILTERING",
                   "field",
                   "nested",
                   "value",
@@ -367,10 +366,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -400,7 +398,7 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert queryAssert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -408,10 +406,9 @@ class InMemoryDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new InMemoryDocumentsResolver(filterExpression, executionContext);
+          new InMemoryDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertValueCount(0).assertComplete();
 

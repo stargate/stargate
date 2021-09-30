@@ -30,8 +30,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
@@ -61,12 +61,16 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private final boolean evaluateOnMissing;
 
-  public OrExpressionDocumentsResolver(Or<FilterExpression> expression, ExecutionContext context) {
+  private DocsApiConfiguration config;
+
+  public OrExpressionDocumentsResolver(
+      Or<FilterExpression> expression, ExecutionContext context, DocsApiConfiguration config) {
     List<FilterExpression> children = getChildren(expression);
 
     this.expression = expression;
     this.evaluateOnMissing =
         children.stream().anyMatch(e -> e.getCondition().isEvaluateOnMissingFields());
+    this.config = config;
     this.queryBuilders = buildQueries(evaluateOnMissing, children);
     this.context = createContext(context, expression);
   }
@@ -74,24 +78,20 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
   /** {@inheritDoc} */
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
     DataStore dataStore = queryExecutor.getDataStore();
 
     // find the max size of columns in all queries and use that for now
     String[] columns =
         queryBuilders.stream()
-            .map(qb -> columnsForQuery(qb, configuration.getMaxDepth()))
+            .map(qb -> columnsForQuery(qb, config.getMaxDepth()))
             .max(Comparator.comparingInt(o -> o.length))
-            .orElseGet(() -> QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth()));
+            .orElseGet(() -> DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()));
 
     // resolve if no path are there, used in the filtering
     boolean noPaths =
         Arrays.stream(columns)
-            .noneMatch(c -> Objects.equals(c, QueryConstants.P_COLUMN_NAME.apply(0)));
+            .noneMatch(c -> Objects.equals(c, DocsApiConstants.P_COLUMN_NAME.apply(0)));
 
     return Flowable.fromIterable(queryBuilders)
         .concatMap(
@@ -118,7 +118,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // otherwise determine the page size for each query based on the requested docs
               int pageSize =
                   evaluateOnMissing
-                      ? configuration.getApproximateStoragePageSize(paginator.docPageSize)
+                      ? config.getApproximateStoragePageSize(paginator.docPageSize)
                       : determinePageSize(paginator.docPageSize, boundQueries.size());
               return queryExecutor.queryDocs(
                   boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);
@@ -152,12 +152,12 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
   private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
     String[] columns;
     if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
-      columns = new String[] {QueryConstants.KEY_COLUMN_NAME, QueryConstants.LEAF_COLUMN_NAME};
+      columns = new String[] {DocsApiConstants.KEY_COLUMN_NAME, DocsApiConstants.LEAF_COLUMN_NAME};
     } else if (queryBuilder instanceof FilterPathSearchQueryBuilder) {
       FilterPathSearchQueryBuilder fpqb = (FilterPathSearchQueryBuilder) queryBuilder;
-      columns = QueryConstants.ALL_COLUMNS_NAMES.apply(fpqb.getFilterPath().getPath().size() + 1);
+      columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(fpqb.getFilterPath().getPath().size() + 1);
     } else {
-      columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+      columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
     }
     return columns;
   }
@@ -173,7 +173,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     List<AbstractSearchQueryBuilder> persistenceQueries =
         children.stream()
             .filter(e -> e.getCondition().isPersistenceCondition())
-            .map(FilterExpressionSearchQueryBuilder::new)
+            .map(
+                isPersistenceCondition ->
+                    new FilterExpressionSearchQueryBuilder(isPersistenceCondition, config))
             .collect(Collectors.toList());
 
     // for the memory ones, we can collect only distinct filter paths
@@ -182,7 +184,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             .filter(e -> !e.getCondition().isPersistenceCondition())
             .map(FilterExpression::getFilterPath)
             .distinct()
-            .map(fp -> new FilterPathSearchQueryBuilder(fp, true))
+            .map(fp -> new FilterPathSearchQueryBuilder(fp, true, config))
             .collect(Collectors.toList());
 
     // merge and return

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Or;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
@@ -43,10 +44,13 @@ import java.util.Collections;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class CnfResolverTest {
+
+  @Mock DocsApiConfiguration configuration;
 
   @Nested
   class Resolve {
@@ -60,7 +64,8 @@ class CnfResolverTest {
       FilterExpression expression1 = ImmutableFilterExpression.of(filterPath, condition1, 0);
       FilterExpression expression2 = ImmutableFilterExpression.of(filterPath, condition2, 1);
 
-      DocumentsResolver result = CnfResolver.resolve(And.of(expression1, expression2), context);
+      DocumentsResolver result =
+          CnfResolver.resolve(And.of(expression1, expression2), context, configuration);
 
       assertThat(result).isInstanceOf(PersistenceDocumentsResolver.class);
     }
@@ -75,7 +80,7 @@ class CnfResolverTest {
       FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition, 1);
 
       And<FilterExpression> and = And.of(expression1, expression2);
-      DocumentsResolver result = CnfResolver.resolve(and, context);
+      DocumentsResolver result = CnfResolver.resolve(and, context, configuration);
 
       // ensure not reordering
       assertThat(result)
@@ -119,7 +124,7 @@ class CnfResolverTest {
       FilterExpression expression2 = ImmutableFilterExpression.of(filterPath2, condition, 1);
 
       And<FilterExpression> and = And.of(expression1, expression2);
-      DocumentsResolver result = CnfResolver.resolve(and, context);
+      DocumentsResolver result = CnfResolver.resolve(and, context, configuration);
 
       // ensure not reordering
       assertThat(result)
@@ -169,7 +174,8 @@ class CnfResolverTest {
       FilterExpression expression4 = ImmutableFilterExpression.of(filterPath2, memoryCondition, 3);
 
       DocumentsResolver result =
-          CnfResolver.resolve(And.of(expression1, expression2, expression3, expression4), context);
+          CnfResolver.resolve(
+              And.of(expression1, expression2, expression3, expression4), context, configuration);
 
       // |
       // | -> persistence candidates (1 exp)
@@ -219,7 +225,9 @@ class CnfResolverTest {
 
     DocumentsResolver result =
         CnfResolver.resolve(
-            And.of(expression1, Or.of(expression2, expression3), expression4), context);
+            And.of(expression1, Or.of(expression2, expression3), expression4),
+            context,
+            configuration);
 
     // |
     // | -> persistence candidates (1 exp)
@@ -274,7 +282,9 @@ class CnfResolverTest {
 
     DocumentsResolver result =
         CnfResolver.resolve(
-            And.of(expression1, Or.of(expression2, expression3), expression4), context);
+            And.of(expression1, Or.of(expression2, expression3), expression4),
+            context,
+            configuration);
 
     // |
     // | -> or filters (2 exp)

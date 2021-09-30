@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -60,13 +61,16 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
 
     @Mock BaseCondition baseCondition;
 
+    @Mock DocsApiConfiguration configuration;
+
     @Test
     public void noInMemoryConditions() {
       when(baseCondition.isPersistenceCondition()).thenReturn(false);
       when(filterExpression.getCondition()).thenReturn(baseCondition);
 
       Throwable throwable =
-          catchThrowable(() -> new PersistenceDocumentsResolver(filterExpression, null));
+          catchThrowable(
+              () -> new PersistenceDocumentsResolver(filterExpression, null, configuration));
 
       assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
     }
@@ -75,7 +79,8 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
   @Nested
   class GetDocuments {
 
-    @Mock DocsApiConfiguration configuration;
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
+    DocsApiConfiguration configuration;
 
     @Mock FilterExpression filterExpression;
 
@@ -88,7 +93,7 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
     @BeforeEach
     public void init() {
       executionContext = ExecutionContext.create(true);
-      queryExecutor = new QueryExecutor(datastore());
+      queryExecutor = new QueryExecutor(datastore(), configuration);
     }
 
     @Test
@@ -113,10 +118,9 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new PersistenceDocumentsResolver(filterExpression, executionContext);
+          new PersistenceDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .take(1)
@@ -178,10 +182,9 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
 
       DocumentsResolver resolver =
           new PersistenceDocumentsResolver(
-              Arrays.asList(filterExpression, filterExpression2), executionContext);
+              Arrays.asList(filterExpression, filterExpression2), executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -227,10 +230,9 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Arrays.asList(ImmutableMap.of("key", "1"), ImmutableMap.of("key", "2")));
 
       DocumentsResolver resolver =
-          new PersistenceDocumentsResolver(filterExpression, executionContext);
+          new PersistenceDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -290,10 +292,9 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
               .returningNothing();
 
       DocumentsResolver resolver =
-          new PersistenceDocumentsResolver(filterExpression, executionContext);
+          new PersistenceDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertNoValues().assertComplete();
 
@@ -325,10 +326,9 @@ class PersistenceDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       DocumentsResolver resolver =
-          new PersistenceDocumentsResolver(filterExpression, executionContext);
+          new PersistenceDocumentsResolver(filterExpression, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()

@@ -19,14 +19,17 @@ package io.stargate.web.docsapi.service.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.db.datastore.Row;
-import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.db.query.TypedValue;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -53,16 +56,28 @@ public final class DocsApiUtils {
    * </ol>
    *
    * @param path single filter or field path
+   * @param maxArrayLength the maximum allowed array length
    * @return Converted to represent expected path in DB, keeping the segmentation.
    */
-  public static String convertArrayPath(String path) {
+  public static String convertArrayPath(String path, int maxArrayLength) {
     if (path.contains(",")) {
       return Arrays.stream(path.split(COMMA_PATTERN.pattern()))
-          .map(DocsApiUtils::convertSingleArrayPath)
+          .map(pathVal -> DocsApiUtils.convertSingleArrayPath(pathVal, maxArrayLength))
           .collect(Collectors.joining(","));
     } else {
-      return convertSingleArrayPath(path);
+      return convertSingleArrayPath(path, maxArrayLength);
     }
+  }
+
+  /**
+   * Alternative for DocsApiUtils#convertArrayPath(java.lang.String, int)
+   *
+   * @param path single filter or field path
+   * @param config a {@link DocsApiConfiguration} that has a max array length defined
+   * @return Converted to represent expected path in DB, keeping the segmentation.
+   */
+  public static String convertArrayPath(String path, DocsApiConfiguration config) {
+    return convertArrayPath(path, config.getMaxArrayLength());
   }
 
   /**
@@ -82,8 +97,8 @@ public final class DocsApiUtils {
     return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
   }
 
-  private static String convertSingleArrayPath(String path) {
-    return extractArrayPathIndex(path)
+  private static String convertSingleArrayPath(String path, int maxArrayLength) {
+    return extractArrayPathIndex(path, maxArrayLength)
         .map(innerPath -> "[" + leftPadTo6(innerPath.toString()) + "]")
         .orElse(path);
   }
@@ -93,21 +108,21 @@ public final class DocsApiUtils {
    * path.
    *
    * @param path single filter or field path
+   * @param maxArrayLength the maximum allowed array length
    * @return Array index or empty
    */
-  public static Optional<Integer> extractArrayPathIndex(String path) {
+  public static Optional<Integer> extractArrayPathIndex(String path, int maxArrayLength) {
     // check if we have array path
     if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
       String innerPath = path.substring(1, path.length() - 1);
       // if it's wildcard keep as it is
-      if (!Objects.equals(innerPath, DocumentDB.GLOB_VALUE)) {
+      if (!Objects.equals(innerPath, DocsApiConstants.GLOB_VALUE)) {
         // otherwise try to parse int
         try {
           // this can fail, thus wrap in the try
           int idx = Integer.parseInt(innerPath);
-          if (idx > DocumentDB.MAX_ARRAY_LENGTH - 1) {
-            String msg =
-                String.format("Max array length of %s exceeded.", DocumentDB.MAX_ARRAY_LENGTH);
+          if (idx > maxArrayLength - 1) {
+            String msg = String.format("Max array length of %s exceeded.", maxArrayLength);
             throw new ErrorCodeRuntimeException(
                 ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED, msg);
           }
@@ -121,6 +136,17 @@ public final class DocsApiUtils {
     return Optional.empty();
   }
 
+  /**
+   * Alternative for DocsApiUtils#extractArrayPathIndex(java.lang.String, int)
+   *
+   * @param path single filter or field path
+   * @param config a {@link DocsApiConfiguration} containing the maximum array length
+   * @return Array index or empty
+   */
+  public static Optional<Integer> extractArrayPathIndex(String path, DocsApiConfiguration config) {
+    return extractArrayPathIndex(path, config.getMaxArrayLength());
+  }
+
   public static String leftPadTo6(String value) {
     return StringUtils.leftPad(value, 6, '0');
   }
@@ -129,12 +155,14 @@ public final class DocsApiUtils {
    * Returns the collection of paths that are represented by each JsonNode in the #fieldsJson.
    *
    * <p>For each field a list of strings representing the path is returned. Note that for each path
-   * member, {@link #convertArrayPath(String)} will be called.
+   * member, {@link #convertArrayPath(String, int)} will be called.
    *
    * @param fieldsJson array json node
+   * @param maxArrayLength the maximum allowed array length, from configuration
    * @return collection of paths representing all fields
    */
-  public static Collection<List<String>> convertFieldsToPaths(JsonNode fieldsJson) {
+  public static Collection<List<String>> convertFieldsToPaths(
+      JsonNode fieldsJson, int maxArrayLength) {
     if (!fieldsJson.isArray()) {
       String msg = String.format("`fields` must be a JSON array, found %s", fieldsJson);
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
@@ -149,7 +177,7 @@ public final class DocsApiUtils {
       String fieldValue = value.asText();
       List<String> fieldPath =
           Arrays.stream(fieldValue.split(PERIOD_PATTERN.pattern()))
-              .map(DocsApiUtils::convertArrayPath)
+              .map(p -> DocsApiUtils.convertArrayPath(p, maxArrayLength))
               .map(DocsApiUtils::convertEscapedCharacters)
               .collect(Collectors.toList());
 
@@ -157,6 +185,18 @@ public final class DocsApiUtils {
     }
 
     return results;
+  }
+
+  /**
+   * Alternative for DocsApiUtils#convertFieldsToPaths(JsonNode, int)
+   *
+   * @param fieldsJson array json node
+   * @param config a {@link DocsApiConfiguration} containing the max array length
+   * @return collection of paths representing all fields
+   */
+  public static Collection<List<String>> convertFieldsToPaths(
+      JsonNode fieldsJson, DocsApiConfiguration config) {
+    return convertFieldsToPaths(fieldsJson, config.getMaxArrayLength());
   }
 
   public static boolean containsIllegalSequences(String x) {
@@ -197,24 +237,24 @@ public final class DocsApiUtils {
    * Simple utility to return a string value from doc api {@link Row}.
    *
    * @param row Row
-   * @return String or null if a row column {@value QueryConstants#STRING_VALUE_COLUMN_NAME) is null.
+   * @return String or null if a row column {@value DocsApiConstants#STRING_VALUE_COLUMN_NAME) is null.
    */
   public static String getStringFromRow(Row row) {
-    return row.isNull(QueryConstants.STRING_VALUE_COLUMN_NAME)
+    return row.isNull(DocsApiConstants.STRING_VALUE_COLUMN_NAME)
         ? null
-        : row.getString(QueryConstants.STRING_VALUE_COLUMN_NAME);
+        : row.getString(DocsApiConstants.STRING_VALUE_COLUMN_NAME);
   }
 
   /**
    * Simple utility to return a double value from doc api {@link Row}.
    *
    * @param row Row
-   * @return String or null if a row column {@value QueryConstants#DOUBLE_VALUE_COLUMN_NAME) is null.
+   * @return String or null if a row column {@value DocsApiConstants#DOUBLE_VALUE_COLUMN_NAME) is null.
    */
   public static Double getDoubleFromRow(Row row) {
-    return row.isNull(QueryConstants.DOUBLE_VALUE_COLUMN_NAME)
+    return row.isNull(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME)
         ? null
-        : row.getDouble(QueryConstants.DOUBLE_VALUE_COLUMN_NAME);
+        : row.getDouble(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME);
   }
 
   /**
@@ -222,18 +262,18 @@ public final class DocsApiUtils {
    *
    * @param row Row
    * @param numericBooleans Consider booleans as numeric
-   * @return True, False or null if a row column {@value QueryConstants#BOOLEAN_VALUE_COLUMN_NAME) is null.
+   * @return True, False or null if a row column {@value DocsApiConstants#BOOLEAN_VALUE_COLUMN_NAME) is null.
    */
   public static Boolean getBooleanFromRow(Row row, boolean numericBooleans) {
-    boolean nullValue = row.isNull(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+    boolean nullValue = row.isNull(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
     if (nullValue) {
       return null;
     } else {
       if (numericBooleans) {
-        byte value = row.getByte(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        byte value = row.getByte(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
         return value != 0;
       } else {
-        return row.getBoolean(QueryConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        return row.getBoolean(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
       }
     }
   }
@@ -261,13 +301,13 @@ public final class DocsApiUtils {
     // short-circuit if the field is not matching
     // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
-    String leaf = row.getString(QueryConstants.LEAF_COLUMN_NAME);
+    String leaf = row.getString(DocsApiConstants.LEAF_COLUMN_NAME);
     if (!Objects.equals(DocsApiUtils.convertEscapedCharacters(field), leaf)) {
       return false;
     }
 
     // short-circuit if p_n after path is not empty
-    String targetP = QueryConstants.P_COLUMN_NAME.apply(targetPathSize);
+    String targetP = DocsApiConstants.P_COLUMN_NAME.apply(targetPathSize);
     boolean exists = row.columnExists(targetP);
     if (!exists || !Objects.equals(row.getString(targetP), "")) {
       return false;
@@ -298,7 +338,7 @@ public final class DocsApiUtils {
     for (String target : pathIterable) {
       int index = p++;
       // check that row has the request path depth
-      String targetP = QueryConstants.P_COLUMN_NAME.apply(index);
+      String targetP = DocsApiConstants.P_COLUMN_NAME.apply(index);
       boolean exists = row.columnExists(targetP);
       if (!exists) {
         return false;
@@ -308,12 +348,12 @@ public final class DocsApiUtils {
       String path = row.getString(targetP);
 
       // skip any target path that is a wildcard
-      if (Objects.equals(target, DocumentDB.GLOB_VALUE)) {
+      if (Objects.equals(target, DocsApiConstants.GLOB_VALUE)) {
         continue;
       }
 
       // skip any target path that is an array wildcard
-      if (Objects.equals(target, DocumentDB.GLOB_ARRAY_VALUE)) {
+      if (Objects.equals(target, DocsApiConstants.GLOB_ARRAY_VALUE)) {
         // but make sure this is not an normal field
         if (!ARRAY_PATH_PATTERN.matcher(path).matches()) {
           return false;
@@ -330,5 +370,26 @@ public final class DocsApiUtils {
     }
 
     return true;
+  }
+
+  public static Map<String, Object> newBindMap(List<String> path, int maxDepth) {
+    Map<String, Object> bindMap = new LinkedHashMap<>(maxDepth + 5);
+
+    bindMap.put("key", TypedValue.UNSET);
+
+    for (int i = 0; i < maxDepth; i++) {
+      String value = "";
+      if (i < path.size()) {
+        value = path.get(i);
+      }
+      bindMap.put("p" + i, value);
+    }
+
+    bindMap.put(DocsApiConstants.LEAF_COLUMN_NAME, null);
+    bindMap.put(DocsApiConstants.STRING_VALUE_COLUMN_NAME, null);
+    bindMap.put(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME, null);
+    bindMap.put(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME, null);
+
+    return bindMap;
   }
 }

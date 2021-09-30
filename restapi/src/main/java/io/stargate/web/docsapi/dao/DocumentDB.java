@@ -11,7 +11,6 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
-import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.ValueModifier;
@@ -23,9 +22,11 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -36,79 +37,25 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
-  private static final List<Column> allColumns;
-  private static final List<String> allColumnNames;
-  private static final List<Column.ColumnType> allColumnTypes;
-  private static final List<String> allPathColumnNames;
-  private static final List<Column.ColumnType> allPathColumnTypes;
-  public static final int MAX_PAGE_SIZE = 20;
-  public static final Integer MAX_DEPTH = Integer.getInteger("stargate.document_max_depth", 64);
   private Boolean useLoggedBatches;
-  public static final Integer MAX_STORAGE_PAGE_SIZE =
-      Integer.getInteger("stargate.document_search_page_size", 1000);
 
-  // All array elements will be represented as 6 digits, so they get left-padded, such as [000010]
-  // instead of [10]
-  public static final Integer MAX_ARRAY_LENGTH =
-      Integer.getInteger("stargate.document_max_array_len", 1000000);
-  public static final String GLOB_VALUE = "*";
-  public static final String GLOB_ARRAY_VALUE = "[*]";
-
-  public static final String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
-  public static final String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
-  public static final String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
-
-  private static final String[] VALUE_COLUMN_NAMES =
-      new String[] {"leaf", "text_value", "dbl_value", "bool_value"};
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   final DataStore dataStore;
   private final AuthorizationService authorizationService;
   private final AuthenticationSubject authenticationSubject;
   private final QueryExecutor executor;
-
-  static {
-    allColumns = new ArrayList<>();
-    allColumnNames = new ArrayList<>();
-    allColumnTypes = new ArrayList<>();
-    allPathColumnNames = new ArrayList<>();
-    allPathColumnTypes = new ArrayList<>();
-    allColumnNames.add("key");
-    allColumnTypes.add(Type.Text);
-    allColumns.add(Column.create("key", Type.Text));
-    for (int i = 0; i < MAX_DEPTH; i++) {
-      allPathColumnNames.add("p" + i);
-      allPathColumnTypes.add(Type.Text);
-      allColumns.add(Column.create("p" + i, Type.Text));
-    }
-    allColumnNames.addAll(allPathColumnNames);
-    allColumnTypes.addAll(allPathColumnTypes);
-    allColumnNames.add("leaf");
-    allColumnTypes.add(Type.Text);
-    allColumns.add(Column.create("leaf", Type.Text));
-    allColumnNames.add("text_value");
-    allColumnTypes.add(Type.Text);
-    allColumns.add(Column.create("text_value", Type.Text));
-    allColumnNames.add("dbl_value");
-    allColumnTypes.add(Type.Double);
-    allColumns.add(Column.create("dbl_value", Type.Double));
-    allColumnNames.add("bool_value");
-    allColumnTypes.add(Type.Boolean);
-    allColumns.add(Column.create("bool_value", Type.Boolean));
-
-    if (MAX_ARRAY_LENGTH > 1000000) {
-      throw new IllegalStateException(
-          "stargate.document_max_array_len cannot be greater than 1000000.");
-    }
-  }
+  private final DocsApiConfiguration config;
 
   public DocumentDB(
       DataStore dataStore,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorizationService) {
+      AuthorizationService authorizationService,
+      DocsApiConfiguration config) {
     this.dataStore = dataStore;
     this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
+    this.config = config;
     useLoggedBatches =
         Boolean.parseBoolean(
             System.getProperty(
@@ -118,7 +65,7 @@ public class DocumentDB {
       throw new IllegalStateException("Backend does not support any known index types.");
     }
 
-    executor = new QueryExecutor(dataStore);
+    executor = new QueryExecutor(dataStore, config);
   }
 
   public QueryExecutor getQueryExecutor() {
@@ -139,10 +86,6 @@ public class DocumentDB {
 
   public boolean treatBooleansAsNumeric() {
     return !dataStore.supportsSecondaryIndex();
-  }
-
-  public static List<Column> allColumns() {
-    return allColumns;
   }
 
   public QueryBuilder queryBuilder() {
@@ -207,16 +150,17 @@ public class DocumentDB {
     try {
       List<Column> columns = new ArrayList<>();
       columns.add(Column.create("key", Kind.PartitionKey, Type.Text));
-      for (String columnName : allPathColumnNames) {
+      for (String columnName :
+          DocsApiConstants.ALL_PATH_COLUMNS_NAMES.apply(config.getMaxDepth())) {
         columns.add(Column.create(columnName, Kind.Clustering, Type.Text));
       }
-      columns.add(Column.create("leaf", Type.Text));
-      columns.add(Column.create("text_value", Type.Text));
-      columns.add(Column.create("dbl_value", Type.Double));
+      columns.add(Column.create(DocsApiConstants.LEAF_COLUMN_NAME, Type.Text));
+      columns.add(Column.create(DocsApiConstants.STRING_VALUE_COLUMN_NAME, Type.Text));
+      columns.add(Column.create(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME, Type.Double));
       if (treatBooleansAsNumeric()) {
-        columns.add(Column.create("bool_value", Type.Tinyint));
+        columns.add(Column.create(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME, Type.Tinyint));
       } else {
-        columns.add(Column.create("bool_value", Type.Boolean));
+        columns.add(Column.create(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME, Type.Boolean));
       }
       dataStore
           .queryBuilder()
@@ -277,7 +221,7 @@ public class DocumentDB {
    */
   public void dropTableIndexes(String keyspaceName, String tableName) {
     try {
-      for (String name : VALUE_COLUMN_NAMES) {
+      for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
         dataStore
             .queryBuilder()
             .drop()
@@ -306,6 +250,7 @@ public class DocumentDB {
         dataStore.schema().keyspace(keyspaceName).table(tableName).columns().stream()
             .map(Column::name)
             .collect(Collectors.toList());
+    List<String> allColumnNames = allColumnNames();
     if (columnNames.size() != allColumnNames.size()) return false;
     columnNames.removeAll(allColumnNames);
     return columnNames.isEmpty();
@@ -327,9 +272,13 @@ public class DocumentDB {
     }
   }
 
+  private List<String> allColumnNames() {
+    return Arrays.asList(DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()));
+  }
+
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
-    for (String name : VALUE_COLUMN_NAMES) {
+    for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
       createDefaultIndex(keyspaceName, tableName, name);
     }
   }
@@ -350,7 +299,7 @@ public class DocumentDB {
 
   private void createSAIIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
-    for (String name : VALUE_COLUMN_NAMES) {
+    for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
       if (name.equals("bool_value") && dataStore.supportsSecondaryIndex()) {
         // SAI doesn't support booleans, so add a non-SAI index here.
         createDefaultIndex(keyspaceName, tableName, name);
@@ -397,7 +346,7 @@ public class DocumentDB {
 
     List<ValueModifier> modifiers = new ArrayList<>(columnValues.length);
     for (int i = 0; i < columnValues.length; i++) {
-      modifiers.add(ValueModifier.set(allColumnNames.get(i), columnValues[i]));
+      modifiers.add(ValueModifier.set(allColumnNames().get(i), columnValues[i]));
     }
     BoundQuery query =
         dataStore
@@ -489,7 +438,7 @@ public class DocumentDB {
     for (int i = 0; i < pathSize; i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
     }
-    if (pathSize < MAX_DEPTH && !keysToDelete.isEmpty()) {
+    if (pathSize < config.getMaxDepth() && !keysToDelete.isEmpty()) {
       where.add(BuiltCondition.of("p" + pathSize, Predicate.IN, keysToDelete));
     }
     BoundQuery query =
@@ -514,12 +463,12 @@ public class DocumentDB {
       List<String> pathToDelete) {
 
     int pathSize = pathToDelete.size();
-    List<BuiltCondition> where = new ArrayList<>(1 + MAX_DEPTH);
+    List<BuiltCondition> where = new ArrayList<>(1 + config.getMaxDepth());
     where.add(BuiltCondition.of("key", Predicate.EQ, key));
     for (int i = 0; i < pathSize; i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
     }
-    for (int i = pathSize; i < MAX_DEPTH; i++) {
+    for (int i = pathSize; i < config.getMaxDepth(); i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
     }
     BoundQuery query =
@@ -724,26 +673,5 @@ public class DocumentDB {
 
     // Fire this off in a future
     return executeBatchAsync(queries, context.nested("ASYNC DOCUMENT CORRECTION"));
-  }
-
-  public Map<String, Object> newBindMap(List<String> path) {
-    Map<String, Object> bindMap = new LinkedHashMap<>(MAX_DEPTH + 7);
-
-    bindMap.put("key", TypedValue.UNSET);
-
-    for (int i = 0; i < MAX_DEPTH; i++) {
-      String value = "";
-      if (i < path.size()) {
-        value = path.get(i);
-      }
-      bindMap.put("p" + i, value);
-    }
-
-    bindMap.put("leaf", TypedValue.UNSET);
-    bindMap.put("text_value", TypedValue.UNSET);
-    bindMap.put("dbl_value", TypedValue.UNSET);
-    bindMap.put("bool_value", TypedValue.UNSET);
-
-    return bindMap;
   }
 }

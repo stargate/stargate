@@ -26,8 +26,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FilterExpressionSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
@@ -46,12 +46,17 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
 
   private final ExecutionContext context;
 
-  public PersistenceDocumentsResolver(FilterExpression expression, ExecutionContext context) {
-    this(Collections.singletonList(expression), context);
+  private DocsApiConfiguration config;
+
+  public PersistenceDocumentsResolver(
+      FilterExpression expression, ExecutionContext context, DocsApiConfiguration config) {
+    this(Collections.singletonList(expression), context, config);
   }
 
   public PersistenceDocumentsResolver(
-      Collection<FilterExpression> expressions, ExecutionContext context) {
+      Collection<FilterExpression> expressions,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     boolean hasInMemory =
         expressions.stream().anyMatch(e -> !e.getCondition().isPersistenceCondition());
 
@@ -60,18 +65,15 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
           "PersistenceDocumentsResolver works only with the persistence conditions.");
     }
 
-    this.queryBuilder = new FilterExpressionSearchQueryBuilder(expressions);
+    this.queryBuilder = new FilterExpressionSearchQueryBuilder(expressions, config);
     this.context = createContext(context, expressions);
+    this.config = config;
   }
 
   /** {@inheritDoc} */
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
 
     // prepare the query
     return RxUtils.singleFromFuture(
@@ -82,8 +84,8 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
                       dataStore::queryBuilder,
                       keyspace,
                       collection,
-                      QueryConstants.KEY_COLUMN_NAME,
-                      QueryConstants.LEAF_COLUMN_NAME);
+                      DocsApiConstants.KEY_COLUMN_NAME,
+                      DocsApiConstants.LEAF_COLUMN_NAME);
               return dataStore.prepare(query);
             })
 

@@ -9,9 +9,6 @@ import org.glassfish.jersey.internal.inject.AbstractBinder;
 public class DocsApiComponentsBinder extends AbstractBinder {
 
   protected void configure() {
-    // configuration
-    DocsApiConfiguration conf = DocsApiConfiguration.DEFAULT;
-    bind(conf).to(DocsApiConfiguration.class).in(Singleton.class);
     bind(TimeSource.SYSTEM).to(TimeSource.class).in(Singleton.class);
 
     // services

@@ -86,12 +86,13 @@ public class DocumentSearchService {
           .take(paginator.docPageSize);
     } else {
       // otherwise resolve the expression
-      DocumentsResolver documentsResolver = BaseResolver.resolve(expression, context);
+      DocumentsResolver documentsResolver =
+          BaseResolver.resolve(expression, context, configuration);
 
       // load the candidates
       Flowable<RawDocument> candidates =
           documentsResolver
-              .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+              .getDocuments(queryExecutor, keyspace, collection, paginator)
 
               // limit to requested page size only to stop fetching extra docs
               .take(paginator.docPageSize);
@@ -136,9 +137,9 @@ public class DocumentSearchService {
 
     // create the resolver and return results
     SubDocumentsResolver subDocumentsResolver =
-        new SubDocumentsResolver(expression, documentId, subDocumentPath, context);
+        new SubDocumentsResolver(expression, documentId, subDocumentPath, context, configuration);
     return subDocumentsResolver
-        .getDocuments(queryExecutor, configuration, keyspace, collection, paginator)
+        .getDocuments(queryExecutor, keyspace, collection, paginator)
 
         // limit to requested page size only to stop fetching extra docs
         .take(paginator.docPageSize);
@@ -189,7 +190,7 @@ public class DocumentSearchService {
     return RxUtils.singleFromFuture(
             () -> {
               int maxDepth = configuration.getMaxDepth();
-              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+              String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
               DataStore dataStore = queryExecutor.getDataStore();
 
@@ -225,7 +226,7 @@ public class DocumentSearchService {
     return RxUtils.singleFromFuture(
             () -> {
               int maxDepth = configuration.getMaxDepth();
-              String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+              String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
               DataStore dataStore = queryExecutor.getDataStore();
 
@@ -261,7 +262,7 @@ public class DocumentSearchService {
                 () -> {
                   // columns from depth
                   int maxDepth = configuration.getMaxDepth();
-                  String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
+                  String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(maxDepth);
 
                   // data store need for build and prepare
                   DataStore dataStore = queryExecutor.getDataStore();

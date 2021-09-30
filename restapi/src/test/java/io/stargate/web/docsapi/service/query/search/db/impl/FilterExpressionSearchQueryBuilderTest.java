@@ -28,6 +28,7 @@ import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.schema.Schema;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.query.ImmutableFilterPath;
@@ -49,6 +50,8 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
 
+  @Mock DocsApiConfiguration config;
+
   @Mock FilterExpression filterExpression;
 
   @Override
@@ -69,7 +72,7 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   new FilterExpressionSearchQueryBuilder(
-                      Arrays.asList(filterExpression, filterExpression)));
+                      Arrays.asList(filterExpression, filterExpression), config));
 
       assertThat(t).isInstanceOf(IllegalArgumentException.class);
     }
@@ -90,11 +93,12 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void happyPath() {
+      when(config.getMaxDepth()).thenReturn(64);
       BuiltCondition builtCondition = BuiltCondition.of("text_value", Predicate.EQ, "value");
       when(condition.getBuiltCondition()).thenReturn(Optional.of(builtCondition));
 
       FilterExpressionSearchQueryBuilder builder =
-          new FilterExpressionSearchQueryBuilder(filterExpression);
+          new FilterExpressionSearchQueryBuilder(filterExpression, config);
       BuiltQuery<? extends BoundQuery> query =
           builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
@@ -107,10 +111,11 @@ class FilterExpressionSearchQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void noCondition() {
+      when(config.getMaxDepth()).thenReturn(64);
       when(condition.getBuiltCondition()).thenReturn(Optional.empty());
 
       FilterExpressionSearchQueryBuilder builder =
-          new FilterExpressionSearchQueryBuilder(filterExpression);
+          new FilterExpressionSearchQueryBuilder(filterExpression, config);
       BuiltQuery<? extends BoundQuery> query =
           builder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 

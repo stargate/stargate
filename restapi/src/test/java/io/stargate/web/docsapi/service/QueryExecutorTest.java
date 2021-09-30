@@ -46,10 +46,15 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class QueryExecutorTest extends AbstractDataStoreTest {
+  @Mock private DocsApiConfiguration config;
 
   protected static final Table table =
       ImmutableTable.builder()
@@ -90,7 +95,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @BeforeEach
   public void setup() {
-    executor = new QueryExecutor(datastore());
+    executor = new QueryExecutor(datastore(), config);
     allDocsQuery = datastore().queryBuilder().select().star().from(table).build().bind();
     allRowsForDocQuery =
         datastore().queryBuilder().select().star().from(table).where("key", Predicate.EQ).build();

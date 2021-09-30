@@ -68,6 +68,8 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
 
+  @Mock DocsApiConfiguration configuration;
+
   @Override
   protected Schema schema() {
     return SCHEMA_PROVIDER.getSchema();
@@ -76,8 +78,6 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
   @Nested
   class GetDocuments {
 
-    @Mock DocsApiConfiguration configuration;
-
     QueryExecutor queryExecutor;
 
     ExecutionContext executionContext;
@@ -85,7 +85,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
     @BeforeEach
     public void init() {
       executionContext = ExecutionContext.create(true);
-      queryExecutor = new QueryExecutor(datastore());
+      queryExecutor = new QueryExecutor(datastore(), configuration);
       lenient().when(configuration.getMaxStoragePageSize()).thenReturn(100);
       lenient().when(configuration.getApproximateStoragePageSize(anyInt())).thenCallRealMethod();
       when(configuration.getMaxDepth()).thenReturn(MAX_DEPTH);
@@ -126,10 +126,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               .returning(Collections.singletonList(ImmutableMap.of("key", "1")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -198,10 +198,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -275,10 +275,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -319,7 +319,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -342,7 +342,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -353,10 +353,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "key", "1", "leaf", "field", "p0", "field", "p1", "", "dbl_value", 2d)));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -406,7 +406,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -417,7 +417,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -428,10 +428,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "key", "1", "leaf", "field", "p0", "field", "p1", "", "dbl_value", 1d)));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -486,7 +486,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? AND text_value > ? ALLOW FILTERING",
                   "field",
                   "field",
                   "",
@@ -497,7 +497,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND leaf = ? AND p1 = ? ALLOW FILTERING",
                   "field",
                   "field",
                   "")
@@ -508,10 +508,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "key", "1", "leaf", "field", "p0", "field", "p1", "", "dbl_value", 2d)));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -557,7 +557,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value > ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? AND text_value > ? ALLOW FILTERING",
                   "path",
                   "field",
                   "field",
@@ -569,7 +569,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query2Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? ALLOW FILTERING",
+                  "SELECT key, p0, p1, p2, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s WHERE p0 = ? AND p1 = ? AND leaf = ? AND p2 = ? ALLOW FILTERING",
                   "path",
                   "field",
                   "field",
@@ -578,10 +578,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
               .returningNothing();
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -622,7 +622,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -639,10 +639,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "whatever")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -690,7 +690,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -707,10 +707,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "not-me")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 
@@ -751,7 +751,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -768,10 +768,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "query-value")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result
           .test()
@@ -822,7 +822,7 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
       ValidatingDataStore.QueryAssert query1Assert =
           withQuery(
                   TABLE,
-                  "SELECT key, leaf, text_value, dbl_value, bool_value, p0, p1, p2, p3, WRITETIME(leaf) FROM %s")
+                  "SELECT key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value, WRITETIME(leaf) FROM %s")
               .withPageSize(configuration.getApproximateStoragePageSize(pageSize))
               .returning(
                   Collections.singletonList(
@@ -839,10 +839,10 @@ class OrExpressionDocumentsResolverTest extends AbstractDataStoreTest {
                           "not-me")));
 
       Or<FilterExpression> or = Or.of(filterExpression1, filterExpression2);
-      DocumentsResolver resolver = new OrExpressionDocumentsResolver(or, executionContext);
+      DocumentsResolver resolver =
+          new OrExpressionDocumentsResolver(or, executionContext, configuration);
       Flowable<RawDocument> result =
-          resolver.getDocuments(
-              queryExecutor, configuration, KEYSPACE_NAME, COLLECTION_NAME, paginator);
+          resolver.getDocuments(queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, paginator);
 
       result.test().await().assertComplete();
 

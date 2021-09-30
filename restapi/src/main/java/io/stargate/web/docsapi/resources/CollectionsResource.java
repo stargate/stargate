@@ -14,6 +14,7 @@ import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.docsapi.models.dto.CreateCollection;
 import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
@@ -60,6 +61,7 @@ public class CollectionsResource {
   @Inject private Db db;
   @Inject private CollectionService collectionService;
   @Inject private DocsSchemaChecker schemaChecker;
+  @Inject private DocsApiConfiguration configuration;
 
   @GET
   @ApiOperation(

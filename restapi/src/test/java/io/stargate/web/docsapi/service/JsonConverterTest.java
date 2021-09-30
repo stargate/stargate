@@ -12,10 +12,10 @@ import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.nio.ByteBuffer;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -334,7 +334,7 @@ public class JsonConverterTest {
     data0.put("p1", "");
     data0.put("p2", "");
     data0.put("p3", "");
-    data0.put("leaf", DocumentDB.ROOT_DOC_MARKER);
+    data0.put("leaf", DocsApiConstants.ROOT_DOC_MARKER);
 
     data1.put("p0", "a");
     data1.put("p1", "b");
@@ -473,7 +473,7 @@ public class JsonConverterTest {
     data4.put("p0", "a");
     data4.put("p1", "[0]");
     data4.put("p2", "c");
-    data4.put("text_value", DocumentDB.EMPTY_ARRAY_MARKER);
+    data4.put("text_value", DocsApiConstants.EMPTY_ARRAY_MARKER);
     data4.put("p3", "");
     data4.put("leaf", "c");
 
@@ -484,7 +484,7 @@ public class JsonConverterTest {
     data5.put("p0", "a");
     data5.put("p1", "b");
     data5.put("p2", "c");
-    data5.put("text_value", DocumentDB.EMPTY_OBJECT_MARKER);
+    data5.put("text_value", DocsApiConstants.EMPTY_OBJECT_MARKER);
     data5.put("p3", "");
     data5.put("leaf", "c");
 
@@ -497,7 +497,11 @@ public class JsonConverterTest {
   }
 
   private static Row makeRow(Map<String, Object> data, boolean numericBooleans) {
-    List<Column> columns = new ArrayList<>(DocumentDB.allColumns());
+    List<Column> columns =
+        new ArrayList<>(
+            Arrays.asList(
+                DocsApiConstants.ALL_COLUMNS.apply(
+                    DocsApiConfiguration.DEFAULT.getMaxDepth(), numericBooleans)));
     columns.add(Column.create("writetime(leaf)", Type.Bigint));
     List<ByteBuffer> values = new ArrayList<>(columns.size());
     ProtocolVersion version = ProtocolVersion.DEFAULT;

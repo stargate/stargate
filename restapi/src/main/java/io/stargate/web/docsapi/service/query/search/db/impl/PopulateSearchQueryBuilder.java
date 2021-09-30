@@ -19,7 +19,7 @@ package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +40,6 @@ public class PopulateSearchQueryBuilder extends AbstractSearchQueryBuilder {
 
   @Override
   protected Map<String, Predicate> getBindPredicates() {
-    return Collections.singletonMap(QueryConstants.KEY_COLUMN_NAME, Predicate.EQ);
+    return Collections.singletonMap(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ);
   }
 }
