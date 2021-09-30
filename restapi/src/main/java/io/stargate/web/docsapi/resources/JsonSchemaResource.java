@@ -14,6 +14,7 @@ import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.*;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -27,6 +28,7 @@ import org.glassfish.jersey.server.ManagedAsync;
     tags = {"documents"})
 @Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class JsonSchemaResource {
   @Inject private Db dbFactory;
   @Inject private ObjectMapper mapper;

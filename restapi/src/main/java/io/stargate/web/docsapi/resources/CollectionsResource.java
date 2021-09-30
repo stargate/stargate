@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -55,6 +56,7 @@ import javax.ws.rs.core.Response;
     tags = {"documents"})
 @Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class CollectionsResource {
 
   @Inject private Db db;
