@@ -8,14 +8,13 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.CollectionUpgradeType;
 import io.stargate.web.docsapi.models.DocCollection;
-import io.stargate.web.resources.Db;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class CollectionService {
-  public DocCollection getCollectionInfo(Table table, Db db) {
-    if (db.getDataStore().supportsSAI()) {
+  public DocCollection getCollectionInfo(Table table, DocumentDB db) {
+    if (db.supportsSAI()) {
       List<Index> indexes = table.indexes();
       // If all secondary indexes are not SAI or there are no secondary indexes,
       // then an upgrade is available.

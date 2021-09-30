@@ -70,44 +70,32 @@ public class Db {
     return authorizationService;
   }
 
-  public AuthenticatedDB getDataStoreForToken(String token, Map<String, String> headers)
-      throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(token, headers);
-    DataStore dataStore =
-        dataStoreFactory.create(
-            authenticationSubject.asUser(),
-            DataStoreOptions.builder()
-                .alwaysPrepareQueries(true)
-                .putAllCustomProperties(headers)
-                .build());
-
-    return new AuthenticatedDB(dataStore, authenticationSubject);
-  }
-
   private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
-    AuthenticatedDB authenticatedDB =
-        getDataStoreForToken(tokenAndHeaders.token, tokenAndHeaders.headers);
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
     return new DocumentDB(
-        authenticatedDB.getDataStore(),
-        authenticatedDB.getAuthenticationSubject(),
+        constructDataStore(authenticationSubject, tokenAndHeaders),
+        authenticationSubject,
         getAuthorizationService());
   }
 
   private AuthenticatedDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
-
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
-    DataStore dataStore =
-        dataStoreFactory.create(
-            authenticationSubject.asUser(),
-            DataStoreOptions.builder()
-                .alwaysPrepareQueries(true)
-                .putAllCustomProperties(tokenAndHeaders.headers)
-                .build());
-    return new AuthenticatedDB(dataStore, authenticationSubject);
+    return new AuthenticatedDB(
+        constructDataStore(authenticationSubject, tokenAndHeaders), authenticationSubject);
+  }
+
+  private DataStore constructDataStore(
+      AuthenticationSubject authenticationSubject, TokenAndHeaders tokenAndHeaders) {
+    return dataStoreFactory.create(
+        authenticationSubject.asUser(),
+        DataStoreOptions.builder()
+            .alwaysPrepareQueries(true)
+            .putAllCustomProperties(tokenAndHeaders.headers)
+            .build());
   }
 
   public AuthenticatedDB getRestDataStoreForToken(String token, Map<String, String> headers)

@@ -133,6 +133,10 @@ public class DocumentDB {
     return authenticationSubject;
   }
 
+  public boolean supportsSAI() {
+    return dataStore.supportsSAI();
+  }
+
   public boolean treatBooleansAsNumeric() {
     return !dataStore.supportsSecondaryIndex();
   }
@@ -141,7 +145,7 @@ public class DocumentDB {
     return allColumns;
   }
 
-  public QueryBuilder builder() {
+  public QueryBuilder queryBuilder() {
     return dataStore.queryBuilder();
   }
 
@@ -149,8 +153,21 @@ public class DocumentDB {
     return dataStore.schema();
   }
 
+  public Table getTable(String keyspaceName, String table) {
+    Keyspace keyspace = getKeyspace(keyspaceName);
+    return (keyspace == null) ? null : keyspace.table(table);
+  }
+
+  public Keyspace getKeyspace(String keyspaceName) {
+    return dataStore.schema().keyspace(keyspaceName);
+  }
+
+  public Set<Keyspace> getKeyspaces() {
+    return dataStore.schema().keyspaces();
+  }
+
   public void writeJsonSchemaToCollection(String namespace, String collection, String schemaData) {
-    this.builder()
+    this.queryBuilder()
         .alter()
         .table(namespace, collection)
         .withComment(schemaData)

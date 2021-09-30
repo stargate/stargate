@@ -22,6 +22,7 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
@@ -29,7 +30,6 @@ import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
@@ -95,16 +95,16 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
           List<Keyspace> namespaces =
-              authenticatedDB.getKeyspaces().stream()
+              docDB.getKeyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST,
@@ -172,17 +172,16 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
           db.getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   Collections.singletonList(namespaceName),
                   null,
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(namespaceName);
+          io.stargate.db.schema.Keyspace keyspace = docDB.getKeyspace(namespaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -245,13 +244,13 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
           String keyspaceName = body.getName();
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.CREATE,
@@ -259,8 +258,7 @@ public class NamespacesResource {
                   ResourceKind.KEYSPACE);
 
           Replication replication = body.getReplication();
-          authenticatedDB
-              .getDataStore()
+          docDB
               .queryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -299,20 +297,19 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          AuthenticatedDB authenticatedDB = db.getDataStoreForToken(token, allHeaders);
+          final DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  docDB.getAuthenticationSubject(),
                   namespaceName,
                   null,
                   Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          authenticatedDB
-              .getDataStore()
+          docDB
               .queryBuilder()
               .drop()
               .keyspace(namespaceName)
