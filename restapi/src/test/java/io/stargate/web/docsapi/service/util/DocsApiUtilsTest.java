@@ -31,7 +31,7 @@ import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,42 +56,42 @@ class DocsApiUtilsTest {
     public void happyPath() {
       int index = RandomUtils.nextInt(100, 999);
 
-      String result = DocsApiUtils.convertArrayPath(String.format("[%d]", index));
+      String result = DocsApiUtils.convertArrayPath(String.format("[%d]", index), 999999);
 
       assertThat(result).isEqualTo(String.format("[000%d]", index));
     }
 
     @Test
     public void happyPathWithSegments() {
-      String result = DocsApiUtils.convertArrayPath("[1],[44],[555]");
+      String result = DocsApiUtils.convertArrayPath("[1],[44],[555]", 999999);
 
       assertThat(result).isEqualTo("[000001],[000044],[000555]");
     }
 
     @Test
     public void globIgnored() {
-      String result = DocsApiUtils.convertArrayPath("[*]");
+      String result = DocsApiUtils.convertArrayPath("[*]", 999999);
 
       assertThat(result).isEqualTo("[*]");
     }
 
     @Test
     public void notArrayIgnored() {
-      String result = DocsApiUtils.convertArrayPath("somePath");
+      String result = DocsApiUtils.convertArrayPath("somePath", 999999);
 
       assertThat(result).isEqualTo("somePath");
     }
 
     @Test
     public void notArrayWithSegmentsIgnored() {
-      String result = DocsApiUtils.convertArrayPath("somePath,otherPath");
+      String result = DocsApiUtils.convertArrayPath("somePath,otherPath", 999999);
 
       assertThat(result).isEqualTo("somePath,otherPath");
     }
 
     @Test
     public void maxArrayExceeded() {
-      Throwable t = catchThrowable(() -> DocsApiUtils.convertArrayPath("[1234567]"));
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertArrayPath("[1234567]", 999999));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -101,7 +101,7 @@ class DocsApiUtilsTest {
 
     @Test
     public void numberFormatException() {
-      Throwable t = catchThrowable(() -> DocsApiUtils.convertArrayPath("[not_allowed]"));
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertArrayPath("[not_allowed]", 999999));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -116,14 +116,15 @@ class DocsApiUtilsTest {
     public void happyPath() {
       int index = RandomUtils.nextInt(100, 999);
 
-      Optional<Integer> result = DocsApiUtils.extractArrayPathIndex(String.format("[%d]", index));
+      Optional<Integer> result =
+          DocsApiUtils.extractArrayPathIndex(String.format("[%d]", index), 999999);
 
       assertThat(result).hasValue(index);
     }
 
     @Test
     public void emptyNotArray() {
-      Optional<Integer> result = DocsApiUtils.extractArrayPathIndex("some");
+      Optional<Integer> result = DocsApiUtils.extractArrayPathIndex("some", 999999);
 
       assertThat(result).isEmpty();
     }
@@ -170,7 +171,7 @@ class DocsApiUtilsTest {
       ArrayNode input =
           objectMapper.createArrayNode().add("path.to.the.field").add("path.to.different");
 
-      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input);
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
       assertThat(result)
           .hasSize(2)
           .anySatisfy(l -> assertThat(l).containsExactly("path", "to", "the", "field"))
@@ -181,7 +182,7 @@ class DocsApiUtilsTest {
     public void arrays() {
       ArrayNode input = objectMapper.createArrayNode().add("path.[*].any.[1].field");
 
-      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input);
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
       assertThat(result)
           .singleElement()
           .satisfies(l -> assertThat(l).containsExactly("path", "[*]", "any", "[000001]", "field"));
@@ -191,7 +192,7 @@ class DocsApiUtilsTest {
     public void segments() {
       ArrayNode input = objectMapper.createArrayNode().add("path.one,two.[0],[1].field");
 
-      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input);
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
       assertThat(result)
           .singleElement()
           .satisfies(
@@ -202,7 +203,7 @@ class DocsApiUtilsTest {
     public void notArrayInput() {
       ObjectNode input = objectMapper.createObjectNode();
 
-      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input));
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input, 999999));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -213,7 +214,7 @@ class DocsApiUtilsTest {
     public void containsNotStringInInput() {
       ArrayNode input = objectMapper.createArrayNode().add("path.one,two.[0],[1].field").add(15L);
 
-      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input));
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input, 999999));
 
       assertThat(t)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -370,13 +371,13 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "value",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "value",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
@@ -391,13 +392,13 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "commas.",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field,with",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "commas.",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
@@ -412,15 +413,15 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "value",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "value",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   "value",
-                  QueryConstants.P_COLUMN_NAME.apply(3),
+                  DocsApiConstants.P_COLUMN_NAME.apply(3),
                   ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
@@ -435,13 +436,13 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.LEAF_COLUMN_NAME,
+                  DocsApiConstants.LEAF_COLUMN_NAME,
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "other",
-                  QueryConstants.P_COLUMN_NAME.apply(2),
+                  DocsApiConstants.P_COLUMN_NAME.apply(2),
                   ""));
 
       boolean result = DocsApiUtils.isRowMatchingPath(row, path);
@@ -463,9 +464,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "value"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -480,9 +481,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field,with",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "commas."));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -497,9 +498,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "more"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -514,9 +515,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "value2"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -531,9 +532,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "[000001]"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -548,9 +549,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "parent"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -565,9 +566,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "parent",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   ""));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -582,9 +583,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "noValue"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -599,9 +600,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "[000001]"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);
@@ -616,9 +617,9 @@ class DocsApiUtilsTest {
           MapBackedRow.of(
               TABLE,
               ImmutableMap.of(
-                  QueryConstants.P_COLUMN_NAME.apply(0),
+                  DocsApiConstants.P_COLUMN_NAME.apply(0),
                   "field",
-                  QueryConstants.P_COLUMN_NAME.apply(1),
+                  DocsApiConstants.P_COLUMN_NAME.apply(1),
                   "value"));
 
       boolean result = DocsApiUtils.isRowOnPath(row, path);

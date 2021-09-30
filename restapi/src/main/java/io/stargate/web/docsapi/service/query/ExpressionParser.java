@@ -26,6 +26,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.ImmutableFilterExpression.Builder;
 import io.stargate.web.docsapi.service.query.condition.BaseCondition;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
@@ -54,10 +55,12 @@ public class ExpressionParser {
   private static final String AND_OPERATOR = "$and";
 
   private final ConditionParser conditionParser;
+  private final DocsApiConfiguration config;
 
   @Inject
-  public ExpressionParser(ConditionParser predicateProvider) {
+  public ExpressionParser(ConditionParser predicateProvider, DocsApiConfiguration config) {
     this.conditionParser = predicateProvider;
+    this.config = config;
   }
 
   /**
@@ -302,13 +305,13 @@ public class ExpressionParser {
     String[] fieldNamePath = DocsApiUtils.PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
-            .map(DocsApiUtils::convertArrayPath)
+            .map(p -> DocsApiUtils.convertArrayPath(p, config.getMaxArrayLength()))
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
           prependedPath.stream()
-              .map(path -> DocsApiUtils.convertArrayPath(path))
+              .map(path -> DocsApiUtils.convertArrayPath(path, config.getMaxArrayLength()))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);

@@ -29,8 +29,8 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.FilterExpression;
-import io.stargate.web.docsapi.service.query.QueryConstants;
 import io.stargate.web.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQueryBuilder;
@@ -63,27 +63,27 @@ public class SubDocumentsResolver implements DocumentsResolver {
 
   private final int keyDepth;
 
+  private DocsApiConfiguration config;
+
   public SubDocumentsResolver(
       Expression<FilterExpression> expression,
       String documentId,
       List<String> subDocumentPath,
-      ExecutionContext context) {
+      ExecutionContext context,
+      DocsApiConfiguration config) {
     this.expression = expression;
     this.context = createContext(context, subDocumentPath);
     this.queryBuilder = new SubDocumentSearchQueryBuilder(documentId, subDocumentPath);
     // key depth explained:
     //  - one extra for the document id
     this.keyDepth = subDocumentPath.size() + 1;
+    this.config = config;
   }
 
   @Override
   public Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator) {
-    String[] columns = QueryConstants.ALL_COLUMNS_NAMES.apply(configuration.getMaxDepth());
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
+    String[] columns = DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth());
 
     // prepare the query
     return RxUtils.singleFromFuture(
@@ -106,7 +106,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   keyDepth,
                   query,
-                  configuration.getApproximateStoragePageSize(paginator.docPageSize),
+                  config.getApproximateStoragePageSize(paginator.docPageSize),
                   true,
                   paginator.getCurrentDbPageState(),
                   context);

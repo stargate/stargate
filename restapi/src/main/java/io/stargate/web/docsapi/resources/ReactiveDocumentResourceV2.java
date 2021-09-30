@@ -16,6 +16,7 @@ import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ReactiveDocumentService;
@@ -301,14 +302,15 @@ public class ReactiveDocumentResourceV2 {
       @ApiParam(
               value =
                   "the max number of documents to return, max "
-                      + DocumentDB.MAX_PAGE_SIZE
+                      + DocsApiConfiguration.MAX_PAGE_SIZE
                       + ", default 3",
               defaultValue = "3")
           @QueryParam("page-size")
           @Min(value = 1, message = "the minimum number of documents to return is one")
           @Max(
-              value = DocumentDB.MAX_PAGE_SIZE,
-              message = "the max number of documents to return is " + DocumentDB.MAX_PAGE_SIZE)
+              value = 20,
+              message =
+                  "the max number of documents to return is " + DocsApiConfiguration.MAX_PAGE_SIZE)
           Integer pageSizeParam,
       @ApiParam(
               value = "Cassandra page state, used for pagination on consecutive requests",

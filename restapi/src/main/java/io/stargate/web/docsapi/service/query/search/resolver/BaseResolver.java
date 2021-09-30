@@ -20,6 +20,7 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.rules.ExpressionUtils;
@@ -36,11 +37,14 @@ public final class BaseResolver {
    * Resolves the document resolver without any parent.
    *
    * @param expression {@link Expression}
+   * @param config {@link DocsApiConfiguration}
    * @return DocumentsResolver
    */
   public static DocumentsResolver resolve(
-      Expression<FilterExpression> expression, ExecutionContext context) {
-    return resolve(expression, context, null);
+      Expression<FilterExpression> expression,
+      ExecutionContext context,
+      DocsApiConfiguration config) {
+    return resolve(expression, context, null, config);
   }
 
   /**
@@ -48,10 +52,14 @@ public final class BaseResolver {
    *
    * @param expression {@link Expression}
    * @param parent parent or <code>null</code>
+   * @param config {@link DocsApiConfiguration}
    * @return DocumentsResolver
    */
   public static DocumentsResolver resolve(
-      Expression<FilterExpression> expression, ExecutionContext context, DocumentsResolver parent) {
+      Expression<FilterExpression> expression,
+      ExecutionContext context,
+      DocumentsResolver parent,
+      DocsApiConfiguration config) {
     // if we are hitting the literal TRUE, then return parent
     if (Literal.EXPR_TYPE.equals(expression.getExprType())) {
       return parent;
@@ -63,10 +71,10 @@ public final class BaseResolver {
     // since this will simplify as well, check if we have And
     // if we have And proceed to the CNF resolver
     if (And.EXPR_TYPE.equals(cnf.getExprType())) {
-      return CnfResolver.resolve(cnf, context, parent);
+      return CnfResolver.resolve(cnf, context, parent, config);
     } else {
       // otherwise wrap to And and forward to the CNF
-      return CnfResolver.resolve(And.of(cnf), context, parent);
+      return CnfResolver.resolve(And.of(cnf), context, parent, config);
     }
   }
 }

@@ -38,6 +38,7 @@ import io.stargate.web.docsapi.resources.JsonSchemaResource;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
 import io.stargate.web.resources.v1.ColumnResource;
@@ -75,6 +76,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final DataStoreFactory dataStoreFactory;
+  private final DocsApiConfiguration docsApiConf = DocsApiConfiguration.DEFAULT;
 
   public RestApiServer(
       AuthenticationService authenticationService,
@@ -114,7 +116,8 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-    final Db db = new Db(authenticationService, authorizationService, dataStoreFactory);
+    final Db db =
+        new Db(authenticationService, authorizationService, dataStoreFactory, docsApiConf);
 
     configureObjectMapper(environment.getObjectMapper());
 
@@ -156,6 +159,15 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
     environment.jersey().register(UserDefinedTypesResource.class);
 
     // Documents API
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(docsApiConf).to(DocsApiConfiguration.class);
+              }
+            });
     environment.jersey().register(new DocsApiComponentsBinder());
     environment.jersey().register(ReactiveDocumentResourceV2.class);
     environment.jersey().register(DocumentResourceV2.class);

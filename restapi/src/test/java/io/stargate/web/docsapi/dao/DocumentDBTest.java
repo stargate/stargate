@@ -12,7 +12,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -27,9 +27,12 @@ import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.SchemaBuilder.SchemaBuilder__5;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
@@ -38,12 +41,12 @@ import org.junit.jupiter.api.Test;
 
 public class DocumentDBTest {
 
+  private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
   private static final Schema schema = buildSchema();
 
   private final ExecutionContext context = ExecutionContext.NOOP_CONTEXT;
   private DocumentDB documentDB;
   private TestDataStore ds;
-  private static final ObjectMapper mapper = new ObjectMapper();
 
   private static Schema buildSchema() {
     SchemaBuilder__5 schemaBuilder =
@@ -56,7 +59,7 @@ public class DocumentDBTest {
             .column("dbl_value", Type.Double)
             .column("bool_value", Type.Boolean);
 
-    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+    for (int i = 0; i < config.getMaxDepth(); i++) {
       schemaBuilder = schemaBuilder.column("p" + i, Type.Text, Clustering);
     }
 
@@ -71,15 +74,17 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
+    documentDB =
+        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
   }
 
   @Test
   public void getInsertStatement() {
-    Object[] values = new Object[DocumentDB.allColumns().size()];
+    Object[] values =
+        new Object[DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()).length];
     int idx = 0;
     values[idx++] = "key";
-    for (int i = 0; i < DocumentDB.MAX_DEPTH; i++) {
+    for (int i = 0; i < config.getMaxDepth(); i++) {
       values[idx++] = "value" + i;
     }
     values[idx++] = "leaf";
@@ -180,9 +185,10 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = Arrays.asList("a", "b", "c");
-    Map<String, Object> map = documentDB.newBindMap(path);
+    documentDB =
+        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
+    List<String> path = ImmutableList.of("a", "b", "c");
+    Map<String, Object> map = DocsApiUtils.newBindMap(path, config.getMaxDepth());
     map.put("key", "key");
     map.put("leaf", "c");
     map.put("bool_value", true);
@@ -214,10 +220,11 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = Arrays.asList("a", "b", "c");
-    List<String> patchedKeys = Arrays.asList("eric");
-    Map<String, Object> map = documentDB.newBindMap(path);
+    documentDB =
+        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
+    List<String> path = ImmutableList.of("a", "b", "c");
+    List<String> patchedKeys = ImmutableList.of("eric");
+    Map<String, Object> map = DocsApiUtils.newBindMap(path, config.getMaxDepth());
     map.put("key", "key");
     map.put("leaf", "c");
     map.put("bool_value", null);
@@ -264,8 +271,9 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
-    List<String> path = Arrays.asList("a", "b", "c");
+    documentDB =
+        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
+    List<String> path = ImmutableList.of("a", "b", "c");
     List<Object[]> vars = new ArrayList<>();
     vars.add(new Object[path.size() + 2]);
     vars.get(0)[0] = 1L;
@@ -293,7 +301,8 @@ public class DocumentDBTest {
         .when(authorizationService)
         .authorizeDataRead(
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB = new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService);
+    documentDB =
+        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
 
     Map<String, Set<DeadLeaf>> deadLeaves = new LinkedHashMap<>();
     deadLeaves.put("$.a.b", new HashSet<>());

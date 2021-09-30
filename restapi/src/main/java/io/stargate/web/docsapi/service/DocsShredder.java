@@ -1,13 +1,13 @@
 package io.stargate.web.docsapi.service;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
-import io.stargate.web.docsapi.dao.DocumentDB;
+import com.google.common.base.Splitter;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.exception.RuntimeExceptionPassHandlingStrategy;
 import io.stargate.web.docsapi.exception.UncheckedJacksonException;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -33,11 +33,11 @@ public class DocsShredder {
   private final Splitter FORM_SPLITTER = Splitter.on('&');
   private final Splitter PAIR_SPLITTER = Splitter.on('=');
 
-  private DocsApiConfiguration docsApiConfiguration;
+  private DocsApiConfiguration config;
 
   @Inject
-  public DocsShredder(DocsApiConfiguration docsApiConfiguration) {
-    this.docsApiConfiguration = docsApiConfiguration;
+  public DocsShredder(DocsApiConfiguration config) {
+    this.config = config;
   }
 
   private Object convertToBackendBooleanValue(boolean value, boolean numericBooleans) {
@@ -51,13 +51,13 @@ public class DocsShredder {
    * Transforms a JSON payload into a set of bind variables to send to Cassandra.
    *
    * @param surfer
-   * @param db
    * @param path The path within the document that is being written to. If empty, writes to the root
    *     of the document.
    * @param key The name of the document that will be written
    * @param payload a JSON object, or a URL-encoded form with the relevant data in it
    * @param patching If this payload meant to be part of a PATCH request (this causes a small amount
    *     of extra validation if true)
+   * @param numericBooleans - whether booleans are being represented as 0 and 1 in this context
    * @param isJson if the request had a content type of application/json, else it will be
    *     interpreted as a URL encoded form (deprecated)
    * @return The full bind variable list for the subsequent inserts, and all first-level keys, as an
@@ -65,19 +65,19 @@ public class DocsShredder {
    */
   public ImmutablePair<List<Object[]>, List<String>> shredPayload(
       JsonSurfer surfer,
-      DocumentDB db,
       List<String> path,
       String key,
       String payload,
       boolean patching,
+      boolean numericBooleans,
       boolean isJson) {
     String trimmed = payload.trim();
     if (isJson) {
-      return shredJson(surfer, db, path, key, trimmed, patching);
+      return shredJson(surfer, path, key, trimmed, patching, numericBooleans);
     } else {
       // This is a deprecated path, and is un-documented
       // TODO: delete this after no testing relies on it
-      return shredForm(db, path, key, trimmed, patching);
+      return shredForm(path, key, trimmed, patching, numericBooleans);
     }
   }
 
@@ -89,20 +89,20 @@ public class DocsShredder {
    * statements.
    *
    * @param surfer - a JsonSurfer instance
-   * @param db - the DocumentDB
    * @param path - a base path, which affects the final bound parameters if present
    * @param key - the ID of the document
    * @param jsonPayload - the payload
    * @param patching - whether we are using this shredding to patch (used only for error checking)
+   * @param numericBooleans - whether booleans are being represented as 0 and 1 in this context
    * @return a Pair with a bound parameter list, and a list of top-level keys in the JSON
    */
   public ImmutablePair<List<Object[]>, List<String>> shredJson(
       JsonSurfer surfer,
-      DocumentDB db,
       List<String> path,
       String key,
       String jsonPayload,
-      boolean patching) {
+      boolean patching,
+      boolean numericBooleans) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
     try {
@@ -126,7 +126,7 @@ public class DocsShredder {
                     || isEmptyArray(value)) {
                   ImmutablePair<Map<String, Object>, List<String>> result =
                       convertJsonNodeToBoundVariables(
-                          value, parsingContext, db, path, key, patching);
+                          value, parsingContext, path, key, patching, numericBooleans);
                   Map<String, Object> boundVariables = result.left;
                   firstLevelKeys.addAll(result.right);
                   bindVariableList.add(boundVariables.values().toArray());
@@ -156,18 +156,31 @@ public class DocsShredder {
     }
   }
 
+  /**
+   * Takes a JsonNode's value and its parse context and turns it into the bind parameters for a
+   * single row in the underlying persistence. If @param path is provided, then the row will be
+   * prefixed with that path.
+   *
+   * @param jsonValue the JSON value
+   * @param parsingContext
+   * @param path the path which is always put at the start of the path columns
+   * @param key the document's ID
+   * @param patching - whether we are using this shredding to patch (used only for error checking)
+   * @param numericBooleans - whether booleans are being represented as 0 and 1 in this context
+   * @return A Pair containing the binding parameter Map and a List of all top-level keys in the
+   *     JSON (used for patching)
+   */
   private ImmutablePair<Map<String, Object>, List<String>> convertJsonNodeToBoundVariables(
       JsonNode jsonValue,
       ParsingContext parsingContext,
-      DocumentDB db,
       List<String> path,
       String key,
-      boolean patching) {
-    List<String> firstLevelKeys = new ArrayList<>();
+      boolean patching,
+      boolean numericBooleans) {
     JsonPath jsonPath =
         JsonPathCompiler.compile(
             DocsApiUtils.convertJsonToBracketedPath(parsingContext.getJsonPath()));
-    Map<String, Object> bindMap = db.newBindMap(path);
+    Map<String, Object> bindMap = DocsApiUtils.newBindMap(path, config.getMaxDepth());
 
     bindMap.put("key", key);
 
@@ -175,9 +188,10 @@ public class DocsShredder {
     String leaf = null;
     int i = path.size();
 
-    String[] unboundPaths = new String[DocumentDB.MAX_DEPTH];
+    String[] unboundPaths = new String[config.getMaxDepth()];
+    List<String> firstLevelKeys = new ArrayList<>();
     while (it.hasNext()) {
-      if (i >= docsApiConfiguration.getMaxDepth()) {
+      if (i >= config.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
       }
 
@@ -201,10 +215,20 @@ public class DocsShredder {
       }
     }
 
-    bindMap = addAllToBindMap(bindMap, unboundPaths, jsonValue, leaf, db.treatBooleansAsNumeric());
+    bindMap = addAllToBindMap(bindMap, unboundPaths, jsonValue, leaf, numericBooleans);
     return new ImmutablePair<>(bindMap, firstLevelKeys);
   }
 
+  /**
+   * Constructs a bound parameter Map using shredded paths, a JSON value, and a leaf value.
+   *
+   * @param bindMap the bindMap which already has a prepended path bound to it
+   * @param unboundPaths the paths which are not yet bound
+   * @param jsonValue the JSON value
+   * @param leaf the leaf of the path
+   * @param treatBooleansAsNumeric whether booleans are represented by 0 and 1 in this context
+   * @return A fully populated bind map
+   */
   private Map<String, Object> addAllToBindMap(
       Map<String, Object> bindMap,
       String[] unboundPaths,
@@ -212,28 +236,36 @@ public class DocsShredder {
       String leaf,
       boolean treatBooleansAsNumeric) {
     bindMap = addUnboundPaths(bindMap, unboundPaths);
-    bindMap.put(DocumentDB.LEAF_VALUE_NAME, leaf);
+    bindMap.put(DocsApiConstants.LEAF_COLUMN_NAME, leaf);
 
     if (jsonValue.isValueNode() && !jsonValue.isNull()) {
       ValueNode value = (ValueNode) jsonValue;
 
       if (value.isNumber()) {
-        bindMap.put(DocumentDB.DOUBLE_VALUE_NAME, value.asDouble());
+        bindMap.put(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME, value.asDouble());
       } else if (value.isBoolean()) {
         bindMap.put(
-            DocumentDB.BOOL_VALUE_NAME,
+            DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME,
             convertToBackendBooleanValue(value.asBoolean(), treatBooleansAsNumeric));
       } else {
-        bindMap.put(DocumentDB.TEXT_VALUE_NAME, value.asText());
+        bindMap.put(DocsApiConstants.STRING_VALUE_COLUMN_NAME, value.asText());
       }
     } else if (isEmptyObject(jsonValue)) {
-      bindMap.put(DocumentDB.TEXT_VALUE_NAME, DocumentDB.EMPTY_OBJECT_MARKER);
+      bindMap.put(DocsApiConstants.STRING_VALUE_COLUMN_NAME, DocsApiConstants.EMPTY_OBJECT_MARKER);
     } else if (isEmptyArray(jsonValue)) {
-      bindMap.put(DocumentDB.TEXT_VALUE_NAME, DocumentDB.EMPTY_ARRAY_MARKER);
+      bindMap.put(DocsApiConstants.STRING_VALUE_COLUMN_NAME, DocsApiConstants.EMPTY_ARRAY_MARKER);
     }
     return bindMap;
   }
 
+  /**
+   * Adds path bindings to the bindMap, starting at the first index in the unboundPaths that is
+   * non-null.
+   *
+   * @param bindMap
+   * @param unboundPaths
+   * @return a bind map with all bound paths
+   */
   private Map<String, Object> addUnboundPaths(Map<String, Object> bindMap, String[] unboundPaths) {
     for (int i = 0; i < unboundPaths.length; i++) {
       String unboundPath = unboundPaths[i];
@@ -253,17 +285,25 @@ public class DocsShredder {
     return index == pathSize;
   }
 
-  private String convertPathValueForArrays(String innerPath, PathOperator op) {
+  /**
+   * Standardizes a pathSegment if it is part of an array by left-padding it. If it is not part of
+   * an array, this function effectively is a no-op.
+   *
+   * @param pathSegment the path segment
+   * @param op information about the path
+   * @return a converted pathSegment
+   */
+  private String convertPathValueForArrays(String pathSegment, PathOperator op) {
     String pathValue;
     if (op.getType() == PathOperator.Type.ARRAY) {
-      int idx = Integer.parseInt(innerPath);
-      if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
+      int idx = Integer.parseInt(pathSegment);
+      if (idx > config.getMaxArrayLength() - 1) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
       }
       // left-pad the array element to 6 characters
-      pathValue = "[" + DocsApiUtils.leftPadTo6(innerPath) + "]";
+      pathValue = "[" + DocsApiUtils.leftPadTo6(pathSegment) + "]";
     } else {
-      pathValue = innerPath;
+      pathValue = pathSegment;
     }
 
     return pathValue;
@@ -275,16 +315,20 @@ public class DocsShredder {
    * purposes of merging key sets in the event of a PATCH operation. This is only used by certain
    * performance tests, is not recommended for use, and will be deleted in the near future.
    *
-   * @param db
    * @param path
    * @param key
    * @param formPayload
    * @param patching
+   * @param numericBooleans
    * @return
    */
   @Deprecated
   private ImmutablePair<List<Object[]>, List<String>> shredForm(
-      DocumentDB db, List<String> path, String key, String formPayload, boolean patching) {
+      List<String> path,
+      String key,
+      String formPayload,
+      boolean patching,
+      boolean numericBooleans) {
     List<Object[]> bindVariableList = new ArrayList<>();
     List<String> firstLevelKeys = new ArrayList<>();
     Iterable<String> pairs = FORM_SPLITTER.split(formPayload);
@@ -303,11 +347,11 @@ public class DocsShredder {
       }
       String[] fieldNames = DocsApiUtils.PERIOD_PATTERN.split(fullyQualifiedField);
 
-      if (path.size() + fieldNames.length > docsApiConfiguration.getMaxDepth()) {
+      if (path.size() + fieldNames.length > config.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
       }
 
-      Map<String, Object> bindMap = db.newBindMap(path);
+      Map<String, Object> bindMap = DocsApiUtils.newBindMap(path, config.getMaxDepth());
       bindMap.put("key", key);
 
       String leaf = null;
@@ -327,7 +371,7 @@ public class DocsShredder {
           } catch (NumberFormatException e) {
             // do nothing
           }
-          if (idx > docsApiConfiguration.getMaxArrayLength() - 1) {
+          if (idx > config.getMaxArrayLength() - 1) {
             throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
           }
 
@@ -340,7 +384,7 @@ public class DocsShredder {
         bindMap.put("p" + (i + path.size()), fieldName);
         leaf = fieldName;
       }
-      bindMap.put(DocumentDB.LEAF_VALUE_NAME, leaf);
+      bindMap.put(DocsApiConstants.LEAF_COLUMN_NAME, leaf);
 
       if (value.equals("null")) {
         bindMap.put("dbl_value", null);
@@ -348,8 +392,8 @@ public class DocsShredder {
         bindMap.put("text_value", null);
       } else if (value.equals("true") || value.equals("false")) {
         bindMap.put(
-            DocumentDB.BOOL_VALUE_NAME,
-            convertToBackendBooleanValue(Boolean.parseBoolean(value), db.treatBooleansAsNumeric()));
+            DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME,
+            convertToBackendBooleanValue(Boolean.parseBoolean(value), numericBooleans));
       } else {
         boolean isNumber;
         Double doubleValue = null;
@@ -360,9 +404,9 @@ public class DocsShredder {
           isNumber = false;
         }
         if (isNumber) {
-          bindMap.put(DocumentDB.DOUBLE_VALUE_NAME, doubleValue);
+          bindMap.put(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME, doubleValue);
         } else {
-          bindMap.put(DocumentDB.TEXT_VALUE_NAME, value);
+          bindMap.put(DocsApiConstants.STRING_VALUE_COLUMN_NAME, value);
         }
       }
       bindVariableList.add(bindMap.values().toArray());

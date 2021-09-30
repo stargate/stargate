@@ -22,7 +22,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.web.docsapi.service.query.QueryConstants;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -74,7 +74,7 @@ public abstract class AbstractSearchQueryBuilder {
             .get()
             .select()
             .column(columns)
-            .writeTimeColumn(QueryConstants.LEAF_COLUMN_NAME) // TODO needed?
+            .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
             .from(keyspace, table)
             .where(getPredicates());
 

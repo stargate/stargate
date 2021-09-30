@@ -19,7 +19,6 @@ package io.stargate.web.docsapi.service.query.search.resolver;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.stargate.web.docsapi.dao.Paginator;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 
@@ -30,16 +29,11 @@ public interface DocumentsResolver {
    * Returns documents.
    *
    * @param queryExecutor
-   * @param configuration {@link DocsApiConfiguration}
    * @param keyspace keyspace to search in
    * @param collection collection to search in
    * @param paginator {@link Paginator}
    * @return Flowable of documents.
    */
   Flowable<RawDocument> getDocuments(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      String keyspace,
-      String collection,
-      Paginator paginator);
+      QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator);
 }

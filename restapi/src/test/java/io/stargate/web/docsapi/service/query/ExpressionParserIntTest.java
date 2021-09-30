@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.query.Predicate;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
 import io.stargate.web.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.web.docsapi.service.query.condition.impl.GenericCondition;
@@ -59,9 +60,11 @@ class ExpressionParserIntTest {
 
   ObjectMapper mapper = new ObjectMapper();
 
+  DocsApiConfiguration configuration = DocsApiConfiguration.DEFAULT;
+
   @BeforeEach
   public void init() {
-    service = new ExpressionParser(new ConditionParser());
+    service = new ExpressionParser(new ConditionParser(), configuration);
   }
 
   @Nested

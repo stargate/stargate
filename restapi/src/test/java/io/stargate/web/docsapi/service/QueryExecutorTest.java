@@ -50,6 +50,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class QueryExecutorTest extends AbstractDataStoreTest {
+  private DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
 
   protected static final Table table =
       ImmutableTable.builder()
@@ -90,7 +91,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
   @BeforeEach
   public void setup() {
-    executor = new QueryExecutor(datastore());
+    executor = new QueryExecutor(datastore(), config);
     allDocsQuery = datastore().queryBuilder().select().star().from(table).build().bind();
     allRowsForDocQuery =
         datastore().queryBuilder().select().star().from(table).where("key", Predicate.EQ).build();

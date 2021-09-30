@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.query.search.db.impl;
 
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import java.util.Collection;
@@ -34,19 +35,22 @@ public class FilterExpressionSearchQueryBuilder extends FilterPathSearchQueryBui
 
   private final Collection<FilterExpression> expressions;
 
-  public FilterExpressionSearchQueryBuilder(FilterExpression expression) {
-    this(Collections.singleton(expression));
+  public FilterExpressionSearchQueryBuilder(
+      FilterExpression expression, DocsApiConfiguration config) {
+    this(Collections.singleton(expression), config);
   }
 
-  public FilterExpressionSearchQueryBuilder(Collection<FilterExpression> expressions) {
-    super(getFilterPath(expressions), true);
+  public FilterExpressionSearchQueryBuilder(
+      Collection<FilterExpression> expressions, DocsApiConfiguration config) {
+    super(getFilterPath(expressions), true, config);
     this.expressions = expressions;
   }
 
   // pipe constructor to super class, no expressions defined
-  protected FilterExpressionSearchQueryBuilder(FilterPath filterPath) {
-    super(filterPath, true);
+  protected FilterExpressionSearchQueryBuilder(FilterPath filterPath, DocsApiConfiguration config) {
+    super(filterPath, true, config);
     this.expressions = Collections.emptyList();
+    System.out.println("here3");
   }
 
   /**

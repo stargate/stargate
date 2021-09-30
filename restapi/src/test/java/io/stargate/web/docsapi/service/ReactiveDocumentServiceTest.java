@@ -85,6 +85,8 @@ class ReactiveDocumentServiceTest {
 
   ObjectMapper objectMapper = new ObjectMapper();
 
+  DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
+
   @Mock ExpressionParser expressionParser;
 
   @Mock DocumentSearchService searchService;
@@ -121,7 +123,13 @@ class ReactiveDocumentServiceTest {
   public void init() {
     reactiveDocumentService =
         new ReactiveDocumentService(
-            expressionParser, searchService, jsonConverter, docsShredder, objectMapper, timeSource);
+            expressionParser,
+            searchService,
+            jsonConverter,
+            docsShredder,
+            objectMapper,
+            timeSource,
+            config);
     lenient()
         .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
         .thenReturn(CompletableFuture.completedFuture(deleteResultSet));

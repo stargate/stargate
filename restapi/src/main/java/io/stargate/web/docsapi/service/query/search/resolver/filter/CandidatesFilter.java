@@ -23,7 +23,6 @@ import io.reactivex.rxjava3.core.Single;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
 
@@ -34,32 +33,27 @@ public interface CandidatesFilter {
    * Returns single that emmit prepared query that this filter needs.
    *
    * @param dataStore {@link DataStore}
-   * @param configuration {@link DocsApiConfiguration}
    * @param keyspace Keyspace
    * @param collection Collection
    * @return Prepared query in a single
    */
   @NonNull
   Single<? extends Query<? extends BoundQuery>> prepareQuery(
-      DataStore dataStore, DocsApiConfiguration configuration, String keyspace, String collection);
+      DataStore dataStore, String keyspace, String collection);
 
   /**
    * Executes a filter for given {@link RawDocument} oprating with the query that was supplied in
-   * the {@link #prepareQuery(DataStore, DocsApiConfiguration, String, String)}.
+   * the {@link #prepareQuery(DataStore, String, String)}.
    *
    * <p>Returns the Maybe. If this maybe emits an item, we consider this filter to be successful. If
    * the maybe does not emit an item, we consider that filter is not passed.
    *
    * @param queryExecutor {@link QueryExecutor}
-   * @param configuration {@link DocsApiConfiguration}
-   * @param preparedQuery Query provided as part of the {@link #prepareQuery(DataStore,
-   *     DocsApiConfiguration, String, String)}
+   * @param preparedQuery Query provided as part of the {@link #prepareQuery(DataStore, String,
+   *     String)}
    * @param document Document to filter
    * @return Maybe, if emits the item, then filter is considered as passed
    */
   Maybe<?> bindAndFilter(
-      QueryExecutor queryExecutor,
-      DocsApiConfiguration configuration,
-      Query<? extends BoundQuery> preparedQuery,
-      RawDocument document);
+      QueryExecutor queryExecutor, Query<? extends BoundQuery> preparedQuery, RawDocument document);
 }
