@@ -56,6 +56,7 @@ import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.graphql.schema.CassandraFetcherExceptionHandler;
 import io.stargate.graphql.schema.SchemaConstants;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntity;
 import io.stargate.graphql.schema.graphqlfirst.fetchers.deployed.FederatedEntityFetcher;
@@ -228,7 +229,12 @@ public class SchemaProcessor {
     } else {
       graphqlBuilder = GraphQL.newGraphQL(schema);
     }
-    return graphqlBuilder.mutationExecutionStrategy(new AsyncExecutionStrategy()).build();
+    return graphqlBuilder
+        .defaultDataFetcherExceptionHandler(CassandraFetcherExceptionHandler.INSTANCE)
+        // Use parallel execution strategy for mutations (serial is default)
+        .mutationExecutionStrategy(
+            new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
+        .build();
   }
 
   /**

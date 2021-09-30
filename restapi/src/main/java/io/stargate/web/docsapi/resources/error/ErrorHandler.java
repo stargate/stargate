@@ -22,6 +22,7 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.models.Error;
 import javax.ws.rs.core.Response;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,12 @@ public final class ErrorHandler
               new Error(
                   "Role unauthorized for operation: " + throwable.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
+          .build();
+    } else if (throwable instanceof OverloadedException) {
+      return Response.status(Response.Status.TOO_MANY_REQUESTS)
+          .entity(
+              new Error(
+                  "Database is overloaded", Response.Status.TOO_MANY_REQUESTS.getStatusCode()))
           .build();
     } else if (throwable instanceof NoNodeAvailableException) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)
