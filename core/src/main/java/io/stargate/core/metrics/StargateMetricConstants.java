@@ -23,6 +23,7 @@ public class StargateMetricConstants {
 
   // metric names
   public static final String METRIC_HTTP_SERVER_REQUESTS = "http.server.requests";
+  public static final String METRIC_HTTP_SERVER_REQUESTS_COUNTER = "http.server.requests.counter";
 
   // tag keys
   public static final String MODULE_KEY = "module";
