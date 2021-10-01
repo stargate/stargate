@@ -112,6 +112,9 @@ public enum ErrorCode {
   DOCS_API_JSON_SCHEMA_INVALID(
       Response.Status.BAD_REQUEST, "The provided JSON schema is invalid or malformed."),
 
+  DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST(
+      Response.Status.NOT_FOUND, "The JSON schema is not set for the collection."),
+
   DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE(
       Response.Status.BAD_REQUEST,
       "When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons."),

@@ -72,6 +72,10 @@ public class JsonSchemaHandler {
   public JsonSchemaResponse getJsonSchemaForCollection(
       DocumentDB db, String namespace, String collection) {
     String schemaData = getRawJsonSchemaForCollection(db, namespace, collection);
+    if (null == schemaData) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST);
+    }
+
     try {
       return new JsonSchemaResponse(mapper.readTree(schemaData).requiredAt("/schema"));
     } catch (JsonProcessingException e) {

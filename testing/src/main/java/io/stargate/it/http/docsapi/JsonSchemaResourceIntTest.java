@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +18,6 @@ import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -61,19 +58,8 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
   }
 
   @AfterEach
-  public void emptyTargetCollection(CqlSession session) {
-    ResultSet results = session.execute(String.format("SELECT key FROM %s", TARGET_COLLECTION));
-    List<String> ids = new ArrayList<>();
-    results.forEach(row -> ids.add(String.format("'%s'", row.getString("key"))));
-
-    // This resets the JSON schema on the table
-    session.execute(String.format("ALTER TABLE %s WITH COMMENT = ''", TARGET_COLLECTION));
-
-    if (!ids.isEmpty()) {
-      session.execute(
-          String.format(
-              "DELETE FROM %s WHERE key IN (%s)", TARGET_COLLECTION, String.join(", ", ids)));
-    }
+  public void emptyTargetCollection(CqlSession session) throws IOException {
+    RestUtils.delete(authToken, collectionPath, 204);
   }
 
   private static void initAuth() throws IOException {
@@ -134,11 +120,32 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void testInvalidSchema() throws IOException {
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\":\"collection\"}",
+        201);
+
     JsonNode schema =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("invalid-schema.json"));
     String resp = RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 400);
     JsonNode data = OBJECT_MAPPER.readTree(resp);
     assertThat(data.requiredAt("/description"))
         .isEqualTo(TextNode.valueOf("The provided JSON schema is invalid or malformed."));
+  }
+
+  @Test
+  public void testSchemaNotSet() throws IOException {
+    RestUtils.post(
+        authToken,
+        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
+        "{\"name\":\"collection\"}",
+        201);
+
+    String r = RestUtils.get(authToken, collectionPath + "/json-schema", 404);
+
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"The JSON schema is not set for the collection.\",\"code\":404}");
   }
 }
