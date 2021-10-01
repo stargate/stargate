@@ -233,6 +233,14 @@ public class Starter {
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
 
+  @Order(value = 21)
+  @Option(
+      name = {
+        "--disable-bundles-watch",
+        "Whether watching the bundle directory for new jars load should be disabled"
+      })
+  protected boolean disableBundlesWatch = false;
+
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -438,7 +446,9 @@ public class Starter {
 
     System.out.println(STARTED_MESSAGE);
 
-    if (watchBundles) watchJarDirectory(JAR_DIRECTORY);
+    if (watchBundles && !disableBundlesWatch) {
+      watchJarDirectory(JAR_DIRECTORY);
+    }
   }
 
   protected Map<String, String> felixConfig() {
@@ -536,7 +546,9 @@ public class Starter {
         poll = pollEvents(watchService);
       }
     } catch (IOException | ClosedWatchServiceException | InterruptedException e) {
-      throw new RuntimeException(e);
+      // Since most deployments will occur in the cloud its not worth breaking the start up to
+      // support hot-reload
+      System.err.printf("Jars will not be watched due to unexpected error: %s%n", e.getMessage());
     }
   }
 
@@ -624,10 +636,10 @@ public class Starter {
 
         // Parsing failed
         // Display errors and then the help information
-        System.err.println(String.format("%d errors encountered:", result.getErrors().size()));
+        System.err.printf("%d errors encountered:%n", result.getErrors().size());
         int i = 1;
         for (ParseException e : result.getErrors()) {
-          System.err.println(String.format("Error %d: %s", i, e.getMessage()));
+          System.err.printf("Error %d: %s%n", i, e.getMessage());
           i++;
         }
 
@@ -644,12 +656,12 @@ public class Starter {
         // a user just uses -h/--help
       } else {
         System.err.println();
-        System.err.println(String.format("Usage error: %s", p.getMessage()));
+        System.err.printf("Usage error: %s%n", p.getMessage());
         System.err.println();
       }
     } catch (Exception e) {
       // Errors should be being collected so if anything is thrown it is unexpected
-      System.err.println(String.format("Unexpected error: %s", e.getMessage()));
+      System.err.printf("Unexpected error: %s%n", e.getMessage());
       e.printStackTrace(System.err);
 
       System.exit(1);
