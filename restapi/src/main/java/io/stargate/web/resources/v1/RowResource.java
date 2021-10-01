@@ -66,6 +66,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
@@ -91,6 +92,7 @@ import org.slf4j.LoggerFactory;
     tags = {"data"})
 @Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/rows")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class RowResource {
 
   private static final Logger logger = LoggerFactory.getLogger(RowResource.class);

@@ -30,6 +30,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.List;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -45,6 +46,7 @@ import javax.ws.rs.core.Response;
     tags = {"schemas"})
 @Path("/v1/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class KeyspaceResource {
   @Inject private Db db;
 

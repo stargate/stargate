@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 @Path("/swagger-ui")
 @Produces({MediaType.TEXT_HTML, "text/css", "image/png"})
+@Singleton
 public class SwaggerUIResource {
 
   private static final Logger logger = LoggerFactory.getLogger(SwaggerUIResource.class);

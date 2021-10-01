@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/checker")
 @Produces(MediaType.TEXT_PLAIN)
+@Singleton
 public class CheckerResource {
 
   private static final Logger logger = LoggerFactory.getLogger(CheckerResource.class);

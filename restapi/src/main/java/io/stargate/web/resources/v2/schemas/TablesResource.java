@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
@@ -75,6 +76,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     tags = {"schemas"})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class TablesResource {
   @Inject private Db db;
 

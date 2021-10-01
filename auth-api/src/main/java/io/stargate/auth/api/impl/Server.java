@@ -96,6 +96,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
     environment.jersey().register(ApiListingResource.class);
     environment.jersey().register(SwaggerSerializers.class);
+    environment.jersey().register(SwaggerUIResource.class);
 
     environment
         .jersey()
@@ -106,8 +107,6 @@ public class Server extends Application<ApplicationConfiguration> {
                 bind(FrameworkUtil.getBundle(AuthApiActivator.class)).to(Bundle.class);
               }
             });
-
-    environment.jersey().register(SwaggerUIResource.class);
 
     enableCors(environment);
 

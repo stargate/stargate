@@ -60,6 +60,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -83,6 +84,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     tags = {"data"})
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
+@Singleton
 public class RowsResource {
 
   @Inject private Db db;
