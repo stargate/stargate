@@ -237,7 +237,7 @@ public class Starter {
   @Option(
       name = {
         "--disable-bundles-watch",
-        "Whether watching the bundle directory for new jars load should be disabled"
+        "Whether watching the bundle directory for new jars to load should be disabled"
       })
   protected boolean disableBundlesWatch = false;
 
