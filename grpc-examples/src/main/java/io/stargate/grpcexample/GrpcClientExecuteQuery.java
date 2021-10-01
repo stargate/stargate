@@ -194,6 +194,10 @@ public class GrpcClientExecuteQuery {
   }
 
   public ManagedChannel createChannel(String host, int port) {
-    return ManagedChannelBuilder.forAddress(host, port).build();
+    if (LOCAL_RUN) {
+      return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+    } else {
+      return ManagedChannelBuilder.forAddress(host, port).build();
+    }
   }
 }
