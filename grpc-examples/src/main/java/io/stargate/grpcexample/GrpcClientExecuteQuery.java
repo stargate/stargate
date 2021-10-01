@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  *       (https://docs.datastax.com/en/astra/docs/manage-application-tokens.html).
  *   <li>Adapt the {@link GrpcClientExecuteQuery#STARGATE_HOST} according to the {@code
  *       "{$ASTRA_DB_ID}-{ASTRA_DB_REGION}.apps.astra.datastax.com"}.
- *   <li>Change the {@link GrpcClientExecuteQuery#LOCAL_RUN} to prevent new keyspace creation.
+ *   <li>Set the {@link GrpcClientExecuteQuery#LOCAL_RUN} to false to prevent new keyspace creation.
  *   <li>Change the {@link GrpcClientExecuteQuery#STARGATE_GRPC_PORT} to 443.
  *   <li>Change the {@link GrpcClientExecuteQuery#KS} to ASTRA_DB_KEYSPACE.
  * </ol>
