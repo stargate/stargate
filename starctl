@@ -157,7 +157,7 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     fi
 
     if [[ ! -z "$DISABLE_BUNDLES_WATCH" ]]; then
-        STARGATE_ARGS+=("--disable-bundles-watch"")
+        STARGATE_ARGS+=("--disable-bundles-watch")
     fi
 fi
 
