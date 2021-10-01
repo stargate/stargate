@@ -26,6 +26,19 @@ import java.util.concurrent.TimeUnit;
  *   <li>Blocking insert and data retrieval for batch of elements
  *   <li>Async query
  * </ol>
+ *
+ * This example can run as is for the local setup. If you want to run it using the astra database
+ * (https://astra.datastax.com/) You need to adapt couple of settings:
+ *
+ * <ol>
+ *   <li>Change the {@link GrpcClientExecuteQuery#STARGATE_TOKEN} to the astra token
+ *       (https://docs.datastax.com/en/astra/docs/manage-application-tokens.html).
+ *   <li>Adapt the {@link GrpcClientExecuteQuery#STARGATE_HOST} according to the {@code
+ *       "{$ASTRA_DB_ID}-{ASTRA_DB_REGION}.apps.astra.datastax.com"}.
+ *   <li>Change the {@link GrpcClientExecuteQuery#LOCAL_RUN} to prevent new keyspace creation.
+ *   <li>Change the {@link GrpcClientExecuteQuery#STARGATE_GRPC_PORT} to 443.
+ *   <li>Change the {@link GrpcClientExecuteQuery#KS} to ASTRA_DB_KEYSPACE.
+ * </ol>
  */
 public class GrpcClientExecuteQuery {
 
@@ -33,8 +46,19 @@ public class GrpcClientExecuteQuery {
   private final StargateGrpc.StargateStub asyncStub;
 
   private static final String STARGATE_TOKEN = ""; // you need to set the token
-  private static final String STARGATE_HOST = "localhost";
+  private static final String STARGATE_HOST = "localhost";;
+  //  when running on astra
+  //  private static final String STARGATE_HOST =
+  //  "{$ASTRA_DB_ID}-{ASTRA_DB_REGION}.apps.astra.datastax.com";
+
+  // change to false when running on Astra
+  private static final boolean LOCAL_RUN = false;
+
   private static final int STARGATE_GRPC_PORT = 8090;
+  // when running on astra
+  // private static final int STARGATE_GRPC_PORT = 443;
+  private static final String KS = "grpc"; // when running on astra, change to the ASTRA_DB_KEYSPACE
+  private static final String KS_AND_TABLE = KS + ".test";
 
   /** Runner of the GrpcClientExample */
   public static void main(String[] args)
@@ -48,15 +72,22 @@ public class GrpcClientExecuteQuery {
 
   private void prepareSchema() {
 
-    blockingStub.executeQuery(
-        QueryOuterClass.Query.newBuilder()
-            .setCql(
-                "CREATE KEYSPACE IF NOT EXISTS ks WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'};")
-            .build());
+    if (LOCAL_RUN) {
+      blockingStub.executeQuery(
+          QueryOuterClass.Query.newBuilder()
+              .setCql(
+                  "CREATE KEYSPACE IF NOT EXISTS "
+                      + KS
+                      + " WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'};")
+              .build());
+    }
 
     blockingStub.executeQuery(
         QueryOuterClass.Query.newBuilder()
-            .setCql("CREATE TABLE IF NOT EXISTS ks.test (k text, v int, PRIMARY KEY(k, v))")
+            .setCql(
+                "CREATE TABLE IF NOT EXISTS "
+                    + KS_AND_TABLE
+                    + " (k text, v int, PRIMARY KEY(k, v))")
             .build());
   }
 
@@ -81,13 +112,13 @@ public class GrpcClientExecuteQuery {
     QueryOuterClass.Response response =
         blockingStub.executeQuery(
             QueryOuterClass.Query.newBuilder()
-                .setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)")
+                .setCql("INSERT INTO " + KS_AND_TABLE + " (k, v) VALUES ('a', 1)")
                 .build());
     System.out.println(response);
     // retrieve
     response =
         blockingStub.executeQuery(
-            QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
+            QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM " + KS_AND_TABLE).build());
 
     QueryOuterClass.ResultSet rs =
         response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
@@ -105,18 +136,18 @@ public class GrpcClientExecuteQuery {
             QueryOuterClass.Batch.newBuilder()
                 .addQueries(
                     QueryOuterClass.BatchQuery.newBuilder()
-                        .setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)")
+                        .setCql("INSERT INTO " + KS_AND_TABLE + " (k, v) VALUES ('a', 1)")
                         .build())
                 .addQueries(
                     QueryOuterClass.BatchQuery.newBuilder()
-                        .setCql("INSERT INTO ks.test (k, v) VALUES ('b', 2)")
+                        .setCql("INSERT INTO " + KS_AND_TABLE + " (k, v) VALUES ('b', 2)")
                         .build())
                 .build());
     System.out.println(response);
     // retrieve
     response =
         blockingStub.executeQuery(
-            QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
+            QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM " + KS_AND_TABLE).build());
     QueryOuterClass.ResultSet rs =
         response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
     // iterate over all (two) results
@@ -155,7 +186,7 @@ public class GrpcClientExecuteQuery {
         };
 
     asyncStub.executeQuery(
-        QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build(),
+        QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM " + KS_AND_TABLE).build(),
         streamObserver);
 
     // wait until the result arrive
@@ -163,6 +194,6 @@ public class GrpcClientExecuteQuery {
   }
 
   public ManagedChannel createChannel(String host, int port) {
-    return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+    return ManagedChannelBuilder.forAddress(host, port).build();
   }
 }
