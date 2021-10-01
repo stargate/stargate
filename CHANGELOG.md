@@ -1,5 +1,55 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.35...HEAD)
+
+**Fixed bugs:**
+
+- `QueryBuilderImpl` adds comment without preprocessing with StringCodes [\#1293](https://github.com/stargate/stargate/issues/1293)
+- `json-schema` Endpoint: Single Quotes in the "description" field of a JSON Schema property cause errors. [\#1290](https://github.com/stargate/stargate/issues/1290)
+
+## [v1.0.35](https://github.com/stargate/stargate/tree/v1.0.35) (2021-10-01)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.34...v1.0.35)
+
+**Fixed bugs:**
+
+- Jersey Binder is not making HK2 injections as singletongs [\#1280](https://github.com/stargate/stargate/issues/1280)
+- Catch OverloadedException in HTTP services and return 429 [\#1233](https://github.com/stargate/stargate/issues/1233)
+- Not able to retrieve row via REST with uppercase column name [\#1208](https://github.com/stargate/stargate/issues/1208)
+
+**Closed issues:**
+
+- Refactoring of REST/Doc Api: clean separation of `AuthenticatedDB` vs `DocumentDB` [\#1287](https://github.com/stargate/stargate/issues/1287)
+- Refactor `restapi` to separate legacy REST v1 endpoints from v2 ones [\#1284](https://github.com/stargate/stargate/issues/1284)
+- Log JsonSurfer/Jackson parsing issues without stack trace [\#1276](https://github.com/stargate/stargate/issues/1276)
+- Add handling for skipped tests \(via "assume" vs assert\) for `ExternalStorage` to avoid false errors [\#1273](https://github.com/stargate/stargate/issues/1273)
+- Remove stack trace from logging of "known exceptions" in `RequestHandler`, `AuthnJwtService` [\#1271](https://github.com/stargate/stargate/issues/1271)
+- Reduce CI test noise by filtering out DEBUG entries from output by `ExternalStorage` [\#1265](https://github.com/stargate/stargate/issues/1265)
+- Add GROUP BY support to CQL-first GraphQL API [\#1170](https://github.com/stargate/stargate/issues/1170)
+- Max depth should always be read from the configuration [\#1030](https://github.com/stargate/stargate/issues/1030)
+
+**Merged pull requests:**
+
+- closes \#1293: correctly quote comment in create and alter table queries [\#1294](https://github.com/stargate/stargate/pull/1294) ([ivansenic](https://github.com/ivansenic))
+- closes \#1280: all resources as singletons  [\#1289](https://github.com/stargate/stargate/pull/1289) ([ivansenic](https://github.com/ivansenic))
+- Fix \#1287: clean up division between `DocumentDB` and `AuthenticatedDB` [\#1288](https://github.com/stargate/stargate/pull/1288) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1284: rename v1 endpoint classes, Server-\>RestApiServer [\#1285](https://github.com/stargate/stargate/pull/1285) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- relates to \#1280: make resources and services singletons in Docs API [\#1283](https://github.com/stargate/stargate/pull/1283) ([ivansenic](https://github.com/ivansenic))
+- Update DEV\_GUIDE.md [\#1278](https://github.com/stargate/stargate/pull/1278) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#1276: handle Jackson-originating parsing fails more gracefully [\#1277](https://github.com/stargate/stargate/pull/1277) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1273: add explicit handling of Assume-sourced exceptions for Integ tests [\#1275](https://github.com/stargate/stargate/pull/1275) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1271: remove inclusion of stack trace for logging [\#1272](https://github.com/stargate/stargate/pull/1272) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1269](https://github.com/stargate/stargate/pull/1269) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Remove DEBUG log entries from "ExternalStorage" buffering \(fix \#1265\) [\#1268](https://github.com/stargate/stargate/pull/1268) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- eliminating conversion of column names to lower case [\#1262](https://github.com/stargate/stargate/pull/1262) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Second part to fully resolve \#1229: convert grpc module too [\#1260](https://github.com/stargate/stargate/pull/1260) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- shredJson\(\) refactor and testing [\#1259](https://github.com/stargate/stargate/pull/1259) ([EricBorczuk](https://github.com/EricBorczuk))
+- gRPC tuning: Use direct executor instead of separate threadpool [\#1258](https://github.com/stargate/stargate/pull/1258) ([mpenick](https://github.com/mpenick))
+-  GraphQL CQL-first: add groupBy \(fixes \#1170\) [\#1257](https://github.com/stargate/stargate/pull/1257) ([olim7t](https://github.com/olim7t))
+- Report OverloadedException as a 429 in HTTP APIs \(fixes \#1233\) [\#1238](https://github.com/stargate/stargate/pull/1238) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.34](https://github.com/stargate/stargate/tree/v1.0.34) (2021-09-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.33...v1.0.34)
