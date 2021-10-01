@@ -52,7 +52,7 @@ public class GrpcClientExecuteQuery {
   //  "{$ASTRA_DB_ID}-{ASTRA_DB_REGION}.apps.astra.datastax.com";
 
   // change to false when running on Astra
-  private static final boolean LOCAL_RUN = false;
+  private static final boolean LOCAL_RUN = true;
 
   private static final int STARGATE_GRPC_PORT = 8090;
   // when running on astra
