@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
+import com.datastax.oss.driver.internal.core.util.Strings;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
@@ -1020,7 +1021,8 @@ public class QueryBuilderImpl {
 
   private void addComment(WithAdder with) {
     if (comment != null) {
-      with.add().append(" comment = '").append(comment).append("'");
+      String quotedComment = Strings.quote(comment);
+      with.add().append(" comment = ").append(quotedComment);
     }
   }
 

@@ -15,7 +15,8 @@
     "price": {
       "type": "number",
       "minimum": 0,
-      "exclusiveMinimum": true
+      "exclusiveMinimum": true,
+      "description": "Product's price"
     }
   },
   "required": ["id", "name", "price"]
