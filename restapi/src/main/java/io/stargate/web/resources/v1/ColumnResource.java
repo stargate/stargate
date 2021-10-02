@@ -111,7 +111,8 @@ public class ColumnResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
@@ -196,7 +197,8 @@ public class ColumnResource {
                           keyspace, columnDefinition.getTypeDefinition()))
                   .build();
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -206,7 +208,6 @@ public class ColumnResource {
                   ResourceKind.TABLE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -256,7 +257,8 @@ public class ColumnResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
@@ -314,7 +316,8 @@ public class ColumnResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -324,7 +327,6 @@ public class ColumnResource {
                   ResourceKind.TABLE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -374,7 +376,8 @@ public class ColumnResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -384,7 +387,6 @@ public class ColumnResource {
                   ResourceKind.TABLE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)

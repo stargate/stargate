@@ -101,7 +101,8 @@ public class KeyspacesResource {
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
@@ -148,7 +149,8 @@ public class KeyspacesResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
@@ -224,7 +226,8 @@ public class KeyspacesResource {
           Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           String keyspaceName = (String) requestBody.get("name");
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -251,7 +254,6 @@ public class KeyspacesResource {
           }
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -293,7 +295,8 @@ public class KeyspacesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -303,7 +306,6 @@ public class KeyspacesResource {
                   ResourceKind.KEYSPACE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .drop()
               .keyspace(keyspaceName)

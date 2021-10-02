@@ -175,7 +175,8 @@ public class NamespacesResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   docDB.getAuthenticationSubject(),
                   Collections.singletonList(namespaceName),

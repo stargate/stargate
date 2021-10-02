@@ -113,7 +113,8 @@ public class IndexesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeDataRead(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -125,7 +126,6 @@ public class IndexesResource {
             List<Column> columns = tableMetadata.columns();
             BoundQuery query =
                 authenticatedDB
-                    .getDataStore()
                     .queryBuilder()
                     .select()
                     .column(columns)
@@ -136,13 +136,10 @@ public class IndexesResource {
                     .bind();
 
             final ResultSet r =
-                db.getAuthorizationService()
+                authenticatedDB
+                    .getAuthorizationService()
                     .authorizedDataRead(
-                        () ->
-                            authenticatedDB
-                                .getDataStore()
-                                .execute(query, ConsistencyLevel.LOCAL_QUORUM)
-                                .get(),
+                        () -> authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
                         authenticatedDB.getAuthenticationSubject(),
                         keyspaceName,
                         tableName,
@@ -199,7 +196,8 @@ public class IndexesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -218,7 +216,7 @@ public class IndexesResource {
                 .build();
           }
 
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -262,7 +260,6 @@ public class IndexesResource {
                   .build();
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .create()
               .index(indexAdd.getName())
@@ -322,7 +319,8 @@ public class IndexesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -331,7 +329,7 @@ public class IndexesResource {
                   SourceAPI.REST,
                   ResourceKind.INDEX);
 
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -362,7 +360,6 @@ public class IndexesResource {
           }
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .drop()
               .index(keyspaceName, indexName)

@@ -24,7 +24,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Modification.Operation;
@@ -73,14 +72,10 @@ import java.util.stream.Collectors;
 
 public class Converters {
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
   private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
   private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
-
-  static {
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-  }
 
   public static Map<String, Object> row2Map(final Row row) {
     final Map<String, Object> map = new HashMap<>(row.columns().size());
@@ -131,7 +126,7 @@ public class Converters {
     if (cqlValue instanceof InetAddress) {
       return ((InetAddress) cqlValue).getHostAddress();
     }
-    if (cqlValue instanceof List || cqlValue instanceof Set) {
+    if (cqlValue instanceof Collection) {
       @SuppressWarnings("unchecked")
       Collection<Object> cqlCollection = (Collection<Object>) cqlValue;
       return cqlCollection.stream().map(Converters::toJsonValue).collect(Collectors.toList());
@@ -1028,7 +1023,7 @@ public class Converters {
    * @throws JsonProcessingException
    */
   public static String writeResponse(Object response) throws JsonProcessingException {
-    return mapper.writeValueAsString(response);
+    return OBJECT_MAPPER.writeValueAsString(response);
   }
 
   public static String maybeQuote(String text) {

@@ -44,7 +44,7 @@ class ColumnResourceTest {
 
     AuthenticatedDB authenticatedDB = mock(AuthenticatedDB.class);
     when(db.getRestDataStoreForToken("token", Collections.emptyMap())).thenReturn(authenticatedDB);
-    when(db.getAuthorizationService()).thenReturn(authorizationService);
+    when(authenticatedDB.getAuthorizationService()).thenReturn(authorizationService);
     when(authenticatedDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);
 

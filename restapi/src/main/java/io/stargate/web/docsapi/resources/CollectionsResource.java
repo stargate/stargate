@@ -158,7 +158,8 @@ public class CollectionsResource {
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   docDB.getAuthenticationSubject(),
                   namespace,
@@ -211,7 +212,8 @@ public class CollectionsResource {
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   docDB.getAuthenticationSubject(),
                   namespace,
@@ -274,8 +276,8 @@ public class CollectionsResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(servletRequest));
-
-          db.getAuthorizationService()
+          docDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   docDB.getAuthenticationSubject(),
                   namespace,

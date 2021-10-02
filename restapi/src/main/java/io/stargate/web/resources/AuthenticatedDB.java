@@ -16,22 +16,48 @@
 package io.stargate.web.resources;
 
 import io.stargate.auth.AuthenticationSubject;
+import io.stargate.auth.AuthorizationService;
+import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
+import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BoundQuery;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import javax.ws.rs.NotFoundException;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
+/**
+ * Data store abstraction used by Rest API: encapsulates authentication aspects along with
+ * underlying actual {@link DataStore}, offers some more convenience access.
+ */
 public class AuthenticatedDB {
 
   private final DataStore dataStore;
   private final AuthenticationSubject authenticationSubject;
+  private final AuthorizationService authorizationService;
 
-  public AuthenticatedDB(DataStore dataStore, AuthenticationSubject authenticationSubject) {
+  public AuthenticatedDB(
+      DataStore dataStore,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorizationService) {
     this.dataStore = dataStore;
     this.authenticationSubject = authenticationSubject;
+    this.authorizationService = authorizationService;
+  }
+
+  public AuthorizationService getAuthorizationService() {
+    return authorizationService;
+  }
+
+  public AuthenticationSubject getAuthenticationSubject() {
+    return authenticationSubject;
   }
 
   public Collection<Table> getTables(String keyspaceName) {
@@ -62,14 +88,6 @@ public class AuthenticatedDB {
 
   public Keyspace getKeyspace(String keyspaceName) {
     return dataStore.schema().keyspace(keyspaceName);
-  }
-
-  public DataStore getDataStore() {
-    return dataStore;
-  }
-
-  public AuthenticationSubject getAuthenticationSubject() {
-    return authenticationSubject;
   }
 
   /**
@@ -105,5 +123,22 @@ public class AuthenticatedDB {
           String.format("type '%s' not found in the keyspace '%s'", typeName, keyspaceName));
     }
     return typeMetadata;
+  }
+
+  public QueryBuilder queryBuilder() {
+    return dataStore.queryBuilder();
+  }
+
+  public Schema schema() {
+    return dataStore.schema();
+  }
+
+  public CompletableFuture<ResultSet> execute(
+      BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
+    return dataStore.execute(query, parametersModifier);
+  }
+
+  public CompletableFuture<ResultSet> execute(BoundQuery query, ConsistencyLevel consistencyLevel) {
+    return dataStore.execute(query, consistencyLevel);
   }
 }

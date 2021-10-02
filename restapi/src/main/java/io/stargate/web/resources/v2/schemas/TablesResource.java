@@ -117,7 +117,8 @@ public class TablesResource {
                   .map(this::getTable)
                   .collect(Collectors.toList());
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
@@ -166,7 +167,8 @@ public class TablesResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
@@ -214,7 +216,7 @@ public class TablesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -232,7 +234,8 @@ public class TablesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -286,7 +289,6 @@ public class TablesResource {
           }
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -339,7 +341,8 @@ public class TablesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -368,7 +371,6 @@ public class TablesResource {
           }
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -415,7 +417,8 @@ public class TablesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -425,7 +428,6 @@ public class TablesResource {
                   ResourceKind.TABLE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)

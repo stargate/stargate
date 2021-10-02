@@ -37,11 +37,12 @@ import org.slf4j.LoggerFactory;
 
 public class DocumentDB {
   private static final Logger logger = LoggerFactory.getLogger(DocumentDB.class);
-  private Boolean useLoggedBatches;
 
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
-  final DataStore dataStore;
+  private final Boolean useLoggedBatches;
+
+  private final DataStore dataStore;
   private final AuthorizationService authorizationService;
   private final AuthenticationSubject authenticationSubject;
   private final QueryExecutor executor;
