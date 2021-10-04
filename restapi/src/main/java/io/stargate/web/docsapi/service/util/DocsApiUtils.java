@@ -233,6 +233,17 @@ public final class DocsApiUtils {
     return newPath.toString();
   }
 
+  public static String[] bracketedPathAsArray(String bracketedPath) {
+    String[] split = bracketedPath.split("\\]\\[");
+    if (split.length > 0) {
+      split[0] = split[0].substring(2);
+      String finalValue = split[split.length - 1];
+      split[split.length - 1] = finalValue.substring(0, finalValue.length() - 1);
+    }
+
+    return split;
+  }
+
   /**
    * Simple utility to return a string value from doc api {@link Row}.
    *

@@ -254,6 +254,44 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class BracketedPathAsArray {
+    @Test
+    public void happyPath() {
+      String bracketedPath = "$['a']['b']['c']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      assertThat(result.length).isEqualTo(3);
+      assertThat(result[0]).isEqualTo("'a'");
+      assertThat(result[1]).isEqualTo("'b'");
+      assertThat(result[2]).isEqualTo("'c'");
+    }
+
+    @Test
+    public void withArrayElements() {
+      String bracketedPath = "$['a']['b'][2]['c']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      assertThat(result.length).isEqualTo(4);
+      assertThat(result[0]).isEqualTo("'a'");
+      assertThat(result[1]).isEqualTo("'b'");
+      assertThat(result[2]).isEqualTo("2");
+      assertThat(result[3]).isEqualTo("'c'");
+    }
+
+    @Test
+    public void singlePath() {
+      String bracketedPath = "$['a']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      assertThat(result.length).isEqualTo(1);
+      assertThat(result[0]).isEqualTo("'a'");
+    }
+  }
+
+  @Nested
   class GetStringFromRow {
 
     @Mock Row row;
