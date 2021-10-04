@@ -11,12 +11,13 @@ import com.datastax.bdp.db.nodes.BootstrapState;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import io.stargate.db.ClientInfo;
 import io.stargate.db.Result;
 import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.dse.impl.BaseDseTest;
-import io.stargate.db.dse.impl.ClientStateWithDestinationAddress;
 import io.stargate.db.dse.impl.Conversion;
+import io.stargate.db.dse.impl.StargateClientState;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor.Resolver;
 import java.net.InetAddress;
@@ -290,8 +291,8 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
 
   private QueryState queryStateForAddress(InetAddress address) {
     return new QueryState(
-        new ClientStateWithDestinationAddress(
-            null, REMOTE_SOCKET_ADDRESS, new InetSocketAddress(address, 9042)),
+        StargateClientState.forExternalCalls(
+            new ClientInfo(REMOTE_SOCKET_ADDRESS, new InetSocketAddress(address, 9042))),
         UserRolesAndPermissions.ANONYMOUS);
   }
 
