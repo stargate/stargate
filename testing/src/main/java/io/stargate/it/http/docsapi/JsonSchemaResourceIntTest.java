@@ -3,11 +3,9 @@ package io.stargate.it.http.docsapi;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseOsgiIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -17,6 +15,8 @@ import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
@@ -25,16 +25,15 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.junit.jupiter.api.AfterEach;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-@ExtendWith(CqlSessionExtension.class)
-@CqlSessionSpec()
 public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
-  private static final String TARGET_COLLECTION = "collection";
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final OkHttpClient CLIENT =
       new OkHttpClient().newBuilder().readTimeout(Duration.ofMinutes(3)).build();
@@ -42,24 +41,13 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
   private static String authToken;
   private static String host;
   private static String hostWithPort;
-  private static String keyspace;
-  public static String collectionPath;
 
   @BeforeAll
-  public static void setup(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceIdentifier)
-      throws IOException {
+  public static void setup(StargateConnectionInfo cluster) throws IOException {
     host = "http://" + cluster.seedAddress();
     hostWithPort = host + ":8082";
-    keyspace = keyspaceIdentifier.toString();
-    collectionPath =
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections/" + TARGET_COLLECTION;
-    initAuth();
-  }
 
-  @AfterEach
-  public void emptyTargetCollection(CqlSession session) throws IOException {
-    RestUtils.delete(authToken, collectionPath, 204);
+    initAuth();
   }
 
   private static void initAuth() throws IOException {
@@ -86,66 +74,106 @@ public class JsonSchemaResourceIntTest extends BaseOsgiIntegrationTest {
     assertThat(authToken).isNotNull();
   }
 
-  @Test
-  public void testIt() throws IOException {
-    RestUtils.post(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-        "{\"name\":\"collection\"}",
-        201);
-    JsonNode schema =
-        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("schema.json"));
-    RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 200);
-
-    String schemaResp = RestUtils.get(authToken, collectionPath + "/json-schema", 200);
-    assertThat(schema.toString())
-        .isEqualTo(OBJECT_MAPPER.readTree(schemaResp).requiredAt("/schema").toString());
-
-    JsonNode obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":1}");
-    RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 200);
-
-    obj = OBJECT_MAPPER.readTree("{\"id\":1, \"price\":1}");
-    String resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    JsonNode data = OBJECT_MAPPER.readTree(resp);
-    assertThat(data.requiredAt("/description").textValue())
-        .isEqualTo("Invalid JSON: [object has missing required properties ([\"name\"])]");
-
-    obj = OBJECT_MAPPER.readTree("{\"id\":1, \"name\":\"a\", \"price\":-1}");
-    resp = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
-    data = OBJECT_MAPPER.readTree(resp);
-    assertThat(data.requiredAt("/description").textValue())
-        .isEqualTo(
-            "Invalid JSON: [numeric instance is lower than the required minimum (minimum: 0, found: -1)]");
+  String getCollectionPath(CqlIdentifier keyspace) {
+    return hostWithPort + "/v2/namespaces/" + keyspace + "/collections";
   }
 
-  @Test
-  public void testInvalidSchema() throws IOException {
-    RestUtils.post(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-        "{\"name\":\"collection\"}",
-        201);
-
-    JsonNode schema =
-        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("invalid-schema.json"));
-    String resp = RestUtils.put(authToken, collectionPath + "/json-schema", schema.toString(), 400);
-    JsonNode data = OBJECT_MAPPER.readTree(resp);
-    assertThat(data.requiredAt("/description"))
-        .isEqualTo(TextNode.valueOf("The provided JSON schema is invalid or malformed."));
+  String getSchemaPath(CqlIdentifier keyspace, String collectionName) {
+    return getCollectionPath(keyspace) + "/" + collectionName + "/json-schema";
   }
 
-  @Test
-  public void testSchemaNotSet() throws IOException {
-    RestUtils.post(
-        authToken,
-        hostWithPort + "/v2/namespaces/" + keyspace + "/collections",
-        "{\"name\":\"collection\"}",
-        201);
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class GetJsonSchema {
 
-    String r = RestUtils.get(authToken, collectionPath + "/json-schema", 404);
+    @Test
+    public void schemaNotSet(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String collectionName = RandomStringUtils.randomAlphanumeric(10);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace),
+          String.format("{\"name\":\"%s\"}", collectionName),
+          201);
 
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"The JSON schema is not set for the collection.\",\"code\":404}");
+      String r = RestUtils.get(authToken, getSchemaPath(keyspace, collectionName), 404);
+
+      assertThat(r)
+          .isEqualTo(
+              "{\"description\":\"The JSON schema is not set for the collection.\",\"code\":404}");
+    }
+
+    @Test
+    public void notExistingCollection(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String r = RestUtils.get(authToken, getSchemaPath(keyspace, "not-existing"), 404);
+
+      assertThat(r)
+          .isEqualTo("{\"description\":\"Collection not-existing does not exist.\",\"code\":404}");
+    }
+  }
+
+  @Nested
+  @CqlSessionSpec
+  @ExtendWith(CqlSessionExtension.class)
+  class AttachJsonSchema {
+
+    @Test
+    public void happyPath(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String collectionName = RandomStringUtils.randomAlphanumeric(10);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace),
+          String.format("{\"name\":\"%s\"}", collectionName),
+          201);
+
+      URL schema = this.getClass().getClassLoader().getResource("schema.json");
+      String body = Resources.toString(schema, StandardCharsets.UTF_8);
+      RestUtils.put(authToken, getSchemaPath(keyspace, collectionName), body, 200);
+
+      String r = RestUtils.get(authToken, getSchemaPath(keyspace, collectionName), 200);
+      assertThat(OBJECT_MAPPER.readTree(r).requiredAt("/schema"))
+          .isEqualTo(OBJECT_MAPPER.readTree(body));
+
+      // test valid and invalid doc insert as well
+      String validDoc = "{\"id\":1, \"name\":\"a\", \"price\":1}";
+      RestUtils.post(authToken, getCollectionPath(keyspace) + "/" + collectionName, validDoc, 201);
+
+      String invalidDoc = "{\"id\":1, \"price\":1}";
+      String insertResult =
+          RestUtils.post(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName, invalidDoc, 400);
+
+      assertThat(insertResult)
+          .isEqualTo(
+              "{\"description\":\"Invalid JSON: [object has missing required properties ([\\\"name\\\"])]\",\"code\":400}");
+    }
+
+    @Test
+    public void invalidSchema(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String collectionName = RandomStringUtils.randomAlphanumeric(10);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace),
+          String.format("{\"name\":\"%s\"}", collectionName),
+          201);
+
+      URL invalidSchema = this.getClass().getClassLoader().getResource("invalid-schema.json");
+      String body = Resources.toString(invalidSchema, StandardCharsets.UTF_8);
+      String r = RestUtils.put(authToken, getSchemaPath(keyspace, collectionName), body, 400);
+
+      assertThat(r)
+          .isEqualTo(
+              "{\"description\":\"The provided JSON schema is invalid or malformed.\",\"code\":400}");
+    }
+
+    @Test
+    public void notExistingCollection(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      URL invalidSchema = this.getClass().getClassLoader().getResource("invalid-schema.json");
+      String body = Resources.toString(invalidSchema, StandardCharsets.UTF_8);
+      String r = RestUtils.put(authToken, getSchemaPath(keyspace, "not-existing"), body, 404);
+
+      assertThat(r)
+          .isEqualTo("{\"description\":\"Collection not-existing does not exist.\",\"code\":404}");
+    }
   }
 }
