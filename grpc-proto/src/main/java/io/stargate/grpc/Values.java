@@ -22,11 +22,13 @@ import io.stargate.proto.QueryOuterClass.Inet;
 import io.stargate.proto.QueryOuterClass.UdtValue;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import io.stargate.proto.QueryOuterClass.Value.Null;
 import io.stargate.proto.QueryOuterClass.Value.Unset;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -162,5 +164,144 @@ public class Values {
     return Value.newBuilder()
         .setCollection(Collection.newBuilder().addAllElements(values).build())
         .build();
+  }
+
+  public static boolean bool(Value value) {
+    if (value.getInnerCase() != InnerCase.BOOLEAN) {
+      throw new IllegalArgumentException("Expected boolean value");
+    }
+    return value.getBoolean();
+  }
+
+  public static int int_(Value value) {
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected int value");
+    }
+    int intValue = (int) value.getInt();
+    if (intValue != value.getInt()) {
+      throw new IllegalArgumentException(
+          String.format("Valid range for int is %d to %d", Integer.MIN_VALUE, Integer.MAX_VALUE));
+    }
+    return intValue;
+  }
+
+  public static long bigint(Value value) {
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected int value");
+    }
+    return value.getInt();
+  }
+
+  public static short smallint(Value value) {
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected int value");
+    }
+    short shortValue = (short) value.getInt();
+    if (shortValue != value.getInt()) {
+      throw new IllegalArgumentException(
+          String.format("Valid range for int is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
+    }
+    return shortValue;
+  }
+
+  public static byte tinyint(Value value) {
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected int value");
+    }
+    byte byteValue = (byte) value.getInt();
+    if (byteValue != value.getInt()) {
+      throw new IllegalArgumentException(
+          String.format("Valid range for int is %d to %d", Byte.MIN_VALUE, Byte.MAX_VALUE));
+    }
+    return byteValue;
+  }
+
+  public static float float_(Value value) {
+    if (value.getInnerCase() != InnerCase.FLOAT) {
+      throw new IllegalArgumentException("Expected float value");
+    }
+    return value.getFloat();
+  }
+
+  public static double double_(Value value) {
+    if (value.getInnerCase() != InnerCase.DOUBLE) {
+      throw new IllegalArgumentException("Expected double value");
+    }
+    return value.getDouble();
+  }
+
+  public static ByteBuffer byteBuffer(Value value) {
+    if (value.getInnerCase() != InnerCase.BYTES) {
+      throw new IllegalArgumentException("Expected bytes value");
+    }
+    ByteBuffer bytes = ByteBuffer.allocate(value.getBytes().size());
+    value.getBytes().copyTo(bytes);
+    return bytes;
+  }
+
+  public static byte[] bytes(Value value) {
+    if (value.getInnerCase() != InnerCase.BYTES) {
+      throw new IllegalArgumentException("Expected bytes value");
+    }
+    return value.getBytes().toByteArray();
+  }
+
+  public static String string(Value value) {
+    if (value.getInnerCase() != InnerCase.STRING) {
+      throw new IllegalArgumentException("Expected string value");
+    }
+    return value.getString();
+  }
+
+  public static UUID uuid(Value value) {
+    if (value.getInnerCase() != InnerCase.UUID) {
+      throw new IllegalArgumentException("Expected uuid value");
+    }
+    ByteBuffer bytes = ByteBuffer.allocate(16);
+    value.getUuid().getValue().copyTo(bytes);
+    bytes.flip();
+    return new UUID(bytes.getLong(bytes.position()), bytes.getLong(bytes.position() + 8));
+  }
+
+  public static InetAddress inet(Value value) {
+    if (value.getInnerCase() != InnerCase.INET) {
+      throw new IllegalArgumentException("Expected inet value");
+    }
+    try {
+      return InetAddress.getByAddress(value.getInet().getValue().toByteArray());
+    } catch (UnknownHostException e) {
+      throw new IllegalArgumentException("Invalid bytes in inet value");
+    }
+  }
+
+  public static BigInteger varint(Value value) {
+    if (value.getInnerCase() != InnerCase.VARINT) {
+      throw new IllegalArgumentException("Expected varint value");
+    }
+    return new BigInteger(value.getVarint().getValue().toByteArray());
+  }
+
+  public static BigDecimal decimal(Value value) {
+    if (value.getInnerCase() != InnerCase.DECIMAL) {
+      throw new IllegalArgumentException("Expected decimal value");
+    }
+    return new BigDecimal(
+        new BigInteger(value.getDecimal().getValue().toByteArray()), value.getDecimal().getScale());
+  }
+
+  public static LocalDate date(Value value) {
+    if (value.getInnerCase() != InnerCase.DATE) {
+      throw new IllegalArgumentException("Expected date value");
+    }
+    int unsigned = value.getDate();
+    int signed = unsigned + Integer.MIN_VALUE;
+    return EPOCH.plusDays(signed);
+  }
+
+  public static LocalTime time(Value value) {
+    if (value.getInnerCase() != InnerCase.TIME) {
+      throw new IllegalArgumentException("Expected time value");
+    }
+    return LocalTime.ofNanoOfDay(value.getTime());
   }
 }

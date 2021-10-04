@@ -1,0 +1,323 @@
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import io.stargate.grpc.Values;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.UUID;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+public class ValuesTest {
+
+  @Nested
+  class BoolTest {
+
+    @Test
+    public void encodeDecode() {
+      boolean expected = true;
+      assertThat(Values.bool(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.bool(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class IntTest {
+
+    @Test
+    public void encodeDecode() {
+      int expected = Integer.MAX_VALUE;
+      assertThat(Values.int_(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.int_(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class BigintTest {
+
+    @Test
+    public void encodeDecode() {
+      long expected = Long.MAX_VALUE;
+      assertThat(Values.bigint(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.bigint(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class SmallintTest {
+
+    @Test
+    public void encodeDecode() {
+      short expected = Short.MAX_VALUE;
+      assertThat(Values.smallint(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.smallint(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class TinyintTest {
+
+    @Test
+    public void encodeDecode() {
+      byte expected = Byte.MAX_VALUE;
+      assertThat(Values.tinyint(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.tinyint(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class FloatTest {
+
+    @Test
+    public void encodeDecode() {
+      float expected = Float.MAX_VALUE;
+      assertThat(Values.float_(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.float_(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class DoubleTest {
+
+    @Test
+    public void encodeDecode() {
+      double expected = Double.MAX_VALUE;
+      assertThat(Values.double_(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.double_(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class BytesTest {
+
+    @Test
+    public void encodeDecodeBytes() {
+      byte[] expected = new byte[] {1, 2, 3};
+      assertThat(Values.bytes(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void encodeDecodeByteBuffer() {
+      ByteBuffer expected = ByteBuffer.wrap(new byte[] {1, 2, 3});
+      assertThat(Values.byteBuffer(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalidBytes() {
+      assertThatThrownBy(
+              () -> {
+                Values.bytes(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void invalidByteBuffer() {
+      assertThatThrownBy(
+              () -> {
+                Values.byteBuffer(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class StringTest {
+
+    @Test
+    public void encodeDecode() {
+      String expected = "abc";
+      assertThat(Values.string(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.string(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class UUIDTest {
+
+    @Test
+    public void encodeDecode() {
+      UUID expected = UUID.randomUUID();
+      assertThat(Values.uuid(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.uuid(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  class InetTest {
+
+    @Test
+    public void encodeDecodeV4() throws UnknownHostException {
+      InetAddress expected = InetAddress.getByName("127.0.0.1");
+      assertThat(Values.inet(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void encodeDecodeV6() throws UnknownHostException {
+      InetAddress expected = InetAddress.getByName("2001:db8::8a2e:370:7334");
+      assertThat(Values.inet(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.inet(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  public class VarintTest {
+
+    @Test
+    public void encodeDecode() {
+      BigInteger expected = new BigInteger("99999999999999999999999999999999999999");
+      assertThat(Values.varint(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.varint(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  public class DecimalTest {
+
+    @Test
+    public void encodeDecode() {
+      BigDecimal expected = new BigDecimal("9999999999999.9999999999999999999999999");
+      assertThat(Values.decimal(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.decimal(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  public class DateTest {
+
+    @Test
+    public void encodeDecode() {
+      LocalDate expected = LocalDate.now();
+      assertThat(Values.date(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.date(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Nested
+  public class TimeTest {
+
+    @Test
+    public void encodeDecode() {
+      LocalTime expected = LocalTime.now();
+      assertThat(Values.time(Values.of(expected))).isEqualTo(expected);
+    }
+
+    @Test
+    public void invalid() {
+      assertThatThrownBy(
+              () -> {
+                Values.time(Values.NULL);
+              })
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+}
