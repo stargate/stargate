@@ -38,10 +38,10 @@ import io.stargate.web.models.UserDefinedTypeAdd;
 import io.stargate.web.models.UserDefinedTypeField;
 import io.stargate.web.models.UserDefinedTypeResponse;
 import io.stargate.web.models.UserDefinedTypeUpdate;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.restapi.dao.RestDBAccess;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -91,7 +91,7 @@ public class UserDefinedTypesResource {
   public static final String HEADER_TOKEN_AUTHENTICATION = "X-Cassandra-Token";
   public static final String PATH_PARAM_KEYSPACE = "keyspaceName";
 
-  @Inject private Db db;
+  @Inject private RestDBAccessFactory dbFactory;
 
   @Timed
   @GET
@@ -161,8 +161,8 @@ public class UserDefinedTypesResource {
   private Response retrieveUdt(
       String keyspaceName, String typeName, boolean raw, String token, HttpServletRequest request)
       throws UnauthorizedException, JsonProcessingException {
-    AuthenticatedDB authenticatedDB = db.getRestDataStoreForToken(token, getAllHeaders(request));
-    Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+    RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+    Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
     if (keyspace == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
@@ -170,10 +170,10 @@ public class UserDefinedTypesResource {
           .build();
     }
 
-    authenticatedDB
+    restDBAccess
         .getAuthorizationService()
         .authorizeSchemaRead(
-            authenticatedDB.getAuthenticationSubject(),
+            restDBAccess.getAuthenticationSubject(),
             Collections.singletonList(keyspaceName),
             null,
             SourceAPI.REST,
@@ -182,13 +182,13 @@ public class UserDefinedTypesResource {
     // find by id
     if (typeName != null) {
       UserDefinedTypeResponse udtResponse =
-          mapUdtAsResponse(authenticatedDB.getType(keyspaceName, typeName));
+          mapUdtAsResponse(restDBAccess.getType(keyspaceName, typeName));
       return Response.ok(
               Converters.writeResponse(raw ? udtResponse : new ResponseWrapper<>(udtResponse)))
           .build();
     } else { // retrieve all
       List<UserDefinedTypeResponse> udtResponses =
-          authenticatedDB.getTypes(keyspaceName).stream()
+          restDBAccess.getTypes(keyspaceName).stream()
               .map(this::mapUdtAsResponse)
               .collect(Collectors.toList());
 
@@ -236,9 +236,8 @@ public class UserDefinedTypesResource {
 
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
 
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -264,10 +263,10 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.CREATE,
@@ -290,7 +289,7 @@ public class UserDefinedTypesResource {
                   .addColumns(columns.toArray(new Column[0]))
                   .build();
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .create()
               .type(keyspaceName, udt)
@@ -335,9 +334,8 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -346,17 +344,17 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.TYPE);
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .drop()
               .type(
@@ -395,10 +393,9 @@ public class UserDefinedTypesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -416,10 +413,10 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.ALTER,
@@ -429,7 +426,7 @@ public class UserDefinedTypesResource {
           UserDefinedType udt =
               ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();
           try {
-            updateUdt(authenticatedDB, keyspace, udtUpdate, udt);
+            updateUdt(restDBAccess, keyspace, udtUpdate, udt);
           } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
@@ -441,7 +438,7 @@ public class UserDefinedTypesResource {
   }
 
   private void updateUdt(
-      AuthenticatedDB authenticatedDB,
+      RestDBAccess restDBAccess,
       Keyspace keyspace,
       UserDefinedTypeUpdate udtUpdate,
       UserDefinedType udt)
@@ -457,7 +454,7 @@ public class UserDefinedTypesResource {
 
     if (addFields != null && !addFields.isEmpty()) {
       List<Column> columns = getUdtColumns(keyspace, addFields);
-      authenticatedDB
+      restDBAccess
           .queryBuilder()
           .alter()
           .type(keyspace.name(), udt)
@@ -472,7 +469,7 @@ public class UserDefinedTypesResource {
           renameFields.stream()
               .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
               .collect(Collectors.toList());
-      authenticatedDB
+      restDBAccess
           .queryBuilder()
           .alter()
           .type(keyspace.name(), udt)

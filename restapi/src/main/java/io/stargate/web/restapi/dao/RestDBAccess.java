@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources;
+package io.stargate.web.restapi.dao;
 
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
@@ -34,16 +34,15 @@ import javax.ws.rs.NotFoundException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
- * Data store abstraction used by Rest API: encapsulates authentication aspects along with
+ * Data access abstraction used by Rest API: encapsulates authentication aspects along with
  * underlying actual {@link DataStore}, offers some more convenience access.
  */
-public class AuthenticatedDB {
-
+public class RestDBAccess {
   private final DataStore dataStore;
   private final AuthenticationSubject authenticationSubject;
   private final AuthorizationService authorizationService;
 
-  public AuthenticatedDB(
+  public RestDBAccess(
       DataStore dataStore,
       AuthenticationSubject authenticationSubject,
       AuthorizationService authorizationService) {

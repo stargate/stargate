@@ -37,10 +37,10 @@ import io.stargate.web.models.Error;
 import io.stargate.web.models.IndexAdd;
 import io.stargate.web.models.IndexKind;
 import io.stargate.web.models.SuccessResponse;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.restapi.dao.RestDBAccess;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -75,7 +75,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class IndexesResource {
-  @Inject private Db db;
+  @Inject private RestDBAccessFactory dbFactory;
 
   private final String SYSTEM_SCHEMA = "system_schema";
   private final String INDEXES_TABLE = "indexes";
@@ -110,22 +110,18 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeDataRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  SourceAPI.REST);
+                  restDBAccess.getAuthenticationSubject(), keyspaceName, tableName, SourceAPI.REST);
 
           try {
-            Table tableMetadata = authenticatedDB.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
+            Table tableMetadata = restDBAccess.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
             List<Column> columns = tableMetadata.columns();
             BoundQuery query =
-                authenticatedDB
+                restDBAccess
                     .queryBuilder()
                     .select()
                     .column(columns)
@@ -136,11 +132,11 @@ public class IndexesResource {
                     .bind();
 
             final ResultSet r =
-                authenticatedDB
+                restDBAccess
                     .getAuthorizationService()
                     .authorizedDataRead(
-                        () -> authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                        authenticatedDB.getAuthenticationSubject(),
+                        () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
+                        restDBAccess.getAuthenticationSubject(),
                         keyspaceName,
                         tableName,
                         TypedKeyValue.forSelect((BoundSelect) query),
@@ -193,13 +189,12 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.CREATE,
@@ -216,7 +211,7 @@ public class IndexesResource {
                 .build();
           }
 
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -227,7 +222,7 @@ public class IndexesResource {
           }
 
           try {
-            final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+            final Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
             final Column col = tableMetadata.column(columnName);
             if (col == null) {
               return Response.status(Response.Status.NOT_FOUND)
@@ -259,7 +254,7 @@ public class IndexesResource {
                   .indexFull(indexFull)
                   .build();
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .create()
               .index(indexAdd.getName())
@@ -316,20 +311,19 @@ public class IndexesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.INDEX);
 
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -340,7 +334,7 @@ public class IndexesResource {
           }
 
           try {
-            final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+            final Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
             Index index = tableMetadata.index(indexName);
             if (index == null && !ifExists) {
               return Response.status(Response.Status.NOT_FOUND)
@@ -359,7 +353,7 @@ public class IndexesResource {
                 .build();
           }
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .drop()
               .index(keyspaceName, indexName)

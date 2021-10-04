@@ -20,9 +20,9 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
-import io.stargate.web.resources.AuthenticatedDB;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.restapi.dao.RestDBAccess;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -48,7 +48,7 @@ import javax.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class KeyspaceResource {
-  @Inject private Db db;
+  @Inject private RestDBAccessFactory dbFactory;
 
   @Timed
   @GET
@@ -79,14 +79,13 @@ public class KeyspaceResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          List<String> keyspaceNames = authenticatedDB.schema().keyspaceNames();
-          authenticatedDB
+          List<String> keyspaceNames = restDBAccess.schema().keyspaceNames();
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceNames,
                   null,
                   SourceAPI.REST,

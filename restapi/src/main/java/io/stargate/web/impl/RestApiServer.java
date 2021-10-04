@@ -51,6 +51,7 @@ import io.stargate.web.resources.v2.schemas.IndexesResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
 import io.stargate.web.resources.v2.schemas.UserDefinedTypesResource;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.stargate.web.swagger.SwaggerUIResource;
 import io.stargate.web.validation.ViolationExceptionMapper;
 import io.swagger.config.ScannerFactory;
@@ -116,12 +117,9 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
+    environment.jersey().register(new ViolationExceptionMapper());
     final Db db =
         new Db(authenticationService, authorizationService, dataStoreFactory, docsApiConf);
-
-    configureObjectMapper(environment.getObjectMapper());
-
-    environment.jersey().register(new ViolationExceptionMapper());
     environment
         .jersey()
         .register(
@@ -131,13 +129,26 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
                 bind(db).to(Db.class);
               }
             });
+    final RestDBAccessFactory restDBFactory =
+        new RestDBAccessFactory(authenticationService, authorizationService, dataStoreFactory);
     environment
         .jersey()
         .register(
             new AbstractBinder() {
               @Override
               protected void configure() {
-                bind(environment.getObjectMapper()).to(ObjectMapper.class);
+                bind(restDBFactory).to(RestDBAccessFactory.class);
+              }
+            });
+
+    final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(objectMapper).to(ObjectMapper.class);
               }
             });
 
@@ -200,9 +211,10 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
-  public static void configureObjectMapper(ObjectMapper objectMapper) {
+  public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {
     objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
     objectMapper.registerModule(new JavaTimeModule());
+    return objectMapper;
   }
 
   @Override

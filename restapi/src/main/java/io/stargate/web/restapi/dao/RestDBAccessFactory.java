@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources;
+package io.stargate.web.restapi.dao;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -24,48 +24,57 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
-import io.stargate.web.docsapi.dao.DocumentDB;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-public class Db {
+public class RestDBAccessFactory {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
 
-  private final LoadingCache<TokenAndHeaders, DocumentDB> docsTokensToDataStore =
+  private final LoadingCache<TokenAndHeaders, RestDBAccess> restTokensToDB =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getDocDataStoreForTokenInternal);
-
-  private final DocsApiConfiguration config;
+          .build(this::getRestDataStoreForTokenInternal);
 
   private final DataStoreFactory dataStoreFactory;
 
-  public Db(
+  public RestDBAccessFactory(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
-      DataStoreFactory dataStoreFactory,
-      DocsApiConfiguration config) {
+      DataStoreFactory dataStoreFactory) {
     this.authenticationService = authenticationService;
     this.authorizationService = authorizationService;
     this.dataStoreFactory = dataStoreFactory;
-    this.config = config;
   }
 
-  private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+  public RestDBAccess getRestDBForToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
+
+    try {
+      return restTokensToDB.get(TokenAndHeaders.create(token, headers));
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+  }
+
+  private RestDBAccess getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
-    return new DocumentDB(
+    return new RestDBAccess(
         constructDataStore(authenticationSubject, tokenAndHeaders),
         authenticationSubject,
-        authorizationService,
-        config);
+        authorizationService);
   }
 
   private DataStore constructDataStore(
@@ -76,22 +85,6 @@ public class Db {
             .alwaysPrepareQueries(true)
             .putAllCustomProperties(tokenAndHeaders.headers)
             .build());
-  }
-
-  public DocumentDB getDocDataStoreForToken(String token, Map<String, String> headers)
-      throws UnauthorizedException {
-    if (token == null) {
-      throw new UnauthorizedException("Missing token");
-    }
-
-    try {
-      return docsTokensToDataStore.get(TokenAndHeaders.create(token, headers));
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
-        throw (UnauthorizedException) e.getCause();
-      }
-      throw e;
-    }
   }
 
   static class TokenAndHeaders {

@@ -45,10 +45,10 @@ import io.stargate.web.models.RowUpdate;
 import io.stargate.web.models.Rows;
 import io.stargate.web.models.RowsResponse;
 import io.stargate.web.models.SuccessResponse;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.restapi.dao.RestDBAccess;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -97,7 +97,7 @@ public class RowResource {
 
   private static final Logger logger = LoggerFactory.getLogger(RowResource.class);
 
-  @Inject private Db db;
+  @Inject private RestDBAccessFactory dbProvider;
 
   private final int DEFAULT_PAGE_SIZE = 100;
 
@@ -139,26 +139,25 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
           BoundQuery query =
-              authenticatedDB
+              restDBAccess
                   .queryBuilder()
                   .select()
                   .from(keyspaceName, tableName)
                   .where(
                       buildWhereClause(
-                          authenticatedDB, keyspaceName, tableName, request.getRequestURI()))
+                          restDBAccess, keyspaceName, tableName, request.getRequestURI()))
                   .build()
                   .bind();
 
           final ResultSet r =
-              authenticatedDB
+              restDBAccess
                   .getAuthorizationService()
                   .authorizedDataRead(
-                      () -> authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                      authenticatedDB.getAuthenticationSubject(),
+                      () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
+                      restDBAccess.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
@@ -218,11 +217,10 @@ public class RowResource {
             pageSize = pageSizeParam;
           }
 
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
           BoundQuery query =
-              authenticatedDB.queryBuilder().select().from(keyspaceName, tableName).build().bind();
+              restDBAccess.queryBuilder().select().from(keyspaceName, tableName).build().bind();
 
           // Using final variables here to satisfy lambda
           ByteBuffer finalPageState = pageState;
@@ -237,11 +235,11 @@ public class RowResource {
               };
 
           final ResultSet r =
-              authenticatedDB
+              restDBAccess
                   .getAuthorizationService()
                   .authorizedDataRead(
-                      () -> authenticatedDB.execute(query, parametersModifier).get(),
-                      authenticatedDB.getAuthenticationSubject(),
+                      () -> restDBAccess.execute(query, parametersModifier).get(),
+                      restDBAccess.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       Collections.emptyList(),
@@ -303,10 +301,9 @@ public class RowResource {
             pageSize = queryModel.getPageSize();
           }
 
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+          final Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
 
           List<Column> selectedColumns = Collections.emptyList();
           if (queryModel.getColumnNames() != null && queryModel.getColumnNames().size() != 0) {
@@ -352,7 +349,7 @@ public class RowResource {
           }
 
           BoundQuery query =
-              authenticatedDB
+              restDBAccess
                   .queryBuilder()
                   .select()
                   .column(selectedColumns)
@@ -375,11 +372,11 @@ public class RowResource {
               };
 
           ResultSet r =
-              authenticatedDB
+              restDBAccess
                   .getAuthorizationService()
                   .authorizedDataRead(
-                      () -> authenticatedDB.execute(query, parametersModifier).get(),
-                      authenticatedDB.getAuthenticationSubject(),
+                      () -> restDBAccess.execute(query, parametersModifier).get(),
+                      restDBAccess.getAuthenticationSubject(),
                       keyspaceName,
                       tableName,
                       TypedKeyValue.forSelect((BoundSelect) query),
@@ -432,8 +429,7 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
           List<ValueModifier> values =
               rowAdd.getColumns().stream()
@@ -442,28 +438,28 @@ public class RowResource {
                           Converters.colToValue(
                               c.getName(),
                               c.getValue(),
-                              authenticatedDB.getTable(keyspaceName, tableName)))
+                              restDBAccess.getTable(keyspaceName, tableName)))
                   .collect(Collectors.toList());
 
           BoundQuery query =
-              authenticatedDB
+              restDBAccess
                   .queryBuilder()
                   .insertInto(keyspaceName, tableName)
                   .value(values)
                   .build()
                   .bind();
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeDataWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.CREATED).entity(new RowsResponse(true, 1)).build();
         });
@@ -503,31 +499,30 @@ public class RowResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
           BoundQuery query =
-              authenticatedDB
+              restDBAccess
                   .queryBuilder()
                   .delete()
                   .from(keyspaceName, tableName)
                   .where(
                       buildWhereClause(
-                          authenticatedDB, keyspaceName, tableName, request.getRequestURI()))
+                          restDBAccess, keyspaceName, tableName, request.getRequestURI()))
                   .build()
                   .bind();
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeDataWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.DELETE,
                   SourceAPI.REST);
 
-          authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
         });
@@ -571,10 +566,9 @@ public class RowResource {
       final RowUpdate changeSet) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          final Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+          final Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
 
           List<ValueModifier> changes =
               changeSet.getChangeset().stream()
@@ -582,7 +576,7 @@ public class RowResource {
                   .collect(Collectors.toList());
 
           BoundQuery query =
-              authenticatedDB
+              restDBAccess
                   .queryBuilder()
                   .update(keyspaceName, tableName)
                   .value(changes)
@@ -590,17 +584,17 @@ public class RowResource {
                   .build()
                   .bind();
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeDataWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   tableName,
                   TypedKeyValue.forDML((BoundDMLQuery) query),
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
         });
@@ -672,8 +666,8 @@ public class RowResource {
   }
 
   private List<BuiltCondition> buildWhereClause(
-      AuthenticatedDB authenticatedDB, String keyspaceName, String tableName, String path) {
-    return buildWhereClause(path, authenticatedDB.getTable(keyspaceName, tableName));
+      RestDBAccess restDBAccess, String keyspaceName, String tableName, String path) {
+    return buildWhereClause(path, restDBAccess.getTable(keyspaceName, tableName));
   }
 
   private List<BuiltCondition> buildWhereClause(String path, Table tableMetadata) {

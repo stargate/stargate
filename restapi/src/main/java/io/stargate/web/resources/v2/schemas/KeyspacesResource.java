@@ -26,11 +26,11 @@ import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.resources.ResourceUtils;
+import io.stargate.web.restapi.dao.RestDBAccess;
+import io.stargate.web.restapi.dao.RestDBAccessFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -66,7 +66,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class KeyspacesResource {
-  @Inject private Db db;
+  @Inject private RestDBAccessFactory dbFactory;
 
   @Timed
   @GET
@@ -93,18 +93,17 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           List<Keyspace> keyspaces =
-              authenticatedDB.getKeyspaces().stream()
+              restDBAccess.getKeyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST,
@@ -147,18 +146,17 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          authenticatedDB
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   Collections.singletonList(keyspaceName),
                   null,
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          io.stargate.db.schema.Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          io.stargate.db.schema.Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -220,16 +218,15 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           String keyspaceName = (String) requestBody.get("name");
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.CREATE,
@@ -253,7 +250,7 @@ public class KeyspacesResource {
             replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -292,20 +289,19 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          authenticatedDB
+          restDBAccess
               .getAuthorizationService()
               .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
+                  restDBAccess.getAuthenticationSubject(),
                   keyspaceName,
                   null,
                   Scope.DROP,
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          authenticatedDB
+          restDBAccess
               .queryBuilder()
               .drop()
               .keyspace(keyspaceName)
