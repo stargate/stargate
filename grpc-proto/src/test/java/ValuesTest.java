@@ -1,7 +1,11 @@
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.protobuf.ByteString;
 import io.stargate.grpc.Values;
+import io.stargate.proto.QueryOuterClass.Inet;
+import io.stargate.proto.QueryOuterClass.Uuid;
+import io.stargate.proto.QueryOuterClass.Value;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -269,6 +273,19 @@ public class ValuesTest {
               })
           .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void invalidBytes() {
+      assertThatThrownBy(
+              () -> {
+                Values.uuid(
+                    Value.newBuilder()
+                        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(new byte[17])))
+                        .build());
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected 16 bytes for a uuid values");
+    }
   }
 
   @Nested
@@ -293,6 +310,19 @@ public class ValuesTest {
                 Values.inet(Values.NULL);
               })
           .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void invalidBytes() {
+      assertThatThrownBy(
+              () -> {
+                Values.inet(
+                    Value.newBuilder()
+                        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(new byte[5])))
+                        .build());
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected 4 bytes (IPv4) or 16 (IPv6) bytes for a inet values");
     }
   }
 

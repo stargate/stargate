@@ -257,6 +257,9 @@ public class Values {
     if (value.getInnerCase() != InnerCase.UUID) {
       throw new IllegalArgumentException("Expected uuid value");
     }
+    if (value.getUuid().getValue().size() != 16) {
+      throw new IllegalArgumentException("Expected 16 bytes for a uuid values");
+    }
     ByteBuffer bytes = ByteBuffer.allocate(16);
     value.getUuid().getValue().copyTo(bytes);
     bytes.flip();
@@ -266,6 +269,11 @@ public class Values {
   public static InetAddress inet(Value value) {
     if (value.getInnerCase() != InnerCase.INET) {
       throw new IllegalArgumentException("Expected inet value");
+    }
+    int size = value.getInet().getValue().size();
+    if (size != 4 && size != 16) {
+      throw new IllegalArgumentException(
+          "Expected 4 bytes (IPv4) or 16 (IPv6) bytes for a inet values");
     }
     try {
       return InetAddress.getByAddress(value.getInet().getValue().toByteArray());
