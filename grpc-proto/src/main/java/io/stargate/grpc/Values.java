@@ -262,8 +262,7 @@ public class Values {
     }
     ByteBuffer bytes = ByteBuffer.allocate(16);
     value.getUuid().getValue().copyTo(bytes);
-    bytes.flip();
-    return new UUID(bytes.getLong(bytes.position()), bytes.getLong(bytes.position() + 8));
+    return new UUID(bytes.getLong(0), bytes.getLong(8));
   }
 
   public static InetAddress inet(Value value) {
