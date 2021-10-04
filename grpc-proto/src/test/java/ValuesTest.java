@@ -51,6 +51,23 @@ public class ValuesTest {
               })
           .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void invalidRange() {
+      assertThatThrownBy(
+              () -> {
+                Values.int_(Values.of((long) Integer.MAX_VALUE + 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for int");
+
+      assertThatThrownBy(
+              () -> {
+                Values.int_(Values.of((long) Integer.MIN_VALUE - 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for int");
+    }
   }
 
   @Nested
@@ -89,6 +106,23 @@ public class ValuesTest {
               })
           .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void invalidRange() {
+      assertThatThrownBy(
+              () -> {
+                Values.smallint(Values.of((int) Short.MAX_VALUE + 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for smallint");
+
+      assertThatThrownBy(
+              () -> {
+                Values.smallint(Values.of((int) Short.MIN_VALUE - 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for smallint");
+    }
   }
 
   @Nested
@@ -107,6 +141,23 @@ public class ValuesTest {
                 Values.tinyint(Values.NULL);
               })
           .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void invalidRange() {
+      assertThatThrownBy(
+              () -> {
+                Values.tinyint(Values.of((short) Byte.MAX_VALUE + 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for tinyint");
+
+      assertThatThrownBy(
+              () -> {
+                Values.tinyint(Values.of((short) Byte.MIN_VALUE - 1));
+              })
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Valid range for tinyint");
     }
   }
 

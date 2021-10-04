@@ -199,7 +199,7 @@ public class Values {
     short shortValue = (short) value.getInt();
     if (shortValue != value.getInt()) {
       throw new IllegalArgumentException(
-          String.format("Valid range for int is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
+          String.format("Valid range for smallint is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
     }
     return shortValue;
   }
@@ -211,7 +211,7 @@ public class Values {
     byte byteValue = (byte) value.getInt();
     if (byteValue != value.getInt()) {
       throw new IllegalArgumentException(
-          String.format("Valid range for int is %d to %d", Byte.MIN_VALUE, Byte.MAX_VALUE));
+          String.format("Valid range for tinyint is %d to %d", Byte.MIN_VALUE, Byte.MAX_VALUE));
     }
     return byteValue;
   }
