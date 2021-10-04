@@ -29,7 +29,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.bool(Values.NULL);
@@ -48,7 +48,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.int_(Values.NULL);
@@ -84,7 +84,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.bigint(Values.NULL);
@@ -103,7 +103,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.smallint(Values.NULL);
@@ -139,7 +139,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.tinyint(Values.NULL);
@@ -175,7 +175,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.float_(Values.NULL);
@@ -194,7 +194,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.double_(Values.NULL);
@@ -247,7 +247,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.string(Values.NULL);
@@ -266,7 +266,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.uuid(Values.NULL);
@@ -304,7 +304,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.inet(Values.NULL);
@@ -336,7 +336,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.varint(Values.NULL);
@@ -355,7 +355,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.decimal(Values.NULL);
@@ -374,7 +374,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.date(Values.NULL);
@@ -393,7 +393,7 @@ public class ValuesTest {
     }
 
     @Test
-    public void invalid() {
+    public void invalidType() {
       assertThatThrownBy(
               () -> {
                 Values.time(Values.NULL);
