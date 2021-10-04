@@ -162,7 +162,7 @@ public class UserDefinedTypesResource {
       String keyspaceName, String typeName, boolean raw, String token, HttpServletRequest request)
       throws UnauthorizedException, JsonProcessingException {
     AuthenticatedDB authenticatedDB = db.getRestDataStoreForToken(token, getAllHeaders(request));
-    Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+    Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
     if (keyspace == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
@@ -170,7 +170,8 @@ public class UserDefinedTypesResource {
           .build();
     }
 
-    db.getAuthorizationService()
+    authenticatedDB
+        .getAuthorizationService()
         .authorizeSchemaRead(
             authenticatedDB.getAuthenticationSubject(),
             Collections.singletonList(keyspaceName),
@@ -237,7 +238,7 @@ public class UserDefinedTypesResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
 
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -263,7 +264,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -289,7 +291,6 @@ public class UserDefinedTypesResource {
                   .build();
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .create()
               .type(keyspaceName, udt)
@@ -336,7 +337,7 @@ public class UserDefinedTypesResource {
         () -> {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -345,7 +346,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -355,7 +357,6 @@ public class UserDefinedTypesResource {
                   ResourceKind.TYPE);
 
           authenticatedDB
-              .getDataStore()
               .queryBuilder()
               .drop()
               .type(
@@ -397,7 +398,7 @@ public class UserDefinedTypesResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          Keyspace keyspace = authenticatedDB.getDataStore().schema().keyspace(keyspaceName);
+          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -415,7 +416,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -456,7 +458,6 @@ public class UserDefinedTypesResource {
     if (addFields != null && !addFields.isEmpty()) {
       List<Column> columns = getUdtColumns(keyspace, addFields);
       authenticatedDB
-          .getDataStore()
           .queryBuilder()
           .alter()
           .type(keyspace.name(), udt)
@@ -472,7 +473,6 @@ public class UserDefinedTypesResource {
               .map(r -> Pair.fromArray(new String[] {r.getFrom(), r.getTo()}))
               .collect(Collectors.toList());
       authenticatedDB
-          .getDataStore()
           .queryBuilder()
           .alter()
           .type(keyspace.name(), udt)

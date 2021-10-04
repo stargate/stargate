@@ -31,7 +31,7 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
  * A persistence layer that can be queried.
  *
  * <p>This is the interface that stargate API extensions uses (either directly, or through the
- * higher level {@link DataStore} API which wraps a instance of this interface) to query the
+ * higher level {@link DataStore} API which wraps an instance of this interface) to query the
  * underlying store, and thus the one interface that persistence extensions must implement.
  */
 public interface Persistence {

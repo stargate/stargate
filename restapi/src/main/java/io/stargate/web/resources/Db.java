@@ -67,14 +67,6 @@ public class Db {
     this.config = config;
   }
 
-  public DataStore getDataStore() {
-    return this.dataStore;
-  }
-
-  public AuthorizationService getAuthorizationService() {
-    return authorizationService;
-  }
-
   private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
@@ -82,7 +74,7 @@ public class Db {
     return new DocumentDB(
         constructDataStore(authenticationSubject, tokenAndHeaders),
         authenticationSubject,
-        getAuthorizationService(),
+        authorizationService,
         config);
   }
 
@@ -91,7 +83,9 @@ public class Db {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
     return new AuthenticatedDB(
-        constructDataStore(authenticationSubject, tokenAndHeaders), authenticationSubject);
+        constructDataStore(authenticationSubject, tokenAndHeaders),
+        authenticationSubject,
+        authorizationService);
   }
 
   private DataStore constructDataStore(

@@ -392,14 +392,14 @@ public class RowsResource {
 
           BoundQuery query =
               authenticatedDB
-                  .getDataStore()
                   .queryBuilder()
                   .insertInto(keyspaceName, tableName)
                   .value(values)
                   .build()
                   .bind();
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeDataWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -408,7 +408,7 @@ public class RowsResource {
                   Scope.MODIFY,
                   SourceAPI.REST);
 
-          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
           Map<String, Object> keys = new HashMap<>();
           for (Column col : table.primaryKeyColumns()) {
@@ -514,7 +514,6 @@ public class RowsResource {
 
           BoundQuery query =
               authenticatedDB
-                  .getDataStore()
                   .queryBuilder()
                   .delete()
                   .from(keyspaceName, tableName)
@@ -522,7 +521,8 @@ public class RowsResource {
                   .build()
                   .bind();
 
-          db.getAuthorizationService()
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeDataWrite(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceName,
@@ -531,7 +531,7 @@ public class RowsResource {
                   Scope.DELETE,
                   SourceAPI.REST);
 
-          authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+          authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
@@ -610,7 +610,6 @@ public class RowsResource {
 
     BoundQuery query =
         authenticatedDB
-            .getDataStore()
             .queryBuilder()
             .update(keyspaceName, tableName)
             .value(changes)
@@ -618,7 +617,8 @@ public class RowsResource {
             .build()
             .bind();
 
-    db.getAuthorizationService()
+    authenticatedDB
+        .getAuthorizationService()
         .authorizeDataWrite(
             authenticatedDB.getAuthenticationSubject(),
             keyspaceName,
@@ -627,7 +627,7 @@ public class RowsResource {
             Scope.MODIFY,
             SourceAPI.REST);
 
-    authenticatedDB.getDataStore().execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
+    authenticatedDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
     Object response = raw ? requestBody : new ResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
   }
@@ -656,7 +656,6 @@ public class RowsResource {
 
     BoundQuery query =
         authenticatedDB
-            .getDataStore()
             .queryBuilder()
             .select()
             .column(columns)
@@ -677,9 +676,10 @@ public class RowsResource {
         };
 
     final ResultSet r =
-        db.getAuthorizationService()
+        authenticatedDB
+            .getAuthorizationService()
             .authorizedDataRead(
-                () -> authenticatedDB.getDataStore().execute(query, parametersModifier).get(),
+                () -> authenticatedDB.execute(query, parametersModifier).get(),
                 authenticatedDB.getAuthenticationSubject(),
                 tableMetadata.keyspace(),
                 tableMetadata.name(),

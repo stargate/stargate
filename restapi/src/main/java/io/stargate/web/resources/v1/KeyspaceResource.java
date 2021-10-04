@@ -82,8 +82,9 @@ public class KeyspaceResource {
           AuthenticatedDB authenticatedDB =
               db.getRestDataStoreForToken(token, getAllHeaders(request));
 
-          List<String> keyspaceNames = authenticatedDB.getDataStore().schema().keyspaceNames();
-          db.getAuthorizationService()
+          List<String> keyspaceNames = authenticatedDB.schema().keyspaceNames();
+          authenticatedDB
+              .getAuthorizationService()
               .authorizeSchemaRead(
                   authenticatedDB.getAuthenticationSubject(),
                   keyspaceNames,

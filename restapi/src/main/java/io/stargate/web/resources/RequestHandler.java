@@ -21,15 +21,12 @@ import io.stargate.web.models.Error;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Produces(MediaType.APPLICATION_JSON)
 public class RequestHandler {
   private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
