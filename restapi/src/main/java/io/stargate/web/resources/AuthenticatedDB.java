@@ -60,6 +60,15 @@ public class AuthenticatedDB {
     return authenticationSubject;
   }
 
+  /**
+   * Method for trying to find and return all tables for given keyspace. Keyspace must exist for
+   * call to work; otherise {@link NotFoundException} will be thrown
+   *
+   * @param keyspaceName Name of keyspace to look for tables (must exist)
+   * @return A collection that contains all tables for given keyspace
+   * @throws NotFoundException If no keyspace with given keyspace exists in the underlying data
+   *     store
+   */
   public Collection<Table> getTables(String keyspaceName) {
     Keyspace keyspace = getKeyspace(keyspaceName);
     if (keyspace == null) {
@@ -69,6 +78,16 @@ public class AuthenticatedDB {
     return keyspace.tables();
   }
 
+  /**
+   * Method for trying to find specific table that exists in given keyspace. Keyspace must exist for
+   * call to work; otherise {@link NotFoundException} will be thrown
+   *
+   * @param keyspaceName Name of keyspace to look for tables (must exist)
+   * @param table Name of table to look for (must exist)
+   * @return Metadata for Table requested
+   * @throws NotFoundException If no keyspace with given keyspace exists in the underlying data
+   *     store, or if no table with specified name exists within that keyspace.
+   */
   public Table getTable(String keyspaceName, String table) {
     Keyspace keyspace = getKeyspace(keyspaceName);
     if (keyspace == null) {
@@ -82,19 +101,34 @@ public class AuthenticatedDB {
     return tableMetadata;
   }
 
+  /**
+   * Method for finding and returning metadata for all keyspaces for the underlying data store.
+   *
+   * @return A set of metadata for all keyspaces the underlying data store has.
+   */
   public Set<Keyspace> getKeyspaces() {
     return dataStore.schema().keyspaces();
   }
 
+  /**
+   * Method for trying to find and return metadata for given keyspace, if one exists; if none,
+   * {@code null} is returned.
+   *
+   * @param keyspaceName Name of keyspace to look for
+   * @return Metadata for keyspace requested if one exists; {@code null} otherwise.
+   */
   public Keyspace getKeyspace(String keyspaceName) {
     return dataStore.schema().keyspace(keyspaceName);
   }
 
   /**
-   * Retrieve user defined types definitions for a keyspace.
+   * Retrieve user defined types definitions for a keyspace. Keyspace must exist, otherwise a {@link
+   * NotFoundException} is thrown.
    *
    * @param keyspaceName existing keyspace name
-   * @return a collection of user defined types definitions
+   * @return a collection of user defined types definitions within specified keyspace
+   * @throws NotFoundException If no keyspace with given keyspace exists in the underlying data
+   *     store
    */
   public Collection<UserDefinedType> getTypes(String keyspaceName) {
     Keyspace keyspace = getKeyspace(keyspaceName);
@@ -107,9 +141,11 @@ public class AuthenticatedDB {
   /**
    * Retrieve user defined types definitions from its identifier in a keyspace.
    *
-   * @param keyspaceName existing keyspace name
-   * @param typeName identifier for the type
-   * @return a collection of user defined types definitions
+   * @param keyspaceName existing keyspace name (must exist)
+   * @param typeName identifier for the type (must exist)
+   * @return Metadat for the user defined type requested
+   * @throws NotFoundException If no keyspace with given keyspace exists in the underlying data
+   *     store, or if no user defined type with given name exists in that keyspace.
    */
   public UserDefinedType getType(String keyspaceName, String typeName) {
     Keyspace keyspace = getKeyspace(keyspaceName);
@@ -125,6 +161,12 @@ public class AuthenticatedDB {
     return typeMetadata;
   }
 
+  /**
+   * Accessor for getting a new {@link QueryBuilder} to use for constructing queries against
+   * underlying data store
+   *
+   * @return New {@link QueryBuilder} instance
+   */
   public QueryBuilder queryBuilder() {
     return dataStore.queryBuilder();
   }
