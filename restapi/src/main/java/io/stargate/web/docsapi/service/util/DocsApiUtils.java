@@ -91,7 +91,7 @@ public final class DocsApiUtils {
    * @return Converted to a string with no literal unicode code points.
    */
   public static String convertEscapedCharacters(String path) {
-    return path.replaceAll(ESCAPED_PATTERN_INTERNAL_CAPTURE.pattern(), "$1");
+    return ESCAPED_PATTERN_INTERNAL_CAPTURE.matcher(path).replaceAll("$1");
   }
 
   public static List<String> convertEscapedCharacters(List<String> path) {
@@ -201,7 +201,7 @@ public final class DocsApiUtils {
   }
 
   public static boolean containsIllegalSequences(String x) {
-    String replaced = x.replaceAll(ESCAPED_PATTERN.pattern(), "");
+    String replaced = ESCAPED_PATTERN.matcher(x).replaceAll("");
     return replaced.contains("[")
         || replaced.contains(".")
         || replaced.contains("'")
