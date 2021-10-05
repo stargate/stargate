@@ -41,8 +41,8 @@ import javax.ws.rs.NotFoundException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
- * Data access abstraction used by Rest API: encapsulates authentication aspects as well
- * as access to underlying actual {@link DataStore}.
+ * Data access abstraction used by Rest API: encapsulates authentication aspects as well as access
+ * to underlying actual {@link DataStore}.
  */
 public class RestDBAccess {
   private final DataStore dataStore;

@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.web.rx;
+package io.stargate.web.docsapi.rx;
 
 import io.reactivex.rxjava3.core.Single;
 import java.util.concurrent.CompletableFuture;
