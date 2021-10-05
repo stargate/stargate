@@ -189,13 +189,14 @@ public class DocsShredder {
       }
 
       String pathValue = bracketedPathArray[j];
-      boolean isArrayValue = !pathValue.startsWith("'");
+      boolean isArrayValue = pathValue.charAt(0) != '\'';
 
       // pathValue always starts and ends with a square brace because of
       // DocsApiUtils#convertJsonToBracketedPath
-      String innerPath = DocsApiUtils.convertEscapedCharacters(pathValue);
+      String innerPath = pathValue;
       if (!isArrayValue) {
-        // Remove the single quotes
+        // Remove the single quotes and convert escaped characters
+        innerPath = DocsApiUtils.convertEscapedCharacters(pathValue);
         innerPath = innerPath.substring(1, innerPath.length() - 1);
       }
       if (isPatchingWithArrayValue(i, path.size(), isArrayValue, patching)) {
