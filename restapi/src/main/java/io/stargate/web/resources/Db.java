@@ -32,6 +32,11 @@ import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+/**
+ * Factory class injected into Resources, used to create actual {@link DocumentDB}
+ * (using {@link #getDocDataStoreForToken{}; {@link DocumentDB}
+ * will abstract some of the access to the underlying Persistence implementation.
+ */
 public class Db {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;

@@ -117,30 +117,13 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
   public void run(
       final ApplicationConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
+
+    // General providers
     environment.jersey().register(new ViolationExceptionMapper());
     final Db db =
         new Db(authenticationService, authorizationService, dataStoreFactory, docsApiConf);
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(db).to(Db.class);
-              }
-            });
     final RestDBAccessFactory restDBFactory =
         new RestDBAccessFactory(authenticationService, authorizationService, dataStoreFactory);
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(restDBFactory).to(RestDBAccessFactory.class);
-              }
-            });
-
     final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
     environment
         .jersey()
@@ -149,6 +132,8 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
               @Override
               protected void configure() {
                 bind(objectMapper).to(ObjectMapper.class);
+                bind(db).to(Db.class);
+                bind(restDBFactory).to(RestDBAccessFactory.class);
               }
             });
 

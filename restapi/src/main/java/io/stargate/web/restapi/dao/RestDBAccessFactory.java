@@ -30,6 +30,11 @@ import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+/**
+ * Factory class injected into Resources, used to create actual {@link RestDBAccess}
+ * (using {@link #getRestDBForToken{}; {@link RestDBAccess}
+ * will abstract access to the underlying Persistence implementation.
+ */
 public class RestDBAccessFactory {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
