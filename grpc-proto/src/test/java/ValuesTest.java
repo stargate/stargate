@@ -34,7 +34,8 @@ public class ValuesTest {
               () -> {
                 Values.bool(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected BOOLEAN value, received NULL");
     }
   }
 
@@ -53,7 +54,8 @@ public class ValuesTest {
               () -> {
                 Values.int_(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected INT value, received NULL");
     }
 
     @Test
@@ -89,7 +91,8 @@ public class ValuesTest {
               () -> {
                 Values.bigint(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected INT value, received NULL");
     }
   }
 
@@ -108,7 +111,8 @@ public class ValuesTest {
               () -> {
                 Values.smallint(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected INT value, received NULL");
     }
 
     @Test
@@ -144,7 +148,8 @@ public class ValuesTest {
               () -> {
                 Values.tinyint(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected INT value, received NULL");
     }
 
     @Test
@@ -180,7 +185,8 @@ public class ValuesTest {
               () -> {
                 Values.float_(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected FLOAT value, received NULL");
     }
   }
 
@@ -199,7 +205,8 @@ public class ValuesTest {
               () -> {
                 Values.double_(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected DOUBLE value, received NULL");
     }
   }
 
@@ -224,7 +231,8 @@ public class ValuesTest {
               () -> {
                 Values.bytes(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected BYTES value, received NULL");
     }
 
     @Test
@@ -233,7 +241,8 @@ public class ValuesTest {
               () -> {
                 Values.byteBuffer(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected BYTES value, received NULL");
     }
   }
 
@@ -252,7 +261,8 @@ public class ValuesTest {
               () -> {
                 Values.string(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected STRING value, received NULL");
     }
   }
 
@@ -271,7 +281,8 @@ public class ValuesTest {
               () -> {
                 Values.uuid(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected UUID value, received NULL");
     }
 
     @Test
@@ -309,7 +320,8 @@ public class ValuesTest {
               () -> {
                 Values.inet(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected INET value, received NULL");
     }
 
     @Test
@@ -341,7 +353,8 @@ public class ValuesTest {
               () -> {
                 Values.varint(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected VARINT value, received NULL");
     }
   }
 
@@ -360,7 +373,8 @@ public class ValuesTest {
               () -> {
                 Values.decimal(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected DECIMAL value, received NULL");
     }
   }
 
@@ -379,7 +393,8 @@ public class ValuesTest {
               () -> {
                 Values.date(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected DATE value, received NULL");
     }
   }
 
@@ -398,7 +413,8 @@ public class ValuesTest {
               () -> {
                 Values.time(Values.NULL);
               })
-          .isInstanceOf(IllegalArgumentException.class);
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Expected TIME value, received NULL");
     }
   }
 }

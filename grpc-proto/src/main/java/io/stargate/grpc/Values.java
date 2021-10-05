@@ -167,16 +167,14 @@ public class Values {
   }
 
   public static boolean bool(Value value) {
-    if (value.getInnerCase() != InnerCase.BOOLEAN) {
-      throw new IllegalArgumentException("Expected boolean value");
-    }
+    checkInnerCase(value, InnerCase.BOOLEAN);
+
     return value.getBoolean();
   }
 
   public static int int_(Value value) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected int value");
-    }
+    checkInnerCase(value, InnerCase.INT);
+
     int intValue = (int) value.getInt();
     if (intValue != value.getInt()) {
       throw new IllegalArgumentException(
@@ -186,16 +184,14 @@ public class Values {
   }
 
   public static long bigint(Value value) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected int value");
-    }
+    checkInnerCase(value, InnerCase.INT);
+
     return value.getInt();
   }
 
   public static short smallint(Value value) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected int value");
-    }
+    checkInnerCase(value, InnerCase.INT);
+
     short shortValue = (short) value.getInt();
     if (shortValue != value.getInt()) {
       throw new IllegalArgumentException(
@@ -205,9 +201,8 @@ public class Values {
   }
 
   public static byte tinyint(Value value) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected int value");
-    }
+    checkInnerCase(value, InnerCase.INT);
+
     byte byteValue = (byte) value.getInt();
     if (byteValue != value.getInt()) {
       throw new IllegalArgumentException(
@@ -217,46 +212,40 @@ public class Values {
   }
 
   public static float float_(Value value) {
-    if (value.getInnerCase() != InnerCase.FLOAT) {
-      throw new IllegalArgumentException("Expected float value");
-    }
+    checkInnerCase(value, InnerCase.FLOAT);
+
     return value.getFloat();
   }
 
   public static double double_(Value value) {
-    if (value.getInnerCase() != InnerCase.DOUBLE) {
-      throw new IllegalArgumentException("Expected double value");
-    }
+    checkInnerCase(value, InnerCase.DOUBLE);
+
     return value.getDouble();
   }
 
   public static ByteBuffer byteBuffer(Value value) {
-    if (value.getInnerCase() != InnerCase.BYTES) {
-      throw new IllegalArgumentException("Expected bytes value");
-    }
+    checkInnerCase(value, InnerCase.BYTES);
+
     ByteBuffer bytes = ByteBuffer.allocate(value.getBytes().size());
     value.getBytes().copyTo(bytes);
     return bytes;
   }
 
   public static byte[] bytes(Value value) {
-    if (value.getInnerCase() != InnerCase.BYTES) {
-      throw new IllegalArgumentException("Expected bytes value");
-    }
+    checkInnerCase(value, InnerCase.BYTES);
+
     return value.getBytes().toByteArray();
   }
 
   public static String string(Value value) {
-    if (value.getInnerCase() != InnerCase.STRING) {
-      throw new IllegalArgumentException("Expected string value");
-    }
+    checkInnerCase(value, InnerCase.STRING);
+
     return value.getString();
   }
 
   public static UUID uuid(Value value) {
-    if (value.getInnerCase() != InnerCase.UUID) {
-      throw new IllegalArgumentException("Expected uuid value");
-    }
+    checkInnerCase(value, InnerCase.UUID);
+
     if (value.getUuid().getValue().size() != 16) {
       throw new IllegalArgumentException("Expected 16 bytes for a uuid values");
     }
@@ -266,9 +255,8 @@ public class Values {
   }
 
   public static InetAddress inet(Value value) {
-    if (value.getInnerCase() != InnerCase.INET) {
-      throw new IllegalArgumentException("Expected inet value");
-    }
+    checkInnerCase(value, InnerCase.INET);
+
     int size = value.getInet().getValue().size();
     if (size != 4 && size != 16) {
       throw new IllegalArgumentException(
@@ -282,33 +270,36 @@ public class Values {
   }
 
   public static BigInteger varint(Value value) {
-    if (value.getInnerCase() != InnerCase.VARINT) {
-      throw new IllegalArgumentException("Expected varint value");
-    }
+    checkInnerCase(value, InnerCase.VARINT);
+
     return new BigInteger(value.getVarint().getValue().toByteArray());
   }
 
   public static BigDecimal decimal(Value value) {
-    if (value.getInnerCase() != InnerCase.DECIMAL) {
-      throw new IllegalArgumentException("Expected decimal value");
-    }
+    checkInnerCase(value, InnerCase.DECIMAL);
+
     return new BigDecimal(
         new BigInteger(value.getDecimal().getValue().toByteArray()), value.getDecimal().getScale());
   }
 
   public static LocalDate date(Value value) {
-    if (value.getInnerCase() != InnerCase.DATE) {
-      throw new IllegalArgumentException("Expected date value");
-    }
+    checkInnerCase(value, InnerCase.DATE);
+
     int unsigned = value.getDate();
     int signed = unsigned + Integer.MIN_VALUE;
     return EPOCH.plusDays(signed);
   }
 
   public static LocalTime time(Value value) {
-    if (value.getInnerCase() != InnerCase.TIME) {
-      throw new IllegalArgumentException("Expected time value");
-    }
+    checkInnerCase(value, InnerCase.TIME);
+
     return LocalTime.ofNanoOfDay(value.getTime());
+  }
+
+  private static void checkInnerCase(Value value, InnerCase expected) {
+    if (value.getInnerCase() != expected) {
+      throw new IllegalArgumentException(
+          String.format("Expected %s value, received %s", expected, value.getInnerCase()));
+    }
   }
 }
