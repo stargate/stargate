@@ -100,14 +100,11 @@ public class KeyspacesResource {
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-                  null,
-                  SourceAPI.REST,
-                  ResourceKind.KEYSPACE);
+          restDBAccess.authorizeSchemaRead(
+              keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
+              null,
+              SourceAPI.REST,
+              ResourceKind.KEYSPACE);
 
           Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
@@ -147,14 +144,8 @@ public class KeyspacesResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  null,
-                  SourceAPI.REST,
-                  ResourceKind.KEYSPACE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName), null, SourceAPI.REST, ResourceKind.KEYSPACE);
 
           io.stargate.db.schema.Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {
@@ -223,15 +214,8 @@ public class KeyspacesResource {
           Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           String keyspaceName = (String) requestBody.get("name");
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  null,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.KEYSPACE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, null, Scope.CREATE, SourceAPI.REST, ResourceKind.KEYSPACE);
 
           Replication replication;
           if (requestBody.containsKey("datacenters")) {
@@ -291,15 +275,8 @@ public class KeyspacesResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  null,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.KEYSPACE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, null, Scope.DROP, SourceAPI.REST, ResourceKind.KEYSPACE);
 
           restDBAccess
               .queryBuilder()

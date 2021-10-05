@@ -116,14 +116,11 @@ public class TablesResource {
                   .map(this::getTable)
                   .collect(Collectors.toList());
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
@@ -165,14 +162,11 @@ public class TablesResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(tableName),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
 
@@ -231,15 +225,8 @@ public class TablesResource {
                 .build();
           }
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
@@ -337,15 +324,8 @@ public class TablesResource {
         () -> {
           RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.ALTER,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
           TableOptions options = tableUpdate.getTableOptions();
           List<ClusteringExpression> clusteringExpressions = options.getClusteringExpression();
@@ -412,15 +392,8 @@ public class TablesResource {
         () -> {
           RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
           restDBAccess
               .queryBuilder()

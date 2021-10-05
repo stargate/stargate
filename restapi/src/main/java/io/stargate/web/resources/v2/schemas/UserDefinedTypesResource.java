@@ -170,14 +170,8 @@ public class UserDefinedTypesResource {
           .build();
     }
 
-    restDBAccess
-        .getAuthorizationService()
-        .authorizeSchemaRead(
-            restDBAccess.getAuthenticationSubject(),
-            Collections.singletonList(keyspaceName),
-            null,
-            SourceAPI.REST,
-            ResourceKind.TYPE);
+    restDBAccess.authorizeSchemaRead(
+        Collections.singletonList(keyspaceName), null, SourceAPI.REST, ResourceKind.TYPE);
 
     // find by id
     if (typeName != null) {
@@ -263,15 +257,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  null,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.TYPE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, null, Scope.CREATE, SourceAPI.REST, ResourceKind.TYPE);
 
           List<Column> columns;
           try {
@@ -344,15 +331,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  null,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.TYPE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, null, Scope.DROP, SourceAPI.REST, ResourceKind.TYPE);
 
           restDBAccess
               .queryBuilder()
@@ -413,15 +393,8 @@ public class UserDefinedTypesResource {
                 .build();
           }
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  null,
-                  Scope.ALTER,
-                  SourceAPI.REST,
-                  ResourceKind.TYPE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, null, Scope.ALTER, SourceAPI.REST, ResourceKind.TYPE);
 
           UserDefinedType udt =
               ImmutableUserDefinedType.builder().keyspace(keyspaceName).name(typeName).build();

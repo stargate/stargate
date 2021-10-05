@@ -17,6 +17,11 @@ package io.stargate.web.restapi.dao;
 
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
+import io.stargate.auth.SourceAPI;
+import io.stargate.auth.TypedKeyValue;
+import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.Parameters;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
@@ -27,15 +32,17 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 import javax.ws.rs.NotFoundException;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 /**
- * Data access abstraction used by Rest API: encapsulates authentication aspects along with
- * underlying actual {@link DataStore}, offers some more convenience access.
+ * Data access abstraction used by Rest API: encapsulates authentication aspects as well
+ * as access to underlying actual {@link DataStore}.
  */
 public class RestDBAccess {
   private final DataStore dataStore;
@@ -49,14 +56,6 @@ public class RestDBAccess {
     this.dataStore = dataStore;
     this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
-  }
-
-  public AuthorizationService getAuthorizationService() {
-    return authorizationService;
-  }
-
-  public AuthenticationSubject getAuthenticationSubject() {
-    return authenticationSubject;
   }
 
   /**
@@ -172,6 +171,50 @@ public class RestDBAccess {
 
   public Schema schema() {
     return dataStore.schema();
+  }
+
+  public void authorizeDataRead(String keyspace, String table, SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    authorizationService.authorizeDataRead(authenticationSubject, keyspace, table, sourceAPI);
+  }
+
+  public ResultSet authorizedDataRead(
+      Callable<ResultSet> action,
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      SourceAPI sourceAPI)
+      throws Exception {
+    return authorizationService.authorizedDataRead(
+        action, authenticationSubject, keyspace, table, typedKeyValues, sourceAPI);
+  }
+
+  public void authorizeDataWrite(
+      String keyspace,
+      String table,
+      List<TypedKeyValue> typedKeyValues,
+      Scope scope,
+      SourceAPI sourceAPI)
+      throws UnauthorizedException {
+    authorizationService.authorizeDataWrite(
+        authenticationSubject, keyspace, table, typedKeyValues, scope, sourceAPI);
+  }
+
+  public void authorizeSchemaRead(
+      List<String> keyspaceNames,
+      List<String> tableNames,
+      SourceAPI sourceAPI,
+      ResourceKind resource)
+      throws UnauthorizedException {
+    authorizationService.authorizeSchemaRead(
+        authenticationSubject, keyspaceNames, tableNames, sourceAPI, resource);
+  }
+
+  public void authorizeSchemaWrite(
+      String keyspace, String table, Scope scope, SourceAPI sourceAPI, ResourceKind resource)
+      throws UnauthorizedException {
+    authorizationService.authorizeSchemaWrite(
+        authenticationSubject, keyspace, table, scope, sourceAPI, resource);
   }
 
   public CompletableFuture<ResultSet> execute(

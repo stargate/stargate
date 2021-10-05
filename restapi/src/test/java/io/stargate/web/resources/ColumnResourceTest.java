@@ -46,7 +46,6 @@ class ColumnResourceTest {
 
     RestDBAccess restDBAccess = mock(RestDBAccess.class);
     when(db.getRestDBForToken("token", Collections.emptyMap())).thenReturn(restDBAccess);
-    when(restDBAccess.getAuthorizationService()).thenReturn(authorizationService);
     when(restDBAccess.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);
 

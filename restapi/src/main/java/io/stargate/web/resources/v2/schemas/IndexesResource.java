@@ -112,10 +112,7 @@ public class IndexesResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeDataRead(
-                  restDBAccess.getAuthenticationSubject(), keyspaceName, tableName, SourceAPI.REST);
+          restDBAccess.authorizeDataRead(keyspaceName, tableName, SourceAPI.REST);
 
           try {
             Table tableMetadata = restDBAccess.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
@@ -132,15 +129,12 @@ public class IndexesResource {
                     .bind();
 
             final ResultSet r =
-                restDBAccess
-                    .getAuthorizationService()
-                    .authorizedDataRead(
-                        () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                        restDBAccess.getAuthenticationSubject(),
-                        keyspaceName,
-                        tableName,
-                        TypedKeyValue.forSelect((BoundSelect) query),
-                        SourceAPI.REST);
+                restDBAccess.authorizedDataRead(
+                    () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
+                    keyspaceName,
+                    tableName,
+                    TypedKeyValue.forSelect((BoundSelect) query),
+                    SourceAPI.REST);
 
             List<Map<String, Object>> rows =
                 r.currentPageRows().stream().map(Converters::row2Map).collect(Collectors.toList());
@@ -191,15 +185,8 @@ public class IndexesResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.INDEX);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.INDEX);
 
           String columnName = indexAdd.getColumn();
           if (Strings.isNullOrEmpty(columnName)) {
@@ -313,15 +300,8 @@ public class IndexesResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.INDEX);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.INDEX);
 
           Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
           if (keyspace == null) {

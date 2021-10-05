@@ -103,14 +103,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(tableName),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           final Table tableMetadata;
           try {
@@ -201,15 +198,8 @@ public class ColumnsResource {
 
           Column column = ImmutableColumn.builder().name(name).kind(kind).type(type).build();
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.ALTER,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
           restDBAccess
               .queryBuilder()
@@ -263,14 +253,11 @@ public class ColumnsResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(tableName),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           final Table tableMetadata;
           try {
@@ -340,15 +327,8 @@ public class ColumnsResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.ALTER,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
           restDBAccess
               .queryBuilder()
@@ -396,15 +376,8 @@ public class ColumnsResource {
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.ALTER,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
           restDBAccess
               .queryBuilder()

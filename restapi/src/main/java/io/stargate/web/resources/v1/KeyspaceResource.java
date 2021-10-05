@@ -82,14 +82,8 @@ public class KeyspaceResource {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           List<String> keyspaceNames = restDBAccess.schema().keyspaceNames();
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceNames,
-                  null,
-                  SourceAPI.REST,
-                  ResourceKind.KEYSPACE);
+          restDBAccess.authorizeSchemaRead(
+              keyspaceNames, null, SourceAPI.REST, ResourceKind.KEYSPACE);
           return Response.status(Response.Status.OK).entity(keyspaceNames).build();
         });
   }

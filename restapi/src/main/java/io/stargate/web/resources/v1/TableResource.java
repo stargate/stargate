@@ -117,14 +117,11 @@ public class TableResource {
                   .map(Table::name)
                   .collect(Collectors.toList());
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  tableNames,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              tableNames,
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -214,15 +211,8 @@ public class TableResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
           int ttl = 0;
           if (options != null && options.getDefaultTimeToLive() != null) {
@@ -276,14 +266,11 @@ public class TableResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  restDBAccess.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(tableName),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
 
@@ -362,16 +349,8 @@ public class TableResource {
     return RequestHandler.handle(
         () -> {
           RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDBAccess.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
           restDBAccess
               .queryBuilder()

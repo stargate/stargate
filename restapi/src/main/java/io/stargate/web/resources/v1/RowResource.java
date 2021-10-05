@@ -153,15 +153,12 @@ public class RowResource {
                   .bind();
 
           final ResultSet r =
-              restDBAccess
-                  .getAuthorizationService()
-                  .authorizedDataRead(
-                      () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
-                      restDBAccess.getAuthenticationSubject(),
-                      keyspaceName,
-                      tableName,
-                      TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST);
+              restDBAccess.authorizedDataRead(
+                  () -> restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get(),
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forSelect((BoundSelect) query),
+                  SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.rows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -235,15 +232,12 @@ public class RowResource {
               };
 
           final ResultSet r =
-              restDBAccess
-                  .getAuthorizationService()
-                  .authorizedDataRead(
-                      () -> restDBAccess.execute(query, parametersModifier).get(),
-                      restDBAccess.getAuthenticationSubject(),
-                      keyspaceName,
-                      tableName,
-                      Collections.emptyList(),
-                      SourceAPI.REST);
+              restDBAccess.authorizedDataRead(
+                  () -> restDBAccess.execute(query, parametersModifier).get(),
+                  keyspaceName,
+                  tableName,
+                  Collections.emptyList(),
+                  SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -372,15 +366,12 @@ public class RowResource {
               };
 
           ResultSet r =
-              restDBAccess
-                  .getAuthorizationService()
-                  .authorizedDataRead(
-                      () -> restDBAccess.execute(query, parametersModifier).get(),
-                      restDBAccess.getAuthenticationSubject(),
-                      keyspaceName,
-                      tableName,
-                      TypedKeyValue.forSelect((BoundSelect) query),
-                      SourceAPI.REST);
+              restDBAccess.authorizedDataRead(
+                  () -> restDBAccess.execute(query, parametersModifier).get(),
+                  keyspaceName,
+                  tableName,
+                  TypedKeyValue.forSelect((BoundSelect) query),
+                  SourceAPI.REST);
 
           final List<Map<String, Object>> rows =
               r.currentPageRows().stream().map(Converters::row2MapV1).collect(Collectors.toList());
@@ -449,15 +440,12 @@ public class RowResource {
                   .build()
                   .bind();
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeDataWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.MODIFY,
-                  SourceAPI.REST);
+          restDBAccess.authorizeDataWrite(
+              keyspaceName,
+              tableName,
+              TypedKeyValue.forDML((BoundDMLQuery) query),
+              Scope.MODIFY,
+              SourceAPI.REST);
 
           restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -512,15 +500,12 @@ public class RowResource {
                   .build()
                   .bind();
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeDataWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.DELETE,
-                  SourceAPI.REST);
+          restDBAccess.authorizeDataWrite(
+              keyspaceName,
+              tableName,
+              TypedKeyValue.forDML((BoundDMLQuery) query),
+              Scope.DELETE,
+              SourceAPI.REST);
 
           restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
@@ -584,15 +569,12 @@ public class RowResource {
                   .build()
                   .bind();
 
-          restDBAccess
-              .getAuthorizationService()
-              .authorizeDataWrite(
-                  restDBAccess.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  TypedKeyValue.forDML((BoundDMLQuery) query),
-                  Scope.MODIFY,
-                  SourceAPI.REST);
+          restDBAccess.authorizeDataWrite(
+              keyspaceName,
+              tableName,
+              TypedKeyValue.forDML((BoundDMLQuery) query),
+              Scope.MODIFY,
+              SourceAPI.REST);
 
           restDBAccess.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
 
