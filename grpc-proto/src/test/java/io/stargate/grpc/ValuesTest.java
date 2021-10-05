@@ -1,8 +1,9 @@
+package io.stargate.grpc;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.protobuf.ByteString;
-import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Inet;
 import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
