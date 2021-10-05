@@ -62,8 +62,7 @@ Stargate contains the following components:
 
 ## Issue Management
 
-We're still getting things organized so bear with us if things move around a bit as we get settled.
-You can reference the [CONTRIBUTING.md](CONTRIBUTING.md) for a full description of how to get involved
+You can reference the [CONTRIBUTING.md](CONTRIBUTING.md) for a full description of how to get involved,
 but the short of it is below.
 
 - If you've found a bug (use the bug label) or want to request a new feature (use the enhancement label), file a GitHub issue
