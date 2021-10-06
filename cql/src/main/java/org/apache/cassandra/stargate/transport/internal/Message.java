@@ -35,6 +35,7 @@ import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import io.stargate.db.exceptions.UnhandledClientException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -729,6 +730,11 @@ public abstract class Message {
               error.getMessage(),
               request.connection().getVersion(),
               Thread.currentThread().getName());
+
+        if (error instanceof UnhandledClientException) {
+          ctx.close();
+          return;
+        }
 
         // JVMStabilityInspector.inspectThrowable(error); // TODO
         UnexpectedChannelExceptionHandler handler =

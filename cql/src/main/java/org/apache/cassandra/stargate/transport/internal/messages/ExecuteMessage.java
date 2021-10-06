@@ -89,7 +89,6 @@ public class ExecuteMessage extends Message.Request {
 
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
-
     BoundStatement statement =
         new BoundStatement(statementId, options.getValues(), options.getNames());
     CompletableFuture<? extends Result> future =
