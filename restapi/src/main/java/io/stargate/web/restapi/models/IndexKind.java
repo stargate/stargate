@@ -13,23 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
-import io.swagger.annotations.ApiModelProperty;
-import java.util.List;
-
-public class RowUpdate {
-  private List<Changeset> changeset;
-
-  @ApiModelProperty(
-      required = true,
-      value = "The values for the named parameters used in the setExpression field")
-  public List<Changeset> getChangeset() {
-    return changeset;
-  }
-
-  public RowUpdate setChangeset(List<Changeset> changeset) {
-    this.changeset = changeset;
-    return this;
-  }
+public enum IndexKind {
+  KEYS,
+  VALUES,
+  ENTRIES,
+  FULL
 }

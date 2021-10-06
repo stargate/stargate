@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,52 +21,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
+/** Represent a user defined type at api level. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TableResponse {
+public class UserDefinedTypeResponse {
 
   private final String name;
-  private final String keyspace;
-  private final List<ColumnDefinition> columnDefinitions;
-  private final PrimaryKey primaryKey;
-  private final TableOptions tableOptions;
 
-  @JsonCreator
-  public TableResponse(
+  private final String keyspace;
+
+  private final List<UserDefinedTypeField> fields;
+
+  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+  public UserDefinedTypeResponse(
       @JsonProperty("name") final String name,
       @JsonProperty("keyspace") final String keyspace,
-      @JsonProperty("columnDefinitions") final List<ColumnDefinition> columnDefinitions,
-      @JsonProperty("primaryKey") final PrimaryKey primaryKey,
-      @JsonProperty("tableOptions") final TableOptions tableOptions) {
+      @JsonProperty("fields") final List<UserDefinedTypeField> fields) {
     this.name = name;
     this.keyspace = keyspace;
-    this.columnDefinitions = columnDefinitions;
-    this.primaryKey = primaryKey;
-    this.tableOptions = tableOptions;
+    this.fields = fields;
   }
 
-  @ApiModelProperty(value = "The name of the table.")
+  @ApiModelProperty(value = "The name of the user defined type.")
   public String getName() {
     return name;
   }
 
-  @ApiModelProperty(value = "Name of the keyspace the table belongs.")
+  @ApiModelProperty(value = "Name of the keyspace the user defined type belongs.")
   public String getKeyspace() {
     return keyspace;
   }
 
-  @ApiModelProperty(value = "Definition of columns within the table.")
-  public List<ColumnDefinition> getColumnDefinitions() {
-    return columnDefinitions;
-  }
-
-  @ApiModelProperty(
-      value = "The definition of the partition and clustering keys that make up the primary key.")
-  public PrimaryKey getPrimaryKey() {
-    return primaryKey;
-  }
-
-  @ApiModelProperty(value = "Table options that are applied to the table.")
-  public TableOptions getTableOptions() {
-    return tableOptions;
+  @ApiModelProperty(value = "Definition of columns within the user defined type.")
+  public List<UserDefinedTypeField> getFields() {
+    return fields;
   }
 }

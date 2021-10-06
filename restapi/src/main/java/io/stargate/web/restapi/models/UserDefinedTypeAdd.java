@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
 import com.datastax.oss.driver.shaded.guava.common.base.MoreObjects;
 import com.fasterxml.jackson.annotation.JsonInclude;

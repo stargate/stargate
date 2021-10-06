@@ -13,17 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.annotations.ApiModelProperty;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class SuccessResponse {
-  private final boolean success = true;
+public class Changeset {
 
-  @ApiModelProperty(required = true, value = "Whether the request was successful.")
-  public boolean getSuccess() {
-    return success;
+  private String column;
+  private String value;
+
+  @ApiModelProperty(example = "firstName", required = true, value = "Name of the column to update.")
+  public String getColumn() {
+    return column;
+  }
+
+  public Changeset setColumn(String column) {
+    this.column = column;
+    return this;
+  }
+
+  @ApiModelProperty(
+      example = "Joe",
+      required = true,
+      value = "The value to update in the column for all matching rows.")
+  public String getValue() {
+    return value;
+  }
+
+  public Changeset setValue(String value) {
+    this.value = value;
+    return this;
   }
 }

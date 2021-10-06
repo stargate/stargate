@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources;
+package io.stargate.web.docsapi.dao;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -24,7 +24,6 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.datastore.DataStoreOptions;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import java.time.Duration;
 import java.util.Map;
@@ -34,10 +33,10 @@ import java.util.stream.Collectors;
 
 /**
  * Factory class injected into Resources, used to create actual {@link DocumentDB}
- * (using {@link #getDocDataStoreForToken{}; {@link DocumentDB}
+ * (using {@link #getDocDBForToken {}; {@link DocumentDB}
  * will abstract some of the access to the underlying Persistence implementation.
  */
-public class Db {
+public class DocumentDBFactory {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
 
@@ -45,13 +44,13 @@ public class Db {
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getDocDataStoreForTokenInternal);
+          .build(this::getDocDBForTokenInternal);
 
   private final DocsApiConfiguration config;
 
   private final DataStoreFactory dataStoreFactory;
 
-  public Db(
+  public DocumentDBFactory(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory,
@@ -62,7 +61,23 @@ public class Db {
     this.config = config;
   }
 
-  private DocumentDB getDocDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+  public DocumentDB getDocDBForToken(String token, Map<String, String> headers)
+      throws UnauthorizedException {
+    if (token == null) {
+      throw new UnauthorizedException("Missing token");
+    }
+
+    try {
+      return docsTokensToDataStore.get(TokenAndHeaders.create(token, headers));
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof UnauthorizedException) {
+        throw (UnauthorizedException) e.getCause();
+      }
+      throw e;
+    }
+  }
+
+  private DocumentDB getDocDBForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
@@ -81,22 +96,6 @@ public class Db {
             .alwaysPrepareQueries(true)
             .putAllCustomProperties(tokenAndHeaders.headers)
             .build());
-  }
-
-  public DocumentDB getDocDataStoreForToken(String token, Map<String, String> headers)
-      throws UnauthorizedException {
-    if (token == null) {
-      throw new UnauthorizedException("Missing token");
-    }
-
-    try {
-      return docsTokensToDataStore.get(TokenAndHeaders.create(token, headers));
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
-        throw (UnauthorizedException) e.getCause();
-      }
-      throw e;
-    }
   }
 
   static class TokenAndHeaders {

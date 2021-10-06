@@ -50,13 +50,13 @@ import io.stargate.db.schema.ImmutableTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
 import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
-import io.stargate.web.resources.Db;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -132,7 +132,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private HttpServletRequest request;
 
-  private Db db;
+  private DocumentDBFactory documentDBFactory;
   private DocumentService service;
   private DocumentResourceV2 resource;
 
@@ -158,13 +158,15 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   void setup() throws UnauthorizedException {
     when(dataStoreFactory.create(any(), any())).thenReturn(datastore());
 
-    db = new Db(authenticationService, authorizationService, dataStoreFactory, config);
+    documentDBFactory =
+        new DocumentDBFactory(
+            authenticationService, authorizationService, dataStoreFactory, config);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
     service =
         new DocumentService(
             timeSource, mapper, schemaChecker, jsonSchemaHandler, docsShredder, config);
-    resource = new DocumentResourceV2(db, mapper, service, config, schemaChecker);
+    resource = new DocumentResourceV2(documentDBFactory, mapper, service, config, schemaChecker);
   }
 
   private Map<String, Object> leafRow(String id) {
@@ -323,7 +325,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "{\"a\":123, \"b\":true, \"c\":\"text\", \"d\":{}, \"e\":[], \"f\":null, \"g\":[{\"h\":1}]}",
         ImmutableList.of(),
         false,
-        db,
+        documentDBFactory,
         true,
         Collections.emptyMap(),
         ExecutionContext.NOOP_CONTEXT);
@@ -359,7 +361,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "{\"a\":123}",
         ImmutableList.of(p("x"), p("y"), p("[000000]")),
         false,
-        db,
+        documentDBFactory,
         true,
         Collections.emptyMap(),
         ExecutionContext.NOOP_CONTEXT);
@@ -397,7 +399,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "{\"a\":123}",
         ImmutableList.of(),
         true,
-        db,
+        documentDBFactory,
         true,
         Collections.emptyMap(),
         ExecutionContext.NOOP_CONTEXT);
@@ -415,7 +417,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 "{\"a\":123}",
                 ImmutableList.of(),
                 true,
-                db,
+                documentDBFactory,
                 true,
                 Collections.emptyMap(),
                 ExecutionContext.NOOP_CONTEXT);
@@ -454,7 +456,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         table.name(),
         in,
         Optional.of("a"),
-        db,
+        documentDBFactory,
         ExecutionContext.NOOP_CONTEXT,
         Collections.emptyMap());
   }
@@ -471,7 +473,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                     table.name(),
                     in,
                     Optional.of("no.good"),
-                    db,
+                    documentDBFactory,
                     ExecutionContext.NOOP_CONTEXT,
                     Collections.emptyMap()))
         .hasMessage(

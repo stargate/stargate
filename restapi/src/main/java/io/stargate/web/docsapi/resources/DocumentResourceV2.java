@@ -6,6 +6,7 @@ import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.MultiDocsResponse;
@@ -15,7 +16,6 @@ import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.models.Error;
-import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 public class DocumentResourceV2 {
   private static final Logger logger = LoggerFactory.getLogger(DocumentResourceV2.class);
 
-  @Inject private Db dbFactory;
+  @Inject private DocumentDBFactory dbFactory;
   @Inject private ObjectMapper mapper;
   @Inject private DocumentService documentService;
   @Inject private DocsApiConfiguration docsApiConfiguration;
@@ -77,7 +77,7 @@ public class DocumentResourceV2 {
 
   @VisibleForTesting
   public DocumentResourceV2(
-      Db dbFactory,
+      DocumentDBFactory dbFactory,
       ObjectMapper mapper,
       DocumentService documentService,
       DocsApiConfiguration docsApiConfiguration,
@@ -573,7 +573,7 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+          DocumentDB db = dbFactory.getDocDBForToken(authToken, allHeaders);
           documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
           return Response.noContent().build();
         });
@@ -616,7 +616,7 @@ public class DocumentResourceV2 {
     return handle(
         () -> {
           Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, allHeaders);
+          DocumentDB db = dbFactory.getDocDBForToken(authToken, allHeaders);
           documentService.deleteAtPath(db, namespace, collection, id, path);
           return Response.noContent().build();
         });

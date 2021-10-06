@@ -13,35 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
 import io.swagger.annotations.ApiModelProperty;
+import java.util.List;
 
-public class Changeset {
+public class RowAdd {
+  private List<ColumnModel> columns;
 
-  private String column;
-  private String value;
-
-  @ApiModelProperty(example = "firstName", required = true, value = "Name of the column to update.")
-  public String getColumn() {
-    return column;
+  @ApiModelProperty(required = true, value = "The column definitions belonging to the row to add.")
+  public List<ColumnModel> getColumns() {
+    return columns;
   }
 
-  public Changeset setColumn(String column) {
-    this.column = column;
-    return this;
+  public void setColumns(List<ColumnModel> columns) {
+    this.columns = columns;
   }
 
-  @ApiModelProperty(
-      example = "Joe",
-      required = true,
-      value = "The value to update in the column for all matching rows.")
-  public String getValue() {
-    return value;
-  }
+  public RowAdd() {}
 
-  public Changeset setValue(String value) {
-    this.value = value;
-    return this;
+  public RowAdd(List<ColumnModel> columns) {
+    this.columns = columns;
   }
 }

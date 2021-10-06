@@ -23,6 +23,7 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
@@ -30,7 +31,6 @@ import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -70,7 +70,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Singleton
 public class NamespacesResource {
 
-  @Inject private Db db;
+  @Inject private DocumentDBFactory documentDBFactory;
 
   @Timed
   @GET
@@ -97,7 +97,7 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
           List<Keyspace> namespaces =
               docDB.getKeyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
@@ -174,7 +174,7 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
           docDB
               .getAuthorizationService()
               .authorizeSchemaRead(
@@ -247,7 +247,7 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
 
           String keyspaceName = body.getName();
           docDB
@@ -300,7 +300,8 @@ public class NamespacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          final DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          final DocumentDB docDB =
+              documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
 
           docDB
               .getAuthorizationService()

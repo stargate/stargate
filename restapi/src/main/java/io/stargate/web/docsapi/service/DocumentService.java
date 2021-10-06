@@ -8,10 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
-import io.stargate.web.resources.Db;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -65,7 +65,7 @@ public class DocumentService {
   }
 
   private DocumentDB maybeCreateTableAndIndexes(
-      Db dbFactory,
+      DocumentDBFactory dbFactory,
       DocumentDB db,
       String keyspace,
       String collection,
@@ -76,7 +76,7 @@ public class DocumentService {
     // After creating the table, it can take up to 2 seconds for permissions cache to be updated,
     // but we can force the permissions refetch by logging in again.
     if (created) {
-      db = dbFactory.getDocDataStoreForToken(authToken, headers);
+      db = dbFactory.getDocDBForToken(authToken, headers);
       db.maybeCreateTableIndexes(keyspace, collection);
     }
     return db;
@@ -88,12 +88,12 @@ public class DocumentService {
       String collection,
       InputStream payload,
       Optional<String> idPath,
-      Db dbFactory,
+      DocumentDBFactory dbFactory,
       ExecutionContext context,
       Map<String, String> headers)
       throws IOException, UnauthorizedException {
 
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
+    DocumentDB db = dbFactory.getDocDBForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferJackson.INSTANCE;
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
@@ -178,12 +178,12 @@ public class DocumentService {
       String payload,
       List<PathSegment> path,
       boolean patching,
-      Db dbFactory,
+      DocumentDBFactory dbFactory,
       boolean isJson,
       Map<String, String> headers,
       ExecutionContext context)
       throws UnauthorizedException, ProcessingException {
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, headers);
+    DocumentDB db = dbFactory.getDocDBForToken(authToken, headers);
     JsonSurfer surfer = JsonSurferJackson.INSTANCE;
 
     db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);

@@ -32,6 +32,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.stargate.web.RestApiActivator;
 import io.stargate.web.config.ApplicationConfiguration;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.JsonSchemaResource;
@@ -39,7 +40,6 @@ import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.HealthResource;
 import io.stargate.web.resources.v1.ColumnResource;
 import io.stargate.web.resources.v1.KeyspaceResource;
@@ -120,8 +120,9 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
 
     // General providers
     environment.jersey().register(new ViolationExceptionMapper());
-    final Db db =
-        new Db(authenticationService, authorizationService, dataStoreFactory, docsApiConf);
+    final DocumentDBFactory documentDBFactory =
+        new DocumentDBFactory(
+            authenticationService, authorizationService, dataStoreFactory, docsApiConf);
     final RestDBFactory restDBFactory =
         new RestDBFactory(authenticationService, authorizationService, dataStoreFactory);
     final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
@@ -132,7 +133,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
               @Override
               protected void configure() {
                 bind(objectMapper).to(ObjectMapper.class);
-                bind(db).to(Db.class);
+                bind(documentDBFactory).to(DocumentDBFactory.class);
                 bind(restDBFactory).to(RestDBFactory.class);
               }
             });

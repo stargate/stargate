@@ -43,7 +43,7 @@ public class RestDBFactory {
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
-          .build(this::getRestDataStoreForTokenInternal);
+          .build(this::getRestDBForTokenInternal);
 
   private final DataStoreFactory dataStoreFactory;
 
@@ -72,7 +72,7 @@ public class RestDBFactory {
     }
   }
 
-  private RestDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+  private RestDB getRestDBForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);

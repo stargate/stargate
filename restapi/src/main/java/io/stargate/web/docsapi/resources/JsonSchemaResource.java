@@ -4,13 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.JsonSchemaResponse;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.JsonSchemaHandler;
 import io.stargate.web.models.Error;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.*;
 import javax.inject.Inject;
@@ -30,7 +30,7 @@ import org.glassfish.jersey.server.ManagedAsync;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class JsonSchemaResource {
-  @Inject private Db dbFactory;
+  @Inject private DocumentDBFactory dbFactory;
   @Inject private ObjectMapper mapper;
   @Inject private JsonSchemaHandler jsonSchemaHandler;
   @Inject private DocsSchemaChecker schemaChecker;
@@ -70,8 +70,7 @@ public class JsonSchemaResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB db =
-              dbFactory.getDocDataStoreForToken(
-                  token, RequestToHeadersMapper.getAllHeaders(request));
+              dbFactory.getDocDBForToken(token, RequestToHeadersMapper.getAllHeaders(request));
           JsonNode schemaRaw = null;
           try {
             schemaRaw = mapper.readTree(payload);
@@ -116,8 +115,7 @@ public class JsonSchemaResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB db =
-              dbFactory.getDocDataStoreForToken(
-                  token, RequestToHeadersMapper.getAllHeaders(request));
+              dbFactory.getDocDBForToken(token, RequestToHeadersMapper.getAllHeaders(request));
           schemaChecker.checkValidity(namespace, collection, db);
           JsonSchemaResponse resp =
               jsonSchemaHandler.getJsonSchemaForCollection(db, namespace, collection);

@@ -13,31 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 
-public class ClusteringExpression {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class RowsResponse {
 
-  private final String column;
-  private final String order;
+  private final boolean success;
+  private final int rowsModified;
 
   @JsonCreator
-  public ClusteringExpression(
-      @JsonProperty("name") String column, @JsonProperty("order") String order) {
-    this.column = column;
-    this.order = order;
+  public RowsResponse(
+      @JsonProperty("success") boolean success, @JsonProperty("rowsModified") int rowsModified) {
+    this.success = success;
+    this.rowsModified = rowsModified;
   }
 
-  @ApiModelProperty(required = true, value = "The name of the column to order by")
-  public String getColumn() {
-    return column;
+  @ApiModelProperty(value = "Whether the request was successful.")
+  public boolean getSuccess() {
+    return success;
   }
 
-  @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
-  public String getOrder() {
-    return order;
+  @ApiModelProperty(value = "Number of rows modified/added by the request.")
+  public int getRowsModified() {
+    return rowsModified;
   }
 }
