@@ -31,15 +31,15 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 /**
- * Factory class injected into Resources, used to create actual {@link RestDBAccess}
- * (using {@link #getRestDBForToken{}; {@link RestDBAccess}
+ * Factory class injected into Resources, used to create actual {@link RestDB}
+ * (using {@link #getRestDBForToken{}; {@link RestDB}
  * will abstract access to the underlying Persistence implementation.
  */
-public class RestDBAccessFactory {
+public class RestDBFactory {
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
 
-  private final LoadingCache<TokenAndHeaders, RestDBAccess> restTokensToDB =
+  private final LoadingCache<TokenAndHeaders, RestDB> restTokensToDB =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(1))
@@ -47,7 +47,7 @@ public class RestDBAccessFactory {
 
   private final DataStoreFactory dataStoreFactory;
 
-  public RestDBAccessFactory(
+  public RestDBFactory(
       AuthenticationService authenticationService,
       AuthorizationService authorizationService,
       DataStoreFactory dataStoreFactory) {
@@ -56,7 +56,7 @@ public class RestDBAccessFactory {
     this.dataStoreFactory = dataStoreFactory;
   }
 
-  public RestDBAccess getRestDBForToken(String token, Map<String, String> headers)
+  public RestDB getRestDBForToken(String token, Map<String, String> headers)
       throws UnauthorizedException {
     if (token == null) {
       throw new UnauthorizedException("Missing token");
@@ -72,11 +72,11 @@ public class RestDBAccessFactory {
     }
   }
 
-  private RestDBAccess getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
+  private RestDB getRestDataStoreForTokenInternal(TokenAndHeaders tokenAndHeaders)
       throws UnauthorizedException {
     AuthenticationSubject authenticationSubject =
         authenticationService.validateToken(tokenAndHeaders.token, tokenAndHeaders.headers);
-    return new RestDBAccess(
+    return new RestDB(
         constructDataStore(authenticationSubject, tokenAndHeaders),
         authenticationSubject,
         authorizationService);

@@ -29,8 +29,8 @@ import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.resources.ResourceUtils;
-import io.stargate.web.restapi.dao.RestDBAccess;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -66,7 +66,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class KeyspacesResource {
-  @Inject private RestDBAccessFactory dbFactory;
+  @Inject private RestDBFactory dbFactory;
 
   @Timed
   @GET
@@ -93,14 +93,14 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           List<Keyspace> keyspaces =
-              restDBAccess.getKeyspaces().stream()
+              restDB.getKeyspaces().stream()
                   .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
-          restDBAccess.authorizeSchemaRead(
+          restDB.authorizeSchemaRead(
               keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
               null,
               SourceAPI.REST,
@@ -143,11 +143,11 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaRead(
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName), null, SourceAPI.REST, ResourceKind.KEYSPACE);
 
-          io.stargate.db.schema.Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
+          io.stargate.db.schema.Keyspace keyspace = restDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
@@ -209,12 +209,12 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
           String keyspaceName = (String) requestBody.get("name");
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, null, Scope.CREATE, SourceAPI.REST, ResourceKind.KEYSPACE);
 
           Replication replication;
@@ -234,7 +234,7 @@ public class KeyspacesResource {
             replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
           }
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -273,12 +273,12 @@ public class KeyspacesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, null, Scope.DROP, SourceAPI.REST, ResourceKind.KEYSPACE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .drop()
               .keyspace(keyspaceName)

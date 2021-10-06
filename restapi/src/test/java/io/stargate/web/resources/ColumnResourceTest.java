@@ -13,8 +13,8 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.ColumnDefinition;
 import io.stargate.web.resources.v1.ColumnResource;
-import io.stargate.web.restapi.dao.RestDBAccess;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ColumnResourceTest {
 
-  private static final RestDBAccessFactory db = mock(RestDBAccessFactory.class);
+  private static final RestDBFactory db = mock(RestDBFactory.class);
 
   private static final ResourceExtension resource =
       ResourceExtension.builder().addResource(new ColumnResource(db)).build();
@@ -44,9 +44,9 @@ class ColumnResourceTest {
     Column column2 = ImmutableColumn.create("c2", Column.Kind.Regular, Column.Type.Int);
     List<Column> columns = Arrays.asList(column1, column2);
 
-    RestDBAccess restDBAccess = mock(RestDBAccess.class);
-    when(db.getRestDBForToken("token", Collections.emptyMap())).thenReturn(restDBAccess);
-    when(restDBAccess.getTable("keySpaceName", "tableName")).thenReturn(table);
+    RestDB restDB = mock(RestDB.class);
+    when(db.getRestDBForToken("token", Collections.emptyMap())).thenReturn(restDB);
+    when(restDB.getTable("keySpaceName", "tableName")).thenReturn(table);
     when(table.columns()).thenReturn(columns);
 
     List<ColumnDefinition> columnDefinitions =

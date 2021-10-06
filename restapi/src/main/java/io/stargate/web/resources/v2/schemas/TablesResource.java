@@ -38,8 +38,8 @@ import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
-import io.stargate.web.restapi.dao.RestDBAccess;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -78,7 +78,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class TablesResource {
-  @Inject private RestDBAccessFactory dbProvider;
+  @Inject private RestDBFactory dbProvider;
 
   @Timed
   @GET
@@ -109,14 +109,14 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
           List<TableResponse> tableResponses =
-              restDBAccess.getTables(keyspaceName).stream()
+              restDB.getTables(keyspaceName).stream()
                   .map(this::getTable)
                   .collect(Collectors.toList());
 
-          restDBAccess.authorizeSchemaRead(
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               tableResponses.stream().map(TableResponse::getName).collect(Collectors.toList()),
               SourceAPI.REST,
@@ -161,14 +161,14 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaRead(
+          RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               Collections.singletonList(tableName),
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
+          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
           Object response = raw ? tableResponse : new ResponseWrapper(tableResponse);
@@ -205,9 +205,9 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
+          Keyspace keyspace = restDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -225,7 +225,7 @@ public class TablesResource {
                 .build();
           }
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
@@ -272,7 +272,7 @@ public class TablesResource {
             ttl = options.getDefaultTimeToLive();
           }
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -322,9 +322,9 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
           TableOptions options = tableUpdate.getTableOptions();
@@ -346,7 +346,7 @@ public class TablesResource {
                 .build();
           }
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -390,12 +390,12 @@ public class TablesResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbProvider.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)

@@ -51,7 +51,7 @@ import io.stargate.web.resources.v2.schemas.IndexesResource;
 import io.stargate.web.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.resources.v2.schemas.TablesResource;
 import io.stargate.web.resources.v2.schemas.UserDefinedTypesResource;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.swagger.SwaggerUIResource;
 import io.stargate.web.validation.ViolationExceptionMapper;
 import io.swagger.config.ScannerFactory;
@@ -122,8 +122,8 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
     environment.jersey().register(new ViolationExceptionMapper());
     final Db db =
         new Db(authenticationService, authorizationService, dataStoreFactory, docsApiConf);
-    final RestDBAccessFactory restDBFactory =
-        new RestDBAccessFactory(authenticationService, authorizationService, dataStoreFactory);
+    final RestDBFactory restDBFactory =
+        new RestDBFactory(authenticationService, authorizationService, dataStoreFactory);
     final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
     environment
         .jersey()
@@ -133,7 +133,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
               protected void configure() {
                 bind(objectMapper).to(ObjectMapper.class);
                 bind(db).to(Db.class);
-                bind(restDBFactory).to(RestDBAccessFactory.class);
+                bind(restDBFactory).to(RestDBFactory.class);
               }
             });
 

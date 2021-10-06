@@ -38,8 +38,8 @@ import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
-import io.stargate.web.restapi.dao.RestDBAccess;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -76,7 +76,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class TableResource {
-  @Inject private RestDBAccessFactory dbFactory;
+  @Inject private RestDBFactory dbFactory;
 
   @Timed
   @GET
@@ -110,14 +110,12 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           List<String> tableNames =
-              restDBAccess.getTables(keyspaceName).stream()
-                  .map(Table::name)
-                  .collect(Collectors.toList());
+              restDB.getTables(keyspaceName).stream().map(Table::name).collect(Collectors.toList());
 
-          restDBAccess.authorizeSchemaRead(
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               tableNames,
               SourceAPI.REST,
@@ -158,8 +156,8 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          Keyspace keyspace = restDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -211,7 +209,7 @@ public class TableResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
           int ttl = 0;
@@ -219,7 +217,7 @@ public class TableResource {
             ttl = options.getDefaultTimeToLive();
           }
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -265,14 +263,14 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaRead(
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               Collections.singletonList(tableName),
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Table tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
+          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           final List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()
@@ -348,11 +346,11 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaWrite(
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)

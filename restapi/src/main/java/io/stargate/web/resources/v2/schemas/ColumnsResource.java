@@ -31,8 +31,8 @@ import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
-import io.stargate.web.restapi.dao.RestDBAccess;
-import io.stargate.web.restapi.dao.RestDBAccessFactory;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -68,7 +68,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class ColumnsResource {
-  @Inject private RestDBAccessFactory dbFactory;
+  @Inject private RestDBFactory dbFactory;
 
   @Timed
   @GET
@@ -102,8 +102,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaRead(
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               Collections.singletonList(tableName),
               SourceAPI.REST,
@@ -111,7 +111,7 @@ public class ColumnsResource {
 
           final Table tableMetadata;
           try {
-            tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
+            tableMetadata = restDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -170,8 +170,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          Keyspace keyspace = restDBAccess.getKeyspace(keyspaceName);
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          Keyspace keyspace = restDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -198,10 +198,10 @@ public class ColumnsResource {
 
           Column column = ImmutableColumn.builder().name(name).kind(kind).type(type).build();
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -252,8 +252,8 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDBAccess.authorizeSchemaRead(
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
               Collections.singletonList(tableName),
               SourceAPI.REST,
@@ -261,7 +261,7 @@ public class ColumnsResource {
 
           final Table tableMetadata;
           try {
-            tableMetadata = restDBAccess.getTable(keyspaceName, tableName);
+            tableMetadata = restDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -325,12 +325,12 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
@@ -374,12 +374,12 @@ public class ColumnsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          RestDBAccess restDBAccess = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          restDBAccess.authorizeSchemaWrite(
+          restDB.authorizeSchemaWrite(
               keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
 
-          restDBAccess
+          restDB
               .queryBuilder()
               .alter()
               .table(keyspaceName, tableName)
