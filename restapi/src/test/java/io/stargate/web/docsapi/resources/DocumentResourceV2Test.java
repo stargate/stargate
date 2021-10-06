@@ -10,8 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Db;
+import io.stargate.web.restapi.dao.RestDB;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +32,7 @@ import org.mockito.quality.Strictness;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class DocumentResourceV2Test {
-  private final AuthenticatedDB authenticatedDBMock = mock(AuthenticatedDB.class);
+  private final RestDB restDBMock = mock(RestDB.class);
   @InjectMocks private DocumentResourceV2 documentResourceV2;
   @Mock private DocumentService documentServiceMock;
   @Mock private Db dbFactoryMock;

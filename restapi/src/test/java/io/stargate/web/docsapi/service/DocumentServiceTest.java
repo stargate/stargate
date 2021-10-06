@@ -156,7 +156,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   @BeforeEach
   void setup() throws UnauthorizedException {
-    when(dataStoreFactory.createInternal(any())).thenReturn(datastore());
     when(dataStoreFactory.create(any(), any())).thenReturn(datastore());
 
     db = new Db(authenticationService, authorizationService, dataStoreFactory, config);

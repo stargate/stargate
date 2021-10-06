@@ -26,6 +26,7 @@ import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.web.docsapi.dao.Paginator;
+import io.stargate.web.docsapi.rx.RxUtils;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
@@ -39,7 +40,6 @@ import io.stargate.web.docsapi.service.query.search.db.impl.FilterPathSearchQuer
 import io.stargate.web.docsapi.service.query.search.db.impl.FullSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.weigth.impl.UserOrderWeightResolver;
-import io.stargate.web.rx.RxUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

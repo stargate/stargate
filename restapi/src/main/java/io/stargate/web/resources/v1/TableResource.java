@@ -36,10 +36,10 @@ import io.stargate.web.models.SuccessResponse;
 import io.stargate.web.models.TableAdd;
 import io.stargate.web.models.TableOptions;
 import io.stargate.web.models.TableResponse;
-import io.stargate.web.resources.AuthenticatedDB;
 import io.stargate.web.resources.Converters;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
+import io.stargate.web.restapi.dao.RestDB;
+import io.stargate.web.restapi.dao.RestDBFactory;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -76,7 +76,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class TableResource {
-  @Inject private Db db;
+  @Inject private RestDBFactory dbFactory;
 
   @Timed
   @GET
@@ -110,22 +110,16 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
           List<String> tableNames =
-              authenticatedDB.getTables(keyspaceName).stream()
-                  .map(Table::name)
-                  .collect(Collectors.toList());
+              restDB.getTables(keyspaceName).stream().map(Table::name).collect(Collectors.toList());
 
-          authenticatedDB
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  tableNames,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDB.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              tableNames,
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
           return Response.status(Response.Status.OK).entity(tableNames).build();
         });
@@ -162,9 +156,8 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          Keyspace keyspace = authenticatedDB.getKeyspace(keyspaceName);
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          Keyspace keyspace = restDB.getKeyspace(keyspaceName);
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
@@ -216,22 +209,15 @@ public class TableResource {
             columns.add(Column.create(columnName, kind, type, order));
           }
 
-          authenticatedDB
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.CREATE,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          restDB.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
           int ttl = 0;
           if (options != null && options.getDefaultTimeToLive() != null) {
             ttl = options.getDefaultTimeToLive();
           }
 
-          authenticatedDB
+          restDB
               .queryBuilder()
               .create()
               .table(keyspaceName, tableName)
@@ -277,18 +263,14 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
-          authenticatedDB
-              .getAuthorizationService()
-              .authorizeSchemaRead(
-                  authenticatedDB.getAuthenticationSubject(),
-                  Collections.singletonList(keyspaceName),
-                  Collections.singletonList(tableName),
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaRead(
+              Collections.singletonList(keyspaceName),
+              Collections.singletonList(tableName),
+              SourceAPI.REST,
+              ResourceKind.TABLE);
 
-          Table tableMetadata = authenticatedDB.getTable(keyspaceName, tableName);
+          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           final List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()
@@ -364,20 +346,11 @@ public class TableResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          AuthenticatedDB authenticatedDB =
-              db.getRestDataStoreForToken(token, getAllHeaders(request));
+          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+          restDB.authorizeSchemaWrite(
+              keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
-          authenticatedDB
-              .getAuthorizationService()
-              .authorizeSchemaWrite(
-                  authenticatedDB.getAuthenticationSubject(),
-                  keyspaceName,
-                  tableName,
-                  Scope.DROP,
-                  SourceAPI.REST,
-                  ResourceKind.TABLE);
-
-          authenticatedDB
+          restDB
               .queryBuilder()
               .drop()
               .table(keyspaceName, tableName)
