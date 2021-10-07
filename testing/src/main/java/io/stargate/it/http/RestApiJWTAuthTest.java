@@ -13,7 +13,6 @@ import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.web.models.Keyspace;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.restapi.models.Changeset;
 import io.stargate.web.restapi.models.ColumnDefinition;
 import io.stargate.web.restapi.models.ColumnModel;
@@ -21,6 +20,7 @@ import io.stargate.web.restapi.models.Filter;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.Query;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.RowAdd;
 import io.stargate.web.restapi.models.RowResponse;
 import io.stargate.web.restapi.models.RowUpdate;
@@ -102,7 +102,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
 
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<Keyspace> keyspaces =
         objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
@@ -423,7 +423,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
-    ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper responseWrapper = objectMapper.readValue(body, RESTResponseWrapper.class);
     Map<String, String> data = objectMapper.convertValue(responseWrapper.getData(), Map.class);
 
     assertThat(data).containsAllEntriesOf(rowUpdate);

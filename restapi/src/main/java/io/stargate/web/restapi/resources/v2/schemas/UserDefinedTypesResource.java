@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources.v2.schemas;
+package io.stargate.web.restapi.resources.v2.schemas;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -33,11 +33,11 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.UserDefinedTypeAdd;
 import io.stargate.web.restapi.models.UserDefinedTypeField;
 import io.stargate.web.restapi.models.UserDefinedTypeResponse;
@@ -128,7 +128,7 @@ public class UserDefinedTypesResource {
   @ApiOperation(
       value = "Get an user defined type (UDT) from its identifier",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = ResponseWrapper.class)
+      response = RESTResponseWrapper.class)
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Table.class),
@@ -178,7 +178,7 @@ public class UserDefinedTypesResource {
       UserDefinedTypeResponse udtResponse =
           mapUdtAsResponse(restDB.getType(keyspaceName, typeName));
       return Response.ok(
-              Converters.writeResponse(raw ? udtResponse : new ResponseWrapper<>(udtResponse)))
+              Converters.writeResponse(raw ? udtResponse : new RESTResponseWrapper<>(udtResponse)))
           .build();
     } else { // retrieve all
       List<UserDefinedTypeResponse> udtResponses =
@@ -186,7 +186,7 @@ public class UserDefinedTypesResource {
               .map(this::mapUdtAsResponse)
               .collect(Collectors.toList());
 
-      Object response = raw ? udtResponses : new ResponseWrapper<>(udtResponses);
+      Object response = raw ? udtResponses : new RESTResponseWrapper<>(udtResponses);
       return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
     }
   }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ResponseWrapper<T> {
+public class RESTResponseWrapper<T> {
   @JsonProperty("data")
   private T data;
 
@@ -30,13 +30,13 @@ public class ResponseWrapper<T> {
     return data;
   }
 
-  public ResponseWrapper setData(T data) {
+  public RESTResponseWrapper setData(T data) {
     this.data = data;
     return this;
   }
 
   @JsonCreator
-  public ResponseWrapper(@JsonProperty("data") final T data) {
+  public RESTResponseWrapper(@JsonProperty("data") final T data) {
     this.data = data;
   }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources.v2;
+package io.stargate.web.restapi.resources.v2;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
@@ -35,12 +35,12 @@ import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.GetResponseWrapper;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.Rows;
 import io.stargate.web.restapi.resources.ResourceUtils;
 import io.stargate.web.service.WhereParser;
@@ -529,10 +529,13 @@ public class RowsResource {
   @ApiOperation(
       value = "Update part of a row(s)",
       notes = "Perform a partial update of one or more rows in a table",
-      response = ResponseWrapper.class)
+      response = RESTResponseWrapper.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "resource updated", response = ResponseWrapper.class),
+        @ApiResponse(
+            code = 200,
+            message = "resource updated",
+            response = RESTResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
@@ -613,7 +616,7 @@ public class RowsResource {
         SourceAPI.REST);
 
     restDB.execute(query, ConsistencyLevel.LOCAL_QUORUM).get();
-    Object response = raw ? requestBody : new ResponseWrapper(requestBody);
+    Object response = raw ? requestBody : new RESTResponseWrapper(requestBody);
     return Response.status(Response.Status.OK).entity(Converters.writeResponse(response)).build();
   }
 

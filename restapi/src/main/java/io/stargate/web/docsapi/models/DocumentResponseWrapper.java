@@ -20,6 +20,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 
+/**
+ * Response wrapper used for most Document API endpoints, where {@code documentId} and {@code
+ * pageState} are to be returned along with wrapped response.
+ *
+ * @param <T> Type of response wrapped
+ * @see SimpleResponseWrapper
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocumentResponseWrapper<T> {
   @JsonProperty("documentId")

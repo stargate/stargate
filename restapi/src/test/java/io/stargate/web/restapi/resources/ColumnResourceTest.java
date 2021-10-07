@@ -1,4 +1,4 @@
-package io.stargate.web.resources;
+package io.stargate.web.restapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -11,10 +11,10 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Table;
-import io.stargate.web.resources.v1.ColumnResource;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.ColumnDefinition;
+import io.stargate.web.restapi.resources.v1.ColumnResource;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

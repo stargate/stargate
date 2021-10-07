@@ -32,12 +32,12 @@ import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.restapi.models.ColumnDefinition;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.IndexAdd;
 import io.stargate.web.restapi.models.IndexKind;
 import io.stargate.web.restapi.models.PrimaryKey;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.SuccessResponse;
 import io.stargate.web.restapi.models.TableAdd;
 import io.stargate.web.restapi.models.TableOptions;
@@ -105,7 +105,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<Keyspace> keyspaces =
         objectMapper.convertValue(response.getData(), new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
@@ -154,7 +154,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     Keyspace keyspace = objectMapper.convertValue(response.getData(), Keyspace.class);
 
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
@@ -236,7 +236,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<TableResponse> tables =
         objectMapper.convertValue(response.getData(), new TypeReference<List<TableResponse>>() {});
 
@@ -281,7 +281,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
@@ -315,7 +315,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     TableResponse table = objectMapper.convertValue(response.getData(), TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
@@ -1481,7 +1481,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
-    ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper responseWrapper = objectMapper.readValue(body, RESTResponseWrapper.class);
     @SuppressWarnings("unchecked")
     Map<String, String> data = objectMapper.convertValue(responseWrapper.getData(), Map.class);
 
@@ -1681,7 +1681,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
     @SuppressWarnings("rawtypes")
-    ResponseWrapper responseWrapper = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper responseWrapper = objectMapper.readValue(body, RESTResponseWrapper.class);
     @SuppressWarnings("unchecked")
     Map<String, String> patchData = objectMapper.convertValue(responseWrapper.getData(), Map.class);
 
@@ -1968,7 +1968,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
             response.getData(), new TypeReference<List<ColumnDefinition>>() {});
@@ -2014,7 +2014,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             HttpStatus.SC_OK);
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<ColumnDefinition> columns =
         objectMapper.convertValue(
             response.getData(), new TypeReference<List<ColumnDefinition>>() {});
@@ -2069,7 +2069,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
     assertThat(column)
         .usingRecursiveComparison()
@@ -2125,7 +2125,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "col1"),
             HttpStatus.SC_OK);
     @SuppressWarnings("rawtypes")
-    ResponseWrapper response = objectMapper.readValue(body, ResponseWrapper.class);
+    RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     ColumnDefinition column = objectMapper.convertValue(response.getData(), ColumnDefinition.class);
     assertThat(column)
         .usingRecursiveComparison()
