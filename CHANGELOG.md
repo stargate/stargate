@@ -1,13 +1,29 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+## [v1.0.36](https://github.com/stargate/stargate/tree/v1.0.36) (2021-10-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.35...HEAD)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.35...v1.0.36)
 
 **Fixed bugs:**
 
 - `QueryBuilderImpl` adds comment without preprocessing with StringCodes [\#1293](https://github.com/stargate/stargate/issues/1293)
+- `json-schema` Endpoint: GET request returns 400 on a collection with a schema [\#1291](https://github.com/stargate/stargate/issues/1291)
 - `json-schema` Endpoint: Single Quotes in the "description" field of a JSON Schema property cause errors. [\#1290](https://github.com/stargate/stargate/issues/1290)
+
+**Closed issues:**
+
+- Improve encapsulation of `AuthenticatedDB` \(hide DataStore better\) [\#1301](https://github.com/stargate/stargate/issues/1301)
+- Stargate fails to start because of too many open files [\#1286](https://github.com/stargate/stargate/issues/1286)
+
+**Merged pull requests:**
+
+- Fix \#1309: split `Db` into separate factories, rename data access types [\#1310](https://github.com/stargate/stargate/pull/1310) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update README.md [\#1308](https://github.com/stargate/stargate/pull/1308) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add value conversion methods for complex types [\#1305](https://github.com/stargate/stargate/pull/1305) ([mpenick](https://github.com/mpenick))
+- Fix \#1301: encapsulate `AuthenticatedDB` better wrt DataStore [\#1302](https://github.com/stargate/stargate/pull/1302) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Provide a flag to disable watching the bundles directory [\#1300](https://github.com/stargate/stargate/pull/1300) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Bumping version for next release [\#1299](https://github.com/stargate/stargate/pull/1299) ([github-actions[bot]](https://github.com/apps/github-actions))
+- closes \#1291: correct response in case JSON schema does not exist for… [\#1297](https://github.com/stargate/stargate/pull/1297) ([ivansenic](https://github.com/ivansenic))
 
 ## [v1.0.35](https://github.com/stargate/stargate/tree/v1.0.35) (2021-10-01)
 
