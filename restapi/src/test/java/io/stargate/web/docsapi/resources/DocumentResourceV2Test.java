@@ -7,10 +7,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
-import io.stargate.web.resources.Db;
 import io.stargate.web.restapi.dao.RestDB;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public class DocumentResourceV2Test {
   private final RestDB restDBMock = mock(RestDB.class);
   @InjectMocks private DocumentResourceV2 documentResourceV2;
   @Mock private DocumentService documentServiceMock;
-  @Mock private Db dbFactoryMock;
+  @Mock private DocumentDBFactory dbFactoryMock;
   @Mock private DocsSchemaChecker schemaCheckerMock;
   @Spy private ObjectMapper mapper = new ObjectMapper();
   @Spy private DocsApiConfiguration conf;

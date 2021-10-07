@@ -1,4 +1,4 @@
-package io.stargate.web.resources;
+package io.stargate.web.restapi.resources;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ResourceUtils {
-
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final ObjectReader MAP_READER =
       mapper.readerFor(

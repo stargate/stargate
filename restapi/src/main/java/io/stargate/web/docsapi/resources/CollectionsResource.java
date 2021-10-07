@@ -9,6 +9,7 @@ import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.SchemaEntity;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.models.DocCollection;
 import io.stargate.web.docsapi.models.dto.CreateCollection;
@@ -18,7 +19,6 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.ResponseWrapper;
-import io.stargate.web.resources.Db;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -58,7 +58,7 @@ import javax.ws.rs.core.Response;
 @Singleton
 public class CollectionsResource {
 
-  @Inject private Db db;
+  @Inject private DocumentDBFactory documentDBFactory;
   @Inject private CollectionService collectionService;
   @Inject private DocsSchemaChecker schemaChecker;
   @Inject private DocsApiConfiguration configuration;
@@ -92,7 +92,7 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
           Keyspace ks = docDB.getKeyspace(namespace);
           if (ks == null) {
             throw new NotFoundException(String.format("keyspace '%s' not found", namespace));
@@ -156,7 +156,7 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
 
           docDB
               .getAuthorizationService()
@@ -210,7 +210,7 @@ public class CollectionsResource {
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(request));
+          DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
 
           docDB
               .getAuthorizationService()
@@ -275,7 +275,8 @@ public class CollectionsResource {
       @Context HttpServletRequest servletRequest) {
     return RequestHandler.handle(
         () -> {
-          DocumentDB docDB = db.getDocDataStoreForToken(token, getAllHeaders(servletRequest));
+          DocumentDB docDB =
+              documentDBFactory.getDocDBForToken(token, getAllHeaders(servletRequest));
           docDB
               .getAuthorizationService()
               .authorizeSchemaWrite(

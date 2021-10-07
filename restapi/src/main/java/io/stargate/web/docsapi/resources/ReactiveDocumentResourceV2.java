@@ -7,6 +7,7 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.exception.ErrorCode;
@@ -21,7 +22,6 @@ import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ReactiveDocumentService;
 import io.stargate.web.models.Error;
-import io.stargate.web.resources.Db;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -72,7 +72,7 @@ public class ReactiveDocumentResourceV2 {
           + " allowed hints: $selectivity (a number between 0.0 and 1.0, less is better);"
           + " Use \\ to escape periods, commas, and asterisks.";
 
-  @Inject private Db dbFactory;
+  @Inject private DocumentDBFactory dbFactory;
   @Inject private ReactiveDocumentService reactiveDocumentService;
   @Inject private DocsSchemaChecker schemaChecker;
 
@@ -419,7 +419,7 @@ public class ReactiveDocumentResourceV2 {
   private DocumentDB getValidDbFromToken(
       String authToken, HttpServletRequest request, String namespace, String collection)
       throws UnauthorizedException {
-    DocumentDB db = dbFactory.getDocDataStoreForToken(authToken, getAllHeaders(request));
+    DocumentDB db = dbFactory.getDocDBForToken(authToken, getAllHeaders(request));
     schemaChecker.checkValidity(namespace, collection, db);
     return db;
   }

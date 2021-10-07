@@ -13,11 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.models;
+package io.stargate.web.restapi.models;
 
-public enum IndexKind {
-  KEYS,
-  VALUES,
-  ENTRIES,
-  FULL
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.annotations.ApiModelProperty;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SuccessResponse {
+  private final boolean success = true;
+
+  @ApiModelProperty(required = true, value = "Whether the request was successful.")
+  public boolean getSuccess() {
+    return success;
+  }
 }
