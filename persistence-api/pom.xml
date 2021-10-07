@@ -112,6 +112,7 @@
             <Export-Package><![CDATA[
               io.stargate.db,
               io.stargate.db.datastore,
+              io.stargate.db.exceptions,
               io.stargate.db.metrics.*,
               io.stargate.db.query,
               io.stargate.db.query.builder,
