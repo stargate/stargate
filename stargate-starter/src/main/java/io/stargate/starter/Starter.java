@@ -266,7 +266,6 @@ public class Starter {
   private boolean watchBundles = true;
   private AtomicBoolean startError = new AtomicBoolean();
 
-
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {
     int value();
