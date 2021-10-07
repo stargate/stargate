@@ -25,11 +25,11 @@ import io.stargate.db.query.builder.Replication;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.resources.ResourceUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -106,7 +106,7 @@ public class KeyspacesResource {
               SourceAPI.REST,
               ResourceKind.KEYSPACE);
 
-          Object response = raw ? keyspaces : new ResponseWrapper(keyspaces);
+          Object response = raw ? keyspaces : new RESTResponseWrapper(keyspaces);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -158,7 +158,7 @@ public class KeyspacesResource {
 
           Keyspace keyspaceResponse = new Keyspace(keyspace.name(), buildDatacenters(keyspace));
 
-          Object response = raw ? keyspaceResponse : new ResponseWrapper(keyspaceResponse);
+          Object response = raw ? keyspaceResponse : new RESTResponseWrapper(keyspaceResponse);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();

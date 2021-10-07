@@ -29,7 +29,6 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -37,6 +36,7 @@ import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.ClusteringExpression;
 import io.stargate.web.restapi.models.ColumnDefinition;
 import io.stargate.web.restapi.models.PrimaryKey;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.TableAdd;
 import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
@@ -122,7 +122,7 @@ public class TablesResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Object response = raw ? tableResponses : new ResponseWrapper(tableResponses);
+          Object response = raw ? tableResponses : new RESTResponseWrapper(tableResponses);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -171,7 +171,7 @@ public class TablesResource {
           Table tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
-          Object response = raw ? tableResponse : new ResponseWrapper(tableResponse);
+          Object response = raw ? tableResponse : new RESTResponseWrapper(tableResponse);
           return Response.ok(Converters.writeResponse(response)).build();
         });
   }

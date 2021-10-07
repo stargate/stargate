@@ -26,11 +26,11 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
+import io.stargate.web.docsapi.models.SimpleResponseWrapper;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
 import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
 import io.stargate.web.models.Keyspace;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -112,7 +112,7 @@ public class NamespacesResource {
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
 
-          Object response = raw ? namespaces : new ResponseWrapper(namespaces);
+          Object response = raw ? namespaces : new SimpleResponseWrapper(namespaces);
           return Response.status(Response.Status.OK).entity(response).build();
         });
   }
@@ -195,7 +195,7 @@ public class NamespacesResource {
 
           Keyspace keyspaceResponse = new Keyspace(keyspace.name(), buildDatacenters(keyspace));
 
-          Object response = raw ? keyspaceResponse : new ResponseWrapper(keyspaceResponse);
+          Object response = raw ? keyspaceResponse : new SimpleResponseWrapper(keyspaceResponse);
           return Response.status(Response.Status.OK).entity(response).build();
         });
   }

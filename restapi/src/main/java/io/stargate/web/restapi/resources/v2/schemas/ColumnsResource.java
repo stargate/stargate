@@ -27,12 +27,12 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.ColumnDefinition;
+import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -131,7 +131,7 @@ public class ColumnsResource {
                       })
                   .collect(Collectors.toList());
 
-          Object response = raw ? columnDefinitions : new ResponseWrapper(columnDefinitions);
+          Object response = raw ? columnDefinitions : new RESTResponseWrapper(columnDefinitions);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();
@@ -284,7 +284,7 @@ public class ColumnsResource {
           String type = col.type() == null ? null : col.type().cqlDefinition();
           ColumnDefinition columnDefinition =
               new ColumnDefinition(col.name(), type, col.kind() == Column.Kind.Static);
-          Object response = raw ? columnDefinition : new ResponseWrapper(columnDefinition);
+          Object response = raw ? columnDefinition : new RESTResponseWrapper(columnDefinition);
           return Response.status(Response.Status.OK)
               .entity(Converters.writeResponse(response))
               .build();

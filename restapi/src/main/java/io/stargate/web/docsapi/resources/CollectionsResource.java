@@ -12,13 +12,13 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.models.DocCollection;
+import io.stargate.web.docsapi.models.SimpleResponseWrapper;
 import io.stargate.web.docsapi.models.dto.CreateCollection;
 import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.ResponseWrapper;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -118,7 +118,7 @@ public class CollectionsResource {
                   .map(table -> collectionService.getCollectionInfo(table, docDB))
                   .collect(Collectors.toList());
 
-          Object response = raw ? result : new ResponseWrapper<>(result);
+          Object response = raw ? result : new SimpleResponseWrapper<>(result);
           return Response.status(Response.Status.OK).entity(response).build();
         });
   }
@@ -307,7 +307,7 @@ public class CollectionsResource {
             table = docDB.getTable(namespace, collection);
             info = collectionService.getCollectionInfo(table, docDB);
 
-            Object response = raw ? info : new ResponseWrapper<>(info);
+            Object response = raw ? info : new SimpleResponseWrapper<>(info);
             return Response.status(Response.Status.OK).entity(response).build();
           } else {
             Error error =
