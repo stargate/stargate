@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources.v1;
+package io.stargate.web.restapi.resources.v1;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
@@ -22,34 +22,43 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
-import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.Column.Order;
+import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.web.models.Error;
+import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
+import io.stargate.web.restapi.models.ClusteringExpression;
 import io.stargate.web.restapi.models.ColumnDefinition;
-import io.stargate.web.restapi.models.ColumnUpdate;
+import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.SuccessResponse;
+import io.stargate.web.restapi.models.TableAdd;
+import io.stargate.web.restapi.models.TableOptions;
+import io.stargate.web.restapi.models.TableResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -62,38 +71,33 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
-@Path("/v1/keyspaces/{keyspaceName}/tables/{tableName}/columns")
+@Path("/v1/keyspaces/{keyspaceName}/tables")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-public class ColumnResource {
-
-  private RestDBFactory dbFactory;
-
-  @Inject
-  public ColumnResource(RestDBFactory db) {
-    this.dbFactory = db;
-  }
+public class TableResource {
+  @Inject private RestDBFactory dbFactory;
 
   @Timed
   @GET
   @ApiOperation(
-      value = "Retrieve all columns",
-      notes = "Return all columns for a specified table.",
-      response = ColumnDefinition.class,
+      value = "Return all tables",
+      notes = "Retrieve all tables in a specific keyspace.",
+      response = String.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
         @ApiResponse(
             code = 200,
             message = "OK",
-            response = ColumnDefinition.class,
+            response = String.class,
             responseContainer = "List"),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response listAllColumns(
+  public Response listAllTables(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -103,41 +107,29 @@ public class ColumnResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
+
+          List<String> tableNames =
+              restDB.getTables(keyspaceName).stream().map(Table::name).collect(Collectors.toList());
+
           restDB.authorizeSchemaRead(
               Collections.singletonList(keyspaceName),
-              Collections.singletonList(tableName),
+              tableNames,
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
-
-          List<ColumnDefinition> collect =
-              tableMetadata.columns().stream()
-                  .map(
-                      (col) -> {
-                        //noinspection ConstantConditions
-                        String type = col.type() != null ? col.type().cqlDefinition() : null;
-                        return new ColumnDefinition(
-                            col.name(), type, col.kind() == Column.Kind.Static);
-                      })
-                  .collect(Collectors.toList());
-
-          return Response.status(Response.Status.OK).entity(collect).build();
+          return Response.status(Response.Status.OK).entity(tableNames).build();
         });
   }
 
   @Timed
   @POST
   @ApiOperation(
-      value = "Add a column",
-      notes = "Add a single column to a table.",
+      value = "Add a table",
+      notes = "Add a table in a specific keyspace.",
       response = SuccessResponse.class,
       code = 201)
   @ApiResponses(
@@ -146,10 +138,9 @@ public class ColumnResource {
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  public Response addColumn(
+  public Response addTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -159,10 +150,9 @@ public class ColumnResource {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
-      @ApiParam(value = "", required = true) @NotNull final ColumnDefinition columnDefinition,
+      @ApiParam(value = "Table object that needs to be added to the keyspace", required = true)
+          @NotNull
+          final TableAdd tableAdd,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -172,38 +162,71 @@ public class ColumnResource {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
                     new Error(
-                        String.format("keyspace '%s' not found", keyspaceName),
-                        Response.Status.BAD_REQUEST.getStatusCode()))
+                        "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
-          String name = columnDefinition.getName();
-          Kind kind = Kind.Regular;
-          if (columnDefinition.getIsStatic()) {
-            kind = Kind.Static;
+          String tableName = tableAdd.getName();
+          if (tableName == null || tableName.equals("")) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new Error("table name must be provided"))
+                .build();
           }
 
-          Column column =
-              ImmutableColumn.builder()
-                  .name(name)
-                  .kind(kind)
-                  .type(
-                      Column.Type.fromCqlDefinitionOf(
-                          keyspace, columnDefinition.getTypeDefinition()))
+          PrimaryKey primaryKey = tableAdd.getPrimaryKey();
+          if (primaryKey == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new Error("primary key must be provided"))
+                .build();
+          }
+
+          List<Column> columns = new ArrayList<>();
+          TableOptions options = tableAdd.getTableOptions();
+          for (ColumnDefinition colDef : tableAdd.getColumnDefinitions()) {
+            String columnName = colDef.getName();
+            if (columnName == null || columnName.equals("")) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(
+                      new Error(
+                          "column name must be provided",
+                          Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
+            }
+
+            Kind kind = Converters.getColumnKind(colDef, primaryKey);
+            ColumnType type = Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition());
+            Order order;
+            try {
+              order = kind == Kind.Clustering ? Converters.getColumnOrder(colDef, options) : null;
+            } catch (Exception e) {
+              return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(
+                      new Error(
+                          "Unable to create table options " + e.getMessage(),
+                          Response.Status.BAD_REQUEST.getStatusCode()))
+                  .build();
+            }
+            columns.add(Column.create(columnName, kind, type, order));
+          }
 
           restDB.authorizeSchemaWrite(
-              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
+              keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
+
+          int ttl = 0;
+          if (options != null && options.getDefaultTimeToLive() != null) {
+            ttl = options.getDefaultTimeToLive();
+          }
 
           restDB
               .queryBuilder()
-              .alter()
+              .create()
               .table(keyspaceName, tableName)
-              .addColumn(column)
+              .ifNotExists(tableAdd.getIfNotExists())
+              .column(columns)
+              .withDefaultTTL(ttl)
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
-
           return Response.status(Response.Status.CREATED).entity(new SuccessResponse()).build();
         });
   }
@@ -211,20 +234,20 @@ public class ColumnResource {
   @Timed
   @GET
   @ApiOperation(
-      value = "Retrieve a column",
-      notes = "Return a single column specification in a specific table.",
-      response = ColumnDefinition.class)
+      value = "Return a table",
+      notes = "Retrieve data for a single table in a specific keyspace.",
+      response = Table.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = ColumnDefinition.class),
+        @ApiResponse(code = 200, message = "OK", response = Table.class),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("/{columnName}")
-  public Response getOneColumn(
+  @Path("/{tableName}")
+  public Response getOneTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -237,9 +260,6 @@ public class ColumnResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "Name of the column to use for the request.", required = true)
-          @PathParam("columnName")
-          final String columnName,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
@@ -250,35 +270,67 @@ public class ColumnResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
-          final Column col = tableMetadata.column(columnName);
-          if (col == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                .entity(new Error(String.format("column '%s' not found in table", columnName)))
-                .build();
-          }
+          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
 
-          //noinspection ConstantConditions
-          String type = col.type() != null ? col.type().cqlDefinition() : null;
-          return Response.status(Response.Status.OK)
-              .entity(new ColumnDefinition(col.name(), type, col.kind() == Kind.Static))
+          final List<ColumnDefinition> columnDefinitions =
+              tableMetadata.columns().stream()
+                  .map(
+                      (col) -> {
+                        ColumnType type = col.type();
+                        return new ColumnDefinition(
+                            col.name(),
+                            type == null ? null : type.cqlDefinition(),
+                            col.kind() == Kind.Static);
+                      })
+                  .collect(Collectors.toList());
+
+          final List<String> partitionKey =
+              tableMetadata.partitionKeyColumns().stream()
+                  .map(Column::name)
+                  .collect(Collectors.toList());
+          final List<String> clusteringKey =
+              tableMetadata.clusteringKeyColumns().stream()
+                  .map(Column::name)
+                  .collect(Collectors.toList());
+          final List<ClusteringExpression> clusteringExpression =
+              tableMetadata.clusteringKeyColumns().stream()
+                  .map(
+                      (col) ->
+                          new ClusteringExpression(
+                              col.name(), Objects.requireNonNull(col.order()).name()))
+                  .collect(Collectors.toList());
+
+          final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
+          final int ttl = 0; // no way to get this without querying schema currently
+          final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
+
+          return Response.ok(
+                  new TableResponse(
+                      tableMetadata.name(),
+                      keyspaceName,
+                      columnDefinitions,
+                      primaryKey,
+                      tableOptions))
               .build();
         });
   }
 
   @Timed
   @DELETE
-  @ApiOperation(value = "Delete a column", notes = "Delete a single column in a specific table.")
+  @ApiOperation(
+      value = "Delete a table",
+      notes = "Delete a single table in the specified keyspace.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
         @ApiResponse(code = 400, message = "Bad request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
+        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
         @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
       })
-  @Path("/{columnName}")
-  public Response deleteColumn(
+  @Path("/{tableName}")
+  public Response deleteTable(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -291,78 +343,22 @@ public class ColumnResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "Name of the column to use for the request.", required = true)
-          @PathParam("columnName")
-          final String columnName,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
         () -> {
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
           restDB.authorizeSchemaWrite(
-              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
+              keyspaceName, tableName, Scope.DROP, SourceAPI.REST, ResourceKind.TABLE);
 
           restDB
               .queryBuilder()
-              .alter()
+              .drop()
               .table(keyspaceName, tableName)
-              .dropColumn(columnName)
               .build()
               .execute(ConsistencyLevel.LOCAL_QUORUM)
               .get();
 
-          return Response.status(Response.Status.NO_CONTENT).entity(new SuccessResponse()).build();
-        });
-  }
-
-  @Timed
-  @PUT
-  @ApiOperation(
-      value = "Update a column",
-      notes = "Update a single column in a specific table.",
-      response = SuccessResponse.class)
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = SuccessResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
-      })
-  @Path("/{columnName}")
-  public Response updateColumn(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
-      @PathParam("columnName") final String columnName,
-      @ApiParam(value = "", required = true) @NotNull final ColumnUpdate columnUpdate,
-      @Context HttpServletRequest request) {
-    return RequestHandler.handle(
-        () -> {
-          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
-          restDB.authorizeSchemaWrite(
-              keyspaceName, tableName, Scope.ALTER, SourceAPI.REST, ResourceKind.TABLE);
-
-          restDB
-              .queryBuilder()
-              .alter()
-              .table(keyspaceName, tableName)
-              .renameColumn(columnName, columnUpdate.getNewName())
-              .build()
-              .execute()
-              .get();
-          return Response.status(Response.Status.OK).entity(new SuccessResponse()).build();
+          return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
 }

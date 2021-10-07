@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.resources.v2.schemas;
+package io.stargate.web.restapi.resources.v2.schemas;
 
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;

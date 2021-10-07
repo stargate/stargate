@@ -1,4 +1,4 @@
-package io.stargate.web.resources;
+package io.stargate.web.restapi.resources;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
