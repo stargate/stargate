@@ -83,11 +83,6 @@ public class Starter {
       System.getProperty("stargate.libdir", "../stargate-lib");
   protected static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
-  @Retention(RetentionPolicy.RUNTIME)
-  public @interface Order {
-    int value();
-  }
-
   @Inject protected HelpOption<Starter> help;
 
   @Order(value = 1)
@@ -270,6 +265,12 @@ public class Starter {
   private List<Bundle> bundleList;
   private boolean watchBundles = true;
   private AtomicBoolean startError = new AtomicBoolean();
+
+
+  @Retention(RetentionPolicy.RUNTIME)
+  public @interface Order {
+    int value();
+  }
 
   public Starter() {}
 
