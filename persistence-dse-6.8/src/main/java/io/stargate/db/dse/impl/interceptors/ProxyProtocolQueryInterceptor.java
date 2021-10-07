@@ -46,7 +46,6 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
-import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.transport.ProtocolVersion;
@@ -155,28 +154,27 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
 
-    ClientState clientState = state.getClientState();
     if (!isSystemLocalOrPeers(statement)
-        || !(clientState instanceof ClientStateWithDestinationAddress)) {
+        || !(state.getClientState() instanceof ClientStateWithDestinationAddress)) {
       return wrapped
           .map(i -> i.interceptQuery(statement, state, options, customPayload, queryStartNanoTime))
           .orElse(null);
     }
 
-    SelectStatement selectStatement = (SelectStatement) statement;
-
-    List<List<ByteBuffer>> rows;
-    InetSocketAddress destinationAddress =
-        ((ClientStateWithDestinationAddress) clientState).destinationAddress();
+    ClientStateWithDestinationAddress clientState =
+        (ClientStateWithDestinationAddress) state.getClientState();
+    InetSocketAddress destinationAddress = clientState.destinationAddress();
     if (destinationAddress == null) {
       throw new ServerError(
           "Unable to intercept proxy protocol system query without a valid destination address");
     }
+    boolean isPrivateDestination = destinationAddress.getAddress().isSiteLocalAddress();
+
+    SelectStatement selectStatement = (SelectStatement) statement;
+
+    List<List<ByteBuffer>> rows;
     String tableName = selectStatement.table();
-    Set<InetAddress> peers =
-        ((ClientStateWithDestinationAddress) clientState).isPrivateDestinationAddress()
-            ? privatePeers
-            : publicPeers;
+    Set<InetAddress> peers = isPrivateDestination ? privatePeers : publicPeers;
     if (tableName.equals(PeersSystemView.NAME)) {
       rows =
           peers.isEmpty()
@@ -189,10 +187,15 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       }
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
+      // If the destination is private, we want to use the "source" address of the PROXY header.
+      // We stored that in clientState.getRemoteAddress().
+      InetAddress systemLocalAddress =
+          isPrivateDestination
+              ? clientState.getRemoteAddress().getAddress()
+              : destinationAddress.getAddress();
       rows =
           Collections.singletonList(
-              buildRow(
-                  selectStatement.getResultMetadata(), destinationAddress.getAddress(), peers));
+              buildRow(selectStatement.getResultMetadata(), systemLocalAddress, peers));
     }
 
     ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);

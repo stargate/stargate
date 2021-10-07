@@ -104,26 +104,38 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
           .build();
 
   @ParameterizedTest
-  @MethodSource("destinationAndExpectedPeers")
-  public void systemLocalContainsTheDestinationAddress(InetAddress destinationAddress) {
+  @MethodSource("destinationAndExpectedLocal")
+  public void systemLocalContainsTheSourceOrDestinationAddress(
+      InetAddress destination, InetAddress expectedLocal) {
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             DEFAULT_RESOLVER, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result =
-        (Rows) interceptQuery(interceptor, "SELECT * FROM system.local", destinationAddress);
-    assertThat(collect(result, "rpc_address")).containsOnly(destinationAddress);
+    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.local", destination);
+    assertThat(collect(result, "rpc_address")).containsOnly(expectedLocal);
+  }
+
+  public static Arguments[] destinationAndExpectedLocal() {
+    return new Arguments[] {
+      arguments(PUBLIC_ADDRESS1, PUBLIC_ADDRESS1),
+      arguments(PUBLIC_ADDRESS2, PUBLIC_ADDRESS2),
+      arguments(PUBLIC_ADDRESS3, PUBLIC_ADDRESS3),
+      arguments(PRIVATE_ADDRESS1, REMOTE_SOCKET_ADDRESS.getAddress()),
+      arguments(PRIVATE_ADDRESS2, REMOTE_SOCKET_ADDRESS.getAddress()),
+      arguments(PRIVATE_ADDRESS3, REMOTE_SOCKET_ADDRESS.getAddress()),
+    };
   }
 
   @ParameterizedTest
   @MethodSource("destinationAndExpectedPeers")
-  public void systemPeersContainsTheOthers(InetAddress local, Set<InetAddress> peers) {
+  public void systemPeersContainsTheOthers(
+      InetAddress destination, Set<InetAddress> expectedPeers) {
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             DEFAULT_RESOLVER, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", local);
-    assertThat(collect(result, "rpc_address")).isEqualTo(peers);
+    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", destination);
+    assertThat(collect(result, "rpc_address")).isEqualTo(expectedPeers);
   }
 
   public static Arguments[] destinationAndExpectedPeers() {

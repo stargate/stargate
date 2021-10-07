@@ -12,13 +12,11 @@ import org.apache.cassandra.service.ClientState;
 public class ClientStateWithDestinationAddress extends ClientState {
 
   private final InetSocketAddress destinationAddress;
-  private final boolean isPrivateDestinationAddress;
 
   public ClientStateWithDestinationAddress(
       SocketAddress remoteAddress, InetSocketAddress destinationAddress) {
     super((InetSocketAddress) remoteAddress, null);
     this.destinationAddress = destinationAddress;
-    this.isPrivateDestinationAddress = destinationAddress.getAddress().isSiteLocalAddress();
   }
 
   public ClientStateWithDestinationAddress(
@@ -29,7 +27,6 @@ public class ClientStateWithDestinationAddress extends ClientState {
     // the remote address is not.
     super(ClientState.forExternalCalls(user, remoteAddress));
     this.destinationAddress = destinationAddress;
-    this.isPrivateDestinationAddress = destinationAddress.getAddress().isSiteLocalAddress();
   }
 
   /**
@@ -37,13 +34,5 @@ public class ClientStateWithDestinationAddress extends ClientState {
    */
   public InetSocketAddress destinationAddress() {
     return destinationAddress;
-  }
-
-  /**
-   * Whether {@link #destinationAddress()} is private, meaning that the client connected via a local
-   * network rather than the public internet.
-   */
-  public boolean isPrivateDestinationAddress() {
-    return isPrivateDestinationAddress;
   }
 }
