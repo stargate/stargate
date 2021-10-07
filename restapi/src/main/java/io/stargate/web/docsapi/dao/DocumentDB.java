@@ -47,6 +47,7 @@ public class DocumentDB {
   private final AuthenticationSubject authenticationSubject;
   private final QueryExecutor executor;
   private final DocsApiConfiguration config;
+  private final List<String> allColumnNames;
 
   public DocumentDB(
       DataStore dataStore,
@@ -57,6 +58,8 @@ public class DocumentDB {
     this.authenticationSubject = authenticationSubject;
     this.authorizationService = authorizationService;
     this.config = config;
+    this.allColumnNames =
+        Arrays.asList(DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()));
     useLoggedBatches =
         Boolean.parseBoolean(
             System.getProperty(
@@ -251,7 +254,6 @@ public class DocumentDB {
         dataStore.schema().keyspace(keyspaceName).table(tableName).columns().stream()
             .map(Column::name)
             .collect(Collectors.toList());
-    List<String> allColumnNames = allColumnNames();
     if (columnNames.size() != allColumnNames.size()) return false;
     columnNames.removeAll(allColumnNames);
     return columnNames.isEmpty();
@@ -271,10 +273,6 @@ public class DocumentDB {
           ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST,
           String.format("Collection %s does not exist.", tableName));
     }
-  }
-
-  private List<String> allColumnNames() {
-    return Arrays.asList(DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()));
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
@@ -347,7 +345,7 @@ public class DocumentDB {
 
     List<ValueModifier> modifiers = new ArrayList<>(columnValues.length);
     for (int i = 0; i < columnValues.length; i++) {
-      modifiers.add(ValueModifier.set(allColumnNames().get(i), columnValues[i]));
+      modifiers.add(ValueModifier.set(allColumnNames.get(i), columnValues[i]));
     }
     BoundQuery query =
         dataStore
@@ -357,7 +355,6 @@ public class DocumentDB {
             .timestamp(microsTimestamp)
             .build()
             .bind();
-    logger.debug(query.toString());
     return query;
   }
 
