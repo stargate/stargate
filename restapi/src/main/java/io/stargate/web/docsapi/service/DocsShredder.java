@@ -10,16 +10,12 @@ import io.stargate.web.docsapi.exception.UncheckedJacksonException;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.ParsingContext;
-import org.jsfr.json.compiler.JsonPathCompiler;
-import org.jsfr.json.path.JsonPath;
-import org.jsfr.json.path.PathOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,42 +173,41 @@ public class DocsShredder {
       String key,
       boolean patching,
       boolean numericBooleans) {
-    JsonPath jsonPath =
-        JsonPathCompiler.compile(
-            DocsApiUtils.convertJsonToBracketedPath(parsingContext.getJsonPath()));
+    String bracketedPath = DocsApiUtils.convertJsonToBracketedPath(parsingContext.getJsonPath());
     Map<String, Object> bindMap = DocsApiUtils.newBindMap(path, config.getMaxDepth());
 
     bindMap.put("key", key);
-
-    Iterator<PathOperator> it = jsonPath.iterator();
     String leaf = null;
     int i = path.size();
 
     String[] unboundPaths = new String[config.getMaxDepth()];
     List<String> firstLevelKeys = new ArrayList<>();
-    while (it.hasNext()) {
+    String[] bracketedPathArray = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+    for (int j = 0; j < bracketedPathArray.length; j++) {
       if (i >= config.getMaxDepth()) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
       }
 
-      PathOperator op = it.next();
-      String pathValue = op.toString();
+      String pathValue = bracketedPathArray[j];
+      boolean isArrayValue = pathValue.charAt(0) != '\'';
 
-      if (!pathValue.equals("$")) {
-        // pathValue always starts and ends with a square brace because of
-        // DocsApiUtils#convertJsonToBracketedPath
-        String innerPath =
-            DocsApiUtils.convertEscapedCharacters(pathValue.substring(1, pathValue.length() - 1));
-        if (isPatchingWithArrayValue(i, path.size(), op, patching)) {
-          throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
-        }
-        if (isAtTopLevel(i, path.size())) {
-          firstLevelKeys.add(innerPath);
-        }
-        String convertedPath = convertPathValueForArrays(innerPath, op);
-        unboundPaths[i++] = convertedPath;
-        leaf = convertedPath;
+      // pathValue always starts and ends with a square brace because of
+      // DocsApiUtils#convertJsonToBracketedPath
+      String innerPath = pathValue;
+      if (!isArrayValue) {
+        // Remove the single quotes and convert escaped characters
+        innerPath = DocsApiUtils.convertEscapedCharacters(pathValue);
+        innerPath = innerPath.substring(1, innerPath.length() - 1);
       }
+      if (isPatchingWithArrayValue(i, path.size(), isArrayValue, patching)) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+      }
+      if (isAtTopLevel(i, path.size())) {
+        firstLevelKeys.add(innerPath);
+      }
+      String convertedPath = convertPathValueForArrays(innerPath, isArrayValue);
+      unboundPaths[i++] = convertedPath;
+      leaf = convertedPath;
     }
 
     bindMap = addAllToBindMap(bindMap, unboundPaths, jsonValue, leaf, numericBooleans);
@@ -277,8 +272,8 @@ public class DocsShredder {
   }
 
   private boolean isPatchingWithArrayValue(
-      int index, int pathSize, PathOperator op, boolean patching) {
-    return isAtTopLevel(index, pathSize) && op.getType() == PathOperator.Type.ARRAY && patching;
+      int index, int pathSize, boolean isArrayValue, boolean patching) {
+    return isAtTopLevel(index, pathSize) && isArrayValue && patching;
   }
 
   private boolean isAtTopLevel(int index, int pathSize) {
@@ -290,12 +285,12 @@ public class DocsShredder {
    * an array, this function effectively is a no-op.
    *
    * @param pathSegment the path segment
-   * @param op information about the path
+   * @param isArrayValue If the path's value represents an array
    * @return a converted pathSegment
    */
-  private String convertPathValueForArrays(String pathSegment, PathOperator op) {
+  private String convertPathValueForArrays(String pathSegment, boolean isArrayValue) {
     String pathValue;
-    if (op.getType() == PathOperator.Type.ARRAY) {
+    if (isArrayValue) {
       int idx = Integer.parseInt(pathSegment);
       if (idx > config.getMaxArrayLength() - 1) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
