@@ -245,14 +245,12 @@ public final class DocsApiUtils {
    * @return an array of Strings where each element is a piece of the path
    */
   public static String[] bracketedPathAsArray(String bracketedPath) {
-    String[] split = BRACKET_SEPARATOR_PATTERN.split(bracketedPath);
-    if (split.length > 0) {
-      split[0] = split[0].substring(2);
-      String finalValue = split[split.length - 1];
-      split[split.length - 1] = finalValue.substring(0, finalValue.length() - 1);
+    // All bracketed paths start with $[ and end with ], so they must have at least length 3
+    if (bracketedPath.length() < 3) {
+      return new String[0];
     }
 
-    return split;
+    return BRACKET_SEPARATOR_PATTERN.split(bracketedPath.substring(2, bracketedPath.length() - 1));
   }
 
   /**
