@@ -24,7 +24,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -41,7 +40,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.Attribute;
 import io.netty.util.Version;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -482,21 +480,6 @@ public class CqlServer implements CassandraDaemon.Server {
 
       if (USE_PROXY_PROTOCOL) {
         pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
-        pipeline.addLast(
-            new ChannelInboundHandlerAdapter() {
-              @Override
-              public void channelRead(ChannelHandlerContext ctx, Object msg) {
-                Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
-                ProxyInfo proxyInfo = attrProxy.get();
-                if (proxyInfo != null
-                    && !server.persistence.isAbleToHandleClient(proxyInfo.toHeaders())) {
-                  ctx.close();
-                } else {
-                  ctx.pipeline().remove(this);
-                  ctx.fireChannelRead(msg);
-                }
-              }
-            });
       }
 
       // pipeline.addLast("debug", new LoggingHandler());

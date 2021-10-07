@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
 /**
@@ -75,16 +74,6 @@ public interface Persistence {
    * @return the newly created persistence connection.
    */
   Connection newConnection();
-
-  /**
-   * Checks whether a instance is able to handle a client's requests.
-   *
-   * @param properties Custom properties used to identify a client.
-   * @return true if this instance is able to handle the client; otherwise false.
-   */
-  default boolean isAbleToHandleClient(@Nullable Map<String, String> properties) {
-    return true;
-  }
 
   /**
    * The object that should be used to act as an 'unset' value for this persistence (for use in
