@@ -36,7 +36,7 @@ import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -110,11 +110,11 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{primaryKey : (.+)?}")
   public Response getRows(
@@ -176,11 +176,11 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response getAllRows(
       @ApiParam(
@@ -259,10 +259,10 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/query")
   public Response queryRows(
@@ -307,14 +307,14 @@ public class RowResource {
 
           if (queryModel.getFilters() == null || queryModel.getFilters().size() == 0) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error("filters must be provided"))
+                .entity(new ApiError("filters must be provided"))
                 .build();
           }
 
           for (Filter filter : queryModel.getFilters()) {
             if (!validateFilter(filter)) {
               return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error("filter requires column name, operator, and value"))
+                  .entity(new ApiError("filter requires column name, operator, and value"))
                   .build();
             }
           }
@@ -327,14 +327,15 @@ public class RowResource {
             String direction = queryModel.getOrderBy().getOrder();
             if (direction == null || name == null) {
               return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error("both order and column are required for order by expression"))
+                  .entity(
+                      new ApiError("both order and column are required for order by expression"))
                   .build();
             }
 
             direction = direction.toUpperCase();
             if (!direction.equals("ASC") && !direction.equals("DESC")) {
               return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(new Error("order must be either 'asc' or 'desc'"))
+                  .entity(new ApiError("order must be either 'asc' or 'desc'"))
                   .build();
             }
             orderBy.add(ColumnOrder.of(name, Order.valueOf(direction)));
@@ -395,10 +396,10 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = RowsResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response addRow(
       @ApiParam(
@@ -455,10 +456,10 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{primaryKey}")
   public Response deleteRow(
@@ -516,10 +517,10 @@ public class RowResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = RowsResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{primaryKey}")
   public Response updateRow(

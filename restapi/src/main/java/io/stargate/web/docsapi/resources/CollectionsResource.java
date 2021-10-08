@@ -18,7 +18,7 @@ import io.stargate.web.docsapi.models.dto.UpgradeCollection;
 import io.stargate.web.docsapi.service.CollectionService;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -71,8 +71,8 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocCollection.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -128,10 +128,10 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("collections")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -174,7 +174,7 @@ public class CollectionsResource {
           } else {
             return Response.status(Response.Status.CONFLICT)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format(
                             "Create failed: collection %s already exists.", body.getName()),
                         Response.Status.CONFLICT.getStatusCode()))
@@ -188,9 +188,9 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("collections/{collection-id}")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -242,11 +242,11 @@ public class CollectionsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = DocCollection.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Collection not found", response = Error.class),
-        @ApiResponse(code = 422, message = "Unprocessable entity", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Collection not found", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("collections/{collection-id}/upgrade")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -310,11 +310,11 @@ public class CollectionsResource {
             Object response = raw ? info : new SimpleResponseWrapper<>(info);
             return Response.status(Response.Status.OK).entity(response).build();
           } else {
-            Error error =
-                new Error(
+            ApiError apiError =
+                new ApiError(
                     "Collection was not upgraded.",
                     Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(error).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(apiError).build();
           }
         });
   }

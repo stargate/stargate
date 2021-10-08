@@ -26,7 +26,7 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -80,9 +80,9 @@ public class ColumnsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ColumnDefinition.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response getAllColumns(
       @ApiParam(
@@ -115,7 +115,7 @@ public class ColumnsResource {
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("table '%s' not found", tableName),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -148,10 +148,10 @@ public class ColumnsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response createColumn(
       @ApiParam(
@@ -175,7 +175,7 @@ public class ColumnsResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("keyspace '%s' not found", keyspaceName),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -192,7 +192,7 @@ public class ColumnsResource {
             type = Column.Type.fromCqlDefinitionOf(keyspace, columnDefinition.getTypeDefinition());
           } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(new ApiError(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -227,9 +227,9 @@ public class ColumnsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = ColumnDefinition.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{columnName}")
   public Response getOneColumn(
@@ -265,7 +265,7 @@ public class ColumnsResource {
           } catch (Exception e) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("table '%s' not found", tableName),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -275,7 +275,7 @@ public class ColumnsResource {
           if (col == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("column '%s' not found in table", columnName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
@@ -300,11 +300,11 @@ public class ColumnsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{columnName}")
   public Response updateColumn(
@@ -352,8 +352,8 @@ public class ColumnsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{columnName}")
   public Response deleteColumn(

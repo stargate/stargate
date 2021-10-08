@@ -25,26 +25,26 @@ import java.util.Objects;
 @ApiModel(description = "A description of an error state")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @SuppressWarnings("JavaLangClash")
-public final class Error {
+public final class ApiError {
   private String description = null;
   private int code;
   private String internalTxId = null;
 
-  public Error() {
+  public ApiError() {
     super();
   }
 
-  public Error(String description) {
+  public ApiError(String description) {
     this.description = description;
   }
 
-  public Error(String description, int code) {
+  public ApiError(String description, int code) {
     this.description = description;
     this.code = code;
   }
 
   /** A human readable description of the error state */
-  public Error description(String description) {
+  public ApiError description(String description) {
     this.description = description;
     return this;
   }
@@ -63,7 +63,7 @@ public final class Error {
   }
 
   /** The internal number referencing the error state */
-  public Error code(int code) {
+  public ApiError code(int code) {
     this.code = code;
     return this;
   }
@@ -79,7 +79,7 @@ public final class Error {
   }
 
   /** The internal tracking number of the request */
-  public Error internalTxId(String internalTxId) {
+  public ApiError internalTxId(String internalTxId) {
     this.internalTxId = internalTxId;
     return this;
   }
@@ -101,10 +101,10 @@ public final class Error {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    Error error = (Error) o;
-    return Objects.equals(description, error.description)
-        && Objects.equals(code, error.code)
-        && Objects.equals(internalTxId, error.internalTxId);
+    ApiError apiError = (ApiError) o;
+    return Objects.equals(description, apiError.description)
+        && Objects.equals(code, apiError.code)
+        && Objects.equals(internalTxId, apiError.internalTxId);
   }
 
   @Override

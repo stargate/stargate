@@ -33,7 +33,7 @@ import io.stargate.db.schema.ImmutableCollectionIndexingType;
 import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -90,9 +90,9 @@ public class IndexesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = SuccessResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response getAllIndexesForTable(
       @ApiParam(
@@ -144,7 +144,7 @@ public class IndexesResource {
           } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Table '%s' not found in keyspace.", tableName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
@@ -162,9 +162,9 @@ public class IndexesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response addIndex(
       @ApiParam(
@@ -192,7 +192,7 @@ public class IndexesResource {
           if (Strings.isNullOrEmpty(columnName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Column name ('%s') cannot be empty/null.", columnName),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -202,7 +202,7 @@ public class IndexesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Keyspace '%s' not found.", keyspaceName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
@@ -214,7 +214,7 @@ public class IndexesResource {
             if (col == null) {
               return Response.status(Response.Status.NOT_FOUND)
                   .entity(
-                      new Error(
+                      new ApiError(
                           String.format("Column '%s' not found in table.", columnName),
                           Response.Status.NOT_FOUND.getStatusCode()))
                   .build();
@@ -222,7 +222,7 @@ public class IndexesResource {
           } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Table '%s' not found in keyspace.", tableName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
@@ -268,9 +268,9 @@ public class IndexesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{indexName}")
   public Response dropIndex(
@@ -307,7 +307,7 @@ public class IndexesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Keyspace '%s' not found.", keyspaceName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
@@ -319,7 +319,7 @@ public class IndexesResource {
             if (index == null && !ifExists) {
               return Response.status(Response.Status.NOT_FOUND)
                   .entity(
-                      new Error(
+                      new ApiError(
                           String.format("Index '%s' not found.", indexName),
                           Response.Status.NOT_FOUND.getStatusCode()))
                   .build();
@@ -327,7 +327,7 @@ public class IndexesResource {
           } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         String.format("Table '%s' not found in keyspace.", tableName),
                         Response.Status.NOT_FOUND.getStatusCode()))
                 .build();

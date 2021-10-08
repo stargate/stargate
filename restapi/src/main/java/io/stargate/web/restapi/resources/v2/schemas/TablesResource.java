@@ -28,7 +28,7 @@ import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -90,9 +90,9 @@ public class TablesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response getAllTables(
       @ApiParam(
@@ -138,9 +138,9 @@ public class TablesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Table.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{tableName}")
   public Response getOneTable(
@@ -186,10 +186,10 @@ public class TablesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response createTable(
       @ApiParam(
@@ -211,7 +211,7 @@ public class TablesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -220,7 +220,7 @@ public class TablesResource {
           if (tableName == null || tableName.equals("")) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "table name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -232,7 +232,7 @@ public class TablesResource {
           if (primaryKey == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "primary key must be provided",
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -245,7 +245,7 @@ public class TablesResource {
             if (columnName == null || columnName.equals("")) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(
-                      new Error(
+                      new ApiError(
                           "column name must be provided",
                           Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
@@ -259,7 +259,7 @@ public class TablesResource {
             } catch (Exception e) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(
-                      new Error(
+                      new ApiError(
                           "Unable to create table options " + e.getMessage(),
                           Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
@@ -298,11 +298,11 @@ public class TablesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "resource updated", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{tableName}")
   public Response updateTable(
@@ -332,7 +332,7 @@ public class TablesResource {
           if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "Cannot update the clustering order of a table",
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -342,7 +342,7 @@ public class TablesResource {
           if (defaultTTL == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error("No update provided", Response.Status.BAD_REQUEST.getStatusCode()))
+                    new ApiError("No update provided", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -370,8 +370,8 @@ public class TablesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{tableName}")
   public Response deleteTable(

@@ -20,7 +20,7 @@ package io.stargate.web.docsapi.resources.error;
 import com.datastax.oss.driver.api.core.NoNodeAvailableException;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import javax.ws.rs.core.Response;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.slf4j.Logger;
@@ -45,20 +45,20 @@ public final class ErrorHandler
     } else if (throwable instanceof UnauthorizedException) {
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(
-              new Error(
+              new ApiError(
                   "Role unauthorized for operation: " + throwable.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
           .build();
     } else if (throwable instanceof OverloadedException) {
       return Response.status(Response.Status.TOO_MANY_REQUESTS)
           .entity(
-              new Error(
+              new ApiError(
                   "Database is overloaded", Response.Status.TOO_MANY_REQUESTS.getStatusCode()))
           .build();
     } else if (throwable instanceof NoNodeAvailableException) {
       return Response.status(Response.Status.SERVICE_UNAVAILABLE)
           .entity(
-              new Error(
+              new ApiError(
                   "Internal connection to Cassandra closed",
                   Response.Status.SERVICE_UNAVAILABLE.getStatusCode()))
           .build();
@@ -66,7 +66,7 @@ public final class ErrorHandler
       logger.error("Error when executing request", throwable);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(
-              new Error(
+              new ApiError(
                   "Server error: " + throwable.getLocalizedMessage(),
                   Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
           .build();

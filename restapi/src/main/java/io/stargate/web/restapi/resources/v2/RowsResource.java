@@ -34,7 +34,7 @@ import io.stargate.db.query.builder.ColumnOrder;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -101,9 +101,9 @@ public class RowsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response getRowWithWhere(
       @ApiParam(
@@ -153,7 +153,7 @@ public class RowsResource {
           if (Strings.isNullOrEmpty(where)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "where parameter is required", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -197,9 +197,9 @@ public class RowsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{primaryKey: .*}")
   public Response getRows(
@@ -253,7 +253,7 @@ public class RowsResource {
           } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "not enough partition keys provided: " + iae.getMessage(),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -276,11 +276,11 @@ public class RowsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Rows.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/rows")
   public Response getAllRows(
@@ -352,10 +352,10 @@ public class RowsResource {
             message = "resource created",
             response = Map.class,
             responseContainer = "Map"),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response createRow(
       @ApiParam(
@@ -422,9 +422,9 @@ public class RowsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "resource updated", response = Object.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{primaryKey: .*}")
   public Response updateRows(
@@ -461,8 +461,8 @@ public class RowsResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{primaryKey: .*}")
   public Response deleteRows(
@@ -497,7 +497,7 @@ public class RowsResource {
           } catch (IllegalArgumentException iae) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "not enough partition keys provided: " + iae.getMessage(),
                         Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
@@ -536,9 +536,9 @@ public class RowsResource {
             code = 200,
             message = "resource updated",
             response = RESTResponseWrapper.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{primaryKey: .*}")
   public Response patchRows(
@@ -587,7 +587,7 @@ public class RowsResource {
     } catch (IllegalArgumentException iae) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
-              new Error(
+              new ApiError(
                   "not enough partition keys provided: " + iae.getMessage(),
                   Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
