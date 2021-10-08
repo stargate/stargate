@@ -60,21 +60,23 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   private static final String INTERNAL_PROXY_DNS_NAME = "internal-stargate-test";
   private static final int PROXY_PORT = 9042;
 
+  // The client's address. We just need this to build the ClientState, the actual value doesn't
+  // really matter
+  private static final InetSocketAddress REMOTE_SOCKET_ADDRESS =
+      new InetSocketAddress(getRawAddress(192, 0, 0, 1), 1234);
+
   private static final Resolver DEFAULT_RESOLVER =
       name -> {
         if (PROXY_DNS_NAME.equals(name)) {
           return ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3);
         } else if (INTERNAL_PROXY_DNS_NAME.equals(name)) {
-          return ImmutableSet.of(PRIVATE_ADDRESS1, PRIVATE_ADDRESS2, PRIVATE_ADDRESS3);
+          // TODO revisit this
+          return ImmutableSet.of(
+              REMOTE_SOCKET_ADDRESS.getAddress(), PRIVATE_ADDRESS2, PRIVATE_ADDRESS3);
         } else {
           throw new IllegalArgumentException("Not one of our mocked DNS names: " + name);
         }
       };
-
-  // The client's address. We just need this to build the ClientState, the actual value doesn't
-  // really matter
-  private static final InetSocketAddress REMOTE_SOCKET_ADDRESS =
-      new InetSocketAddress(getRawAddress(192, 0, 0, 1), 1234);
 
   private static final ImmutableMap<String, AbstractType<?>> TYPES =
       ImmutableMap.<String, AbstractType<?>>builder()
@@ -144,8 +146,6 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       arguments(PUBLIC_ADDRESS2, ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS3)),
       arguments(PUBLIC_ADDRESS3, ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2)),
       arguments(PRIVATE_ADDRESS1, ImmutableSet.of(PRIVATE_ADDRESS2, PRIVATE_ADDRESS3)),
-      arguments(PRIVATE_ADDRESS2, ImmutableSet.of(PRIVATE_ADDRESS1, PRIVATE_ADDRESS3)),
-      arguments(PRIVATE_ADDRESS3, ImmutableSet.of(PRIVATE_ADDRESS1, PRIVATE_ADDRESS2)),
     };
   }
 

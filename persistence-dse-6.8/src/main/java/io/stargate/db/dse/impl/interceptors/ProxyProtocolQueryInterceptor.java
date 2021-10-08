@@ -169,6 +169,12 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
           "Unable to intercept proxy protocol system query without a valid destination address");
     }
     boolean isPrivateDestination = destinationAddress.getAddress().isSiteLocalAddress();
+    // If the destination is private, we want to use the "source" address of the PROXY header.
+    // We stored that in clientState.getRemoteAddress().
+    InetAddress systemLocalAddress =
+        isPrivateDestination
+            ? clientState.getRemoteAddress().getAddress()
+            : destinationAddress.getAddress();
 
     SelectStatement selectStatement = (SelectStatement) statement;
 
@@ -181,18 +187,12 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
               ? Collections.emptyList()
               : Lists.newArrayListWithCapacity(peers.size() - 1);
       for (InetAddress peer : peers) {
-        if (!peer.equals(destinationAddress.getAddress())) {
+        if (!peer.equals(systemLocalAddress)) {
           rows.add(buildRow(selectStatement.getResultMetadata(), peer, peers));
         }
       }
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
-      // If the destination is private, we want to use the "source" address of the PROXY header.
-      // We stored that in clientState.getRemoteAddress().
-      InetAddress systemLocalAddress =
-          isPrivateDestination
-              ? clientState.getRemoteAddress().getAddress()
-              : destinationAddress.getAddress();
       rows =
           Collections.singletonList(
               buildRow(selectStatement.getResultMetadata(), systemLocalAddress, peers));
