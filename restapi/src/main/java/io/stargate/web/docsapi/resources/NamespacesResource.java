@@ -26,11 +26,10 @@ import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
+import io.stargate.web.docsapi.models.Namespace;
 import io.stargate.web.docsapi.models.SimpleResponseWrapper;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
-import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Error;
-import io.stargate.web.models.Keyspace;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -77,11 +76,11 @@ public class NamespacesResource {
   @ApiOperation(
       value = "Get all namespaces",
       notes = "Retrieve all available namespaces.",
-      response = Keyspace.class,
+      response = Namespace.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
+        @ApiResponse(code = 200, message = "OK", response = Namespace.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
       })
@@ -98,16 +97,16 @@ public class NamespacesResource {
     return RequestHandler.handle(
         () -> {
           DocumentDB docDB = documentDBFactory.getDocDBForToken(token, getAllHeaders(request));
-          List<Keyspace> namespaces =
+          List<Namespace> namespaces =
               docDB.getKeyspaces().stream()
-                  .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
+                  .map(k -> new Namespace(k.name(), buildDatacenters(k)))
                   .collect(Collectors.toList());
 
           docDB
               .getAuthorizationService()
               .authorizeSchemaRead(
                   docDB.getAuthenticationSubject(),
-                  namespaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
+                  namespaces.stream().map(Namespace::getName).collect(Collectors.toList()),
                   null,
                   SourceAPI.REST,
                   ResourceKind.KEYSPACE);
@@ -149,10 +148,10 @@ public class NamespacesResource {
   @ApiOperation(
       value = "Get a namespace",
       notes = "Return a single namespace specification.",
-      response = Keyspace.class)
+      response = Namespace.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
+        @ApiResponse(code = 200, message = "OK", response = Namespace.class),
         @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
         @ApiResponse(code = 404, message = "Not Found", response = Error.class),
@@ -193,7 +192,7 @@ public class NamespacesResource {
                 .build();
           }
 
-          Keyspace keyspaceResponse = new Keyspace(keyspace.name(), buildDatacenters(keyspace));
+          Namespace keyspaceResponse = new Namespace(keyspace.name(), buildDatacenters(keyspace));
 
           Object response = raw ? keyspaceResponse : new SimpleResponseWrapper(keyspaceResponse);
           return Response.status(Response.Status.OK).entity(response).build();
@@ -325,14 +324,14 @@ public class NamespacesResource {
         });
   }
 
-  private List<Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
-    List<Datacenter> dcs = new ArrayList<>();
+  private List<Namespace.Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
+    List<Namespace.Datacenter> dcs = new ArrayList<>();
     for (Map.Entry<String, String> entries : keyspace.replication().entrySet()) {
       if (entries.getKey().equals("class") || entries.getKey().equals("replication_factor")) {
         continue;
       }
 
-      dcs.add(new Datacenter(entries.getKey(), Integer.parseInt(entries.getValue())));
+      dcs.add(new Namespace.Datacenter(entries.getKey(), Integer.parseInt(entries.getValue())));
     }
 
     return dcs.isEmpty() ? null : dcs;
