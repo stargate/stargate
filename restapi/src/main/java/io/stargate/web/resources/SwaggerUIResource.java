@@ -1,4 +1,4 @@
-package io.stargate.web.swagger;
+package io.stargate.web.resources;
 
 import io.dropwizard.util.Strings;
 import java.io.BufferedReader;

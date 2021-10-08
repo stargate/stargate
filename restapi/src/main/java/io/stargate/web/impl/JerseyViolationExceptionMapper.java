@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.web.validation;
+package io.stargate.web.impl;
 
 import io.dropwizard.jersey.validation.ConstraintMessage;
 import io.dropwizard.jersey.validation.JerseyViolationException;
@@ -29,7 +29,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import org.glassfish.jersey.server.model.Invocable;
 
 /** Maps {@link JerseyViolationException}s to the response with the {@link Error} entity. */
-public class ViolationExceptionMapper implements ExceptionMapper<JerseyViolationException> {
+public class JerseyViolationExceptionMapper implements ExceptionMapper<JerseyViolationException> {
 
   /** {@inheritDoc} */
   @Override

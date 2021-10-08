@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web;
+package io.stargate.web.impl;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
@@ -21,7 +21,6 @@ import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.web.impl.RestApiRunner;
 import java.util.Arrays;
 import java.util.List;
 import org.slf4j.Logger;

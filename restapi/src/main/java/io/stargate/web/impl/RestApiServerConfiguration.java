@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.web.config;
+package io.stargate.web.impl;
 
 import io.dropwizard.Configuration;
 
-public class ApplicationConfiguration extends Configuration {}
+public class RestApiServerConfiguration extends Configuration {}

@@ -30,8 +30,6 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
-import io.stargate.web.RestApiActivator;
-import io.stargate.web.config.ApplicationConfiguration;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
@@ -41,6 +39,7 @@ import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
 import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.resources.HealthResource;
+import io.stargate.web.resources.SwaggerUIResource;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.resources.v1.ColumnResource;
 import io.stargate.web.restapi.resources.v1.KeyspaceResource;
@@ -52,8 +51,6 @@ import io.stargate.web.restapi.resources.v2.schemas.IndexesResource;
 import io.stargate.web.restapi.resources.v2.schemas.KeyspacesResource;
 import io.stargate.web.restapi.resources.v2.schemas.TablesResource;
 import io.stargate.web.restapi.resources.v2.schemas.UserDefinedTypesResource;
-import io.stargate.web.swagger.SwaggerUIResource;
-import io.stargate.web.validation.ViolationExceptionMapper;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -70,7 +67,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
 /** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
-public class RestApiServer extends Application<ApplicationConfiguration> {
+public class RestApiServer extends Application<RestApiServerConfiguration> {
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -104,7 +101,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
    */
   @Override
   public void run(String... arguments) {
-    final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
+    final Bootstrap<RestApiServerConfiguration> bootstrap = new Bootstrap<>(this);
     addDefaultCommands(bootstrap);
     initialize(bootstrap);
 
@@ -115,11 +112,11 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
 
   @Override
   public void run(
-      final ApplicationConfiguration applicationConfiguration, final Environment environment)
+      final RestApiServerConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
 
     // General providers
-    environment.jersey().register(new ViolationExceptionMapper());
+    environment.jersey().register(new JerseyViolationExceptionMapper());
     final DocumentDBFactory documentDBFactory =
         new DocumentDBFactory(
             authenticationService, authorizationService, dataStoreFactory, docsApiConf);
@@ -204,7 +201,7 @@ public class RestApiServer extends Application<ApplicationConfiguration> {
   }
 
   @Override
-  public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
+  public void initialize(final Bootstrap<RestApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry(RestApiActivator.MODULE_NAME));
