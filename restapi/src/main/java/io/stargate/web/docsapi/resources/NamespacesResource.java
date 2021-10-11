@@ -29,7 +29,6 @@ import io.stargate.web.docsapi.models.BuiltInApiFunctionResponse;
 import io.stargate.web.docsapi.models.SimpleResponseWrapper;
 import io.stargate.web.docsapi.models.dto.CreateNamespace;
 import io.stargate.web.models.ApiError;
-import io.stargate.web.models.Datacenter;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.Api;
@@ -325,14 +324,14 @@ public class NamespacesResource {
         });
   }
 
-  private List<Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
-    List<Datacenter> dcs = new ArrayList<>();
+  private List<Keyspace.Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
+    List<Keyspace.Datacenter> dcs = new ArrayList<>();
     for (Map.Entry<String, String> entries : keyspace.replication().entrySet()) {
       if (entries.getKey().equals("class") || entries.getKey().equals("replication_factor")) {
         continue;
       }
 
-      dcs.add(new Datacenter(entries.getKey(), Integer.parseInt(entries.getValue())));
+      dcs.add(new Keyspace.Datacenter(entries.getKey(), Integer.parseInt(entries.getValue())));
     }
 
     return dcs.isEmpty() ? null : dcs;

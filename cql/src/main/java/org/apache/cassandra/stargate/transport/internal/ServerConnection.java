@@ -85,7 +85,7 @@ public class ServerConnection extends Connection {
     return new ClientInfo(
         proxyInfo != null ? proxyInfo.sourceAddress : (InetSocketAddress) channel.remoteAddress(),
         boundPort,
-        proxyInfo != null ? proxyInfo.publicAddress : null);
+        proxyInfo != null ? proxyInfo.destinationAddress : null);
   }
 
   public ClientInfo clientInfo() {

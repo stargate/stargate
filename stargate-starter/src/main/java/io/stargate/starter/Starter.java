@@ -83,11 +83,6 @@ public class Starter {
       System.getProperty("stargate.libdir", "../stargate-lib");
   protected static final String CACHE_DIRECTORY = System.getProperty("stargate.bundle.cache.dir");
 
-  @Retention(RetentionPolicy.RUNTIME)
-  public @interface Order {
-    int value();
-  }
-
   @Inject protected HelpOption<Starter> help;
 
   @Order(value = 1)
@@ -187,19 +182,28 @@ public class Starter {
 
   @Order(value = 14)
   @Option(
+      name = {"--internal-proxy-dns-name"},
+      description =
+          "Used with the proxy protocol flag to populate `system.peers` with a proxy's private IP addresses (i.e. A records), "
+              + "if the client connected through a private address. If not specified, it defaults to the value of `--proxy-dns-name` "
+              + "prefixed with \"internal-\"")
+  protected String internalProxyDnsName;
+
+  @Order(value = 15)
+  @Option(
       name = {"--proxy-port"},
       description =
           "Used with the proxy protocol flag to specify the proxy's listening port for the CQL protocol")
   protected int proxyPort = cqlPort;
 
-  @Order(value = 15)
+  @Order(value = 16)
   @Option(
       name = {"--emulate-dbaas-defaults"},
       description =
           "Updated defaults reflect those of DataStax Astra at the time of the currently used DSE release")
   protected boolean emulateDbaasDefaults = false;
 
-  @Order(value = 16)
+  @Order(value = 17)
   @Option(
       name = {"--developer-mode"},
       description =
@@ -208,19 +212,19 @@ public class Starter {
               + "requiring additional nodes or existing cluster")
   protected boolean developerMode = false;
 
-  @Order(value = 17)
+  @Order(value = 18)
   @Option(
       name = {"--bind-to-listen-address"},
       description = "When set, it binds web services to listen address only")
   protected boolean bindToListenAddressOnly = false;
 
-  @Order(value = 18)
+  @Order(value = 19)
   @Option(
       name = {"--jmx-port"},
       description = "The port on which JMX should start")
   protected int jmxPort = 7199;
 
-  @Order(value = 19)
+  @Order(value = 20)
   @Option(
       name = {
         "--disable-dynamic-snitch",
@@ -228,7 +232,7 @@ public class Starter {
       })
   protected boolean disableDynamicSnitch = false;
 
-  @Order(value = 20)
+  @Order(value = 21)
   @Option(
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
@@ -261,6 +265,11 @@ public class Starter {
   private List<Bundle> bundleList;
   private boolean watchBundles = true;
   private AtomicBoolean startError = new AtomicBoolean();
+
+  @Retention(RetentionPolicy.RUNTIME)
+  public @interface Order {
+    int value();
+  }
 
   public Starter() {}
 
@@ -354,6 +363,9 @@ public class Starter {
     System.setProperty("stargate.use_proxy_protocol", useProxyProtocol ? "true" : "false");
     if (proxyDnsName != null) {
       System.setProperty("stargate.proxy_protocol.dns_name", proxyDnsName);
+    }
+    if (internalProxyDnsName != null) {
+      System.setProperty("stargate.proxy_protocol.internal_dns_name", internalProxyDnsName);
     }
     System.setProperty("stargate.proxy_protocol.port", String.valueOf(proxyPort));
     System.setProperty("stargate.emulate_dbaas_defaults", emulateDbaasDefaults ? "true" : "false");
