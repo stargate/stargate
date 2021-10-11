@@ -21,14 +21,17 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
-/** A description of an error state */
-@ApiModel(description = "A description of an error state")
+/**
+ * A description of an error state. Note that the external name is {@code Error} (since that is the
+ * public entity name in the first release), but internally we use {@code ApiError} to avoid
+ * overload with {@link java.lang.Error}.
+ */
+@ApiModel(value = "Error", description = "A description of an error state")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@SuppressWarnings("JavaLangClash")
 public final class ApiError {
-  private String description = null;
+  private String description;
   private int code;
-  private String internalTxId = null;
+  private String internalTxId;
 
   public ApiError() {
     super();
@@ -43,7 +46,7 @@ public final class ApiError {
     this.code = code;
   }
 
-  /** A human readable description of the error state */
+  /** A human-readable description of the error state */
   public ApiError description(String description) {
     this.description = description;
     return this;
@@ -114,7 +117,7 @@ public final class ApiError {
 
   @Override
   public String toString() {
-    return "Error{"
+    return "ApiError{"
         + "description='"
         + description
         + '\''
