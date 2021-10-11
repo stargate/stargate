@@ -413,9 +413,9 @@ public class DsePersistence
   }
 
   private static ClientState clientStateForExternalCalls(@Nonnull ClientInfo clientInfo) {
-    if (clientInfo.publicAddress().isPresent()) {
-      return new ClientStateWithPublicAddress(
-          clientInfo.remoteAddress(), clientInfo.publicAddress().get());
+    if (clientInfo.destinationAddress().isPresent()) {
+      return new ClientStateWithDestinationAddress(
+          clientInfo.remoteAddress(), clientInfo.destinationAddress().get());
     }
     return new ClientStateWithBoundPort(clientInfo.remoteAddress(), clientInfo.boundPort());
   }

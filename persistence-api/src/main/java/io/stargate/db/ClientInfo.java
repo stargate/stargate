@@ -16,7 +16,7 @@ public class ClientInfo {
 
   private final InetSocketAddress remoteAddress;
   private final int boundPort;
-  private final @Nullable InetSocketAddress publicAddress;
+  private final @Nullable InetSocketAddress destinationAddress;
 
   private volatile DriverInfo driverInfo;
 
@@ -24,16 +24,19 @@ public class ClientInfo {
   private Map<String, ByteBuffer> serializedAuthData;
 
   public ClientInfo(
-      InetSocketAddress remoteAddress, int boundPort, @Nullable InetSocketAddress publicAddress) {
+      InetSocketAddress remoteAddress,
+      int boundPort,
+      @Nullable InetSocketAddress destinationAddress) {
     this.remoteAddress = remoteAddress;
     this.boundPort = boundPort;
-    this.publicAddress = publicAddress;
+    this.destinationAddress = destinationAddress;
   }
 
-  public ClientInfo(InetSocketAddress remoteAddress, @Nullable InetSocketAddress publicAddress) {
+  public ClientInfo(
+      InetSocketAddress remoteAddress, @Nullable InetSocketAddress destinationAddress) {
     this.remoteAddress = remoteAddress;
     this.boundPort = 0;
-    this.publicAddress = publicAddress;
+    this.destinationAddress = destinationAddress;
   }
 
   public InetSocketAddress remoteAddress() {
@@ -44,8 +47,8 @@ public class ClientInfo {
     return boundPort;
   }
 
-  public Optional<InetSocketAddress> publicAddress() {
-    return Optional.ofNullable(publicAddress);
+  public Optional<InetSocketAddress> destinationAddress() {
+    return Optional.ofNullable(destinationAddress);
   }
 
   public void registerDriverInfo(DriverInfo info) {
@@ -82,8 +85,8 @@ public class ClientInfo {
     return "ClientInfo{"
         + "remoteAddress="
         + remoteAddress
-        + ", publicAddress="
-        + publicAddress
+        + ", destinationAddress="
+        + destinationAddress
         + ", driverInfo="
         + driverInfo
         + '}';

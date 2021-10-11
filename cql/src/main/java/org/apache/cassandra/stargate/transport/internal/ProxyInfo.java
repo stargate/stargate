@@ -11,19 +11,19 @@ import java.util.Map;
 public class ProxyInfo {
   public static final AttributeKey<ProxyInfo> attributeKey = AttributeKey.valueOf("PROXY");
 
-  public final InetSocketAddress publicAddress;
+  public final InetSocketAddress destinationAddress;
   public final InetSocketAddress sourceAddress;
   private final Map<String, String> headers;
 
-  public ProxyInfo(InetSocketAddress publicAddress, InetSocketAddress sourceAddress) {
-    this.publicAddress = publicAddress;
+  public ProxyInfo(InetSocketAddress destinationAddress, InetSocketAddress sourceAddress) {
+    this.destinationAddress = destinationAddress;
     this.sourceAddress = sourceAddress;
     this.headers =
         ImmutableMap.of(
             PROXY_SOURCE_ADDRESS_HEADER,
             sourceAddress.getAddress().getHostAddress(),
             PROXY_PUBLIC_ADDRESS_HEADER,
-            publicAddress.getAddress().getHostAddress());
+            destinationAddress.getAddress().getHostAddress());
   }
 
   public Map<String, String> toHeaders() {

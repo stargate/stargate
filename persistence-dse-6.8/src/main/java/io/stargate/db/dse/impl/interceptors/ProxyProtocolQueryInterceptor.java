@@ -13,7 +13,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
-import io.stargate.db.dse.impl.ClientStateWithPublicAddress;
+import io.stargate.db.dse.impl.ClientStateWithDestinationAddress;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -45,7 +46,6 @@ import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
-import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.transport.ProtocolVersion;
@@ -54,12 +54,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A query interceptor that echos back the public IPs from the proxy protocol from `system.local`.
- * `system.peers` is populated with A-records from a provided DNS name.
+ * A query interceptor that echos back the destination IPs from the proxy protocol from
+ * `system.local`. `system.peers` is populated with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   public static final String PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final String INTERNAL_PROXY_DNS_NAME =
+      System.getProperty("stargate.proxy_protocol.internal_dns_name");
   public static final int PROXY_PORT =
       Integer.getInteger(
           "stargate.proxy_protocol.port", DatabaseDescriptor.getNativeTransportPort());
@@ -71,11 +73,14 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
   private final Resolver resolver;
   private final String proxyDnsName;
+  private final String internalProxyDnsName;
   private final int proxyPort;
   private final long resolveDelaySecs;
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Map<InetAddress, Set<String>> tokensCache = new ConcurrentHashMap<>();
-  private volatile Set<InetAddress> peers = Collections.emptySet();
+  // We expose two sets of peers, depending on what destination address the client used
+  private volatile Set<InetAddress> publicPeers = Collections.emptySet();
+  private volatile Set<InetAddress> privatePeers = Collections.emptySet();
   private final Optional<QueryInterceptor> wrapped;
 
   /**
@@ -87,7 +92,6 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     /**
      * Resolve {@link InetAddress}s from a provided name.
      *
-     * @param name
      * @return Resolved address for the name.
      * @throws UnknownHostException
      */
@@ -95,28 +99,36 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   public ProxyProtocolQueryInterceptor(QueryInterceptor wrapped) {
-    this(new DefaultResolver(), PROXY_DNS_NAME, PROXY_PORT, RESOLVE_DELAY_SECS, wrapped);
-  }
-
-  @VisibleForTesting
-  public ProxyProtocolQueryInterceptor() {
-    this(null);
+    this(
+        new DefaultResolver(),
+        PROXY_DNS_NAME,
+        INTERNAL_PROXY_DNS_NAME,
+        PROXY_PORT,
+        RESOLVE_DELAY_SECS,
+        wrapped);
   }
 
   @VisibleForTesting
   public ProxyProtocolQueryInterceptor(
-      Resolver resolver, String proxyDnsName, int proxyPort, long resolveDelaySecs) {
-    this(resolver, proxyDnsName, proxyPort, resolveDelaySecs, null);
+      Resolver resolver,
+      String proxyDnsName,
+      String internalProxyDnsName,
+      int proxyPort,
+      long resolveDelaySecs) {
+    this(resolver, proxyDnsName, internalProxyDnsName, proxyPort, resolveDelaySecs, null);
   }
 
   private ProxyProtocolQueryInterceptor(
       Resolver resolver,
       String proxyDnsName,
+      String internalProxyDnsName,
       int proxyPort,
       long resolveDelaySecs,
       QueryInterceptor wrapped) {
     this.resolver = resolver;
-    this.proxyDnsName = proxyDnsName;
+    this.proxyDnsName = Objects.requireNonNull(proxyDnsName);
+    this.internalProxyDnsName =
+        (internalProxyDnsName == null) ? "internal-" + proxyDnsName : internalProxyDnsName;
     this.proxyPort = proxyPort;
     this.resolveDelaySecs = resolveDelaySecs;
     this.wrapped = Optional.ofNullable(wrapped);
@@ -130,7 +142,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
           "DNS cache TTL (property \"networkaddress.cache.ttl\") not explicitly set. Setting to 60 seconds.");
       Security.setProperty("networkaddress.cache.ttl", "60");
     }
-    resolvePeers();
+    resolveAllPeers();
     wrapped.ifPresent(w -> w.initialize());
   }
 
@@ -142,39 +154,48 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
 
-    ClientState clientState = state.getClientState();
     if (!isSystemLocalOrPeers(statement)
-        || !(clientState instanceof ClientStateWithPublicAddress)) {
+        || !(state.getClientState() instanceof ClientStateWithDestinationAddress)) {
       return wrapped
           .map(i -> i.interceptQuery(statement, state, options, customPayload, queryStartNanoTime))
           .orElse(null);
     }
 
+    ClientStateWithDestinationAddress clientState =
+        (ClientStateWithDestinationAddress) state.getClientState();
+    InetSocketAddress destinationAddress = clientState.destinationAddress();
+    if (destinationAddress == null) {
+      throw new ServerError(
+          "Unable to intercept proxy protocol system query without a valid destination address");
+    }
+    boolean isPrivateDestination = destinationAddress.getAddress().isSiteLocalAddress();
+    // If the destination is private, we want to use the "source" address of the PROXY header.
+    // We stored that in clientState.getRemoteAddress().
+    InetAddress systemLocalAddress =
+        isPrivateDestination
+            ? clientState.getRemoteAddress().getAddress()
+            : destinationAddress.getAddress();
+
     SelectStatement selectStatement = (SelectStatement) statement;
 
     List<List<ByteBuffer>> rows;
-    InetSocketAddress publicAddress = ((ClientStateWithPublicAddress) clientState).publicAddress();
-    if (publicAddress == null) {
-      throw new ServerError(
-          "Unable to intercept proxy protocol system query without a valid public address");
-    }
     String tableName = selectStatement.table();
+    Set<InetAddress> peers = isPrivateDestination ? privatePeers : publicPeers;
     if (tableName.equals(PeersSystemView.NAME)) {
-      Set<InetAddress> currentPeers = peers;
       rows =
-          currentPeers.isEmpty()
+          peers.isEmpty()
               ? Collections.emptyList()
-              : Lists.newArrayListWithCapacity(currentPeers.size() - 1);
-      for (InetAddress peer : currentPeers) {
-        if (!peer.equals(publicAddress.getAddress())) {
-          rows.add(buildRow(selectStatement.getResultMetadata(), peer));
+              : Lists.newArrayListWithCapacity(peers.size() - 1);
+      for (InetAddress peer : peers) {
+        if (!peer.equals(systemLocalAddress)) {
+          rows.add(buildRow(selectStatement.getResultMetadata(), peer, peers));
         }
       }
     } else {
       assert tableName.equals(LocalNodeSystemView.NAME);
       rows =
           Collections.singletonList(
-              buildRow(selectStatement.getResultMetadata(), publicAddress.getAddress()));
+              buildRow(selectStatement.getResultMetadata(), systemLocalAddress, peers));
     }
 
     ResultSet resultSet = new ResultSet(selectStatement.getResultMetadata(), rows);
@@ -187,45 +208,50 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     wrapped.ifPresent(w -> w.register(listener));
   }
 
-  private void resolvePeers() {
+  @SuppressWarnings("NonAtomicOperationOnVolatileField")
+  private void resolveAllPeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {
-        Set<InetAddress> resolved = resolver.resolve(proxyDnsName);
-
-        if (!peers.equals(resolved)) {
-          // Generate listener events based on the differences between this and the previous
-          // resolved peers.
-          Sets.SetView<InetAddress> added = Sets.difference(resolved, peers);
-          Sets.SetView<InetAddress> removed = Sets.difference(peers, resolved);
-
-          for (EventListener listener : listeners) {
-            for (InetAddress peer : added) {
-              listener.onJoinCluster(peer, proxyPort);
-              listener.onUp(peer, proxyPort);
-            }
-            for (InetAddress peer : removed) {
-              tokensCache.remove(peer);
-              listener.onLeaveCluster(peer, proxyPort);
-            }
-          }
-          peers = resolved;
-        }
+        publicPeers = resolvePeers(proxyDnsName, publicPeers);
+        privatePeers = resolvePeers(internalProxyDnsName, privatePeers);
       } catch (UnknownHostException e) {
         throw new ServerError("Unable to resolve DNS for proxy protocol peers table", e);
       }
-      scheduler.schedule(this::resolvePeers, resolveDelaySecs, TimeUnit.SECONDS);
+      scheduler.schedule(this::resolveAllPeers, resolveDelaySecs, TimeUnit.SECONDS);
     }
+  }
+
+  private Set<InetAddress> resolvePeers(String dnsName, Set<InetAddress> current)
+      throws UnknownHostException {
+    Set<InetAddress> resolved = resolver.resolve(dnsName);
+    if (!current.equals(resolved)) {
+      // Generate listener events based on the differences between this and the previous
+      // resolved peers.
+      Sets.SetView<InetAddress> added = Sets.difference(resolved, current);
+      Sets.SetView<InetAddress> removed = Sets.difference(current, resolved);
+
+      for (EventListener listener : listeners) {
+        for (InetAddress peer : added) {
+          listener.onJoinCluster(peer, proxyPort);
+          listener.onUp(peer, proxyPort);
+        }
+        for (InetAddress peer : removed) {
+          tokensCache.remove(peer);
+          listener.onLeaveCluster(peer, proxyPort);
+        }
+      }
+    }
+    return resolved;
   }
 
   /**
    * Creates {@link ByteBuffer} value for a given column name. Unhandled names and aggregates return
    * a null value.
    *
-   * @param name
-   * @param publicAddress
    * @return a {@link ByteBuffer} value for a given system local/peers column.
    */
-  private ByteBuffer buildColumnValue(String name, InetAddress publicAddress) {
+  private ByteBuffer buildColumnValue(
+      String name, InetAddress destinationAddress, Set<InetAddress> peers) {
     switch (name) {
       case "key":
         return UTF8Type.instance.decompose("local");
@@ -237,7 +263,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "native_transport_address":
       case "listen_address":
       case "rpc_address":
-        return InetAddressType.instance.decompose(publicAddress);
+        return InetAddressType.instance.decompose(destinationAddress);
       case "cluster_name":
         return UTF8Type.instance.decompose(DatabaseDescriptor.getClusterName());
       case "cql_version":
@@ -245,7 +271,7 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "data_center":
         return UTF8Type.instance.decompose(DatabaseDescriptor.getLocalDataCenter());
       case "host_id":
-        return UUIDType.instance.decompose(UUID.nameUUIDFromBytes(publicAddress.getAddress()));
+        return UUIDType.instance.decompose(UUID.nameUUIDFromBytes(destinationAddress.getAddress()));
       case "native_protocol_version":
         return UTF8Type.instance.decompose(String.valueOf(ProtocolVersion.CURRENT.asInt()));
       case "partitioner":
@@ -258,7 +284,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       case "schema_version":
         return UUIDType.instance.decompose(StargateSystemKeyspace.SCHEMA_VERSION);
       case "tokens":
-        return SetType.getInstance(UTF8Type.instance, false).decompose(getTokens(publicAddress));
+        return SetType.getInstance(UTF8Type.instance, false)
+            .decompose(getTokens(destinationAddress, peers));
       case "native_transport_port": // Fallthrough intentional
       case "native_transport_port_ssl":
         return Int32Type.instance.decompose(PROXY_PORT);
@@ -276,25 +303,24 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   /**
-   * Get tokens generated for a public address.
+   * Get tokens generated for a destination address.
    *
    * <p>This caches generated tokens for known peer addresses; otherwise, it re-calculates tokens
    * every call for unknown addresses. This prevents {@code tokensCache} from growing without bound
-   * as {@code publicAddress} is provided by the client (proxy). This could use something like
+   * as {@code destinationAddress} is provided by the client (proxy). This could use something like
    * {@link LoadingCache} with maximum size, but then that requires exposing yet another
    * configuration value to users.
    *
-   * @param publicAddress
-   * @return a list of random token calculated using the the public address as a seed.
+   * @return a list of random token calculated using the the destination address as a seed.
    */
-  private Set<String> getTokens(InetAddress publicAddress) {
-    if (peers.contains(publicAddress)) {
+  private Set<String> getTokens(InetAddress destinationAddress, Set<InetAddress> peers) {
+    if (peers.contains(destinationAddress)) {
       return tokensCache.computeIfAbsent(
-          publicAddress,
+          destinationAddress,
           pa -> StargateSystemKeyspace.generateRandomTokens(pa, DatabaseDescriptor.getNumTokens()));
     } else {
       return StargateSystemKeyspace.generateRandomTokens(
-          publicAddress, DatabaseDescriptor.getNumTokens());
+          destinationAddress, DatabaseDescriptor.getNumTokens());
     }
   }
 
@@ -303,14 +329,13 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
    * cases like aggregates, null is returned in those cases, but it should be good enough for
    * handling system tables.
    *
-   * @param metadata
-   * @param publicAddress
    * @return a list of {@link ByteBuffer} values for a system local/peers row.
    */
-  private List<ByteBuffer> buildRow(ResultMetadata metadata, InetAddress publicAddress) {
+  private List<ByteBuffer> buildRow(
+      ResultMetadata metadata, InetAddress destinationAddress, Set<InetAddress> peers) {
     List<ByteBuffer> row = Lists.newArrayListWithCapacity(metadata.names.size());
     metadata.names.forEach(
-        column -> row.add(buildColumnValue(column.name.toString(), publicAddress)));
+        column -> row.add(buildColumnValue(column.name.toString(), destinationAddress, peers)));
     return row;
   }
 
