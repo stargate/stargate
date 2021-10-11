@@ -10,7 +10,7 @@ import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.JsonSchemaResponse;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.JsonSchemaHandler;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.RequestHandler;
 import io.swagger.annotations.*;
 import javax.inject.Inject;
@@ -44,10 +44,10 @@ public class JsonSchemaResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("collections/{collection-id}/json-schema")
   @Consumes(MediaType.APPLICATION_JSON)
@@ -91,10 +91,10 @@ public class JsonSchemaResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = JsonSchemaResponse.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("collections/{collection-id}/json-schema")
   @Produces(MediaType.APPLICATION_JSON)

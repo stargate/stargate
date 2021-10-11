@@ -22,7 +22,7 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.query.builder.Replication;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
@@ -77,8 +77,8 @@ public class KeyspacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response getAllKeyspaces(
       @ApiParam(
@@ -121,10 +121,10 @@ public class KeyspacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Keyspace.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{keyspaceName}")
   public Response getOneKeyspace(
@@ -150,7 +150,7 @@ public class KeyspacesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.NOT_FOUND)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
                 .build();
           }
@@ -174,10 +174,10 @@ public class KeyspacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 409, message = "Conflict", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response createKeyspace(
       @ApiParam(
@@ -255,8 +255,8 @@ public class KeyspacesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{keyspaceName}")
   public Response deleteKeyspace(

@@ -28,7 +28,7 @@ import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -92,10 +92,10 @@ public class TableResource {
             message = "OK",
             response = String.class,
             responseContainer = "List"),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response listAllTables(
       @ApiParam(
@@ -135,10 +135,10 @@ public class TableResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "Created", response = SuccessResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   public Response addTable(
       @ApiParam(
@@ -161,7 +161,7 @@ public class TableResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -169,14 +169,14 @@ public class TableResource {
           String tableName = tableAdd.getName();
           if (tableName == null || tableName.equals("")) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error("table name must be provided"))
+                .entity(new ApiError("table name must be provided"))
                 .build();
           }
 
           PrimaryKey primaryKey = tableAdd.getPrimaryKey();
           if (primaryKey == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error("primary key must be provided"))
+                .entity(new ApiError("primary key must be provided"))
                 .build();
           }
 
@@ -187,7 +187,7 @@ public class TableResource {
             if (columnName == null || columnName.equals("")) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(
-                      new Error(
+                      new ApiError(
                           "column name must be provided",
                           Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
@@ -201,7 +201,7 @@ public class TableResource {
             } catch (Exception e) {
               return Response.status(Response.Status.BAD_REQUEST)
                   .entity(
-                      new Error(
+                      new ApiError(
                           "Unable to create table options " + e.getMessage(),
                           Response.Status.BAD_REQUEST.getStatusCode()))
                   .build();
@@ -240,11 +240,11 @@ public class TableResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Table.class),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{tableName}")
   public Response getOneTable(
@@ -323,11 +323,11 @@ public class TableResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 400, message = "Bad request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("/{tableName}")
   public Response deleteTable(

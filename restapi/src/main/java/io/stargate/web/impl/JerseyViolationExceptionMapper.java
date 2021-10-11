@@ -19,7 +19,7 @@ package io.stargate.web.impl;
 
 import io.dropwizard.jersey.validation.ConstraintMessage;
 import io.dropwizard.jersey.validation.JerseyViolationException;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
@@ -28,7 +28,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import org.glassfish.jersey.server.model.Invocable;
 
-/** Maps {@link JerseyViolationException}s to the response with the {@link Error} entity. */
+/** Maps {@link JerseyViolationException}s to the response with the {@link ApiError} entity. */
 public class JerseyViolationExceptionMapper implements ExceptionMapper<JerseyViolationException> {
 
   /** {@inheritDoc} */
@@ -45,7 +45,7 @@ public class JerseyViolationExceptionMapper implements ExceptionMapper<JerseyVio
     String message = String.format("Request invalid: %s.", violationMessages);
     int status = ConstraintMessage.determineStatus(violations, invocable);
 
-    Error error = new Error(message, status);
-    return Response.status(status).type(MediaType.APPLICATION_JSON).entity(error).build();
+    ApiError apiError = new ApiError(message, status);
+    return Response.status(status).type(MediaType.APPLICATION_JSON).entity(apiError).build();
   }
 }

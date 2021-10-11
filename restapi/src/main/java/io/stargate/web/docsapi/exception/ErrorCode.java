@@ -17,7 +17,7 @@
 package io.stargate.web.docsapi.exception;
 
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -159,10 +159,10 @@ public enum ErrorCode {
    *     the user
    */
   public Response.ResponseBuilder toResponseBuilder(String message) {
-    Error error = new Error(message, responseStatus.getStatusCode());
+    ApiError apiError = new ApiError(message, responseStatus.getStatusCode());
 
     // declare as MediaType.APPLICATION_JSON_TYPE as we have non-string entity here
-    return Response.status(responseStatus).type(MediaType.APPLICATION_JSON_TYPE).entity(error);
+    return Response.status(responseStatus).type(MediaType.APPLICATION_JSON_TYPE).entity(apiError);
   }
 
   public String getDefaultMessage() {

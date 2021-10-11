@@ -32,7 +32,7 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -103,9 +103,12 @@ public class UserDefinedTypesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = UserDefinedTypeResponse.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Keyspace has not been found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(
+            code = 404,
+            message = "Keyspace has not been found",
+            response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response findAll(
       @ApiParam(
@@ -132,9 +135,9 @@ public class UserDefinedTypesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = Table.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 404, message = "Not Found", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{typeName}")
   public Response findById(
@@ -166,7 +169,7 @@ public class UserDefinedTypesResource {
     if (keyspace == null) {
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
-              new Error("keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
+              new ApiError("keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     }
 
@@ -204,16 +207,16 @@ public class UserDefinedTypesResource {
         @ApiResponse(
             code = 400,
             message = "Bad Request, the input is not well formated",
-            response = Error.class),
+            response = ApiError.class),
         @ApiResponse(
             code = 401,
             message = "Unauthorized, token is not valid or not enough permissions",
-            response = Error.class),
+            response = ApiError.class),
         @ApiResponse(
             code = 409,
             message = "Conflict, the object may already exist",
-            response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+            response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response createType(
       @ApiParam(
@@ -236,7 +239,7 @@ public class UserDefinedTypesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -244,7 +247,7 @@ public class UserDefinedTypesResource {
           if (Strings.isNullOrEmpty(typeName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "Type name must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -252,7 +255,7 @@ public class UserDefinedTypesResource {
           if (udtAdd.getFields() == null || udtAdd.getFields().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "Fields must be provided", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -265,7 +268,7 @@ public class UserDefinedTypesResource {
             columns = getUdtColumns(keyspace, udtAdd.getFields());
           } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(new ApiError(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 
@@ -299,8 +302,8 @@ public class UserDefinedTypesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   @Path("/{typeName}")
   public Response delete(
@@ -326,7 +329,7 @@ public class UserDefinedTypesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "keyspace does not exists", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -356,8 +359,8 @@ public class UserDefinedTypesResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
       })
   public Response update(
       @ApiParam(
@@ -379,7 +382,7 @@ public class UserDefinedTypesResource {
           if (keyspace == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "keyspace does not exists.", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -388,7 +391,7 @@ public class UserDefinedTypesResource {
           if (Strings.isNullOrEmpty(typeName)) {
             return Response.status(Response.Status.BAD_REQUEST)
                 .entity(
-                    new Error(
+                    new ApiError(
                         "Type name must be provided.", Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
@@ -402,7 +405,7 @@ public class UserDefinedTypesResource {
             updateUdt(restDB, keyspace, udtUpdate, udt);
           } catch (IllegalArgumentException | InvalidRequestException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new Error(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+                .entity(new ApiError(ex.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
                 .build();
           }
 

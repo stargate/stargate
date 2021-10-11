@@ -30,7 +30,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.restapi.models.ColumnDefinition;
 import io.stargate.web.restapi.models.GetResponseWrapper;
@@ -438,7 +438,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
         .isEqualTo("Bad request: An index named test_idx already exists");
@@ -528,7 +528,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/invalid_table/indexes", host, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
 
@@ -542,7 +542,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
 
-    response = objectMapper.readValue(body, Error.class);
+    response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
 
@@ -557,7 +557,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
-    response = objectMapper.readValue(body, Error.class);
+    response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
         .isEqualTo("Bad request: Indexing entries can only be used with a map");
@@ -656,7 +656,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, indexName),
             HttpStatus.SC_NOT_FOUND);
 
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found.");
 
@@ -1093,7 +1093,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
             HttpStatus.SC_BAD_REQUEST);
 
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
@@ -1433,7 +1433,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_BAD_REQUEST);
 
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
@@ -2034,7 +2034,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, "foo"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2050,7 +2050,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format(
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, "foo", tableName),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2088,7 +2088,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, tableName, "foo"),
             HttpStatus.SC_NOT_FOUND);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2143,7 +2143,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, "foo", "age"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2158,7 +2158,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, "foo", tableName, "age"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2208,7 +2208,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2290,7 +2290,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, tableName, "notFound"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2311,7 +2311,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, keyspaceName, "foo", "age"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2329,7 +2329,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 host, "foo", tableName, "age"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2372,7 +2372,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, "foo", "age"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2387,7 +2387,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, "foo", tableName, "age"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2405,7 +2405,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
                 "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
                 host, keyspaceName, tableName, "id"),
             HttpStatus.SC_BAD_REQUEST);
-    Error response = objectMapper.readValue(body, Error.class);
+    ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
@@ -2437,9 +2437,9 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     String typeName = "udt1";
 
-    Error error = objectMapper.readValue(response, Error.class);
-    assertThat(error.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(error.getDescription())
+    ApiError apiError = objectMapper.readValue(response, ApiError.class);
+    assertThat(apiError.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.getDescription())
         .isEqualTo(
             String.format(
                 "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));

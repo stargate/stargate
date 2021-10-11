@@ -21,30 +21,33 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
-/** A description of an error state */
-@ApiModel(description = "A description of an error state")
+/**
+ * A description of an error state. Note that the external name is {@code Error} (since that is the
+ * public entity name in the first release), but internally we use {@code ApiError} to avoid
+ * overload with {@link java.lang.Error}.
+ */
+@ApiModel(value = "Error", description = "A description of an error state")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@SuppressWarnings("JavaLangClash")
-public final class Error {
-  private String description = null;
+public final class ApiError {
+  private String description;
   private int code;
-  private String internalTxId = null;
+  private String internalTxId;
 
-  public Error() {
+  public ApiError() {
     super();
   }
 
-  public Error(String description) {
+  public ApiError(String description) {
     this.description = description;
   }
 
-  public Error(String description, int code) {
+  public ApiError(String description, int code) {
     this.description = description;
     this.code = code;
   }
 
-  /** A human readable description of the error state */
-  public Error description(String description) {
+  /** A human-readable description of the error state */
+  public ApiError description(String description) {
     this.description = description;
     return this;
   }
@@ -63,7 +66,7 @@ public final class Error {
   }
 
   /** The internal number referencing the error state */
-  public Error code(int code) {
+  public ApiError code(int code) {
     this.code = code;
     return this;
   }
@@ -79,7 +82,7 @@ public final class Error {
   }
 
   /** The internal tracking number of the request */
-  public Error internalTxId(String internalTxId) {
+  public ApiError internalTxId(String internalTxId) {
     this.internalTxId = internalTxId;
     return this;
   }
@@ -101,10 +104,10 @@ public final class Error {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    Error error = (Error) o;
-    return Objects.equals(description, error.description)
-        && Objects.equals(code, error.code)
-        && Objects.equals(internalTxId, error.internalTxId);
+    ApiError apiError = (ApiError) o;
+    return Objects.equals(description, apiError.description)
+        && Objects.equals(code, apiError.code)
+        && Objects.equals(internalTxId, apiError.internalTxId);
   }
 
   @Override
@@ -114,7 +117,7 @@ public final class Error {
 
   @Override
   public String toString() {
-    return "Error{"
+    return "ApiError{"
         + "description='"
         + description
         + '\''

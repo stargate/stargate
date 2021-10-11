@@ -17,7 +17,7 @@ package io.stargate.web.resources;
 
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import io.stargate.web.models.Error;
+import io.stargate.web.models.ApiError;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import javax.ws.rs.NotFoundException;
@@ -39,28 +39,28 @@ public class RequestHandler {
       logger.info("Resource not found (NotFoundException->NOT_FOUND): {}", nfe.getMessage());
       return Response.status(Response.Status.NOT_FOUND)
           .entity(
-              new Error(
+              new ApiError(
                   "Resource not found: " + nfe.getMessage(),
                   Response.Status.NOT_FOUND.getStatusCode()))
           .build();
     } catch (OverloadedException e) {
       return Response.status(Response.Status.TOO_MANY_REQUESTS)
           .entity(
-              new Error(
+              new ApiError(
                   "Database is overloaded", Response.Status.TOO_MANY_REQUESTS.getStatusCode()))
           .build();
     } catch (IllegalArgumentException iae) {
       logger.info("Bad request (IllegalArgumentException->BAD_REQUEST): {}", iae.getMessage());
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
-              new Error(
+              new ApiError(
                   "Bad request: " + iae.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     } catch (InvalidRequestException ire) {
       logger.info("Bad request (InvalidRequestException->BAD_REQUEST): {}", ire.getMessage());
       return Response.status(Response.Status.BAD_REQUEST)
           .entity(
-              new Error(
+              new ApiError(
                   "Bad request: " + ire.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     } catch (UnauthorizedException uae) {
@@ -69,7 +69,7 @@ public class RequestHandler {
           uae.getMessage());
       return Response.status(Response.Status.UNAUTHORIZED)
           .entity(
-              new Error(
+              new ApiError(
                   "Role unauthorized for operation: " + uae.getMessage(),
                   Response.Status.UNAUTHORIZED.getStatusCode()))
           .build();
@@ -80,7 +80,7 @@ public class RequestHandler {
             ee.getMessage());
         return Response.status(Response.Status.UNAUTHORIZED)
             .entity(
-                new Error(
+                new ApiError(
                     "Role unauthorized for operation: " + ee.getMessage(),
                     Response.Status.UNAUTHORIZED.getStatusCode()))
             .build();
@@ -90,7 +90,7 @@ public class RequestHandler {
             ee.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
             .entity(
-                new Error(
+                new ApiError(
                     "Bad request: " + ee.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
             .build();
       }
@@ -99,7 +99,7 @@ public class RequestHandler {
       logger.error("Error when executing request", ee);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(
-              new Error(
+              new ApiError(
                   "Server error: " + ee.getMessage(),
                   Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
           .build();
@@ -108,7 +108,7 @@ public class RequestHandler {
       logger.error("Error when executing request", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(
-              new Error(
+              new ApiError(
                   "Server error: " + e.getMessage(),
                   Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
           .build();
