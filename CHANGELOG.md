@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.0.37](https://github.com/stargate/stargate/tree/v1.0.37) (2021-10-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.36...v1.0.37)
+
+**Closed issues:**
+
+- Split, rename existing `Db` factory into `RestDBFactory`, `DocDBFactory` [\#1309](https://github.com/stargate/stargate/issues/1309)
+
+**Merged pull requests:**
+
+- Part 2 of \#1318: combine classes into related packages [\#1320](https://github.com/stargate/stargate/pull/1320) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- First part of \#1318: move REST API resources under ".../web/restapi/restapi/resources" [\#1319](https://github.com/stargate/stargate/pull/1319) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Second part of \#1309 \(and bit more\), further separating out "real" REST from Doc API [\#1316](https://github.com/stargate/stargate/pull/1316) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1314](https://github.com/stargate/stargate/pull/1314) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Compile path call is removed, Don't recompile already compiled regexes, and no longer calculate allColumnNames\(\) on every call [\#1307](https://github.com/stargate/stargate/pull/1307) ([EricBorczuk](https://github.com/EricBorczuk))
+- Return private ip for peers if client connects over private/internal network [\#1180](https://github.com/stargate/stargate/pull/1180) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.36](https://github.com/stargate/stargate/tree/v1.0.36) (2021-10-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.35...v1.0.36)
