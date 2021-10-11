@@ -58,4 +58,39 @@ public class Keyspace {
     this.name = name;
     this.datacenters = datacenters;
   }
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class Datacenter {
+    private String name;
+    private int replicas;
+
+    @ApiModelProperty(required = true, value = "The name of the datacenter.")
+    public String getName() {
+      return name;
+    }
+
+    public Datacenter setName(String name) {
+      this.name = name;
+      return this;
+    }
+
+    @ApiModelProperty(
+        required = true,
+        value =
+            "The number of replicas in the datacenter. In other words, the number of copies of each row in the datacenter.")
+    public int getReplicas() {
+      return replicas;
+    }
+
+    public Datacenter setReplicas(int replicas) {
+      this.replicas = replicas;
+      return this;
+    }
+
+    @JsonCreator
+    public Datacenter(@JsonProperty("name") String name, @JsonProperty("replicas") int replicas) {
+      this.name = name;
+      this.replicas = replicas;
+    }
+  }
 }
