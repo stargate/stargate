@@ -2,6 +2,8 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -12,8 +14,8 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
+import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
@@ -27,6 +29,8 @@ import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
+import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +52,11 @@ public class DocumentDB {
   private final QueryExecutor executor;
   private final DocsApiConfiguration config;
   private final List<String> allColumnNames;
+  private final LoadingCache<ImmutableKeyspaceAndTable, BuiltQuery> insertQueryForTable =
+      Caffeine.newBuilder()
+          .maximumSize(10_000)
+          .expireAfterWrite(Duration.ofMinutes(5))
+          .build(this::getInsertQueryForTable);
 
   public DocumentDB(
       DataStore dataStore,
@@ -275,6 +284,20 @@ public class DocumentDB {
     }
   }
 
+  private BuiltQuery getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
+    QueryBuilder.QueryBuilder__4 query =
+        dataStore.queryBuilder().insertInto(info.getKeyspace(), info.getTable());
+
+    QueryBuilder.QueryBuilder__18 queryWithColumns = null;
+    // Add a bind position for each column
+    for (String columnName : allColumnNames) {
+      queryWithColumns = query.value(columnName);
+    }
+
+    // Add a bind position for a timestamp, build, and return
+    return queryWithColumns.timestamp().build();
+  }
+
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
@@ -342,20 +365,17 @@ public class DocumentDB {
 
   public BoundQuery getInsertStatement(
       String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
-
-    List<ValueModifier> modifiers = new ArrayList<>(columnValues.length);
+    Object[] boundParams = new Object[columnValues.length + 1];
+    boundParams[boundParams.length - 1] = microsTimestamp;
     for (int i = 0; i < columnValues.length; i++) {
-      modifiers.add(ValueModifier.set(allColumnNames.get(i), columnValues[i]));
+      boundParams[i] = columnValues[i];
     }
-    BoundQuery query =
-        dataStore
-            .queryBuilder()
-            .insertInto(keyspaceName, tableName)
-            .value(modifiers)
-            .timestamp(microsTimestamp)
-            .build()
-            .bind();
-    return query;
+
+    ImmutableKeyspaceAndTable info =
+        ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
+    // Hits a cache if the insert has been called for this table in the last 5 minutes
+    BuiltQuery insertQuery = insertQueryForTable.get(info);
+    return insertQuery.bind(boundParams);
   }
 
   /** Deletes from @param tableName all rows that are prefixed by @param pathPrefixToDelete */
