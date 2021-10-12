@@ -40,20 +40,21 @@ public class UdtCodec extends CompositeCodec {
     UdtValue udtValue = value.getUdt();
     Map<String, Value> udtFieldsValues = udtValue.getFieldsMap();
 
-    Map<String, Column> fields = ((UserDefinedType) type).columnMap();
+    Map<String, Column> fieldsByName = ((UserDefinedType) type).columnMap();
     for (String name : udtFieldsValues.keySet()) {
-      if (!fields.containsKey(name)) {
+      if (!fieldsByName.containsKey(name)) {
         throw new IllegalArgumentException(
             String.format("User-defined type doesn't contain a field named '%s'", name));
       }
     }
 
+    List<Column> fields = ((UserDefinedType) type).columns();
     int fieldsCount = fields.size();
     ByteBuffer[] encodedFields = new ByteBuffer[fieldsCount];
 
     int i = 0;
     int toAllocate = 0;
-    for (Column field : fields.values()) {
+    for (Column field : fields) { // can't use fieldsByName.values() here, because the order matters
       ByteBuffer encodedField = null;
       Value fieldValue = udtFieldsValues.get(field.name());
       if (fieldValue != null) {
