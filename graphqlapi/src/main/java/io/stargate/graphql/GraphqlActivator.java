@@ -42,7 +42,7 @@ public class GraphqlActivator extends BaseActivator {
   private static final String AUTH_IDENTIFIER =
       System.getProperty("stargate.auth_id", "AuthTableBasedService");
   private static final boolean ENABLE_GRAPHQL_FIRST =
-      Boolean.getBoolean("stargate.graphql_first.enabled");
+      Boolean.parseBoolean(System.getProperty("stargate.graphql_first.enabled", "true"));
   private static final boolean ENABLE_GRAPHQL_PLAYGROUND =
       !Boolean.getBoolean("stargate.graphql_playground.disabled");
 
