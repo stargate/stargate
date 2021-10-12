@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.0.38](https://github.com/stargate/stargate/tree/v1.0.38) (2021-10-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.37...v1.0.38)
+
+**Closed issues:**
+
+- Make Duzzt-dependency `provided` to avoid adding processor classes for runtime [\#1327](https://github.com/stargate/stargate/issues/1327)
+- Rename `restapi` type `Error` as `ApiError` \(for later extraction to shared package\) [\#1322](https://github.com/stargate/stargate/issues/1322)
+- \(restapi\) Isolate more of REST API pieces under new `io.stargate.web.restapi` [\#1318](https://github.com/stargate/stargate/issues/1318)
+
+**Merged pull requests:**
+
+- Fix \#1327: make `duzzt` dependency "provided" \(6 fewer bundled jars\) [\#1328](https://github.com/stargate/stargate/pull/1328) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1326](https://github.com/stargate/stargate/pull/1326) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Another tiny refactoring for \#1318: make `Datacenter` a static inner class [\#1325](https://github.com/stargate/stargate/pull/1325) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1322: rename `Error` -\> `ApiError` [\#1323](https://github.com/stargate/stargate/pull/1323) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add ability to close/reject persistent connections [\#1315](https://github.com/stargate/stargate/pull/1315) ([mpenick](https://github.com/mpenick))
+
 ## [v1.0.37](https://github.com/stargate/stargate/tree/v1.0.37) (2021-10-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.36...v1.0.37)
