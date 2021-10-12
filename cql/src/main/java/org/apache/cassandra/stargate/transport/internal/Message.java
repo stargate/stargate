@@ -59,6 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.cassandra.net.ResourceLimits;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -731,10 +732,17 @@ public abstract class Message {
               Thread.currentThread().getName());
 
         // JVMStabilityInspector.inspectThrowable(error); // TODO
-        UnexpectedChannelExceptionHandler handler =
-            new UnexpectedChannelExceptionHandler(ctx.channel(), true);
         if (error instanceof ExecutionException) error = error.getCause();
         if (error instanceof CompletionException) error = error.getCause();
+
+        if (error instanceof UnhandledClientException) {
+          ctx.close();
+          return;
+        }
+
+        UnexpectedChannelExceptionHandler handler =
+            new UnexpectedChannelExceptionHandler(ctx.channel(), true);
+
         flush(
             new Message.Dispatcher.FlushItem(
                 ctx,
@@ -785,6 +793,11 @@ public abstract class Message {
 
     @Override
     public void exceptionCaught(final ChannelHandlerContext ctx, Throwable cause) {
+      if (cause instanceof UnhandledClientException) {
+        ctx.close();
+        return;
+      }
+
       // Provide error message to client in case channel is still open
       UnexpectedChannelExceptionHandler handler =
           new UnexpectedChannelExceptionHandler(ctx.channel(), false);
