@@ -49,31 +49,35 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
-  private static final InetAddress PUBLIC_ADDRESS1 = getRawAddress(1, 1, 1, 1);
-  private static final InetAddress PUBLIC_ADDRESS2 = getRawAddress(1, 1, 1, 2);
-  private static final InetAddress PUBLIC_ADDRESS3 = getRawAddress(1, 1, 1, 3);
 
-  private static final InetAddress PRIVATE_ADDRESS1 = getRawAddress(172, 28, 0, 1);
-  private static final InetAddress PRIVATE_ADDRESS2 = getRawAddress(172, 28, 0, 2);
-  private static final InetAddress PRIVATE_ADDRESS3 = getRawAddress(172, 28, 0, 3);
+  // The peer addresses we return for public connections
+  private static final InetAddress PUBLIC_PEER1 = getRawAddress(1, 1, 1, 1);
+  private static final InetAddress PUBLIC_PEER2 = getRawAddress(1, 1, 1, 2);
+  private static final InetAddress PUBLIC_PEER3 = getRawAddress(1, 1, 1, 3);
+
+  // The peer addresses we return for private connections
+  private static final InetAddress PRIVATE_PEER1 = getRawAddress(172, 28, 0, 1);
+  private static final InetAddress PRIVATE_PEER2 = getRawAddress(172, 28, 0, 2);
+  private static final InetAddress PRIVATE_PEER3 = getRawAddress(172, 28, 0, 3);
+
+  // A source address used for public connection tests (the actual value doesn't matter):
+  private static final InetSocketAddress PUBLIC_SOURCE =
+      new InetSocketAddress(getRawAddress(192, 0, 0, 1), 1234);
+
+  // A destination address used for private connection tests (the actual value doesn't matter, it
+  // just needs to be a private address).
+  private static final InetAddress PRIVATE_DEST = getRawAddress(172, 28, 0, 4);
 
   private static final String PROXY_DNS_NAME = "stargate-test";
   private static final String INTERNAL_PROXY_DNS_NAME = "internal-stargate-test";
   private static final int PROXY_PORT = 9042;
 
-  // The client's address. We just need this to build the ClientState, the actual value doesn't
-  // really matter
-  private static final InetSocketAddress REMOTE_SOCKET_ADDRESS =
-      new InetSocketAddress(getRawAddress(192, 0, 0, 1), 1234);
-
   private static final Resolver DEFAULT_RESOLVER =
       name -> {
         if (PROXY_DNS_NAME.equals(name)) {
-          return ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3);
+          return ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2, PUBLIC_PEER3);
         } else if (INTERNAL_PROXY_DNS_NAME.equals(name)) {
-          // TODO revisit this
-          return ImmutableSet.of(
-              REMOTE_SOCKET_ADDRESS.getAddress(), PRIVATE_ADDRESS2, PRIVATE_ADDRESS3);
+          return ImmutableSet.of(PRIVATE_PEER1, PRIVATE_PEER2, PRIVATE_PEER3);
         } else {
           throw new IllegalArgumentException("Not one of our mocked DNS names: " + name);
         }
@@ -107,46 +111,63 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
           .build();
 
   @ParameterizedTest
-  @MethodSource("destinationAndExpectedLocal")
+  @MethodSource("sourceDestinationAndExpectedLocal")
   public void systemLocalContainsTheSourceOrDestinationAddress(
-      InetAddress destination, InetAddress expectedLocal) {
+      InetSocketAddress source, InetAddress destination, InetAddress expectedLocal) {
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             DEFAULT_RESOLVER, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.local", destination);
+    Rows result =
+        (Rows) interceptQuery(interceptor, "SELECT * FROM system.local", source, destination);
     assertThat(collect(result, "rpc_address")).containsOnly(expectedLocal);
   }
 
-  public static Arguments[] destinationAndExpectedLocal() {
+  public static Arguments[] sourceDestinationAndExpectedLocal() {
     return new Arguments[] {
-      arguments(PUBLIC_ADDRESS1, PUBLIC_ADDRESS1),
-      arguments(PUBLIC_ADDRESS2, PUBLIC_ADDRESS2),
-      arguments(PUBLIC_ADDRESS3, PUBLIC_ADDRESS3),
-      arguments(PRIVATE_ADDRESS1, REMOTE_SOCKET_ADDRESS.getAddress()),
-      arguments(PRIVATE_ADDRESS2, REMOTE_SOCKET_ADDRESS.getAddress()),
-      arguments(PRIVATE_ADDRESS3, REMOTE_SOCKET_ADDRESS.getAddress()),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER1, PUBLIC_PEER1),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER2, PUBLIC_PEER2),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER3, PUBLIC_PEER3),
+      // For private connections, the address to use for system.local is passed in the source, not
+      // the destination.
+      arguments(new InetSocketAddress(PRIVATE_PEER1, 9042), PRIVATE_DEST, PRIVATE_PEER1),
+      arguments(new InetSocketAddress(PRIVATE_PEER2, 9042), PRIVATE_DEST, PRIVATE_PEER2),
+      arguments(new InetSocketAddress(PRIVATE_PEER3, 9042), PRIVATE_DEST, PRIVATE_PEER3),
     };
   }
 
   @ParameterizedTest
-  @MethodSource("destinationAndExpectedPeers")
+  @MethodSource("sourceDestinationAndExpectedPeers")
   public void systemPeersContainsTheOthers(
-      InetAddress destination, Set<InetAddress> expectedPeers) {
+      InetSocketAddress source, InetAddress destination, Set<InetAddress> expectedPeers) {
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             DEFAULT_RESOLVER, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", destination);
+    Rows result =
+        (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", source, destination);
     assertThat(collect(result, "rpc_address")).isEqualTo(expectedPeers);
   }
 
-  public static Arguments[] destinationAndExpectedPeers() {
+  public static Arguments[] sourceDestinationAndExpectedPeers() {
     return new Arguments[] {
-      arguments(PUBLIC_ADDRESS1, ImmutableSet.of(PUBLIC_ADDRESS2, PUBLIC_ADDRESS3)),
-      arguments(PUBLIC_ADDRESS2, ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS3)),
-      arguments(PUBLIC_ADDRESS3, ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2)),
-      arguments(PRIVATE_ADDRESS1, ImmutableSet.of(PRIVATE_ADDRESS2, PRIVATE_ADDRESS3)),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER1, ImmutableSet.of(PUBLIC_PEER2, PUBLIC_PEER3)),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER2, ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER3)),
+      arguments(PUBLIC_SOURCE, PUBLIC_PEER3, ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2)),
+      // For private connections, the address to use for system.local is passed in the source, not
+      // the destination.
+      arguments(
+          new InetSocketAddress(PRIVATE_PEER1, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PRIVATE_PEER2, PRIVATE_PEER3)),
+      arguments(
+          new InetSocketAddress(PRIVATE_PEER2, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PRIVATE_PEER1, PRIVATE_PEER3)),
+      arguments(
+          new InetSocketAddress(PRIVATE_PEER3, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PRIVATE_PEER1, PRIVATE_PEER2)),
     };
   }
 
@@ -157,7 +178,9 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
         new ProxyProtocolQueryInterceptor(
             DEFAULT_RESOLVER, INTERNAL_PROXY_DNS_NAME, PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.local", PUBLIC_ADDRESS1);
+    Rows result =
+        (Rows)
+            interceptQuery(interceptor, "SELECT * FROM system.local", PUBLIC_SOURCE, PUBLIC_PEER1);
     assertThat(collect(result, name)).containsExactlyInAnyOrder(value);
   }
 
@@ -165,14 +188,15 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   @MethodSource({"peersValues", "sharedValues"})
   public void systemPeersValues(String name, Object value) throws UnknownHostException {
     Resolver resolver = mock(Resolver.class);
-    when(resolver.resolve(PROXY_DNS_NAME))
-        .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2));
+    when(resolver.resolve(PROXY_DNS_NAME)).thenReturn(ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2));
 
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             resolver, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
-    Rows result = (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS2);
+    Rows result =
+        (Rows)
+            interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_SOURCE, PUBLIC_PEER2);
     assertThat(collect(result, name)).containsExactlyInAnyOrder(value);
   }
 
@@ -182,8 +206,8 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       arguments("bootstrapped", BootstrapState.COMPLETED.toString()),
       arguments("cluster_name", DatabaseDescriptor.getClusterName()),
       arguments("cql_version", QueryProcessor.CQL_VERSION.toString()),
-      arguments("broadcast_address", PUBLIC_ADDRESS1),
-      arguments("listen_address", PUBLIC_ADDRESS1),
+      arguments("broadcast_address", PUBLIC_PEER1),
+      arguments("listen_address", PUBLIC_PEER1),
       arguments("partitioner", DatabaseDescriptor.getPartitioner().getClass().getName()),
       arguments("native_protocol_version", String.valueOf(ProtocolVersion.CURRENT.asInt()))
     };
@@ -191,23 +215,23 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
 
   public static Arguments[] peersValues() {
     return new Arguments[] {
-      arguments("peer", PUBLIC_ADDRESS1), arguments("preferred_ip", PUBLIC_ADDRESS1)
+      arguments("peer", PUBLIC_PEER1), arguments("preferred_ip", PUBLIC_PEER1)
     };
   }
 
   public static Arguments[] sharedValues() {
     return new Arguments[] {
-      arguments("native_transport_address", PUBLIC_ADDRESS1),
-      arguments("rpc_address", PUBLIC_ADDRESS1),
+      arguments("native_transport_address", PUBLIC_PEER1),
+      arguments("rpc_address", PUBLIC_PEER1),
       arguments("data_center", DatabaseDescriptor.getLocalDataCenter()),
-      arguments("host_id", UUID.nameUUIDFromBytes(PUBLIC_ADDRESS1.getAddress())),
+      arguments("host_id", UUID.nameUUIDFromBytes(PUBLIC_PEER1.getAddress())),
       arguments("rack", DatabaseDescriptor.getLocalRack()),
       arguments("release_version", ProductVersion.getReleaseVersion().toString()),
       arguments("schema_version", StargateSystemKeyspace.SCHEMA_VERSION),
       arguments(
           "tokens",
           StargateSystemKeyspace.generateRandomTokens(
-              PUBLIC_ADDRESS1, DatabaseDescriptor.getNumTokens())),
+              PUBLIC_PEER1, DatabaseDescriptor.getNumTokens())),
       arguments("native_transport_port", 9042),
       arguments("native_transport_port_ssl", 9042),
       arguments("storage_port", DatabaseDescriptor.getStoragePort()),
@@ -220,25 +244,28 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   public void addPeer() throws UnknownHostException {
     Resolver resolver = mock(Resolver.class);
     when(resolver.resolve(PROXY_DNS_NAME))
-        .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2))
-        .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3));
+        .thenReturn(ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2))
+        .thenReturn(ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2, PUBLIC_PEER3));
 
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             resolver, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows resultBefore =
-        (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
-    assertThat(collect(resultBefore, "rpc_address")).containsExactly(PUBLIC_ADDRESS2);
+        (Rows)
+            interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_SOURCE, PUBLIC_PEER1);
+    assertThat(collect(resultBefore, "rpc_address")).containsExactly(PUBLIC_PEER2);
 
     await()
         .atMost(Duration.ofSeconds(3))
         .until(
             () -> {
               Rows resultAfter =
-                  (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
+                  (Rows)
+                      interceptQuery(
+                          interceptor, "SELECT * FROM system.peers", PUBLIC_SOURCE, PUBLIC_PEER1);
               return collect(resultAfter, "rpc_address")
-                  .equals(ImmutableSet.of(PUBLIC_ADDRESS2, PUBLIC_ADDRESS3));
+                  .equals(ImmutableSet.of(PUBLIC_PEER2, PUBLIC_PEER3));
             });
   }
 
@@ -246,25 +273,28 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
   public void removePeer() throws UnknownHostException {
     Resolver resolver = mock(Resolver.class);
     when(resolver.resolve(PROXY_DNS_NAME))
-        .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2, PUBLIC_ADDRESS3))
-        .thenReturn(ImmutableSet.of(PUBLIC_ADDRESS1, PUBLIC_ADDRESS2));
+        .thenReturn(ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2, PUBLIC_PEER3))
+        .thenReturn(ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2));
 
     ProxyProtocolQueryInterceptor interceptor =
         new ProxyProtocolQueryInterceptor(
             resolver, PROXY_DNS_NAME, INTERNAL_PROXY_DNS_NAME, PROXY_PORT, 1);
 
     Rows resultBefore =
-        (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
+        (Rows)
+            interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_SOURCE, PUBLIC_PEER1);
     assertThat(collect(resultBefore, "rpc_address"))
-        .containsExactlyInAnyOrder(PUBLIC_ADDRESS2, PUBLIC_ADDRESS3);
+        .containsExactlyInAnyOrder(PUBLIC_PEER2, PUBLIC_PEER3);
 
     await()
         .atMost(Duration.ofSeconds(3))
         .until(
             () -> {
               Rows resultAfter =
-                  (Rows) interceptQuery(interceptor, "SELECT * FROM system.peers", PUBLIC_ADDRESS1);
-              return collect(resultAfter, "rpc_address").equals(ImmutableSet.of(PUBLIC_ADDRESS2));
+                  (Rows)
+                      interceptQuery(
+                          interceptor, "SELECT * FROM system.peers", PUBLIC_SOURCE, PUBLIC_PEER1);
+              return collect(resultAfter, "rpc_address").equals(ImmutableSet.of(PUBLIC_PEER2));
             });
   }
 
@@ -289,16 +319,19 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
     return value == null ? null : (T) type.compose(value);
   }
 
-  private QueryState queryStateForAddress(InetAddress address) {
+  private QueryState newQueryState(InetSocketAddress source, InetAddress destination) {
     return new QueryState(
         StargateClientState.forExternalCalls(
-            new ClientInfo(REMOTE_SOCKET_ADDRESS, new InetSocketAddress(address, 9042))),
+            new ClientInfo(source, new InetSocketAddress(destination, 9042))),
         UserRolesAndPermissions.ANONYMOUS);
   }
 
   private Result interceptQuery(
-      ProxyProtocolQueryInterceptor interceptor, String query, InetAddress destinationAddress) {
-    QueryState queryState = queryStateForAddress(destinationAddress);
+      ProxyProtocolQueryInterceptor interceptor,
+      String query,
+      InetSocketAddress source,
+      InetAddress destination) {
+    QueryState queryState = newQueryState(source, destination);
     CQLStatement statement = QueryProcessor.parseStatement(query, queryState);
     interceptor.initialize();
     return Conversion.toResult(

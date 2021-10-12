@@ -207,6 +207,11 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private void resolveAllPeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {
+        // This task runs asynchronously, so it does not have context about a particular client. We
+        // can't predict if connections will be public or private, so resolve everything.
+        // Note that this also generates events, so private clients will get events for public
+        // addresses, and vice versa. This is not a problem because client drivers ignore events if
+        // they don't recognize the address.
         publicPeers = resolvePeers(proxyDnsName, publicPeers);
         privatePeers = resolvePeers(internalProxyDnsName, privatePeers);
       } catch (UnknownHostException e) {
