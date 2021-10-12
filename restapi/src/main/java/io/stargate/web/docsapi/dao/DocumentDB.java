@@ -13,8 +13,8 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltCondition;
-import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
@@ -52,7 +52,7 @@ public class DocumentDB {
   private final QueryExecutor executor;
   private final DocsApiConfiguration config;
   private final List<String> allColumnNames;
-  private final LoadingCache<ImmutableKeyspaceAndTable, BuiltQuery> insertQueryForTable =
+  private final LoadingCache<ImmutableKeyspaceAndTable, Query> insertQueryForTable =
       Caffeine.newBuilder()
           .maximumSize(10_000)
           .expireAfterWrite(Duration.ofMinutes(5))
@@ -284,7 +284,7 @@ public class DocumentDB {
     }
   }
 
-  private BuiltQuery getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
+  private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
     QueryBuilder.QueryBuilder__4 query =
         dataStore.queryBuilder().insertInto(info.getKeyspace(), info.getTable());
 
@@ -295,7 +295,7 @@ public class DocumentDB {
     }
 
     // Add a bind position for a timestamp, build, and return
-    return queryWithColumns.timestamp().build();
+    return dataStore.prepare(queryWithColumns.timestamp().build()).join();
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
@@ -374,7 +374,7 @@ public class DocumentDB {
     ImmutableKeyspaceAndTable info =
         ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
     // Hits a cache if the insert has been called for this table in the last 5 minutes
-    BuiltQuery insertQuery = insertQueryForTable.get(info);
+    Query insertQuery = insertQueryForTable.get(info);
     return insertQuery.bind(boundParams);
   }
 
