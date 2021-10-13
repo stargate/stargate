@@ -26,12 +26,14 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -42,6 +44,8 @@ import org.junit.jupiter.params.provider.MethodSource;
     initQueries = {
       "CREATE TYPE udt (f1 int, f2 text, f3 uuid)",
       "CREATE TABLE IF NOT EXISTS udt_test (k text, v udt, PRIMARY KEY(k))",
+      "CREATE TYPE address(street VARCHAR, number int);",
+      "CREATE TABLE users_with_address(id int PRIMARY KEY, address address);"
     })
 public class UdtTest extends GrpcIntegrationTest {
 
@@ -150,6 +154,36 @@ public class UdtTest extends GrpcIntegrationTest {
             })
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining(expectedMessage);
+  }
+
+  @Test
+  public void shouldInsertCorrectUdtFieldsRegardlessOfTheirOrder(
+      @TestKeyspace CqlIdentifier keyspace) throws InvalidProtocolBufferException {
+    // given
+    StargateBlockingStub stub = stubWithCallCredentials();
+    Value udtValue =
+        Values.udtOf(ImmutableMap.of("street", Values.of("Long st"), "number", Values.of(123)));
+
+    // when insert udt value
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "INSERT INTO users_with_address (id, address) VALUES (?, ?)",
+                queryParameters(keyspace),
+                Values.of(1),
+                udtValue));
+    assertThat(response).isNotNull();
+
+    // then
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "SELECT id, address FROM users_with_address WHERE id = 1",
+                queryParameters(keyspace)));
+    ResultSet resultSet = response.getResultSet().getData().unpack(ResultSet.class);
+    QueryOuterClass.UdtValue udtResult = resultSet.getRows(0).getValues(1).getUdt();
+    assertThat(udtResult.getFieldsMap().get("street").getString()).isEqualTo("Long st");
+    assertThat(udtResult.getFieldsMap().get("number").getInt()).isEqualTo(123);
   }
 
   public static Stream<Arguments> invalidValues() {
