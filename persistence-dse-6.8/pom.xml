@@ -179,12 +179,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-      <version>1.10.0-dse+20210424</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
@@ -208,7 +202,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.dse>true</ccm.dse>
-            <ccm.version>6.8.16</ccm.version>
+            <ccm.version>${dse.version}</ccm.version>
           </systemPropertyVariables>
         </configuration>
       </plugin>
