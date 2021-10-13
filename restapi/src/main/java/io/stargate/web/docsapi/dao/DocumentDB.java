@@ -516,18 +516,18 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
 
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+
     List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
     queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
 
     for (Object[] values : vars) {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
@@ -546,6 +546,11 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
 
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     List<BoundQuery> queries = new ArrayList<>(keys.size() + vars.size());
     keys.forEach(
         key ->
@@ -556,12 +561,6 @@ public class DocumentDB {
     for (Object[] values : vars) {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
@@ -581,6 +580,12 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     long insertTs = microsSinceEpoch;
     long deleteTs = microsSinceEpoch - 1;
@@ -609,12 +614,6 @@ public class DocumentDB {
     for (int i = 0; i < patchedKeys.size(); i++) {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
