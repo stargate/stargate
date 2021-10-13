@@ -10,7 +10,7 @@
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.13</dse.version>
+    <dse.version>6.8.16</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -179,15 +179,15 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-java-driver-core</artifactId>
+      <version>1.10.0-dse+20210424</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-      <version>1.10.0-dse+20200217</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
