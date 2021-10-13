@@ -15,11 +15,9 @@
  */
 package io.stargate.grpc.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -29,7 +27,6 @@ import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.GrpcService.PrepareInfo;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
@@ -48,29 +45,19 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 class QueryHandler extends MessageHandler<Query, Prepared> {
 
-  private final PrepareInfo prepareInfo;
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
 
   QueryHandler(
       Query query,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
-    super(query, connection, preparedCache, persistence, responseObserver);
+    super(query, connection, persistence, responseObserver);
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
-    QueryParameters queryParameters = query.getParameters();
-    this.prepareInfo =
-        ImmutablePrepareInfo.builder()
-            .keyspace(
-                queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null)
-            .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
-            .cql(query.getCql())
-            .build();
   }
 
   @Override
@@ -79,8 +66,11 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   @Override
-  protected CompletionStage<Prepared> prepare(boolean shouldInvalidate) {
-    return prepare(prepareInfo, shouldInvalidate);
+  protected CompletionStage<Prepared> prepare() {
+    QueryParameters queryParameters = message.getParameters();
+    return prepare(
+        message.getCql(),
+        queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null);
   }
 
   @Override

@@ -216,4 +216,37 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
             cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
     assertThat(response).isNotNull();
   }
+
+  @Test
+  public void dropTableAndChangeType(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    Response response;
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS drop_table_test(pk BIGINT PRIMARY KEY)",
+                queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery("INSERT INTO drop_table_test(pk) VALUES(1)", queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+
+    response = stub.executeQuery(cqlQuery("DROP TABLE drop_table_test", queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "CREATE TABLE IF NOT EXISTS drop_table_test(pk TEXT PRIMARY KEY)",
+                queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+
+    response =
+        stub.executeQuery(
+            cqlQuery("INSERT INTO drop_table_test(pk) VALUES('1')", queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+  }
 }
