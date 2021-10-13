@@ -55,7 +55,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   QueryHandler(
       Query query,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
+      Cache<PrepareInfo, Prepared> preparedCache,
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,

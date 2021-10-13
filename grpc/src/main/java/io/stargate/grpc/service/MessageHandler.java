@@ -94,7 +94,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
   protected final MessageT message;
   protected final Connection connection;
-  private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache;
+  private final Cache<PrepareInfo, Prepared> preparedCache;
   protected final Persistence persistence;
   private final StreamObserver<Response> responseObserver;
   private final DefaultRetryPolicy retryPolicy;
@@ -102,7 +102,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected MessageHandler(
       MessageT message,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
+      Cache<PrepareInfo, Prepared> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
     this.message = message;
@@ -233,39 +233,40 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   protected CompletionStage<Prepared> prepare(PrepareInfo prepareInfo, boolean shouldInvalidate) {
-    // In the event a query is being retried due to a PreparedQueryNotFoundException invalidate the
-    // local cache to refresh with the remote cache
+    Prepared preparedCacheEntry = null;
+
     if (shouldInvalidate) {
+      // In the event a query is being retried due to a PreparedQueryNotFoundException invalidate
+      // the
+      // local cache to refresh with the remote cache
       preparedCache.invalidate(prepareInfo);
+    } else {
+      preparedCacheEntry = preparedCache.getIfPresent(prepareInfo);
     }
-    CompletionStage<Prepared> result = preparedCache.getIfPresent(prepareInfo);
-    if (result == null) {
+
+    if (preparedCacheEntry == null) {
       // Cache miss: compute the entry ourselves, but be prepared for another thread trying
       // concurrently
-      CompletableFuture<Prepared> myEntry = new CompletableFuture<>();
-      result = preparedCache.get(prepareInfo, __ -> myEntry);
-      if (result == myEntry) { // NOPMD: we really want reference equality here
-        prepareOnServer(prepareInfo)
-            .whenComplete(
-                (prepared, error) -> {
-                  if (error != null) {
-                    myEntry.completeExceptionally(error);
-                    // Don't cache failures:
-                    preparedCache.invalidate(prepareInfo);
-                  } else if (prepared.isUseKeyspace) {
-                    myEntry.completeExceptionally(
-                        Status.INVALID_ARGUMENT
-                            .withDescription("USE <keyspace> not supported")
-                            .asException());
-                    // Don't cache `USE <keyspace>` statements:
-                    preparedCache.invalidate(prepareInfo);
-                  } else {
-                    myEntry.complete(prepared);
-                  }
-                });
-      }
+      CompletableFuture<Prepared> preparedFuture = new CompletableFuture<>();
+      prepareOnServer(prepareInfo)
+          .whenComplete(
+              (prepared, error) -> {
+                if (error != null) {
+                  preparedFuture.completeExceptionally(error);
+                } else if (prepared.isUseKeyspace) {
+                  preparedFuture.completeExceptionally(
+                      Status.INVALID_ARGUMENT
+                          .withDescription("USE <keyspace> not supported")
+                          .asException());
+                } else {
+                  preparedCache.put(prepareInfo, prepared);
+                  preparedFuture.complete(prepared);
+                }
+              });
+      return preparedFuture;
+    } else {
+      return CompletableFuture.completedFuture(preparedCacheEntry);
     }
-    return result;
   }
 
   private CompletionStage<Prepared> prepareOnServer(PrepareInfo prepareInfo) {

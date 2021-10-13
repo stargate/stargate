@@ -60,7 +60,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   BatchHandler(
       Batch batch,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
+      Cache<PrepareInfo, Prepared> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
     super(batch, connection, preparedCache, persistence, responseObserver);
