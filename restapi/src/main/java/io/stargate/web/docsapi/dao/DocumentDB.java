@@ -16,6 +16,7 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
@@ -285,17 +286,22 @@ public class DocumentDB {
   }
 
   private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
-    QueryBuilder.QueryBuilder__4 query =
-        dataStore.queryBuilder().insertInto(info.getKeyspace(), info.getTable());
-
-    QueryBuilder.QueryBuilder__18 queryWithColumns = null;
     // Add a bind position for each column
+    List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
     for (String columnName : allColumnNames) {
-      queryWithColumns = query.value(columnName);
+      markers.add(ValueModifier.marker(columnName));
     }
 
     // Add a bind position for a timestamp, build, and return
-    return dataStore.prepare(queryWithColumns.timestamp().build()).join();
+    return dataStore
+        .prepare(
+            dataStore
+                .queryBuilder()
+                .insertInto(info.getKeyspace(), info.getTable())
+                .value(markers)
+                .timestamp()
+                .build())
+        .join();
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
@@ -391,17 +397,19 @@ public class DocumentDB {
     for (int i = 0; i < pathPrefixToDelete.size(); i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathPrefixToDelete.get(i)));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+
+    return prepared.bind(microsTimestamp);
   }
 
   /**
@@ -425,17 +433,18 @@ public class DocumentDB {
     // Delete array paths with a range tombstone
     where.add(BuiltCondition.of("p" + pathSize, Predicate.GTE, "[000000]"));
     where.add(BuiltCondition.of("p" + pathSize, Predicate.LTE, "[999999]"));
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /**
@@ -459,17 +468,18 @@ public class DocumentDB {
     if (pathSize < config.getMaxDepth() && !keysToDelete.isEmpty()) {
       where.add(BuiltCondition.of("p" + pathSize, Predicate.IN, keysToDelete));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /** Deletes from @param tableName all rows that match @param pathToDelete exactly. */
@@ -489,17 +499,18 @@ public class DocumentDB {
     for (int i = pathSize; i < config.getMaxDepth(); i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /**
