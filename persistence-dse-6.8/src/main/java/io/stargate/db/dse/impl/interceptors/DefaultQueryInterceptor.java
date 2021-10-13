@@ -6,7 +6,7 @@ import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeer
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
-import io.stargate.db.dse.ClientStateWithBoundPort;
+import io.stargate.db.dse.impl.StargateClientState;
 import io.stargate.db.dse.impl.StargatePeerInfo;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
@@ -94,11 +94,9 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
         interceptStatement.execute(state, options, queryStartNanoTime);
     return rows.map(
         r -> {
-          if (state.getClientState() instanceof ClientStateWithBoundPort) {
-            ClientStateWithBoundPort clientState =
-                (ClientStateWithBoundPort) state.getClientState();
-            replaceNativeTransportPort(r.result, clientState.boundPort());
-          }
+          assert state.getClientState() instanceof StargateClientState; // see DseConnection
+          StargateClientState clientState = (StargateClientState) state.getClientState();
+          clientState.boundPort().ifPresent(port -> replaceNativeTransportPort(r.result, port));
           return new ResultMessage.Rows(
               new ResultSet(selectStatement.getResultMetadata(), r.result.rows));
         });

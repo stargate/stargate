@@ -13,7 +13,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
-import io.stargate.db.dse.impl.ClientStateWithDestinationAddress;
+import io.stargate.db.dse.impl.StargateClientState;
 import io.stargate.db.dse.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -154,20 +154,15 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
 
-    if (!isSystemLocalOrPeers(statement)
-        || !(state.getClientState() instanceof ClientStateWithDestinationAddress)) {
+    assert state.getClientState() instanceof StargateClientState; // see DseConnection
+    StargateClientState clientState = (StargateClientState) state.getClientState();
+    if (!isSystemLocalOrPeers(statement) || !clientState.proxyDestinationAddress().isPresent()) {
       return wrapped
           .map(i -> i.interceptQuery(statement, state, options, customPayload, queryStartNanoTime))
           .orElse(null);
     }
 
-    ClientStateWithDestinationAddress clientState =
-        (ClientStateWithDestinationAddress) state.getClientState();
-    InetSocketAddress destinationAddress = clientState.destinationAddress();
-    if (destinationAddress == null) {
-      throw new ServerError(
-          "Unable to intercept proxy protocol system query without a valid destination address");
-    }
+    InetSocketAddress destinationAddress = clientState.proxyDestinationAddress().get();
     boolean isPrivateDestination = destinationAddress.getAddress().isSiteLocalAddress();
     // If the destination is private, we want to use the "source" address of the PROXY header.
     // We stored that in clientState.getRemoteAddress().
@@ -212,6 +207,11 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   private void resolveAllPeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {
       try {
+        // This task runs asynchronously, so it does not have context about a particular client. We
+        // can't predict if connections will be public or private, so resolve everything.
+        // Note that this also generates events, so private clients will get events for public
+        // addresses, and vice versa. This is not a problem because client drivers ignore events if
+        // they don't recognize the address.
         publicPeers = resolvePeers(proxyDnsName, publicPeers);
         privatePeers = resolvePeers(internalProxyDnsName, privatePeers);
       } catch (UnknownHostException e) {

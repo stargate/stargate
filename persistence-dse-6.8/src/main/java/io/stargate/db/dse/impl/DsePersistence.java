@@ -24,7 +24,6 @@ import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
-import io.stargate.db.dse.ClientStateWithBoundPort;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
@@ -412,33 +411,25 @@ public class DsePersistence
     }
   }
 
-  private static ClientState clientStateForExternalCalls(@Nonnull ClientInfo clientInfo) {
-    if (clientInfo.destinationAddress().isPresent()) {
-      return new ClientStateWithDestinationAddress(
-          clientInfo.remoteAddress(), clientInfo.destinationAddress().get());
-    }
-    return new ClientStateWithBoundPort(clientInfo.remoteAddress(), clientInfo.boundPort());
-  }
-
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
     this.authorizationService = authorizationService;
   }
 
   private class DseConnection extends AbstractConnection {
 
-    private final ClientState clientState;
+    private final StargateClientState clientState;
     private final ServerConnection fakeServerConnection;
 
     private DseConnection(@Nonnull ClientInfo clientInfo) {
-      this(clientInfo, clientStateForExternalCalls(clientInfo));
+      this(clientInfo, StargateClientState.forExternalCalls(clientInfo));
     }
 
     private DseConnection() {
-      this(null, ClientState.forInternalCalls());
+      this(null, StargateClientState.forInternalCalls());
     }
 
     @SuppressWarnings("RxReturnValueIgnored")
-    private DseConnection(@Nullable ClientInfo clientInfo, ClientState clientState) {
+    private DseConnection(@Nullable ClientInfo clientInfo, StargateClientState clientState) {
       super(clientInfo);
       this.clientState = clientState;
       this.fakeServerConnection =
@@ -447,7 +438,7 @@ public class DsePersistence
               org.apache.cassandra.transport.ProtocolVersion.CURRENT);
 
       if (!authenticator.requireAuthentication()) {
-        clientState.login(AuthenticatedUser.ANONYMOUS_USER);
+        this.clientState.login(AuthenticatedUser.ANONYMOUS_USER);
       }
     }
 
@@ -463,6 +454,7 @@ public class DsePersistence
         Single<ClientState> loginSingle;
         if (user.isFromExternalAuth() && USE_TRANSITIONAL_AUTH) {
           loginSingle = this.clientState.login(EXTERNAL_AUTH_USER);
+          clientState.setExternalAuth(true);
         } else {
           loginSingle = this.clientState.login(new AuthenticatedUser(user.name()));
         }
@@ -488,8 +480,11 @@ public class DsePersistence
         // at least some user to be present but you cannot login with the "system" user.
         return Single.just(
             new QueryState(
-                ClientState.forExternalCalls(AuthenticatedUser.ANONYMOUS_USER),
+                StargateClientState.forExternalCalls(AuthenticatedUser.ANONYMOUS_USER),
                 UserRolesAndPermissions.SYSTEM));
+      } else if (clientState.isExternalAuth()) {
+        return Single.just(
+            new QueryState(clientState, ExternallyAuthenticatedUserRole.INSTANCE.get()));
       } else if (clientState.getUser().isAnonymous()) {
         return Single.just(new QueryState(clientState, UserRolesAndPermissions.SYSTEM));
       } else {
