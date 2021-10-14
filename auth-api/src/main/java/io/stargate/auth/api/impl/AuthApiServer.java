@@ -23,7 +23,6 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.api.AuthApiActivator;
-import io.stargate.auth.api.config.ApplicationConfiguration;
 import io.stargate.auth.api.resources.AuthResource;
 import io.stargate.auth.api.swagger.SwaggerUIResource;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
@@ -43,13 +42,13 @@ import org.glassfish.jersey.server.ServerProperties;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
-public class Server extends Application<ApplicationConfiguration> {
+public class AuthApiServer extends Application<AuthApiServerConfiguration> {
 
   AuthenticationService authenticationService;
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  public Server(
+  public AuthApiServer(
       AuthenticationService authenticationService,
       Metrics metrics,
       HttpMetricsTagProvider httpMetricsTagProvider) {
@@ -70,7 +69,7 @@ public class Server extends Application<ApplicationConfiguration> {
    */
   @Override
   public void run(String... arguments) {
-    final Bootstrap<ApplicationConfiguration> bootstrap = new Bootstrap<>(this);
+    final Bootstrap<AuthApiServerConfiguration> bootstrap = new Bootstrap<>(this);
     addDefaultCommands(bootstrap);
     initialize(bootstrap);
 
@@ -81,7 +80,7 @@ public class Server extends Application<ApplicationConfiguration> {
 
   @Override
   public void run(
-      final ApplicationConfiguration applicationConfiguration, final Environment environment) {
+      final AuthApiServerConfiguration authApiServerConfiguration, final Environment environment) {
 
     environment
         .jersey()
@@ -120,7 +119,7 @@ public class Server extends Application<ApplicationConfiguration> {
   }
 
   @Override
-  public void initialize(final Bootstrap<ApplicationConfiguration> bootstrap) {
+  public void initialize(final Bootstrap<AuthApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry(AuthApiActivator.MODULE_NAME));

@@ -8,9 +8,9 @@ import static org.mockito.Mockito.when;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import io.stargate.auth.api.resources.AuthResource;
+import io.stargate.auth.model.AuthApiError;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
-import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
 import java.util.Collections;
@@ -67,7 +67,7 @@ class AuthResourceTest {
             .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: unauthorized");
   }
 
@@ -84,7 +84,7 @@ class AuthResourceTest {
             .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: error");
   }
 
@@ -94,7 +94,7 @@ class AuthResourceTest {
         resourceWithUsernameTokenDisabled.target("/v1/auth/token/generate").request().post(null);
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide a body to the request");
   }
 
@@ -109,7 +109,7 @@ class AuthResourceTest {
             .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide key in request");
   }
 
@@ -124,7 +124,7 @@ class AuthResourceTest {
             .post(Entity.entity(secret, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide secret in request");
   }
 
@@ -155,7 +155,7 @@ class AuthResourceTest {
             .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: unauthorized");
   }
 
@@ -172,7 +172,7 @@ class AuthResourceTest {
             .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: error");
   }
 
@@ -181,7 +181,7 @@ class AuthResourceTest {
     Response response = resourceWithUsernameTokenDisabled.target("/v1/auth").request().post(null);
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide a body to the request");
   }
 
@@ -196,7 +196,7 @@ class AuthResourceTest {
             .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide username in request");
   }
 
@@ -211,7 +211,7 @@ class AuthResourceTest {
             .post(Entity.entity(credentials, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide password in request");
   }
 
@@ -241,7 +241,7 @@ class AuthResourceTest {
             .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Generating a token for a username is not allowed");
   }
 
@@ -258,7 +258,7 @@ class AuthResourceTest {
             .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(401);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: unauthorized");
   }
 
@@ -275,7 +275,7 @@ class AuthResourceTest {
             .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(500);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Failed to create token: error");
   }
 
@@ -288,7 +288,7 @@ class AuthResourceTest {
             .post(null);
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide a body to the request");
   }
 
@@ -303,7 +303,7 @@ class AuthResourceTest {
             .post(Entity.entity(username, MediaType.APPLICATION_JSON));
 
     assertThat(response.getStatusInfo().getStatusCode()).isEqualTo(400);
-    assertThat(response.readEntity(Error.class).getDescription())
+    assertThat(response.readEntity(AuthApiError.class).getDescription())
         .isEqualTo("Must provide username in request");
   }
 }
