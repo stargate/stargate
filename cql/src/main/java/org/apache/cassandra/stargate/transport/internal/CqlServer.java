@@ -26,6 +26,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelOutboundInvoker;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
@@ -314,6 +315,18 @@ public class CqlServer implements CassandraDaemon.Server {
 
     void closeAll() {
       allChannels.close().awaitUninterruptibly();
+    }
+
+    void closeFilter(Predicate<Map<String, String>> headerFilter) {
+      allChannels.stream()
+          .filter(
+              channel -> {
+                ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
+                Map<String, String> headers =
+                    proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
+                return headerFilter.test(headers);
+              })
+          .forEach(ChannelOutboundInvoker::close);
     }
 
     int countConnectedClients() {
@@ -683,6 +696,13 @@ public class CqlServer implements CassandraDaemon.Server {
     public void onUp(InetAddress endpoint, int port, Predicate<Map<String, String>> headerFilter) {
       InetAddressAndPort endpointWithPort = addPort(endpoint, port);
       onStatusChange(endpointWithPort, Event.StatusChange.nodeUp(endpointWithPort, headerFilter));
+    }
+
+    @Override
+    public void onClose(Predicate<Map<String, String>> headerFilter) {
+      if (headerFilter != null) {
+        server.connectionTracker.closeFilter(headerFilter);
+      }
     }
 
     private InetAddressAndPort addPort(InetAddress endpoint, int port) {

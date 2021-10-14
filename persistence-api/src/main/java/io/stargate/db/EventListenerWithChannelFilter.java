@@ -218,4 +218,6 @@ public interface EventListenerWithChannelFilter extends EventListener {
   default void onMove(InetAddress endpoint, int port) {
     onMove(endpoint, port, null);
   }
+
+  default void onClose(Predicate<Map<String, String>> headerFilter) {}
 }
