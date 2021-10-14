@@ -2,6 +2,8 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -11,6 +13,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.ValueModifier;
@@ -27,6 +30,8 @@ import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
+import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +53,11 @@ public class DocumentDB {
   private final QueryExecutor executor;
   private final DocsApiConfiguration config;
   private final List<String> allColumnNames;
+  private final LoadingCache<ImmutableKeyspaceAndTable, Query> insertQueryForTable =
+      Caffeine.newBuilder()
+          .maximumSize(10_000)
+          .expireAfterWrite(Duration.ofMinutes(5))
+          .build(this::getInsertQueryForTable);
 
   public DocumentDB(
       DataStore dataStore,
@@ -275,6 +285,25 @@ public class DocumentDB {
     }
   }
 
+  private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
+    // Add a bind position for each column
+    List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
+    for (String columnName : allColumnNames) {
+      markers.add(ValueModifier.marker(columnName));
+    }
+
+    // Add a bind position for a timestamp, build, and return
+    return dataStore
+        .prepare(
+            dataStore
+                .queryBuilder()
+                .insertInto(info.getKeyspace(), info.getTable())
+                .value(markers)
+                .timestamp()
+                .build())
+        .join();
+  }
+
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
@@ -342,20 +371,17 @@ public class DocumentDB {
 
   public BoundQuery getInsertStatement(
       String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
-
-    List<ValueModifier> modifiers = new ArrayList<>(columnValues.length);
+    Object[] boundParams = new Object[columnValues.length + 1];
+    boundParams[boundParams.length - 1] = microsTimestamp;
     for (int i = 0; i < columnValues.length; i++) {
-      modifiers.add(ValueModifier.set(allColumnNames.get(i), columnValues[i]));
+      boundParams[i] = columnValues[i];
     }
-    BoundQuery query =
-        dataStore
-            .queryBuilder()
-            .insertInto(keyspaceName, tableName)
-            .value(modifiers)
-            .timestamp(microsTimestamp)
-            .build()
-            .bind();
-    return query;
+
+    ImmutableKeyspaceAndTable info =
+        ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
+    // Hits a cache if the insert has been called for this table in the last 5 minutes
+    Query insertQuery = insertQueryForTable.get(info);
+    return insertQuery.bind(boundParams);
   }
 
   /** Deletes from @param tableName all rows that are prefixed by @param pathPrefixToDelete */
@@ -371,17 +397,19 @@ public class DocumentDB {
     for (int i = 0; i < pathPrefixToDelete.size(); i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathPrefixToDelete.get(i)));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+
+    return prepared.bind(microsTimestamp);
   }
 
   /**
@@ -405,17 +433,18 @@ public class DocumentDB {
     // Delete array paths with a range tombstone
     where.add(BuiltCondition.of("p" + pathSize, Predicate.GTE, "[000000]"));
     where.add(BuiltCondition.of("p" + pathSize, Predicate.LTE, "[999999]"));
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /**
@@ -439,17 +468,18 @@ public class DocumentDB {
     if (pathSize < config.getMaxDepth() && !keysToDelete.isEmpty()) {
       where.add(BuiltCondition.of("p" + pathSize, Predicate.IN, keysToDelete));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /** Deletes from @param tableName all rows that match @param pathToDelete exactly. */
@@ -469,17 +499,18 @@ public class DocumentDB {
     for (int i = pathSize; i < config.getMaxDepth(); i++) {
       where.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
     }
-    BoundQuery query =
+    Query prepared =
         dataStore
-            .queryBuilder()
-            .delete()
-            .from(keyspaceName, tableName)
-            .timestamp(microsTimestamp)
-            .where(where)
-            .build()
-            .bind();
-    logger.debug(query.toString());
-    return query;
+            .prepare(
+                dataStore
+                    .queryBuilder()
+                    .delete()
+                    .from(keyspaceName, tableName)
+                    .timestamp()
+                    .where(where)
+                    .build())
+            .join();
+    return prepared.bind(microsTimestamp);
   }
 
   /**
@@ -496,18 +527,18 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
 
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
+
     List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
     queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
 
     for (Object[] values : vars) {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
@@ -526,6 +557,11 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
 
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
     List<BoundQuery> queries = new ArrayList<>(keys.size() + vars.size());
     keys.forEach(
         key ->
@@ -536,12 +572,6 @@ public class DocumentDB {
     for (Object[] values : vars) {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
@@ -561,6 +591,12 @@ public class DocumentDB {
       ExecutionContext context)
       throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
+
+    getAuthorizationService()
+        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     long insertTs = microsSinceEpoch;
     long deleteTs = microsSinceEpoch - 1;
@@ -589,12 +625,6 @@ public class DocumentDB {
     for (int i = 0; i < patchedKeys.size(); i++) {
       deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
 
     executeBatch(queries, context);
   }
