@@ -40,7 +40,7 @@ class RequestToHeadersMapperTest {
     when(httpServletRequest.getHeader("c")).thenReturn(null);
 
     // when
-    Map<String, String> allHeaders = RequestToHeadersMapper.getAllHeaders(httpServletRequest);
+    Map<String, String> allHeaders = AuthResource.getAllHeaders(httpServletRequest);
 
     // then
     assertThat(allHeaders)
