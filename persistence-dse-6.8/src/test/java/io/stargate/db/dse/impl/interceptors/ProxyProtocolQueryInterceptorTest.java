@@ -128,11 +128,14 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       arguments(PUBLIC_SOURCE, PUBLIC_PEER1, PUBLIC_PEER1),
       arguments(PUBLIC_SOURCE, PUBLIC_PEER2, PUBLIC_PEER2),
       arguments(PUBLIC_SOURCE, PUBLIC_PEER3, PUBLIC_PEER3),
-      // For private connections, the address to use for system.local is passed in the source, not
-      // the destination.
+      // If the destination is private, the system.local address is passed in the source, not the
+      // destination.
       arguments(new InetSocketAddress(PRIVATE_PEER1, 9042), PRIVATE_DEST, PRIVATE_PEER1),
       arguments(new InetSocketAddress(PRIVATE_PEER2, 9042), PRIVATE_DEST, PRIVATE_PEER2),
       arguments(new InetSocketAddress(PRIVATE_PEER3, 9042), PRIVATE_DEST, PRIVATE_PEER3),
+      arguments(new InetSocketAddress(PUBLIC_PEER1, 9042), PRIVATE_DEST, PUBLIC_PEER1),
+      arguments(new InetSocketAddress(PUBLIC_PEER2, 9042), PRIVATE_DEST, PUBLIC_PEER2),
+      arguments(new InetSocketAddress(PUBLIC_PEER3, 9042), PRIVATE_DEST, PUBLIC_PEER3),
     };
   }
 
@@ -154,8 +157,8 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
       arguments(PUBLIC_SOURCE, PUBLIC_PEER1, ImmutableSet.of(PUBLIC_PEER2, PUBLIC_PEER3)),
       arguments(PUBLIC_SOURCE, PUBLIC_PEER2, ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER3)),
       arguments(PUBLIC_SOURCE, PUBLIC_PEER3, ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2)),
-      // For private connections, the address to use for system.local is passed in the source, not
-      // the destination.
+      // If the destination is private, the system.local address is passed in the source, and the
+      // peers match its private/public nature.
       arguments(
           new InetSocketAddress(PRIVATE_PEER1, 9042),
           PRIVATE_DEST,
@@ -168,6 +171,18 @@ public class ProxyProtocolQueryInterceptorTest extends BaseDseTest {
           new InetSocketAddress(PRIVATE_PEER3, 9042),
           PRIVATE_DEST,
           ImmutableSet.of(PRIVATE_PEER1, PRIVATE_PEER2)),
+      arguments(
+          new InetSocketAddress(PUBLIC_PEER1, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PUBLIC_PEER2, PUBLIC_PEER3)),
+      arguments(
+          new InetSocketAddress(PUBLIC_PEER2, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER3)),
+      arguments(
+          new InetSocketAddress(PUBLIC_PEER3, 9042),
+          PRIVATE_DEST,
+          ImmutableSet.of(PUBLIC_PEER1, PUBLIC_PEER2)),
     };
   }
 
