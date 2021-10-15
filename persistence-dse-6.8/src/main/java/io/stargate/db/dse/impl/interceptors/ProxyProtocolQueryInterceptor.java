@@ -175,7 +175,8 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
 
     List<List<ByteBuffer>> rows;
     String tableName = selectStatement.table();
-    Set<InetAddress> peers = isPrivateDestination ? privatePeers : publicPeers;
+    boolean isPrivateLocal = systemLocalAddress.isSiteLocalAddress();
+    Set<InetAddress> peers = isPrivateLocal ? privatePeers : publicPeers;
     if (tableName.equals(PeersSystemView.NAME)) {
       rows =
           peers.isEmpty()
