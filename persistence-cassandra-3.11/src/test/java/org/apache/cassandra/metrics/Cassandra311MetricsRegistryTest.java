@@ -46,11 +46,11 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry.MetricName;
 import org.apache.cassandra.utils.FBUtilities;
 import org.junit.jupiter.api.Test;
 
-public class CassandraMetricsRegistryTest {
+public class Cassandra311MetricsRegistryTest {
 
   @Test
   public void versionCheck() {
-    String supportedVersion = "3.11.8";
+    String supportedVersion = "3.11.9";
     String currentVersion = FBUtilities.getReleaseVersionString();
 
     assertThat(currentVersion)

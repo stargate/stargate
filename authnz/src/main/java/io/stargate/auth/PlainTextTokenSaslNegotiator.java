@@ -23,13 +23,8 @@ import io.stargate.db.Authenticator.SaslNegotiator;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
-
-  private static final Logger logger = LoggerFactory.getLogger(PlainTextTokenSaslNegotiator.class);
-
   static final byte NUL = 0;
 
   protected final AuthenticationService authentication;
@@ -86,7 +81,6 @@ public abstract class PlainTextTokenSaslNegotiator implements SaslNegotiator {
    * @throws AuthenticationException if either the authnId or password is null
    */
   public static Credentials decodeCredentials(byte[] bytes) throws AuthenticationException {
-    logger.trace("Decoding credentials from client token");
     byte[] user = null;
     byte[] pass = null;
     int end = bytes.length;
