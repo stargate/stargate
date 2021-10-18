@@ -317,6 +317,11 @@ public class CqlServer implements CassandraDaemon.Server {
       allChannels.close().awaitUninterruptibly();
     }
 
+    /**
+     * Close any channels that match the header filter predicate.
+     *
+     * @param headerFilter a predicate used to match affected clients.
+     */
     void closeFilter(Predicate<Map<String, String>> headerFilter) {
       allChannels.stream()
           .filter(
