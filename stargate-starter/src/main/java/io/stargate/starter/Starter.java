@@ -55,7 +55,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import javax.inject.Inject;
+
+import jdk.jfr.internal.LogLevel;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
@@ -307,6 +310,10 @@ public class Starter {
     this.disableMBeanRegistration = true;
   }
 
+  private static void log(String message, Level level){
+    System.out.println("["+ level.getName() + "] " + message);
+  }
+
   protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
@@ -428,7 +435,7 @@ public class Starter {
     bundleList = new ArrayList<>();
     // Install bundle JAR files and remember the bundle objects.
     for (File jar : jars) {
-      System.out.println("Installing bundle " + jar.getName());
+      log("Installing bundle " + jar.getName(),Level.INFO);
       Bundle b = context.installBundle(jar.toURI().toString());
       bundleList.add(b);
     }
@@ -438,7 +445,7 @@ public class Starter {
       try {
         Class<?> tool = bundle.loadClass("org.apache.cassandra.tools.NodeTool");
 
-        System.out.println("Running NodeTool from " + bundle.getSymbolicName());
+        log("Running NodeTool from " + bundle.getSymbolicName(),Level.INFO);
 
         Method main = tool.getMethod("main", String[].class);
 
@@ -453,16 +460,16 @@ public class Starter {
 
     // Start all installed bundles.
     for (Bundle bundle : bundleList) {
-      System.out.println("Starting bundle " + bundle.getSymbolicName());
+      log("Starting bundle " + bundle.getSymbolicName(),Level.INFO);
       bundle.start();
     }
 
     if (startError.get()) {
-      System.out.println("Terminating due to previous service startup errors.");
+      log("Terminating due to previous service startup errors.",Level.INFO);
       System.exit(1);
     }
 
-    System.out.println(STARTED_MESSAGE);
+    log(STARTED_MESSAGE,Level.INFO);
 
     if (watchBundles && !disableBundlesWatch) {
       watchJarDirectory(JAR_DIRECTORY);
@@ -519,7 +526,7 @@ public class Starter {
                     && !name.contains("persistence-dse-" + version)))) continue;
 
         if (name.contains("persistence-cassandra") || name.contains("persistence-dse")) {
-          System.out.println("Loading persistence backend " + name);
+          log("Loading persistence backend " + name,Level.INFO);
           foundVersion = true;
 
           // Put the persistence bundle first in the list
@@ -587,16 +594,16 @@ public class Starter {
     }
 
     if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-      System.out.println("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".");
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
       Bundle b = context.installBundle(file.toURI().toString());
-      System.out.println("Starting bundle " + b.getSymbolicName());
+      log("Starting bundle " + b.getSymbolicName(),Level.INFO);
       b.start();
     } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-      System.out.println("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".");
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
       Bundle b = context.getBundle(file.toURI().toString());
       b.update();
     } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-      System.out.println("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".");
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
       Bundle b = context.getBundle(file.toURI().toString());
       b.uninstall();
     }
