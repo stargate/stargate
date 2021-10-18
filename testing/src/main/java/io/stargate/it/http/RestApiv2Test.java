@@ -157,8 +157,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             String.format("%s:8082/v2/schemas/keyspaces?raw=true", host),
             HttpStatus.SC_OK);
 
-    List<Keyspace> keyspaces =
-        objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
+    List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
     assertThat(keyspaces)
         .anySatisfy(
             value ->
