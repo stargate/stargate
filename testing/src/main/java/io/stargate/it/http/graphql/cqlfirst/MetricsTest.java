@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.MetricsTestsHelper;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -35,7 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)"})
-public class MetricsTest extends BaseOsgiIntegrationTest {
+public class MetricsTest extends BaseIntegrationTest {
 
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(

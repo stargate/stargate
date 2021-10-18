@@ -12,7 +12,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.UnauthorizedException;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "GRANT MODIFY ON TABLE store2.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store2.shopping_cart TO web_user",
     })
-public class JwtAuthTest extends BaseOsgiIntegrationTest {
+public class JwtAuthTest extends BaseIntegrationTest {
 
   private final String keyspaceName = "store2";
   private final String tableName = "shopping_cart";

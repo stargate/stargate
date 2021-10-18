@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -43,7 +43,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 8, 31, 2.1)",
       "INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 9, 1, 3.7)",
     })
-public class GroupByTest extends BaseOsgiIntegrationTest {
+public class GroupByTest extends BaseIntegrationTest {
   private static CqlFirstClient CLIENT;
 
   @BeforeAll

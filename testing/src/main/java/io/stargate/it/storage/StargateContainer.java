@@ -54,7 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JUnit 5 extension for tests that need a Stargate OSGi container running in a separate JVM.
+ * JUnit 5 extension for tests that need a Stargate coordinator node running in a separate JVM.
  *
  * <p>Note: this extension requires {@link ExternalStorage} to be activated as well. It is
  * recommended that test classes be annotated with {@link UseStargateContainer} to make sure both

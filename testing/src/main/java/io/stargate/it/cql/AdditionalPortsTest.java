@@ -10,7 +10,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.cql.AdditionalPortsTest.EmptyContactPointResolver;
 import io.stargate.it.driver.ContactPointResolver;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -36,7 +36,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @ExtendWith(CqlSessionExtension.class)
 @StargateSpec(nodes = 2, parametersCustomizer = "buildParameters")
 @CqlSessionSpec(contactPointResolver = EmptyContactPointResolver.class, createSession = false)
-public class AdditionalPortsTest extends BaseOsgiIntegrationTest {
+public class AdditionalPortsTest extends BaseIntegrationTest {
 
   public static final List<Integer> ADDITIONAL_PORTS = Arrays.asList(29042, 39042);
 

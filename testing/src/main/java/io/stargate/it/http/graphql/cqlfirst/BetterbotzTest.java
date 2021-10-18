@@ -18,7 +18,7 @@ package io.stargate.it.http.graphql.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.time.Instant;
@@ -81,7 +81,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "'John Doe',"
           + "'123 Main St 67890')",
     })
-abstract class BetterbotzTestBase extends BaseOsgiIntegrationTest {
+abstract class BetterbotzTestBase extends BaseIntegrationTest {
 
   private static final DateTimeFormatter INSTANT_PARSER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");

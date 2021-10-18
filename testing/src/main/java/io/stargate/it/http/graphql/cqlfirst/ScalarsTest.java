@@ -22,7 +22,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.db.schema.Column;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -69,7 +69,7 @@ import org.junit.jupiter.params.provider.MethodSource;
           + "    varintvalue varint\n"
           + ")"
     })
-public class ScalarsTest extends BaseOsgiIntegrationTest {
+public class ScalarsTest extends BaseIntegrationTest {
 
   private static CqlFirstClient CLIENT;
   private static CqlIdentifier KEYSPACE_ID;
