@@ -227,5 +227,7 @@ public interface EventListenerWithChannelFilter extends EventListener {
    *
    * @param headerFilter a predicate used to match affected clients.
    */
-  default void onClose(Predicate<Map<String, String>> headerFilter) {}
+  default void onClose(Predicate<Map<String, String>> headerFilter) {
+    // No implementation by default when not required
+  }
 }
