@@ -57,8 +57,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import javax.inject.Inject;
-
-import jdk.jfr.internal.LogLevel;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
@@ -310,14 +308,13 @@ public class Starter {
     this.disableMBeanRegistration = true;
   }
 
-  private static void log(String message, Level level){
-    System.out.println("["+ level.getName() + "] " + message);
+  private static void log(String message, Level level) {
+    System.out.println("[" + level.getName() + "] " + message);
   }
 
-  private static void logerr(String message, Level level){
-    System.err.println("["+ level.getName() + "] " + message);
+  private static void logerr(String message, Level level) {
+    System.err.println("[" + level.getName() + "] " + message);
   }
-
 
   protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
@@ -420,7 +417,7 @@ public class Starter {
         setStargateProperties();
       }
     } catch (Exception e) {
-      logerr(e.getMessage(),Level.WARNING);
+      logerr(e.getMessage(), Level.WARNING);
       System.exit(2);
     }
 
@@ -428,7 +425,7 @@ public class Starter {
     framework = new Felix(felixConfig());
     framework.init();
 
-    logerr("JAR DIR: " + JAR_DIRECTORY,Level.WARNING);
+    logerr("JAR DIR: " + JAR_DIRECTORY, Level.WARNING);
 
     // Install bundles
     context = framework.getBundleContext();
@@ -440,7 +437,7 @@ public class Starter {
     bundleList = new ArrayList<>();
     // Install bundle JAR files and remember the bundle objects.
     for (File jar : jars) {
-      log("Installing bundle " + jar.getName(),Level.INFO);
+      log("Installing bundle " + jar.getName(), Level.INFO);
       Bundle b = context.installBundle(jar.toURI().toString());
       bundleList.add(b);
     }
@@ -450,7 +447,7 @@ public class Starter {
       try {
         Class<?> tool = bundle.loadClass("org.apache.cassandra.tools.NodeTool");
 
-        log("Running NodeTool from " + bundle.getSymbolicName(),Level.INFO);
+        log("Running NodeTool from " + bundle.getSymbolicName(), Level.INFO);
 
         Method main = tool.getMethod("main", String[].class);
 
@@ -465,16 +462,16 @@ public class Starter {
 
     // Start all installed bundles.
     for (Bundle bundle : bundleList) {
-      log("Starting bundle " + bundle.getSymbolicName(),Level.INFO);
+      log("Starting bundle " + bundle.getSymbolicName(), Level.INFO);
       bundle.start();
     }
 
     if (startError.get()) {
-      log("Terminating due to previous service startup errors.",Level.INFO);
+      log("Terminating due to previous service startup errors.", Level.INFO);
       System.exit(1);
     }
 
-    log(STARTED_MESSAGE,Level.INFO);
+    log(STARTED_MESSAGE, Level.INFO);
 
     if (watchBundles && !disableBundlesWatch) {
       watchJarDirectory(JAR_DIRECTORY);
@@ -531,7 +528,7 @@ public class Starter {
                     && !name.contains("persistence-dse-" + version)))) continue;
 
         if (name.contains("persistence-cassandra") || name.contains("persistence-dse")) {
-          log("Loading persistence backend " + name,Level.INFO);
+          log("Loading persistence backend " + name, Level.INFO);
           foundVersion = true;
 
           // Put the persistence bundle first in the list
@@ -578,7 +575,7 @@ public class Starter {
     } catch (IOException | ClosedWatchServiceException | InterruptedException e) {
       // Since most deployments will occur in the cloud its not worth breaking the start up to
       // support hot-reload
-      logerr("Jars will not be watched due to unexpected error: "+ e.getMessage(),Level.WARNING);
+      logerr("Jars will not be watched due to unexpected error: " + e.getMessage(), Level.WARNING);
     }
   }
 
@@ -599,16 +596,16 @@ public class Starter {
     }
 
     if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".", Level.INFO);
       Bundle b = context.installBundle(file.toURI().toString());
-      log("Starting bundle " + b.getSymbolicName(),Level.INFO);
+      log("Starting bundle " + b.getSymbolicName(), Level.INFO);
       b.start();
     } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".", Level.INFO);
       Bundle b = context.getBundle(file.toURI().toString());
       b.update();
     } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".",Level.INFO);
+      log("Event kind:" + kind + ". File affected: " + file.getAbsolutePath() + ".", Level.INFO);
       Bundle b = context.getBundle(file.toURI().toString());
       b.uninstall();
     }
@@ -662,18 +659,18 @@ public class Starter {
       } else {
 
         printHelp(parser);
-        logerr("",Level.WARNING);
+        logerr("", Level.WARNING);
 
         // Parsing failed
         // Display errors and then the help information
-        logerr(result.getErrors().size()+ " errors encountered: ",Level.WARNING);
+        logerr(result.getErrors().size() + " errors encountered: ", Level.WARNING);
         int i = 1;
         for (ParseException e : result.getErrors()) {
-          logerr("Error "+i+" : " + e.getMessage(),Level.WARNING);
+          logerr("Error " + i + " : " + e.getMessage(), Level.WARNING);
           i++;
         }
 
-        logerr("",Level.WARNING);
+        logerr("", Level.WARNING);
       }
     } catch (ParseException p) {
       printHelp(parser);
@@ -685,13 +682,13 @@ public class Starter {
         // if
         // a user just uses -h/--help
       } else {
-        logerr("",Level.WARNING);
-        logerr("Usage error: " + p.getMessage(),Level.WARNING);
-        logerr("",Level.WARNING);
+        logerr("", Level.WARNING);
+        logerr("Usage error: " + p.getMessage(), Level.WARNING);
+        logerr("", Level.WARNING);
       }
     } catch (Exception e) {
       // Errors should be being collected so if anything is thrown it is unexpected
-      logerr("Unexpected error: " + e.getMessage(),Level.WARNING);
+      logerr("Unexpected error: " + e.getMessage(), Level.WARNING);
       e.printStackTrace(System.err);
 
       System.exit(1);
