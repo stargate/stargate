@@ -19,35 +19,23 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 
-public class WebImpl {
+public class AuthApiRunner {
+  private final AuthenticationService authenticationService;
+  private final Metrics metrics;
+  private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  private AuthenticationService authenticationService;
-  private Metrics metrics;
-  private HttpMetricsTagProvider httpMetricsTagProvider;
-
-  public AuthenticationService getAuthenticationService() {
-    return authenticationService;
-  }
-
-  public void setAuthenticationService(AuthenticationService authenticationService) {
+  public AuthApiRunner(
+      AuthenticationService authenticationService,
+      Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider) {
     this.authenticationService = authenticationService;
-  }
-
-  public Metrics getMetrics() {
-    return metrics;
-  }
-
-  public void setMetrics(Metrics metrics) {
     this.metrics = metrics;
-  }
-
-  public void setHttpMetricsTagProvider(HttpMetricsTagProvider httpMetricsTagProvider) {
     this.httpMetricsTagProvider = httpMetricsTagProvider;
   }
 
   public void start() {
-    Server server =
-        new Server(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
-    server.run("server", "config.yaml");
+    AuthApiServer authApiServer =
+        new AuthApiServer(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
+    authApiServer.run("server", "config.yaml");
   }
 }

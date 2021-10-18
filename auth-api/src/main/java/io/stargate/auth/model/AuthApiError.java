@@ -17,27 +17,31 @@ package io.stargate.auth.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 
-/** A description of an error state */
+/**
+ * A description of an error state. Note: external name is {@code Error} for backwards-compatibility
+ * reasons.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@SuppressWarnings("JavaLangClash")
-public final class Error {
-  private String description = null;
-  private String internalCode = null;
-  private String internalTxId = null;
+@ApiModel(value = "Error", description = "A description of an error state")
+public final class AuthApiError {
+  private String description;
+  private String internalCode;
+  private String internalTxId;
 
-  public Error() {
+  AuthApiError() {
     super();
   }
 
-  public Error(String description) {
+  public AuthApiError(String description) {
     this.description = description;
   }
 
   /** A human readable description of the error state */
-  public Error description(String description) {
+  public AuthApiError description(String description) {
     this.description = description;
     return this;
   }
@@ -56,7 +60,7 @@ public final class Error {
   }
 
   /** The internal number referencing the error state */
-  public Error internalCode(String internalCode) {
+  public AuthApiError internalCode(String internalCode) {
     this.internalCode = internalCode;
     return this;
   }
@@ -72,7 +76,7 @@ public final class Error {
   }
 
   /** The internal tracking number of the request */
-  public Error internalTxId(String internalTxId) {
+  public AuthApiError internalTxId(String internalTxId) {
     this.internalTxId = internalTxId;
     return this;
   }
@@ -91,10 +95,10 @@ public final class Error {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Error)) {
+    if (!(o instanceof AuthApiError)) {
       return false;
     }
-    Error error = (Error) o;
+    AuthApiError error = (AuthApiError) o;
     return Objects.equals(description, error.description)
         && Objects.equals(internalCode, error.internalCode)
         && Objects.equals(internalTxId, error.internalTxId);

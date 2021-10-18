@@ -16,7 +16,7 @@
 package io.stargate.auth.api;
 
 import io.stargate.auth.AuthenticationService;
-import io.stargate.auth.api.impl.WebImpl;
+import io.stargate.auth.api.impl.AuthApiRunner;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
@@ -31,7 +31,6 @@ public class AuthApiActivator extends BaseActivator {
 
   private static final Logger log = LoggerFactory.getLogger(AuthApiActivator.class);
 
-  private final WebImpl web = new WebImpl();
   private final ServicePointer<Metrics> metric = ServicePointer.create(Metrics.class);
   private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
       ServicePointer.create(HttpMetricsTagProvider.class);
@@ -47,13 +46,12 @@ public class AuthApiActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    web.setAuthenticationService(authenticationService.get());
-    web.setMetrics(metric.get());
-    web.setHttpMetricsTagProvider(httpTagProvider.get());
+    final AuthApiRunner runner =
+        new AuthApiRunner(authenticationService.get(), metric.get(), httpTagProvider.get());
     try {
-      this.web.start();
+      runner.start();
     } catch (Exception e) {
-      log.error("Failed", e);
+      log.error("Starting AuthApiRunner Failed", e);
     }
 
     return null;

@@ -15,13 +15,11 @@
  */
 package io.stargate.auth.api.resources;
 
-import static io.stargate.auth.api.resources.RequestToHeadersMapper.getAllHeaders;
-
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.auth.model.AuthApiError;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
-import io.stargate.auth.model.Error;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
 import io.swagger.annotations.Api;
@@ -29,6 +27,10 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -83,29 +85,29 @@ public class AuthResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = AuthApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = AuthApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = AuthApiError.class)
       })
   public Response createToken(
       @ApiParam(value = "", required = true) Secret secret, @Context HttpServletRequest request) {
     if (secret == null) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide a body to the request"))
+          .entity(new AuthApiError("Must provide a body to the request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (secret.getKey() == null || secret.getKey().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide key in request"))
+          .entity(new AuthApiError("Must provide key in request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (secret.getSecret() == null || secret.getSecret().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide secret in request"))
+          .entity(new AuthApiError("Must provide secret in request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -115,13 +117,13 @@ public class AuthResource {
       token = authService.createToken(secret.getKey(), secret.getSecret(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -142,30 +144,30 @@ public class AuthResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = AuthApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = AuthApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = AuthApiError.class)
       })
   public Response createToken(
       @ApiParam(value = "", required = true) Credentials credentials,
       @Context HttpServletRequest request) {
     if (credentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide a body to the request"))
+          .entity(new AuthApiError("Must provide a body to the request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (credentials.getUsername() == null || credentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide username in request"))
+          .entity(new AuthApiError("Must provide username in request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (credentials.getPassword() == null || credentials.getPassword().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide password in request"))
+          .entity(new AuthApiError("Must provide password in request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -177,13 +179,13 @@ public class AuthResource {
               credentials.getUsername(), credentials.getPassword(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -221,30 +223,30 @@ public class AuthResource {
   @ApiResponses(
       value = {
         @ApiResponse(code = 201, message = "resource created", response = AuthTokenResponse.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = Error.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = Error.class),
-        @ApiResponse(code = 500, message = "Internal server error", response = Error.class)
+        @ApiResponse(code = 400, message = "Bad Request", response = AuthApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = AuthApiError.class),
+        @ApiResponse(code = 500, message = "Internal server error", response = AuthApiError.class)
       })
   public Response createTokenFromUsername(
       @ApiParam(value = "", required = true) UsernameCredentials usernameCredentials,
       @Context HttpServletRequest request) {
     if (!shouldEnableUsernameToken) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Generating a token for a username is not allowed"))
+          .entity(new AuthApiError("Generating a token for a username is not allowed"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (usernameCredentials == null) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide a body to the request"))
+          .entity(new AuthApiError("Must provide a body to the request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
 
     if (usernameCredentials.getUsername() == null || usernameCredentials.getUsername().equals("")) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(new Error("Must provide username in request"))
+          .entity(new AuthApiError("Must provide username in request"))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -254,13 +256,13 @@ public class AuthResource {
       token = authService.createToken(usernameCredentials.getUsername(), getAllHeaders(request));
     } catch (UnauthorizedException e) {
       return Response.status(Response.Status.UNAUTHORIZED)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
       logger.error("Failed to create token", e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new Error("Failed to create token: " + e.getMessage()))
+          .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
           .build();
     }
@@ -303,5 +305,19 @@ public class AuthResource {
     cacheControl.setNoStore(true);
 
     return cacheControl;
+  }
+
+  // non-private for test access
+  static Map<String, String> getAllHeaders(HttpServletRequest request) {
+    if (request == null) {
+      return Collections.emptyMap();
+    }
+    final Map<String, String> allHeaders = new HashMap<>();
+    Enumeration<String> headerNames = request.getHeaderNames();
+    while (headerNames.hasMoreElements()) {
+      String headerName = headerNames.nextElement();
+      allHeaders.put(headerName, request.getHeader(headerName));
+    }
+    return allHeaders;
   }
 }
