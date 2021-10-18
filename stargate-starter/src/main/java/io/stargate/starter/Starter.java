@@ -314,6 +314,11 @@ public class Starter {
     System.out.println("["+ level.getName() + "] " + message);
   }
 
+  private static void logerr(String message, Level level){
+    System.err.println("["+ level.getName() + "] " + message);
+  }
+
+
   protected void setStargateProperties() {
     if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
       throw new IllegalArgumentException("--cluster-version must be a number");
@@ -415,7 +420,7 @@ public class Starter {
         setStargateProperties();
       }
     } catch (Exception e) {
-      System.err.println(e.getMessage());
+      logerr(e.getMessage(),Level.WARNING);
       System.exit(2);
     }
 
@@ -423,7 +428,7 @@ public class Starter {
     framework = new Felix(felixConfig());
     framework.init();
 
-    System.err.println("JAR DIR: " + JAR_DIRECTORY);
+    logerr("JAR DIR: " + JAR_DIRECTORY,Level.WARNING);
 
     // Install bundles
     context = framework.getBundleContext();
@@ -573,7 +578,7 @@ public class Starter {
     } catch (IOException | ClosedWatchServiceException | InterruptedException e) {
       // Since most deployments will occur in the cloud its not worth breaking the start up to
       // support hot-reload
-      System.err.printf("Jars will not be watched due to unexpected error: %s%n", e.getMessage());
+      logerr("Jars will not be watched due to unexpected error: "+ e.getMessage(),Level.WARNING);
     }
   }
 
@@ -657,18 +662,18 @@ public class Starter {
       } else {
 
         printHelp(parser);
-        System.err.println();
+        logerr("",Level.WARNING);
 
         // Parsing failed
         // Display errors and then the help information
-        System.err.printf("%d errors encountered:%n", result.getErrors().size());
+        logerr(result.getErrors().size()+ " errors encountered: ",Level.WARNING);
         int i = 1;
         for (ParseException e : result.getErrors()) {
-          System.err.printf("Error %d: %s%n", i, e.getMessage());
+          logerr("Error "+i+" : " + e.getMessage(),Level.WARNING);
           i++;
         }
 
-        System.err.println();
+        logerr("",Level.WARNING);
       }
     } catch (ParseException p) {
       printHelp(parser);
@@ -680,13 +685,13 @@ public class Starter {
         // if
         // a user just uses -h/--help
       } else {
-        System.err.println();
-        System.err.printf("Usage error: %s%n", p.getMessage());
-        System.err.println();
+        logerr("",Level.WARNING);
+        logerr("Usage error: " + p.getMessage(),Level.WARNING);
+        logerr("",Level.WARNING);
       }
     } catch (Exception e) {
       // Errors should be being collected so if anything is thrown it is unexpected
-      System.err.printf("Unexpected error: %s%n", e.getMessage());
+      logerr("Unexpected error: " + e.getMessage(),Level.WARNING);
       e.printStackTrace(System.err);
 
       System.exit(1);
