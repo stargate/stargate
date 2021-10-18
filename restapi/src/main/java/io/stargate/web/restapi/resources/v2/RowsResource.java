@@ -169,7 +169,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
 
           Object response =
               getRows(
@@ -245,7 +245,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
 
           List<BuiltCondition> where;
           try {
@@ -318,7 +318,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
 
           Object response =
               getRows(
