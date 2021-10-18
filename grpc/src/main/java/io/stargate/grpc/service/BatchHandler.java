@@ -57,6 +57,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
       Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
+  private final String decoratedKeyspace;
+
   BatchHandler(
       Batch batch,
       Connection connection,
@@ -64,6 +66,12 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
     super(batch, connection, preparedCache, persistence, responseObserver);
+    BatchParameters batchParameters = batch.getParameters();
+    this.decoratedKeyspace =
+        batchParameters.hasKeyspace()
+            ? persistence.decorateKeyspaceName(
+                batchParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
+            : null;
   }
 
   @Override
@@ -142,8 +150,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
             ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
             : GrpcService.DEFAULT_CONSISTENCY);
 
-    if (parameters.hasKeyspace()) {
-      builder.defaultKeyspace(parameters.getKeyspace().getValue());
+    if (decoratedKeyspace != null) {
+      builder.defaultKeyspace(decoratedKeyspace);
     }
 
     builder.serialConsistencyLevel(
@@ -213,8 +221,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
 
       PrepareInfo prepareInfo =
           ImmutablePrepareInfo.builder()
-              .keyspace(
-                  batchParameters.hasKeyspace() ? batchParameters.getKeyspace().getValue() : null)
+              .keyspace(decoratedKeyspace)
               .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
               .cql(query.getCql())
               .build();
