@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class KeyspaceDdlTest extends BaseOsgiIntegrationTest {
+public class KeyspaceDdlTest extends BaseIntegrationTest {
 
   private static CqlFirstClient CLIENT;
 

@@ -13,7 +13,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import java.nio.ByteBuffer;
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class PreparedStatementTest extends BaseOsgiIntegrationTest {
+public class PreparedStatementTest extends BaseIntegrationTest {
 
   @BeforeEach
   public void createSchema(CqlSession session) {

@@ -25,16 +25,16 @@ import java.net.URL;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 
-/** This class manages starting Stargate OSGi containers. */
+/** This class manages starting Stargate coordinator nodes. */
 @UseStargateContainer
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
-public class BaseOsgiIntegrationTest {
+public class BaseIntegrationTest {
 
   protected ClusterConnectionInfo backend;
 
   static {
-    ClassLoader classLoader = BaseOsgiIntegrationTest.class.getClassLoader();
+    ClassLoader classLoader = BaseIntegrationTest.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
     if (resource != null) {
