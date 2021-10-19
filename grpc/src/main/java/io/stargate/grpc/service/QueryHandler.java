@@ -49,6 +49,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final PrepareInfo prepareInfo;
+  private final String decoratedKeyspace;
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
 
@@ -64,10 +65,14 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
     QueryParameters queryParameters = query.getParameters();
+    this.decoratedKeyspace =
+        queryParameters.hasKeyspace()
+            ? persistence.decorateKeyspaceName(
+                queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
+            : null;
     this.prepareInfo =
         ImmutablePrepareInfo.builder()
-            .keyspace(
-                queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null)
+            .keyspace(decoratedKeyspace)
             .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
             .cql(query.getCql())
             .build();
@@ -168,8 +173,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
             ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
             : GrpcService.DEFAULT_CONSISTENCY);
 
-    if (parameters.hasKeyspace()) {
-      builder.defaultKeyspace(parameters.getKeyspace().getValue());
+    if (decoratedKeyspace != null) {
+      builder.defaultKeyspace(decoratedKeyspace);
     }
 
     builder.pageSize(

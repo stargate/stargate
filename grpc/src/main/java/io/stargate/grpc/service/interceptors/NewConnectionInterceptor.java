@@ -75,17 +75,20 @@ public class NewConnectionInterceptor implements ServerInterceptor {
         return new NopListener<>();
       }
 
+      Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
       RequestInfo info =
           ImmutableRequestInfo.builder()
               .token(token)
-              .headers(convertAndFilterHeaders(headers))
+              .headers(stringHeaders)
               .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
               .build();
 
       Connection connection = connectionCache.get(info);
 
       Context context = Context.current();
-      context = context.withValue(GrpcService.CONNECTION_KEY, connection);
+      context =
+          context.withValues(
+              GrpcService.CONNECTION_KEY, connection, GrpcService.HEADERS_KEY, stringHeaders);
       return Contexts.interceptCall(context, call, headers, next);
     } catch (CompletionException e) {
       if (e.getCause() instanceof UnauthorizedException) {
