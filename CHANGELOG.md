@@ -1,5 +1,30 @@
 # Changelog
 
+## [v1.0.39](https://github.com/stargate/stargate/tree/v1.0.39) (2021-10-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.38...v1.0.39)
+
+**Closed issues:**
+
+- Trim "authnz" \(auth api\) package by removing slf4j dependency [\#1342](https://github.com/stargate/stargate/issues/1342)
+- "auth-api" refactoring to follow conventions \(from `restapi`\) [\#1339](https://github.com/stargate/stargate/issues/1339)
+- UDT fields messed up on writes through gRPC [\#1329](https://github.com/stargate/stargate/issues/1329)
+
+**Merged pull requests:**
+
+- Sync some missing \(4.0.0-\>4.0.1 / 3.11.8-\>3.11.9\) changes from \#1337, renaming [\#1346](https://github.com/stargate/stargate/pull/1346) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1342: remove trivial usage, dependency to slf4j/logback, by `authnz` to shrink jar/bundle by 95% [\#1343](https://github.com/stargate/stargate/pull/1343) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Revisit PROXY protocol rules [\#1341](https://github.com/stargate/stargate/pull/1341) ([olim7t](https://github.com/olim7t))
+- Fix \#1339: refactoring/renaming of "auth-api" classes, entities [\#1340](https://github.com/stargate/stargate/pull/1340) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add close event to `EventListenerWithChannelFilter` [\#1338](https://github.com/stargate/stargate/pull/1338) ([mpenick](https://github.com/mpenick))
+- Update C\*4.0 to latest \(4.0.1\) and 3.11 to next \(3.11.9\) [\#1337](https://github.com/stargate/stargate/pull/1337) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update dse-core 6.8.13 -\> 6.8.16; driver to bit newer as well [\#1334](https://github.com/stargate/stargate/pull/1334) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Insert/Delete query optimization [\#1333](https://github.com/stargate/stargate/pull/1333) ([EricBorczuk](https://github.com/EricBorczuk))
+- Enable GraphQL schema-first by default [\#1332](https://github.com/stargate/stargate/pull/1332) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1331](https://github.com/stargate/stargate/pull/1331) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Encode Udt field values in the correct order [\#1330](https://github.com/stargate/stargate/pull/1330) ([pkolaczk](https://github.com/pkolaczk))
+- Enforce DSE guardrails when using external auth [\#1304](https://github.com/stargate/stargate/pull/1304) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.38](https://github.com/stargate/stargate/tree/v1.0.38) (2021-10-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.37...v1.0.38)
