@@ -21,7 +21,7 @@ import java.util.Optional;
 
 public class IndexModel {
 
-  public static final String SAI_INDEX_CLASS =
+  public static final String SAI_INDEX_CLASS_NAME =
       "org.apache.cassandra.index.sai.StorageAttachedIndex";
 
   private final String name;
@@ -44,6 +44,10 @@ public class IndexModel {
     return name;
   }
 
+  /**
+   * The name of the index class if this is a custom index, or empty if this is a regular secondary
+   * index.
+   */
   public Optional<String> getIndexClass() {
     return indexClass;
   }
@@ -55,7 +59,7 @@ public class IndexModel {
    * expected for certain operators.
    */
   public boolean isBuiltIn() {
-    return getIndexClass().map(c -> c.equals(SAI_INDEX_CLASS)).orElse(true);
+    return getIndexClass().map(c -> c.equals(SAI_INDEX_CLASS_NAME)).orElse(true);
   }
 
   public CollectionIndexingType getIndexingType() {
