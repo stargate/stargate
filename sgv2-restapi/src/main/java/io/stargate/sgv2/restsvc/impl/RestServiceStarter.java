@@ -18,7 +18,7 @@ package io.stargate.sgv2.restsvc.impl;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 
-public class RestServiceRunner {
+public class RestServiceStarter {
   private Metrics metrics;
   private HttpMetricsTagProvider httpMetricsTagProvider;
 
@@ -33,5 +33,11 @@ public class RestServiceRunner {
   public void start() throws Exception {
     RestServiceServer server = new RestServiceServer(this.metrics, this.httpMetricsTagProvider);
     server.run("server", "config.yaml");
+  }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println("Trying to start!");
+
+    System.out.println("Nothing to do, stopping!");
   }
 }

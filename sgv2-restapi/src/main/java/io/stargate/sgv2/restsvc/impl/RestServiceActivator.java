@@ -28,7 +28,7 @@ public class RestServiceActivator extends BaseActivator {
 
   public static final String MODULE_NAME = "restapi";
   private static final Logger logger = LoggerFactory.getLogger(RestServiceActivator.class);
-  private final RestServiceRunner runner = new RestServiceRunner();
+  private final RestServiceStarter runner = new RestServiceStarter();
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
       ServicePointer.create(HttpMetricsTagProvider.class);
