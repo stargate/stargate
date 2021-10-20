@@ -29,6 +29,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResource;
+import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -112,7 +113,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(SwaggerSerializers.class);
     environment.jersey().register(ApiListingResource.class);
 
-    //    environment.jersey().register(SwaggerUIResource.class);
+    environment.jersey().register(new SwaggerUIResource());
 
     enableCors(environment);
 

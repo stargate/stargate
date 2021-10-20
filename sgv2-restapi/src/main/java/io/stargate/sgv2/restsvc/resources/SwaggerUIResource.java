@@ -2,7 +2,6 @@ package io.stargate.sgv2.restsvc.resources;
 
 import io.dropwizard.util.Strings;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -24,7 +22,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
-import org.osgi.framework.Bundle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,21 +37,22 @@ public class SwaggerUIResource {
 
   private static final Pattern bearerTokenPattern = Pattern.compile("^Bearer\\s");
 
-  private Bundle bundle;
   private String indexFile;
 
-  @Inject
-  public SwaggerUIResource(Bundle bundle) throws IOException {
-    this.bundle = bundle;
-    URL entry = bundle.getEntry("/swagger-ui-cust/index.html");
+  public SwaggerUIResource() throws IOException {
+    this("/swagger-ui-cust/index.html");
+  }
+
+  public SwaggerUIResource(String path) throws IOException {
+    final URL entry = urlForResource(path);
 
     // Save the templated file away for later so that we only have to do this conversion once.
-    indexFile =
+    try (BufferedReader br =
         new BufferedReader(
-                new InputStreamReader(
-                    entry.openConnection().getInputStream(), StandardCharsets.UTF_8))
-            .lines()
-            .collect(Collectors.joining("\n"));
+            new InputStreamReader(
+                entry.openConnection().getInputStream(), StandardCharsets.UTF_8))) {
+      indexFile = br.lines().collect(Collectors.joining("\n"));
+    }
   }
 
   /**
@@ -101,8 +99,8 @@ public class SwaggerUIResource {
     // something like Velocity but that feels overkill for a single field.
     String formattedIndexFile =
         indexFile.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
-    return Response.ok(
-            new ByteArrayInputStream(formattedIndexFile.getBytes(StandardCharsets.UTF_8)))
+    return Response.ok(formattedIndexFile)
+        //            new ByteArrayInputStream(formattedIndexFile.getBytes(StandardCharsets.UTF_8)))
         .type(MediaType.TEXT_HTML)
         .build();
   }
@@ -111,7 +109,7 @@ public class SwaggerUIResource {
     InputStream is;
     String type = MediaType.TEXT_HTML;
     try {
-      URL entry = bundle.getEntry("/swagger-ui/" + fileName);
+      URL entry = urlForResource("/swagger-ui/" + fileName);
       is = entry.openConnection().getInputStream();
 
       if (fileName.endsWith(".css")) {
@@ -126,5 +124,13 @@ public class SwaggerUIResource {
       return Response.status(Status.INTERNAL_SERVER_ERROR).build();
     }
     return Response.ok(is).type(type).build();
+  }
+
+  private URL urlForResource(String resourceName) {
+    URL url = getClass().getResource(resourceName);
+    if (url == null) {
+      throw new IllegalArgumentException("Resource '" + resourceName + "' not found");
+    }
+    return url;
   }
 }
