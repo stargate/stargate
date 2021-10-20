@@ -102,9 +102,9 @@ class WhereConditionModelBuilder extends ConditionModelBuilderBase {
                       operationName, argument.getName());
                   return SkipException.INSTANCE;
                 });
-    // Only perform these checks for regular indexes, because we can't assume what custom indexes
-    // support
-    if (!index.isCustom()) {
+    // Only perform these checks for known implementations, because we can't assume what custom
+    // indexes support
+    if (index.isBuiltIn()) {
       switch (predicate) {
         case EQ:
           checkArgumentIsSameAs(field);
