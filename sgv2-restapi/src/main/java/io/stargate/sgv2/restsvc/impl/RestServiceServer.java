@@ -120,8 +120,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
+        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
     environment.jersey().register(metricListener);
 
     // no html content
