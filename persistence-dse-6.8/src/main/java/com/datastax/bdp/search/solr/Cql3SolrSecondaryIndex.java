@@ -33,7 +33,7 @@ public class Cql3SolrSecondaryIndex implements Index {
 
   private final IndexMetadata indexMetadata;
 
-  public Cql3SolrSecondaryIndex(ColumnFamilyStore columnFamilyStore, IndexMetadata indexMetadata) {
+  public Cql3SolrSecondaryIndex(ColumnFamilyStore ignoredCfs, IndexMetadata indexMetadata) {
     this.indexMetadata = indexMetadata;
   }
 
