@@ -45,6 +45,8 @@ import org.glassfish.jersey.server.ServerProperties;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
+  public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
@@ -119,7 +121,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     ResourceMetricsEventListener metricListener =
         new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, RestServiceActivator.MODULE_NAME);
+            metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
     environment.jersey().register(metricListener);
 
     // no html content
@@ -136,7 +138,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(RestServiceActivator.MODULE_NAME));
+    bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {
