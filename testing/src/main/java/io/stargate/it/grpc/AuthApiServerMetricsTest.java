@@ -35,7 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
-public class ServerMetricsTest extends GrpcIntegrationTest {
+public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
 
   private static String host;
 

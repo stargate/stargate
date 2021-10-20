@@ -69,6 +69,11 @@ public class QueryParametersTest extends BaseGrpcServiceTest {
 
     when(persistence.newConnection()).thenReturn(connection);
 
+    if (actual.hasKeyspace()) {
+      when(persistence.decorateKeyspaceName(anyString(), any()))
+          .thenReturn("decorated_" + actual.getKeyspace().getValue());
+    }
+
     startServer(persistence);
 
     StargateBlockingStub stub = makeBlockingStub();
@@ -94,7 +99,7 @@ public class QueryParametersTest extends BaseGrpcServiceTest {
                 .pageSize(GrpcService.DEFAULT_PAGE_SIZE)
                 .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
                 .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
-                .defaultKeyspace("abc")
+                .defaultKeyspace("decorated_abc")
                 .build()),
         arguments(
             cqlQueryParameters()
@@ -188,7 +193,7 @@ public class QueryParametersTest extends BaseGrpcServiceTest {
                         .build())
                 .build(),
             Parameters.builder()
-                .defaultKeyspace("def")
+                .defaultKeyspace("decorated_def")
                 .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                 .serialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .nowInSeconds(54321)

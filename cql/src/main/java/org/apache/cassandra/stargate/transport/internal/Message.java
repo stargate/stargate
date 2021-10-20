@@ -29,6 +29,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoop;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.CodecException;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.stargate.db.ClientInfo;
@@ -793,7 +794,9 @@ public abstract class Message {
 
     @Override
     public void exceptionCaught(final ChannelHandlerContext ctx, Throwable cause) {
-      if (cause instanceof UnhandledClientException) {
+      Throwable error = cause;
+      if (error instanceof CodecException) error = error.getCause();
+      if (error instanceof UnhandledClientException) {
         ctx.close();
         return;
       }

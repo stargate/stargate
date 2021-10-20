@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.auth.api.config;
+package io.stargate.auth.api.impl;
 
 import io.dropwizard.Configuration;
 
-public class ApplicationConfiguration extends Configuration {}
+public class AuthApiServerConfiguration extends Configuration {}

@@ -23,6 +23,7 @@ import io.stargate.db.Result;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   public static final Context.Key<Connection> CONNECTION_KEY = Context.key("connection");
+  public static final Context.Key<Map<String, String>> HEADERS_KEY = Context.key("headers");
   public static final int DEFAULT_PAGE_SIZE = 100;
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;

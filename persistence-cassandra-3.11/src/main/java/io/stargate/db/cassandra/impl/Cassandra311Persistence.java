@@ -255,12 +255,12 @@ public class Cassandra311Persistence
 
   @Override
   public Connection newConnection(ClientInfo clientInfo) {
-    return new CassandraConnection(clientInfo);
+    return new Cassandra311Connection(clientInfo);
   }
 
   @Override
   public Connection newConnection() {
-    return new CassandraConnection();
+    return new Cassandra311Connection();
   }
 
   private <T extends Result> CompletableFuture<T> runOnExecutor(
@@ -404,19 +404,19 @@ public class Cassandra311Persistence
     this.authorizationService = authorizationService;
   }
 
-  private class CassandraConnection extends AbstractConnection {
+  private class Cassandra311Connection extends AbstractConnection {
 
     private final ClientState clientState;
 
-    private CassandraConnection(@Nonnull ClientInfo clientInfo) {
+    private Cassandra311Connection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, ClientState.forExternalCalls(clientInfo.remoteAddress()));
     }
 
-    private CassandraConnection() {
+    private Cassandra311Connection() {
       this(null, ClientState.forInternalCalls());
     }
 
-    private CassandraConnection(@Nullable ClientInfo clientInfo, ClientState clientState) {
+    private Cassandra311Connection(@Nullable ClientInfo clientInfo, ClientState clientState) {
       super(clientInfo);
       this.clientState = clientState;
 

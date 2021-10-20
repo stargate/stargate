@@ -61,6 +61,11 @@ public class BatchParametersTest extends BaseGrpcServiceTest {
 
     when(persistence.newConnection()).thenReturn(connection);
 
+    if (actual.hasKeyspace()) {
+      when(persistence.decorateKeyspaceName(anyString(), any()))
+          .thenReturn("decorated_" + actual.getKeyspace().getValue());
+    }
+
     startServer(persistence);
 
     StargateBlockingStub stub = makeBlockingStub();
@@ -87,7 +92,7 @@ public class BatchParametersTest extends BaseGrpcServiceTest {
             Parameters.builder()
                 .consistencyLevel(GrpcService.DEFAULT_CONSISTENCY)
                 .serialConsistencyLevel(GrpcService.DEFAULT_SERIAL_CONSISTENCY)
-                .defaultKeyspace("abc")
+                .defaultKeyspace("decorated_abc")
                 .build()),
         arguments(
             batchParameters()
@@ -148,7 +153,7 @@ public class BatchParametersTest extends BaseGrpcServiceTest {
                 .setTracing(true)
                 .build(),
             Parameters.builder()
-                .defaultKeyspace("def")
+                .defaultKeyspace("decorated_def")
                 .consistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
                 .serialConsistencyLevel(ConsistencyLevel.SERIAL)
                 .nowInSeconds(54321)
