@@ -29,7 +29,6 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResource;
-import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -42,8 +41,6 @@ import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ServerProperties;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.FrameworkUtil;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
@@ -101,6 +98,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(Sgv2RowsResource.class);
 
     // Swagger endpoints
+    /*
     environment
         .jersey()
         .register(
@@ -110,9 +108,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bind(FrameworkUtil.getBundle(RestServiceActivator.class)).to(Bundle.class);
               }
             });
+     */
     environment.jersey().register(SwaggerSerializers.class);
     environment.jersey().register(ApiListingResource.class);
-    environment.jersey().register(SwaggerUIResource.class);
+
+    //    environment.jersey().register(SwaggerUIResource.class);
 
     enableCors(environment);
 

@@ -39,8 +39,8 @@ public class RestServiceActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    runner.setMetrics(metrics.get());
-    runner.setHttpMetricsTagProvider(httpTagProvider.get());
+    //    runner.setMetrics(metrics.get());
+    //    runner.setHttpMetricsTagProvider(httpTagProvider.get());
     try {
       runner.start();
     } catch (Exception e) {
