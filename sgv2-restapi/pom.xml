@@ -13,6 +13,7 @@
     <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
+    <!-- We need core not for OSGi but for metrics tags provider -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
@@ -23,7 +24,6 @@
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
       <version>${dropwizard.metrics.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.metrics</groupId>
@@ -66,7 +66,6 @@
       <groupId>javax.validation</groupId>
       <artifactId>validation-api</artifactId>
       <version>1.1.0.Final</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -79,11 +78,6 @@
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-shaded-guava</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
@@ -100,11 +94,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -176,6 +165,7 @@
           </execution>
         </executions>
       </plugin>
+<!-- 19-Oct-2021, tatu: no need to copy over, probably not needed?
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
@@ -188,6 +178,7 @@
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
+-->
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.2</version>
