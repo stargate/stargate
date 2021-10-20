@@ -79,7 +79,7 @@ class IndexModelBuilder extends ModelBuilderBase<IndexModel> {
           "%s: using SAI for index %s because the persistence backend does not support "
               + "regular secondary indexes",
           messagePrefix, indexName);
-      indexClass = Optional.of("org.apache.cassandra.index.sai.StorageAttachedIndex");
+      indexClass = Optional.of(IndexModel.SAI_INDEX_CLASS_NAME);
     }
 
     CollectionIndexingType indexingType =

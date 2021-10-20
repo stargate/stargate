@@ -21,6 +21,9 @@ import java.util.Optional;
 
 public class IndexModel {
 
+  public static final String SAI_INDEX_CLASS_NAME =
+      "org.apache.cassandra.index.sai.StorageAttachedIndex";
+
   private final String name;
   private final Optional<String> indexClass;
   private final CollectionIndexingType indexingType;
@@ -41,12 +44,22 @@ public class IndexModel {
     return name;
   }
 
+  /**
+   * The name of the index class if this is a custom index, or empty if this is a regular secondary
+   * index.
+   */
   public Optional<String> getIndexClass() {
     return indexClass;
   }
 
-  public boolean isCustom() {
-    return getIndexClass().isPresent();
+  /**
+   * Whether the index is a known implementation (non-custom or SAI).
+   *
+   * <p>When this is true, we can perform pre-checks on query conditions, e.g. which value type is
+   * expected for certain operators.
+   */
+  public boolean isBuiltIn() {
+    return getIndexClass().map(c -> c.equals(SAI_INDEX_CLASS_NAME)).orElse(true);
   }
 
   public CollectionIndexingType getIndexingType() {
