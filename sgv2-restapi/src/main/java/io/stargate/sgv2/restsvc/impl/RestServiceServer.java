@@ -101,20 +101,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(Sgv2RowsResource.class);
 
     // Swagger endpoints
-    /*
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(FrameworkUtil.getBundle(RestServiceActivator.class)).to(Bundle.class);
-              }
-            });
-     */
     environment.jersey().register(SwaggerSerializers.class);
     environment.jersey().register(ApiListingResource.class);
-
     environment.jersey().register(new SwaggerUIResource());
 
     enableCors(environment);
