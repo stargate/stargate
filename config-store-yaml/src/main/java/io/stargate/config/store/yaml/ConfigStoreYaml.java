@@ -47,6 +47,8 @@ public class ConfigStoreYaml implements ConfigStore {
     this.configFilePath = configFilePath;
     configFileCache =
         Caffeine.newBuilder()
+            .ticker(ticker)
+            .maximumSize(1000)
             .expireAfterWrite(DEFAULT_EVICTION_TIME)
             .recordStats()
             .build(ConfigStoreYaml::loadConfig);
