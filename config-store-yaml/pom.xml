@@ -84,7 +84,6 @@
                                         io.stargate.core.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
-                                        com.datastax.oss.driver.shaded.guava.common.*,
                                         ]]>
 						</Import-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
