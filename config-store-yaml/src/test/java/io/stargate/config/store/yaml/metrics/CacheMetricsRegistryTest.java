@@ -19,14 +19,12 @@ import static io.stargate.config.store.yaml.metrics.MetricsHelper.getMetricValue
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheBuilder;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheLoader;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheStats;
-import com.datastax.oss.driver.shaded.guava.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import io.stargate.config.store.yaml.FakeTicker;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 
 class CacheMetricsRegistryTest {
@@ -37,17 +35,11 @@ class CacheMetricsRegistryTest {
     Duration evictionTime = Duration.ofSeconds(1);
     FakeTicker fakeTicker = new FakeTicker();
     LoadingCache<String, String> cache =
-        CacheBuilder.newBuilder()
+        Caffeine.newBuilder()
             .expireAfterAccess(evictionTime)
             .ticker(fakeTicker)
             .recordStats()
-            .build(
-                new CacheLoader<String, String>() {
-                  @Override
-                  public String load(@Nonnull String key) {
-                    return key.toUpperCase();
-                  }
-                });
+            .build(key -> key.toUpperCase());
     MetricRegistry metricRegistry = new MetricRegistry();
     CacheMetricsRegistry.registerCacheMetrics(metricRegistry, cache);
 
@@ -80,7 +72,7 @@ class CacheMetricsRegistryTest {
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.MISS_RATE))
         .isEqualTo(0.75);
 
-    assertThat(cache.size())
+    assertThat(cache.estimatedSize())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
         .isEqualTo(2);
   }

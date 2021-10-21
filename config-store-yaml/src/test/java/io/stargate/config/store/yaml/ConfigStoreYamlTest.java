@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import io.stargate.config.store.yaml.metrics.CacheMetricsRegistry;
@@ -30,6 +29,7 @@ import java.time.Duration;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 
 class ConfigStoreYamlTest {
@@ -77,7 +77,7 @@ class ConfigStoreYamlTest {
 
     // when, then
     assertThatThrownBy(() -> configStoreYaml.getConfigForModule("non_existing_module"))
-        .isInstanceOf(UncheckedExecutionException.class)
+        .isInstanceOf(CompletionException.class)
         .hasMessageContaining("Problem when processing yaml file from: non-existing");
   }
 
@@ -96,7 +96,7 @@ class ConfigStoreYamlTest {
     assertThat(configStoreYaml.getConfigForModule("extension-1").getConfigMap()).isNotEmpty();
 
     // then
-    assertThat(configStoreYaml.configFileCache.size()).isEqualTo(1);
+    assertThat(configStoreYaml.configFileCache.estimatedSize()).isEqualTo(1L);
     assertThat(configStoreYaml.configFileCache.stats().evictionCount()).isEqualTo(0);
 
     // when
