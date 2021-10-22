@@ -1,6 +1,10 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.grpc.ManagedChannel;
+import io.stargate.grpc.StargateBearerToken;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Rows;
 import io.swagger.annotations.Api;
@@ -8,6 +12,9 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -19,6 +26,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -29,6 +38,12 @@ import javax.ws.rs.core.Response;
 @Singleton
 public class Sgv2RowsResource {
   private final int DEFAULT_PAGE_SIZE = 100;
+
+  // Singleton resource so no need to be static
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
+  /** Channel used to connect to backend gRPC service. */
+  @Inject private ManagedChannel grpcChannel;
 
   @Timed
   @GET
@@ -49,7 +64,7 @@ public class Sgv2RowsResource {
             response = RestServiceError.class)
       })
   @Path("/rows")
-  public Response getAllRows(
+  public javax.ws.rs.core.Response getAllRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -71,7 +86,18 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-
-    return null;
+    logger.info("Calling gRPC method: create stub...");
+    StargateGrpc.StargateBlockingStub blockingStub =
+        StargateGrpc.newBlockingStub(grpcChannel)
+            .withCallCredentials(new StargateBearerToken("token-value"))
+            .withDeadlineAfter(5, TimeUnit.SECONDS);
+    final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
+    logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
+    io.stargate.proto.QueryOuterClass.Response response =
+        blockingStub.executeQuery(QueryOuterClass.Query.newBuilder().setCql(cql).build());
+    logger.info(
+        "Calling gRPC method: response == "
+            + new String(response.toByteArray(), StandardCharsets.UTF_8));
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
   }
 }

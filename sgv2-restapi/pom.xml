@@ -14,21 +14,37 @@
     <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
+    <!-- Stargate cross-component core deps -->
+
     <!-- We need core not for OSGi but for metrics tags provider -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- this should also bring transitively "io.grpc:grpc-netty-shaded"...
+         but somehow does not seem to, despite being listed as a dep?!
+      -->
     <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-healthchecks</artifactId>
-      <version>${dropwizard.metrics.version}</version>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>grpc-proto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <version>${grpc.version}</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.metrics</groupId>
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <!-- Web platform (DropWizard, Jersey) deps -->
+    <dependency>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -36,7 +52,12 @@
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
-      <artifactId>dropwizard-core</artifactId>
+      <artifactId>dropwizard-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -68,21 +89,19 @@
       <version>1.1.0.Final</version>
     </dependency>
     <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jersey2-jaxrs</artifactId>
+      <version>1.6.2</version>
+    </dependency>
+
+    <!-- Other 3rd party deps -->
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard</groupId>
-      <artifactId>dropwizard-logging</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-jersey2-jaxrs</artifactId>
-      <version>1.6.2</version>
     </dependency>
     <dependency>
       <groupId>com.github.rvesse</groupId>

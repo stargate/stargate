@@ -24,6 +24,8 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.ResourceMetricsEventListener;
@@ -80,9 +82,13 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(
       final RestServiceServerConfiguration applicationConfiguration, final Environment environment)
       throws IOException {
-
     // General providers
     environment.jersey().register(new JerseyViolationExceptionMapper());
+
+    // gRPC access
+    final ManagedChannel grpcChannel =
+        ManagedChannelBuilder.forAddress("localhost", 8090).usePlaintext().directExecutor().build();
+    environment.jersey().register(grpcChannel);
     final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
     environment
         .jersey()
@@ -91,6 +97,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
               @Override
               protected void configure() {
                 bind(objectMapper).to(ObjectMapper.class);
+                bind(grpcChannel).to(ManagedChannel.class);
               }
             });
 
