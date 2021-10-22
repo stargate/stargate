@@ -33,7 +33,6 @@ import io.grpc.Server;
 import io.grpc.ServerInterceptor;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
-import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
@@ -140,7 +139,7 @@ public class BaseGrpcServiceTest {
         InProcessServerBuilder.forName(SERVER_NAME)
             .directExecutor()
             .intercept(interceptor)
-            .addService(new GrpcService(persistence, mock(Metrics.class), executor, 2))
+            .addService(new GrpcService(persistence, executor, 2))
             .build();
     try {
       server.start();

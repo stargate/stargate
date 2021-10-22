@@ -181,6 +181,18 @@ public interface Persistence {
     Optional<String> usedKeyspace();
 
     /**
+     * Gets a cached prepared statement if it's available.
+     *
+     * @param query the query to prepare.
+     * @param parameters the parameters for the preparation (note that preparation only use a subset
+     *     of parameters).
+     * @return a cached prepared statement, null if it's not cached.
+     */
+    default Result.Prepared getPrepared(String query, Parameters parameters) {
+      return null;
+    }
+
+    /**
      * Prepare a query on this connection.
      *
      * @param query the query to prepare.

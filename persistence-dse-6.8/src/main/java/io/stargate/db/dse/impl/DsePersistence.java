@@ -1,5 +1,8 @@
 package io.stargate.db.dse.impl;
 
+import static io.stargate.db.dse.impl.Conversion.toPreparedMetadata;
+import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
+
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
@@ -24,6 +27,7 @@ import io.stargate.db.RowDecorator;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
+import io.stargate.db.dse.impl.idempotency.IdempotencyAnalyzer;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
@@ -55,10 +59,14 @@ import org.apache.cassandra.concurrent.ExecutorLocals;
 import org.apache.cassandra.concurrent.TPCTaskType;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.PageSize;
+import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
+import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.AuthenticationException;
@@ -91,6 +99,7 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.MD5Digest;
 import org.apache.cassandra.utils.flow.RxThreads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -597,6 +606,32 @@ public class DsePersistence
               return new ExecuteMessage(id, null, options);
             }
           });
+    }
+
+    @Override
+    public Result.Prepared getPrepared(String query, Parameters parameters) {
+      QueryHandler handler = ClientState.getCQLQueryHandler();
+      String keyspace = parameters.defaultKeyspace().orElse(clientState.getRawKeyspace());
+      String toHash = keyspace == null ? query : keyspace + query;
+      MD5Digest statementId = MD5Digest.compute(toHash);
+      QueryHandler.Prepared existing = handler.getPrepared(statementId);
+
+      if (existing != null) {
+        CQLStatement statement = existing.statement;
+        boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
+        boolean useKeyspace = statement instanceof UseStatement;
+        ResultSet.PreparedMetadata metadata = ResultSet.PreparedMetadata.fromStatement(statement);
+        ResultSet.ResultMetadata resultMetadata = ResultSet.ResultMetadata.fromStatement(statement);
+        return new Result.Prepared(
+            Conversion.toExternal(statementId),
+            Conversion.toExternal(existing.resultMetadataId),
+            toResultMetadata(resultMetadata, null),
+            toPreparedMetadata(metadata.names, statement.getPartitionKeyBindVariableIndexes()),
+            idempotent,
+            useKeyspace);
+      }
+
+      return null;
     }
 
     @Override

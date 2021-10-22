@@ -15,11 +15,9 @@
  */
 package io.stargate.grpc.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.Any;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
@@ -27,11 +25,9 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
-import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
 import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.GrpcService.PrepareInfo;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
@@ -62,10 +58,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   BatchHandler(
       Batch batch,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
-    super(batch, connection, preparedCache, persistence, responseObserver);
+    super(batch, connection, persistence, responseObserver);
     BatchParameters batchParameters = batch.getParameters();
     this.decoratedKeyspace =
         batchParameters.hasKeyspace()
@@ -92,8 +87,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   }
 
   @Override
-  protected CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
-    return new BatchPreparer().prepare(shouldInvalidate);
+  protected CompletionStage<BatchAndIdempotencyInfo> prepare() {
+    return new BatchPreparer().prepare();
   }
 
   @Override
@@ -194,17 +189,17 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
      *
      * @return A future which completes with an internal batch statement with all queries prepared.
      */
-    CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
+    CompletionStage<BatchAndIdempotencyInfo> prepare() {
       int numToPrepare = Math.min(message.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
       assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
-        next(shouldInvalidate);
+        next();
       }
       return future;
     }
 
     /** Asynchronously prepares the next query in the batch. */
-    private void next(boolean shouldInvalidate) {
+    private void next() {
       int index = this.queryIndex.getAndIncrement();
       // When there are no more queries to prepare then construct the batch with the prepared
       // statements and complete the future.
@@ -219,15 +214,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       BatchQuery query = message.getQueries(index);
       BatchParameters batchParameters = message.getParameters();
 
-      PrepareInfo prepareInfo =
-          ImmutablePrepareInfo.builder()
-              .keyspace(decoratedKeyspace)
-              .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
-              .cql(query.getCql())
-              .build();
-
       BatchHandler.this
-          .prepare(prepareInfo, shouldInvalidate)
+          .prepare(query.getCql(), decoratedKeyspace)
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -239,7 +227,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
                     isIdempotent.compareAndSet(true, prepared.isIdempotent);
                     PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
                     statements.add(bindValues(handler, prepared, query.getValues()));
-                    next(shouldInvalidate); // Prepare the next query in the batch
+                    next(); // Prepare the next query in the batch
                   } catch (Throwable th) {
                     future.completeExceptionally(th);
                   }

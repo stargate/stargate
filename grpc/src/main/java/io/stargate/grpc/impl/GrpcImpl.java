@@ -71,7 +71,7 @@ public class GrpcImpl {
             .directExecutor()
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
-            .addService(new GrpcService(persistence, metrics, executor))
+            .addService(new GrpcService(persistence, executor))
             .build();
   }
 
