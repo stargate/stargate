@@ -17,4 +17,28 @@ package io.stargate.sgv2.restsvc.impl;
 
 import io.dropwizard.Configuration;
 
-public class RestServiceServerConfiguration extends Configuration {}
+public class RestServiceServerConfiguration extends Configuration {
+  public StargateConfig stargate = new StargateConfig();
+
+  /** Value class definitions */
+  static class StargateConfig {
+    public EndpointConfig grpc = new EndpointConfig("localhost", 8090);
+  }
+
+  static class EndpointConfig {
+    public String host = "localhost";
+    public int port = -1;
+
+    protected EndpointConfig() {}
+
+    public EndpointConfig(String host, int port) {
+      this.host = host;
+      this.port = port;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s:%s", host, port);
+    }
+  }
+}

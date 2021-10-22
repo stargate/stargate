@@ -44,10 +44,14 @@ import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ServerProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
@@ -59,6 +63,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
     beanConfig.setBasePath("/");
+    // Needed for Swagger UI to find endpoints dynamically
     ScannerFactory.setScanner(new DefaultJaxrsScanner());
   }
 
@@ -79,27 +84,30 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   }
 
   @Override
-  public void run(
-      final RestServiceServerConfiguration applicationConfiguration, final Environment environment)
+  public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
-    // General providers
-    environment.jersey().register(new JerseyViolationExceptionMapper());
-
-    // gRPC access
+    // Jackson configuration, gRPC access
+    final RestServiceServerConfiguration.EndpointConfig grpcEndpoint = appConfig.stargate.grpc;
+    logger.info("gRPC endpoint to use: {}", grpcEndpoint);
     final ManagedChannel grpcChannel =
-        ManagedChannelBuilder.forAddress("localhost", 8090).usePlaintext().directExecutor().build();
-    environment.jersey().register(grpcChannel);
-    final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
+        ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port)
+            .usePlaintext()
+            .directExecutor()
+            .build();
     environment
         .jersey()
         .register(
             new AbstractBinder() {
               @Override
               protected void configure() {
-                bind(objectMapper).to(ObjectMapper.class);
+                bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
                 bind(grpcChannel).to(ManagedChannel.class);
               }
             });
+
+    // Endpoint, handler registrations:
+
+    environment.jersey().register(new JerseyViolationExceptionMapper());
 
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
@@ -114,9 +122,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
-    environment.jersey().register(metricListener);
+    environment
+        .jersey()
+        .register(
+            new ResourceMetricsEventListener(
+                metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME));
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
