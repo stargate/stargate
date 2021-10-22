@@ -43,15 +43,27 @@ class CacheMetricsRegistryTest {
     MetricRegistry metricRegistry = new MetricRegistry();
     CacheMetricsRegistry.registerCacheMetrics(metricRegistry, cache);
 
+    // verify state before any access
+    CacheStats stats = cache.stats();
+    assertThat(stats.evictionCount())
+            .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.EVICTION_COUNT))
+            .isEqualTo(0);
+    assertThat(cache.estimatedSize())
+            .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
+            .isEqualTo(0);
+
     // when
     cache.get("a");
     cache.get("b");
+    assertThat(cache.estimatedSize())
+            .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
+            .isEqualTo(2);
     fakeTicker.advance(evictionTime);
     cache.get("a");
     cache.get("a");
 
     // then
-    CacheStats stats = cache.stats();
+    stats = cache.stats();
     assertThat(stats.hitCount())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.HIT_COUNT))
         .isEqualTo(1);
@@ -72,8 +84,9 @@ class CacheMetricsRegistryTest {
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.MISS_RATE))
         .isEqualTo(0.75);
 
+    // due to eviction, should only have 1 entry (a)
     assertThat(cache.estimatedSize())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
-        .isEqualTo(2);
+        .isEqualTo(1);
   }
 }
