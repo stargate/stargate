@@ -41,12 +41,22 @@
     <caffeine.version>2.8.6</caffeine.version>
   </properties>
   <dependencies>
+    <!-- Basic OSGi dependency, provided by container -->
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
       <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Shared dependencies that may be Imported by modules
+         (to avoid use of private copies)
+      -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>${caffeine.version}</version>
+    </dependency>
+    <!-- Shared test dependencies -->
     <dependency>
       <groupId>org.jacoco</groupId>
       <artifactId>org.jacoco.agent</artifactId>

@@ -39,6 +39,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
@@ -82,6 +83,7 @@
                                         org.osgi.framework,
                                         io.stargate.config.store.api,
                                         io.stargate.core.*,
+                                        com.github.benmanes.caffeine.cache,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
                                         ]]>
