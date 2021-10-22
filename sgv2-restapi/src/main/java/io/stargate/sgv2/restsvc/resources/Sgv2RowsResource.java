@@ -89,7 +89,7 @@ public class Sgv2RowsResource {
     logger.info("Calling gRPC method: create stub...");
     StargateGrpc.StargateBlockingStub blockingStub =
         StargateGrpc.newBlockingStub(grpcChannel)
-            .withCallCredentials(new StargateBearerToken("token-value"))
+            .withCallCredentials(new StargateBearerToken(token))
             .withDeadlineAfter(5, TimeUnit.SECONDS);
     final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
     logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
