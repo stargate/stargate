@@ -409,6 +409,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
         cmd.addArgument(String.valueOf(params.proxyPort()));
       }
 
+      cmd.addArgument("--enable-user-defined-functions");
+
       cmd.addArgument("--listen");
       cmd.addArgument(listenAddress);
       cmd.addArgument("--bind-to-listen-address");

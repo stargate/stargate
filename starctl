@@ -159,6 +159,10 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$DISABLE_BUNDLES_WATCH" ]]; then
         STARGATE_ARGS+=("--disable-bundles-watch")
     fi
+
+    if [[ ! -z "$ENABLE_USER_DEFINED_FUNCTIONS" ]]; then
+        STARGATE_ARGS+=("--enable-user-defined-functions")
+    fi
 fi
 
 declare -a CMD=(java -server)
