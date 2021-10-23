@@ -37,13 +37,12 @@ public class RestHealthCheckerTest extends BaseIntegrationTest {
 
   @Test
   public void liveness() throws IOException {
-    String body =
-        RestUtils.get("", String.format("%s/checker/liveness", healthUrlBase), HttpStatus.SC_OK);
+    String body = RestUtils.get("", String.format("%s/health", healthUrlBase), HttpStatus.SC_OK);
 
     assertThat(body).isEqualTo("UP");
   }
 
-  // TODO what should the parameters be for REST?
+  // TODO: what should the parameters be for REST? Or do we even have this capability?
   @ParameterizedTest
   @CsvSource({
     ",",

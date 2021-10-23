@@ -38,7 +38,7 @@ public interface RestApiParameters {
     // 127.0.2.N addresses are used for Stargate coordinator nodes,
     // so we allocate from the 127.0.3.X range here, to avoid conflicts with other
     // services that may be listening on the common range of 127.0.0.Y addresses.
-    return "127.0.3.1";
+    return "127.0.0.1";
   }
 
   @Value.Default
