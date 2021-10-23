@@ -83,7 +83,7 @@
                                         org.osgi.framework,
                                         io.stargate.config.store.api,
                                         io.stargate.core.*,
-                                        com.github.benmanes.caffeine.cache,
+                                        com.github.benmanes.caffeine.cache.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
                                         ]]>
