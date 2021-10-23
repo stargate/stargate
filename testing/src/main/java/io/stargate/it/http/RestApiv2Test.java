@@ -105,7 +105,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
       TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    String authUrlBase = cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
+    String authUrlBase =
+        "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
     String body =
         RestUtils.post(

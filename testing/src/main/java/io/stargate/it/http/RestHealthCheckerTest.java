@@ -24,6 +24,7 @@ public class RestHealthCheckerTest extends BaseIntegrationTest {
 
   private static String healthUrlBase;
 
+  // TODO: what does this do, and is this needed for REST API?
   static {
     System.setProperty("stargate.health_check.data_store.enabled", "true");
     System.setProperty("stargate.health_check.data_store.create_ks_and_table", "true");

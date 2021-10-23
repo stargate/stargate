@@ -15,8 +15,6 @@
  */
 package io.stargate.it.http;
 
-import static io.stargate.starter.Starter.STARTED_MESSAGE;
-
 import io.stargate.it.exec.ProcessRunner;
 import io.stargate.it.storage.*;
 import java.io.File;
@@ -52,6 +50,8 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
   public static final File LIB_DIR = initLibDir();
 
   public static final String STORE_KEY = "restapi-service";
+
+  public static final String RESTAPI_STARTED_MESSAGE = "Started RestServiceServer";
 
   private static File initLibDir() {
     String dir = System.getProperty("stargate.rest.libdir");
@@ -214,7 +214,7 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
     private Instance(StargateEnvironmentInfo stargateEnvironmentInfo, RestApiParameters params)
         throws Exception {
-      super("Rest API", 1, 1);
+      super("RestAPI", 1, 1);
 
       cmd = new CommandLine("java");
 
@@ -222,17 +222,17 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
 
-      cmd.addArgument("--listen");
-      cmd.addArgument(params.listenAddress());
-      cmd.addArgument("--bind-to-listen-address");
-      cmd.addArgument("--rest-port");
-      cmd.addArgument(String.valueOf(params.restPort()));
-      cmd.addArgument("--metrics-port");
-      cmd.addArgument(String.valueOf(params.metricsPort()));
+      cmd.addArgument("-jar");
+      cmd.addArgument(starterJar().getAbsolutePath());
+
+      //      cmd.addArgument(params.listenAddress());
+      //      cmd.addArgument(String.valueOf(params.restPort()));
+      //      cmd.addArgument("--metrics-port");
+      //      cmd.addArgument(String.valueOf(params.metricsPort()));
 
       addStdOutListener(
           (node, line) -> {
-            if (line.contains(STARTED_MESSAGE)) {
+            if (line.contains(RESTAPI_STARTED_MESSAGE)) {
               ready();
             }
           });

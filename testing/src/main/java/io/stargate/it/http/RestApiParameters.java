@@ -43,12 +43,12 @@ public interface RestApiParameters {
 
   @Value.Default
   default int restPort() {
-    return 8081;
+    return 8088;
   }
 
   @Value.Default
   default int metricsPort() {
-    return 8084;
+    return 8088;
   }
 
   static RestApiParameters.Builder builder() {
