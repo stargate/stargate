@@ -245,14 +245,6 @@ public class Starter {
       })
   protected boolean disableBundlesWatch = false;
 
-  @Order(value = 22)
-  @Option(
-      name = {
-        "--enable-user-defined-functions",
-        "Whether to enable UDFs. They must be enabled on backend nodes as well."
-      })
-  protected boolean enableUserDefinedFunctions = false;
-
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -385,8 +377,6 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
-    System.setProperty(
-        "stargate.enable_user_defined_functions", String.valueOf(enableUserDefinedFunctions));
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
