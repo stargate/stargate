@@ -19,9 +19,10 @@ package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTags;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
+import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
+import org.glassfish.jersey.server.ContainerResponse;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
 /**
@@ -46,8 +47,8 @@ public class HttpCounterTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
-    // only exception
-    Tags result = Tags.of(JerseyTags.exception(event));
+    // only error
+    Tags result = Tags.of(getErrorTag(event));
 
     if (null != httpMetricsTagProvider) {
       return result.and(
@@ -60,14 +61,21 @@ public class HttpCounterTagsProvider implements JerseyTagsProvider {
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
-    // only exception
-    Tags result = Tags.of(JerseyTags.exception(event));
-
     if (null != httpMetricsTagProvider) {
-      return result.and(
-          httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders()));
+      return httpMetricsTagProvider.getRequestTags(event.getContainerRequest().getHeaders());
     } else {
-      return result;
+      return Tags.empty();
+    }
+  }
+
+  // inspired by JerseyTags#status method
+  private Tag getErrorTag(RequestEvent event) {
+    ContainerResponse response = event.getContainerResponse();
+    boolean error = response == null || response.getStatus() >= 500;
+    if (error) {
+      return StargateMetricConstants.TAG_ERROR_TRUE;
+    } else {
+      return StargateMetricConstants.TAG_ERROR_FALSE;
     }
   }
 }

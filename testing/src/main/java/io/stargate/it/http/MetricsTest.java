@@ -99,7 +99,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
-                              .doesNotContain("exception=\"None\""))
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -109,7 +109,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\""))
-                  .doesNotContain("exception=\"None\"");
+                  .doesNotContain("error");
 
               // counted http request lines
               List<String> counterLines =
@@ -121,7 +121,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("exception=\"None\"")
+                              .contains("error=\"false\"")
                               .contains("module=\"restapi\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"/v1/keyspaces\"")
@@ -167,7 +167,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
-                              .doesNotContain("exception=\"None\""))
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -177,7 +177,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\"")
-                              .doesNotContain("exception=\"None\""));
+                              .doesNotContain("error"));
 
               List<String> countedLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
@@ -188,7 +188,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("exception=\"None\"")
+                              .contains("error=\"false\"")
                               .contains("module=\"docsapi\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"NOT_FOUND\"")
@@ -234,7 +234,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
-                              .doesNotContain("exception=\"None\""))
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -244,7 +244,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\"")
-                              .doesNotContain("exception=\"None\""));
+                              .doesNotContain("error"));
 
               List<String> countedLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
@@ -255,7 +255,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("exception=\"None\"")
+                              .contains("error=\"false\"")
                               .contains("module=\"graphqlapi\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"/graphql\"")
@@ -302,7 +302,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
                               .contains("keyspaceName=\"someKeyspace\"")
-                              .doesNotContain("exception=\"None\""))
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -313,7 +313,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\"")
                               .contains("keyspaceName=\"someKeyspace\"")
-                              .doesNotContain("exception=\"None\""));
+                              .doesNotContain("error"));
 
               List<String> countedLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
@@ -324,7 +324,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("exception=\"None\"")
+                              .contains("error=\"false\"")
                               .contains("module=\"graphqlapi\"")
                               .contains("keyspaceName=\"someKeyspace\"")
                               .doesNotContain("method=\"POST\"")
@@ -371,7 +371,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
-                              .doesNotContain("exception=\"None\""))
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -381,7 +381,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\"")
-                              .doesNotContain("exception=\"None\""));
+                              .doesNotContain("error"));
 
               List<String> countedLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
@@ -392,7 +392,7 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("exception=\"None\"")
+                              .contains("error=\"false\"")
                               .contains("module=\"authapi\"")
                               .doesNotContain("method=\"POST\"")
                               .doesNotContain("uri=\"/v1/auth\"")

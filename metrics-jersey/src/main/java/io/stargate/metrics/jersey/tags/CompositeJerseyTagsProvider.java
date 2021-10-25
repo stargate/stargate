@@ -31,8 +31,9 @@ public class CompositeJerseyTagsProvider implements JerseyTagsProvider {
   /**
    * Default constructor.
    *
-   * @param delegateProviders Delegate providers. Note that the order of the does matter, as later
-   *     will overwrite any tags with the same key provided by a provider with lower index.
+   * @param delegateProviders Delegate providers. Note that the order specified does matter, as a
+   *     higher index provider will overwrite any tags with same keys provided by a provider with
+   *     lower index.
    */
   public CompositeJerseyTagsProvider(List<JerseyTagsProvider> delegateProviders) {
     this.delegateProviders = delegateProviders;

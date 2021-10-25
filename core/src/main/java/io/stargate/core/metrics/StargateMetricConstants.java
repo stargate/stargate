@@ -27,10 +27,13 @@ public class StargateMetricConstants {
 
   // tag keys
   public static final String MODULE_KEY = "module";
+  public static final String ERROR_KEY = "error";
 
   // unknown value for any tag
   public static final String UNKNOWN = "unknown";
 
-  // unknown tag instances
+  // tag instances
   public static final Tag TAG_MODULE_UNKNOWN = Tag.of(MODULE_KEY, UNKNOWN);
+  public static final Tag TAG_ERROR_TRUE = Tag.of(ERROR_KEY, "true");
+  public static final Tag TAG_ERROR_FALSE = Tag.of(ERROR_KEY, "false");
 }

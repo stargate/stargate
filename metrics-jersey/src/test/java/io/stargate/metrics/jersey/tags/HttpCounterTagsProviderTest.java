@@ -27,6 +27,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import javax.ws.rs.core.MultivaluedMap;
 import org.glassfish.jersey.internal.util.collection.MultivaluedStringMap;
 import org.glassfish.jersey.server.ContainerRequest;
+import org.glassfish.jersey.server.ContainerResponse;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -44,9 +45,12 @@ class HttpCounterTagsProviderTest {
 
   @Mock ContainerRequest containerRequest;
 
+  @Mock ContainerResponse containerResponse;
+
   @BeforeEach
   public void mockEvent() {
     lenient().when(requestEvent.getContainerRequest()).thenReturn(containerRequest);
+    lenient().when(requestEvent.getContainerResponse()).thenReturn(containerResponse);
   }
 
   @Nested
@@ -57,26 +61,34 @@ class HttpCounterTagsProviderTest {
       MultivaluedMap<String, String> headers = new MultivaluedStringMap();
       headers.putSingle("some", "header");
 
-      when(requestEvent.getException()).thenReturn(new IllegalArgumentException());
+      when(containerResponse.getStatus()).thenReturn(500);
       when(containerRequest.getHeaders()).thenReturn(headers);
       when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
 
       HttpCounterTagsProvider provider = new HttpCounterTagsProvider(httpMetricsTagProvider);
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
-      assertThat(result)
-          .contains(Tag.of("extra", "true"))
-          .contains(Tag.of("exception", "IllegalArgumentException"));
+      assertThat(result).contains(Tag.of("extra", "true")).contains(Tag.of("error", "true"));
     }
 
     @Test
     public void noExtraProvider() {
-      when(requestEvent.getException()).thenReturn(new IllegalArgumentException());
+      when(containerResponse.getStatus()).thenReturn(200);
 
       HttpCounterTagsProvider provider = new HttpCounterTagsProvider();
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
-      assertThat(result).contains(Tag.of("exception", "IllegalArgumentException"));
+      assertThat(result).contains(Tag.of("error", "false"));
+    }
+
+    @Test
+    public void noResponse() {
+      when(requestEvent.getContainerResponse()).thenReturn(null);
+
+      HttpCounterTagsProvider provider = new HttpCounterTagsProvider();
+      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
+
+      assertThat(result).contains(Tag.of("error", "true"));
     }
   }
 
@@ -88,26 +100,21 @@ class HttpCounterTagsProviderTest {
       MultivaluedMap<String, String> headers = new MultivaluedStringMap();
       headers.putSingle("some", "header");
 
-      when(requestEvent.getException()).thenReturn(new IllegalArgumentException());
       when(containerRequest.getHeaders()).thenReturn(headers);
       when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
 
       HttpCounterTagsProvider provider = new HttpCounterTagsProvider(httpMetricsTagProvider);
       Iterable<Tag> result = provider.httpLongRequestTags(requestEvent);
 
-      assertThat(result)
-          .contains(Tag.of("extra", "true"))
-          .contains(Tag.of("exception", "IllegalArgumentException"));
+      assertThat(result).contains(Tag.of("extra", "true"));
     }
 
     @Test
     public void noExtraProvider() {
-      when(requestEvent.getException()).thenReturn(new IllegalArgumentException());
-
       HttpCounterTagsProvider provider = new HttpCounterTagsProvider();
       Iterable<Tag> result = provider.httpLongRequestTags(requestEvent);
 
-      assertThat(result).contains(Tag.of("exception", "IllegalArgumentException"));
+      assertThat(result).isEmpty();
     }
   }
 }
