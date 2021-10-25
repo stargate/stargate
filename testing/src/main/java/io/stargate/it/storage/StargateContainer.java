@@ -379,6 +379,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
         cmd.addArgument("-Dstargate.read_request_timeout_in_ms=60000");
       }
 
+      cmd.addArgument("-Dstargate.enable_user_defined_functions=true");
+
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
@@ -408,8 +410,6 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
         cmd.addArgument("--proxy-port");
         cmd.addArgument(String.valueOf(params.proxyPort()));
       }
-
-      cmd.addArgument("--enable-user-defined-functions");
 
       cmd.addArgument("--listen");
       cmd.addArgument(listenAddress);
