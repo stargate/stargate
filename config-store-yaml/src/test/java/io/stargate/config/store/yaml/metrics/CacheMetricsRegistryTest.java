@@ -59,6 +59,7 @@ class CacheMetricsRegistryTest {
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.SIZE))
         .isEqualTo(2);
     fakeTicker.advance(evictionTime);
+    cache.cleanUp(); // to ensure stable state
     cache.get("a");
     cache.get("a");
 
@@ -66,11 +67,11 @@ class CacheMetricsRegistryTest {
     stats = cache.stats();
     assertThat(stats.hitCount())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.HIT_COUNT))
-        .isEqualTo(1);
+        .isEqualTo(1L);
 
     assertThat(stats.evictionCount())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.EVICTION_COUNT))
-        .isEqualTo(1);
+        .isEqualTo(2L);
 
     assertThat(stats.hitRate())
         .isEqualTo(getMetricValue(metricRegistry, CacheMetricsRegistry.HIT_RATE))
