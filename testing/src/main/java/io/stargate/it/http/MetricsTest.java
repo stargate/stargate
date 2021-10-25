@@ -63,75 +63,6 @@ public class MetricsTest extends BaseIntegrationTest {
   }
 
   @Test
-  public void restApiHttpRequestMetrics() throws IOException {
-    // call the rest api path with target header
-    String path = String.format("%s:8082/v1/keyspaces", host);
-    OkHttpClient client = new OkHttpClient().newBuilder().build();
-    Request request =
-        new Request.Builder()
-            .url(path)
-            .get()
-            .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
-            .build();
-
-    int status = execute(client, request);
-
-    await()
-        .atMost(Duration.ofSeconds(5))
-        .untilAsserted(
-            () -> {
-              String result =
-                  RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
-
-              // metered http request lines
-              List<String> meterLines =
-                  Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests_seconds"))
-                      .collect(Collectors.toList());
-
-              assertThat(meterLines)
-                  .anySatisfy(
-                      metric ->
-                          assertThat(metric)
-                              .contains("method=\"GET\"")
-                              .contains("module=\"restapi\"")
-                              .contains("uri=\"/v1/keyspaces\"")
-                              .contains(String.format("status=\"%d\"", status))
-                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.95\"")
-                              .doesNotContain("error"))
-                  .anySatisfy(
-                      metric ->
-                          assertThat(metric)
-                              .contains("method=\"GET\"")
-                              .contains("module=\"restapi\"")
-                              .contains("uri=\"/v1/keyspaces\"")
-                              .contains(String.format("status=\"%d\"", status))
-                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.99\""))
-                  .doesNotContain("error");
-
-              // counted http request lines
-              List<String> counterLines =
-                  Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests_counter"))
-                      .collect(Collectors.toList());
-
-              assertThat(counterLines)
-                  .anySatisfy(
-                      metric ->
-                          assertThat(metric)
-                              .contains("error=\"false\"")
-                              .contains("module=\"restapi\"")
-                              .doesNotContain("method=\"GET\"")
-                              .doesNotContain("uri=\"/v1/keyspaces\"")
-                              .doesNotContain(String.format("status=\"%d\"", status))
-                              .doesNotContain(
-                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
-            });
-  }
-
-  @Test
   public void docsApiHttpRequestMetrics() throws IOException {
     // call the rest api path with target header
     String path = String.format("%s:8082/v2/namespaces/some", host);
@@ -403,7 +334,7 @@ public class MetricsTest extends BaseIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"authapi", "graphqlapi", "health_checker", "restapi"})
+  @ValueSource(strings = {"authapi", "graphqlapi", "health_checker"})
   public void dropwizardMetricsModule(String module) throws IOException {
     String[] expectedMetricGroups =
         new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};

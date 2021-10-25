@@ -38,6 +38,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
+@ExtendWith(RestApiExtension.class)
+@RestApiSpec()
 public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -46,7 +48,8 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
   private final String readOnlyUsername = "read_only_user";
   private final String readOnlyPassword = "read_only_user";
 
-  private String host;
+  private String restUrlBase;
+  private String authUrlBase;
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) {
@@ -55,9 +58,9 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) {
-    host = "http://" + cluster.seedAddress();
-
+  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi) {
+    authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
+    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   }
 
@@ -68,7 +71,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "a"),
+            String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "a"),
             HttpStatus.SC_OK);
 
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
@@ -92,7 +95,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String authToken = generateToken("cassandra", "cassandra");
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces", host),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
 
@@ -112,14 +115,14 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspace),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspace),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
 
     authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspace, table, "a"),
+        String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspace, table, "a"),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
@@ -142,7 +145,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -166,7 +169,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String authToken = generateToken("cassandra", "cassandra");
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -180,7 +183,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -189,7 +192,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/token/generate", host),
+            String.format("%s/v1/auth/token/generate", authUrlBase),
             objectMapper.writeValueAsString(new Credentials(username, password)),
             HttpStatus.SC_CREATED);
 

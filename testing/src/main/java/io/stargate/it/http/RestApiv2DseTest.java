@@ -58,6 +58,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // Table for index test
       "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
+@ExtendWith(RestApiExtension.class)
+@RestApiSpec()
 public class RestApiv2DseTest extends BaseIntegrationTest {
 
   private static final ObjectMapper objectMapper =
@@ -68,12 +70,15 @@ public class RestApiv2DseTest extends BaseIntegrationTest {
 
   @BeforeAll
   public static void beforeAll(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) throws IOException {
-    String host = cluster.seedAddress();
-    authToken = fetchAuthToken(host);
-    keyspaceUri = String.format("http://%s:8082/v2/keyspaces/%s", host, keyspaceId.asInternal());
+      StargateConnectionInfo cluster,
+      @TestKeyspace CqlIdentifier keyspaceId,
+      RestApiConnectionInfo restApi)
+      throws IOException {
+    String restUrlBase = restApi.host() + ":" + restApi.port();
+    authToken = fetchAuthToken(cluster.seedAddress());
+    keyspaceUri = String.format("http://%s/v2/keyspaces/%s", restUrlBase, keyspaceId.asInternal());
     schemaUri =
-        String.format("http://%s:8082/v2/schemas/keyspaces/%s", host, keyspaceId.asInternal());
+        String.format("http://%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceId.asInternal());
   }
 
   @Test
@@ -174,7 +179,8 @@ public class RestApiv2DseTest extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("http://%s:8081/v1/auth/token/generate", host),
+            String.format(
+                "http://%s:8081/v1/auth/token/generate", host), // TODO: make auth port configurable
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 

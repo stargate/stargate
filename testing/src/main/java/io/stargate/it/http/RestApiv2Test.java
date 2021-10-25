@@ -68,13 +68,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
+@ExtendWith(RestApiExtension.class)
+@RestApiSpec()
 public class RestApiv2Test extends BaseIntegrationTest {
 
   private String keyspaceName;
   private String tableName;
   private static String authToken;
-  private String host;
-
+  private String restUrlBase;
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   static {
@@ -100,13 +101,16 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
-    host = "http://" + cluster.seedAddress();
+  public void setup(
+      TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+      throws IOException {
+    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
+    String authUrlBase = cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/token/generate", host),
+            String.format("%s/v1/auth/token/generate", authUrlBase),
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 
@@ -125,7 +129,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void getKeyspaces() throws IOException {
     String body =
         RestUtils.get(
-            authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
+            authToken, String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_OK);
 
     List<Keyspace> keyspaces =
         readWrappedRESTResponse(body, new TypeReference<List<Keyspace>>() {});
@@ -140,13 +144,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
   @Test
   public void getKeyspacesMissingToken() throws IOException {
     RestUtils.get(
-        "", String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+        "", String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
   public void getKeyspacesBadToken() throws IOException {
     RestUtils.get(
-        "foo", String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+        "foo", String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
@@ -154,7 +158,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces?raw=true", host),
+            String.format("%s/v2/schemas/keyspaces?raw=true", restUrlBase),
             HttpStatus.SC_OK);
 
     List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
@@ -171,7 +175,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system", host),
+            String.format("%s/v2/schemas/keyspaces/system", restUrlBase),
             HttpStatus.SC_OK);
     Keyspace keyspace = readWrappedRESTResponse(body, Keyspace.class);
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
@@ -182,7 +186,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system?raw=true", host),
+            String.format("%s/v2/schemas/keyspaces/system?raw=true", restUrlBase),
             HttpStatus.SC_OK);
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
@@ -194,7 +198,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void getKeyspaceNotFound() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/ks_not_found", host),
+        String.format("%s/v2/schemas/keyspaces/ks_not_found", restUrlBase),
         HttpStatus.SC_NOT_FOUND);
   }
 
@@ -206,7 +210,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s?raw=true", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s?raw=true", restUrlBase, keyspaceName),
             HttpStatus.SC_OK);
 
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
@@ -218,7 +222,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void createKeyspaceWithInvalidJson() throws IOException {
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces", host),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
         "{\"name\" \"badjsonkeyspace\", \"replicas\": 1}",
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -230,17 +234,17 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
         HttpStatus.SC_OK);
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
         HttpStatus.SC_NO_CONTENT);
 
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
         HttpStatus.SC_NOT_FOUND);
   }
 
@@ -249,7 +253,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables", host),
+            String.format("%s/v2/schemas/keyspaces/system/tables", restUrlBase),
             HttpStatus.SC_OK);
 
     List<TableResponse> tables =
@@ -271,7 +275,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables?raw=true", host),
+            String.format("%s/v2/schemas/keyspaces/system/tables?raw=true", restUrlBase),
             HttpStatus.SC_OK);
 
     List<TableResponse> tables =
@@ -292,7 +296,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables/local", host),
+            String.format("%s/v2/schemas/keyspaces/system/tables/local", restUrlBase),
             HttpStatus.SC_OK);
 
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
@@ -306,7 +310,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/system/tables/local?raw=true", host),
+            String.format("%s/v2/schemas/keyspaces/system/tables/local?raw=true", restUrlBase),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
@@ -324,7 +328,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
@@ -345,7 +349,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void getTableNotFound() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/system/tables/tbl_not_found", host),
+        String.format("%s/v2/schemas/keyspaces/system/tables/tbl_not_found", restUrlBase),
         HttpStatus.SC_NOT_FOUND);
   }
 
@@ -358,8 +362,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s?raw=true",
-                host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
@@ -382,7 +386,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(tableUpdate),
         HttpStatus.SC_OK);
   }
@@ -394,7 +398,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
   }
 
@@ -417,7 +421,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     SuccessResponse successResponse =
@@ -433,7 +438,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
@@ -445,7 +451,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
@@ -462,7 +469,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
@@ -502,7 +510,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
     SuccessResponse successResponse =
@@ -536,7 +545,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/invalid_table/indexes", host, keyspaceName),
+                "%s/v2/schemas/keyspaces/%s/tables/invalid_table/indexes",
+                restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -549,7 +559,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_NOT_FOUND);
 
@@ -564,7 +575,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_BAD_REQUEST);
 
@@ -588,7 +600,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
     assertThat(body).isEqualTo("[]");
 
@@ -600,7 +613,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.post(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/indexes", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
@@ -608,7 +621,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -635,7 +649,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.post(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/indexes", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
@@ -651,8 +665,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
-            host, keyspaceName, tableName, indexName),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
+            restUrlBase, keyspaceName, tableName, indexName),
         HttpStatus.SC_NO_CONTENT);
 
     rows = session.execute(selectIndexes).all();
@@ -663,8 +677,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.delete(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
-                host, keyspaceName, tableName, indexName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
+                restUrlBase, keyspaceName, tableName, indexName),
             HttpStatus.SC_NOT_FOUND);
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -676,8 +690,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
-            host, keyspaceName, tableName, indexName),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
+            restUrlBase, keyspaceName, tableName, indexName),
         HttpStatus.SC_NO_CONTENT);
   }
 
@@ -704,7 +718,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -736,7 +750,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -748,8 +762,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s?raw=true",
-                host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
@@ -769,7 +783,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -778,7 +792,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
@@ -798,8 +813,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&page-size=1",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&page-size=1",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -824,7 +839,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -833,8 +848,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -852,8 +867,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\":\"desc\"}",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\":\"desc\"}",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -874,8 +889,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\":\"desc\"}&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\":\"desc\"}&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -895,8 +910,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -912,7 +927,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -921,8 +936,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&fields=id,firstName",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&fields=id,firstName",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -952,8 +967,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -985,8 +1000,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -1017,7 +1032,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2", host, keyspaceName, tableName),
+                "%s/v2/keyspaces/%s/%s/rows?page-size=2", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1031,8 +1046,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
-                host, keyspaceName, tableName, pageState),
+                "%s/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
+                restUrlBase, keyspaceName, tableName, pageState),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1045,8 +1060,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
-                host, keyspaceName, tableName, pageState),
+                "%s/v2/keyspaces/%s/%s/rows?page-size=2&page-state=%s",
+                restUrlBase, keyspaceName, tableName, pageState),
             HttpStatus.SC_OK);
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
@@ -1073,8 +1088,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows?fields=id, firstName",
-                host, keyspaceName, tableName),
+                "%s/v2/keyspaces/%s/%s/rows?fields=id, firstName",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     @SuppressWarnings("rawtypes")
@@ -1094,7 +1109,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1103,7 +1118,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_BAD_REQUEST);
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -1125,7 +1141,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1133,7 +1149,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1151,8 +1167,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?sort={\"expense_id\":\"desc\"}",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?sort={\"expense_id\":\"desc\"}",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1172,8 +1188,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?page-size=1",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?page-size=1",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1198,7 +1214,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1206,8 +1222,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s",
-                host, keyspaceName, tableName, "f0014be3-b69f-4884-b9a6-49765fb40df3"),
+                "%s/v2/keyspaces/%s/%s/%s",
+                restUrlBase, keyspaceName, tableName, "f0014be3-b69f-4884-b9a6-49765fb40df3"),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1229,7 +1245,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1237,8 +1253,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -1255,8 +1271,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?sort={\"expense_id\": \"desc\"}&raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?sort={\"expense_id\": \"desc\"}&raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -1275,7 +1291,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1296,7 +1312,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s/2", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s/2", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1315,7 +1331,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1328,7 +1344,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+            String.format(
+                "%s/v2/keyspaces/%s/%s/1/one/-1/20", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1350,7 +1367,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_CREATED);
 
@@ -1375,7 +1392,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -1395,7 +1412,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1403,7 +1420,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true", host, keyspaceName, tableName, "alice"),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "alice"),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -1426,7 +1443,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_BAD_REQUEST);
 
@@ -1444,7 +1461,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         "{\"id\": \"af2603d2-8c03-11eb-a03f-0ada685e0000\",\"firstName: \"john\"}",
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -1461,7 +1478,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1473,7 +1490,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
     Map<String, String> data = readWrappedRESTResponse(body, Map.class);
@@ -1492,7 +1509,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1504,8 +1521,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
@@ -1530,8 +1547,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_OK);
 
@@ -1543,8 +1560,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> dataList =
@@ -1556,8 +1573,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(row),
             HttpStatus.SC_OK);
 
@@ -1569,8 +1586,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     dataList = objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
@@ -1597,8 +1614,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
@@ -1610,8 +1627,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> dataList =
@@ -1633,14 +1650,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
     RestUtils.put(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
         "{\"firstName\": \"Robert,\"lastName\": \"Plant\"}",
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -1658,7 +1675,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1669,7 +1686,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.patch(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
     Map<String, String> patchData = readWrappedRESTResponse(body, Map.class);
@@ -1679,7 +1696,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1703,7 +1720,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1714,8 +1731,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.patch(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s?raw=true",
-                host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
     @SuppressWarnings("unchecked")
@@ -1727,7 +1744,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1750,14 +1767,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
         HttpStatus.SC_NO_CONTENT);
   }
 
@@ -1769,7 +1786,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1784,14 +1801,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s/1", host, keyspaceName, tableName, rowIdentifier),
+            "%s/v2/keyspaces/%s/%s/%s/1", restUrlBase, keyspaceName, tableName, rowIdentifier),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1809,7 +1826,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1824,14 +1841,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1840,7 +1857,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "2"),
+            String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "2"),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1857,7 +1874,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1869,13 +1886,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1889,7 +1906,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -1901,13 +1918,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s/1/one/-1/20", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1/20", host, keyspaceName, tableName),
+            String.format(
+                "%s/v2/keyspaces/%s/%s/1/one/-1/20", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1916,7 +1934,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/1/one/-1", host, keyspaceName, tableName),
+            String.format("%s/v2/keyspaces/%s/%s/1/one/-1", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -1933,7 +1951,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
     List<ColumnDefinition> columns =
         readWrappedRESTResponse(body, new TypeReference<List<ColumnDefinition>>() {});
@@ -1954,8 +1973,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?raw=true",
-                host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns?raw=true",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
     List<ColumnDefinition> columns =
         objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
@@ -1976,7 +1995,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns",
+                restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
     List<ColumnDefinition> columns =
         readWrappedRESTResponse(body, new TypeReference<List<ColumnDefinition>>() {});
@@ -1994,7 +2014,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, "foo"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns", restUrlBase, keyspaceName, "foo"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2010,7 +2030,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, "foo", tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns", restUrlBase, "foo", tableName),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2027,8 +2047,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = readWrappedRESTResponse(body, ColumnDefinition.class);
     assertThat(column)
@@ -2045,8 +2065,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "foo"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "foo"),
             HttpStatus.SC_NOT_FOUND);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2063,8 +2083,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, "age"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
     assertThat(column)
@@ -2081,8 +2101,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "col1"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "col1"),
             HttpStatus.SC_OK);
     ColumnDefinition column = readWrappedRESTResponse(body, ColumnDefinition.class);
     assertThat(column)
@@ -2098,8 +2118,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, "foo", "age"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2113,8 +2133,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, "foo", tableName, "age"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2133,7 +2153,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
     @SuppressWarnings("unchecked")
@@ -2145,8 +2166,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "name"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, "name"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
     assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
@@ -2163,7 +2184,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -2183,7 +2205,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns",
+                restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
     @SuppressWarnings("unchecked")
@@ -2195,8 +2218,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "balance"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, "balance"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
     assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
@@ -2213,8 +2236,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "id"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "id"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_OK);
     @SuppressWarnings("unchecked")
@@ -2226,8 +2249,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "identifier"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
+                restUrlBase, keyspaceName, tableName, "identifier"),
             HttpStatus.SC_OK);
     ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
     assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
@@ -2244,8 +2267,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "notFound"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "notFound"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -2265,8 +2288,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, "foo", "age"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -2283,8 +2306,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, "foo", tableName, "age"),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
@@ -2301,8 +2324,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-            host, keyspaceName, tableName, "age"),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+            restUrlBase, keyspaceName, tableName, "age"),
         HttpStatus.SC_NO_CONTENT);
   }
 
@@ -2314,8 +2337,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-            host, keyspaceName, tableName, "foo"),
+            "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+            restUrlBase, keyspaceName, tableName, "foo"),
         HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -2327,8 +2350,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.delete(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, "foo", "age"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2342,8 +2365,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.delete(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, "foo", tableName, "age"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2360,8 +2383,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.delete(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "id"),
+                "%s/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
+                restUrlBase, keyspaceName, tableName, "id"),
             HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
@@ -2381,7 +2404,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2389,7 +2412,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String response =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
             udtString,
             HttpStatus.SC_BAD_REQUEST);
 
@@ -2408,7 +2431,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             + "\"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
   }
@@ -2423,7 +2446,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2433,7 +2456,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
@@ -2443,7 +2466,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -2458,7 +2481,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2468,7 +2491,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_OK);
 
@@ -2479,7 +2502,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_OK);
 
@@ -2487,7 +2510,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "udt1"),
+            String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "udt1"),
             HttpStatus.SC_OK);
 
     MapGetResponseWrapper getResponseWrapper = MAP_GETRESPONSE_READER.readValue(body);
@@ -2510,7 +2533,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2522,7 +2545,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.put(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_OK);
   }
@@ -2535,28 +2558,28 @@ public class RestApiv2Test extends BaseIntegrationTest {
         "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
     udtString = "{\"name\": \"udt1\", \"fields\":[]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
     udtString = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\"}}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
 
     udtString = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -2570,19 +2593,21 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+        String.format(
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
         HttpStatus.SC_NO_CONTENT);
 
     // delete a non existent UDT
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+        String.format(
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
         HttpStatus.SC_BAD_REQUEST);
 
     // delete an UDT in use
@@ -2592,7 +2617,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2606,7 +2631,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.delete(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "fullname"),
+                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
             HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -2619,7 +2644,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
@@ -2627,7 +2652,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "test_udt1"),
+                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
             HttpStatus.SC_OK);
 
     MapGetResponseWrapper getResponseWrapper = MAP_GETRESPONSE_READER.readValue(body);
@@ -2644,7 +2669,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.get(
         authToken,
         String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/types/%s", host, keyspaceName, "invalid_udt"),
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "invalid_udt"),
         HttpStatus.SC_NOT_FOUND);
   }
 
@@ -2655,7 +2680,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -2669,7 +2694,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     for (int i = 0; i < 10; i++) {
       RestUtils.post(
           authToken,
-          String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+          String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
           String.format(udtString, "udt" + i),
           HttpStatus.SC_CREATED);
     }
@@ -2677,7 +2702,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
             HttpStatus.SC_OK);
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
@@ -2713,7 +2738,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -2730,7 +2755,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2740,7 +2765,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -2770,7 +2796,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2798,7 +2824,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -2826,7 +2852,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2852,7 +2878,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2880,7 +2906,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2891,7 +2917,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces", host),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }
@@ -2907,7 +2933,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
       RestUtils.post(
           authToken,
-          String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+          String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
@@ -2925,7 +2951,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2936,7 +2962,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2947,7 +2973,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2958,7 +2984,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2979,7 +3005,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2993,7 +3019,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3007,7 +3033,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
   }
