@@ -48,14 +48,6 @@
       <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
-    <!-- Shared dependencies that may be Imported by modules
-         (to avoid use of private copies)
-      -->
-    <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
-      <version>${caffeine.version}</version>
-    </dependency>
     <!-- Shared test dependencies -->
     <dependency>
       <groupId>org.jacoco</groupId>
