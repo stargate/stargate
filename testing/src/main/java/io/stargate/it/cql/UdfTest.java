@@ -16,8 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class UdfTest extends BaseOsgiIntegrationTest {
 
   @Test
-  @DisplayName("Should create and use User-Defined Function")
-  public void udf(CqlSession session, @TestKeyspace CqlIdentifier keyspace) {
+  @DisplayName("Should create and invoke User-Defined Function")
+  public void createAndInvokeUdf(CqlSession session, @TestKeyspace CqlIdentifier keyspace) {
     session.execute(
         "CREATE FUNCTION id(i int) "
             + "RETURNS NULL ON NULL INPUT "
