@@ -218,6 +218,9 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
       cmd = new CommandLine("java");
 
+      cmd.addArgument("-Ddw.stargate.grpc.host=" + params.listenAddress());
+      cmd.addArgument("-Ddw.stargate.grpc.port=" + params.restPort());
+
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
