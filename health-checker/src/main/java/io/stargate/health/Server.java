@@ -14,7 +14,7 @@ import io.dropwizard.util.JarLocation;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
+import io.stargate.metrics.jersey.MetricsBinder;
 import java.lang.management.ManagementFactory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ServerProperties;
@@ -77,10 +77,9 @@ public class Server extends Application<ApplicationConfiguration> {
     environment.jersey().register(CheckerResource.class);
     environment.jersey().register(PrometheusResource.class);
 
-    ResourceMetricsEventListener component =
-        new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, HealthCheckerActivator.MODULE_NAME);
-    environment.jersey().register(component);
+    MetricsBinder metricsBinder =
+        new MetricsBinder(metrics, httpMetricsTagProvider, HealthCheckerActivator.MODULE_NAME);
+    metricsBinder.register(environment.jersey());
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);

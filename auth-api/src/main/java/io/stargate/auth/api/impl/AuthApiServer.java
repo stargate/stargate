@@ -27,7 +27,7 @@ import io.stargate.auth.api.resources.AuthResource;
 import io.stargate.auth.api.swagger.SwaggerUIResource;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
+import io.stargate.metrics.jersey.MetricsBinder;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -109,10 +109,9 @@ public class AuthApiServer extends Application<AuthApiServerConfiguration> {
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricsListener =
-        new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, AuthApiActivator.MODULE_NAME);
-    environment.jersey().register(metricsListener);
+    MetricsBinder metricsBinder =
+        new MetricsBinder(metrics, httpMetricsTagProvider, AuthApiActivator.MODULE_NAME);
+    metricsBinder.register(environment.jersey());
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);

@@ -1,29 +1,27 @@
 /*
  * Copyright The Stargate Authors
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * limitations under the License.
+ *
  */
 
-package io.stargate.metrics.jersey;
+package io.stargate.metrics.jersey.tags;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import java.util.Collections;
 import javax.ws.rs.core.MultivaluedMap;
@@ -41,7 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ResourceTagsProviderTest {
+class HttpMeterTagsProviderTest {
 
   @Mock HttpMetricsTagProvider httpMetricsTagProvider;
 
@@ -52,8 +50,6 @@ class ResourceTagsProviderTest {
   @Mock ContainerRequest containerRequest;
 
   @Mock ExtendedUriInfo extendedUriInfo;
-
-  @Mock JerseyTagsProvider delegate;
 
   @BeforeEach
   public void mockEvent() {
@@ -67,7 +63,6 @@ class ResourceTagsProviderTest {
 
     @Test
     public void happyPath() {
-      Tags defaultTags = Tags.of("default", "true");
       MultivaluedMap<String, String> headers = new MultivaluedStringMap();
       headers.putSingle("some", "header");
 
@@ -79,12 +74,10 @@ class ResourceTagsProviderTest {
       when(containerResponse.getStatus()).thenReturn(200);
       when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
 
-      ResourceTagsProvider resourceTagsProvider =
-          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
+      HttpMeterTagsProvider provider = new HttpMeterTagsProvider(httpMetricsTagProvider);
+      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result)
-          .containsAll(defaultTags)
           .contains(Tag.of("extra", "true"))
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("status", "200"))
@@ -92,39 +85,7 @@ class ResourceTagsProviderTest {
     }
 
     @Test
-    public void happyPathWithDelegates() {
-      Tags defaultTags = Tags.of("default", "true");
-      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
-      headers.putSingle("some", "header");
-
-      when(extendedUriInfo.getMatchedTemplates())
-          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
-      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
-      when(containerRequest.getMethod()).thenReturn("GET");
-      when(containerRequest.getHeaders()).thenReturn(headers);
-      when(containerResponse.getStatus()).thenReturn(200);
-      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
-      when(delegate.httpRequestTags(requestEvent)).thenReturn(Tags.of("delegate", "present"));
-
-      ResourceTagsProvider resourceTagsProvider =
-          new ResourceTagsProvider(
-              httpMetricsTagProvider, defaultTags, Collections.singletonList(delegate));
-      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
-
-      assertThat(result)
-          .containsAll(defaultTags)
-          .contains(Tag.of("extra", "true"))
-          .contains(Tag.of("delegate", "present"))
-          .contains(Tag.of("method", "GET"))
-          .contains(Tag.of("status", "200"))
-          .contains(Tag.of("uri", "/base/target/uri"));
-      verify(delegate).httpRequestTags(requestEvent);
-      verifyNoMoreInteractions(delegate);
-    }
-
-    @Test
-    public void defaultAndExtraEmpty() {
-      Tags defaultTags = Tags.empty();
+    public void extraEmpty() {
       MultivaluedMap<String, String> headers = new MultivaluedStringMap();
       headers.putSingle("some", "header");
 
@@ -136,13 +97,29 @@ class ResourceTagsProviderTest {
       when(containerResponse.getStatus()).thenReturn(201);
       when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.empty());
 
-      ResourceTagsProvider resourceTagsProvider =
-          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-      Iterable<Tag> result = resourceTagsProvider.httpRequestTags(requestEvent);
+      HttpMeterTagsProvider provider = new HttpMeterTagsProvider(httpMetricsTagProvider);
+      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result)
           .contains(Tag.of("method", "POST"))
           .contains(Tag.of("status", "201"))
+          .contains(Tag.of("uri", "/base/target/uri"));
+    }
+
+    @Test
+    public void noExtraProvider() {
+      when(extendedUriInfo.getMatchedTemplates())
+          .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
+      when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
+      when(containerRequest.getMethod()).thenReturn("GET");
+      when(containerResponse.getStatus()).thenReturn(200);
+
+      HttpMeterTagsProvider provider = new HttpMeterTagsProvider();
+      Iterable<Tag> result = provider.httpRequestTags(requestEvent);
+
+      assertThat(result)
+          .contains(Tag.of("method", "GET"))
+          .contains(Tag.of("status", "200"))
           .contains(Tag.of("uri", "/base/target/uri"));
     }
   }
@@ -152,7 +129,6 @@ class ResourceTagsProviderTest {
 
     @Test
     public void happyPath() {
-      Tags defaultTags = Tags.of("default", "true");
       MultivaluedMap<String, String> headers = new MultivaluedStringMap();
       headers.putSingle("some", "header");
 
@@ -164,47 +140,29 @@ class ResourceTagsProviderTest {
       when(containerResponse.getStatus()).thenReturn(200);
       when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
 
-      ResourceTagsProvider resourceTagsProvider =
-          new ResourceTagsProvider(httpMetricsTagProvider, defaultTags);
-      Iterable<Tag> result = resourceTagsProvider.httpLongRequestTags(requestEvent);
+      HttpMeterTagsProvider provider = new HttpMeterTagsProvider(httpMetricsTagProvider);
+      Iterable<Tag> result = provider.httpLongRequestTags(requestEvent);
 
       assertThat(result)
-          .containsAll(defaultTags)
           .contains(Tag.of("extra", "true"))
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("uri", "/base/target/uri"));
     }
 
     @Test
-    public void happyPathWithDelegate() {
-      Tags defaultTags = Tags.of("default", "true");
-      MultivaluedMap<String, String> headers = new MultivaluedStringMap();
-      headers.putSingle("some", "header");
-
+    public void noExtraProvider() {
       when(extendedUriInfo.getMatchedTemplates())
           .thenReturn(Collections.singletonList(new UriTemplate("/target/uri")));
       when(extendedUriInfo.getBaseUri()).thenReturn(UriTemplate.normalize("http://localhost/base"));
       when(containerRequest.getMethod()).thenReturn("GET");
-      when(containerRequest.getHeaders()).thenReturn(headers);
       when(containerResponse.getStatus()).thenReturn(200);
-      when(httpMetricsTagProvider.getRequestTags(headers)).thenReturn(Tags.of("extra", "true"));
-      when(delegate.httpLongRequestTags(requestEvent))
-          .thenReturn(Tags.of("delegate1", "present", "delegate2", "present"));
 
-      ResourceTagsProvider resourceTagsProvider =
-          new ResourceTagsProvider(
-              httpMetricsTagProvider, defaultTags, Collections.singletonList(delegate));
-      Iterable<Tag> result = resourceTagsProvider.httpLongRequestTags(requestEvent);
+      HttpMeterTagsProvider provider = new HttpMeterTagsProvider();
+      Iterable<Tag> result = provider.httpLongRequestTags(requestEvent);
 
       assertThat(result)
-          .containsAll(defaultTags)
-          .contains(Tag.of("extra", "true"))
-          .contains(Tag.of("delegate1", "present"))
-          .contains(Tag.of("delegate2", "present"))
           .contains(Tag.of("method", "GET"))
           .contains(Tag.of("uri", "/base/target/uri"));
-      verify(delegate).httpLongRequestTags(requestEvent);
-      verifyNoMoreInteractions(delegate);
     }
   }
 }

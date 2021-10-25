@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.metrics.jersey;
+package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
