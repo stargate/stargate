@@ -15,50 +15,35 @@
  *
  */
 
-package io.stargate.metrics.jersey;
+package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
-import io.stargate.core.metrics.api.Metrics;
-import org.glassfish.jersey.server.ExtendedUriInfo;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
-/**
- * A simple tag provider that overwrites the module tags if the HTTP request is targeting our Docs
- * API.
- */
-public class DocsApiModuleTagsProvider implements JerseyTagsProvider {
+/** Simple {@link JerseyTagsProvider} that always returns constant tags. */
+public class ConstantTagsProvider implements JerseyTagsProvider {
 
-  public static final String DOCS_API_MODULE_NAME = "docsapi";
+  private final Iterable<Tag> tags;
 
-  private final Metrics metrics;
-
-  public DocsApiModuleTagsProvider(Metrics metrics) {
-    this.metrics = metrics;
+  public ConstantTagsProvider(Iterable<Tag> tags) {
+    if (null == tags) {
+      this.tags = Tags.empty();
+    } else {
+      this.tags = tags;
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
-    return tagsInternal(event);
+    return tags;
   }
 
   /** {@inheritDoc} */
   @Override
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
-    return tagsInternal(event);
-  }
-
-  private Iterable<Tag> tagsInternal(RequestEvent event) {
-    if (isDocsApiRequest(event.getUriInfo())) {
-      return metrics.tagsForModule(DOCS_API_MODULE_NAME);
-    }
-    return Tags.empty();
-  }
-
-  // we are on docs api if there is /namespaces in the URL path
-  private boolean isDocsApiRequest(ExtendedUriInfo uriInfo) {
-    return uriInfo.getPath(true).contains("/namespaces");
+    return tags;
   }
 }

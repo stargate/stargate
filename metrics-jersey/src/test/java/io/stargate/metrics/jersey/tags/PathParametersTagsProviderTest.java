@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.metrics.jersey;
+package io.stargate.metrics.jersey.tags;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
