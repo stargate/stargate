@@ -39,7 +39,7 @@ Counting listener counts the HTTP requests, and exposes them in the following me
 
 * `http_server_request_counter_total`
 
-Beside the [default module tags](#default-tags), this listener always adds HTTP the exception tag for each request.
+Beside the [default module tags](#default-tags), this listener always adds the HTTP error tag for each request.
 
 ## Percentiles
 
