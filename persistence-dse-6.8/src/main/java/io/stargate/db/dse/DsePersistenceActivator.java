@@ -9,7 +9,6 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
-import io.stargate.db.datastore.common.util.UserDefinedFunctionHelper;
 import io.stargate.db.dse.impl.DelegatingAuthorizer;
 import io.stargate.db.dse.impl.DsePersistence;
 import java.io.Closeable;
@@ -36,10 +35,6 @@ import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.io.FileUtils;
 
 public class DsePersistenceActivator extends BaseActivator {
-
-  static {
-    UserDefinedFunctionHelper.fixCompilerClassLoader();
-  }
 
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
@@ -166,7 +161,6 @@ public class DsePersistenceActivator extends BaseActivator {
     if ((timeout = Long.getLong("stargate.read_request_timeout_in_ms", -1)) > 0) {
       c.read_request_timeout_in_ms = timeout;
     }
-    c.enable_user_defined_functions = Boolean.getBoolean("stargate.enable_user_defined_functions");
 
     return c;
   }
