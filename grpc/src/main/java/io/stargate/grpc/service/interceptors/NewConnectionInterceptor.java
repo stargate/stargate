@@ -91,8 +91,11 @@ public class NewConnectionInterceptor implements ServerInterceptor {
           context.withValues(
               GrpcService.CONNECTION_KEY, connection, GrpcService.HEADERS_KEY, stringHeaders);
       return Contexts.interceptCall(context, call, headers, next);
-    } catch (CompletionException e) {
-      Throwable cause = e.getCause();
+    } catch (Exception e) {
+      Throwable cause = e;
+      if (cause instanceof CompletionException) {
+        cause = e.getCause();
+      }
       if (cause instanceof UnauthorizedException) {
         call.close(
             Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
@@ -151,5 +154,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     return stringHeaders;
   }
 
-  private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
+  private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {
+
+  }
 }
