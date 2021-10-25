@@ -5,11 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
-import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.web.models.Keyspace;
@@ -56,7 +55,8 @@ import org.slf4j.LoggerFactory;
       "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
-public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
+@RestApiSpec()
+public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
 
@@ -64,7 +64,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   private final String keyspaceName = "store1";
   private final String tableName = "shopping_cart";
 
-  private String host;
+  private String restUrlBase;
 
   private static String authToken;
   private static KeycloakContainer keycloakContainer;
@@ -88,8 +88,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
-    host = "http://" + cluster.seedAddress();
+  public void setup(RestApiConnectionInfo restApi) throws IOException {
+    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -100,7 +100,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   public void getKeyspacesv2() throws IOException {
     String body =
         RestUtils.get(
-            authToken, String.format("%s:8082/v2/schemas/keyspaces", host), HttpStatus.SC_OK);
+            authToken, String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_OK);
 
     RESTResponseWrapper response = objectMapper.readValue(body, RESTResponseWrapper.class);
     List<Keyspace> keyspaces =
@@ -114,7 +114,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   @Test
   public void getKeyspacesV1() throws IOException {
     String body =
-        RestUtils.get(authToken, String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_OK);
+        RestUtils.get(authToken, String.format("%s/v1/keyspaces", restUrlBase), HttpStatus.SC_OK);
 
     List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
     assertThat(keyspaces)
@@ -127,7 +127,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspaceName, tableName),
+            String.format(
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
@@ -160,7 +161,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   public void getRowV1NotAuthorized() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/1234", host, keyspaceName, tableName),
+        String.format(
+            "%s/v1/keyspaces/%s/tables/%s/rows/1234", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
@@ -169,7 +171,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "9876"),
+            String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "9876"),
             HttpStatus.SC_OK);
 
     GetResponseWrapper getResponseWrapper = objectMapper.readValue(body, GetResponseWrapper.class);
@@ -188,7 +190,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
   public void getRowsV2NotAuthorized() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "1234"),
+        String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "1234"),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
@@ -218,8 +220,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-                host,
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+                restUrlBase,
                 keyspaceName,
                 tableName,
                 rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
@@ -252,8 +254,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.put(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-            host,
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
@@ -288,7 +290,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspaceName, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(rowAdd),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -323,7 +325,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspaceName, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
@@ -362,7 +364,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.post(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspaceName, tableName),
+            "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -377,8 +379,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-            host,
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             (rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8"))),
@@ -393,8 +395,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-            host,
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             (rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8"))),
@@ -414,8 +416,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s/%s",
-                host,
+                "%s/v2/keyspaces/%s/%s/%s/%s",
+                restUrlBase,
                 keyspaceName,
                 tableName,
                 rowIdentifier,
@@ -441,8 +443,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.put(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s/%s",
-            host,
+            "%s/v2/keyspaces/%s/%s/%s/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             rowIdentifier,
@@ -462,7 +464,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -481,8 +483,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -503,8 +505,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.get(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-            host, keyspaceName, tableName, whereClause),
+            "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+            restUrlBase, keyspaceName, tableName, whereClause),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
@@ -517,8 +519,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s/%s",
-            host,
+            "%s/v2/keyspaces/%s/%s/%s/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             rowIdentifier,
@@ -534,8 +536,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v2/keyspaces/%s/%s/%s/%s",
-            host,
+            "%s/v2/keyspaces/%s/%s/%s/%s",
+            restUrlBase,
             keyspaceName,
             tableName,
             rowIdentifier,
@@ -561,7 +563,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -575,7 +577,7 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
   }
@@ -584,8 +586,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     return RestUtils.get(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-            host, keyspaceName, tableName, rowIdentifier),
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+            restUrlBase, keyspaceName, tableName, rowIdentifier),
         HttpStatus.SC_OK);
   }
 
@@ -614,7 +616,8 @@ public class RestApiJWTAuthTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspaceName, tableName),
+            String.format(
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 

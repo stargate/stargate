@@ -25,7 +25,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.restapi.models.Changeset;
@@ -58,9 +58,12 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-public class RestApiTest extends BaseOsgiIntegrationTest {
+@ExtendWith(RestApiExtension.class)
+@RestApiSpec()
+public class RestApiTest extends BaseIntegrationTest {
 
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
@@ -68,13 +71,16 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static String authToken;
-  private String host;
+  private String restUrlBase;
+  private String authUrlBase;
   private String keyspace;
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
-    host = "http://" + cluster.seedAddress();
+  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+      throws IOException {
+    authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
+    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
 
     keyspace = "ks_restapitest";
 
@@ -119,7 +125,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             "",
-            String.format("%s:8081/v1/auth/token/generate", host),
+            String.format("%s/v1/auth/token/generate", authUrlBase),
             objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
             HttpStatus.SC_CREATED);
 
@@ -132,7 +138,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   public void createTokenBadCreds() throws IOException {
     RestUtils.post(
         "",
-        String.format("%s:8081/v1/auth/token/generate", host),
+        String.format("%s/v1/auth/token/generate", authUrlBase),
         objectMapper.writeValueAsString(new Credentials("bad", "real_bad")),
         HttpStatus.SC_UNAUTHORIZED);
   }
@@ -140,13 +146,13 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   @Test
   public void createTokenEmptyBody() throws IOException {
     RestUtils.post(
-        "", String.format("%s:8081/v1/auth/token/generate", host), "", HttpStatus.SC_BAD_REQUEST);
+        "", String.format("%s/v1/auth/token/generate", authUrlBase), "", HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
   public void getKeyspaces() throws IOException {
     String body =
-        RestUtils.get(authToken, String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_OK);
+        RestUtils.get(authToken, String.format("%s/v1/keyspaces", restUrlBase), HttpStatus.SC_OK);
 
     List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
     assertThat(keyspaces)
@@ -156,19 +162,21 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   @Test
   public void getKeyspacesMissingToken() throws IOException {
-    RestUtils.get("", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+    RestUtils.get("", String.format("%s/v1/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
   public void getKeyspacesBadToken() throws IOException {
-    RestUtils.get("foo", String.format("%s:8082/v1/keyspaces", host), HttpStatus.SC_UNAUTHORIZED);
+    RestUtils.get("foo", String.format("%s/v1/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
   public void getTables() throws IOException {
     String body =
         RestUtils.get(
-            authToken, String.format("%s:8082/v1/keyspaces/system/tables", host), HttpStatus.SC_OK);
+            authToken,
+            String.format("%s/v1/keyspaces/system/tables", restUrlBase),
+            HttpStatus.SC_OK);
 
     List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
     assertThat(keyspaces)
@@ -208,7 +216,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {});
@@ -223,7 +231,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, new TypeReference<TableResponse>() {});
@@ -244,7 +252,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s", restUrlBase, keyspace, tableName),
         HttpStatus.SC_NO_CONTENT);
   }
 
@@ -269,7 +277,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -341,8 +349,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-                host, keyspace, tableName, rowIdentifier),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+                restUrlBase, keyspace, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
@@ -363,7 +371,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, "system", "local", "local"),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, "system", "local", "local"),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -375,7 +383,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
   public void getRowBadRequest() throws IOException {
     RestUtils.get(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/peer", host, "system", "peers"),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/peer", restUrlBase, "system", "peers"),
         HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -407,7 +415,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -419,7 +427,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s;2", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -436,7 +444,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -448,7 +456,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -459,7 +467,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -475,7 +483,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1/", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1/", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -487,7 +495,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20/", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1;20/", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -498,7 +506,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10/", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-2;10/", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -507,7 +515,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
   private String resourceUrl(String tableName, String resource) {
     return String.format(
-        "%s:8082/v1/keyspaces/%s/tables/%s/%s", host, keyspace, tableName, resource);
+        "%s/v1/keyspaces/%s/tables/%s/%s", restUrlBase, keyspace, tableName, resource);
   }
 
   @Test
@@ -551,8 +559,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/3;thr%%3Bee;-3/",
-                host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/3;thr%%3Bee;-3/",
+                restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -605,7 +613,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows?pageSize=2", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows?pageSize=2", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
@@ -657,7 +665,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
@@ -694,7 +702,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
@@ -733,7 +741,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
@@ -788,7 +796,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
@@ -817,7 +825,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+        String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
 
@@ -869,7 +877,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.post(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(query),
             HttpStatus.SC_OK);
 
@@ -895,7 +903,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -917,7 +925,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -940,7 +948,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -962,7 +970,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -980,7 +988,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -996,7 +1004,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -1010,7 +1018,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/query", host, keyspace, tableName),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
   }
@@ -1043,7 +1051,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s;2", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -1052,14 +1060,15 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/%s;2", host, keyspace, tableName, id),
+        String.format(
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s;2", restUrlBase, keyspace, tableName, id),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -1069,7 +1078,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
@@ -1084,14 +1093,14 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1;10", host, keyspace, tableName),
+            "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1;10", restUrlBase, keyspace, tableName),
         HttpStatus.SC_NO_CONTENT);
 
     String body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/1;one;-1", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/1;one;-1", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -1127,7 +1136,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -1137,14 +1146,14 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
 
     RestUtils.delete(
         authToken,
-        String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+        String.format("%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, keyspace, tableName, id),
         HttpStatus.SC_NO_CONTENT);
 
     body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, id),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s", restUrlBase, keyspace, tableName, id),
             HttpStatus.SC_OK);
 
     rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
@@ -1153,7 +1162,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
@@ -1169,7 +1178,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/columns", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/columns", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     List<ColumnDefinition> columnDefinitions =
@@ -1187,7 +1196,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.get(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/columns", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/columns", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     List<ColumnDefinition> columnDefinitions =
@@ -1208,7 +1217,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/columns/firstName", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/columns/firstName", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     ColumnDefinition columnDefinition =
@@ -1226,7 +1235,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/columns/col3", host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/columns/col3", restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     ColumnDefinition columnDefinition =
@@ -1255,19 +1264,19 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     RestUtils.delete(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/columns/middleName", host, keyspace, tableName),
+            "%s/v1/keyspaces/%s/tables/%s/columns/middleName", restUrlBase, keyspace, tableName),
         HttpStatus.SC_NO_CONTENT);
   }
 
   @Test
   public void ping() throws IOException {
-    assertThat(RestUtils.get(authToken, String.format("%s:8082/", host), HttpStatus.SC_OK))
+    assertThat(RestUtils.get(authToken, String.format("%s/", restUrlBase), HttpStatus.SC_OK))
         .isEqualTo("It's Alive");
   }
 
   @Test
   public void health() throws IOException {
-    assertThat(RestUtils.get(authToken, String.format("%s:8082/health", host), HttpStatus.SC_OK))
+    assertThat(RestUtils.get(authToken, String.format("%s/health", restUrlBase), HttpStatus.SC_OK))
         .isEqualTo("UP");
   }
 
@@ -1291,7 +1300,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -1319,7 +1328,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -1350,7 +1359,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -1395,8 +1404,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s",
-                host, keyspace, tableName, rowIdentifier),
+                "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+                restUrlBase, keyspace, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
 
@@ -1404,7 +1413,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     assertThat(successResponse.getSuccess()).isTrue();
 
     // when
-    body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+    body = RestUtils.get("", String.format("%s:8084/metrics", restUrlBase), HttpStatus.SC_OK);
 
     // then
     double numberOfRestOperations = getRestOperations(body);
@@ -1438,7 +1447,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables", host, keyspace),
+            String.format("%s/v1/keyspaces/%s/tables", restUrlBase, keyspace),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -1486,7 +1495,8 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     return RestUtils.get(
         authToken,
         String.format(
-            "%s:8082/v1/keyspaces/%s/tables/%s/rows/%s", host, keyspace, tableName, rowIdentifier),
+            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
+            restUrlBase, keyspace, tableName, rowIdentifier),
         HttpStatus.SC_OK);
   }
 
@@ -1497,7 +1507,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(rowAdd),
             HttpStatus.SC_CREATED);
 
@@ -1511,7 +1521,7 @@ public class RestApiTest extends BaseOsgiIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/columns", host, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/columns", restUrlBase, keyspace, tableName),
             objectMapper.writeValueAsString(columnDefinition),
             HttpStatus.SC_CREATED);
 

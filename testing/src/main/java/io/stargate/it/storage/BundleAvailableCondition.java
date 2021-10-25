@@ -34,7 +34,7 @@ public class BundleAvailableCondition implements ExecutionCondition {
             () -> new IllegalStateException("IfBundleAvailable annotation not present"));
 
     String bundleName = bundleSkip.bundleName();
-    File[] files = StargateContainer.LIB_DIR.listFiles();
+    File[] files = StargateExtension.LIB_DIR.listFiles();
     return Arrays.stream(files)
         .filter(f -> f.getName().startsWith(bundleName))
         .filter(f -> f.getName().endsWith(".jar"))

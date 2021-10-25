@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseIntegrationTest;
-import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
@@ -12,38 +11,38 @@ import org.apache.http.HttpStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @NotThreadSafe
-public class HealthCheckerTest extends BaseIntegrationTest {
+@ExtendWith(RestApiExtension.class)
+@RestApiSpec()
+public class RestHealthCheckerTest extends BaseIntegrationTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private static String host;
+  private static String healthUrlBase;
 
+  // TODO: what does this do, and is this needed for REST API?
   static {
     System.setProperty("stargate.health_check.data_store.enabled", "true");
     System.setProperty("stargate.health_check.data_store.create_ks_and_table", "true");
   }
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster) {
-    host = "http://" + cluster.seedAddress();
+  public static void setup(RestApiConnectionInfo restApi) {
+    healthUrlBase = "http://" + restApi.host() + ":" + restApi.healthPort();
   }
-
-  // TODO: Add further test cases by bringing persistence up and down along with modifying running
-  // stargate modules
 
   @Test
   public void liveness() throws IOException {
-    String body =
-        RestUtils.get("", String.format("%s:8084/checker/liveness", host), HttpStatus.SC_OK);
+    String body = RestUtils.get("", String.format("%s/health", healthUrlBase), HttpStatus.SC_OK);
 
     assertThat(body).isEqualTo("UP");
   }
 
-  // TODO: are any of these related to REST?
+  // TODO: what should the parameters be for REST? Or do we even have this capability?
   @ParameterizedTest
   @CsvSource({
     ",",
@@ -58,7 +57,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
     query = query == null ? "" : query;
     String body =
         RestUtils.get(
-            "", String.format("%s:8084/checker/readiness%s", host, query), HttpStatus.SC_OK);
+            "", String.format("%s/checker/readiness%s", healthUrlBase, query), HttpStatus.SC_OK);
 
     assertThat(body).isEqualTo("READY");
   }
@@ -68,7 +67,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
     String body =
         RestUtils.get(
             "",
-            String.format("%s:8084/checker/readiness?check=testUnknown", host),
+            String.format("%s/checker/readiness?check=testUnknown", healthUrlBase),
             HttpStatus.SC_SERVICE_UNAVAILABLE);
 
     assertThat(body).isEqualTo("NOT READY");
@@ -77,7 +76,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
   @Test
   public void healthCheck() throws IOException {
     String body =
-        RestUtils.get("", String.format("%s:8084/admin/healthcheck", host), HttpStatus.SC_OK);
+        RestUtils.get("", String.format("%s/admin/healthcheck", healthUrlBase), HttpStatus.SC_OK);
     @SuppressWarnings("unchecked")
     Map<String, Object> json = OBJECT_MAPPER.readValue(body, Map.class);
     assertThat(json)
