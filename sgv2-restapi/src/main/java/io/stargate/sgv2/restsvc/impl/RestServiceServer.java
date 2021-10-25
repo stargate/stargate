@@ -29,7 +29,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResource;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
@@ -124,7 +123,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     final MetricsBinder metricsBinder =
-            new MetricsBinder(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
+        new MetricsBinder(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
     metricsBinder.register(environment.jersey());
 
     // no html content
