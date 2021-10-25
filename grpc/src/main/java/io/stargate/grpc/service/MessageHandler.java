@@ -62,6 +62,7 @@ import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
@@ -311,6 +312,8 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
       responseObserver.onError(throwable);
+    } else if (throwable instanceof UnhandledClientException) {
+      onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
       handlePersistenceException((PersistenceException) throwable);
     } else {
