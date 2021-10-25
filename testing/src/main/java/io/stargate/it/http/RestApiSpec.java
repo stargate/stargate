@@ -32,7 +32,7 @@ public @interface RestApiSpec {
   /**
    * Defines the name of a method (static or instance depending on the target of this annotation)
    * that will be called on parameter of type {@link RestApiParameters.Builder} before starting
-   * Stargate instances.
+   * REST API instances.
    *
    * @return method name
    */

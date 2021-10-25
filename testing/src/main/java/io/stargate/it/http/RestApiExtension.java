@@ -225,11 +225,6 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
       cmd.addArgument("-jar");
       cmd.addArgument(starterJar().getAbsolutePath());
 
-      //      cmd.addArgument(params.listenAddress());
-      //      cmd.addArgument(String.valueOf(params.restPort()));
-      //      cmd.addArgument("--metrics-port");
-      //      cmd.addArgument(String.valueOf(params.metricsPort()));
-
       addStdOutListener(
           (node, line) -> {
             if (line.contains(RESTAPI_STARTED_MESSAGE)) {
