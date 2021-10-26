@@ -26,6 +26,7 @@ import io.stargate.db.cassandra.impl.Cassandra311Persistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.datastore.common.StargateConfigSnitch;
 import io.stargate.db.datastore.common.StargateSeedProvider;
+import io.stargate.db.datastore.common.util.UserDefinedFunctionHelper;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -48,6 +49,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Cassandra311PersistenceActivator extends BaseActivator {
+
+  static {
+    UserDefinedFunctionHelper.fixCompilerClassLoader();
+  }
 
   private static final Logger logger =
       LoggerFactory.getLogger(Cassandra311PersistenceActivator.class);
@@ -149,6 +154,7 @@ public class Cassandra311PersistenceActivator extends BaseActivator {
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
+    c.enable_user_defined_functions = Boolean.getBoolean("stargate.enable_user_defined_functions");
 
     return c;
   }
