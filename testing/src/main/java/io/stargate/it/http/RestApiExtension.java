@@ -141,7 +141,7 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
     return getResource(ec).orElseThrow(() -> new IllegalStateException("Cluster not available"));
   }
 
-  protected static class RestApiService extends Holder
+  protected static class RestApiService extends ExternalResource.Holder
       implements RestApiConnectionInfo, AutoCloseable {
 
     private final UUID id = UUID.randomUUID();
