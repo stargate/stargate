@@ -15,12 +15,12 @@
  */
 package io.stargate.config.store.yaml;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Ticker;
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** A Ticker whose value can be advanced programmatically in test. */
-public class FakeTicker extends Ticker {
+public class FakeTicker implements Ticker {
 
   private final AtomicLong nanos = new AtomicLong();
 
