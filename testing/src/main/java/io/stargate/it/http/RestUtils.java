@@ -61,6 +61,8 @@ public class RestUtils {
       request = new Request.Builder().url(path).get().build();
     }
 
+    logger.info(request.toString());
+
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 
@@ -84,6 +86,9 @@ public class RestUtils {
     }
 
     Request request = requestBuilder.build();
+
+    logger.info(request.toString());
+
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 
@@ -149,6 +154,8 @@ public class RestUtils {
               .build();
     }
 
+    logger.info(request.toString());
+
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 
@@ -175,6 +182,8 @@ public class RestUtils {
               .put(RequestBody.create(MediaType.parse("application/json"), requestBody))
               .build();
     }
+
+    logger.info(request.toString());
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
@@ -210,6 +219,8 @@ public class RestUtils {
               .build();
     }
 
+    logger.info(request.toString());
+
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 
@@ -240,6 +251,8 @@ public class RestUtils {
               .build();
     }
 
+    logger.info(request.toString());
+
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
 
@@ -264,6 +277,8 @@ public class RestUtils {
     } else {
       request = new Request.Builder().url(path).delete().build();
     }
+
+    logger.info(request.toString());
 
     Response response = client.newCall(request).execute();
     assertStatusCode(response, expectedStatusCode);
