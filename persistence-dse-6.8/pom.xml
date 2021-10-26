@@ -88,6 +88,11 @@
     </dependency>
     <dependency>
       <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-java-driver-core</artifactId>
+      <version>1.10.0-dse+20210424</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.dse</groupId>
       <artifactId>dse-commons</artifactId>
       <version>${dse.version}</version>
       <exclusions>
