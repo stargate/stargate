@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
@@ -77,7 +78,7 @@ public class Sgv2RowsResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @QueryParam("fields") final String fields,
+      @QueryParam("fields") String fields,
       @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
           final int pageSizeParam,
       @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
@@ -86,18 +87,41 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-    logger.info("Calling gRPC method: create stub...");
     StargateGrpc.StargateBlockingStub blockingStub =
         StargateGrpc.newBlockingStub(grpcChannel)
             .withCallCredentials(new StargateBearerToken(token))
             .withDeadlineAfter(5, TimeUnit.SECONDS);
+    if (isStringEmpty(fields)) {
+        fields = "*";
+    }
     final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
     logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
-    io.stargate.proto.QueryOuterClass.Response response =
-        blockingStub.executeQuery(QueryOuterClass.Query.newBuilder().setCql(cql).build());
-    logger.info(
+    QueryOuterClass.Response response =
+         blockingStub.executeQuery(QueryOuterClass.Query.newBuilder().setCql(cql).build());
+    QueryOuterClass.ResultSet rs;
+      try {
+          rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+      } catch (InvalidProtocolBufferException e) {
+          return handleGrpcDecodeError(cql, e);
+      }
+      logger.info(
         "Calling gRPC method: response == "
             + new String(response.toByteArray(), StandardCharsets.UTF_8));
     return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+  }
+
+  private javax.ws.rs.core.Response handleGrpcDecodeError(String cql, InvalidProtocolBufferException e)
+  {
+      final String msg = String.format("Problem decoding Protobuf content for CQL query '%s': %s",
+              cql, e.getMessage());
+      logger.error(msg, e);
+      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+              .entity(new RestServiceError(msg, Response.Status.BAD_REQUEST.getStatusCode()))
+              .build();
+  }
+
+  // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
+  private static boolean isStringEmpty(String str) {
+      return (str == null) || str.isEmpty();
   }
 }
