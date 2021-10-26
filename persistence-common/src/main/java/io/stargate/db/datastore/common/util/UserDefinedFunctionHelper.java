@@ -26,6 +26,11 @@ public class UserDefinedFunctionHelper {
    * <p>By default, it is set to the context classloader, which works in regular Cassandra, but not
    * in Stargate's OSGi environment. This method uses reflection calls to change it to the
    * classloader that loaded Cassandra classes.
+   *
+   * <p>Note that <a
+   * href="https://issues.apache.org/jira/browse/CASSANDRA-17013">CASSANDRA-17013</a> fixes this
+   * issue directly in the Cassandra codebase; therefore this method will become obsolete once
+   * Stargate depends on Cassandra JARs that have the fix.
    */
   public static void fixCompilerClassLoader() {
     try {
