@@ -19,7 +19,7 @@ import static com.codahale.metrics.MetricRegistry.name;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.driver.shaded.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 
 public class CacheMetricsRegistry {
   public static final String CACHE_NAME = "file-cache";
@@ -57,7 +57,7 @@ public class CacheMetricsRegistry {
     metricRegistry.register(
         nameWithPrefix(EVICTION_COUNT), (Gauge<Long>) () -> cache.stats().evictionCount());
 
-    metricRegistry.register(nameWithPrefix(SIZE), (Gauge<Long>) cache::size);
+    metricRegistry.register(nameWithPrefix(SIZE), (Gauge<Long>) cache::estimatedSize);
   }
 
   private static String nameWithPrefix(String hitRate) {
