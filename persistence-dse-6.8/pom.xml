@@ -182,7 +182,6 @@
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-java-driver-core</artifactId>
       <version>1.10.0-dse+20210424</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
