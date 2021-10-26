@@ -41,6 +41,7 @@ commitlogs
 metadata
 
 .mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
 settings.xml
 
 .project
