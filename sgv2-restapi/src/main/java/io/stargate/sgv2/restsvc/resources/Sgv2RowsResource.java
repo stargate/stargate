@@ -1,6 +1,8 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
@@ -13,7 +15,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -93,21 +96,43 @@ public class Sgv2RowsResource {
             .withDeadlineAfter(5, TimeUnit.SECONDS);
     if (isStringEmpty(fields)) {
       fields = "*";
+    } else {
+      fields = removeSpaces(fields);
     }
     final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
     logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
-    QueryOuterClass.Response response =
-        blockingStub.executeQuery(QueryOuterClass.Query.newBuilder().setCql(cql).build());
+
+    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
+    if (!isStringEmpty(pageStateParam)) {
+      // surely there must better way to make Protobuf accept plain old byte[]? But if not:
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+
+    QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Response response = blockingStub.executeQuery(query);
+
     QueryOuterClass.ResultSet rs;
     try {
       rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
     } catch (InvalidProtocolBufferException e) {
       return handleGrpcDecodeError(cql, e);
     }
-    logger.info(
-        "Calling gRPC method: response == "
-            + new String(response.toByteArray(), StandardCharsets.UTF_8));
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+    final int count = rs.getRowsCount();
+
+    String pageStateStr = null;
+    BytesValue pagingStateOut = rs.getPagingState();
+    if (pagingStateOut.isInitialized()) {
+      ByteString rawPS = pagingStateOut.getValue();
+      if (!rawPS.isEmpty()) {
+        byte[] b = rawPS.toByteArray();
+        pageStateStr = Base64.getEncoder().encodeToString(b);
+      }
+    }
+
+    Sgv2Rows rows = new Sgv2Rows(count, pageStateStr, Collections.emptyList());
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(rows).build();
   }
 
   private javax.ws.rs.core.Response handleGrpcDecodeError(
@@ -124,5 +149,15 @@ public class Sgv2RowsResource {
   // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
   private static boolean isStringEmpty(String str) {
     return (str == null) || str.isEmpty();
+  }
+
+  private static String removeSpaces(String str) {
+    // TODO: optimize/use commons-lang whatever
+    return str.replaceAll("\\s", "");
+  }
+
+  private static byte[] decodeBase64(String base64encoded) {
+    // TODO: error handling
+    return Base64.getDecoder().decode(base64encoded);
   }
 }
