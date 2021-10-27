@@ -144,7 +144,6 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
   protected static class RestApiService extends ExternalResource.Holder
       implements RestApiConnectionInfo, AutoCloseable {
 
-    private final UUID id = UUID.randomUUID();
     private final StargateEnvironmentInfo stargateEnvironmentInfo;
     private final RestApiSpec spec;
     private final RestApiParameters parameters;
@@ -181,7 +180,9 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
     }
 
     private boolean matches(
-        StargateEnvironmentInfo stargate, RestApiSpec spec, RestApiParameters parameters) {
+        StargateEnvironmentInfo stargateEnvironmentInfo,
+        RestApiSpec spec,
+        RestApiParameters parameters) {
       return this.stargateEnvironmentInfo.id().equals(stargateEnvironmentInfo.id())
           && this.spec.equals(spec)
           && this.parameters.equals(parameters);

@@ -912,13 +912,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = setupClusteringTestCase();
 
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
-                restUrlBase, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_BAD_REQUEST);
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+            restUrlBase, keyspaceName, tableName, whereClause),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -2633,12 +2632,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    String res =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
-            HttpStatus.SC_BAD_REQUEST);
+    RestUtils.delete(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
