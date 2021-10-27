@@ -112,12 +112,7 @@ public class Sgv2RowsResource {
 
     logger.info("Calling gRPC method: response received {}", response);
 
-    QueryOuterClass.ResultSet rs;
-    try {
-      rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
-    } catch (InvalidProtocolBufferException e) {
-      return handleGrpcDecodeError(cql, e);
-    }
+    final QueryOuterClass.ResultSet rs = response.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = null;
