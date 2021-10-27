@@ -144,7 +144,6 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
   protected static class RestApiService extends ExternalResource.Holder
       implements RestApiConnectionInfo, AutoCloseable {
 
-    private final UUID id = UUID.randomUUID();
     private final StargateEnvironmentInfo stargateEnvironmentInfo;
     private final RestApiSpec spec;
     private final RestApiParameters parameters;
@@ -181,7 +180,9 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
     }
 
     private boolean matches(
-        StargateEnvironmentInfo stargate, RestApiSpec spec, RestApiParameters parameters) {
+        StargateEnvironmentInfo stargateEnvironmentInfo,
+        RestApiSpec spec,
+        RestApiParameters parameters) {
       return this.stargateEnvironmentInfo.id().equals(stargateEnvironmentInfo.id())
           && this.spec.equals(spec)
           && this.parameters.equals(parameters);
@@ -218,8 +219,10 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
       cmd = new CommandLine("java");
 
-      cmd.addArgument("-Ddw.stargate.grpc.host=" + params.listenAddress());
-      cmd.addArgument("-Ddw.stargate.grpc.port=" + params.restPort());
+      cmd.addArgument(
+          "-Ddw.stargate.grpc.host=" + stargateEnvironmentInfo.nodes().get(0).seedAddress());
+      cmd.addArgument("-Ddw.stargate.grpc.port=" + 8090);
+      cmd.addArgument("-Ddw.server.connector.port=" + params.restPort());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());

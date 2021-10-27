@@ -46,17 +46,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -76,6 +66,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
   private String tableName;
   private static String authToken;
   private String restUrlBase;
+
+  // TODO: can remove after new REST service implements schema and insert operations
+  private String legacyRestUrlBase;
+
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   static {
@@ -105,6 +99,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
       TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
+    legacyRestUrlBase = "http://" + cluster.seedAddress() + ":8082";
     String authUrlBase =
         "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
@@ -122,8 +117,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
     String testName = name.get();
-    keyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
-    tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
+
+    // TODO: temporarily enforcing lower case names,
+    // should remove to ensure support for mixed case identifiers
+    keyspaceName = "ks_" + testName.toLowerCase() + "_" + System.currentTimeMillis();
+    tableName = "tbl_" + testName.toLowerCase() + "_" + System.currentTimeMillis();
   }
 
   @Test
@@ -409,12 +407,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
+        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
+    indexAdd.setColumn("firstname");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -491,13 +489,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
+        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
     String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
-    indexAdd.setColumn("lastName");
+    indexAdd.setColumn("lastname");
     indexAdd.setName("test_custom_idx");
     indexAdd.setType(indexType);
     indexAdd.setIfNotExists(false);
@@ -525,7 +523,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
 
     assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
-    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
+    assertThat(optionsReturned.get("target")).isEqualTo("\"lastname\"");
     assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
@@ -535,13 +533,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Arrays.asList("id text", "firstname text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     // invalid table
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
+    indexAdd.setColumn("firstname");
     String body =
         RestUtils.post(
             authToken,
@@ -570,7 +568,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
 
     // invalid index kind
-    indexAdd.setColumn("firstName");
+    indexAdd.setColumn("firstname");
     indexAdd.setKind(IndexKind.ENTRIES);
     body =
         RestUtils.post(
@@ -593,7 +591,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Arrays.asList("id text", "firstname text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
@@ -607,7 +605,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(body).isEqualTo("[]");
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
+    indexAdd.setColumn("firstname");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -638,12 +636,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Arrays.asList("id text", "firstname text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
+    indexAdd.setColumn("firstname");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -706,8 +704,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("id", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
-    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+    columnDefinitions.add(new ColumnDefinition("lastname", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstname", "text"));
 
     tableAdd.setColumnDefinitions(columnDefinitions);
 
@@ -780,7 +778,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -802,7 +800,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.readValue(body, ListOfMapsGetResponseWrapper.class);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
   @Test
@@ -824,7 +822,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
 
@@ -836,7 +834,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -856,7 +854,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
   @Test
@@ -877,7 +875,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
@@ -898,7 +896,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
@@ -907,13 +905,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = setupClusteringTestCase();
 
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
-                restUrlBase, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_BAD_REQUEST);
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+            restUrlBase, keyspaceName, tableName, whereClause),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -924,7 +921,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -937,7 +934,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s/v2/keyspaces/%s/%s?where=%s&fields=id,firstName",
+                "%s/v2/keyspaces/%s/%s?where=%s&fields=id,firstname",
                 restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
@@ -953,17 +950,17 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text"),
+        Arrays.asList("id text", "firstname text"),
         Collections.singletonList("id"),
-        Collections.singletonList("firstName"));
+        Collections.singletonList("firstname"));
 
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "firstName John"),
-            Arrays.asList("id 1", "firstName Sarah"),
-            Arrays.asList("id 2", "firstName Jane")));
+            Arrays.asList("id 1", "firstname John"),
+            Arrays.asList("id 1", "firstname Sarah"),
+            Arrays.asList("id 2", "firstname Jane")));
 
-    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"firstName\":{\"$in\":[\"Sarah\"]}}";
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"firstname\":{\"$in\":[\"Sarah\"]}}";
     String body =
         RestUtils.get(
             authToken,
@@ -976,7 +973,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo("1");
-    assertThat(data.get(0).get("firstName")).isEqualTo("Sarah");
+    assertThat(data.get(0).get("firstname")).isEqualTo("Sarah");
   }
 
   @Test
@@ -984,16 +981,16 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "created timestamp"),
+        Arrays.asList("id text", "firstname text", "created timestamp"),
         Collections.singletonList("id"),
         Collections.singletonList("created"));
 
     String timestamp = "2021-04-23T18:42:22.139Z";
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "firstName John", "created " + timestamp),
-            Arrays.asList("id 1", "firstName Sarah", "created 2021-04-20T18:42:22.139Z"),
-            Arrays.asList("id 2", "firstName Jane", "created 2021-04-22T18:42:22.139Z")));
+            Arrays.asList("id 1", "firstname John", "created " + timestamp),
+            Arrays.asList("id 1", "firstname Sarah", "created 2021-04-20T18:42:22.139Z"),
+            Arrays.asList("id 2", "firstname Jane", "created 2021-04-22T18:42:22.139Z")));
 
     String whereClause =
         String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);
@@ -1009,7 +1006,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo("1");
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
   @Test
@@ -1017,16 +1014,16 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text"),
+        Arrays.asList("id text", "firstname text"),
         Collections.singletonList("id"),
         null);
 
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "firstName Jonh"),
-            Arrays.asList("id 2", "firstName Jane"),
-            Arrays.asList("id 3", "firstName Scott"),
-            Arrays.asList("id 4", "firstName April")));
+            Arrays.asList("id 1", "firstname Jonh"),
+            Arrays.asList("id 2", "firstname Jane"),
+            Arrays.asList("id 3", "firstname Scott"),
+            Arrays.asList("id 4", "firstname April")));
 
     // get first page
     String body =
@@ -1074,22 +1071,22 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text"),
+        Arrays.asList("id text", "firstname text"),
         Collections.singletonList("id"),
         null);
 
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "firstName Jonh"),
-            Arrays.asList("id 2", "firstName Jane"),
-            Arrays.asList("id 3", "firstName Scott"),
-            Arrays.asList("id 4", "firstName April")));
+            Arrays.asList("id 1", "firstname Jonh"),
+            Arrays.asList("id 2", "firstname Jane"),
+            Arrays.asList("id 3", "firstname Scott"),
+            Arrays.asList("id 4", "firstname April")));
 
     String body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s/v2/keyspaces/%s/%s/rows?fields=id, firstName",
+                "%s/v2/keyspaces/%s/%s/rows?fields=id, firstname",
                 restUrlBase, keyspaceName, tableName),
             HttpStatus.SC_OK);
 
@@ -1138,7 +1135,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1157,7 +1154,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
   @Test
@@ -1177,7 +1174,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
@@ -1199,7 +1196,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
 
@@ -1211,7 +1208,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1242,7 +1239,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1261,7 +1258,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, Object>> data =
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
   @Test
@@ -1280,7 +1277,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
     assertThat(data.size()).isEqualTo(2);
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
@@ -1321,7 +1318,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo(1);
-    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(2);
   }
 
@@ -1363,7 +1360,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     String body =
         RestUtils.post(
@@ -1463,7 +1460,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     RestUtils.post(
         authToken,
         String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
-        "{\"id\": \"af2603d2-8c03-11eb-a03f-0ada685e0000\",\"firstName: \"john\"}",
+        "{\"id\": \"af2603d2-8c03-11eb-a03f-0ada685e0000\",\"firstname: \"john\"}",
         HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -1475,7 +1472,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1484,8 +1481,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
+    rowUpdate.put("firstname", "Robert");
+    rowUpdate.put("lastname", "Plant");
 
     String body =
         RestUtils.put(
@@ -1506,7 +1503,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1515,8 +1512,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
+    rowUpdate.put("firstname", "Robert");
+    rowUpdate.put("lastname", "Plant");
 
     String body =
         RestUtils.put(
@@ -1647,7 +1644,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1659,7 +1656,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         authToken,
         String.format(
             "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
-        "{\"firstName\": \"Robert,\"lastName\": \"Plant\"}",
+        "{\"firstname\": \"Robert,\"lastname\": \"Plant\"}",
         HttpStatus.SC_BAD_REQUEST);
   }
 
@@ -1671,8 +1668,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-    row.put("lastName", "Doe");
+    row.put("firstname", "John");
+    row.put("lastname", "Doe");
 
     RestUtils.post(
         authToken,
@@ -1681,7 +1678,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Jane");
+    rowUpdate.put("firstname", "Jane");
 
     String body =
         RestUtils.patch(
@@ -1704,8 +1701,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
-    assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
+    assertThat(data.get(0).get("firstname")).isEqualTo("Jane");
+    assertThat(data.get(0).get("lastname")).isEqualTo("Doe");
   }
 
   @Test
@@ -1716,8 +1713,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
-    row.put("lastName", "Doe");
+    row.put("firstname", "John");
+    row.put("lastname", "Doe");
 
     RestUtils.post(
         authToken,
@@ -1726,7 +1723,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Jane");
+    rowUpdate.put("firstname", "Jane");
 
     String body =
         RestUtils.patch(
@@ -1752,8 +1749,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
-    assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
+    assertThat(data.get(0).get("firstname")).isEqualTo("Jane");
+    assertThat(data.get(0).get("lastname")).isEqualTo("Doe");
   }
 
   @Test
@@ -1764,7 +1761,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
 
     RestUtils.post(
         authToken,
@@ -1865,7 +1862,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     data = getResponseWrapper.getData();
     assertThat(getResponseWrapper.getCount()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo(2);
-    assertThat(data.get(0).get("firstName")).isEqualTo("Jane");
+    assertThat(data.get(0).get("firstname")).isEqualTo("Jane");
   }
 
   @Test
@@ -2628,12 +2625,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    String res =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
-            HttpStatus.SC_BAD_REQUEST);
+    RestUtils.delete(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -2718,6 +2713,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void testMixedCaseTable() throws IOException {
+    keyspaceName = "MixedCaseKeyspace"; // intentional override of keyspace name
     createKeyspace(keyspaceName);
 
     String tableName = "MixedCaseTable";
@@ -2727,8 +2723,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("ID", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("Lastname", "text"));
-    columnDefinitions.add(new ColumnDefinition("Firstname", "text"));
+    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2751,8 +2747,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
     row.put("ID", rowIdentifier);
-    row.put("Firstname", "John");
-    row.put("Lastname", "Doe");
+    row.put("firstName", "John");
+    row.put("lastName", "Doe");
 
     RestUtils.post(
         authToken,
@@ -2774,8 +2770,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("Firstname")).isEqualTo("John");
-    assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
@@ -2785,8 +2781,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("id", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
-    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+    columnDefinitions.add(new ColumnDefinition("lastname", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstname", "text"));
     columnDefinitions.add(new ColumnDefinition("age", "int"));
 
     tableAdd.setColumnDefinitions(columnDefinitions);
@@ -2795,9 +2791,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setPartitionKey(Collections.singletonList("id"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2822,10 +2819,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
     }
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -2851,9 +2849,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setPartitionKey(Collections.singletonList("pk0"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2865,8 +2864,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("id", "int"));
-    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
-    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+    columnDefinitions.add(new ColumnDefinition("lastname", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstname", "text"));
     columnDefinitions.add(new ColumnDefinition("age", "int", true));
     columnDefinitions.add(new ColumnDefinition("expense_id", "int"));
 
@@ -2877,9 +2876,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setClusteringKey(Collections.singletonList("expense_id"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2905,9 +2905,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2916,9 +2917,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String createKeyspaceRequest =
         String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
 
+    // TODO: change to restUrlBase after new REST service implements keyspace creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        String.format("%s/v2/schemas/keyspaces", legacyRestUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }
@@ -2932,9 +2934,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
 
+      // TODO: change to restUrlBase after new REST service implements insert operation
       RestUtils.post(
           authToken,
-          String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+          String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
@@ -2947,45 +2950,49 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = "1";
     Map<String, String> row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
     row = new HashMap<>();
     row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    row.put("firstname", "John");
     row.put("expense_id", "2");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
     row = new HashMap<>();
     row.put("id", "2");
-    row.put("firstName", "Jane");
+    row.put("firstname", "Jane");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
     row = new HashMap<>();
     row.put("id", "2");
-    row.put("firstName", "Jane");
+    row.put("firstname", "Jane");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3004,9 +3011,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "foo");
     row.put("v", "9");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3018,9 +3026,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "foo");
     row.put("v", "19");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3032,9 +3041,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "bar");
     row.put("v", "18");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
   }
