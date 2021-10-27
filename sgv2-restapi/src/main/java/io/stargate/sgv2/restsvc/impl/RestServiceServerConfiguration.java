@@ -30,19 +30,19 @@ public class RestServiceServerConfiguration extends Configuration {
     public int port = -1;
 
     // !!! TODO: probably should default to true
-    public boolean useTLS = false;
+    public boolean useTls = false;
 
     protected EndpointConfig() {}
 
-    public EndpointConfig(String host, int port, boolean useTLS) {
+    public EndpointConfig(String host, int port, boolean useTls) {
       this.host = host;
       this.port = port;
-      this.useTLS = useTLS;
+      this.useTls = useTls;
     }
 
     @Override
     public String toString() {
-      return String.format("%s://%s:%s", useTLS ? "https" : "http", host, port);
+      return String.format("%s://%s:%s", useTls ? "https" : "http", host, port);
     }
   }
 }

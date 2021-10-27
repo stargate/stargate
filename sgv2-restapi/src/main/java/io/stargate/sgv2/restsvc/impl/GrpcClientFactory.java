@@ -19,7 +19,7 @@ public class GrpcClientFactory {
     RestServiceServerConfiguration x;
     ManagedChannelBuilder b =
         ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
-    if (grpcEndpoint.useTLS) {
+    if (grpcEndpoint.useTls) {
       b = b.useTransportSecurity();
     } else {
       b = b.usePlaintext();
