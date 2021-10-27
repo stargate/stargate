@@ -46,17 +46,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -127,8 +117,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Optional<String> name = testInfo.getTestMethod().map(Method::getName);
     assertThat(name).isPresent();
     String testName = name.get();
-    keyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
-    tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
+    keyspaceName = "ks_" + testName.toLowerCase() + "_" + System.currentTimeMillis();
+    tableName = "tbl_" + testName.toLowerCase() + "_" + System.currentTimeMillis();
   }
 
   @Test
