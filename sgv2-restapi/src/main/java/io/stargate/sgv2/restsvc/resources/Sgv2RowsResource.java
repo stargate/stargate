@@ -4,10 +4,10 @@ import com.codahale.metrics.annotation.Timed;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Rows;
 import io.swagger.annotations.Api;
@@ -17,7 +17,6 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -46,8 +45,8 @@ public class Sgv2RowsResource {
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  /** Channel used to connect to backend gRPC service. */
-  @Inject private ManagedChannel grpcChannel;
+  /** Entity used to connect to backend gRPC service. */
+  @Inject private GrpcClientFactory grpcFactory;
 
   @Timed
   @GET
@@ -91,9 +90,7 @@ public class Sgv2RowsResource {
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
     StargateGrpc.StargateBlockingStub blockingStub =
-        StargateGrpc.newBlockingStub(grpcChannel)
-            .withCallCredentials(new StargateBearerToken(token))
-            .withDeadlineAfter(5, TimeUnit.SECONDS);
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     if (isStringEmpty(fields)) {
       fields = "*";
     } else {
