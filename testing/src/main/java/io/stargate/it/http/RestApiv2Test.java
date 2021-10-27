@@ -76,6 +76,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
   private String tableName;
   private static String authToken;
   private String restUrlBase;
+
+  // TODO: can remove after new REST service implements schema and insert operations
+  private String legacyRestUrlBase;
+
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   static {
@@ -105,6 +109,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
       TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
+    legacyRestUrlBase = "http://" + cluster.seedAddress() + ":8082";
     String authUrlBase =
         "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
@@ -2795,9 +2800,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setPartitionKey(Collections.singletonList("id"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2822,10 +2828,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
     }
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
@@ -2851,9 +2858,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setPartitionKey(Collections.singletonList("pk0"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2877,9 +2885,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setClusteringKey(Collections.singletonList("expense_id"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2905,9 +2914,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
     tableAdd.setPrimaryKey(primaryKey);
 
+    // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2916,9 +2926,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String createKeyspaceRequest =
         String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
 
+    // TODO: change to restUrlBase after new REST service implements keyspace creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        String.format("%s/v2/schemas/keyspaces", legacyRestUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }
@@ -2932,9 +2943,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
 
+      // TODO: change to restUrlBase after new REST service implements insert operation
       RestUtils.post(
           authToken,
-          String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+          String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
@@ -2950,9 +2962,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("firstName", "John");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2961,9 +2974,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("firstName", "John");
     row.put("expense_id", "2");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2972,9 +2986,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("firstName", "Jane");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -2983,9 +2998,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("firstName", "Jane");
     row.put("expense_id", "1");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3004,9 +3020,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "foo");
     row.put("v", "9");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3018,9 +3035,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "foo");
     row.put("v", "19");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3032,9 +3050,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("ck1", "bar");
     row.put("v", "18");
 
+    // TODO: change to restUrlBase after new REST service implements insert operation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", legacyRestUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
   }
