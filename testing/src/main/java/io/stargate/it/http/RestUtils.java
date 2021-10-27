@@ -23,6 +23,7 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.http.models.Credentials;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -63,7 +64,15 @@ public class RestUtils {
 
     logger.info(request.toString());
 
-    Response response = client.newCall(request).execute();
+    final Response response;
+    try {
+      response = client.newCall(request).execute();
+    } catch (SocketTimeoutException e) {
+      throw new IOException(
+          String.format(
+              "Timeout (%s) for GET request from URL '%s': service not running?",
+              request.url(), e.getClass().getName()));
+    }
     assertStatusCode(response, expectedStatusCode);
 
     ResponseBody body = response.body();
