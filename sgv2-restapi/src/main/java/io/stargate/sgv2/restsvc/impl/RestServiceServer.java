@@ -24,8 +24,6 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
@@ -88,12 +86,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       throws IOException {
     // Jackson configuration, gRPC access
     final RestServiceServerConfiguration.EndpointConfig grpcEndpoint = appConfig.stargate.grpc;
-    logger.info("gRPC endpoint to use: {}", grpcEndpoint);
-    final ManagedChannel grpcChannel =
-        ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port)
-            .usePlaintext()
-            .directExecutor()
-            .build();
+    logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
+    final GrpcClientFactory grpc = GrpcClientFactory.construct(grpcEndpoint);
+
     environment
         .jersey()
         .register(
@@ -101,7 +96,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
               @Override
               protected void configure() {
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
-                bind(grpcChannel).to(ManagedChannel.class);
+                bind(grpc).to(GrpcClientFactory.class);
               }
             });
 
