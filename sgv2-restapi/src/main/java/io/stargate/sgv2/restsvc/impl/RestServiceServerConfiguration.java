@@ -22,23 +22,27 @@ public class RestServiceServerConfiguration extends Configuration {
 
   /** Value class definitions */
   static class StargateConfig {
-    public EndpointConfig grpc = new EndpointConfig("localhost", 8090);
+    public EndpointConfig grpc = new EndpointConfig("localhost", 8090, false);
   }
 
   static class EndpointConfig {
     public String host = "localhost";
     public int port = -1;
 
+    // !!! TODO: probably should default to true
+    public boolean useTls = false;
+
     protected EndpointConfig() {}
 
-    public EndpointConfig(String host, int port) {
+    public EndpointConfig(String host, int port, boolean useTls) {
       this.host = host;
       this.port = port;
+      this.useTls = useTls;
     }
 
     @Override
     public String toString() {
-      return String.format("%s:%s", host, port);
+      return String.format("%s://%s:%s", useTls ? "https" : "http", host, port);
     }
   }
 }

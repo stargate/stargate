@@ -1,10 +1,13 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
-import io.grpc.ManagedChannel;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
+import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Rows;
 import io.swagger.annotations.Api;
@@ -12,8 +15,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
+import java.util.Base64;
+import java.util.Collections;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -42,8 +45,8 @@ public class Sgv2RowsResource {
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  /** Channel used to connect to backend gRPC service. */
-  @Inject private ManagedChannel grpcChannel;
+  /** Entity used to connect to backend gRPC service. */
+  @Inject private GrpcClientFactory grpcFactory;
 
   @Timed
   @GET
@@ -77,7 +80,7 @@ public class Sgv2RowsResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @QueryParam("fields") final String fields,
+      @QueryParam("fields") String fields,
       @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
           final int pageSizeParam,
       @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
@@ -86,18 +89,74 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-    logger.info("Calling gRPC method: create stub...");
-    StargateGrpc.StargateBlockingStub blockingStub =
-        StargateGrpc.newBlockingStub(grpcChannel)
-            .withCallCredentials(new StargateBearerToken(token))
-            .withDeadlineAfter(5, TimeUnit.SECONDS);
+    if (isStringEmpty(fields)) {
+      fields = "*";
+    } else {
+      fields = removeSpaces(fields);
+    }
     final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
-    logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
-    io.stargate.proto.QueryOuterClass.Response response =
-        blockingStub.executeQuery(QueryOuterClass.Query.newBuilder().setCql(cql).build());
-    logger.info(
-        "Calling gRPC method: response == "
-            + new String(response.toByteArray(), StandardCharsets.UTF_8));
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+    logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
+    if (!isStringEmpty(pageStateParam)) {
+      // surely there must better way to make Protobuf accept plain old byte[]? But if not:
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+
+    QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Response response = blockingStub.executeQuery(query);
+
+    logger.info("Calling gRPC method: response received {}", response);
+
+    QueryOuterClass.ResultSet rs;
+    try {
+      rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+    } catch (InvalidProtocolBufferException e) {
+      return handleGrpcDecodeError(cql, e);
+    }
+    final int count = rs.getRowsCount();
+
+    String pageStateStr = null;
+    BytesValue pagingStateOut = rs.getPagingState();
+    if (pagingStateOut.isInitialized()) {
+      ByteString rawPS = pagingStateOut.getValue();
+      if (!rawPS.isEmpty()) {
+        byte[] b = rawPS.toByteArray();
+        pageStateStr = Base64.getEncoder().encodeToString(b);
+      }
+    }
+
+    Sgv2Rows rows = new Sgv2Rows(count, pageStateStr, Collections.emptyList());
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(rows).build();
+  }
+
+  private javax.ws.rs.core.Response handleGrpcDecodeError(
+      String cql, InvalidProtocolBufferException e) {
+    final String msg =
+        String.format(
+            "Problem decoding Protobuf content for CQL query '%s': %s", cql, e.getMessage());
+    logger.error(msg, e);
+    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+        .entity(new RestServiceError(msg, Response.Status.BAD_REQUEST.getStatusCode()))
+        .build();
+  }
+
+  // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
+  private static boolean isStringEmpty(String str) {
+    return (str == null) || str.isEmpty();
+  }
+
+  private static String removeSpaces(String str) {
+    // TODO: optimize/use commons-lang whatever
+    return str.replaceAll("\\s", "");
+  }
+
+  private static byte[] decodeBase64(String base64encoded) {
+    // TODO: error handling
+    return Base64.getDecoder().decode(base64encoded);
   }
 }
