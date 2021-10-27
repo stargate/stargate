@@ -180,7 +180,7 @@ public class BindValuesTest {
           .boundNames()
           .ifPresent(
               names -> {
-                assertThat(names).isEqualTo(new ArrayList<>(values.getValueNamesList()));
+                assertThat(names).isEqualTo(values.getValueNamesList());
                 List<Column> columns = prepared.metadata.columns;
                 for (String name : names) {
                   int index =
