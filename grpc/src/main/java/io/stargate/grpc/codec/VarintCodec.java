@@ -13,34 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
-import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
+import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
+import io.stargate.proto.QueryOuterClass.Varint;
 import java.nio.ByteBuffer;
 
-public class TinyintCodec implements ValueCodec {
-
+public class VarintCodec implements ValueCodec {
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected integer type");
+    if (value.getInnerCase() != InnerCase.VARINT) {
+      throw new IllegalArgumentException("Expected varint type");
     }
-    byte byteValue = (byte) value.getInt();
-    if (byteValue != value.getInt()) {
-      throw new IllegalArgumentException(
-          String.format("Valid range for tinyint is %d to %d", Byte.MIN_VALUE, Byte.MAX_VALUE));
-    }
-    return TypeCodecs.TINYINT.encodePrimitive(byteValue, PROTOCOL_VERSION);
+    Varint varint = value.getVarint();
+    return ByteBuffer.wrap(varint.getValue().toByteArray());
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
+    if (bytes.remaining() == 0) {
+      return null;
+    }
+
     return Value.newBuilder()
-        .setInt(TypeCodecs.TINYINT.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
         .build();
   }
 }

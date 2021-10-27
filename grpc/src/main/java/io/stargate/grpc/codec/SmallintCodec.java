@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -22,20 +22,25 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class BooleanCodec implements ValueCodec {
+public class SmallintCodec implements ValueCodec {
 
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.BOOLEAN) {
-      throw new IllegalArgumentException("Expected boolean type");
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected integer type");
     }
-    return TypeCodecs.BOOLEAN.encodePrimitive(value.getBoolean(), PROTOCOL_VERSION);
+    short shortValue = (short) value.getInt();
+    if (shortValue != value.getInt()) {
+      throw new IllegalArgumentException(
+          String.format("Valid range for smallint is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
+    }
+    return TypeCodecs.SMALLINT.encodePrimitive(shortValue, PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setBoolean(TypeCodecs.BOOLEAN.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setInt(TypeCodecs.SMALLINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

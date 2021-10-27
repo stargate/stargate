@@ -13,29 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
-import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
+import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class BigintCodec implements ValueCodec {
-
+public class BytesCodec implements ValueCodec {
   @Override
-  public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected integer type");
+  public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
+    if (value.getInnerCase() != InnerCase.BYTES) {
+      throw new IllegalArgumentException("Expected bytes type");
     }
-    return TypeCodecs.BIGINT.encodePrimitive(value.getInt(), PROTOCOL_VERSION);
+    return ByteBuffer.wrap(value.getBytes().toByteArray());
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
-    return Value.newBuilder()
-        .setInt(TypeCodecs.BIGINT.decodePrimitive(bytes, PROTOCOL_VERSION))
-        .build();
+    return Value.newBuilder().setBytes(ByteString.copyFrom(bytes)).build();
   }
 }

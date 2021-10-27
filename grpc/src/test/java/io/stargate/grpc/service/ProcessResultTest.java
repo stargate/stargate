@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.payload;
+package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
-import com.google.protobuf.Any;
 import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Row;
@@ -45,11 +43,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class ProcessResultTest {
   @ParameterizedTest
   @MethodSource("results")
-  public void processResult(
-      Payload.Type type, Rows rows, QueryParameters queryParameters, Any expected)
+  public void processResult(Rows rows, QueryParameters queryParameters, ResultSet expected)
       throws Exception {
-    PayloadHandler handler = PayloadHandlers.get(type);
-    Any actual = handler.processResult(rows, queryParameters);
+    ResultSet actual = ValuesHelper.processResult(rows, queryParameters);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -139,10 +135,9 @@ public class ProcessResultTest {
 
     Arguments build(boolean skipMetadata) {
       return arguments(
-          Payload.Type.CQL,
           new Rows(rows, Utils.makeResultMetadata(columns.toArray(new Column[0]))),
           QueryParameters.newBuilder().setSkipMetadata(skipMetadata).build(),
-          Any.pack(resultSet.build()));
+          resultSet.build());
     }
   }
 }

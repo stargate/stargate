@@ -13,34 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class IntCodec implements ValueCodec {
+public class BooleanCodec implements ValueCodec {
+
   @Override
-  public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected integer type");
+  public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
+    if (value.getInnerCase() != InnerCase.BOOLEAN) {
+      throw new IllegalArgumentException("Expected boolean type");
     }
-    int intValue = (int) value.getInt();
-    if (intValue != value.getInt()) {
-      throw new IllegalArgumentException(
-          String.format("Valid range for int is %d to %d", Integer.MIN_VALUE, Integer.MAX_VALUE));
-    }
-    return TypeCodecs.INT.encodePrimitive(intValue, PROTOCOL_VERSION);
+    return TypeCodecs.BOOLEAN.encodePrimitive(value.getBoolean(), PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setInt(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setBoolean(TypeCodecs.BOOLEAN.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

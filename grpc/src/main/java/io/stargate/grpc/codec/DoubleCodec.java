@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -22,24 +22,19 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class TimeCodec implements ValueCodec {
-
+public class DoubleCodec implements ValueCodec {
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.TIME) {
-      throw new IllegalArgumentException("Expected time type");
+    if (value.getInnerCase() != InnerCase.DOUBLE) {
+      throw new IllegalArgumentException("Expected double type");
     }
-    long time = value.getTime();
-    if (time < 0 || time > 86399999999999L) {
-      throw new IllegalArgumentException("Valid range for time is 0 to 86399999999999 nanoseconds");
-    }
-    return TypeCodecs.BIGINT.encodePrimitive(time, PROTOCOL_VERSION);
+    return TypeCodecs.DOUBLE.encodePrimitive(value.getDouble(), PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setTime(TypeCodecs.BIGINT.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setDouble(TypeCodecs.DOUBLE.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

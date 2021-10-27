@@ -27,7 +27,6 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
@@ -71,13 +70,12 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
 
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(Values.of("a"), Values.of(1)), cqlRow(Values.of("b"), Values.of(2)))));
+                    rowOf(Values.of("a"), Values.of(1)), rowOf(Values.of("b"), Values.of(2)))));
   }
 
   @Test
@@ -168,8 +166,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         stub.executeQuery(cqlQuery("select k,v from test", queryParameters(keyspace)));
 
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(100);
     assertThat(rs.getPagingState()).isNotNull();
 
@@ -182,8 +179,7 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
                     .setPageSize(Int32Value.newBuilder().setValue(2).build())));
 
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    rs = response.getResultSet().getData().unpack(ResultSet.class);
+    rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(2);
     assertThat(rs.getPagingState()).isNotNull();
   }

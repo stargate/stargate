@@ -149,8 +149,7 @@ message Query {
   string cql = 1;
 
   // The values to fill the placeholders in the query string.
-  // If the payload type is CQL, then the data must be a Values message.
-  Payload values = 2;
+  Values values = 2;
 
   // The execution parameters for the query.
   QueryParameters parameters = 3;
@@ -162,22 +161,6 @@ message Values {
   repeated Value values = 1;
   // The value names, if the query uses named placeholders.
   repeated string value_names = 2;
-}
-
-// An abstract payload type to represent data flowing between the client and the server (values in
-// queries, and result data in responses).
-// This wrapper type makes it possible to support multiple data formats.
-message Payload {
-  Type type = 1;
-  // A payload type, that determines how data is encoded.
-  // Currently CQL is the only possible value, but other types may be added in the future (e.g.
-  // JSON, AVRO...).
-  enum Type {
-    // The data is a another message type in this proto file (which exactly depends on the
-    // situation, see the usage sites of the Payload message for more details).
-    CQL = 0;
-  }
-  google.protobuf.Any data = 2;
 }
 
 // The execution parameters for a Query message.
@@ -360,8 +343,7 @@ message SchemaChange {
 message Response {
   oneof result {
     // The result data.
-    // If the payload type is CQL, then the data is a ResultSet message.
-    Payload result_set = 1;
+    ResultSet result_set = 1;
     // How the query changed the CQL schema.
     SchemaChange schema_change = 4;
   }
@@ -509,8 +491,7 @@ message BatchQuery {
   string cql = 1;
 
   // The values to fill the placeholders in the query string.
-  // If the payload type is CQL, then the data must be a Values message.
-  Payload values = 2;
+  Values values = 2;
 }
 
 // The execution parameters for a Batch message.

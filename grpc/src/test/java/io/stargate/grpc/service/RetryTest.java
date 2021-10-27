@@ -40,7 +40,6 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.nio.ByteBuffer;
@@ -318,8 +317,7 @@ public class RetryTest extends BaseGrpcServiceTest {
 
   private void validateResponse(String releaseVersion, QueryOuterClass.Response response)
       throws InvalidProtocolBufferException {
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);
