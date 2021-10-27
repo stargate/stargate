@@ -68,7 +68,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
                 queryParameters(keyspace),
                 Values.of("a")));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("a"));
@@ -120,7 +120,7 @@ public class CollectionsTest extends GrpcIntegrationTest {
                 queryParameters(keyspace),
                 Values.of("b")));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("b"));

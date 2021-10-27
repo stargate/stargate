@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.service;
 
-import com.google.protobuf.Any;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.BatchType;
@@ -26,13 +25,10 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Statement;
-import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Response;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -74,16 +70,6 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
     if (message.getQueriesCount() == 0) {
       throw Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException();
     }
-
-    Payload.Type type = message.getQueries(0).getValues().getType();
-    boolean allTypesMatch =
-        message.getQueriesList().stream().allMatch(v -> v.getValues().getType().equals(type));
-    if (!allTypesMatch) {
-      throw Status.INVALID_ARGUMENT
-          .withDescription(
-              "Types for all queries within batch must be the same, and equal to: " + type)
-          .asException();
-    }
   }
 
   @Override
@@ -116,11 +102,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
 
     if (result.kind == Result.Kind.Rows) {
       // all queries within a batch must have the same type
-      Payload.Type type = message.getQueries(0).getValues().getType();
-      PayloadHandler handler = PayloadHandlers.get(type);
       try {
-        Any data = handler.processResult((Result.Rows) result, message.getParameters());
-        responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
+        responseBuilder.setResultSet(
+            ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
       } catch (Exception e) {
         throw new CompletionException(e);
       }
@@ -212,7 +196,6 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
 
       BatchQuery query = message.getQueries(index);
-      BatchParameters batchParameters = message.getParameters();
 
       BatchHandler.this
           .prepare(query.getCql(), decoratedKeyspace)
@@ -225,8 +208,7 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
                     // if any statement in a batch is non idempotent, then all statements are non
                     // idempotent
                     isIdempotent.compareAndSet(true, prepared.isIdempotent);
-                    PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
-                    statements.add(bindValues(handler, prepared, query.getValues()));
+                    statements.add(bindValues(prepared, query.getValues()));
                     next(); // Prepare the next query in the batch
                   } catch (Throwable th) {
                     future.completeExceptionally(th);

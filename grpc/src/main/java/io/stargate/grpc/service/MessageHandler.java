@@ -32,12 +32,10 @@ import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.tracing.QueryTracingFetcher;
-import io.stargate.grpc.payload.PayloadHandler;
 import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
-import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.CasWriteUnknown;
 import io.stargate.proto.QueryOuterClass.FunctionFailure;
@@ -45,6 +43,7 @@ import io.stargate.proto.QueryOuterClass.ReadFailure;
 import io.stargate.proto.QueryOuterClass.ReadTimeout;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.Unavailable;
+import io.stargate.proto.QueryOuterClass.Values;
 import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
 import java.util.Collections;
@@ -217,10 +216,9 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   /** Computes the consistency level to use for tracing queries. */
   protected abstract ConsistencyLevel getTracingConsistency();
 
-  protected BoundStatement bindValues(
-      PayloadHandler handler, Prepared prepared, QueryOuterClass.Payload values) throws Exception {
-    return values.hasData()
-        ? handler.bindValues(prepared, values.getData(), persistence.unsetValue())
+  protected BoundStatement bindValues(Prepared prepared, Values values) throws Exception {
+    return values.getValuesCount() > 0
+        ? ValuesHelper.bindValues(prepared, values, persistence.unsetValue())
         : new BoundStatement(prepared.statementId, Collections.emptyList(), null);
   }
 
@@ -282,7 +280,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected CompletionStage<Response> executeTracingQueryIfNeeded(
       ResponseAndTraceId responseAndTraceId) {
     Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
-    return (responseAndTraceId.tracingIdIsEmpty())
+    return responseAndTraceId.tracingIdIsEmpty()
         ? CompletableFuture.completedFuture(responseBuilder.build())
         : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
             .fetch()

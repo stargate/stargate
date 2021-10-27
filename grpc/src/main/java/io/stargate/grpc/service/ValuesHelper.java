@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.payload.cql;
+package io.stargate.grpc.service;
 
-import static io.stargate.grpc.codec.cql.ValueCodec.decodeValue;
+import static io.stargate.grpc.codec.ValueCodec.decodeValue;
 
-import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
-import com.google.protobuf.InvalidProtocolBufferException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import io.grpc.Status;
@@ -31,9 +29,8 @@ import io.stargate.db.Result.Rows;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.grpc.codec.cql.ValueCodec;
-import io.stargate.grpc.codec.cql.ValueCodecs;
-import io.stargate.grpc.payload.PayloadHandler;
+import io.stargate.grpc.codec.ValueCodec;
+import io.stargate.grpc.codec.ValueCodecs;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -47,12 +44,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ValuesHandler implements PayloadHandler {
-
-  @Override
-  public BoundStatement bindValues(Prepared prepared, Any payload, ByteBuffer unsetValue)
-      throws InvalidProtocolBufferException, StatusException {
-    final Values values = payload.unpack(Values.class);
+public class ValuesHelper {
+  public static BoundStatement bindValues(Prepared prepared, Values values, ByteBuffer unsetValue)
+      throws StatusException {
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     final int valuesCount = values.getValuesCount();
@@ -124,17 +118,17 @@ public class ValuesHandler implements PayloadHandler {
     return new BoundStatement(prepared.statementId, boundValues, boundValueNames);
   }
 
-  @Override
-  public Any processResult(Rows rows, QueryParameters parameters) throws StatusException {
+  public static ResultSet processResult(Rows rows, QueryParameters parameters)
+      throws StatusException {
     return processResult(rows, parameters.getSkipMetadata());
   }
 
-  @Override
-  public Any processResult(Rows rows, BatchParameters parameters) throws StatusException {
+  public static ResultSet processResult(Rows rows, BatchParameters parameters)
+      throws StatusException {
     return processResult(rows, parameters.getSkipMetadata());
   }
 
-  private Any processResult(Rows rows, boolean skipMetadata) throws StatusException {
+  private static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
@@ -166,11 +160,12 @@ public class ValuesHandler implements PayloadHandler {
               .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
               .build());
     }
-    return Any.pack(resultSetBuilder.build());
+
+    return resultSetBuilder.build();
   }
 
   @Nullable
-  private ByteBuffer encodeValue(
+  public static ByteBuffer encodeValue(
       ValueCodec codec, Value value, ColumnType columnType, ByteBuffer unsetValue) {
     if (value.hasUnset()) {
       return unsetValue;

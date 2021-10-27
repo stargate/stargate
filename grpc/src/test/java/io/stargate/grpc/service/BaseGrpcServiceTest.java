@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-import com.google.protobuf.Any;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -39,10 +38,9 @@ import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
 import io.stargate.db.schema.Column;
-import io.stargate.grpc.codec.cql.ValueCodecs;
+import io.stargate.grpc.codec.ValueCodecs;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -111,13 +109,11 @@ public class BaseGrpcServiceTest {
 
   protected QueryOuterClass.Response executeQuery(
       StargateBlockingStub stub, String cql, Value... values) {
-    return stub.executeQuery(Query.newBuilder().setCql(cql).setValues(cqlPayload(values)).build());
+    return stub.executeQuery(Query.newBuilder().setCql(cql).setValues(valuesOf(values)).build());
   }
 
-  protected static Payload.Builder cqlPayload(Value... values) {
-    return Payload.newBuilder()
-        .setType(Payload.Type.CQL)
-        .setData(Any.pack(Values.newBuilder().addAllValues(Arrays.asList(values)).build()));
+  protected static Values.Builder valuesOf(Value... values) {
+    return Values.newBuilder().addAllValues(Arrays.asList(values));
   }
 
   protected static QueryParameters.Builder cqlQueryParameters() {
@@ -125,7 +121,7 @@ public class BaseGrpcServiceTest {
   }
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
-    return BatchQuery.newBuilder().setCql(cql).setValues(cqlPayload(values)).build();
+    return BatchQuery.newBuilder().setCql(cql).setValues(valuesOf(values)).build();
   }
 
   protected void startServer(Persistence persistence) {

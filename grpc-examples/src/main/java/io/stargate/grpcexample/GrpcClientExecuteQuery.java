@@ -89,8 +89,7 @@ public class GrpcClientExecuteQuery {
         blockingStub.executeQuery(
             QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
 
-    QueryOuterClass.ResultSet rs =
-        response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+    QueryOuterClass.ResultSet rs = response.getResultSet();
 
     System.out.println(
         "k = " + rs.getRows(0).getValues(0).getString()); // it will return value for k = "a"
@@ -117,8 +116,7 @@ public class GrpcClientExecuteQuery {
     response =
         blockingStub.executeQuery(
             QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
-    QueryOuterClass.ResultSet rs =
-        response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+    QueryOuterClass.ResultSet rs = response.getResultSet();
     // iterate over all (two) results
     for (QueryOuterClass.Row row : rs.getRowsList()) {
       System.out.println(row.getValuesList());
@@ -132,14 +130,8 @@ public class GrpcClientExecuteQuery {
         new StreamObserver<QueryOuterClass.Response>() {
           @Override
           public void onNext(QueryOuterClass.Response response) {
-            try {
-              System.out.println(
-                  "Async response: "
-                      + response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class));
-              responseRetrieved.countDown();
-            } catch (InvalidProtocolBufferException e) {
-              throw new RuntimeException(e);
-            }
+            System.out.println("Async response: " + response.getResultSet());
+            responseRetrieved.countDown();
           }
 
           @Override
