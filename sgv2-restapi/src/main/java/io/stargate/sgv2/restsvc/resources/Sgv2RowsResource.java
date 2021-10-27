@@ -89,16 +89,16 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-    StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     if (isStringEmpty(fields)) {
       fields = "*";
     } else {
       fields = removeSpaces(fields);
     }
     final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
-    logger.info("Calling gRPC method: try to call backend with CQL of '" + cql + "'");
+    logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
     if (!isStringEmpty(pageStateParam)) {
       // surely there must better way to make Protobuf accept plain old byte[]? But if not:
@@ -109,6 +109,8 @@ public class Sgv2RowsResource {
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
     QueryOuterClass.Response response = blockingStub.executeQuery(query);
+
+    logger.info("Calling gRPC method: response received {}", response);
 
     QueryOuterClass.ResultSet rs;
     try {
