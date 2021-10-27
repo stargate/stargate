@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;

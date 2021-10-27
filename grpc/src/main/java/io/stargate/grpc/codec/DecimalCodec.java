@@ -13,38 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.google.protobuf.ByteString;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.proto.QueryOuterClass.Inet;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class InetCodec implements ValueCodec {
-
+public class DecimalCodec implements ValueCodec {
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.INET) {
-      throw new IllegalArgumentException("Expected bytes type");
+    if (value.getInnerCase() != InnerCase.DECIMAL) {
+      throw new IllegalArgumentException("Expected decimal type");
     }
-    ByteString address = value.getInet().getValue();
-    int size = address.size();
-    if (size != 4 && size != 16) {
-      throw new IllegalArgumentException("Expected 4 or 16 bytes for an IPv4 or IPv6 address");
-    }
-    ByteBuffer bytes = ByteBuffer.allocate(size);
-    address.copyTo(bytes);
-    bytes.flip();
+    QueryOuterClass.Decimal decimal = value.getDecimal();
+    ByteString bi = decimal.getValue();
+    int scale = decimal.getScale();
+    byte[] bibytes = bi.toByteArray();
+
+    ByteBuffer bytes = ByteBuffer.allocate(4 + bibytes.length);
+    bytes.putInt(scale);
+    bytes.put(bibytes);
+    bytes.rewind();
     return bytes;
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
+    if (bytes.remaining() == 0) {
+      return null;
+    } else if (bytes.remaining() < 4) {
+      throw new IllegalArgumentException(
+          "Invalid decimal value, expecting at least 4 bytes but got " + bytes.remaining());
+    }
+
+    bytes = bytes.duplicate();
+    int scale = bytes.getInt();
+    byte[] bibytes = new byte[bytes.remaining()];
+    bytes.get(bibytes);
     return Value.newBuilder()
-        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes)))
+        .setDecimal(
+            QueryOuterClass.Decimal.newBuilder()
+                .setValue(ByteString.copyFrom(bibytes))
+                .setScale(scale)
+                .build())
         .build();
   }
 }

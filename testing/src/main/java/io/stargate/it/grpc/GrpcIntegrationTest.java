@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Any;
 import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -33,8 +32,6 @@ import io.stargate.it.storage.IfBundleAvailable;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
-import io.stargate.proto.QueryOuterClass.Payload;
-import io.stargate.proto.QueryOuterClass.Payload.Type;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Row;
@@ -107,35 +104,26 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
   }
 
   protected static BatchQuery cqlBatchQuery(String cql, Value... values) {
-    return BatchQuery.newBuilder()
-        .setCql(cql)
-        .setValues(
-            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
-        .build();
+    return BatchQuery.newBuilder().setCql(cql).setValues(valuesOf(values)).build();
   }
 
   protected static Query cqlQuery(String cql, Value... values) {
-    return Query.newBuilder()
-        .setCql(cql)
-        .setValues(
-            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
-        .build();
+    return Query.newBuilder().setCql(cql).setValues(valuesOf(values)).build();
   }
 
   protected static Query cqlQuery(String cql, QueryParameters.Builder parameters, Value... values) {
     return Query.newBuilder()
         .setCql(cql)
         .setParameters(parameters)
-        .setValues(
-            Payload.newBuilder().setType(Type.CQL).setData(Any.pack(cqlValues(values))).build())
+        .setValues(valuesOf(values).build())
         .build();
   }
 
-  protected static Values cqlValues(Value... values) {
-    return Values.newBuilder().addAllValues(Arrays.asList(values)).build();
+  protected static Values.Builder valuesOf(Value... values) {
+    return Values.newBuilder().addAllValues(Arrays.asList(values));
   }
 
-  protected static Row cqlRow(Value... values) {
-    return Row.newBuilder().addAllValues(Arrays.asList(values)).build();
+  protected static Row.Builder rowOf(Value... values) {
+    return Row.newBuilder().addAllValues(Arrays.asList(values));
   }
 }

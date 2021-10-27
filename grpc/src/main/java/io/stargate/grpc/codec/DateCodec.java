@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -22,25 +22,20 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class SmallintCodec implements ValueCodec {
+public class DateCodec implements ValueCodec {
 
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.INT) {
-      throw new IllegalArgumentException("Expected integer type");
+    if (value.getInnerCase() != InnerCase.DATE) {
+      throw new IllegalArgumentException("Expected date type");
     }
-    short shortValue = (short) value.getInt();
-    if (shortValue != value.getInt()) {
-      throw new IllegalArgumentException(
-          String.format("Valid range for smallint is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
-    }
-    return TypeCodecs.SMALLINT.encodePrimitive(shortValue, PROTOCOL_VERSION);
+    return TypeCodecs.INT.encodePrimitive(value.getDate(), PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setInt(TypeCodecs.SMALLINT.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setDate(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

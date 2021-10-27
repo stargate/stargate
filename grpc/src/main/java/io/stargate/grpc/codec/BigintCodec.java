@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -22,20 +22,20 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class DateCodec implements ValueCodec {
+public class BigintCodec implements ValueCodec {
 
   @Override
   public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.DATE) {
-      throw new IllegalArgumentException("Expected date type");
+    if (value.getInnerCase() != InnerCase.INT) {
+      throw new IllegalArgumentException("Expected integer type");
     }
-    return TypeCodecs.INT.encodePrimitive(value.getDate(), PROTOCOL_VERSION);
+    return TypeCodecs.BIGINT.encodePrimitive(value.getInt(), PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setDate(TypeCodecs.INT.decodePrimitive(bytes, PROTOCOL_VERSION))
+        .setInt(TypeCodecs.BIGINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

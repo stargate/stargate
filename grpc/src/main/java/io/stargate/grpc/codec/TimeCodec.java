@@ -13,38 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
-import com.google.protobuf.ByteString;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.proto.QueryOuterClass.Uuid;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
-public class UuidCodec implements ValueCodec {
+public class TimeCodec implements ValueCodec {
+
   @Override
-  public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
-    if (value.getInnerCase() != InnerCase.UUID) {
-      throw new IllegalArgumentException("Expected UUID type");
+  public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
+    if (value.getInnerCase() != InnerCase.TIME) {
+      throw new IllegalArgumentException("Expected time type");
     }
-    ByteString uuid = value.getUuid().getValue();
-    int size = uuid.size();
-    if (size != 16) {
-      throw new IllegalArgumentException("Expected 16 bytes for a UUID");
+    long time = value.getTime();
+    if (time < 0 || time > 86399999999999L) {
+      throw new IllegalArgumentException("Valid range for time is 0 to 86399999999999 nanoseconds");
     }
-    ByteBuffer bytes = ByteBuffer.allocate(16);
-    uuid.copyTo(bytes);
-    bytes.flip();
-    return bytes;
+    return TypeCodecs.BIGINT.encodePrimitive(time, PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setTime(TypeCodecs.BIGINT.decodePrimitive(bytes, PROTOCOL_VERSION))
         .build();
   }
 }

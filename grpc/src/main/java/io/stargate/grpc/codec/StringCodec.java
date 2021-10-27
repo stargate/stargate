@@ -13,34 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.codec.cql;
+package io.stargate.grpc.codec;
 
-import com.google.protobuf.ByteString;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
-import io.stargate.proto.QueryOuterClass.Varint;
 import java.nio.ByteBuffer;
 
-public class VarintCodec implements ValueCodec {
+public class StringCodec implements ValueCodec {
+  private TypeCodec<String> innerCodec;
+
+  public StringCodec(@NonNull TypeCodec<String> innerCodec) {
+    this.innerCodec = innerCodec;
+  }
+
   @Override
-  public ByteBuffer encode(@NonNull Value value, @NonNull ColumnType type) {
-    if (value.getInnerCase() != InnerCase.VARINT) {
-      throw new IllegalArgumentException("Expected varint type");
+  public ByteBuffer encode(@NonNull Value value, @NonNull Column.ColumnType type) {
+    if (value.getInnerCase() != InnerCase.STRING) {
+      throw new IllegalArgumentException("Expected string type");
     }
-    Varint varint = value.getVarint();
-    return ByteBuffer.wrap(varint.getValue().toByteArray());
+    return innerCodec.encode(value.getString(), PROTOCOL_VERSION);
   }
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
-    if (bytes.remaining() == 0) {
-      return null;
-    }
-
-    return Value.newBuilder()
-        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
-        .build();
+    return Value.newBuilder().setString(innerCodec.decode(bytes, PROTOCOL_VERSION)).build();
   }
 }
