@@ -115,15 +115,15 @@ public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
     return Query.newBuilder()
         .setCql(cql)
         .setParameters(parameters)
-        .setValues(valuesOf(values).build())
+        .setValues(valuesOf(values))
         .build();
   }
 
-  protected static Values.Builder valuesOf(Value... values) {
-    return Values.newBuilder().addAllValues(Arrays.asList(values));
+  protected static Values valuesOf(Value... values) {
+    return Values.newBuilder().addAllValues(Arrays.asList(values)).build();
   }
 
-  protected static Row.Builder rowOf(Value... values) {
-    return Row.newBuilder().addAllValues(Arrays.asList(values));
+  protected static Row rowOf(Value... values) {
+    return Row.newBuilder().addAllValues(Arrays.asList(values)).build();
   }
 }
