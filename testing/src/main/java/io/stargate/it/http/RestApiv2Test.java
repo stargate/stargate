@@ -46,7 +46,18 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -1018,12 +1029,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    insertTestTableRows(
-        Arrays.asList(
-            Arrays.asList("id 1", "firstname Jonh"),
-            Arrays.asList("id 2", "firstname Jane"),
-            Arrays.asList("id 3", "firstname Scott"),
-            Arrays.asList("id 4", "firstname April")));
+    List<Map<String, String>> expRows =
+        insertTestTableRows(
+            Arrays.asList(
+                Arrays.asList("id 1", "firstName Jonh"),
+                Arrays.asList("id 2", "firstName Jane"),
+                Arrays.asList("id 3", "firstName Scott"),
+                Arrays.asList("id 4", "firstName April")));
+    final List<Map<String, Object>> allRows = new ArrayList<>();
 
     // get first page
     String body =
@@ -1037,6 +1050,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
+    allRows.addAll(getResponseWrapper.getData());
 
     // get second page
     String pageState = getResponseWrapper.getPageState();
@@ -1050,6 +1064,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    allRows.addAll(getResponseWrapper.getData());
 
     // ensure no more pages: we do still get PagingState, but no more rows
     pageState = getResponseWrapper.getPageState();
@@ -1064,6 +1079,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
     assertThat(getResponseWrapper.getPageState()).isNull();
+
+    // Since order in which we get these is arbitrary (wrt partition key), need
+    // to go from List to Set
+    assertThat(new LinkedHashSet(allRows)).isEqualTo(new LinkedHashSet(expRows));
   }
 
   @Test
@@ -1075,12 +1094,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    insertTestTableRows(
-        Arrays.asList(
-            Arrays.asList("id 1", "firstname Jonh"),
-            Arrays.asList("id 2", "firstname Jane"),
-            Arrays.asList("id 3", "firstname Scott"),
-            Arrays.asList("id 4", "firstname April")));
+    List<Map<String, String>> expRows =
+        insertTestTableRows(
+            Arrays.asList(
+                Arrays.asList("id 1", "firstName Jonh"),
+                Arrays.asList("id 2", "firstName Jane"),
+                Arrays.asList("id 3", "firstName Scott"),
+                Arrays.asList("id 4", "firstName April")));
 
     String body =
         RestUtils.get(
@@ -1094,6 +1114,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     ListOfMapsGetResponseWrapper getResponseWrapper =
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(4);
+
+    // Alas, due to "id" as partition key, ordering is arbitrary; so need to
+    // convert from List to something like Set
+    List<Map<String, Object>> rows = getResponseWrapper.getData();
+
+    assertThat(rows.size()).isEqualTo(4);
+    assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
   }
 
   @Test
@@ -2925,14 +2952,17 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
-  private void insertTestTableRows(List<List<String>> rows) throws IOException {
-
+  /** @return {@code List} of entries to expect back for given definitions. */
+  private List<Map<String, String>> insertTestTableRows(List<List<String>> rows)
+      throws IOException {
+    final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
       for (String kv : row) {
         String[] parts = kv.split(" ");
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
+      insertedRows.add(rowMap);
 
       // TODO: change to restUrlBase after new REST service implements insert operation
       RestUtils.post(
@@ -2941,6 +2971,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
+    return insertedRows;
   }
 
   private String setupClusteringTestCase() throws IOException {
