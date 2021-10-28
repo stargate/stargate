@@ -1,5 +1,36 @@
 # Changelog
 
+## [v1.0.40](https://github.com/stargate/stargate/tree/v1.0.40) (2021-10-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.39...v1.0.40)
+
+**Fixed bugs:**
+
+- Astra declines correct value of keyspace if the keyspace name is given in the query parameters [\#1317](https://github.com/stargate/stargate/issues/1317)
+- Error when creating a new UDF [\#1092](https://github.com/stargate/stargate/issues/1092)
+
+**Closed issues:**
+
+- Change `config-store-yaml` to use Caffeine cache instead of Guava [\#1255](https://github.com/stargate/stargate/issues/1255)
+- Stargate isn't able to load schema if Solr is used on a table [\#606](https://github.com/stargate/stargate/issues/606)
+
+**Merged pull requests:**
+
+- Add one missing piece wrt \#1255 for config-store-yaml/Caffeine dependency [\#1371](https://github.com/stargate/stargate/pull/1371) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove `Payload` type from the gRPC API [\#1370](https://github.com/stargate/stargate/pull/1370) ([mpenick](https://github.com/mpenick))
+- Support User-Defined Function creation \(fixes \#1092\) [\#1362](https://github.com/stargate/stargate/pull/1362) ([olim7t](https://github.com/olim7t))
+- Fix \#1255: replace Guava cache with Caffeine in config-store-yaml [\#1361](https://github.com/stargate/stargate/pull/1361) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Adapt CreateIndexTest for backends that default to SAI [\#1360](https://github.com/stargate/stargate/pull/1360) ([olim7t](https://github.com/olim7t))
+- Simplify "maven-surefire-plugin" setup by removing per-module config [\#1358](https://github.com/stargate/stargate/pull/1358) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add Jeff to codeowners [\#1355](https://github.com/stargate/stargate/pull/1355) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add empty implementation for DSE search indexes \(fixes \#606\) [\#1354](https://github.com/stargate/stargate/pull/1354) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1353](https://github.com/stargate/stargate/pull/1353) ([github-actions[bot]](https://github.com/apps/github-actions))
+- gRPC: decorate keyspace if provided in query parameters \(fixes \#1317\) [\#1351](https://github.com/stargate/stargate/pull/1351) ([olim7t](https://github.com/olim7t))
+- Rest api test factoring wrt json handling [\#1350](https://github.com/stargate/stargate/pull/1350) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- GraphQL schema-first: also pre-check where conditions on SAI indexes [\#1344](https://github.com/stargate/stargate/pull/1344) ([olim7t](https://github.com/olim7t))
+- Fix gRPC prepared cache invalidation [\#1335](https://github.com/stargate/stargate/pull/1335) ([mpenick](https://github.com/mpenick))
+- add request counter metrics possibility [\#1311](https://github.com/stargate/stargate/pull/1311) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.39](https://github.com/stargate/stargate/tree/v1.0.39) (2021-10-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.38...v1.0.39)
