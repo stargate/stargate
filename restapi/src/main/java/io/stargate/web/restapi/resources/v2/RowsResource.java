@@ -272,10 +272,11 @@ public class RowsResource {
   @ApiOperation(
       value = "Retrieve all rows",
       notes = "Get all rows from a table.",
-      response = Rows.class)
+      response = GetResponseWrapper.class,
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
