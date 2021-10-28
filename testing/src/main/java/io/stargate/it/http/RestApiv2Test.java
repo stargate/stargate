@@ -1033,10 +1033,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> expRows =
         insertTestTableRows(
             Arrays.asList(
-                Arrays.asList("id 1", "firstName Jonh"),
-                Arrays.asList("id 2", "firstName Jane"),
-                Arrays.asList("id 3", "firstName Scott"),
-                Arrays.asList("id 4", "firstName April")));
+                Arrays.asList("id 1", "firstname Jonh"),
+                Arrays.asList("id 2", "firstname Jane"),
+                Arrays.asList("id 3", "firstname Scott"),
+                Arrays.asList("id 4", "firstname April")));
     final List<Map<String, Object>> allRows = new ArrayList<>();
 
     // get first page
@@ -1098,10 +1098,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> expRows =
         insertTestTableRows(
             Arrays.asList(
-                Arrays.asList("id 1", "firstName Jonh"),
-                Arrays.asList("id 2", "firstName Jane"),
-                Arrays.asList("id 3", "firstName Scott"),
-                Arrays.asList("id 4", "firstName April")));
+                Arrays.asList("id 1", "firstname Jonh"),
+                Arrays.asList("id 2", "firstname Jane"),
+                Arrays.asList("id 3", "firstname Scott"),
+                Arrays.asList("id 4", "firstname April")));
 
     String body =
         RestUtils.get(
