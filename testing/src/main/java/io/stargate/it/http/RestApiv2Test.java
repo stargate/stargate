@@ -17,12 +17,12 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -81,11 +81,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // TODO: can remove after new REST service implements schema and insert operations
   private String legacyRestUrlBase;
 
+  // NOTE! Does not automatically disable exception on unknown properties to have
+  // stricter matching of expected return types: if needed, can override on
+  // per-ObjectReader basis
   private static final ObjectMapper objectMapper = new ObjectMapper();
-
-  static {
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-  }
 
   private static final ObjectReader LIST_OF_MAPS_GETRESPONSE_READER =
       objectMapper.readerFor(ListOfMapsGetResponseWrapper.class);
@@ -1119,6 +1118,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // convert from List to something like Set
     List<Map<String, Object>> rows = getResponseWrapper.getData();
 
+    assertNotNull(rows);
     assertThat(rows.size()).isEqualTo(4);
     assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
   }

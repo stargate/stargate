@@ -16,33 +16,16 @@
 package io.stargate.sgv2.restsvc.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import java.util.Map;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class Sgv2Rows {
-
-  private final int count;
-  private final String pageState;
-  private final List<Map<String, Object>> rows;
-
-  @ApiModelProperty(value = "Number of records being returned by the request.")
-  public int getCount() {
-    return count;
-  }
-
+public class Sgv2Rows extends Sgv2GetResponse<List<Map<String, Object>>> {
+  // Override to add better description
   @ApiModelProperty(value = "The rows returned by the request.")
-  public List<Map<String, Object>> getRows() {
-    return rows;
-  }
-
-  @ApiModelProperty(
-      value = "A string representing the paging state to be used on future paging requests.")
-  public String getPageState() {
-    return pageState;
+  public List<Map<String, Object>> getData() {
+    return data;
   }
 
   @JsonCreator
@@ -50,8 +33,6 @@ public class Sgv2Rows {
       @JsonProperty("count") int count,
       @JsonProperty("pageState") String pageState,
       @JsonProperty("rows") List<Map<String, Object>> rows) {
-    this.count = count;
-    this.pageState = pageState;
-    this.rows = rows;
+    super(count, pageState, rows);
   }
 }
