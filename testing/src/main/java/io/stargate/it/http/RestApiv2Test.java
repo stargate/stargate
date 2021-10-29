@@ -22,7 +22,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -81,11 +80,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // TODO: can remove after new REST service implements schema and insert operations
   private String legacyRestUrlBase;
 
+  // NOTE! Does not automatically disable exception on unknown properties to have
+  // stricter matching of expected return types: if needed, can override on
+  // per-ObjectReader basis
   private static final ObjectMapper objectMapper = new ObjectMapper();
-
-  static {
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-  }
 
   private static final ObjectReader LIST_OF_MAPS_GETRESPONSE_READER =
       objectMapper.readerFor(ListOfMapsGetResponseWrapper.class);
@@ -103,6 +101,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
     public MapGetResponseWrapper() {
       super(-1, null, null);
     }
+  }
+
+  // TablesResource specifies only as "Map" but it looks to me like:
+  static class NameResponse {
+    public String name;
   }
 
   @BeforeEach
@@ -732,9 +735,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
+    NameResponse response = objectMapper.readValue(body, NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
   }
 
   @Test
@@ -764,9 +766,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
+    NameResponse response = objectMapper.readValue(body, NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
 
     body =
         RestUtils.get(
