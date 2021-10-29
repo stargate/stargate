@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import java.util.Map;
 
-public class Sgv2Rows extends Sgv2GetResponse<List<Map<String, Object>>> {
+public class Sgv2RowsResponse extends Sgv2GetResponse<List<Map<String, Object>>> {
   // Override to add better description
   @ApiModelProperty(value = "The rows returned by the request.")
   public List<Map<String, Object>> getData() {
@@ -29,7 +29,7 @@ public class Sgv2Rows extends Sgv2GetResponse<List<Map<String, Object>>> {
   }
 
   @JsonCreator
-  public Sgv2Rows(
+  public Sgv2RowsResponse(
       @JsonProperty("count") int count,
       @JsonProperty("pageState") String pageState,
       @JsonProperty("rows") List<Map<String, Object>> rows) {

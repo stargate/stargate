@@ -9,7 +9,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2Rows;
+import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -17,6 +17,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -53,10 +54,10 @@ public class Sgv2RowsResource {
   @ApiOperation(
       value = "Retrieve all rows",
       notes = "Get all rows from a table.",
-      response = Sgv2Rows.class)
+      response = Sgv2RowsResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Rows.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2RowsResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = RestServiceError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = RestServiceError.class),
@@ -108,11 +109,11 @@ public class Sgv2RowsResource {
 
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    QueryOuterClass.Response response = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    logger.info("Calling gRPC method: response received {}", response);
+    logger.info("Calling gRPC method: response received {}", grpcResponse);
 
-    final QueryOuterClass.ResultSet rs = response.getResultSet();
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = null;
@@ -125,8 +126,21 @@ public class Sgv2RowsResource {
       }
     }
 
-    Sgv2Rows rows = new Sgv2Rows(count, pageStateStr, Collections.emptyList());
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(rows).build();
+    List<QueryOuterClass.ColumnSpec> columns = rs.getColumnsList();
+    for (QueryOuterClass.ColumnSpec column : columns) {
+      //      QueryOuterClass.TypeSpec ctype = column.getType();
+    }
+
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      for (QueryOuterClass.Value value : row.getValuesList()) {
+        QueryOuterClass.Collection c = value.getCollection();
+        QueryOuterClass.Value.InnerCase cas = value.getInnerCase();
+      }
+    }
+
+    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, Collections.emptyList());
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
   }
 
   private javax.ws.rs.core.Response handleGrpcDecodeError(
