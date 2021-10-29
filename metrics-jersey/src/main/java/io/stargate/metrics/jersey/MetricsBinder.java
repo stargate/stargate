@@ -29,6 +29,7 @@ import io.stargate.metrics.jersey.listener.CounterApplicationEventListener;
 import io.stargate.metrics.jersey.tags.CompositeJerseyTagsProvider;
 import io.stargate.metrics.jersey.tags.ConstantTagsProvider;
 import io.stargate.metrics.jersey.tags.DocsApiModuleTagsProvider;
+import io.stargate.metrics.jersey.tags.HeadersTagProvider;
 import io.stargate.metrics.jersey.tags.HttpCounterTagsProvider;
 import io.stargate.metrics.jersey.tags.HttpMeterTagsProvider;
 import io.stargate.metrics.jersey.tags.PathParametersTagsProvider;
@@ -183,8 +184,10 @@ public class MetricsBinder {
   private static List<JerseyTagsProvider> getDefaultTagsProvider(Metrics metrics, String module) {
     ConstantTagsProvider defaultProvider = new ConstantTagsProvider(metrics.tagsForModule(module));
     PathParametersTagsProvider pathParametersProvider = new PathParametersTagsProvider();
+    HeadersTagProvider headersTagProvider = new HeadersTagProvider();
     DocsApiModuleTagsProvider docsApiProvider = new DocsApiModuleTagsProvider(metrics);
 
-    return Arrays.asList(defaultProvider, pathParametersProvider, docsApiProvider);
+    return Arrays.asList(
+        defaultProvider, pathParametersProvider, headersTagProvider, docsApiProvider);
   }
 }
