@@ -7,6 +7,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
@@ -15,9 +17,10 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +45,8 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class Sgv2RowsResource {
   private final int DEFAULT_PAGE_SIZE = 100;
+
+  private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
 
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -111,8 +116,6 @@ public class Sgv2RowsResource {
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    logger.info("Calling gRPC method: response received {}", grpcResponse);
-
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
@@ -126,21 +129,18 @@ public class Sgv2RowsResource {
       }
     }
 
-    List<QueryOuterClass.ColumnSpec> columns = rs.getColumnsList();
-    for (QueryOuterClass.ColumnSpec column : columns) {
-      //      QueryOuterClass.TypeSpec ctype = column.getType();
-    }
+    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+  }
 
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
-      for (QueryOuterClass.Value value : row.getValuesList()) {
-        QueryOuterClass.Collection c = value.getCollection();
-        QueryOuterClass.Value.InnerCase cas = value.getInnerCase();
-      }
+      resultRows.add(converter.fromProtoValues(row.getValuesList()));
     }
-
-    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, Collections.emptyList());
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+    return resultRows;
   }
 
   private javax.ws.rs.core.Response handleGrpcDecodeError(
