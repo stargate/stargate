@@ -21,9 +21,9 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.help.cli.CliCommandUsageGenerator;
 import com.github.rvesse.airline.parser.ParseResult;
 import com.github.rvesse.airline.parser.errors.ParseException;
-import io.stargate.core.metrics.api.DefaultHttpMetricsTagProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.api.NoopHttpMetricsTagProvider;
 import io.stargate.core.metrics.impl.MetricsImpl;
 import java.io.IOError;
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class RestServiceStarter {
 
     // Then Metrics-related things: hard-coded initially
     final Metrics metricsImpl = new MetricsImpl();
-    final HttpMetricsTagProvider httpMetricsTags = new DefaultHttpMetricsTagProvider();
+    final HttpMetricsTagProvider httpMetricsTags = new NoopHttpMetricsTagProvider();
 
     RestServiceServer server = new RestServiceServer(metricsImpl, httpMetricsTags);
     server.run("server", "config.yaml");
