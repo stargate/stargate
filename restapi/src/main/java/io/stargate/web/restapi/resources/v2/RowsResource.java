@@ -41,7 +41,6 @@ import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
-import io.stargate.web.restapi.models.Rows;
 import io.stargate.web.restapi.resources.ResourceUtils;
 import io.stargate.web.service.WhereParser;
 import io.swagger.annotations.Api;
