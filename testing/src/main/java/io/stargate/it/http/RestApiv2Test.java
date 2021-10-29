@@ -17,6 +17,7 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -1033,10 +1034,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> expRows =
         insertTestTableRows(
             Arrays.asList(
-                Arrays.asList("id 1", "firstName Jonh"),
-                Arrays.asList("id 2", "firstName Jane"),
-                Arrays.asList("id 3", "firstName Scott"),
-                Arrays.asList("id 4", "firstName April")));
+                Arrays.asList("id 1", "firstname Jonh"),
+                Arrays.asList("id 2", "firstname Jane"),
+                Arrays.asList("id 3", "firstname Scott"),
+                Arrays.asList("id 4", "firstname April")));
     final List<Map<String, Object>> allRows = new ArrayList<>();
 
     // get first page
@@ -1098,10 +1099,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> expRows =
         insertTestTableRows(
             Arrays.asList(
-                Arrays.asList("id 1", "firstName Jonh"),
-                Arrays.asList("id 2", "firstName Jane"),
-                Arrays.asList("id 3", "firstName Scott"),
-                Arrays.asList("id 4", "firstName April")));
+                Arrays.asList("id 1", "firstname Jonh"),
+                Arrays.asList("id 2", "firstname Jane"),
+                Arrays.asList("id 3", "firstname Scott"),
+                Arrays.asList("id 4", "firstname April")));
 
     String body =
         RestUtils.get(
@@ -1120,6 +1121,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // convert from List to something like Set
     List<Map<String, Object>> rows = getResponseWrapper.getData();
 
+    assertNotNull(rows);
     assertThat(rows.size()).isEqualTo(4);
     assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
   }

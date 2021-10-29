@@ -19,24 +19,21 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
-import java.util.List;
-import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Sgv2Rows {
+public class Sgv2GetResponse<T> {
+  @JsonProperty("count")
+  protected final int count;
 
-  private final int count;
-  private final String pageState;
-  private final List<Map<String, Object>> rows;
+  @JsonProperty("pageState")
+  protected final String pageState;
 
-  @ApiModelProperty(value = "Number of records being returned by the request.")
+  @JsonProperty("data")
+  protected T data;
+
+  @ApiModelProperty(value = "The count of records returned")
   public int getCount() {
     return count;
-  }
-
-  @ApiModelProperty(value = "The rows returned by the request.")
-  public List<Map<String, Object>> getRows() {
-    return rows;
   }
 
   @ApiModelProperty(
@@ -45,13 +42,23 @@ public class Sgv2Rows {
     return pageState;
   }
 
+  @ApiModelProperty(value = "The data returned by the request")
+  public T getData() {
+    return data;
+  }
+
+  public Sgv2GetResponse setData(T data) {
+    this.data = data;
+    return this;
+  }
+
   @JsonCreator
-  public Sgv2Rows(
-      @JsonProperty("count") int count,
-      @JsonProperty("pageState") String pageState,
-      @JsonProperty("rows") List<Map<String, Object>> rows) {
+  public Sgv2GetResponse(
+      @JsonProperty("count") final int count,
+      @JsonProperty("pageState") final String pageState,
+      @JsonProperty("data") final T data) {
     this.count = count;
     this.pageState = pageState;
-    this.rows = rows;
+    this.data = data;
   }
 }

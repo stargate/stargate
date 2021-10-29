@@ -3,20 +3,25 @@ package io.stargate.sgv2.restsvc.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2Rows;
+import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +47,8 @@ import org.slf4j.LoggerFactory;
 public class Sgv2RowsResource {
   private final int DEFAULT_PAGE_SIZE = 100;
 
+  private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
+
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -53,10 +60,10 @@ public class Sgv2RowsResource {
   @ApiOperation(
       value = "Retrieve all rows",
       notes = "Get all rows from a table.",
-      response = Sgv2Rows.class)
+      response = Sgv2RowsResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Rows.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2RowsResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = RestServiceError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = RestServiceError.class),
@@ -105,14 +112,17 @@ public class Sgv2RowsResource {
       paramsB =
           paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
     }
+    int pageSize = DEFAULT_PAGE_SIZE;
+    if (pageSizeParam > 0) {
+      pageSize = pageSizeParam;
+    }
+    paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
 
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    QueryOuterClass.Response response = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    logger.info("Calling gRPC method: response received {}", response);
-
-    final QueryOuterClass.ResultSet rs = response.getResultSet();
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = null;
@@ -125,8 +135,18 @@ public class Sgv2RowsResource {
       }
     }
 
-    Sgv2Rows rows = new Sgv2Rows(count, pageStateStr, Collections.emptyList());
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(rows).build();
+    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+  }
+
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.fromProtoValues(row.getValuesList()));
+    }
+    return resultRows;
   }
 
   private javax.ws.rs.core.Response handleGrpcDecodeError(
