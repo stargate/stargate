@@ -3,6 +3,7 @@ package io.stargate.sgv2.restsvc.resources;
 import com.codahale.metrics.annotation.Timed;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
@@ -111,6 +112,11 @@ public class Sgv2RowsResource {
       paramsB =
           paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
     }
+    int pageSize = DEFAULT_PAGE_SIZE;
+    if (pageSizeParam > 0) {
+      pageSize = pageSizeParam;
+    }
+    paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
 
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
