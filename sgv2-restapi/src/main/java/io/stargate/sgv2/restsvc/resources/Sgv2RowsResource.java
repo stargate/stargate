@@ -4,7 +4,9 @@ import com.codahale.metrics.annotation.Timed;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
-import com.google.protobuf.InvalidProtocolBufferException;
+import io.stargate.db.query.builder.BuiltQuery;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.Column;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -13,15 +15,19 @@ import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
+import io.stargate.sgv2.restsvc.util.SchemaNoPersistence;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -96,12 +102,9 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-    if (isStringEmpty(fields)) {
-      fields = "*";
-    } else {
-      fields = removeSpaces(fields);
-    }
-    final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
+
+    final String cql = buildSelectAllQuery(keyspaceName, tableName, fields);
+
     logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
@@ -139,6 +142,40 @@ public class Sgv2RowsResource {
     return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
   }
 
+  private String buildSelectAllQuery(String keyspaceName, String tableName, String fields) {
+    List<Column> columns = fieldsToColumns(fields);
+    BuiltQuery<?> qb =
+        new QueryBuilder(new SchemaNoPersistence(), null, null)
+            .select()
+            .column(columns)
+            .from(keyspaceName, tableName)
+            .build();
+    return qb.queryStringForPreparation();
+  }
+
+  private List<Column> fieldsToColumns(String fields) {
+    if (isStringEmpty(fields)) {
+      return Collections.singletonList(Column.reference("*"));
+    }
+    return Arrays.stream(fields.split(","))
+        .map(String::trim)
+        .filter(c -> c.length() != 0)
+        .map(Column::reference)
+        .collect(Collectors.toList());
+  }
+
+  // Variant without QueryBuilder
+  /*
+  private String buildSelectAllQuery(String keyspaceName, String tableName, String fields) {
+    if (isStringEmpty(fields)) {
+      fields = "*";
+    } else {
+      fields = removeSpaces(fields);
+    }
+    return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
+  }
+   */
+
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
@@ -147,17 +184,6 @@ public class Sgv2RowsResource {
       resultRows.add(converter.fromProtoValues(row.getValuesList()));
     }
     return resultRows;
-  }
-
-  private javax.ws.rs.core.Response handleGrpcDecodeError(
-      String cql, InvalidProtocolBufferException e) {
-    final String msg =
-        String.format(
-            "Problem decoding Protobuf content for CQL query '%s': %s", cql, e.getMessage());
-    logger.error(msg, e);
-    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-        .entity(new RestServiceError(msg, Response.Status.BAD_REQUEST.getStatusCode()))
-        .build();
   }
 
   // So we won't need Guava dependency; may be moved to our own util if needed elsewhere

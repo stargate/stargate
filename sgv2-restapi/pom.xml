@@ -22,6 +22,13 @@
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+
     <!-- this should also bring transitively "io.grpc:grpc-netty-shaded"...
          but somehow does not seem to, despite being listed as a dep?!
       -->
