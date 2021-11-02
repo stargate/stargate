@@ -177,7 +177,7 @@ StreamObserver<QueryOuterClass.Response> streamObserver = new StreamObserver<Que
                try {
                    System.out.println("response:" + response.getResultSet();
                } catch (InvalidProtocolBufferException e) {
-                   throw new RrtimeException(e);
+                   throw new RuntimeException(e);
                }
            }
            @Override
