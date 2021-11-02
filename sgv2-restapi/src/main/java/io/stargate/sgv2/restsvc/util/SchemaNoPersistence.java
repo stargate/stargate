@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * without validation for existence.
  */
 public class SchemaNoPersistence extends Schema {
+  // NOTE: copied from the base class; intent not clear
   private static final Keyspace ANONYMOUS = ImmutableKeyspace.builder().name("<anonymous>").build();
 
   @Override
@@ -30,6 +31,6 @@ public class SchemaNoPersistence extends Schema {
   }
 
   public List<String> keyspaceNames() {
-    return keyspaces().stream().map(k -> k.name()).sorted().collect(Collectors.toList());
+    return Collections.emptyList();
   }
 }
