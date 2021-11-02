@@ -13,7 +13,7 @@ In your client application, you only need to add two dependencies which are the 
     <dependency>
         <groupId>io.stargate.grpc</groupId>
         <artifactId>grpc-proto</artifactId>
-        <version>1.0.32</version>
+        <version>1.0.40</version>
     </dependency>
     <dependency>
          <groupId>io.grpc</groupId>
@@ -119,7 +119,7 @@ result_set {
 The value contains the binary data, that we can deserialize. 
 Firstly, we need to unwrap the `ResultSet`:
 ```java
-ResultSet rs = response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class);
+ResultSet rs = response.getResultSet();
 
 rs.getRows(0).getValues(0).getString(); // it will return value for k = "a"
 rs.getRows(0).getValues(1).getInt(); // it will return value for v = 1             
@@ -174,11 +174,7 @@ For example:
 StreamObserver<QueryOuterClass.Response> streamObserver = new StreamObserver<QueryOuterClass.Response>() {
            @Override
            public void onNext(QueryOuterClass.Response response) {
-               try {
-                   System.out.println("response:" + response.getResultSet().getData().unpack(QueryOuterClass.ResultSet.class));
-               } catch (InvalidProtocolBufferException e) {
-                   throw new RuntimeException(e);
-               }
+               System.out.println("response:" + response.getResultSet();
            }
            @Override
            public void onError(Throwable throwable) {
