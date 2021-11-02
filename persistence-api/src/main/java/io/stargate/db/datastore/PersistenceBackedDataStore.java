@@ -201,7 +201,7 @@ public class PersistenceBackedDataStore implements DataStore {
 
   @Override
   public boolean isInSchemaAgreement() {
-    return persistence().isInSchemaAgreement();
+    return connection.isInSchemaAgreement();
   }
 
   @Override
