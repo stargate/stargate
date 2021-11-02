@@ -6,7 +6,6 @@ import io.stargate.db.schema.Schema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Bogus {@link Schema} implementation that we need for Stargate V2 as we do not have actual
