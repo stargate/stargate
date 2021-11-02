@@ -154,7 +154,5 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     return stringHeaders;
   }
 
-  private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {
-
-  }
+  private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
 }

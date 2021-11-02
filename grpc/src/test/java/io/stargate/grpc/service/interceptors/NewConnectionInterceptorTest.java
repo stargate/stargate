@@ -42,6 +42,7 @@ import io.stargate.grpc.service.GrpcService;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.junit.jupiter.api.Test;
 
 public class NewConnectionInterceptorTest {
@@ -147,6 +148,35 @@ public class NewConnectionInterceptorTest {
                         && s.getDescription().equals("Invalid token")),
             any(Metadata.class));
     verify(authenticationService, times(1)).validateToken(eq("invalid"), any(Map.class));
+    verify(next, never()).startCall(any(ServerCall.class), any(Metadata.class));
+  }
+
+  @Test
+  public void unhandledClientException() throws UnauthorizedException {
+    Persistence persistence = mock(Persistence.class);
+
+    AuthenticationService authenticationService = mock(AuthenticationService.class);
+    when(authenticationService.validateToken(anyString(), any(Map.class)))
+        .thenThrow(new UnhandledClientException(""));
+
+    ServerCallHandler next = mock(ServerCallHandler.class);
+    ServerCall call = mock(ServerCall.class);
+
+    Attributes attributes =
+        Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
+            .build();
+    when(call.getAttributes()).thenReturn(attributes);
+
+    Metadata metadata = new Metadata();
+    metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
+    NewConnectionInterceptor interceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
+    interceptor.interceptCall(call, metadata, next);
+
+    verify(call, times(1))
+        .close(argThat(s -> s.getCode() == Status.UNAVAILABLE.getCode()), any(Metadata.class));
+    verify(authenticationService, times(1)).validateToken(anyString(), any(Map.class));
     verify(next, never()).startCall(any(ServerCall.class), any(Metadata.class));
   }
 }
