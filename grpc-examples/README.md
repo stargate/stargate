@@ -174,11 +174,7 @@ For example:
 StreamObserver<QueryOuterClass.Response> streamObserver = new StreamObserver<QueryOuterClass.Response>() {
            @Override
            public void onNext(QueryOuterClass.Response response) {
-               try {
-                   System.out.println("response:" + response.getResultSet();
-               } catch (InvalidProtocolBufferException e) {
-                   throw new RuntimeException(e);
-               }
+               System.out.println("response:" + response.getResultSet();
            }
            @Override
            public void onError(Throwable throwable) {
