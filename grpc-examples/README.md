@@ -13,7 +13,7 @@ In your client application, you only need to add two dependencies which are the 
     <dependency>
         <groupId>io.stargate.grpc</groupId>
         <artifactId>grpc-proto</artifactId>
-        <version>1.0.32</version>
+        <version>1.0.40</version>
     </dependency>
     <dependency>
          <groupId>io.grpc</groupId>
