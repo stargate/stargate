@@ -80,8 +80,6 @@ public interface Persistence extends SchemaAgreementChecker {
    */
   ByteBuffer unsetValue();
 
-  boolean isInSchemaAgreement();
-
   /**
    * Returns <code>true</code> if the local schema agrees with all storage nodes, <code>false</code>
    * otherwise.
