@@ -79,7 +79,7 @@ class PersistenceBackedResultSet implements ResultSet {
       case Prepared:
         throw new AssertionError("Shouldn't get a 'Prepared' result when executing a statement");
       case SchemaChange:
-        connection.persistence().waitForSchemaAgreement();
+        connection.waitForSchemaAgreement();
         return ResultSet.empty(true);
       case Void: // fallthrough on purpose
       case SetKeyspace:

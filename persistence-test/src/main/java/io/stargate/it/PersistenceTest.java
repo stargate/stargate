@@ -1666,7 +1666,7 @@ public abstract class PersistenceTest {
     execute(conn, "USE " + ks.cqlName());
     execute(conn, "CREATE TABLE t (k int PRIMARY KEY)");
 
-    persistence().waitForSchemaAgreement();
+    conn.waitForSchemaAgreement();
 
     // TTLs have a hard cap to 20 years, so we can't pass a bigger one that that or it will hard
     // throw rather than warn (and cap the TTL).
