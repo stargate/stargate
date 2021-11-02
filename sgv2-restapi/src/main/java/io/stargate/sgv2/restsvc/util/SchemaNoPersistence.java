@@ -11,11 +11,11 @@ import java.util.Set;
  * Bogus {@link Schema} implementation that we need for Stargate V2 as we do not have actual
  * Persistence implementation. This means that keyspace and table entities are constructed on-demand
  * without validation for existence.
+ *
+ * <p>NOTE: very much prototype level, unlikely to be used in this exact form for eventual Stargate
+ * V2.
  */
 public class SchemaNoPersistence extends Schema {
-  // NOTE: copied from the base class; intent not clear
-  private static final Keyspace ANONYMOUS = ImmutableKeyspace.builder().name("<anonymous>").build();
-
   @Override
   public Set<Keyspace> keyspaces() {
     return Collections.emptySet();
@@ -23,8 +23,9 @@ public class SchemaNoPersistence extends Schema {
 
   @Override
   public Keyspace keyspace(String name) {
-    if (name == null) {
-      return ANONYMOUS;
+    if ((name == null) || name.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Can not create a keyspace without non-null, non-empty \"name\"");
     }
     return ImmutableKeyspace.builder().name(name).build();
   }
