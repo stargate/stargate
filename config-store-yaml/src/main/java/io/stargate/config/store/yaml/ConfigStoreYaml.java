@@ -16,65 +16,47 @@
 package io.stargate.config.store.yaml;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
-import com.datastax.oss.driver.shaded.guava.common.base.Ticker;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheBuilder;
-import com.datastax.oss.driver.shaded.guava.common.cache.CacheLoader;
-import com.datastax.oss.driver.shaded.guava.common.cache.LoadingCache;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.UncheckedExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.MapType;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Ticker;
 import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import io.stargate.config.store.yaml.metrics.CacheMetricsRegistry;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
+import java.util.concurrent.CompletionException;
 
 public class ConfigStoreYaml implements ConfigStore {
-  private final ObjectMapper mapper;
+  private static final ObjectMapper mapper = new YAMLMapper();
   private final Path configFilePath;
-  private final MapType yamlConfigType;
-  @VisibleForTesting final LoadingCache<Path, Map<String, Map<String, Object>>> configFileCache;
+
+  final LoadingCache<Path, Map<String, Map<String, Object>>> configFileCache;
   public static final Duration DEFAULT_EVICTION_TIME = Duration.ofSeconds(30);
 
   public ConfigStoreYaml(Path configFilePath, MetricRegistry metricRegistry) {
     this(configFilePath, Ticker.systemTicker(), metricRegistry);
   }
 
-  @VisibleForTesting
   public ConfigStoreYaml(Path configFilePath, Ticker ticker, MetricRegistry metricRegistry) {
     this.configFilePath = configFilePath;
-    mapper = new ObjectMapper(new YAMLFactory());
-    MapType mapType =
-        mapper.getTypeFactory().constructMapType(HashMap.class, String.class, Object.class);
-    yamlConfigType =
-        mapper
-            .getTypeFactory()
-            .constructMapType(
-                HashMap.class, mapper.getTypeFactory().constructType(String.class), mapType);
-
     configFileCache =
-        CacheBuilder.newBuilder()
+        Caffeine.newBuilder()
             .ticker(ticker)
+            .maximumSize(1000)
             .expireAfterWrite(DEFAULT_EVICTION_TIME)
             .recordStats()
-            .build(
-                new CacheLoader<Path, Map<String, Map<String, Object>>>() {
-                  @Override
-                  public Map<String, Map<String, Object>> load(@Nonnull Path configFilePath)
-                      throws Exception {
-                    return mapper.readValue(configFilePath.toFile(), yamlConfigType);
-                  }
-                });
-
+            .build(ConfigStoreYaml::loadConfig);
     CacheMetricsRegistry.registerCacheMetrics(metricRegistry, configFileCache);
+  }
+
+  static Map<String, Map<String, Object>> loadConfig(Path configFilePath) throws IOException {
+    return (Map<String, Map<String, Object>>) mapper.readValue(configFilePath.toFile(), Map.class);
   }
 
   @Override
@@ -88,10 +70,15 @@ public class ConfigStoreYaml implements ConfigStore {
                 "The loaded configuration map: %s, does not contain settings from a given module: %s",
                 result, moduleName));
       }
-      return new ConfigWithOverrides(ImmutableMap.copyOf(result.get(moduleName)), moduleName);
-    } catch (ExecutionException e) {
-      throw new UncheckedExecutionException(
-          "Problem when processing yaml file from: " + configFilePath, e);
+      return new ConfigWithOverrides(
+          Collections.unmodifiableMap(result.get(moduleName)), moduleName);
+    } catch (CompletionException e) {
+      throw new CompletionException(
+          "Problem when processing yaml file (from: "
+              + configFilePath
+              + "): "
+              + e.getLocalizedMessage(),
+          e);
     }
   }
 }

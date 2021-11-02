@@ -22,7 +22,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -52,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,11 +75,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   private static String authToken;
   private String host;
 
+  // NOTE! Does not automatically disable exception on unknown properties to have
+  // stricter matching of expected return types: if needed, can override on
+  // per-ObjectReader basis
   private static final ObjectMapper objectMapper = new ObjectMapper();
-
-  static {
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-  }
 
   private static final ObjectReader LIST_OF_MAPS_GETRESPONSE_READER =
       objectMapper.readerFor(ListOfMapsGetResponseWrapper.class);
@@ -97,6 +96,11 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     public MapGetResponseWrapper() {
       super(-1, null, null);
     }
+  }
+
+  // TablesResource specifies only as "Map" but it looks to me like:
+  static class NameResponse {
+    public String name;
   }
 
   @BeforeEach
@@ -708,9 +712,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
+    NameResponse response = objectMapper.readValue(body, NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
   }
 
   @Test
@@ -740,9 +743,8 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
+    NameResponse response = objectMapper.readValue(body, NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
 
     body =
         RestUtils.get(
@@ -1005,12 +1007,14 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    insertTestTableRows(
-        Arrays.asList(
-            Arrays.asList("id 1", "firstName Jonh"),
-            Arrays.asList("id 2", "firstName Jane"),
-            Arrays.asList("id 3", "firstName Scott"),
-            Arrays.asList("id 4", "firstName April")));
+    List<Map<String, String>> expRows =
+        insertTestTableRows(
+            Arrays.asList(
+                Arrays.asList("id 1", "firstName Jonh"),
+                Arrays.asList("id 2", "firstName Jane"),
+                Arrays.asList("id 3", "firstName Scott"),
+                Arrays.asList("id 4", "firstName April")));
+    final List<Map<String, Object>> allRows = new ArrayList<>();
 
     // get first page
     String body =
@@ -1024,6 +1028,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
     assertThat(getResponseWrapper.getPageState()).isNotEmpty();
+    allRows.addAll(getResponseWrapper.getData());
 
     // get second page
     String pageState = getResponseWrapper.getPageState();
@@ -1037,6 +1042,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
 
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+    allRows.addAll(getResponseWrapper.getData());
 
     // ensure no more pages: we do still get PagingState, but no more rows
     pageState = getResponseWrapper.getPageState();
@@ -1051,6 +1057,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(0);
     assertThat(getResponseWrapper.getPageState()).isNull();
+
+    // Since order in which we get these is arbitrary (wrt partition key), need
+    // to go from List to Set
+    assertThat(new LinkedHashSet(allRows)).isEqualTo(new LinkedHashSet(expRows));
   }
 
   @Test
@@ -1062,12 +1072,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         Collections.singletonList("id"),
         null);
 
-    insertTestTableRows(
-        Arrays.asList(
-            Arrays.asList("id 1", "firstName Jonh"),
-            Arrays.asList("id 2", "firstName Jane"),
-            Arrays.asList("id 3", "firstName Scott"),
-            Arrays.asList("id 4", "firstName April")));
+    List<Map<String, String>> expRows =
+        insertTestTableRows(
+            Arrays.asList(
+                Arrays.asList("id 1", "firstName Jonh"),
+                Arrays.asList("id 2", "firstName Jane"),
+                Arrays.asList("id 3", "firstName Scott"),
+                Arrays.asList("id 4", "firstName April")));
 
     String body =
         RestUtils.get(
@@ -1081,6 +1092,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     ListOfMapsGetResponseWrapper getResponseWrapper =
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     assertThat(getResponseWrapper.getCount()).isEqualTo(4);
+
+    // Alas, due to "id" as partition key, ordering is arbitrary; so need to
+    // convert from List to something like Set
+    List<Map<String, Object>> rows = getResponseWrapper.getData();
+
+    assertThat(rows.size()).isEqualTo(4);
+    assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
   }
 
   @Test
@@ -2896,14 +2914,17 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
-  private void insertTestTableRows(List<List<String>> rows) throws IOException {
-
+  /** @return {@code List} of entries to expect back for given definitions. */
+  private List<Map<String, String>> insertTestTableRows(List<List<String>> rows)
+      throws IOException {
+    final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
       for (String kv : row) {
         String[] parts = kv.split(" ");
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
+      insertedRows.add(rowMap);
 
       RestUtils.post(
           authToken,
@@ -2911,6 +2932,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
+    return insertedRows;
   }
 
   private String setupClusteringTestCase() throws IOException {

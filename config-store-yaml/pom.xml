@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<parent>
+  <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.40-SNAPSHOT</version>
+    <version>1.0.41-SNAPSHOT</version>
   </parent>
-	<modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
     <groupId>io.stargate.config.store.yaml</groupId>
-	<artifactId>config-store-yaml</artifactId>
-	<dependencies>
+    <artifactId>config-store-yaml</artifactId>
+    <dependencies>
+      <!-- Stargate component dependencies -->
       <dependency>
         <groupId>io.stargate.config-store</groupId>
         <artifactId>config-store-api</artifactId>
@@ -21,33 +22,7 @@
         <version>${project.version}</version>
         <scope>provided</scope>
       </dependency>
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-graphite</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-yaml</artifactId>
-        <version>2.11.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>3.17.2</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-shaded-guava</artifactId>
-        <scope>provided</scope>
-      </dependency>
+      <!-- 3rd party dependencies -->
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
@@ -55,6 +30,34 @@
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.11.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+
+      <!-- Test dependencies -->
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>3.17.2</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
@@ -81,7 +84,6 @@
                                         io.stargate.core.*,
                                         com.codahale.metrics,
                                         !com.codahale.metrics.graphite.*,
-                                        com.datastax.oss.driver.shaded.guava.common.*,
                                         ]]>
 						</Import-Package>
 						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>

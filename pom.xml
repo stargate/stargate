@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>1.0.40-SNAPSHOT</version>
+  <version>1.0.41-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -38,14 +38,17 @@
     <commons-io.version>2.7</commons-io.version>
     <immutables.version>2.5.6</immutables.version>
     <grpc.version>1.35.0</grpc.version>
+    <caffeine.version>2.9.2</caffeine.version>
   </properties>
   <dependencies>
+    <!-- Basic OSGi dependency, provided by container -->
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
       <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Shared test dependencies -->
     <dependency>
       <groupId>org.jacoco</groupId>
       <artifactId>org.jacoco.agent</artifactId>
@@ -534,6 +537,11 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
         <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>

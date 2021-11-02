@@ -25,10 +25,7 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
-import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.grpc.payload.PayloadHandlers;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -84,14 +81,11 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
   protected CompletionStage<Result> executePrepared(Prepared prepared) {
     long queryStartNanoTime = System.nanoTime();
 
-    Payload values = message.getValues();
-    PayloadHandler handler = PayloadHandlers.get(values.getType());
-
     QueryParameters parameters = message.getParameters();
 
     try {
       return connection.execute(
-          bindValues(handler, prepared, values),
+          bindValues(prepared, message.getValues()),
           makeParameters(parameters, connection.clientInfo()),
           queryStartNanoTime);
     } catch (Exception e) {
@@ -114,14 +108,9 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
                   return ResponseAndTraceId.from(result, responseBuilder);
                 });
       case Rows:
-        Payload values = message.getValues();
-        PayloadHandler handler = PayloadHandlers.get(values.getType());
         try {
-          Payload.Builder resultSet =
-              Payload.newBuilder()
-                  .setType(message.getValues().getType())
-                  .setData(handler.processResult((Result.Rows) result, message.getParameters()));
-          responseBuilder.setResultSet(resultSet);
+          responseBuilder.setResultSet(
+              ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
