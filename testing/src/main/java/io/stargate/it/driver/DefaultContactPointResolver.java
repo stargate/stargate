@@ -1,8 +1,8 @@
 package io.stargate.it.driver;
 
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.it.storage.StargateExtension;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateExtension;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;

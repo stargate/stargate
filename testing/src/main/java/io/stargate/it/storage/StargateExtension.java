@@ -162,7 +162,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
   @Override
   protected Optional<Coordinator> processResource(
-          Coordinator container, StargateSpec spec, ExtensionContext context) throws Exception {
+      Coordinator container, StargateSpec spec, ExtensionContext context) throws Exception {
     ClusterConnectionInfo backend =
         (ClusterConnectionInfo) context.getStore(Namespace.GLOBAL).get(ExternalStorage.STORE_KEY);
     Assertions.assertNotNull(
