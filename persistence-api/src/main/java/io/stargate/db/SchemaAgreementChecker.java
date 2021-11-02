@@ -4,7 +4,7 @@ import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptib
 import java.util.concurrent.TimeUnit;
 
 /** A persistence object that checks whether it's in schema agreement. */
-public interface SchemaChecker {
+public interface SchemaAgreementChecker {
   int SCHEMA_AGREEMENT_WAIT_RETRIES =
       Integer.getInteger("stargate.persistence.schema.agreement.wait.retries", 900);
 

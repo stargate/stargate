@@ -32,7 +32,7 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
  * higher level {@link DataStore} API which wraps an instance of this interface) to query the
  * underlying store, and thus the one interface that persistence extensions must implement.
  */
-public interface Persistence extends SchemaChecker {
+public interface Persistence extends SchemaAgreementChecker {
 
   /** Name describing the persistence implementation. */
   String name();
@@ -136,7 +136,7 @@ public interface Persistence extends SchemaChecker {
    * <p>It is through this object that a user can be logged in and that the persistence can be
    * queried.
    */
-  interface Connection extends SchemaChecker {
+  interface Connection extends SchemaAgreementChecker {
 
     /** The underlying persistence on which this is a connection. */
     Persistence persistence();
