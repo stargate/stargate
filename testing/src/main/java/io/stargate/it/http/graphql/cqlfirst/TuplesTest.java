@@ -151,4 +151,33 @@ public class TuplesTest extends BaseOsgiIntegrationTest {
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item0")).isEqualTo(0);
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item1")).isEqualTo(1);
   }
+
+  @Test
+  public void shouldInsertNullTuple(@TestKeyspace CqlIdentifier keyspaceId) {
+    // When inserting a new row:
+    Map<String, Object> response =
+        CLIENT.executeDmlQuery(
+            keyspaceId,
+            "mutation {\n"
+                + "  insertTuples: insertTuplx65_s(value: {\n"
+                + "    id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
+                + "    tuple1: null\n"
+                + "  }) {\n"
+                + "        applied\n"
+                + "    }\n"
+                + "}");
+    assertThat(JsonPath.<Boolean>read(response, "$.insertTuples.applied")).isTrue();
+
+    // Then the data can be read back:
+    String getQuery =
+        "{\n"
+            + "  Tuples: Tuplx65_s(value: { id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"}) {\n"
+            + "    values {\n"
+            + "      tuple1 { item0 }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
+    assertThat(JsonPath.<Object>read(response, "$.Tuples.values[0].tuple1")).isNull();
+  }
 }

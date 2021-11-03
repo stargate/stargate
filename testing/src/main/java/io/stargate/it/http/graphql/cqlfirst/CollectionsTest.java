@@ -177,4 +177,35 @@ public class CollectionsTest extends BaseOsgiIntegrationTest {
         .containsEntry("key", "123")
         .containsEntry("value", "one-two-three");
   }
+
+  @Test
+  public void shouldInsertNullCollections(@TestKeyspace CqlIdentifier keyspaceId) {
+    // When inserting a new row:
+    Map<String, Object> response =
+        CLIENT.executeDmlQuery(
+            keyspaceId,
+            "mutation {\n"
+                + "  insertCollectionsSimple(value: {\n"
+                + "      id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
+                + "      listValue1: null\n"
+                + "      setValue1: null\n"
+                + "      mapValue1: null\n"
+                + "  }) { applied }}");
+    assertThat(JsonPath.<Boolean>read(response, "$.insertCollectionsSimple.applied")).isTrue();
+
+    // Then the data can be read back:
+    String getQuery =
+        "{\n"
+            + "  CollectionsSimple(value: {id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"}) {\n"
+            + "    values { listValue1, setValue1, mapValue1 { key, value } }\n"
+            + "  }}";
+    response = CLIENT.executeDmlQuery(keyspaceId, getQuery);
+    List<Integer> listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
+    assertThat(listValue1).isNull();
+    List<String> setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");
+    assertThat(setValue1).isNull();
+    List<Map<String, Object>> mapValue1 =
+        JsonPath.read(response, "$.CollectionsSimple.values[0].mapValue1");
+    assertThat(mapValue1).isNull();
+  }
 }
