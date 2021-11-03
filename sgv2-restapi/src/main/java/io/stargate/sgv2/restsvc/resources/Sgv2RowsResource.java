@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
@@ -101,7 +102,8 @@ public class Sgv2RowsResource {
     } else {
       fields = removeSpaces(fields);
     }
-    final String cql = String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
+    final String cql = buildGetAllRowsCQL(fields, keyspaceName, tableName);
+
     logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
@@ -137,6 +139,11 @@ public class Sgv2RowsResource {
 
     Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
     return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+  }
+
+  private String buildGetAllRowsCQL(String fields, String keyspaceName, String tableName) {
+    // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
+    return QueryBuilder.selectFrom(keyspaceName, tableName).all().asCql();
   }
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
