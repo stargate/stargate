@@ -40,7 +40,7 @@ public class SchemaAgreementTest extends BaseGrpcServiceTest {
   public void schemaAgreementSuccess() {
     // Given
     StargateGrpc.StargateBlockingStub stub = makeBlockingStub();
-    when(persistence.isInSchemaAgreement()).thenReturn(true);
+    when(connection.isInSchemaAgreement()).thenReturn(true);
     mockAnyQueryAsSchemaChange();
     when(persistence.newConnection()).thenReturn(connection);
     startServer(persistence);
@@ -57,7 +57,7 @@ public class SchemaAgreementTest extends BaseGrpcServiceTest {
   public void schemaAgreementFailure() {
     // Given
     StargateGrpc.StargateBlockingStub stub = makeBlockingStub();
-    when(persistence.isInSchemaAgreement()).thenReturn(false);
+    when(connection.isInSchemaAgreement()).thenReturn(false);
     mockAnyQueryAsSchemaChange();
     when(persistence.newConnection()).thenReturn(connection);
     startServer(persistence);
