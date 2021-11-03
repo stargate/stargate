@@ -219,7 +219,9 @@ public class RestApiv2Test extends BaseIntegrationTest {
   @Test
   public void createKeyspace() throws IOException {
     String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
-    createKeyspace(keyspaceName);
+
+    // Use the new Stargate V2 endpoint here
+    createKeyspace(keyspaceName, restUrlBase);
 
     String body =
         RestUtils.get(
@@ -2944,13 +2946,16 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   private void createKeyspace(String keyspaceName) throws IOException {
+    // TODO: change to restUrlBase after new REST service implements keyspace creation
+    createKeyspace(keyspaceName, legacyRestUrlBase);
+  }
+
+  private void createKeyspace(String keyspaceName, String urlBaseToUse) throws IOException {
     String createKeyspaceRequest =
         String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
-
-    // TODO: change to restUrlBase after new REST service implements keyspace creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces", legacyRestUrlBase),
+        String.format("%s/v2/schemas/keyspaces", urlBaseToUse),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }
