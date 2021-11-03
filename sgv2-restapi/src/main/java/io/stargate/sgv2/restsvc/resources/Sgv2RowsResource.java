@@ -2,10 +2,10 @@ package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
-import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -20,9 +20,12 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -46,7 +49,7 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class Sgv2RowsResource {
-  private final int DEFAULT_PAGE_SIZE = 100;
+  private static final int DEFAULT_PAGE_SIZE = 100;
 
   private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
 
@@ -97,12 +100,8 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
-    if (isStringEmpty(fields)) {
-      fields = "*";
-    } else {
-      fields = removeSpaces(fields);
-    }
-    final String cql = buildGetAllRowsCQL(fields, keyspaceName, tableName);
+    List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
 
     logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
@@ -141,9 +140,13 @@ public class Sgv2RowsResource {
     return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
   }
 
-  private String buildGetAllRowsCQL(String fields, String keyspaceName, String tableName) {
+  private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
     // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
-    return QueryBuilder.selectFrom(keyspaceName, tableName).all().asCql();
+    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
+    if (columns.isEmpty()) {
+      return selectFrom.all().asCql();
+    }
+    return selectFrom.columns(columns).asCql();
   }
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
@@ -156,25 +159,16 @@ public class Sgv2RowsResource {
     return resultRows;
   }
 
-  private javax.ws.rs.core.Response handleGrpcDecodeError(
-      String cql, InvalidProtocolBufferException e) {
-    final String msg =
-        String.format(
-            "Problem decoding Protobuf content for CQL query '%s': %s", cql, e.getMessage());
-    logger.error(msg, e);
-    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-        .entity(new RestServiceError(msg, Response.Status.BAD_REQUEST.getStatusCode()))
-        .build();
-  }
-
   // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
   private static boolean isStringEmpty(String str) {
     return (str == null) || str.isEmpty();
   }
 
-  private static String removeSpaces(String str) {
-    // TODO: optimize/use commons-lang whatever
-    return str.replaceAll("\\s", "");
+  private static List<String> splitColumns(String columnStr) {
+    return Arrays.stream(columnStr.split(","))
+        .map(String::trim)
+        .filter(c -> c.length() != 0)
+        .collect(Collectors.toList());
   }
 
   private static byte[] decodeBase64(String base64encoded) {
