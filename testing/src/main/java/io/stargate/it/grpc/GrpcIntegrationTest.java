@@ -25,7 +25,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.grpc.StargateBearerToken;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.IfBundleAvailable;
@@ -45,7 +45,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 
 @IfBundleAvailable(bundleName = "grpc")
-public class GrpcIntegrationTest extends BaseOsgiIntegrationTest {
+public class GrpcIntegrationTest extends BaseIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   protected StargateBlockingStub stub;

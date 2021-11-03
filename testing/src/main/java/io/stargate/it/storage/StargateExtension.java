@@ -54,10 +54,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JUnit 5 extension for tests that need a Stargate OSGi container running in a separate JVM.
+ * JUnit 5 extension for tests that need a Stargate coordinator node running in a separate JVM.
  *
  * <p>Note: this extension requires {@link ExternalStorage} to be activated as well. It is
- * recommended that test classes be annotated with {@link UseStargateContainer} to make sure both
+ * recommended that test classes be annotated with {@link UseStargateCoordinator} to make sure both
  * extensions are activated in the right order.
  *
  * <p>Note: this extension does not support concurrent test execution.
@@ -65,9 +65,9 @@ import org.slf4j.LoggerFactory;
  * @see StargateSpec
  * @see StargateParameters
  */
-public class StargateContainer extends ExternalResource<StargateSpec, StargateContainer.Container>
+public class StargateExtension extends ExternalResource<StargateSpec, StargateExtension.Coordinator>
     implements ParameterResolver {
-  private static final Logger LOG = LoggerFactory.getLogger(StargateContainer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(StargateExtension.class);
 
   private static final String ARGS_PROVIDER_CLASS_NAME =
       System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
@@ -128,7 +128,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     return ports;
   }
 
-  public StargateContainer() {
+  public StargateExtension() {
     super(StargateSpec.class, STORE_KEY, Namespace.GLOBAL);
   }
 
@@ -147,7 +147,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     return builder.build();
   }
 
-  private Container container(ExtensionContext context) {
+  private Coordinator container(ExtensionContext context) {
     return getResource(context)
         .orElseThrow(
             () ->
@@ -161,8 +161,8 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
   }
 
   @Override
-  protected Optional<Container> processResource(
-      Container container, StargateSpec spec, ExtensionContext context) throws Exception {
+  protected Optional<Coordinator> processResource(
+      Coordinator container, StargateSpec spec, ExtensionContext context) throws Exception {
     ClusterConnectionInfo backend =
         (ClusterConnectionInfo) context.getStore(Namespace.GLOBAL).get(ExternalStorage.STORE_KEY);
     Assertions.assertNotNull(
@@ -183,7 +183,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
 
     LOG.info("Starting Stargate container with spec {} for {}", spec, context.getUniqueId());
 
-    Container c = new Container(backend, spec, params);
+    Coordinator c = new Coordinator(backend, spec, params);
     c.start();
     return Optional.of(c);
   }
@@ -219,7 +219,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     return args.contains("-agentlib:jdwp") || args.contains("-Xrunjdwp");
   }
 
-  protected static class Container extends ExternalResource.Holder
+  protected static class Coordinator extends ExternalResource.Holder
       implements StargateEnvironmentInfo, AutoCloseable {
 
     private final UUID id = UUID.randomUUID();
@@ -230,7 +230,7 @@ public class StargateContainer extends ExternalResource<StargateSpec, StargateCo
     private final int instanceNum;
     private final Env env;
 
-    private Container(
+    private Coordinator(
         ClusterConnectionInfo backend, StargateSpec spec, StargateParameters parameters)
         throws Exception {
       this.backend = backend;

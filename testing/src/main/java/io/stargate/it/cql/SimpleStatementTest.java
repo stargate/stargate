@@ -16,7 +16,7 @@ import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -35,7 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // table with simple primary key, single cell.
       "CREATE TABLE IF NOT EXISTS test2 (k text primary key, v int)",
     })
-public class SimpleStatementTest extends BaseOsgiIntegrationTest {
+public class SimpleStatementTest extends BaseIntegrationTest {
 
   private static final String KEY = "test";
 

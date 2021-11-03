@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -47,7 +47,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "    \"mapValue1\" frozen<map<uuid, frozen<map<bigint, text>>>>\n"
           + ")"
     })
-public class CollectionsTest extends BaseOsgiIntegrationTest {
+public class CollectionsTest extends BaseIntegrationTest {
 
   private static CqlFirstClient CLIENT;
 

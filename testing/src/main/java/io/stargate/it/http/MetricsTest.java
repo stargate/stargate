@@ -19,7 +19,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
@@ -41,7 +41,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
-public class MetricsTest extends BaseOsgiIntegrationTest {
+public class MetricsTest extends BaseIntegrationTest {
 
   private static String host;
 

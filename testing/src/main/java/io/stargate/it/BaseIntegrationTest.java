@@ -19,22 +19,22 @@ import com.datastax.oss.driver.api.core.Version;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateSpec;
-import io.stargate.it.storage.UseStargateContainer;
+import io.stargate.it.storage.UseStargateCoordinator;
 import java.io.File;
 import java.net.URL;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 
-/** This class manages starting Stargate OSGi containers. */
-@UseStargateContainer
+/** This class manages starting Stargate coordinator nodes. */
+@UseStargateCoordinator
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
-public class BaseOsgiIntegrationTest {
+public class BaseIntegrationTest {
 
   protected ClusterConnectionInfo backend;
 
   static {
-    ClassLoader classLoader = BaseOsgiIntegrationTest.class.getClassLoader();
+    ClassLoader classLoader = BaseIntegrationTest.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
     if (resource != null) {

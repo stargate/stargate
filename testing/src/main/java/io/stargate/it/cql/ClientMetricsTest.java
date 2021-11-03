@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.RestUtils;
@@ -45,7 +45,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k))"})
 @StargateSpec(parametersCustomizer = "buildParameters")
-public class ClientMetricsTest extends BaseOsgiIntegrationTest {
+public class ClientMetricsTest extends BaseIntegrationTest {
   private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
       Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");
 

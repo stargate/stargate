@@ -9,8 +9,8 @@ import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
-import io.stargate.it.storage.StargateContainer;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateExtension;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  *
  * <h3>Requirements</h3>
  *
- * This extension requires {@link StargateContainer} to be activated as well, and the Stargate
+ * This extension requires {@link StargateExtension} to be activated as well, and the Stargate
  * node(s) must be started first. This can generally be achieved by declaring the annotations in the
  * right order. The created session will use all the Stargate nodes as contact points.
  *
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * <h4>Class level</h4>
  *
  * <pre>
- * &#64;UseStargateContainer
+ * &#64;UseStargateCoordinator
  * &#64;ExtendWith(CqlSessionExtension.class)
  * public class SomeTestClass {
  *   &#64;Test
@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
  * <h4>Method level</h4>
  *
  * <pre>
- * &#64;UseStargateContainer
+ * &#64;UseStargateCoordinator
  * public class SomeTestClass {
  *   &#64;Test
  *   &#64;ExtendWith(CqlSessionExtension.class)
@@ -235,12 +235,12 @@ public class CqlSessionExtension
   private void createSession(ExtensionContext context) {
     stargate =
         (StargateEnvironmentInfo)
-            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateContainer.STORE_KEY);
+            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateExtension.STORE_KEY);
     if (stargate == null) {
       throw new IllegalStateException(
           String.format(
               "%s can only be used in conjunction with %s (make sure it is declared last)",
-              CqlSessionExtension.class.getSimpleName(), StargateContainer.class.getSimpleName()));
+              CqlSessionExtension.class.getSimpleName(), StargateExtension.class.getSimpleName()));
     }
 
     cqlSessionSpec = getCqlSessionSpec(context);
