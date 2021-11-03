@@ -61,14 +61,19 @@ import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.UnavailableException;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @param <MessageT> the type of gRPC message being handled.
  * @param <PreparedT> the persistence object resulting from the preparation of the query(ies).
  */
 abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultRetryPolicy.class);
 
   static final Metadata.Key<Unavailable> UNAVAILABLE_KEY =
       ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
@@ -309,9 +314,12 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
       responseObserver.onError(throwable);
+    } else if (throwable instanceof UnhandledClientException) {
+      onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
       handlePersistenceException((PersistenceException) throwable);
     } else {
+      LOG.error("Unhandled error returning UNKNOWN to the client", throwable);
       responseObserver.onError(
           Status.UNKNOWN
               .withDescription(throwable.getMessage())
@@ -375,6 +383,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
         handleAlreadyExists((AlreadyExistsException) pe);
         break;
       default:
+        LOG.error("Unhandled persistence exception returning UNKNOWN to the client", pe);
         onError(Status.UNKNOWN, pe);
         break;
     }
