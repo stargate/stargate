@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * <h4>Class level</h4>
  *
  * <pre>
- * &#64;UseStargateContainer
+ * &#64;UseStargateCoordinator
  * &#64;ExtendWith(CqlSessionExtension.class)
  * public class SomeTestClass {
  *   &#64;Test
@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
  * <h4>Method level</h4>
  *
  * <pre>
- * &#64;UseStargateContainer
+ * &#64;UseStargateCoordinator
  * public class SomeTestClass {
  *   &#64;Test
  *   &#64;ExtendWith(CqlSessionExtension.class)
