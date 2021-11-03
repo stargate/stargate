@@ -198,7 +198,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private void waitForSchemaAgreement(
       int remainingAttempts, CompletableFuture<Void> agreementFuture) {
-    if (persistence.isInSchemaAgreement()) {
+    if (connection.isInSchemaAgreement()) {
       agreementFuture.complete(null);
       return;
     }

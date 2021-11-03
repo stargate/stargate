@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
@@ -52,7 +53,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -310,6 +313,91 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
             .addActual(Column.create("c2", Column.Type.Varchar))
             .addActual(Column.create("c3", Column.Type.Uuid))
             .build(true));
+  }
+
+  @Test
+  public void unhandledClientExceptionDuringPrepare() {
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenThrow(new UnhandledClientException(""));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
+  }
+
+  @Test
+  public void unhandledClientExceptionDuringExecute() {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenThrow(new UnhandledClientException(""));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
+  }
+
+  @Test
+  public void unhandledClientExceptionWrapped() {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenThrow(new CompletionException(new UnhandledClientException("")));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
   }
 
   private void validateResponse(String releaseVersion, QueryOuterClass.Response response) {
