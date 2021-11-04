@@ -16,6 +16,13 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import io.stargate.grpc.StargateBearerToken;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.swagger.annotations.Api;
@@ -23,8 +30,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
@@ -38,6 +48,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -47,6 +59,14 @@ import javax.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class Sgv2KeyspacesResource {
+  // Singleton resource so no need to be static
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
+  private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
+
+  /** Entity used to connect to backend gRPC service. */
+  @Inject private GrpcClientFactory grpcFactory;
+
   @Timed
   @GET
   @ApiOperation(
@@ -129,30 +149,6 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    /*
-    return RequestHandler.handle(
-        () -> {
-          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          restDB.authorizeSchemaRead(
-              Collections.singletonList(keyspaceName), null, SourceAPI.REST, ResourceKind.KEYSPACE);
-
-          io.stargate.db.schema.Keyspace keyspace = restDB.getKeyspace(keyspaceName);
-          if (keyspace == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                .entity(
-                    new ApiError(
-                        "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
-                .build();
-          }
-
-          Keyspace keyspaceResponse = new Keyspace(keyspace.name(), buildDatacenters(keyspace));
-
-          Object response = raw ? keyspaceResponse : new RESTResponseWrapper(keyspaceResponse);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
-        });
-       */
     return null;
   }
 
@@ -244,9 +240,31 @@ public class Sgv2KeyspacesResource {
               .build();
         });
        */
-    return Response.status(Response.Status.NOT_IMPLEMENTED)
-        .entity(Collections.singletonMap("name", "UNKNOWN"))
-        .build();
+
+    Map<String, Object> replOptions = new HashMap<>();
+    replOptions.put("replication_factor", 1);
+    replOptions.put("class", "SimpleStrategy");
+    String cql =
+        SchemaBuilder.createKeyspace("test")
+            .ifNotExists()
+            .withReplicationOptions(replOptions)
+            .asCql();
+
+    logger.info("CREATE KEYSPACE with payload of: " + payload);
+    logger.info("Trying to CREATE KEYSPACE with cql: [" + cql + "]");
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    logger.info("Received response for CREATE KEYSPACE: " + grpcResponse.getResultSet());
+
+    List<Map<String, Object>> rows = convertRows(grpcResponse.getResultSet());
+
+    logger.info("Converted response into: " + rows);
+
+    return javax.ws.rs.core.Response.status(Response.Status.CREATED).entity(rows).build();
   }
 
   @Timed
@@ -273,40 +291,16 @@ public class Sgv2KeyspacesResource {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @Context HttpServletRequest request) {
-    /*
-    return RequestHandler.handle(
-        () -> {
-          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
-          restDB.authorizeSchemaWrite(
-              keyspaceName, null, Scope.DROP, SourceAPI.REST, ResourceKind.KEYSPACE);
-
-          restDB
-              .queryBuilder()
-              .drop()
-              .keyspace(keyspaceName)
-              .build()
-              .execute(ConsistencyLevel.LOCAL_QUORUM)
-              .get();
-
-          return Response.status(Response.Status.NO_CONTENT).build();
-        });
-       */
     return null;
   }
 
-  /*
-  private List<Sgv2Keyspace.Datacenter> buildDatacenters(io.stargate.db.schema.Keyspace keyspace) {
-    List<Sgv2Keyspace.Datacenter> dcs = new ArrayList<>();
-    for (Map.Entry<String, String> entries : keyspace.replication().entrySet()) {
-      if (entries.getKey().equals("class") || entries.getKey().equals("replication_factor")) {
-        continue;
-      }
-
-      dcs.add(new Sgv2Keyspace.Datacenter(entries.getKey(), Integer.parseInt(entries.getValue())));
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.fromProtoValues(row.getValuesList()));
     }
-
-    return dcs.isEmpty() ? null : dcs;
+    return resultRows;
   }
-   */
 }
