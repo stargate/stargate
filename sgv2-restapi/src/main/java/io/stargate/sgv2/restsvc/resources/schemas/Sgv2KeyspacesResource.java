@@ -17,6 +17,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -31,6 +32,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,57 +197,23 @@ public class Sgv2KeyspacesResource {
                       + "      ],\n"
                       + "}\n"
                       + "```")
-          String payload,
+          JsonNode payload,
       @Context HttpServletRequest request) {
-    /*
-    return RequestHandler.handle(
-        () -> {
-          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
-          Map<String, Object> requestBody = ResourceUtils.readJson(payload);
-
-          String keyspaceName = (String) requestBody.get("name");
-          restDB.authorizeSchemaWrite(
-              keyspaceName, null, Scope.CREATE, SourceAPI.REST, ResourceKind.KEYSPACE);
-
-          Replication replication;
-          if (requestBody.containsKey("datacenters")) {
-            ArrayList<?> datacenters = (ArrayList<?>) requestBody.get("datacenters");
-            Map<String, Integer> dcReplications = new HashMap<>();
-            for (Object dc : datacenters) {
-              String dcName = (String) ((Map<?, ?>) dc).get("name");
-              Integer replicas =
-                  ((Map<?, ?>) dc).containsKey("replicas")
-                      ? (Integer) ((Map<?, ?>) dc).get("replicas")
-                      : 3;
-              dcReplications.put(dcName, replicas);
-            }
-            replication = Replication.networkTopologyStrategy(dcReplications);
-          } else {
-            replication = Replication.simpleStrategy((int) requestBody.getOrDefault("replicas", 1));
-          }
-
-          restDB
-              .queryBuilder()
-              .create()
-              .keyspace(keyspaceName)
-              .ifNotExists()
-              .withReplication(replication)
-              .build()
-              .execute()
-              .get();
-
-          return Response.status(Response.Status.CREATED)
-              .entity(Converters.writeResponse(Collections.singletonMap("name", keyspaceName)))
-              .build();
-        });
-       */
-
     Map<String, Object> replOptions = new HashMap<>();
     replOptions.put("replication_factor", 1);
     replOptions.put("class", "SimpleStrategy");
+
+    String keyspaceName = payload.path("name").asText();
+    if (keyspaceName == null) {
+      return Response.status(Response.Status.BAD_REQUEST)
+          .entity(
+              new RestServiceError(
+                  "missing 'name' parameter in payload Object",
+                  Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
+    }
     String cql =
-        SchemaBuilder.createKeyspace("test")
+        SchemaBuilder.createKeyspace(keyspaceName)
             .ifNotExists()
             .withReplicationOptions(replOptions)
             .asCql();
@@ -258,13 +226,12 @@ public class Sgv2KeyspacesResource {
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    logger.info("Received response for CREATE KEYSPACE: " + grpcResponse.getResultSet());
+    // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
-    List<Map<String, Object>> rows = convertRows(grpcResponse.getResultSet());
-
-    logger.info("Converted response into: " + rows);
-
-    return javax.ws.rs.core.Response.status(Response.Status.CREATED).entity(rows).build();
+    final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
+    return javax.ws.rs.core.Response.status(Response.Status.CREATED)
+        .entity(responsePayload)
+        .build();
   }
 
   @Timed
