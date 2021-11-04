@@ -17,7 +17,9 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -33,7 +35,6 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
@@ -65,6 +66,9 @@ public class Sgv2KeyspacesResource {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
+
+  private static final SchemaBuilderHelper schemaBuilder =
+      new SchemaBuilderHelper(new JsonMapper());
 
   /** Entity used to connect to backend gRPC service. */
   @Inject private GrpcClientFactory grpcFactory;
@@ -199,26 +203,24 @@ public class Sgv2KeyspacesResource {
                       + "```")
           JsonNode payload,
       @Context HttpServletRequest request) {
-    Map<String, Object> replOptions = new HashMap<>();
-    replOptions.put("replication_factor", 1);
-    replOptions.put("class", "SimpleStrategy");
-
-    String keyspaceName = payload.path("name").asText();
-    if (keyspaceName == null) {
+    logger.info("CREATE KEYSPACE with payload of: " + payload);
+    SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
+    try {
+      ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
+    } catch (IllegalArgumentException e) {
       return Response.status(Response.Status.BAD_REQUEST)
-          .entity(
-              new RestServiceError(
-                  "missing 'name' parameter in payload Object",
-                  Response.Status.BAD_REQUEST.getStatusCode()))
+          .entity(new RestServiceError(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
           .build();
     }
-    String cql =
-        SchemaBuilder.createKeyspace(keyspaceName)
-            .ifNotExists()
-            .withReplicationOptions(replOptions)
-            .asCql();
+    final String keyspaceName = ksCreateDef.name;
+    CreateKeyspaceStart start = SchemaBuilder.createKeyspace(keyspaceName).ifNotExists();
+    String cql;
+    if (ksCreateDef.datacenters == null) {
+      cql = start.withSimpleStrategy(ksCreateDef.replicas).asCql();
+    } else {
+      cql = start.withNetworkTopologyStrategy(ksCreateDef.datacenters).asCql();
+    }
 
-    logger.info("CREATE KEYSPACE with payload of: " + payload);
     logger.info("Trying to CREATE KEYSPACE with cql: [" + cql + "]");
 
     StargateGrpc.StargateBlockingStub blockingStub =
