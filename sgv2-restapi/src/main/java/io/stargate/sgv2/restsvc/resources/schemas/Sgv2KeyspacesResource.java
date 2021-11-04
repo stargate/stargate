@@ -23,8 +23,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
@@ -33,9 +31,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -64,8 +60,6 @@ import org.slf4j.LoggerFactory;
 public class Sgv2KeyspacesResource {
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
-
-  private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
 
   private static final SchemaBuilderHelper schemaBuilder =
       new SchemaBuilderHelper(new JsonMapper());
@@ -99,29 +93,10 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    /*
-    return RequestHandler.handle(
-        () -> {
-          RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-
-          List<Keyspace> keyspaces =
-              restDB.getKeyspaces().stream()
-                  .map(k -> new Keyspace(k.name(), buildDatacenters(k)))
-                  .collect(Collectors.toList());
-
-          restDB.authorizeSchemaRead(
-              keyspaces.stream().map(Keyspace::getName).collect(Collectors.toList()),
-              null,
-              SourceAPI.REST,
-              ResourceKind.KEYSPACE);
-
-          Object response = raw ? keyspaces : new RESTResponseWrapper(keyspaces);
-          return Response.status(Response.Status.OK)
-              .entity(Converters.writeResponse(response))
-              .build();
-        });
-       */
-    return null;
+    // !!! TO IMPLEMENT
+    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
+        .entity(Collections.emptyMap())
+        .build();
   }
 
   @Timed
@@ -155,7 +130,10 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    return null;
+    // !!! TO IMPLEMENT
+    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
+        .entity(Collections.emptyMap())
+        .build();
   }
 
   @Timed
@@ -260,16 +238,9 @@ public class Sgv2KeyspacesResource {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @Context HttpServletRequest request) {
-    return null;
-  }
-
-  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
-    ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
-    List<Map<String, Object>> resultRows = new ArrayList<>();
-    List<QueryOuterClass.Row> rows = rs.getRowsList();
-    for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.fromProtoValues(row.getValuesList()));
-    }
-    return resultRows;
+    // !!! TO IMPLEMENT
+    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
+        .entity(Collections.emptyMap())
+        .build();
   }
 }
