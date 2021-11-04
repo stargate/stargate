@@ -1,5 +1,32 @@
 # Changelog
 
+## [v1.0.41](https://github.com/stargate/stargate/tree/v1.0.41) (2021-11-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.40...v1.0.41)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Closed issues:**
+
+- Incorrect documented return type for `RowsResource.getAllRows\(\)` [\#1378](https://github.com/stargate/stargate/issues/1378)
+- Incorrect tests in `RestApiv2Test`, "createTableMissingClustering\(\)", "createTableWithNullOptions\(\)" [\#1376](https://github.com/stargate/stargate/issues/1376)
+- Add read-me for the `metric-jersey` module [\#1312](https://github.com/stargate/stargate/issues/1312)
+
+**Merged pull requests:**
+
+- Add schema agreement check to persistence connection [\#1389](https://github.com/stargate/stargate/pull/1389) ([mpenick](https://github.com/mpenick))
+- Remove the unpack\(\) call from gRPC docs [\#1387](https://github.com/stargate/stargate/pull/1387) ([tomekl007](https://github.com/tomekl007))
+- GraphQL CQL-first: handle null values for complex types \(fixes \#1347\) [\#1380](https://github.com/stargate/stargate/pull/1380) ([olim7t](https://github.com/olim7t))
+- Fix \#1378: change Swagger annotations to indicate correct response type [\#1379](https://github.com/stargate/stargate/pull/1379) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1376 \(2 tests using wrong response types\) [\#1377](https://github.com/stargate/stargate/pull/1377) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unused `Any` import from gRPC proto file [\#1375](https://github.com/stargate/stargate/pull/1375) ([mpenick](https://github.com/mpenick))
+- Improve RestV2 tests for "getAllRows\(\)" end point [\#1374](https://github.com/stargate/stargate/pull/1374) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1373](https://github.com/stargate/stargate/pull/1373) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Return UNAVAILABLE for unhandled clients [\#1366](https://github.com/stargate/stargate/pull/1366) ([mpenick](https://github.com/mpenick))
+- closes \#1312: metric-jersey final refactoring and README [\#1364](https://github.com/stargate/stargate/pull/1364) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.40](https://github.com/stargate/stargate/tree/v1.0.40) (2021-10-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.39...v1.0.40)
