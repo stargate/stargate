@@ -26,7 +26,7 @@ public class Sgv2TableAdd {
   @NotNull private List<Sgv2ColumnDefinition> columnDefinitions;
 
   boolean ifNotExists = false;
-  TableOptions tableOptions = new TableOptions();
+  Sgv2TableOptions tableOptions = new Sgv2TableOptions();
 
   @ApiModelProperty(required = true, value = "The name of the table to add.")
   public String getName() {

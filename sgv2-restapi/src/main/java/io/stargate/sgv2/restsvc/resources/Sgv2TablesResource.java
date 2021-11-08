@@ -30,7 +30,9 @@ import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 //import io.stargate.db.schema.Column.Type;
 //import io.stargate.db.schema.Keyspace;
 //import io.stargate.db.schema.Table;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.stargate.grpc.StargateBearerToken;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -199,23 +201,13 @@ public class Sgv2TablesResource {
       @ApiParam(required = true) @NotNull final Sgv2TableAdd tableAdd,
       @Context HttpServletRequest request) {
 
-      return RequestHandler.handle(
+      return Sgv2RequestHandler.handle(
               () -> {
-                  //logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
                   StargateGrpc.StargateBlockingStub blockingStub =
                           grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
-//                  RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
-//
-//                  Keyspace keyspace = restDB.getKeyspace(keyspaceName);
-//                  if (keyspace == null) {
-//                      return Response.status(Status.BAD_REQUEST)
-//                              .entity(
-//                                      new RestServiceError(
-//                                              "keyspace does not exists", Status.BAD_REQUEST.getStatusCode()))
-//                              .build();
-//                  }
+                  // TODO: check if keyspace exists?
 
                   String tableName = tableAdd.getName();
                   if (tableName == null || tableName.equals("")) {
@@ -225,9 +217,6 @@ public class Sgv2TablesResource {
                                               "table name must be provided", Status.BAD_REQUEST.getStatusCode()))
                               .build();
                   }
-
-//                  restDB.authorizeSchemaWrite(
-//                          keyspaceName, tableName, Scope.CREATE, SourceAPI.REST, ResourceKind.TABLE);
 
                   Sgv2PrimaryKey primaryKey = tableAdd.getPrimaryKey();
                   if (primaryKey == null) {
@@ -239,18 +228,15 @@ public class Sgv2TablesResource {
                               .build();
                   }
 
-
-                  //new
                   CreateTableStart createTableStart = SchemaBuilder.createTable(keyspaceName, tableName);
                   if (tableAdd.getIfNotExists()) {
                       createTableStart = createTableStart.ifNotExists();
                   }
 
                   CreateTable createTable = null;
-                  Sgv2PrimaryKey primaryKey = tableAdd.getPrimaryKey();
 
-                  List<String> partitionKeys = tableAdd.getPrimaryKey().getPartitionKey();
-                  List<String> clusteringKeys = tableAdd.getPrimaryKey().getClusteringKey();
+                  List<String> partitionKeys = primaryKey.getPartitionKey();
+                  List<String> clusteringKeys = primaryKey.getClusteringKey();
                   Map<String, Sgv2ColumnDefinition> columnDefinitions = new HashMap<>();
 
                   for (Sgv2ColumnDefinition columnDefinition : tableAdd.getColumnDefinitions()) {
@@ -267,16 +253,57 @@ public class Sgv2TablesResource {
                   }
 
                   for (String partitionKey : partitionKeys) {
-                      Sgv2ColumnDefinition partitionKeyColumn = columnDefinitions.get(partitionKey);
+                      Sgv2ColumnDefinition partitionKeyColumn = columnDefinitions.remove(partitionKey);
 
                       String partitionKeyType = partitionKeyColumn.getTypeDefinition();
                       if (partitionKeyType == null || partitionKeyType.equals("")) {
-                          // bad reference
+                          return Response.status(Status.BAD_REQUEST)
+                                  .entity(
+                                          new RestServiceError(
+                                                  "partition key must be provided",
+                                                  Status.BAD_REQUEST.getStatusCode()))
+                                  .build();
                       }
 
-                      DataType dataType = null;
+                      DataType dataType = null; // TODO
                       createTable = createTable == null ? createTableStart.withPartitionKey(partitionKey, dataType) :
                           createTable.withPartitionKey(partitionKey, dataType);
+                  }
+
+                  for (String clusteringKey : clusteringKeys) {
+                      Sgv2ColumnDefinition clusteringKeyColumn = columnDefinitions.remove(clusteringKey);
+
+                      String clusteringKeyType = clusteringKeyColumn.getTypeDefinition();
+                      if (clusteringKeyType == null || clusteringKeyType.equals("")) {
+                          return Response.status(Status.BAD_REQUEST)
+                                  .entity(
+                                          new RestServiceError(
+                                                  "partition key must be provided",
+                                                  Status.BAD_REQUEST.getStatusCode()))
+                                  .build();
+                      }
+
+                      DataType dataType = null; // TODO
+                      createTable = createTable.withClusteringColumn(clusteringKey, dataType);
+                  }
+
+                  for (String columnName : columnDefinitions.keySet()) {
+                      Sgv2ColumnDefinition columnDefinition = columnDefinitions.get(columnName);
+
+                      String columnType = columnDefinition.getTypeDefinition();
+                      if (columnType == null || columnType.equals("")) {
+                          return Response.status(Status.BAD_REQUEST)
+                                  .entity(
+                                          new RestServiceError(
+                                                  "column type must be provided",
+                                                  Status.BAD_REQUEST.getStatusCode()))
+                                  .build();
+                      }
+
+                      DataType dataType = null; // TODO
+                      createTable = columnDefinition.getIsStatic() ?
+                              createTable.withStaticColumn(columnName, dataType) :
+                              createTable.withColumn(columnName, dataType);
                   }
 
                   Sgv2TableOptions options = tableAdd.getTableOptions();
@@ -292,7 +319,8 @@ public class Sgv2TablesResource {
 
                               try {
                                   ClusteringOrder clusteringOrder = ClusteringOrder.valueOf(clusteringExpression.getOrder().toUpperCase());
-                                  createTable = createTable.withClusteringOrder(clusteringExpression.getColumn(), clusteringOrder);
+                                  // TODO: questionable cast?
+                                  createTable = (CreateTable) createTable.withClusteringOrder(clusteringExpression.getColumn(), clusteringOrder);
 
                               } catch (IllegalArgumentException e) {
 
@@ -302,62 +330,23 @@ public class Sgv2TablesResource {
                       }
 
                       if (options.getDefaultTimeToLive() != null) {
-                          createTable = createTable.withDefaultTimeToLiveSeconds(options.getDefaultTimeToLive());
+                          // TODO: questionable cast?
+                          createTable = (CreateTable) createTable.withDefaultTimeToLiveSeconds(options.getDefaultTimeToLive());
                       }
                   }
-//
-//                  List<Column> columns = new ArrayList<>();
-//                  TableOptions options = tableAdd.getTableOptions();
-//                  for (ColumnDefinition colDef : tableAdd.getColumnDefinitions()) {
-//                      String columnName = colDef.getName();
-//                      if (columnName == null || columnName.equals("")) {
-//                          return Response.status(Status.BAD_REQUEST)
-//                                  .entity(
-//                                          new RestServiceError(
-//                                                  "column name must be provided",
-//                                                  Status.BAD_REQUEST.getStatusCode()))
-//                                  .build();
-//                      }
-//
-//                      Kind kind = Converters.getColumnKind(colDef, primaryKey);
-//                      ColumnType type = Type.fromCqlDefinitionOf(keyspace, colDef.getTypeDefinition());
-//                      Order order;
-//                      try {
-//                          order = kind == Kind.Clustering ? Converters.getColumnOrder(colDef, options) : null;
-//                      } catch (Exception e) {
-//                          return Response.status(Status.BAD_REQUEST)
-//                                  .entity(
-//                                          new RestServiceError(
-//                                                  "Unable to create table options " + e.getMessage(),
-//                                                  Status.BAD_REQUEST.getStatusCode()))
-//                                  .build();
-//                      }
-//                      columns.add(Column.create(columnName, kind, type, order));
-//                  }
-//
-//                  int ttl = 0;
-//                  if (options != null && options.getDefaultTimeToLive() != null) {
-//                      ttl = options.getDefaultTimeToLive();
-//                  }
 
-                  if (tableAdd.getIfNotExists()) {
-                      createTable = createTable.
-                  }
+                  String cql = createTable.asCql();
+                  logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
-//                  restDB
-//                          .queryBuilder()
-//                          .create()
-//                          .table(keyspaceName, tableName)
-//                          .ifNotExists(tableAdd.getIfNotExists())
-//                          .column(columns)
-//                          .withDefaultTTL(ttl)
-//                          .build()
-//                          .execute(ConsistencyLevel.LOCAL_QUORUM)
-//                          .get();
+                  QueryOuterClass.Query query =
+                          QueryOuterClass.Query.newBuilder().setCql(cql).build();
+                  QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-                  return Response.status(Response.Status.CREATED)
-                          .entity(Sgv2Converters.writeResponse(Collections.singletonMap("name", tableName)))
-                          .build();
+                  Sgv2TableResponse response = new Sgv2TableResponse(tableAdd.getName(), keyspaceName,
+                          tableAdd.getColumnDefinitions(), tableAdd.getPrimaryKey(), tableAdd.getTableOptions());
+
+                  return javax.ws.rs.core.Response.status(Response.Status.CREATED).entity(response).build();
+
               });
   }
 
@@ -521,4 +510,4 @@ public class Sgv2TablesResource {
 //        tableOptions);
 //  }
 
-  }}
+}
