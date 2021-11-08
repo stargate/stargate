@@ -311,6 +311,7 @@ message Traces {
   repeated Event events = 4;
 }
 
+// TODO: does this need to include indexes and materialized views?
 // If a Query message is a DDL statement, this will be included in the Response to describe the
 // how the CQL schema was impacted.
 message SchemaChange {

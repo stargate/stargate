@@ -1,0 +1,141 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+option java_package = "io.stargate.proto";
+option go_package = "stargate/proto";
+
+package stargate;
+
+// The type of a column
+enum CqlType {
+  INT = 0x00;
+  FLOAT = 0x01;
+  DOUBLE = 0x02;
+  BOOLEAN = 0x03;
+  STRING = 0x04;
+  BYTES = 0x05;
+  INET = 0x06;
+  UUID = 0x07;
+  DATE = 0x08;
+  TIME = 0x09;
+  COLLECTION = 0x0A;
+  VARINT = 0x0B;
+  DECIMAL = 0x0C;
+  UDT = 0x0D;
+}
+
+enum CqlCollectionType {
+  SET = 0x01;
+  LIST = 0x02;
+  MAP = 0x03;
+}
+
+// The type of a column
+enum CqlColumnOrder {
+  ASC = 0x00;
+  DESC = 0x01;
+}
+
+// A CQL Column
+message CqlColumn {
+
+  string name = 1;
+
+  CqlType type = 2;
+
+  CqlCollectionType collectionType = 3;
+
+  string udtType = 4;
+
+  bool isPartitionKey = 5;
+
+  uint32 clusteringColumnOrder = 6;
+
+  bool frozen = 7;
+
+  bool static = 8;
+}
+
+message CqlTableOptions {
+
+}
+
+// USER DEFINED TYPES
+
+message CqlUdtField {
+  string name = 1;
+
+  CqlType type = 2;
+}
+
+message CqlUserDefinedType {
+  string name = 1;
+
+  repeated CqlUdtField type = 2;
+}
+
+// TABLES
+
+message CqlTable {
+  repeated CqlColumn columns = 1;
+
+  CqlTableOptions tableOptions = 2;
+}
+
+// INDEXES
+
+message CqlIndex {
+
+}
+
+// MATERIALIZED VIEWS
+
+message CqlMaterializedView {
+
+}
+
+// KEYSPACES
+
+message CqlDatacenterReplication {
+  string datacenterName = 1;
+
+  uint32 replicationFactor = 2;
+}
+
+message CqlKeyspace {
+
+  string name = 1;
+
+  repeated CqlDatacenterReplication replication = 2;
+
+  bool durableWrites = 3;
+
+  repeated CqlUserDefinedType types = 4;
+
+  repeated CqlTable tables = 5;
+
+  repeated CqlIndex indexes = 6;
+
+  repeated CqlMaterializedView materializedViews = 7;
+}
+
+
+// questions
+// should we provide distinct operations for creating schema?
+// should we reuse/extend the SchemaChange type? it is not fully featured enough to include a full representation of a table
