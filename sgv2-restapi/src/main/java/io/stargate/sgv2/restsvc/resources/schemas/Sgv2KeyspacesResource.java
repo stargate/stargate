@@ -16,6 +16,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +24,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
@@ -31,7 +34,9 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -93,8 +98,33 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
+
+    String cql =
+        QueryBuilder.selectFrom("system_schema", "keyspaces")
+            .columns("keyspace_name", "replication")
+            .asCql();
+
+    logger.info("getAllKeyspaces, cql = " + cql);
+
+    QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+    final int count = rs.getRowsCount();
+
+    logger.info("getAllKeyspaces, response (" + count + " rows) = " + rs);
+
+    List<Map<String, Object>> ksRows = convertRows(rs);
+
+    logger.info("getAllKeyspaces, rows -> " + ksRows);
+
     // !!! TO IMPLEMENT
-    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
+    return javax.ws.rs.core.Response.status(Response.Status.OK)
         .entity(Collections.emptyMap())
         .build();
   }
@@ -242,5 +272,16 @@ public class Sgv2KeyspacesResource {
     return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
         .entity(Collections.emptyMap())
         .build();
+  }
+
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    ExtProtoValueConverter converter =
+        ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.fromProtoValues(row.getValuesList()));
+    }
+    return resultRows;
   }
 }

@@ -10,6 +10,12 @@ import java.util.List;
 public class ExtProtoValueConverters {
   private static final ExtProtoValueCodecs CODECS = new ExtProtoValueCodecs();
 
+  private static final ExtProtoValueConverters INSTANCE = new ExtProtoValueConverters();
+
+  public static ExtProtoValueConverters instance() {
+    return INSTANCE;
+  }
+
   public ExtProtoValueConverter createConverter(List<QueryOuterClass.ColumnSpec> columns) {
     final String[] names = new String[columns.size()];
     final ExtProtoValueCodec[] codecs = new ExtProtoValueCodec[columns.size()];
