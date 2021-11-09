@@ -262,6 +262,20 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
+      <!-- Plugin for building Docker images -->
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>3.1.4</version>
+        <configuration>
+          <from>
+            <image>adoptopenjdk:8</image>
+          </from>
+          <to>
+            <image>docker.io/stargateio/stargate-restapi:${project.version}</image>
+          </to>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
