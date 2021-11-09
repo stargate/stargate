@@ -104,8 +104,7 @@ public class Sgv2KeyspacesResource {
           String token,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @Context HttpServletRequest request)
-      throws Exception {
+      @Context HttpServletRequest request) {
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -124,11 +123,11 @@ public class Sgv2KeyspacesResource {
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-    final int count = rs.getRowsCount();
 
     // two-part conversion: first from proto to JsonNode for easier traversability,
     // then from that to actual response we need:
     ArrayNode ksRows = convertRowsToJsonNode(rs);
+    JsonNode ksDef = ksRows.get(0);
     List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
     final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
@@ -166,10 +165,40 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    // !!! TO IMPLEMENT
-    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
-        .entity(Collections.emptyMap())
-        .build();
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
+
+    String cql =
+        QueryBuilder.selectFrom("system_schema", "keyspaces")
+            .column("keyspace_name")
+            .column("replication")
+            .whereColumn("keyspace_name")
+            .isEqualTo(QueryBuilder.literal(keyspaceName))
+            .asCql();
+
+    logger.info("getOneKeyspace, cql = " + cql);
+
+    QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+    if (rs.getRowsCount() == 0) {
+      return Response.status(Response.Status.NOT_FOUND)
+          .entity(
+              new RestServiceError(
+                  "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
+          .build();
+    }
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
+
+    final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
