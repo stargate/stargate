@@ -21,6 +21,7 @@ import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -29,15 +30,18 @@ import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
+import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -63,11 +67,14 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class Sgv2KeyspacesResource {
+  private static final String DC_META_ENTRY_CLASS = "class";
+
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  private static final SchemaBuilderHelper schemaBuilder =
-      new SchemaBuilderHelper(new JsonMapper());
+  private static final JsonMapper JSON_MAPPER = new JsonMapper();
+
+  private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
   /** Entity used to connect to backend gRPC service. */
   @Inject private GrpcClientFactory grpcFactory;
@@ -97,7 +104,8 @@ public class Sgv2KeyspacesResource {
           String token,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
-      @Context HttpServletRequest request) {
+      @Context HttpServletRequest request)
+      throws Exception {
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -105,7 +113,8 @@ public class Sgv2KeyspacesResource {
 
     String cql =
         QueryBuilder.selectFrom("system_schema", "keyspaces")
-            .columns("keyspace_name", "replication")
+            .column("keyspace_name")
+            .column("replication")
             .asCql();
 
     logger.info("getAllKeyspaces, cql = " + cql);
@@ -117,16 +126,13 @@ public class Sgv2KeyspacesResource {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
-    logger.info("getAllKeyspaces, response (" + count + " rows) = " + rs);
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
-    List<Map<String, Object>> ksRows = convertRows(rs);
-
-    logger.info("getAllKeyspaces, rows -> " + ksRows);
-
-    // !!! TO IMPLEMENT
-    return javax.ws.rs.core.Response.status(Response.Status.OK)
-        .entity(Collections.emptyMap())
-        .build();
+    final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
+    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -211,7 +217,6 @@ public class Sgv2KeyspacesResource {
                       + "```")
           JsonNode payload,
       @Context HttpServletRequest request) {
-    logger.info("CREATE KEYSPACE with payload of: " + payload);
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
@@ -229,7 +234,7 @@ public class Sgv2KeyspacesResource {
       cql = start.withNetworkTopologyStrategy(ksCreateDef.datacenters).asCql();
     }
 
-    logger.info("Trying to CREATE KEYSPACE with cql: [" + cql + "]");
+    logger.info("Sending CREATE KEYSPACE with cql: [" + cql + "]");
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -274,14 +279,39 @@ public class Sgv2KeyspacesResource {
         .build();
   }
 
-  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {
     ExtProtoValueConverter converter =
         ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
-    List<Map<String, Object>> resultRows = new ArrayList<>();
+    ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.fromProtoValues(row.getValuesList()));
+      resultRows.add(converter.objectNodeFromProtoValues(row.getValuesList()));
     }
     return resultRows;
+  }
+
+  private static List<Sgv2Keyspace> keyspacesFrom(JsonNode ksRootNode) {
+    List<Sgv2Keyspace> result =
+        StreamSupport.stream(ksRootNode.spliterator(), false)
+            .map(x -> keyspaceFrom(x))
+            .collect(Collectors.toList());
+    return result;
+  }
+
+  private static Sgv2Keyspace keyspaceFrom(JsonNode ksNode) {
+    final String ksName = ksNode.path("keyspace_name").asText();
+    final Sgv2Keyspace ks = new Sgv2Keyspace(ksName);
+    Iterator<Map.Entry<String, JsonNode>> it = ksNode.path("replication").fields();
+    while (it.hasNext()) {
+      Map.Entry<String, JsonNode> entry = it.next();
+      final String dcName = entry.getKey();
+      // Datacenters are exposed as Map/Object entries from key to replica count,
+      // plus at least one meta-entry ("class") for replication strategy
+      if (DC_META_ENTRY_CLASS.equals(dcName)) {
+        continue;
+      }
+      ks.addDatacenter(dcName, entry.getValue().asInt(0));
+    }
+    return ks;
   }
 }

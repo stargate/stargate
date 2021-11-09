@@ -19,15 +19,25 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.ArrayList;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Sgv2Keyspace {
-  @JsonProperty("name")
-  private String name;
+  protected String name;
 
-  @JsonProperty("datacenters")
-  private List<Datacenter> datacenters;
+  protected List<Datacenter> datacenters;
+
+  protected Sgv2Keyspace() {} // for deserializer
+
+  public Sgv2Keyspace(String name) {
+    this.name = name;
+  }
+
+  @ApiModelProperty(required = true, value = "The name of the keyspace.")
+  public String getName() {
+    return name;
+  }
 
   @ApiModelProperty(
       value =
@@ -36,33 +46,23 @@ public class Sgv2Keyspace {
     return datacenters;
   }
 
-  public void setDatacenters(List<Datacenter> datacenters) {
-    this.datacenters = datacenters;
-  }
-
-  @ApiModelProperty(required = true, value = "The name of the keyspace.")
-  @JsonProperty("name")
-  public String getName() {
-    return name;
-  }
-
-  public Sgv2Keyspace setName(String name) {
-    this.name = name;
-    return this;
-  }
-
-  @JsonCreator
-  public Sgv2Keyspace(
-      @JsonProperty("name") String name,
-      @JsonProperty("datacenters") List<Datacenter> datacenters) {
-    this.name = name;
-    this.datacenters = datacenters;
+  public void addDatacenter(String name, int replicas) {
+    if (datacenters == null) {
+      datacenters = new ArrayList<>();
+    }
+    datacenters.add(new Datacenter(name, replicas));
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public static class Datacenter {
     private String name;
     private int replicas;
+
+    @JsonCreator
+    public Datacenter(@JsonProperty("name") String name, @JsonProperty("replicas") int replicas) {
+      this.name = name;
+      this.replicas = replicas;
+    }
 
     @ApiModelProperty(required = true, value = "The name of the datacenter.")
     public String getName() {
@@ -85,12 +85,6 @@ public class Sgv2Keyspace {
     public Datacenter setReplicas(int replicas) {
       this.replicas = replicas;
       return this;
-    }
-
-    @JsonCreator
-    public Datacenter(@JsonProperty("name") String name, @JsonProperty("replicas") int replicas) {
-      this.name = name;
-      this.replicas = replicas;
     }
   }
 }

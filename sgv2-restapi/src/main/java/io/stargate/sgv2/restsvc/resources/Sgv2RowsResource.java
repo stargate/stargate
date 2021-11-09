@@ -153,7 +153,7 @@ public class Sgv2RowsResource {
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.fromProtoValues(row.getValuesList()));
+      resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
     }
     return resultRows;
   }

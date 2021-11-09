@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;
 
 /**
@@ -9,4 +10,6 @@ import io.stargate.proto.QueryOuterClass;
  */
 public abstract class ExtProtoValueCodec {
   public abstract Object fromProtoValue(QueryOuterClass.Value value);
+
+  public abstract JsonNode jsonNodeFrom(QueryOuterClass.Value value);
 }
