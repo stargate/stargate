@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.42](https://github.com/stargate/stargate/tree/v1.0.42) (2021-11-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.41...v1.0.42)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#1391](https://github.com/stargate/stargate/pull/1391) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Remove OSGI references from integration tests [\#1390](https://github.com/stargate/stargate/pull/1390) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.41](https://github.com/stargate/stargate/tree/v1.0.41) (2021-11-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.40...v1.0.41)
