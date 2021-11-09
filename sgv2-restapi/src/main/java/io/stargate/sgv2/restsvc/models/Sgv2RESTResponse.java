@@ -20,46 +20,24 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModelProperty;
 
-// Copy of "GetResponseWrapper" of StargateV1
+// Copy of "RESTResponseWrapper" of StargateV1
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Sgv2GetResponse<T> {
-  @JsonProperty("count")
-  protected final int count;
-
-  @JsonProperty("pageState")
-  protected final String pageState;
-
+public class Sgv2RESTResponse<T> {
   @JsonProperty("data")
-  protected T data;
+  private T data;
 
-  @ApiModelProperty(value = "The count of records returned")
-  public int getCount() {
-    return count;
-  }
-
-  @ApiModelProperty(
-      value = "A string representing the paging state to be used on future paging requests.")
-  public String getPageState() {
-    return pageState;
-  }
-
-  @ApiModelProperty(value = "The data returned by the request")
+  @ApiModelProperty(value = "Response data returned by the request.")
   public T getData() {
     return data;
   }
 
-  public Sgv2GetResponse setData(T data) {
+  public Sgv2RESTResponse setData(T data) {
     this.data = data;
     return this;
   }
 
   @JsonCreator
-  public Sgv2GetResponse(
-      @JsonProperty("count") final int count,
-      @JsonProperty("pageState") final String pageState,
-      @JsonProperty("data") final T data) {
-    this.count = count;
-    this.pageState = pageState;
+  public Sgv2RESTResponse(@JsonProperty("data") final T data) {
     this.data = data;
   }
 }

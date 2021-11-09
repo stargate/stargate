@@ -1,14 +1,25 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.proto.QueryOuterClass;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Factory for accessing {@link ExtProtoValueCodec}s to convert from proto values into externally
  * serializable values.
  */
 public class ExtProtoValueCodecs {
+  static final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
+
   public ExtProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec type = columnSpec.getType();
+    return codecFor(columnSpec, columnSpec.getType());
+  }
+
+  public ExtProtoValueCodec codecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec type) {
     switch (type.getSpecCase()) {
       case BASIC:
         return basicCodecFor(columnSpec, type.getBasic());
@@ -24,13 +35,21 @@ public class ExtProtoValueCodecs {
       case TUPLE:
       case UDT:
         throw new IllegalArgumentException(
-            "Can not (yet) create Codec for column specified as: " + columnSpec);
+            "Can not (yet) create Codec for TypeSpec "
+                + type.getSpecCase()
+                + " for column '"
+                + columnSpec.getName()
+                + "'");
 
         // Invalid cases:
       case SPEC_NOT_SET:
       default:
         throw new IllegalArgumentException(
-            "Invalid/unsupported ColumnSpec value of " + type + " for column: " + columnSpec);
+            "Invalid/unsupported ColumnSpec TypeSpec "
+                + type.getSpecCase()
+                + " for column '"
+                + columnSpec.getName()
+                + "'");
     }
   }
 
@@ -45,7 +64,7 @@ public class ExtProtoValueCodecs {
       case VARCHAR:
         return TextCodec.INSTANCE;
       case BOOLEAN:
-        break;
+        return BooleanCodec.INSTANCE;
       case BIGINT:
         break;
       case BLOB:
@@ -93,8 +112,9 @@ public class ExtProtoValueCodecs {
   }
 
   protected ExtProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for MAP column specified as: " + columnSpec);
+    QueryOuterClass.TypeSpec.Map mapSpec = columnSpec.getType().getMap();
+    return new MapCodec(
+        codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
   }
 
   protected ExtProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -111,6 +131,11 @@ public class ExtProtoValueCodecs {
     public Object fromProtoValue(QueryOuterClass.Value value) {
       return value.getString();
     }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(value.getString());
+    }
   }
 
   protected static final class BooleanCodec extends ExtProtoValueCodec {
@@ -119,6 +144,55 @@ public class ExtProtoValueCodecs {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
       return value.getBoolean();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.booleanNode(value.getBoolean());
+    }
+  }
+
+  protected static final class MapCodec extends ExtProtoValueCodec {
+    private final ExtProtoValueCodec keyCodec, valueCodec;
+
+    public MapCodec(ExtProtoValueCodec kc, ExtProtoValueCodec vc) {
+      keyCodec = kc;
+      valueCodec = vc;
+    }
+
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      int len = verifyMapLength(coll);
+      Map<Object, Object> result = new LinkedHashMap<>(len);
+      for (int i = 0; i < len; i += 2) {
+        result.put(
+            keyCodec.fromProtoValue(coll.getElements(i)),
+            valueCodec.fromProtoValue(coll.getElements(i + 1)));
+      }
+      return result;
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      int len = verifyMapLength(coll);
+      ObjectNode map = jsonNodeFactory.objectNode();
+      for (int i = 0; i < len; i += 2) {
+        map.set(
+            keyCodec.jsonNodeFrom(coll.getElements(i)).asText(),
+            valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+      }
+      return map;
+    }
+
+    private int verifyMapLength(QueryOuterClass.Collection mapValue) {
+      int len = mapValue.getElementsCount();
+      if ((len & 1) != 0) {
+        throw new IllegalArgumentException(
+            "Illegal Map representation, odd number of Value elements (" + len + ")");
+      }
+      return len;
     }
   }
 }
