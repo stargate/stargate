@@ -38,7 +38,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -131,7 +130,6 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     // two-part conversion: first from proto to JsonNode for easier traversability,
     // then from that to actual response we need:
     ArrayNode ksRows = convertRowsToJsonNode(rs);
-    JsonNode ksDef = ksRows.get(0);
     List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
     final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
@@ -344,6 +342,13 @@ public class Sgv2KeyspacesResource extends ResourceBase {
   private static Sgv2Keyspace keyspaceFrom(JsonNode ksNode) {
     final String ksName = ksNode.path("keyspace_name").asText();
     final Sgv2Keyspace ks = new Sgv2Keyspace(ksName);
+
+    // 09-Nov-2021, tatu: Below is what should work correctly, as per documentation,
+    //   but that does NOT indeed work, nor produce output as documented by Swagger.
+    //   Stargate V1 has same issues (see https://github.com/stargate/stargate/issues/1396)
+    //   so for now will simply be compatible with V1, but not correct.
+
+    /*
     Iterator<Map.Entry<String, JsonNode>> it = ksNode.path("replication").fields();
     while (it.hasNext()) {
       Map.Entry<String, JsonNode> entry = it.next();
@@ -355,6 +360,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
       }
       ks.addDatacenter(dcName, entry.getValue().asInt(0));
     }
+     */
     return ks;
   }
 }
