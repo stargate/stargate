@@ -31,6 +31,7 @@ import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
+import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -66,7 +67,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-public class Sgv2KeyspacesResource {
+public class Sgv2KeyspacesResource extends ResourceBase {
   private static final String DC_META_ENTRY_CLASS = "class";
 
   // Singleton resource so no need to be static
@@ -105,6 +106,9 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -165,6 +169,9 @@ public class Sgv2KeyspacesResource {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -246,6 +253,9 @@ public class Sgv2KeyspacesResource {
                       + "```")
           JsonNode payload,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
@@ -302,6 +312,10 @@ public class Sgv2KeyspacesResource {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+
     // !!! TO IMPLEMENT
     return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
         .entity(Collections.emptyMap())
