@@ -21,6 +21,7 @@ option go_package = "stargate/proto";
 package stargate;
 
 import "query.proto";
+import "schema.proto";
 
 // The gPRC service to interact with a Stargate coordinator.
 service Stargate {
@@ -29,5 +30,11 @@ service Stargate {
 
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
+
+  // Schema creation
+  rpc ExecuteSchemaQuery(CqlSchemaQuery) returns (Response) {}
+
+  // Similar to CQL "DESCRIBE KEYSPACE"
+  rpc DescribeKeyspace(DescribeQuery) returns (CqlKeyspaceDescribe) {}
 }
 

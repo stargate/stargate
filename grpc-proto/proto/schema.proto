@@ -22,7 +22,8 @@ option go_package = "stargate/proto";
 
 package stargate;
 
-// The type of a column
+// TYPES
+
 enum CqlType {
   INT = 0x00;
   FLOAT = 0x01;
@@ -34,46 +35,13 @@ enum CqlType {
   UUID = 0x07;
   DATE = 0x08;
   TIME = 0x09;
-  COLLECTION = 0x0A;
-  VARINT = 0x0B;
-  DECIMAL = 0x0C;
-  UDT = 0x0D;
-}
-
-enum CqlCollectionType {
-  SET = 0x01;
-  LIST = 0x02;
-  MAP = 0x03;
-}
-
-// The type of a column
-enum CqlColumnOrder {
-  ASC = 0x00;
-  DESC = 0x01;
-}
-
-// A CQL Column
-message CqlColumn {
-
-  string name = 1;
-
-  CqlType type = 2;
-
-  CqlCollectionType collectionType = 3;
-
-  string udtType = 4;
-
-  bool isPartitionKey = 5;
-
-  uint32 clusteringColumnOrder = 6;
-
-  bool frozen = 7;
-
-  bool static = 8;
-}
-
-message CqlTableOptions {
-
+  VARINT = 0x0A;
+  DECIMAL = 0x0B;
+  SET = 0x0C;
+  LIST = 0x0D;
+  MAP = 0x0E;
+  UDT = 0x0F;
+  TUPLE = 0x10;
 }
 
 // USER DEFINED TYPES
@@ -82,32 +50,92 @@ message CqlUdtField {
   string name = 1;
 
   CqlType type = 2;
+
+  // only used for UDTs (UDTs can reference other UDTs, but they must be frozen)
+  string cqlTypeName = 3;
+
+  bool frozen = 4;
 }
 
 message CqlUserDefinedType {
   string name = 1;
 
   repeated CqlUdtField type = 2;
+
+}
+
+// COLUMNS
+
+enum CqlColumnOrderBy {
+  ASC = 0x00;
+  DESC = 0x01;
+}
+
+message CqlComplexColumnType {
+  CqlType type = 1;
+
+  // only used if type=UDT
+  string udtTypeName = 1;
+
+  bool frozen = 2;
+}
+
+message CqlColumn {
+
+  string name = 1;
+
+  CqlType type = 2;
+
+  // only used if type=UDT
+  string udtTypeName = 3;
+
+  // only used if type is one of {SET, LIST, MAP, TUPLE}
+  // for SET and LIST, this will have one element
+  //   example: direct_reports set<frozen <fullname>> -> CqlComplexColumnType(UDT, fullname, true)
+  //   example: prime_numbers list<int> -> CqlComplexColumnType(INT, null, false)
+  // for MAP, this will have one element
+  //   example: addresses map<string, frozen<address>> -> CqlComplexColumnType(STRING, null, false),
+  //     CqlComplexColumnType(UDT, address, true)
+  // for TUPLE, this will have as many elements as are referenced
+  //   example: values <tuple<int, text, float>> -> CqlComplexColumnType(INT, null, false),
+  //     CqlComplexColumnType(STRING, null, false), CqlComplexColumnType(FLOAT, null, false)
+  repeated CqlComplexColumnType complexColumnTypes = 4;
+
+  bool isPartitionKey = 5;
+
+  // only used for clustering columns
+  uint32 clusteringColumnOrder = 6;
+
+  bool isFrozen = 7;
+
+  bool isStatic = 8;
 }
 
 // TABLES
 
+// TODO ok to make it this simplistic?
+message CqlTableOption {
+
+  string name = 1;
+  string value = 2;
+}
+
 message CqlTable {
   repeated CqlColumn columns = 1;
 
-  CqlTableOptions tableOptions = 2;
+  repeated CqlTableOption tableOptions = 2;
 }
 
 // INDEXES
 
 message CqlIndex {
-
+  // TODO
 }
 
 // MATERIALIZED VIEWS
 
 message CqlMaterializedView {
-
+  // TODO
 }
 
 // KEYSPACES
@@ -122,20 +150,48 @@ message CqlKeyspace {
 
   string name = 1;
 
-  repeated CqlDatacenterReplication replication = 2;
+  string replicationStrategy = 2;
 
-  bool durableWrites = 3;
+  repeated CqlDatacenterReplication replicationFactors = 3;
 
-  repeated CqlUserDefinedType types = 4;
+  bool durableWrites = 4;
 
-  repeated CqlTable tables = 5;
-
-  repeated CqlIndex indexes = 6;
-
-  repeated CqlMaterializedView materializedViews = 7;
 }
 
+// DESCRIBE KEYSPACE
 
-// questions
-// should we provide distinct operations for creating schema?
-// should we reuse/extend the SchemaChange type? it is not fully featured enough to include a full representation of a table
+message DescribeQuery {
+  string keyspaceName = 1;
+}
+
+message CqlKeyspaceDescribe {
+
+  CqlKeyspace cqlKeyspace = 1;
+
+  repeated CqlUserDefinedType types = 2;
+
+  repeated CqlTable tables = 3;
+
+  repeated CqlIndex indexes = 4;
+
+  repeated CqlMaterializedView materializedViews = 5;
+}
+
+// SCHEMA CREATION
+
+message CqlSchemaQuery {
+  oneof schema {
+
+    CqlTable table = 1;
+
+    CqlUserDefinedType udt = 2;
+
+    CqlIndex index = 3;
+
+    CqlMaterializedView mv = 4;
+  }
+
+  bool ifNotExists = 2;
+}
+
+// Note: the existing Response type is designed for both DML and DDL (schema) queries
