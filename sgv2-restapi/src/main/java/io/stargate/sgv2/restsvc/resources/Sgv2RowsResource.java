@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-public class Sgv2RowsResource {
+public class Sgv2RowsResource extends ResourceBase {
   private static final int DEFAULT_PAGE_SIZE = 100;
 
   // Singleton resource so no need to be static
@@ -99,9 +99,12 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
     List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
-    logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
+    logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -117,7 +120,7 @@ public class Sgv2RowsResource {
     }
     paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
 
-    QueryOuterClass.Query query =
+    final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
     return Sgv2RequestHandler.handle(
         () -> {
@@ -178,15 +181,34 @@ public class Sgv2RowsResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "", required = true) String payload,
+      @ApiParam(value = "", required = true) final String payload,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    final String cql = buildAddRowCQL(keyspaceName, tableName, payload);
+    logger.info("createRow(): try to call backend with CQL of '{}'", cql);
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.QueryParameters params =
+        QueryOuterClass.QueryParameters.newBuilder()
+            .setConsistency(
+                QueryOuterClass.ConsistencyValue.newBuilder()
+                    .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM))
+            .build();
+    final QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(params).setCql(cql).build();
+
     return Sgv2RequestHandler.handle(
         () -> {
-          return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
-              .entity("{}")
-              .build();
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          return javax.ws.rs.core.Response.status(Response.Status.CREATED).entity(payload).build();
         });
   }
+
+  // // // Helper methods: Query construction
 
   private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
     // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
@@ -196,6 +218,12 @@ public class Sgv2RowsResource {
     }
     return selectFrom.columns(columns).asCql();
   }
+
+  private String buildAddRowCQL(String keyspaceName, String tableName, String jsonPayload) {
+    return QueryBuilder.insertInto(keyspaceName, tableName).json(jsonPayload).asCql();
+  }
+
+  // // // Helper methods: Structural/nested conversions
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     ExtProtoValueConverter converter =
@@ -208,10 +236,7 @@ public class Sgv2RowsResource {
     return resultRows;
   }
 
-  // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
-  private static boolean isStringEmpty(String str) {
-    return (str == null) || str.isEmpty();
-  }
+  // // // Helper methods: Simple scalar conversions
 
   private static List<String> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
