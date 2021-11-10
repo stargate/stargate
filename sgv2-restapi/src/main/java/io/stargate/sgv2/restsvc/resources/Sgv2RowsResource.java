@@ -13,6 +13,7 @@ import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
 import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -38,6 +39,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +59,65 @@ public class Sgv2RowsResource extends ResourceBase {
 
   /** Entity used to connect to backend gRPC service. */
   @Inject private GrpcClientFactory grpcFactory;
+
+  @Timed
+  @GET
+  @ApiOperation(
+      value = "Get row(s)",
+      notes = "Get rows from a table based on the primary key.",
+      response = Sgv2GetResponse.class,
+      responseContainer = "List")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Sgv2GetResponse.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  @Path("/{primaryKey: .*}")
+  public Response getRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @ApiParam(value = "URL escaped, comma delimited list of keys to include")
+          @QueryParam("fields")
+          final String fields,
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
+          final int pageSizeParam,
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
+          final String pageStateParam,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
+      @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
+    //     "primaryKey" segments to actual columns.
+    return Sgv2RequestHandler.handle(
+        () -> {
+          return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
+  }
 
   @Timed
   @GET
