@@ -31,6 +31,7 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -100,7 +101,6 @@ public class Sgv2RowsResource {
       @Context HttpServletRequest request) {
     List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
-
     logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
@@ -119,23 +119,73 @@ public class Sgv2RowsResource {
 
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    return Sgv2RequestHandler.handle(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-    final int count = rs.getRowsCount();
+          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+          final int count = rs.getRowsCount();
 
-    String pageStateStr = null;
-    BytesValue pagingStateOut = rs.getPagingState();
-    if (pagingStateOut.isInitialized()) {
-      ByteString rawPS = pagingStateOut.getValue();
-      if (!rawPS.isEmpty()) {
-        byte[] b = rawPS.toByteArray();
-        pageStateStr = Base64.getEncoder().encodeToString(b);
-      }
-    }
+          String pageStateStr = null;
+          BytesValue pagingStateOut = rs.getPagingState();
+          if (pagingStateOut.isInitialized()) {
+            ByteString rawPS = pagingStateOut.getValue();
+            if (!rawPS.isEmpty()) {
+              byte[] b = rawPS.toByteArray();
+              pageStateStr = Base64.getEncoder().encodeToString(b);
+            }
+          }
 
-    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+          Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+          return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+        });
+  }
+
+  @Timed
+  @POST
+  @ApiOperation(
+      value = "Add row",
+      notes =
+          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
+      response = String.class,
+      responseContainer = "Map",
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 201,
+            message = "resource created",
+            response = Map.class,
+            responseContainer = "Map"),
+        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  public Response createRow(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "", required = true) String payload,
+      @Context HttpServletRequest request) {
+    return Sgv2RequestHandler.handle(
+        () -> {
+          return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
+              .entity("{}")
+              .build();
+        });
   }
 
   private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
