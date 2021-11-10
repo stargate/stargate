@@ -75,9 +75,9 @@ message CqlComplexColumnType {
   CqlType type = 1;
 
   // only used if type=UDT
-  string udtTypeName = 1;
+  string udtTypeName = 2;
 
-  bool frozen = 2;
+  bool frozen = 3;
 }
 
 message CqlColumn {
@@ -191,7 +191,7 @@ message CqlSchemaQuery {
     CqlMaterializedView mv = 4;
   }
 
-  bool ifNotExists = 2;
+  bool ifNotExists = 5;
 }
 
 // Note: the existing Response type is designed for both DML and DDL (schema) queries
