@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 public class Sgv2RowsResource {
   private static final int DEFAULT_PAGE_SIZE = 100;
 
-  private static final ExtProtoValueConverters PROTOC_CONVERTERS = new ExtProtoValueConverters();
-
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -150,11 +148,12 @@ public class Sgv2RowsResource {
   }
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
-    ExtProtoValueConverter converter = PROTOC_CONVERTERS.createConverter(rs.getColumnsList());
+    ExtProtoValueConverter converter =
+        ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.fromProtoValues(row.getValuesList()));
+      resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
     }
     return resultRows;
   }
