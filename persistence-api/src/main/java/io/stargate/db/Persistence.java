@@ -49,6 +49,8 @@ public interface Persistence extends SchemaAgreementChecker {
    */
   void registerEventListener(EventListener listener);
 
+  void unregisterEventListener(EventListener listener);
+
   Authenticator getAuthenticator();
 
   /**

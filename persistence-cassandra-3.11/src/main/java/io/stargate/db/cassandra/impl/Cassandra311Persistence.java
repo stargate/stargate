@@ -239,6 +239,12 @@ public class Cassandra311Persistence
   }
 
   @Override
+  public void unregisterEventListener(EventListener listener) {
+    MigrationManager.instance.unregister(new EventListenerWrapper(listener));
+    interceptor.unregister(listener);
+  }
+
+  @Override
   public ByteBuffer unsetValue() {
     return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }

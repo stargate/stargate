@@ -222,6 +222,12 @@ public class Cassandra40Persistence
   }
 
   @Override
+  public void unregisterEventListener(EventListener listener) {
+    Schema.instance.unregisterListener(new EventListenerWrapper(listener));
+    interceptor.unregister(listener);
+  }
+
+  @Override
   public ByteBuffer unsetValue() {
     return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }

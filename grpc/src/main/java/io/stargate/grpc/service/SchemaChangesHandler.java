@@ -41,7 +41,7 @@ class SchemaChangesHandler implements EventListener {
     persistence.registerEventListener(this);
     responseObserver.setOnCancelHandler(
         () -> {
-          // TODO add Persistence.unregister() and invoke it here
+          persistence.unregisterEventListener(this);
         });
   }
 

@@ -93,6 +93,11 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
+  public void unregister(EventListener listener) {
+    listeners.remove(listener);
+  }
+
+  @Override
   public void onJoin(InetAddress endpoint, EndpointState state) {
     if (!isStargateNode(state)) {
       return;
