@@ -13,6 +13,7 @@ import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
 import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -31,12 +32,14 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +51,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-public class Sgv2RowsResource {
+public class Sgv2RowsResource extends ResourceBase {
   private static final int DEFAULT_PAGE_SIZE = 100;
 
   // Singleton resource so no need to be static
@@ -56,6 +59,65 @@ public class Sgv2RowsResource {
 
   /** Entity used to connect to backend gRPC service. */
   @Inject private GrpcClientFactory grpcFactory;
+
+  @Timed
+  @GET
+  @ApiOperation(
+      value = "Get row(s)",
+      notes = "Get rows from a table based on the primary key.",
+      response = Sgv2GetResponse.class,
+      responseContainer = "List")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = Sgv2GetResponse.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  @Path("/{primaryKey: .*}")
+  public Response getRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @ApiParam(value = "URL escaped, comma delimited list of keys to include")
+          @QueryParam("fields")
+          final String fields,
+      @ApiParam(value = "Restrict the number of returned items") @QueryParam("page-size")
+          final int pageSizeParam,
+      @ApiParam(value = "Move the cursor to a particular result") @QueryParam("page-state")
+          final String pageStateParam,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
+      @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
+    //     "primaryKey" segments to actual columns.
+    return Sgv2RequestHandler.handle(
+        () -> {
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+        });
+  }
 
   @Timed
   @GET
@@ -98,10 +160,12 @@ public class Sgv2RowsResource {
           final boolean raw,
       @ApiParam(value = "Keys to sort by") @QueryParam("sort") final String sort,
       @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
     List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
-
-    logger.info("Calling gRPC method: try to call backend with CQL of '{}'", cql);
+    logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -117,26 +181,86 @@ public class Sgv2RowsResource {
     }
     paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
 
-    QueryOuterClass.Query query =
+    final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    return Sgv2RequestHandler.handle(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-    final int count = rs.getRowsCount();
+          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+          final int count = rs.getRowsCount();
 
-    String pageStateStr = null;
-    BytesValue pagingStateOut = rs.getPagingState();
-    if (pagingStateOut.isInitialized()) {
-      ByteString rawPS = pagingStateOut.getValue();
-      if (!rawPS.isEmpty()) {
-        byte[] b = rawPS.toByteArray();
-        pageStateStr = Base64.getEncoder().encodeToString(b);
-      }
-    }
-
-    Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
-    return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+          String pageStateStr = extractPagingStateFromResultSet(rs);
+          Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+          return jaxrsResponse(Response.Status.OK).entity(response).build();
+        });
   }
+
+  @Timed
+  @POST
+  @ApiOperation(
+      value = "Add row",
+      notes =
+          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
+      response = String.class,
+      responseContainer = "Map",
+      code = 201)
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 201,
+            message = "resource created",
+            response = Map.class,
+            responseContainer = "Map"),
+        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(code = 409, message = "Conflict", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  public Response createRow(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(value = "", required = true) final String payload,
+      @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    final String cql = buildAddRowCQL(keyspaceName, tableName, payload);
+    logger.info("createRow(): try to call backend with CQL of '{}'", cql);
+
+    StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    QueryOuterClass.QueryParameters params =
+        QueryOuterClass.QueryParameters.newBuilder()
+            .setConsistency(
+                QueryOuterClass.ConsistencyValue.newBuilder()
+                    .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM))
+            .build();
+    final QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(params).setCql(cql).build();
+
+    return Sgv2RequestHandler.handle(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          return jaxrsResponse(Response.Status.CREATED).entity(payload).build();
+        });
+  }
+
+  // // // Helper methods: Query construction
 
   private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
     // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
@@ -146,6 +270,12 @@ public class Sgv2RowsResource {
     }
     return selectFrom.columns(columns).asCql();
   }
+
+  private String buildAddRowCQL(String keyspaceName, String tableName, String jsonPayload) {
+    return QueryBuilder.insertInto(keyspaceName, tableName).json(jsonPayload).asCql();
+  }
+
+  // // // Helper methods: Structural/nested conversions
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     ExtProtoValueConverter converter =
@@ -158,10 +288,7 @@ public class Sgv2RowsResource {
     return resultRows;
   }
 
-  // So we won't need Guava dependency; may be moved to our own util if needed elsewhere
-  private static boolean isStringEmpty(String str) {
-    return (str == null) || str.isEmpty();
-  }
+  // // // Helper methods: Simple scalar conversions
 
   private static List<String> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
