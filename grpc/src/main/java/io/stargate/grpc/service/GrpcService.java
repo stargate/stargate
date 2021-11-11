@@ -15,12 +15,14 @@
  */
 package io.stargate.grpc.service;
 
+import com.google.protobuf.Empty;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.query.TypedValue;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -106,6 +108,13 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
     SchemaHandler.describeTable(request, persistence, responseObserver);
+  }
+
+  @Override
+  public void getSchemaChanges(
+      Empty request, StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
+    // TODO we're not using the connection, modify the interceptor so that it doesn't create it
+    new SchemaChangesHandler(persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {
