@@ -1,8 +1,5 @@
 package io.stargate.it.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.protobuf.Empty;
@@ -16,13 +13,19 @@ import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
+import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
+import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.StargateGrpc;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @ExtendWith(CqlSessionExtension.class)
 public class SchemaChangesTest extends BaseIntegrationTest {
@@ -41,24 +44,46 @@ public class SchemaChangesTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should receive table changes")
-  public void tableChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspace) {
-    SchemaChangeAccumulator changes = new SchemaChangeAccumulator();
-    asyncStub.getSchemaChanges(Empty.newBuilder().build(), changes);
+  public void tableChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspace)
+      throws Exception {
+    // Given
+    SchemaChangeObserver changeObserver = new SchemaChangeObserver();
+    asyncStub.getSchemaChanges(Empty.newBuilder().build(), changeObserver);
+    // getSchemaChanges is async, wait a bit to ensure that the event listener has been registered
+    TimeUnit.MILLISECONDS.sleep(500);
 
-    // TODO why does this not generate an event?
+    // When
     session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
+    // Then
+    assertNextChange(changeObserver, Type.CREATED, Target.TABLE, keyspace, "foo");
 
+    // When
+    session.execute("ALTER TABLE foo ADD v int");
+    // Then
+    assertNextChange(changeObserver, Type.UPDATED, Target.TABLE, keyspace, "foo");
+
+    // When
     session.execute("DROP TABLE foo");
-    await().until(changes::hasNext);
-    SchemaChange change = changes.next();
-    assertThat(change.getChangeType()).isEqualTo(SchemaChange.Type.DROPPED);
-    assertThat(change.getTarget()).isEqualTo(SchemaChange.Target.TABLE);
-    assertThat(change.getKeyspace()).isEqualTo(keyspace.asInternal());
-    assertThat(change.getName().getValue()).isEqualTo("foo");
+    // Then
+    assertNextChange(changeObserver, Type.DROPPED, Target.TABLE, keyspace, "foo");
+  }
+
+  private void assertNextChange(
+      SchemaChangeObserver changeObserver,
+      Type type,
+      Target target,
+      CqlIdentifier keyspaceId,
+      String name) {
+    await().until(changeObserver::hasNext);
+    SchemaChange change = changeObserver.next();
+    assertThat(change.getChangeType()).isEqualTo(type);
+    assertThat(change.getTarget()).isEqualTo(target);
+    assertThat(change.getKeyspace()).isEqualTo(keyspaceId.asInternal());
+    assertThat(change.getName().getValue()).isEqualTo(name);
     assertThat(change.getArgumentTypesList()).isEmpty();
   }
 
-  static class SchemaChangeAccumulator implements StreamObserver<SchemaChange> {
+  static class SchemaChangeObserver implements StreamObserver<SchemaChange> {
 
     private final ConcurrentLinkedQueue<SchemaChange> changes = new ConcurrentLinkedQueue<>();
 
