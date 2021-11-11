@@ -136,7 +136,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
           List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
           final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
-          return javax.ws.rs.core.Response.status(Response.Status.OK).entity(payload).build();
+          return jaxrsResponse(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -198,7 +198,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
           final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
           if (rs.getRowsCount() == 0) {
-            return Response.status(Response.Status.NOT_FOUND)
+            return jaxrsResponse(Response.Status.NOT_FOUND)
                 .entity(
                     new RestServiceError(
                         "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
@@ -210,7 +210,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
           Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
 
           final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
-          return javax.ws.rs.core.Response.status(Response.Status.OK).entity(payload).build();
+          return jaxrsResponse(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -268,7 +268,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
           try {
             ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
           } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
+            return jaxrsResponse(Response.Status.BAD_REQUEST)
                 .entity(
                     new RestServiceError(
                         e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
@@ -296,9 +296,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
           final Map<String, Object> responsePayload =
               Collections.singletonMap("name", keyspaceName);
-          return javax.ws.rs.core.Response.status(Response.Status.CREATED)
-              .entity(responsePayload)
-              .build();
+          return jaxrsResponse(Response.Status.CREATED).entity(responsePayload).build();
         });
   }
 
@@ -331,9 +329,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     }
 
     // !!! TO IMPLEMENT
-    return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED)
-        .entity(Collections.emptyMap())
-        .build();
+    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).entity(Collections.emptyMap()).build();
   }
 
   private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {

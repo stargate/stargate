@@ -115,7 +115,7 @@ public class Sgv2RowsResource extends ResourceBase {
     //     "primaryKey" segments to actual columns.
     return Sgv2RequestHandler.handle(
         () -> {
-          return javax.ws.rs.core.Response.status(Response.Status.NOT_IMPLEMENTED).build();
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
         });
   }
 
@@ -190,18 +190,9 @@ public class Sgv2RowsResource extends ResourceBase {
           final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
           final int count = rs.getRowsCount();
 
-          String pageStateStr = null;
-          BytesValue pagingStateOut = rs.getPagingState();
-          if (pagingStateOut.isInitialized()) {
-            ByteString rawPS = pagingStateOut.getValue();
-            if (!rawPS.isEmpty()) {
-              byte[] b = rawPS.toByteArray();
-              pageStateStr = Base64.getEncoder().encodeToString(b);
-            }
-          }
-
+          String pageStateStr = extractPagingStateFromResultSet(rs);
           Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
-          return javax.ws.rs.core.Response.status(Response.Status.OK).entity(response).build();
+          return jaxrsResponse(Response.Status.OK).entity(response).build();
         });
   }
 
@@ -265,7 +256,7 @@ public class Sgv2RowsResource extends ResourceBase {
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
-          return javax.ws.rs.core.Response.status(Response.Status.CREATED).entity(payload).build();
+          return jaxrsResponse(Response.Status.CREATED).entity(payload).build();
         });
   }
 

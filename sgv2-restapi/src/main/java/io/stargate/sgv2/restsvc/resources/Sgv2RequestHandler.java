@@ -34,8 +34,17 @@ public class Sgv2RequestHandler {
       return action.call();
     } catch (StatusRuntimeException grpcE) { // from gRPC
       Status.Code sc = grpcE.getStatus().getCode();
+
+      // Handling partly based on information from:
+      // https://developers.google.com/maps-booking/reference/grpc-api/status_codes
       switch (sc) {
           // Start with codes we know how to handle
+        case FAILED_PRECONDITION:
+          return grpcResponse(
+              sc,
+              Response.Status.BAD_REQUEST,
+              "Invalid state or argument(s) for gRPC operation",
+              grpcE.getMessage());
         case INVALID_ARGUMENT:
           return grpcResponse(
               sc,
@@ -69,7 +78,6 @@ public class Sgv2RequestHandler {
         case DEADLINE_EXCEEDED:
         case ALREADY_EXISTS:
         case RESOURCE_EXHAUSTED:
-        case FAILED_PRECONDITION:
         case ABORTED:
         case OUT_OF_RANGE:
         case INTERNAL:
