@@ -20,7 +20,6 @@ option go_package = "stargate/proto";
 
 package stargate;
 
-import "google/protobuf/empty.proto";
 import "query.proto";
 import "schema.proto";
 
@@ -43,6 +42,6 @@ service Stargate {
   rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
 
   // Requests notification of schema changes.
-  rpc getSchemaChanges(google.protobuf.Empty) returns (stream SchemaChange) {}
+  rpc getSchemaChanges(GetSchemaChangeParams) returns (stream SchemaChange) {}
 }
 

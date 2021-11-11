@@ -5,7 +5,6 @@ import static org.awaitility.Awaitility.await;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -15,6 +14,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.proto.QueryOuterClass.GetSchemaChangeParams;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
@@ -48,7 +48,7 @@ public class SchemaChangesTest extends BaseIntegrationTest {
       throws Exception {
     // Given
     SchemaChangeObserver changeObserver = new SchemaChangeObserver();
-    asyncStub.getSchemaChanges(Empty.newBuilder().build(), changeObserver);
+    asyncStub.getSchemaChanges(GetSchemaChangeParams.newBuilder().build(), changeObserver);
     // getSchemaChanges is async, wait a bit to ensure that the event listener has been registered
     TimeUnit.MILLISECONDS.sleep(500);
 

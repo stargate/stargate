@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.service;
 
-import com.google.protobuf.Empty;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
@@ -112,7 +111,8 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void getSchemaChanges(
-      Empty request, StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
+      QueryOuterClass.GetSchemaChangeParams ignored,
+      StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
     // TODO we're not using the connection, modify the interceptor so that it doesn't create it
     new SchemaChangesHandler(persistence, responseObserver).handle();
   }
