@@ -25,23 +25,34 @@ package stargate;
 // TYPES
 
 enum CqlType {
-  INT = 0x00;
-  FLOAT = 0x01;
-  DOUBLE = 0x02;
+  ASCII = 0x00;
+  BIGINT = 0x01;
+  BLOB = 0x02;
   BOOLEAN = 0x03;
-  STRING = 0x04;
-  BYTES = 0x05;
-  INET = 0x06;
-  UUID = 0x07;
-  DATE = 0x08;
-  TIME = 0x09;
-  VARINT = 0x0A;
-  DECIMAL = 0x0B;
-  SET = 0x0C;
-  LIST = 0x0D;
+  COUNTER = 0x04;
+  DATE = 0x05;
+  DECIMAL = 0x06;
+  DOUBLE = 0x07;
+  DURATION = 0x08;
+  FLOAT = 0x09;
+  INET = 0x0A;
+  INT = 0x0B;
+  LIST = 0x0C;
+  LINESTRING = 0x0D;
   MAP = 0x0E;
-  UDT = 0x0F;
-  TUPLE = 0x10;
+  POINT = 0x0F;
+  POLYGON = 0x10;
+  SMALLINT = 0x11;
+  TEXT = 0x12;
+  TIME = 0x13;
+  TIMESTAMP = 0x14;
+  TIMEUUID = 0x15;
+  TINYINT = 0x16;
+  TUPLE = 0x17;
+  UDT = 0x18;
+  UUID = 0x19;
+  VARCHAR = 0x1A;
+  VARINT = 0x1B;
 }
 
 // USER DEFINED TYPES
@@ -60,7 +71,7 @@ message CqlUdtField {
 message CqlUserDefinedType {
   string name = 1;
 
-  repeated CqlUdtField type = 2;
+  repeated CqlUdtField fields = 2;
 
 }
 
@@ -93,7 +104,7 @@ message CqlColumn {
   // for SET and LIST, this will have one element
   //   example: direct_reports set<frozen <fullname>> -> CqlComplexColumnType(UDT, fullname, true)
   //   example: prime_numbers list<int> -> CqlComplexColumnType(INT, null, false)
-  // for MAP, this will have one element
+  // for MAP, this will have two elements, the key type, followed by the value type
   //   example: addresses map<string, frozen<address>> -> CqlComplexColumnType(STRING, null, false),
   //     CqlComplexColumnType(UDT, address, true)
   // for TUPLE, this will have as many elements as are referenced
@@ -179,7 +190,7 @@ message CqlKeyspaceDescribe {
 
 // SCHEMA CREATION
 
-message CqlSchemaQuery {
+message CqlSchemaOperation {
   oneof schema {
 
     CqlTable table = 1;

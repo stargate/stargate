@@ -23,6 +23,9 @@ import io.stargate.db.Result;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.CqlSchemaOperation;
+import io.stargate.proto.Schema.DescribeQuery;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -68,6 +71,16 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
+  }
+
+  @Override
+  public void executeSchemaOperation(
+      CqlSchemaOperation schemaOperation, StreamObserver<Response> responseObserver) {}
+
+  @Override
+  public void describeKeyspace(
+      DescribeQuery request, StreamObserver<CqlKeyspaceDescribe> responseObserver) {
+    DescribeHandler.describeKeyspace(request, persistence, responseObserver);
   }
 
   static class ResponseAndTraceId {
