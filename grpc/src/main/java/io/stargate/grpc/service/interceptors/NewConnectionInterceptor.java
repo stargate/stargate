@@ -97,13 +97,14 @@ public class NewConnectionInterceptor implements ServerInterceptor {
               .headers(stringHeaders)
               .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
               .build();
+      Context context = Context.current().withValue(GrpcService.HEADERS_KEY, stringHeaders);
 
-      Connection connection = connectionCache.get(info);
+      if (!"stargate.Stargate/getSchemaChanges"
+          .equals(call.getMethodDescriptor().getFullMethodName())) {
+        Connection connection = connectionCache.get(info);
+        context = context.withValue(GrpcService.CONNECTION_KEY, connection);
+      }
 
-      Context context = Context.current();
-      context =
-          context.withValues(
-              GrpcService.CONNECTION_KEY, connection, GrpcService.HEADERS_KEY, stringHeaders);
       return Contexts.interceptCall(context, call, headers, next);
     } catch (Exception e) {
       Throwable cause = e;

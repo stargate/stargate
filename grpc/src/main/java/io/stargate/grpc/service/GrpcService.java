@@ -113,7 +113,6 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   public void getSchemaChanges(
       QueryOuterClass.GetSchemaChangeParams ignored,
       StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
-    // TODO we're not using the connection, modify the interceptor so that it doesn't create it
     new SchemaChangesHandler(persistence, responseObserver).handle();
   }
 
