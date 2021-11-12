@@ -132,9 +132,12 @@ message CqlTableOption {
 }
 
 message CqlTable {
-  repeated CqlColumn columns = 1;
 
-  repeated CqlTableOption tableOptions = 2;
+  string name = 1;
+
+  repeated CqlColumn columns = 2;
+
+  repeated CqlTableOption tableOptions = 3;
 }
 
 // INDEXES

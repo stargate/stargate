@@ -82,17 +82,25 @@ class DescribeHandler {
     CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
 
     CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
-    Map<String, String> replication = new HashMap<String, String>(keyspace.replication());
-    cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
+    cqlKeyspaceBuilder.setName(keyspace.name());
 
-    for (String datacenter : replication.keySet()) {
-      cqlKeyspaceBuilder.addReplicationFactors(
-          CqlDatacenterReplication.newBuilder()
-              .setDatacenterName(datacenter)
-              .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
-              .build());
+    // TODO: Persistence implementation doesn't seem to actually set these
+    Map<String, String> replication = new HashMap<String, String>(keyspace.replication());
+    if (replication.containsKey("class")) {
+      cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
+      for (String datacenter : replication.keySet()) {
+        cqlKeyspaceBuilder.addReplicationFactors(
+                CqlDatacenterReplication.newBuilder()
+                        .setDatacenterName(datacenter)
+                        .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
+                        .build());
+      }
     }
-    cqlKeyspaceBuilder.setDurableWrites(keyspace.durableWrites().get().booleanValue());
+
+    // TODO: Persistence implementation doesn't seem to actually set this
+    if (keyspace.durableWrites().isPresent()) {
+      cqlKeyspaceBuilder.setDurableWrites(keyspace.durableWrites().get().booleanValue());
+    }
 
     describeResultBuilder.setCqlKeyspace(cqlKeyspaceBuilder.build());
 
@@ -119,6 +127,7 @@ class DescribeHandler {
     for (Table table : keyspace.tables()) {
 
       CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder();
+      cqlTableBuilder.setName(table.name());
 
       for (Column column : table.columns()) {
         CqlColumn.Builder cqlColumnBuilder = CqlColumn.newBuilder();
