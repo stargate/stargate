@@ -40,7 +40,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class QueryHandler extends MessageHandler<Query, Prepared> {
+class QueryHandler extends PreparedMessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final ScheduledExecutorService executor;
