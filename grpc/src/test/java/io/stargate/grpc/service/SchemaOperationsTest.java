@@ -64,12 +64,14 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     assertThat(response.getCqlKeyspace().getName().equals("my_keyspace")).isTrue();
     assertThat(response.getTablesCount() == 1).isTrue();
     assertThat(response.getTables(0).getName().equals("my_table")).isTrue();
-    assertThat(response.getTables(0).getColumnsCount() == 5).isTrue();
+    assertThat(response.getTables(0).getPartitionKeyColumnsCount() == 1).isTrue();
+    assertThat(response.getTables(0).getPartitionKeyColumns(0).getName().equals("key")).isTrue();
+    assertThat(response.getTables(0).getPartitionKeyColumns(0).getType().equals(CqlType.TEXT))
+        .isTrue();
+    assertThat(response.getTables(0).getColumnsCount() == 4).isTrue();
     Map<String, CqlColumn> columnMap =
         response.getTables(0).getColumnsList().stream()
             .collect(Collectors.toMap(CqlColumn::getName, Function.identity()));
-    assertThat(columnMap.get("key").getType().equals(CqlType.TEXT)).isTrue();
-    assertThat(columnMap.get("key").getIsPartitionKey()).isTrue();
     assertThat(columnMap.get("leaf").getType().equals(CqlType.TEXT)).isTrue();
     assertThat(columnMap.get("text_value").getType().equals(CqlType.TEXT)).isTrue();
     assertThat(columnMap.get("dbl_value").getType().equals(CqlType.DOUBLE)).isTrue();

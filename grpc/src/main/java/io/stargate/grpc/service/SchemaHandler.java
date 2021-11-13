@@ -19,7 +19,6 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.db.*;
 import io.stargate.db.schema.*;
 import io.stargate.proto.Schema.CqlColumn;
-import io.stargate.proto.Schema.CqlDatacenterReplication;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
@@ -32,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
-class DescribeHandler {
+class SchemaHandler {
 
   private static final Map<Column.Type, CqlType> dbSchemaToGrpcType =
       new HashMap<Column.Type, CqlType>() {
@@ -86,22 +85,22 @@ class DescribeHandler {
     CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
     cqlKeyspaceBuilder.setName(keyspace.name());
 
-    // TODO: Persistence implementation doesn't seem to actually set these
-    Map<String, String> replication = new HashMap<String, String>(keyspace.replication());
-    if (replication.containsKey("class")) {
-      cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
-      for (String datacenter : replication.keySet()) {
-        cqlKeyspaceBuilder.addReplicationFactors(
-            CqlDatacenterReplication.newBuilder()
-                .setDatacenterName(datacenter)
-                .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
-                .build());
-      }
-    }
+    // TODO: Persistence implementation doesn't set replication strategy
+    //    Map<String, String> replication = new HashMap<String, String>(keyspace.replication());
+    //    if (replication.containsKey("class")) {
+    //      cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
+    //      for (String datacenter : replication.keySet()) {
+    //        cqlKeyspaceBuilder.addReplicationFactors(
+    //            CqlDatacenterReplication.newBuilder()
+    //                .setDatacenterName(datacenter)
+    //                .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
+    //                .build());
+    //      }
+    //    }
 
     // TODO: Persistence implementation doesn't seem to actually set this
     if (keyspace.durableWrites().isPresent()) {
-      cqlKeyspaceBuilder.setDurableWrites(keyspace.durableWrites().get().booleanValue());
+      cqlKeyspaceBuilder.putOptions("durable_writes", keyspace.durableWrites().get().toString());
     }
 
     describeResultBuilder.setCqlKeyspace(cqlKeyspaceBuilder.build());
@@ -161,43 +160,56 @@ class DescribeHandler {
     CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder();
     cqlTableBuilder.setName(table.name());
 
-    for (Column column : table.columns()) {
-      CqlColumn.Builder cqlColumnBuilder = CqlColumn.newBuilder();
+    for (Column partitionKeyColumn : table.partitionKeyColumns()) {
+      cqlTableBuilder.addPartitionKeyColumns(buildCqlColumn(partitionKeyColumn));
+    }
 
-      // TODO: check for conversion error?
-      cqlColumnBuilder.setName(column.name());
-      cqlColumnBuilder.setType(dbSchemaToGrpcType.get(column.type().rawType()));
+    for (Column clusteringKeyColumn : table.clusteringKeyColumns()) {
+      cqlTableBuilder.addClusteringKeyColumns(buildCqlColumn(clusteringKeyColumn));
+    }
 
-      //        switch (column.type().rawType()) {
-      //          case List:
-      //          case Set:
-      //            CqlComplexColumnType.Builder complexColumnTypeBuilder =
-      // CqlComplexColumnType.newBuilder();
-      //
-      // complexColumnTypeBuilder.setType(dbSchemaToGrpcType.get(column.type().parameters().get(0)));
-      //            cqlColumnBuilder.addComplexColumnTypes(column.type().parameters().get(0));
-      //            break;
-      //          case Map:
-      //            cqlColumnBuilder.setType(CqlType.MAP);
-      //            // TODO: set enclosed type
-      //            break;
-      //          case Tuple:
-      //            cqlColumnBuilder.setType(CqlType.TUPLE);
-      //            break;
-      //          case UDT:
-      //            cqlColumnBuilder.setType(CqlType.UDT);
-      //            // TODO: set type name
-      //            break;
-      //          default:
-      //            break;
-      //        }
-
-      cqlTableBuilder.addColumns(cqlColumnBuilder.build());
+    // TODO: Column has no designation of static?
+    for (Column column : table.regularAndStaticColumns()) {
+      cqlTableBuilder.addColumns(buildCqlColumn(column));
     }
 
     // TODO: no table options in Table?
     // cqlTableBuilder.addTableOptions();
 
     return cqlTableBuilder.build();
+  }
+
+  @NotNull
+  private static CqlColumn buildCqlColumn(Column column) {
+    CqlColumn.Builder cqlColumnBuilder = CqlColumn.newBuilder();
+
+    // TODO: check for conversion error?
+    cqlColumnBuilder.setName(column.name());
+    cqlColumnBuilder.setType(dbSchemaToGrpcType.get(column.type().rawType()));
+
+    //        switch (column.type().rawType()) {
+    //          case List:
+    //          case Set:
+    //            CqlComplexColumnType.Builder complexColumnTypeBuilder =
+    // CqlComplexColumnType.newBuilder();
+    //
+    // complexColumnTypeBuilder.setType(dbSchemaToGrpcType.get(column.type().parameters().get(0)));
+    //            cqlColumnBuilder.addComplexColumnTypes(column.type().parameters().get(0));
+    //            break;
+    //          case Map:
+    //            cqlColumnBuilder.setType(CqlType.MAP);
+    //            // TODO: set enclosed type
+    //            break;
+    //          case Tuple:
+    //            cqlColumnBuilder.setType(CqlType.TUPLE);
+    //            break;
+    //          case UDT:
+    //            cqlColumnBuilder.setType(CqlType.UDT);
+    //            // TODO: set type name
+    //            break;
+    //          default:
+    //            break;
+    //        }
+    return cqlColumnBuilder.build();
   }
 }

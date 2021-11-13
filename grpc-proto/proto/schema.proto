@@ -112,22 +112,19 @@ message CqlColumn {
   //     CqlComplexColumnType(STRING, null, false), CqlComplexColumnType(FLOAT, null, false)
   repeated CqlComplexColumnType complexColumnTypes = 4;
 
-  bool isPartitionKey = 5;
+  bool isFrozen = 5;
 
-  // only used for clustering columns
-  uint32 clusteringColumnOrder = 6;
-
-  bool isFrozen = 7;
-
-  bool isStatic = 8;
 }
 
 // TABLES
 
 message CqlTable {
   string name = 1;
-  repeated CqlColumn columns = 2;
-  map<string, string> options = 3;
+  map<string, string> options = 2;
+  repeated CqlColumn partitionKeyColumns = 3;
+  repeated CqlColumn clusteringKeyColumns = 4;
+  repeated CqlColumn staticColumns = 5;
+  repeated CqlColumn columns = 6;
 }
 
 message CqlTableCreate {
