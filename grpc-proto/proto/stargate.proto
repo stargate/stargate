@@ -32,7 +32,8 @@ service Stargate {
   rpc ExecuteBatch(Batch) returns (Response) {}
 
   // Schema creation
-  rpc ExecuteSchemaOperation(CqlSchemaOperation) returns (Response) {}
+  rpc CreateTable(CqlTableCreate) returns (Response) {}
+  rpc CreateKeyspace(CqlKeyspaceCreate) returns (Response) {}
 
   // Similar to CQL "DESCRIBE KEYSPACE"
   rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}

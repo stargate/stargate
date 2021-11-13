@@ -124,20 +124,15 @@ message CqlColumn {
 
 // TABLES
 
-// TODO ok to make it this simplistic?
-message CqlTableOption {
-
+message CqlTable {
   string name = 1;
-  string value = 2;
+  repeated CqlColumn columns = 2;
+  map<string, string> options = 3;
 }
 
-message CqlTable {
-
-  string name = 1;
-
-  repeated CqlColumn columns = 2;
-
-  repeated CqlTableOption tableOptions = 3;
+message CqlTableCreate {
+  CqlTable table = 1;
+  bool ifNotExists = 2;
 }
 
 // INDEXES
@@ -154,43 +149,27 @@ message CqlMaterializedView {
 
 // KEYSPACES
 
-message CqlDatacenterReplication {
-  string datacenterName = 1;
-
-  uint32 replicationFactor = 2;
-}
-
 message CqlKeyspace {
-
   string name = 1;
-
-  string replicationStrategy = 2;
-
-  repeated CqlDatacenterReplication replicationFactors = 3;
-
-  bool durableWrites = 4;
-
+  map<string, string> options = 2;
 }
 
-// DESCRIBE KEYSPACE
+message CqlKeyspaceCreate {
+  CqlKeyspace keyspace = 1;
+  bool ifNotExists = 2;
+}
 
 message DescribeKeyspaceQuery {
   string keyspaceName = 1;
 }
 
 message CqlKeyspaceDescribe {
-
   CqlKeyspace cqlKeyspace = 1;
-
   repeated CqlUserDefinedType types = 2;
-
   repeated CqlTable tables = 3;
-
   repeated CqlIndex indexes = 4;
-
   repeated CqlMaterializedView materializedViews = 5;
 }
-
 
 message DescribeTableQuery {
   string keyspaceName = 1;
@@ -201,13 +180,9 @@ message DescribeTableQuery {
 
 message CqlSchemaOperation {
   oneof schema {
-
     CqlTable table = 1;
-
     CqlUserDefinedType udt = 2;
-
     CqlIndex index = 3;
-
     CqlMaterializedView mv = 4;
   }
 
