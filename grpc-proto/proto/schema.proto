@@ -174,7 +174,7 @@ message CqlKeyspace {
 
 // DESCRIBE KEYSPACE
 
-message DescribeQuery {
+message DescribeKeyspaceQuery {
   string keyspaceName = 1;
 }
 
@@ -189,6 +189,12 @@ message CqlKeyspaceDescribe {
   repeated CqlIndex indexes = 4;
 
   repeated CqlMaterializedView materializedViews = 5;
+}
+
+
+message DescribeTableQuery {
+  string keyspaceName = 1;
+  string tableName = 2;
 }
 
 // SCHEMA CREATION

@@ -25,7 +25,9 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlSchemaOperation;
-import io.stargate.proto.Schema.DescribeQuery;
+import io.stargate.proto.Schema.CqlTable;
+import io.stargate.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -79,8 +81,13 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void describeKeyspace(
-      DescribeQuery request, StreamObserver<CqlKeyspaceDescribe> responseObserver) {
+      DescribeKeyspaceQuery request, StreamObserver<CqlKeyspaceDescribe> responseObserver) {
     DescribeHandler.describeKeyspace(request, persistence, responseObserver);
+  }
+
+  @Override
+  public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
+    DescribeHandler.describeTable(request, persistence, responseObserver);
   }
 
   static class ResponseAndTraceId {

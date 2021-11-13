@@ -35,6 +35,9 @@ service Stargate {
   rpc ExecuteSchemaOperation(CqlSchemaOperation) returns (Response) {}
 
   // Similar to CQL "DESCRIBE KEYSPACE"
-  rpc DescribeKeyspace(DescribeQuery) returns (CqlKeyspaceDescribe) {}
+  rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
+
+  // Similar to CQL "DESCRIBE KEYSPACE"
+  rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
 }
 

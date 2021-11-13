@@ -26,9 +26,11 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlType;
 import io.stargate.proto.Schema.CqlUdtField;
 import io.stargate.proto.Schema.CqlUserDefinedType;
-import io.stargate.proto.Schema.DescribeQuery;
+import io.stargate.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.HashMap;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 class DescribeHandler {
 
@@ -67,7 +69,7 @@ class DescribeHandler {
       };
 
   public static void describeKeyspace(
-      DescribeQuery query,
+      DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
     String decoratedKeyspace =
@@ -90,10 +92,10 @@ class DescribeHandler {
       cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
       for (String datacenter : replication.keySet()) {
         cqlKeyspaceBuilder.addReplicationFactors(
-                CqlDatacenterReplication.newBuilder()
-                        .setDatacenterName(datacenter)
-                        .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
-                        .build());
+            CqlDatacenterReplication.newBuilder()
+                .setDatacenterName(datacenter)
+                .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
+                .build());
       }
     }
 
@@ -125,53 +127,77 @@ class DescribeHandler {
     }
 
     for (Table table : keyspace.tables()) {
-
-      CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder();
-      cqlTableBuilder.setName(table.name());
-
-      for (Column column : table.columns()) {
-        CqlColumn.Builder cqlColumnBuilder = CqlColumn.newBuilder();
-
-        // TODO: check for conversion error?
-        cqlColumnBuilder.setName(column.name());
-        cqlColumnBuilder.setType(dbSchemaToGrpcType.get(column.type().rawType()));
-
-        //        switch (column.type().rawType()) {
-        //          case List:
-        //          case Set:
-        //            CqlComplexColumnType.Builder complexColumnTypeBuilder =
-        // CqlComplexColumnType.newBuilder();
-        //
-        // complexColumnTypeBuilder.setType(dbSchemaToGrpcType.get(column.type().parameters().get(0)));
-        //            cqlColumnBuilder.addComplexColumnTypes(column.type().parameters().get(0));
-        //            break;
-        //          case Map:
-        //            cqlColumnBuilder.setType(CqlType.MAP);
-        //            // TODO: set enclosed type
-        //            break;
-        //          case Tuple:
-        //            cqlColumnBuilder.setType(CqlType.TUPLE);
-        //            break;
-        //          case UDT:
-        //            cqlColumnBuilder.setType(CqlType.UDT);
-        //            // TODO: set type name
-        //            break;
-        //          default:
-        //            break;
-        //        }
-
-        cqlTableBuilder.addColumns(cqlColumnBuilder.build());
-      }
-
-      // TODO: no table options in Table?
-      // cqlTableBuilder.addTableOptions();
-
-      describeResultBuilder.addTables(cqlTableBuilder.build());
+      describeResultBuilder.addTables(buildCqlTable(table));
     }
 
     // TODO: indexes and materialized views?
 
     responseObserver.onNext(describeResultBuilder.build());
     responseObserver.onCompleted();
+  }
+
+  public static void describeTable(
+      DescribeTableQuery query,
+      Persistence persistence,
+      StreamObserver<CqlTable> responseObserver) {
+    String decoratedKeyspace =
+        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
+
+    Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+    // TODO: check if null or access allowed?
+    //    if (keyspace == null) {
+    //      responseObserver.onError(Status.NOT_FOUND);
+    //    }
+
+    Table table = keyspace.table(query.getTableName());
+    // TODO: check?
+
+    responseObserver.onNext(buildCqlTable(table));
+    responseObserver.onCompleted();
+  }
+
+  @NotNull
+  private static CqlTable buildCqlTable(Table table) {
+    CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder();
+    cqlTableBuilder.setName(table.name());
+
+    for (Column column : table.columns()) {
+      CqlColumn.Builder cqlColumnBuilder = CqlColumn.newBuilder();
+
+      // TODO: check for conversion error?
+      cqlColumnBuilder.setName(column.name());
+      cqlColumnBuilder.setType(dbSchemaToGrpcType.get(column.type().rawType()));
+
+      //        switch (column.type().rawType()) {
+      //          case List:
+      //          case Set:
+      //            CqlComplexColumnType.Builder complexColumnTypeBuilder =
+      // CqlComplexColumnType.newBuilder();
+      //
+      // complexColumnTypeBuilder.setType(dbSchemaToGrpcType.get(column.type().parameters().get(0)));
+      //            cqlColumnBuilder.addComplexColumnTypes(column.type().parameters().get(0));
+      //            break;
+      //          case Map:
+      //            cqlColumnBuilder.setType(CqlType.MAP);
+      //            // TODO: set enclosed type
+      //            break;
+      //          case Tuple:
+      //            cqlColumnBuilder.setType(CqlType.TUPLE);
+      //            break;
+      //          case UDT:
+      //            cqlColumnBuilder.setType(CqlType.UDT);
+      //            // TODO: set type name
+      //            break;
+      //          default:
+      //            break;
+      //        }
+
+      cqlTableBuilder.addColumns(cqlColumnBuilder.build());
+    }
+
+    // TODO: no table options in Table?
+    // cqlTableBuilder.addTableOptions();
+
+    return cqlTableBuilder.build();
   }
 }
