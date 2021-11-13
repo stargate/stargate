@@ -2,6 +2,8 @@ package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.insert.Insert;
+import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
 import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
@@ -11,6 +13,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
 import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.JsonToProtoValueConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
@@ -233,12 +236,29 @@ public class Sgv2RowsResource extends ResourceBase {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "", required = true) final String payload,
+      @ApiParam(value = "", required = true) final String payloadAsString,
       @Context HttpServletRequest request) {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    final String cql = buildAddRowCQL(keyspaceName, tableName, payload);
+    Map<String, Object> payloadMap;
+    try {
+      payloadMap = parseJsonAsMap(payloadAsString);
+    } catch (Exception e) {
+      return jaxrsServiceError(
+              Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
+          .build();
+    }
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    final String cql;
+
+    try {
+      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder);
+    } catch (Exception e) {
+      return jaxrsServiceError(
+              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload " + e.getMessage())
+          .build();
+    }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
     StargateGrpc.StargateBlockingStub blockingStub =
@@ -250,13 +270,17 @@ public class Sgv2RowsResource extends ResourceBase {
                     .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM))
             .build();
     final QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder().setParameters(params).setCql(cql).build();
+        QueryOuterClass.Query.newBuilder()
+            .setParameters(params)
+            .setCql(cql)
+            .setValues(valuesBuilder.build())
+            .build();
 
     return Sgv2RequestHandler.handle(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
-          return jaxrsResponse(Response.Status.CREATED).entity(payload).build();
+          return jaxrsResponse(Response.Status.CREATED).entity(payloadAsString).build();
         });
   }
 
@@ -271,8 +295,17 @@ public class Sgv2RowsResource extends ResourceBase {
     return selectFrom.columns(columns).asCql();
   }
 
-  private String buildAddRowCQL(String keyspaceName, String tableName, String jsonPayload) {
-    return QueryBuilder.insertInto(keyspaceName, tableName).json(jsonPayload).asCql();
+  private String buildAddRowCQL(
+      String keyspaceName,
+      String tableName,
+      Map<String, Object> payloadMap,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    OngoingValues insert = QueryBuilder.insertInto(keyspaceName, tableName);
+    for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
+      insert = insert.value(entry.getKey(), QueryBuilder.bindMarker());
+      valuesBuilder.addValues(JsonToProtoValueConverter.protoValueFor(entry.getValue()));
+    }
+    return ((Insert) insert).asCql();
   }
 
   // // // Helper methods: Structural/nested conversions
