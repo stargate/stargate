@@ -10,22 +10,21 @@ import java.util.Map;
 /**
  * Converter that knows how to convert a single row from the "external" Stargate Protobuf result
  * into a representation (currently {@link java.util.Map} with column name as key, Java value that
- * can be serialized by frontend framework (like DropWizard) as value).
+ * can be serialized by frontend framework (like DropWizard) as value, usually as JSON.
  */
-public class ExtProtoValueConverter {
+public class FromProtoConverter {
   static final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
 
   protected final String[] columnNames;
-  protected final ExtProtoValueCodec[] codecs;
+  protected final FromProtoValueCodec[] codecs;
 
-  protected ExtProtoValueConverter(String[] columnNames, ExtProtoValueCodec[] codecs) {
+  protected FromProtoConverter(String[] columnNames, FromProtoValueCodec[] codecs) {
     this.columnNames = columnNames;
     this.codecs = codecs;
   }
 
-  public static ExtProtoValueConverter construct(
-      String[] columnNames, ExtProtoValueCodec[] codecs) {
-    return new ExtProtoValueConverter(columnNames, codecs);
+  public static FromProtoConverter construct(String[] columnNames, FromProtoValueCodec[] codecs) {
+    return new FromProtoConverter(columnNames, codecs);
   }
 
   /**

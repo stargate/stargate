@@ -8,7 +8,7 @@ import io.stargate.proto.QueryOuterClass;
  * Stargate Protobuf result into Java value that can be serialized by frontend framework (like
  * DropWizard)
  */
-public abstract class ExtProtoValueCodec {
+public abstract class FromProtoValueCodec {
   public abstract Object fromProtoValue(QueryOuterClass.Value value);
 
   public abstract JsonNode jsonNodeFrom(QueryOuterClass.Value value);

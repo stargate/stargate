@@ -8,17 +8,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Factory for accessing {@link ExtProtoValueCodec}s to convert from proto values into externally
+ * Factory for accessing {@link FromProtoValueCodec}s to convert from proto values into externally
  * serializable values.
  */
-public class ExtProtoValueCodecs {
+public class FromProtoValueCodecs {
   static final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
 
-  public ExtProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
+  public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
   }
 
-  public ExtProtoValueCodec codecFor(
+  public FromProtoValueCodec codecFor(
       QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec type) {
     switch (type.getSpecCase()) {
       case BASIC:
@@ -53,7 +53,7 @@ public class ExtProtoValueCodecs {
     }
   }
 
-  protected ExtProtoValueCodec basicCodecFor(
+  protected FromProtoValueCodec basicCodecFor(
       QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Basic basicType) {
     switch (basicType) {
       case CUSTOM:
@@ -106,25 +106,25 @@ public class ExtProtoValueCodecs {
         "Unsupported Basic ColumnSpec value for column: " + columnSpec);
   }
 
-  protected ExtProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+  protected FromProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     throw new IllegalArgumentException(
         "Can not (yet) create Codec for LIST column specified as: " + columnSpec);
   }
 
-  protected ExtProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+  protected FromProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.Map mapSpec = columnSpec.getType().getMap();
     return new MapCodec(
         codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
   }
 
-  protected ExtProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+  protected FromProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     throw new IllegalArgumentException(
         "Can not (yet) create Codec for SET column specified as: " + columnSpec);
   }
 
   /* Basic codec implementations */
 
-  protected static final class TextCodec extends ExtProtoValueCodec {
+  protected static final class TextCodec extends FromProtoValueCodec {
     public static final TextCodec INSTANCE = new TextCodec();
 
     @Override
@@ -138,7 +138,7 @@ public class ExtProtoValueCodecs {
     }
   }
 
-  protected static final class BooleanCodec extends ExtProtoValueCodec {
+  protected static final class BooleanCodec extends FromProtoValueCodec {
     public static final BooleanCodec INSTANCE = new BooleanCodec();
 
     @Override
@@ -152,10 +152,10 @@ public class ExtProtoValueCodecs {
     }
   }
 
-  protected static final class MapCodec extends ExtProtoValueCodec {
-    private final ExtProtoValueCodec keyCodec, valueCodec;
+  protected static final class MapCodec extends FromProtoValueCodec {
+    private final FromProtoValueCodec keyCodec, valueCodec;
 
-    public MapCodec(ExtProtoValueCodec kc, ExtProtoValueCodec vc) {
+    public MapCodec(FromProtoValueCodec kc, FromProtoValueCodec vc) {
       keyCodec = kc;
       valueCodec = vc;
     }

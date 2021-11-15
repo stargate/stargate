@@ -4,11 +4,18 @@ import io.stargate.proto.QueryOuterClass;
 import java.util.List;
 
 /**
- * Factory for constructing {@link ExtProtoValueConverter} from "external" Stargate Protobuf column
- * definitions.
+ * Factory for constructing converters to convert between (external) gPRC/Proto {@code Value}s and
+ * "Java" values like {@link java.util.Map}s and {@code JsonNode}s (Jackson type).
+ *
+ * <p>Currently supported:
+ *
+ * <ul>
+ *   <li>{@link FromProtoConverter} converts from "external" Stargate Protobuf column values into
+ *       "Java" values
+ * </ul>
  */
 public class ExtProtoValueConverters {
-  private static final ExtProtoValueCodecs CODECS = new ExtProtoValueCodecs();
+  private static final FromProtoValueCodecs CODECS = new FromProtoValueCodecs();
 
   private static final ExtProtoValueConverters INSTANCE = new ExtProtoValueConverters();
 
@@ -16,9 +23,9 @@ public class ExtProtoValueConverters {
     return INSTANCE;
   }
 
-  public ExtProtoValueConverter createConverter(List<QueryOuterClass.ColumnSpec> columns) {
+  public FromProtoConverter createConverter(List<QueryOuterClass.ColumnSpec> columns) {
     final String[] names = new String[columns.size()];
-    final ExtProtoValueCodec[] codecs = new ExtProtoValueCodec[columns.size()];
+    final FromProtoValueCodec[] codecs = new FromProtoValueCodec[columns.size()];
 
     for (int i = 0, end = columns.size(); i < end; ++i) {
       QueryOuterClass.ColumnSpec spec = columns.get(i);
@@ -32,6 +39,6 @@ public class ExtProtoValueConverters {
                 i + 1, end, spec.getName(), e.getMessage()));
       }
     }
-    return ExtProtoValueConverter.construct(names, codecs);
+    return FromProtoConverter.construct(names, codecs);
   }
 }
