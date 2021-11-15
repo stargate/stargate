@@ -2,14 +2,17 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
+/**
+ * Helper class for converting "natural" Java object types (such as ones bound by Jackson when
+ * target is {@code java.lang.Object}) into matching gRPC {@link QueryOuterClass.Value} types.
+ *
+ * <p>NOTE: current implementation is incomplete and may not prove useful without additional schema
+ * information.
+ */
 public class JsonToProtoValueConverter {
-  public static QueryOuterClass.Value NULL =
-      QueryOuterClass.Value.newBuilder()
-          .setNull(QueryOuterClass.Value.Null.newBuilder().build())
-          .build();
-
   private JsonToProtoValueConverter() {}
 
   public static QueryOuterClass.Value protoValueFor(Object javaValue) {
@@ -28,6 +31,15 @@ public class JsonToProtoValueConverter {
       }
       if (javaValue instanceof BigInteger) {
         return Values.of((BigInteger) javaValue);
+      }
+      if (javaValue instanceof Double) {
+        return Values.of((Double) javaValue);
+      }
+      if (javaValue instanceof Float) {
+        return Values.of((Float) javaValue);
+      }
+      if (javaValue instanceof BigDecimal) {
+        return Values.of((BigDecimal) javaValue);
       }
     }
     if (javaValue instanceof Boolean) {
