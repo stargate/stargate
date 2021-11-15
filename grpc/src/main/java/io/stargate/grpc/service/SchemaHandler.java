@@ -168,9 +168,12 @@ class SchemaHandler {
       cqlTableBuilder.addClusteringKeyColumns(buildCqlColumn(clusteringKeyColumn));
     }
 
-    // TODO: Column has no designation of static?
     for (Column column : table.regularAndStaticColumns()) {
-      cqlTableBuilder.addColumns(buildCqlColumn(column));
+      if (column.kind().equals(Column.Kind.Static)) {
+        cqlTableBuilder.addStaticColumns(buildCqlColumn(column));
+      } else {
+        cqlTableBuilder.addColumns(buildCqlColumn(column));
+      }
     }
 
     // TODO: no table options in Table?

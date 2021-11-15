@@ -15,7 +15,7 @@
  */
 package io.stargate.grpc.service;
 
-import static io.stargate.db.schema.Column.Kind.PartitionKey;
+import static io.stargate.db.schema.Column.Kind.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -46,8 +46,8 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
             .keyspace("my_keyspace")
             .table("my_table")
             .column("key", Column.Type.Text, PartitionKey)
-            .column("leaf", Column.Type.Text)
-            .column("text_value", Column.Type.Text)
+            .column("leaf", Column.Type.Text, Clustering)
+            .column("text_value", Column.Type.Text, Static)
             .column("dbl_value", Column.Type.Double)
             .column("bool_value", Column.Type.Boolean)
             .build();
@@ -68,12 +68,17 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     assertThat(response.getTables(0).getPartitionKeyColumns(0).getName().equals("key")).isTrue();
     assertThat(response.getTables(0).getPartitionKeyColumns(0).getType().equals(CqlType.TEXT))
         .isTrue();
-    assertThat(response.getTables(0).getColumnsCount() == 4).isTrue();
+    assertThat(response.getTables(0).getClusteringKeyColumnsCount() == 1).isTrue();
+    assertThat(response.getTables(0).getClusteringKeyColumns(0).getName().equals("leaf")).isTrue();
+    assertThat(response.getTables(0).getClusteringKeyColumns(0).getType().equals(CqlType.TEXT))
+        .isTrue();
+    assertThat(response.getTables(0).getStaticColumnsCount() == 1).isTrue();
+    assertThat(response.getTables(0).getStaticColumns(0).getName().equals("text_value")).isTrue();
+    assertThat(response.getTables(0).getStaticColumns(0).getType().equals(CqlType.TEXT)).isTrue();
+    assertThat(response.getTables(0).getColumnsCount() == 2).isTrue();
     Map<String, CqlColumn> columnMap =
         response.getTables(0).getColumnsList().stream()
             .collect(Collectors.toMap(CqlColumn::getName, Function.identity()));
-    assertThat(columnMap.get("leaf").getType().equals(CqlType.TEXT)).isTrue();
-    assertThat(columnMap.get("text_value").getType().equals(CqlType.TEXT)).isTrue();
     assertThat(columnMap.get("dbl_value").getType().equals(CqlType.DOUBLE)).isTrue();
     assertThat(columnMap.get("bool_value").getType().equals(CqlType.BOOLEAN)).isTrue();
   }
