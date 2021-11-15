@@ -44,30 +44,15 @@ public class ByteBufferUtils {
   }
 
   public static ByteBuffer fromBase64UrlParam(String base64) {
-    // TODO: remove support for legacy use cases when they are no longer relevant
-    if (isLegacyEncodedBase64String(base64)) {
-      // Fix legacy strings that got broken by decoding `+` at HTTP level
-      base64 = base64.replace(' ', '+');
-      // Use the decoder compatible with the encoder previously used for URL params
-      return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
-    }
-
+    // As per PR #1405 (and earlier issue #1041), special handling no longer needed
+    /*    if (base64.chars().anyMatch(c -> c == '/' || c == '+' || c == ' ')) {
+    Fix legacy strings that got broken by decoding `+` at HTTP level
+         base64 = base64.replace(' ', '+');
+         // Use the decoder compatible with the encoder previously used for URL params
+         return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
+       }
+    */
     return ByteBuffer.wrap(Base64.getUrlDecoder().decode(base64));
-  }
-
-  private static boolean isLegacyEncodedBase64String(String base64) {
-    // From
-    // https://cowtowncoder.medium.com/measuring-string-indexofany-string-performance-java-fecb9eb473fa
-    // use the fastest (and simple) method here (since commons-lang3 not yet a dependency)
-    for (int i = 0, len = base64.length(); i < len; ++i) {
-      switch (base64.charAt(i)) {
-        case '/':
-        case '+':
-        case ' ':
-          return true;
-      }
-    }
-    return false;
   }
 
   /**
