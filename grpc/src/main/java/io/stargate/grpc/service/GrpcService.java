@@ -23,6 +23,12 @@ import io.stargate.db.Result;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.Schema.CqlKeyspaceCreate;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.CqlTable;
+import io.stargate.proto.Schema.CqlTableCreate;
+import io.stargate.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -68,6 +74,25 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
+  }
+
+  @Override
+  public void createKeyspace(
+      CqlKeyspaceCreate schemaOperation, StreamObserver<Response> responseObserver) {}
+
+  @Override
+  public void createTable(
+      CqlTableCreate schemaOperation, StreamObserver<Response> responseObserver) {}
+
+  @Override
+  public void describeKeyspace(
+      DescribeKeyspaceQuery request, StreamObserver<CqlKeyspaceDescribe> responseObserver) {
+    SchemaHandler.describeKeyspace(request, persistence, responseObserver);
+  }
+
+  @Override
+  public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
+    SchemaHandler.describeTable(request, persistence, responseObserver);
   }
 
   static class ResponseAndTraceId {
