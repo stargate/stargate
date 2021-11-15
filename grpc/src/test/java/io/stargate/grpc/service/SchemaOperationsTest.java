@@ -21,9 +21,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.stargate.db.schema.Column;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlColumn;
-import io.stargate.proto.Schema.CqlType;
 import io.stargate.proto.StargateGrpc;
 import java.util.Map;
 import java.util.function.Function;
@@ -66,20 +66,41 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     assertThat(response.getTables(0).getName().equals("my_table")).isTrue();
     assertThat(response.getTables(0).getPartitionKeyColumnsCount() == 1).isTrue();
     assertThat(response.getTables(0).getPartitionKeyColumns(0).getName().equals("key")).isTrue();
-    assertThat(response.getTables(0).getPartitionKeyColumns(0).getType().equals(CqlType.TEXT))
+    assertThat(
+            response
+                .getTables(0)
+                .getPartitionKeyColumns(0)
+                .getType()
+                .getBasic()
+                .equals(TypeSpec.Basic.TEXT))
         .isTrue();
     assertThat(response.getTables(0).getClusteringKeyColumnsCount() == 1).isTrue();
     assertThat(response.getTables(0).getClusteringKeyColumns(0).getName().equals("leaf")).isTrue();
-    assertThat(response.getTables(0).getClusteringKeyColumns(0).getType().equals(CqlType.TEXT))
+    assertThat(
+            response
+                .getTables(0)
+                .getClusteringKeyColumns(0)
+                .getType()
+                .getBasic()
+                .equals(TypeSpec.Basic.TEXT))
         .isTrue();
     assertThat(response.getTables(0).getStaticColumnsCount() == 1).isTrue();
     assertThat(response.getTables(0).getStaticColumns(0).getName().equals("text_value")).isTrue();
-    assertThat(response.getTables(0).getStaticColumns(0).getType().equals(CqlType.TEXT)).isTrue();
+    assertThat(
+            response
+                .getTables(0)
+                .getStaticColumns(0)
+                .getType()
+                .getBasic()
+                .equals(TypeSpec.Basic.TEXT))
+        .isTrue();
     assertThat(response.getTables(0).getColumnsCount() == 2).isTrue();
-    Map<String, CqlColumn> columnMap =
+    Map<String, ColumnSpec> columnMap =
         response.getTables(0).getColumnsList().stream()
-            .collect(Collectors.toMap(CqlColumn::getName, Function.identity()));
-    assertThat(columnMap.get("dbl_value").getType().equals(CqlType.DOUBLE)).isTrue();
-    assertThat(columnMap.get("bool_value").getType().equals(CqlType.BOOLEAN)).isTrue();
+            .collect(Collectors.toMap(ColumnSpec::getName, Function.identity()));
+    assertThat(columnMap.get("dbl_value").getType().getBasic().equals(TypeSpec.Basic.DOUBLE))
+        .isTrue();
+    assertThat(columnMap.get("bool_value").getType().getBasic().equals(TypeSpec.Basic.BOOLEAN))
+        .isTrue();
   }
 }
