@@ -53,8 +53,9 @@ message CqlTable {
 }
 
 message CqlTableCreate {
-  CqlTable table = 1;
-  bool ifNotExists = 2;
+  string keyspaceName = 1;
+  CqlTable table = 2;
+  bool ifNotExists = 3;
 }
 
 // INDEXES

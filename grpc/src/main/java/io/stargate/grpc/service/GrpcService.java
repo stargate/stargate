@@ -81,8 +81,10 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
       CqlKeyspaceCreate schemaOperation, StreamObserver<Response> responseObserver) {}
 
   @Override
-  public void createTable(
-      CqlTableCreate schemaOperation, StreamObserver<Response> responseObserver) {}
+  public void createTable(CqlTableCreate createTable, StreamObserver<Response> responseObserver) {
+    new CreateTableHandler(createTable, CONNECTION_KEY.get(), persistence, responseObserver)
+        .handle();
+  }
 
   @Override
   public void describeKeyspace(
