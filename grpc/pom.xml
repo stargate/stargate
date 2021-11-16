@@ -52,11 +52,6 @@
     <!-- Other -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-query-builder</artifactId>
-      <version>4.13.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>

@@ -20,6 +20,8 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
+import io.stargate.db.query.TypedValue;
+import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -34,6 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
 public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
@@ -44,6 +47,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
 
   private final Persistence persistence;
+  private final QueryBuilder queryBuilder;
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
@@ -55,6 +59,11 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   GrpcService(
       Persistence persistence, ScheduledExecutorService executor, int schemaAgreementRetries) {
     this.persistence = persistence;
+    // Note that, due to executor being null, the returned queries are not executable. This is only
+    // intended to construct CQL query strings.
+    this.queryBuilder =
+        new QueryBuilder(
+            persistence.schema(), new TypedValue.Codec(ProtocolVersion.CURRENT, persistence), null);
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
   }
@@ -82,7 +91,8 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void createTable(CqlTableCreate createTable, StreamObserver<Response> responseObserver) {
-    new CreateTableHandler(createTable, CONNECTION_KEY.get(), persistence, responseObserver)
+    new CreateTableHandler(
+            createTable, CONNECTION_KEY.get(), persistence, queryBuilder, responseObserver)
         .handle();
   }
 

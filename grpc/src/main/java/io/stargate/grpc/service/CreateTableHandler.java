@@ -15,18 +15,20 @@
  */
 package io.stargate.grpc.service;
 
-import com.datastax.dse.driver.api.core.type.DseDataTypes;
-import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.internal.querybuilder.schema.DefaultCreateTable;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.SimpleStatement;
+import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.ImmutableColumn;
+import io.stargate.db.schema.ImmutableListType;
+import io.stargate.db.schema.ImmutableMapType;
+import io.stargate.db.schema.ImmutableSetType;
+import io.stargate.db.schema.ImmutableTupleType;
+import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec;
@@ -34,7 +36,9 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -42,18 +46,17 @@ import java.util.concurrent.CompletionStage;
 class CreateTableHandler extends MessageHandler<CqlTableCreate> {
 
   private final Persistence.Connection connection;
-  private final Persistence persistence;
   private final String query;
 
   CreateTableHandler(
       CqlTableCreate createTable,
       Persistence.Connection connection,
       Persistence persistence,
+      QueryBuilder queryBuilder,
       StreamObserver<QueryOuterClass.Response> responseObserver) {
     super(createTable, responseObserver);
     this.connection = connection;
-    this.persistence = persistence;
-    this.query = buildQuery(createTable);
+    this.query = buildQuery(createTable, persistence, queryBuilder);
   }
 
   @Override
@@ -76,123 +79,140 @@ class CreateTableHandler extends MessageHandler<CqlTableCreate> {
     }
   }
 
-  private String buildQuery(CqlTableCreate createProto) {
+  private String buildQuery(
+      CqlTableCreate createProto, Persistence persistence, QueryBuilder queryBuilder) {
     String keyspaceName =
         persistence.decorateKeyspaceName(
             createProto.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
     CqlTable tableProto = createProto.getTable();
-    DefaultCreateTable builder =
-        (DefaultCreateTable) SchemaBuilder.createTable(keyspaceName, tableProto.getName());
-    if (createProto.getIfNotExists()) {
-      builder = (DefaultCreateTable) builder.ifNotExists();
-    }
+
+    List<Column> columns = new ArrayList<>();
     for (ColumnSpec columnProto : tableProto.getPartitionKeyColumnsList()) {
-      builder =
-          (DefaultCreateTable)
-              builder.withPartitionKey(columnProto.getName(), convertType(columnProto.getType()));
+      columns.add(
+          ImmutableColumn.create(
+              columnProto.getName(), Column.Kind.PartitionKey, convertType(columnProto.getType())));
     }
     for (ColumnSpec columnProto : tableProto.getClusteringKeyColumnsList()) {
-      builder =
-          (DefaultCreateTable)
-              builder.withClusteringColumn(
-                  columnProto.getName(), convertType(columnProto.getType()));
+      String name = columnProto.getName();
+      Schema.ColumnOrderBy orderProto =
+          tableProto.getClusteringOrdersMap().getOrDefault(name, Schema.ColumnOrderBy.ASC);
+      columns.add(
+          ImmutableColumn.create(
+              name,
+              Column.Kind.Clustering,
+              convertType(columnProto.getType()),
+              convertOrder(orderProto)));
     }
     for (ColumnSpec columnProto : tableProto.getStaticColumnsList()) {
-      builder =
-          (DefaultCreateTable)
-              builder.withStaticColumn(columnProto.getName(), convertType(columnProto.getType()));
+      columns.add(
+          ImmutableColumn.create(
+              columnProto.getName(), Column.Kind.Static, convertType(columnProto.getType())));
     }
     for (ColumnSpec columnProto : tableProto.getColumnsList()) {
-      builder =
-          (DefaultCreateTable)
-              builder.withColumn(columnProto.getName(), convertType(columnProto.getType()));
+      columns.add(
+          ImmutableColumn.create(
+              columnProto.getName(), Column.Kind.Regular, convertType(columnProto.getType())));
     }
-    for (Map.Entry<String, Schema.ColumnOrderBy> entry :
-        tableProto.getClusteringOrdersMap().entrySet()) {
-      builder =
-          (DefaultCreateTable)
-              builder.withClusteringOrder(entry.getKey(), convertOrder(entry.getValue()));
-    }
-    // TODO handle table options
-    return builder.asCql();
+
+    return queryBuilder
+        .create()
+        .table(keyspaceName, tableProto.getName())
+        .ifNotExists(createProto.getIfNotExists())
+        .column(columns)
+        // TODO handle table options
+        .build()
+        .bind()
+        .queryString();
   }
 
   /**
    * Converts a type reference in an incoming DDL call. Note that UDTs are translated as type
    * references, so this method not be used to convert the root UDT for a UDT creation.
    */
-  private static DataType convertType(TypeSpec typeProto) {
+  private static Column.ColumnType convertType(TypeSpec typeProto) {
     if (typeProto.hasList()) {
       TypeSpec.List listProto = typeProto.getList();
-      return DataTypes.listOf(convertType(listProto.getElement()), listProto.getFrozen());
+      return ImmutableListType.builder()
+          .addParameters(convertType(listProto.getElement()))
+          .isFrozen(listProto.getFrozen())
+          .build();
     }
     if (typeProto.hasSet()) {
       TypeSpec.Set setProto = typeProto.getSet();
-      return DataTypes.setOf(convertType(setProto.getElement()), setProto.getFrozen());
+      return ImmutableSetType.builder()
+          .addParameters(convertType(setProto.getElement()))
+          .isFrozen(setProto.getFrozen())
+          .build();
     }
     if (typeProto.hasMap()) {
       TypeSpec.Map mapProto = typeProto.getMap();
-      return DataTypes.mapOf(
-          convertType(mapProto.getKey()), convertType(mapProto.getValue()), mapProto.getFrozen());
+      return ImmutableMapType.builder()
+          .addParameters(convertType(mapProto.getKey()), convertType(mapProto.getValue()))
+          .isFrozen(mapProto.getFrozen())
+          .build();
     }
     if (typeProto.hasUdt()) {
       TypeSpec.Udt udtProto = typeProto.getUdt();
       // Shallow reference:
-      return SchemaBuilder.udt(udtProto.getName(), udtProto.getFrozen());
+      return ImmutableUserDefinedType.reference(udtProto.getName()).frozen(udtProto.getFrozen());
     }
     if (typeProto.hasTuple()) {
       TypeSpec.Tuple tupleProto = typeProto.getTuple();
-      return DataTypes.tupleOf(
-          tupleProto.getElementsList().stream().map(e -> convertType(e)).toArray(DataType[]::new));
+      return ImmutableTupleType.builder()
+          .addParameters(
+              tupleProto.getElementsList().stream()
+                  .map(e -> convertType(e))
+                  .toArray(Column.ColumnType[]::new))
+          .build();
     }
     switch (typeProto.getBasic()) {
       case ASCII:
-        return DataTypes.ASCII;
+        return Column.Type.Ascii;
       case BIGINT:
-        return DataTypes.BIGINT;
+        return Column.Type.Bigint;
       case BLOB:
-        return DataTypes.BLOB;
+        return Column.Type.Blob;
       case BOOLEAN:
-        return DataTypes.BOOLEAN;
+        return Column.Type.Boolean;
       case COUNTER:
-        return DataTypes.COUNTER;
+        return Column.Type.Counter;
       case DECIMAL:
-        return DataTypes.DECIMAL;
+        return Column.Type.Decimal;
       case DOUBLE:
-        return DataTypes.DOUBLE;
+        return Column.Type.Double;
       case FLOAT:
-        return DataTypes.FLOAT;
+        return Column.Type.Float;
       case INT:
-        return DataTypes.INT;
+        return Column.Type.Int;
       case TEXT:
       case VARCHAR:
-        return DataTypes.TEXT;
+        return Column.Type.Text;
       case TIMESTAMP:
-        return DataTypes.TIMESTAMP;
+        return Column.Type.Timestamp;
       case UUID:
-        return DataTypes.UUID;
+        return Column.Type.Uuid;
       case VARINT:
-        return DataTypes.VARINT;
+        return Column.Type.Varint;
       case TIMEUUID:
-        return DataTypes.TIMEUUID;
+        return Column.Type.Timeuuid;
       case INET:
-        return DataTypes.INET;
+        return Column.Type.Inet;
       case DATE:
-        return DataTypes.DATE;
+        return Column.Type.Date;
       case TIME:
-        return DataTypes.TIME;
+        return Column.Type.Time;
       case SMALLINT:
-        return DataTypes.SMALLINT;
+        return Column.Type.Smallint;
       case TINYINT:
-        return DataTypes.TINYINT;
+        return Column.Type.Tinyint;
       case DURATION:
-        return DataTypes.DURATION;
+        return Column.Type.Duration;
       case LINESTRING:
-        return DseDataTypes.LINE_STRING;
+        return Column.Type.LineString;
       case POINT:
-        return DseDataTypes.POINT;
+        return Column.Type.Point;
       case POLYGON:
-        return DseDataTypes.POLYGON;
+        return Column.Type.Polygon;
       case CUSTOM:
         // Can't materialize the type without a class name.
         // TODO should we fix this in the proto file?
@@ -202,18 +222,18 @@ class CreateTableHandler extends MessageHandler<CqlTableCreate> {
     }
   }
 
-  private static ClusteringOrder convertOrder(Schema.ColumnOrderBy orderProto) {
+  private static Column.Order convertOrder(Schema.ColumnOrderBy orderProto) {
     switch (orderProto) {
       case ASC:
-        return ClusteringOrder.ASC;
+        return Column.Order.ASC;
       case DESC:
-        return ClusteringOrder.DESC;
+        return Column.Order.DESC;
       default:
         throw new IllegalArgumentException("Unsupported clustering order " + orderProto);
     }
   }
 
-  private Parameters makeParameters(Optional<ClientInfo> clientInfo) {
+  private static Parameters makeParameters(Optional<ClientInfo> clientInfo) {
     if (clientInfo.isPresent()) {
       Map<String, ByteBuffer> customPayload = new HashMap<>();
       clientInfo.get().storeAuthenticationData(customPayload);
