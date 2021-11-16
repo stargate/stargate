@@ -25,8 +25,6 @@ package stargate;
 
 // TYPES
 
-// TABLES
-
 message UserDefinedTypeCreate {
   string keyspaceName = 1;
   TypeSpec.Udt udt = 2;
@@ -40,6 +38,27 @@ enum ColumnOrderBy {
   DESC = 0x01;
 }
 
+// INDEXES
+
+message CqlIndex {
+  string name = 1;
+  string columnName = 2;
+  bool custom = 3;
+  string customType = 4;
+  map<string, string> options = 5;
+}
+
+// MATERIALIZED VIEWS
+
+message CqlMaterializedView {
+  string name = 1;
+  map<string, string> options = 2;
+  repeated ColumnSpec partitionKeyColumns = 3;
+  repeated ColumnSpec clusteringKeyColumns = 4;
+  repeated ColumnSpec columns = 5;
+  map <string, ColumnOrderBy> clusteringKeyColumnSortOrders = 6;
+}
+
 // TABLES
 
 message CqlTable {
@@ -50,23 +69,13 @@ message CqlTable {
   repeated ColumnSpec staticColumns = 5;
   repeated ColumnSpec columns = 6;
   map <string, ColumnOrderBy> clusteringKeyColumnSortOrders = 7;
+  repeated CqlIndex indexes = 8;
+  repeated CqlMaterializedView materializedViews = 9;
 }
 
 message CqlTableCreate {
   CqlTable table = 1;
   bool ifNotExists = 2;
-}
-
-// INDEXES
-
-message CqlIndex {
-  // TODO
-}
-
-// MATERIALIZED VIEWS
-
-message CqlMaterializedView {
-  // TODO
 }
 
 // KEYSPACES
