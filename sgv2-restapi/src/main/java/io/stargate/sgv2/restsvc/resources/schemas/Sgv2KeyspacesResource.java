@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -334,7 +334,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
   private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
-        ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {

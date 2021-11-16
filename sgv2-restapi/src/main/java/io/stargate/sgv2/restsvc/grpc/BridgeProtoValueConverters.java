@@ -14,16 +14,16 @@ import java.util.List;
  *       "Java" values
  * </ul>
  */
-public class ExtProtoValueConverters {
+public class BridgeProtoValueConverters {
   private static final FromProtoValueCodecs CODECS = new FromProtoValueCodecs();
 
-  private static final ExtProtoValueConverters INSTANCE = new ExtProtoValueConverters();
+  private static final BridgeProtoValueConverters INSTANCE = new BridgeProtoValueConverters();
 
-  public static ExtProtoValueConverters instance() {
+  public static BridgeProtoValueConverters instance() {
     return INSTANCE;
   }
 
-  public FromProtoConverter createConverter(List<QueryOuterClass.ColumnSpec> columns) {
+  public FromProtoConverter fromProtoConverter(List<QueryOuterClass.ColumnSpec> columns) {
     final String[] names = new String[columns.size()];
     final FromProtoValueCodec[] codecs = new FromProtoValueCodec[columns.size()];
 
