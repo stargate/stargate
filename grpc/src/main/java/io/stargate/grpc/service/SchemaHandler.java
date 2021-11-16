@@ -21,6 +21,7 @@ import io.stargate.db.*;
 import io.stargate.db.schema.*;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.proto.Schema.ColumnOrderBy;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
@@ -119,6 +120,9 @@ class SchemaHandler {
 
     for (Column clusteringKeyColumn : table.clusteringKeyColumns()) {
       cqlTableBuilder.addClusteringKeyColumns(buildColumnSpec(clusteringKeyColumn));
+      cqlTableBuilder.putClusteringKeyColumnSortOrders(
+          clusteringKeyColumn.name(),
+          ColumnOrderBy.forNumber(clusteringKeyColumn.order().ordinal()));
     }
 
     for (Column column : table.regularAndStaticColumns()) {

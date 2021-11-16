@@ -49,6 +49,7 @@ message CqlTable {
   repeated ColumnSpec clusteringKeyColumns = 4;
   repeated ColumnSpec staticColumns = 5;
   repeated ColumnSpec columns = 6;
+  map <string, ColumnOrderBy> clusteringKeyColumnSortOrders = 7;
 }
 
 message CqlTableCreate {

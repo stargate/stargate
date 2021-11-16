@@ -84,6 +84,14 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
                 .getBasic()
                 .equals(TypeSpec.Basic.TEXT))
         .isTrue();
+    assertThat(response.getTables(0).getClusteringKeyColumnSortOrdersCount() == 1).isTrue();
+    assertThat(
+            response
+                .getTables(0)
+                .getClusteringKeyColumnSortOrdersMap()
+                .get("leaf")
+                .equals(Schema.ColumnOrderBy.ASC))
+        .isTrue();
     assertThat(response.getTables(0).getStaticColumnsCount() == 1).isTrue();
     assertThat(response.getTables(0).getStaticColumns(0).getName().equals("text_value")).isTrue();
     assertThat(
