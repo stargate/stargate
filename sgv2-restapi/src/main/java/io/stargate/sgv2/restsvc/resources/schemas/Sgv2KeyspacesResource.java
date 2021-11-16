@@ -122,7 +122,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     logger.info("getAllKeyspaces, cql = " + cql);
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Query query =
               QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
@@ -192,7 +192,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
@@ -262,7 +262,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
           try {

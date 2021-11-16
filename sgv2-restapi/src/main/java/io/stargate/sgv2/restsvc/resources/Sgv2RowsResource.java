@@ -116,7 +116,7 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
     //     "primaryKey" segments to actual columns.
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
         });
@@ -186,7 +186,7 @@ public class Sgv2RowsResource extends ResourceBase {
 
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
@@ -276,7 +276,7 @@ public class Sgv2RowsResource extends ResourceBase {
             .setValues(valuesBuilder.build())
             .build();
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
