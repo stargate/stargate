@@ -241,7 +241,6 @@ public class ValuesHelper {
         for (ColumnType parameter : parameters) {
           tupleBuilder.addElements(convertType(parameter));
         }
-        tupleBuilder.setFrozen(columnType.isFrozen());
         builder.setTuple(tupleBuilder.build());
         break;
       case UDT:

@@ -284,9 +284,6 @@ message TypeSpec {
   // A CQL tuple: a collection of anonymous fields.
   message Tuple {
     repeated TypeSpec elements = 1;
-
-    // optional, only required on schema definition (CREATE TYPE or CREATE TABLE)
-    bool frozen = 2;
   }
 
   oneof spec {
