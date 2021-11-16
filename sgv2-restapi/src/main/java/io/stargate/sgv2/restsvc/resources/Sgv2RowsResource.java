@@ -10,10 +10,13 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.JsonToProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
@@ -56,6 +59,9 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class Sgv2RowsResource extends ResourceBase {
   private static final int DEFAULT_PAGE_SIZE = 100;
+
+  private static final BridgeProtoValueConverters PROTO_CONVERTERS =
+      BridgeProtoValueConverters.instance();
 
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -252,6 +258,14 @@ public class Sgv2RowsResource extends ResourceBase {
     QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
     final String cql;
 
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    ToProtoConverter conv = PROTO_CONVERTERS.toProtoConverter(tableDef);
+    logger.info("createRow(): created ProtoConverter: {}", conv);
+
     try {
       cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder);
     } catch (Exception e) {
@@ -261,8 +275,6 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
-    StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     QueryOuterClass.QueryParameters params =
         QueryOuterClass.QueryParameters.newBuilder()
             .setConsistency(

@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.QueryOuterClass;
+import java.util.Map;
 
 /**
  * Converter that knows how to convert a set of column values (either as a set, or one by one)
@@ -9,13 +10,29 @@ import io.stargate.proto.QueryOuterClass;
  * used by Bridge gRPC service.
  */
 public class ToProtoConverter {
+  protected final String tableName;
+  protected final Map<String, ToProtoValueCodec> codecsByName;
+
+  protected ToProtoConverter(final String tableName, Map<String, ToProtoValueCodec> codecsByName) {
+    this.tableName = tableName;
+    this.codecsByName = codecsByName;
+  }
+
   /**
    * Method that will convert a "partially typed" Java value (conforming to "natural" binding from
    * JSON) into Bridge Protobuf {@link QueryOuterClass.Value}.
    */
-  public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
-    // !!! To implement
-    return null;
+  public QueryOuterClass.Value protoValueFromJsonTyped(String fieldName, Object value) {
+    final ToProtoValueCodec codec = getCodec(fieldName);
+    try {
+      return codec.protoValueFromJsonTyped(value);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Failed to deserialize field '%s', problem: %s",
+              fullFieldName(fieldName), e.getMessage()),
+          e);
+    }
   }
 
   /**
@@ -25,8 +42,31 @@ public class ToProtoConverter {
    * <p>Note that despite seeming simplicity, there are non-trivial rules on encoding of structured
    * values.
    */
-  public QueryOuterClass.Value protoValueFromStringified(String value) {
-    // !!! To implement
-    return null;
+  public QueryOuterClass.Value protoValueFromStringified(String fieldName, String value) {
+    final ToProtoValueCodec codec = getCodec(fieldName);
+    try {
+      return codec.protoValueFromStringified(value);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Failed to deserialize field '%s', problem: %s",
+              fullFieldName(fieldName), e.getMessage()),
+          e);
+    }
+  }
+
+  private ToProtoValueCodec getCodec(String fieldName) {
+    ToProtoValueCodec codec = codecsByName.get(fieldName);
+    if (codec == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unknown field '%s' (known fields: %s)",
+              fullFieldName(fieldName), codecsByName.keySet()));
+    }
+    return codec;
+  }
+
+  private String fullFieldName(String fieldName) {
+    return tableName + "." + fieldName;
   }
 }

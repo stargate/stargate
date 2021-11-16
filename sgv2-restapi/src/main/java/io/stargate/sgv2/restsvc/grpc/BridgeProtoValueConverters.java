@@ -1,7 +1,10 @@
 package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.Schema;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Factory for constructing converters to convert between (external) gPRC/Proto {@code Value}s and
@@ -15,7 +18,8 @@ import java.util.List;
  * </ul>
  */
 public class BridgeProtoValueConverters {
-  private static final FromProtoValueCodecs CODECS = new FromProtoValueCodecs();
+  private static final FromProtoValueCodecs FROM_PROTO_CODECS = new FromProtoValueCodecs();
+  private static final ToProtoValueCodecs TO_PROTO_CODECS = new ToProtoValueCodecs();
 
   private static final BridgeProtoValueConverters INSTANCE = new BridgeProtoValueConverters();
 
@@ -31,7 +35,7 @@ public class BridgeProtoValueConverters {
       QueryOuterClass.ColumnSpec spec = columns.get(i);
       names[i] = spec.getName();
       try {
-        codecs[i] = CODECS.codecFor(spec);
+        codecs[i] = FROM_PROTO_CODECS.codecFor(spec);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             String.format(
@@ -40,5 +44,32 @@ public class BridgeProtoValueConverters {
       }
     }
     return FromProtoConverter.construct(names, codecs);
+  }
+
+  public ToProtoConverter toProtoConverter(Schema.CqlTable forTable) {
+    // retain order for error message info
+    Map<String, ToProtoValueCodec> codecsByName = new LinkedHashMap<>();
+    addFields(forTable, codecsByName, forTable.getPartitionKeyColumnsList());
+    addFields(forTable, codecsByName, forTable.getClusteringKeyColumnsList());
+    addFields(forTable, codecsByName, forTable.getStaticColumnsList());
+    addFields(forTable, codecsByName, forTable.getColumnsList());
+    return new ToProtoConverter(forTable.getName(), codecsByName);
+  }
+
+  private static void addFields(
+      Schema.CqlTable tableDef,
+      Map<String, ToProtoValueCodec> codecsByName,
+      List<QueryOuterClass.ColumnSpec> columns) {
+    for (QueryOuterClass.ColumnSpec column : columns) {
+      try {
+        codecsByName.put(column.getName(), TO_PROTO_CODECS.codecFor(column));
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Failed to create codec for field '%s' (table '%s'), problem: %s",
+                column.getName(), tableDef.getName(), e.getMessage()),
+            e);
+      }
+    }
   }
 }
