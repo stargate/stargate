@@ -11,8 +11,8 @@ import com.google.protobuf.Int32Value;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverter;
 import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.JsonToProtoValueConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -311,7 +311,7 @@ public class Sgv2RowsResource extends ResourceBase {
   // // // Helper methods: Structural/nested conversions
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
-    ExtProtoValueConverter converter =
+    FromProtoConverter converter =
         ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
