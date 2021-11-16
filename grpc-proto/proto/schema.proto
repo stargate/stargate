@@ -16,6 +16,7 @@
 syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
+import "query.proto";
 
 option java_package = "io.stargate.proto";
 option go_package = "stargate/proto";
@@ -24,96 +25,19 @@ package stargate;
 
 // TYPES
 
-enum CqlType {
-  ASCII = 0x00;
-  BIGINT = 0x01;
-  BLOB = 0x02;
-  BOOLEAN = 0x03;
-  COUNTER = 0x04;
-  DATE = 0x05;
-  DECIMAL = 0x06;
-  DOUBLE = 0x07;
-  DURATION = 0x08;
-  FLOAT = 0x09;
-  INET = 0x0A;
-  INT = 0x0B;
-  LIST = 0x0C;
-  LINESTRING = 0x0D;
-  MAP = 0x0E;
-  POINT = 0x0F;
-  POLYGON = 0x10;
-  SMALLINT = 0x11;
-  TEXT = 0x12;
-  TIME = 0x13;
-  TIMESTAMP = 0x14;
-  TIMEUUID = 0x15;
-  TINYINT = 0x16;
-  TUPLE = 0x17;
-  UDT = 0x18;
-  UUID = 0x19;
-  VARCHAR = 0x1A;
-  VARINT = 0x1B;
-}
+// TABLES
 
-// USER DEFINED TYPES
-
-message CqlUdtField {
-  string name = 1;
-
-  CqlType type = 2;
-
-  // only used for UDTs (UDTs can reference other UDTs, but they must be frozen)
-  string cqlTypeName = 3;
-
-  bool frozen = 4;
-}
-
-message CqlUserDefinedType {
-  string name = 1;
-
-  repeated CqlUdtField fields = 2;
-
+message UserDefinedTypeCreate {
+  string keyspaceName = 1;
+  TypeSpec.Udt udt = 2;
+  bool ifNotExists = 3;
 }
 
 // COLUMNS
 
-enum CqlColumnOrderBy {
+enum ColumnOrderBy {
   ASC = 0x00;
   DESC = 0x01;
-}
-
-message CqlComplexColumnType {
-  CqlType type = 1;
-
-  // only used if type=UDT
-  string udtTypeName = 2;
-
-  bool frozen = 3;
-}
-
-message CqlColumn {
-
-  string name = 1;
-
-  CqlType type = 2;
-
-  // only used if type=UDT
-  string udtTypeName = 3;
-
-  // only used if type is one of {SET, LIST, MAP, TUPLE}
-  // for SET and LIST, this will have one element
-  //   example: direct_reports set<frozen <fullname>> -> CqlComplexColumnType(UDT, fullname, true)
-  //   example: prime_numbers list<int> -> CqlComplexColumnType(INT, null, false)
-  // for MAP, this will have two elements, the key type, followed by the value type
-  //   example: addresses map<string, frozen<address>> -> CqlComplexColumnType(STRING, null, false),
-  //     CqlComplexColumnType(UDT, address, true)
-  // for TUPLE, this will have as many elements as are referenced
-  //   example: values <tuple<int, text, float>> -> CqlComplexColumnType(INT, null, false),
-  //     CqlComplexColumnType(STRING, null, false), CqlComplexColumnType(FLOAT, null, false)
-  repeated CqlComplexColumnType complexColumnTypes = 4;
-
-  bool isFrozen = 5;
-
 }
 
 // TABLES
@@ -121,10 +45,11 @@ message CqlColumn {
 message CqlTable {
   string name = 1;
   map<string, string> options = 2;
-  repeated CqlColumn partitionKeyColumns = 3;
-  repeated CqlColumn clusteringKeyColumns = 4;
-  repeated CqlColumn staticColumns = 5;
-  repeated CqlColumn columns = 6;
+  repeated ColumnSpec partitionKeyColumns = 3;
+  repeated ColumnSpec clusteringKeyColumns = 4;
+  repeated ColumnSpec staticColumns = 5;
+  repeated ColumnSpec columns = 6;
+  map <string, ColumnOrderBy> clusteringKeyColumnSortOrders = 7;
 }
 
 message CqlTableCreate {
@@ -162,7 +87,7 @@ message DescribeKeyspaceQuery {
 
 message CqlKeyspaceDescribe {
   CqlKeyspace cqlKeyspace = 1;
-  repeated CqlUserDefinedType types = 2;
+  repeated TypeSpec.Udt types = 2;
   repeated CqlTable tables = 3;
   repeated CqlIndex indexes = 4;
   repeated CqlMaterializedView materializedViews = 5;
@@ -171,19 +96,6 @@ message CqlKeyspaceDescribe {
 message DescribeTableQuery {
   string keyspaceName = 1;
   string tableName = 2;
-}
-
-// SCHEMA CREATION
-
-message CqlSchemaOperation {
-  oneof schema {
-    CqlTable table = 1;
-    CqlUserDefinedType udt = 2;
-    CqlIndex index = 3;
-    CqlMaterializedView mv = 4;
-  }
-
-  bool ifNotExists = 5;
 }
 
 // Note: the existing Response type is designed for both DML and DDL (schema) queries
