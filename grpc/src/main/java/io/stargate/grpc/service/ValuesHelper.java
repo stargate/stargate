@@ -198,7 +198,10 @@ public class ValuesHelper {
               .asException();
         }
         builder.setList(
-            TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
+            TypeSpec.List.newBuilder()
+                .setFrozen(columnType.isFrozen())
+                .setElement(convertType(parameters.get(0)))
+                .build());
         break;
       case Map:
         parameters = columnType.parameters();
@@ -209,6 +212,7 @@ public class ValuesHelper {
         }
         builder.setMap(
             TypeSpec.Map.newBuilder()
+                .setFrozen(columnType.isFrozen())
                 .setKey(convertType(parameters.get(0)))
                 .setValue(convertType(parameters.get(1)))
                 .build());
@@ -221,7 +225,10 @@ public class ValuesHelper {
               .asException();
         }
         builder.setSet(
-            TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
+            TypeSpec.Set.newBuilder()
+                .setFrozen(columnType.isFrozen())
+                .setElement(convertType(parameters.get(0)))
+                .build());
         break;
       case Tuple:
         parameters = columnType.parameters();
@@ -244,9 +251,11 @@ public class ValuesHelper {
               .asException();
         }
         TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
+        udtBuilder.setName(udt.name());
         for (Column column : udt.columns()) {
           udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column).rawType()));
         }
+        udtBuilder.setFrozen(columnType.isFrozen());
         builder.setUdt(udtBuilder.build());
         break;
       default:
