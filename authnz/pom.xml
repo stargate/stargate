@@ -29,6 +29,9 @@
             </Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth</Bundle-SymbolicName>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
               org.osgi.framework,
               io.stargate.db,
               io.stargate.db.*,

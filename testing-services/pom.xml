@@ -12,14 +12,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.stargate.auth</groupId>
@@ -54,6 +47,9 @@
             <Bundle-Activator>io.stargate.testing.TestingServicesActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
               org.osgi.framework,
               io.stargate.auth.*,
               io.stargate.core.*,

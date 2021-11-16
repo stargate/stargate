@@ -114,6 +114,9 @@
             <Bundle-SymbolicName>io.stargate.grpc</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.grpc.GrpcActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth,
