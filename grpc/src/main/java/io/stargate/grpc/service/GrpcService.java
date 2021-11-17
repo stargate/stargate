@@ -92,7 +92,13 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void createTable(CqlTableCreate createTable, StreamObserver<Response> responseObserver) {
     new CreateTableHandler(
-            createTable, CONNECTION_KEY.get(), persistence, queryBuilder, responseObserver)
+            createTable,
+            CONNECTION_KEY.get(),
+            persistence,
+            queryBuilder,
+            executor,
+            schemaAgreementRetries,
+            responseObserver)
         .handle();
   }
 

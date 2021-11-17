@@ -18,6 +18,7 @@ package io.stargate.grpc.service;
 import static io.stargate.grpc.retries.RetryDecision.RETHROW;
 
 import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.StringValue;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -25,8 +26,11 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Result;
+import io.stargate.db.Result.SchemaChange;
+import io.stargate.db.Result.SchemaChangeMetadata;
 import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.CasWriteUnknown;
 import io.stargate.proto.QueryOuterClass.FunctionFailure;
@@ -399,6 +403,22 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3> {
       resultBuilder.addAllWarnings(warnings);
     }
     return resultBuilder;
+  }
+
+  protected static QueryOuterClass.SchemaChange buildSchemaChange(SchemaChange result) {
+    SchemaChangeMetadata metadata = result.metadata;
+    QueryOuterClass.SchemaChange.Builder schemaChangeBuilder =
+        QueryOuterClass.SchemaChange.newBuilder()
+            .setChangeType(QueryOuterClass.SchemaChange.Type.valueOf(metadata.change))
+            .setTarget(QueryOuterClass.SchemaChange.Target.valueOf(metadata.target))
+            .setKeyspace(metadata.keyspace);
+    if (metadata.name != null) {
+      schemaChangeBuilder.setName(StringValue.of(metadata.name));
+    }
+    if (metadata.argTypes != null) {
+      schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
+    }
+    return schemaChangeBuilder.build();
   }
 
   public static class ExceptionWithIdempotencyInfo extends Exception {

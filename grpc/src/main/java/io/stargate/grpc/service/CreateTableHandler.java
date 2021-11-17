@@ -27,6 +27,7 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 
 class CreateTableHandler extends DdlMessageHandler<CqlTableCreate> {
 
@@ -35,8 +36,17 @@ class CreateTableHandler extends DdlMessageHandler<CqlTableCreate> {
       Persistence.Connection connection,
       Persistence persistence,
       QueryBuilder queryBuilder,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
       StreamObserver<QueryOuterClass.Response> responseObserver) {
-    super(createTable, connection, persistence, queryBuilder, responseObserver);
+    super(
+        createTable,
+        connection,
+        persistence,
+        queryBuilder,
+        executor,
+        schemaAgreementRetries,
+        responseObserver);
   }
 
   @Override

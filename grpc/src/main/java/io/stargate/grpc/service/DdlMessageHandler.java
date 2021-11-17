@@ -16,11 +16,13 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.GeneratedMessageV3;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
+import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
@@ -30,12 +32,16 @@ import io.stargate.db.schema.ImmutableSetType;
 import io.stargate.db.schema.ImmutableTupleType;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.Schema;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ScheduledExecutorService;
 
 /** Common logic for DDL statements like CREATE TABLE, ALTER TYPE, etc. */
 abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
@@ -43,23 +49,28 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
 
   protected final Persistence.Connection connection;
   protected final String query;
+  private final SchemaAgreementHelper schemaAgreementHelper;
 
   protected DdlMessageHandler(
       MessageT message,
       Persistence.Connection connection,
       Persistence persistence,
       QueryBuilder queryBuilder,
-      StreamObserver<QueryOuterClass.Response> responseObserver) {
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
+      StreamObserver<Response> responseObserver) {
     super(message, responseObserver);
     this.connection = connection;
     this.query = buildQuery(message, persistence, queryBuilder);
+    this.schemaAgreementHelper =
+        new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
   }
 
   protected abstract String buildQuery(
       MessageT message, Persistence persistence, QueryBuilder queryBuilder);
 
   @Override
-  protected CompletionStage<QueryOuterClass.Response> executeQuery() {
+  protected CompletionStage<Response> executeQuery() {
     long queryStartNanoTime = System.nanoTime();
     try {
       return connection
@@ -67,9 +78,29 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
               new SimpleStatement(query),
               DdlMessageHandler.makeParameters(connection.clientInfo()),
               queryStartNanoTime)
-          .thenApply(result -> makeResponseBuilder(result).build());
+          .thenCompose(this::buildResponse);
     } catch (Exception e) {
       return failedFuture(e, false);
+    }
+  }
+
+  private CompletionStage<Response> buildResponse(Result result) {
+    Response.Builder responseBuilder = makeResponseBuilder(result);
+    switch (result.kind) {
+      case Void:
+        return CompletableFuture.completedFuture(responseBuilder.build());
+      case SchemaChange:
+        return schemaAgreementHelper
+            .waitForAgreement()
+            .thenApply(
+                __ -> {
+                  SchemaChange schemaChange = buildSchemaChange((Result.SchemaChange) result);
+                  responseBuilder.setSchemaChange(schemaChange);
+                  return responseBuilder.setSchemaChange(schemaChange).build();
+                });
+      default:
+        return failedFuture(
+            Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
   }
 
