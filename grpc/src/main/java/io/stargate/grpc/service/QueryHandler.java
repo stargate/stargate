@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.service;
 
-import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.ClientInfo;
@@ -37,14 +36,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class QueryHandler extends MessageHandler<Query, Prepared> {
+class QueryHandler extends PreparedMessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
-  private final ScheduledExecutorService executor;
-  private final int schemaAgreementRetries;
+  private final SchemaAgreementHelper schemaAgreementHelper;
 
   QueryHandler(
       Query query,
@@ -54,8 +51,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
     super(query, connection, persistence, responseObserver);
-    this.executor = executor;
-    this.schemaAgreementRetries = schemaAgreementRetries;
+    this.schemaAgreementHelper =
+        new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
     QueryParameters queryParameters = query.getParameters();
     this.decoratedKeyspace =
         queryParameters.hasKeyspace()
@@ -97,7 +94,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       case Void:
         return CompletableFuture.completedFuture(ResponseAndTraceId.from(result, responseBuilder));
       case SchemaChange:
-        return waitForSchemaAgreement()
+        return schemaAgreementHelper
+            .waitForAgreement()
             .thenApply(
                 __ -> {
                   SchemaChange schemaChange = buildSchemaChange((Result.SchemaChange) result);
@@ -117,22 +115,6 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         return failedFuture(
             Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
-  }
-
-  private SchemaChange buildSchemaChange(Result.SchemaChange result) {
-    Result.SchemaChangeMetadata metadata = result.metadata;
-    SchemaChange.Builder schemaChangeBuilder =
-        SchemaChange.newBuilder()
-            .setChangeType(SchemaChange.Type.valueOf(metadata.change))
-            .setTarget(SchemaChange.Target.valueOf(metadata.target))
-            .setKeyspace(metadata.keyspace);
-    if (metadata.name != null) {
-      schemaChangeBuilder.setName(StringValue.of(metadata.name));
-    }
-    if (metadata.argTypes != null) {
-      schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
-    }
-    return schemaChangeBuilder.build();
   }
 
   @Override
@@ -185,33 +167,5 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
         });
 
     return builder.tracingRequested(parameters.getTracing()).build();
-  }
-
-  private CompletionStage<Void> waitForSchemaAgreement() {
-    CompletableFuture<Void> agreementFuture = new CompletableFuture<>();
-    waitForSchemaAgreement(schemaAgreementRetries, agreementFuture);
-    return agreementFuture;
-  }
-
-  private void waitForSchemaAgreement(
-      int remainingAttempts, CompletableFuture<Void> agreementFuture) {
-    if (connection.isInSchemaAgreement()) {
-      agreementFuture.complete(null);
-      return;
-    }
-    if (remainingAttempts <= 1) {
-      agreementFuture.completeExceptionally(
-          Status.DEADLINE_EXCEEDED
-              .withDescription(
-                  "Failed to reach schema agreement after "
-                      + (200 * schemaAgreementRetries)
-                      + " milliseconds.")
-              .asException());
-      return;
-    }
-    executor.schedule(
-        () -> waitForSchemaAgreement(remainingAttempts - 1, agreementFuture),
-        200,
-        TimeUnit.MILLISECONDS);
   }
 }

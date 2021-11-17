@@ -18,24 +18,19 @@ package io.stargate.grpc.service;
 import static io.stargate.grpc.retries.RetryDecision.RETHROW;
 
 import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.StringValue;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
-import io.stargate.db.BoundStatement;
-import io.stargate.db.ImmutableParameters;
-import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
-import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
-import io.stargate.db.Result.Prepared;
-import io.stargate.db.tracing.QueryTracingFetcher;
+import io.stargate.db.Result.SchemaChange;
+import io.stargate.db.Result.SchemaChangeMetadata;
 import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
-import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
-import io.stargate.grpc.tracing.TraceEventsMapper;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.AlreadyExists;
 import io.stargate.proto.QueryOuterClass.CasWriteUnknown;
 import io.stargate.proto.QueryOuterClass.FunctionFailure;
@@ -43,16 +38,13 @@ import io.stargate.proto.QueryOuterClass.ReadFailure;
 import io.stargate.proto.QueryOuterClass.ReadTimeout;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.Unavailable;
-import io.stargate.proto.QueryOuterClass.Values;
 import io.stargate.proto.QueryOuterClass.WriteFailure;
 import io.stargate.proto.QueryOuterClass.WriteTimeout;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
@@ -67,11 +59,7 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @param <MessageT> the type of gRPC message being handled.
- * @param <PreparedT> the persistence object resulting from the preparation of the query(ies).
- */
-abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
+abstract class MessageHandler<MessageT extends GeneratedMessageV3> {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultRetryPolicy.class);
 
@@ -93,24 +81,21 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       ProtoUtils.keyForProto(CasWriteUnknown.getDefaultInstance());
 
   protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
-
   protected final MessageT message;
-  protected final Connection connection;
-  protected final Persistence persistence;
   private final StreamObserver<Response> responseObserver;
   private final DefaultRetryPolicy retryPolicy;
 
-  protected MessageHandler(
-      MessageT message,
-      Connection connection,
-      Persistence persistence,
-      StreamObserver<Response> responseObserver) {
+  protected MessageHandler(MessageT message, StreamObserver<Response> responseObserver) {
     this.message = message;
-    this.connection = connection;
-    this.persistence = persistence;
     this.responseObserver = responseObserver;
     this.retryPolicy = new DefaultRetryPolicy();
   }
+
+  /** Performs any necessary validation on the message before execution starts. */
+  protected abstract void validate() throws Exception;
+
+  /** Executes the CQL querie(s) for this operation. */
+  protected abstract CompletionStage<Response> executeQuery();
 
   void handle() {
     try {
@@ -143,13 +128,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                 setSuccess(response);
               }
             });
-  }
-
-  private CompletionStage<Response> executeQuery() {
-    CompletionStage<Result> resultFuture = prepare().thenCompose(this::executePrepared);
-    return handleUnprepared(resultFuture)
-        .thenCompose(this::buildResponse)
-        .thenCompose(this::executeTracingQueryIfNeeded);
   }
 
   private RetryDecision shouldRetry(Throwable throwable, int retryCount) {
@@ -201,105 +179,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     } else {
       return Optional.empty();
     }
-  }
-
-  /** Performs any necessary validation on the message before execution starts. */
-  protected abstract void validate() throws Exception;
-
-  /**
-   * Prepares any CQL query required for the execution of the request, and returns an executable
-   * object.
-   */
-  protected abstract CompletionStage<PreparedT> prepare();
-
-  /** Executes the prepared object to get the CQL results. */
-  protected abstract CompletionStage<Result> executePrepared(PreparedT prepared);
-
-  /** Builds the gRPC response from the CQL result. */
-  protected abstract CompletionStage<ResponseAndTraceId> buildResponse(Result result);
-
-  /** Computes the consistency level to use for tracing queries. */
-  protected abstract ConsistencyLevel getTracingConsistency();
-
-  protected BoundStatement bindValues(Prepared prepared, Values values) throws Exception {
-    return values.getValuesCount() > 0
-        ? ValuesHelper.bindValues(prepared, values, persistence.unsetValue())
-        : new BoundStatement(prepared.statementId, Collections.emptyList(), null);
-  }
-
-  protected CompletionStage<Prepared> prepare(String cql, @Nullable String keyspace) {
-    return maybePrepared(cql, keyspace)
-        .thenApply(
-            prepared -> {
-              if (prepared.isUseKeyspace) {
-                throw Status.INVALID_ARGUMENT
-                    .withDescription("USE <keyspace> not supported")
-                    .asRuntimeException();
-              }
-              return prepared;
-            });
-  }
-
-  private CompletionStage<Prepared> maybePrepared(String cql, @Nullable String keyspace) {
-    Parameters parameters =
-        (keyspace == null)
-            ? Parameters.defaults()
-            : ImmutableParameters.builder().defaultKeyspace(keyspace).build();
-
-    Prepared preparedInCache = connection.getPrepared(cql, parameters);
-    return preparedInCache != null
-        ? CompletableFuture.completedFuture(preparedInCache)
-        : connection.prepare(cql, parameters);
-  }
-
-  /**
-   * If our local prepared statement cache gets out of sync with the server, we might get an
-   * UNPREPARED response when executing a query. This method allows us to recover from that case
-   * (other execution errors get propagated as-is).
-   */
-  private CompletionStage<Result> handleUnprepared(CompletionStage<Result> source) {
-    CompletableFuture<Result> target = new CompletableFuture<>();
-    source.whenComplete(
-        (result, error) -> {
-          if (error != null) {
-            if (error instanceof CompletionException) {
-              error = error.getCause();
-            }
-            target.completeExceptionally(error);
-          } else {
-            target.complete(result);
-          }
-        });
-    return target;
-  }
-
-  protected Response.Builder makeResponseBuilder(Result result) {
-    Response.Builder resultBuilder = Response.newBuilder();
-    List<String> warnings = result.getWarnings();
-    if (warnings != null) {
-      resultBuilder.addAllWarnings(warnings);
-    }
-    return resultBuilder;
-  }
-
-  protected CompletionStage<Response> executeTracingQueryIfNeeded(
-      ResponseAndTraceId responseAndTraceId) {
-    Response.Builder responseBuilder = responseAndTraceId.responseBuilder;
-    return responseAndTraceId.tracingIdIsEmpty()
-        ? CompletableFuture.completedFuture(responseBuilder.build())
-        : new QueryTracingFetcher(responseAndTraceId.tracingId, connection, getTracingConsistency())
-            .fetch()
-            .handle(
-                (traces, error) -> {
-                  if (error == null) {
-                    responseBuilder.setTraces(
-                        TraceEventsMapper.toTraceEvents(
-                            traces, responseBuilder.getTraces().getId()));
-                  }
-                  // If error != null, ignore and still return the main result with an empty trace
-                  // TODO log error?
-                  return responseBuilder.build();
-                });
   }
 
   protected void setSuccess(Response response) {
@@ -515,6 +394,31 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     CompletableFuture<V> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(new ExceptionWithIdempotencyInfo(e, isIdempotent));
     return failedFuture;
+  }
+
+  protected Response.Builder makeResponseBuilder(Result result) {
+    Response.Builder resultBuilder = Response.newBuilder();
+    List<String> warnings = result.getWarnings();
+    if (warnings != null) {
+      resultBuilder.addAllWarnings(warnings);
+    }
+    return resultBuilder;
+  }
+
+  protected static QueryOuterClass.SchemaChange buildSchemaChange(SchemaChange result) {
+    SchemaChangeMetadata metadata = result.metadata;
+    QueryOuterClass.SchemaChange.Builder schemaChangeBuilder =
+        QueryOuterClass.SchemaChange.newBuilder()
+            .setChangeType(QueryOuterClass.SchemaChange.Type.valueOf(metadata.change))
+            .setTarget(QueryOuterClass.SchemaChange.Target.valueOf(metadata.target))
+            .setKeyspace(metadata.keyspace);
+    if (metadata.name != null) {
+      schemaChangeBuilder.setName(StringValue.of(metadata.name));
+    }
+    if (metadata.argTypes != null) {
+      schemaChangeBuilder.addAllArgumentTypes(metadata.argTypes);
+    }
+    return schemaChangeBuilder.build();
   }
 
   public static class ExceptionWithIdempotencyInfo extends Exception {

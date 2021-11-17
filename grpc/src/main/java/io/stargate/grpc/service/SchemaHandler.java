@@ -120,7 +120,7 @@ class SchemaHandler {
 
     for (Column clusteringKeyColumn : table.clusteringKeyColumns()) {
       cqlTableBuilder.addClusteringKeyColumns(buildColumnSpec(clusteringKeyColumn));
-      cqlTableBuilder.putClusteringKeyColumnSortOrders(
+      cqlTableBuilder.putClusteringOrders(
           clusteringKeyColumn.name(),
           ColumnOrderBy.forNumber(clusteringKeyColumn.order().ordinal()));
     }
