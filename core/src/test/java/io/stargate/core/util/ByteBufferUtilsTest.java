@@ -36,6 +36,8 @@ class ByteBufferUtilsTest {
     }
   }
 
+  // Tests for earlier issue #1041, obsoleted by PR #1405:
+  /*
   @Test
   void testLegacyUrlParameterDecoding() {
     assertThat(fromBase64UrlParam("g/A=").array()).isEqualTo(new byte[] {-125, -16});
@@ -47,4 +49,5 @@ class ByteBufferUtilsTest {
     // validate the decoding of base64 strings where `+` got replaced by ` ` at the HTTP level
     assertThat(fromBase64UrlParam("y A=").array()).isEqualTo(new byte[] {-53, -32});
   }
+  */
 }
