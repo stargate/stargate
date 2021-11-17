@@ -10,11 +10,6 @@
   <artifactId>testing-services</artifactId>
   <dependencies>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>
       <version>${project.version}</version>

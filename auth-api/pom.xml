@@ -146,8 +146,6 @@
                             org.slf4j,
                             org.slf4j.helpers,
                             org.slf4j.spi,
-                            !ch.qos.logback.classic.*,
-                            !ch.qos.logback.core.*,
                             !io.dropwizard.logging,
                             io.stargate.core,
                             org.osgi.framework,
