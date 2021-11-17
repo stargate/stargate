@@ -15,7 +15,6 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
-import io.stargate.sgv2.restsvc.grpc.JsonToProtoValueConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -263,11 +262,10 @@ public class Sgv2RowsResource extends ResourceBase {
 
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    ToProtoConverter conv = PROTO_CONVERTERS.toProtoConverter(tableDef);
-    logger.info("createRow(): created ProtoConverter: {}", conv);
+    final ToProtoConverter toProtoConverter = PROTO_CONVERTERS.toProtoConverter(tableDef);
 
     try {
-      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder);
+      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
     } catch (Exception e) {
       return jaxrsServiceError(
               Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload " + e.getMessage())
@@ -311,11 +309,14 @@ public class Sgv2RowsResource extends ResourceBase {
       String keyspaceName,
       String tableName,
       Map<String, Object> payloadMap,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
     OngoingValues insert = QueryBuilder.insertInto(keyspaceName, tableName);
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
-      insert = insert.value(entry.getKey(), QueryBuilder.bindMarker());
-      valuesBuilder.addValues(JsonToProtoValueConverter.protoValueFor(entry.getValue()));
+      final String fieldName = entry.getKey();
+      insert = insert.value(fieldName, QueryBuilder.bindMarker());
+      valuesBuilder.addValues(
+          toProtoConverter.protoValueFromJsonTyped(fieldName, entry.getValue()));
     }
     return ((Insert) insert).asCql();
   }
