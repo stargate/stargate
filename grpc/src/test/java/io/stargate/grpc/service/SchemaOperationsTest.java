@@ -121,53 +121,44 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("ks");
 
     io.stargate.db.schema.Schema schema =
-            io.stargate.db.schema.Schema.build()
-                    .keyspace("ks")
-                    .table("tbl")
-                    .column("a", Column.Type.Int, PartitionKey)
-                    .column("b", Column.Type.Varchar)
-                    .column("c", Column.Type.Uuid)
-                    .column("d", Column.Type.Varchar)
-                    .secondaryIndex("byB")
-                    .column("b")
-                    .build();
+        io.stargate.db.schema.Schema.build()
+            .keyspace("ks")
+            .table("tbl")
+            .column("a", Column.Type.Int, PartitionKey)
+            .column("b", Column.Type.Varchar)
+            .column("c", Column.Type.Uuid)
+            .column("d", Column.Type.Varchar)
+            .secondaryIndex("byB")
+            .column("b")
+            .build();
 
     when(persistence.schema()).thenReturn(schema);
     startServer(persistence);
 
     // When
-    Schema.CqlTable response = stub.describeTable(
+    Schema.CqlTable response =
+        stub.describeTable(
             Schema.DescribeTableQuery.newBuilder()
-                    .setKeyspaceName("ks")
-                    .setTableName("tbl")
-                    .build());
+                .setKeyspaceName("ks")
+                .setTableName("tbl")
+                .build());
 
     // Then
     assertThat(response.getName().equals("tbl")).isTrue();
     assertThat(response.getPartitionKeyColumnsCount() == 1).isTrue();
     assertThat(response.getPartitionKeyColumns(0).getName().equals("a")).isTrue();
-    assertThat(
-            response
-                    .getPartitionKeyColumns(0)
-                    .getType()
-                    .getBasic()
-                    .equals(TypeSpec.Basic.INT))
-            .isTrue();
+    assertThat(response.getPartitionKeyColumns(0).getType().getBasic().equals(TypeSpec.Basic.INT))
+        .isTrue();
     assertThat(response.getColumnsCount() == 3).isTrue();
     Map<String, ColumnSpec> columnMap =
-            response.getColumnsList().stream()
-                    .collect(Collectors.toMap(ColumnSpec::getName, Function.identity()));
-    assertThat(columnMap.get("b").getType().getBasic().equals(TypeSpec.Basic.VARCHAR))
-            .isTrue();
-    assertThat(columnMap.get("c").getType().getBasic().equals(TypeSpec.Basic.UUID))
-            .isTrue();
-    assertThat(columnMap.get("d").getType().getBasic().equals(TypeSpec.Basic.VARCHAR))
-            .isTrue();
+        response.getColumnsList().stream()
+            .collect(Collectors.toMap(ColumnSpec::getName, Function.identity()));
+    assertThat(columnMap.get("b").getType().getBasic().equals(TypeSpec.Basic.VARCHAR)).isTrue();
+    assertThat(columnMap.get("c").getType().getBasic().equals(TypeSpec.Basic.UUID)).isTrue();
+    assertThat(columnMap.get("d").getType().getBasic().equals(TypeSpec.Basic.VARCHAR)).isTrue();
     assertThat(response.getIndexesCount() == 1).isTrue();
     assertThat(response.getIndexes(0).getName().equals("byB")).isTrue();
-
   }
-
 
   @Test
   @DisplayName("Describe table with materialized view")
@@ -177,65 +168,59 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_stuff");
 
     io.stargate.db.schema.Schema schema =
-            io.stargate.db.schema.Schema.build()
-                    .keyspace("my_stuff")
-                    .table("base_table")
-                    .column("a", Column.Type.Int, PartitionKey)
-                    .column("b", Column.Type.Varchar)
-                    .column("c", Column.Type.Uuid)
-                    .materializedView("byB")
-                    .column("b", PartitionKey)
-                    .column("a", Clustering, DESC)
-                    .column("c")
-                    .build();
+        io.stargate.db.schema.Schema.build()
+            .keyspace("my_stuff")
+            .table("base_table")
+            .column("a", Column.Type.Int, PartitionKey)
+            .column("b", Column.Type.Varchar)
+            .column("c", Column.Type.Uuid)
+            .materializedView("byB")
+            .column("b", PartitionKey)
+            .column("a", Clustering, DESC)
+            .column("c")
+            .build();
 
     when(persistence.schema()).thenReturn(schema);
     startServer(persistence);
 
     // When
     Schema.CqlTable response =
-            stub.describeTable(
-                    Schema.DescribeTableQuery.newBuilder()
-                            .setKeyspaceName("my_stuff")
-                            .setTableName("base_table").build());
+        stub.describeTable(
+            Schema.DescribeTableQuery.newBuilder()
+                .setKeyspaceName("my_stuff")
+                .setTableName("base_table")
+                .build());
 
     // Then
     assertThat(response.getName().equals("base_table")).isTrue();
     assertThat(response.getPartitionKeyColumnsCount() == 1).isTrue();
     assertThat(response.getPartitionKeyColumns(0).getName().equals("a")).isTrue();
-    assertThat(
-            response
-                    .getPartitionKeyColumns(0)
-                    .getType()
-                    .getBasic()
-                    .equals(TypeSpec.Basic.INT))
-            .isTrue();
+    assertThat(response.getPartitionKeyColumns(0).getType().getBasic().equals(TypeSpec.Basic.INT))
+        .isTrue();
     assertThat(response.getColumnsCount() == 2).isTrue();
     Map<String, ColumnSpec> columnMap =
-            response.getColumnsList().stream()
-                    .collect(Collectors.toMap(ColumnSpec::getName, Function.identity()));
-    assertThat(columnMap.get("b").getType().getBasic().equals(TypeSpec.Basic.VARCHAR))
-            .isTrue();
-    assertThat(columnMap.get("c").getType().getBasic().equals(TypeSpec.Basic.UUID))
-            .isTrue();
+        response.getColumnsList().stream()
+            .collect(Collectors.toMap(ColumnSpec::getName, Function.identity()));
+    assertThat(columnMap.get("b").getType().getBasic().equals(TypeSpec.Basic.VARCHAR)).isTrue();
+    assertThat(columnMap.get("c").getType().getBasic().equals(TypeSpec.Basic.UUID)).isTrue();
     assertThat(response.getMaterializedViewsCount() == 1).isTrue();
     assertThat(response.getMaterializedViews(0).getName().equals("byB")).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getPartitionKeyColumnsCount() == 1).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getPartitionKeyColumns(0).getName().equals("b")).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getClusteringKeyColumnsCount() == 1).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getClusteringKeyColumns(0).getName().equals("a")).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getClusteringKeyColumnSortOrdersCount() == 1).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getClusteringKeyColumnSortOrdersMap().get("a")
-            .equals(Schema.ColumnOrderBy.DESC)).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getColumnsCount() == 1).isTrue();
-    assertThat(response.getMaterializedViews(0)
-            .getColumns(0).getName().equals("c")).isTrue();
+    assertThat(response.getMaterializedViews(0).getPartitionKeyColumnsCount() == 1).isTrue();
+    assertThat(response.getMaterializedViews(0).getPartitionKeyColumns(0).getName().equals("b"))
+        .isTrue();
+    assertThat(response.getMaterializedViews(0).getClusteringKeyColumnsCount() == 1).isTrue();
+    assertThat(response.getMaterializedViews(0).getClusteringKeyColumns(0).getName().equals("a"))
+        .isTrue();
+    assertThat(response.getMaterializedViews(0).getClusteringKeyColumnSortOrdersCount() == 1)
+        .isTrue();
+    assertThat(
+            response
+                .getMaterializedViews(0)
+                .getClusteringKeyColumnSortOrdersMap()
+                .get("a")
+                .equals(Schema.ColumnOrderBy.DESC))
+        .isTrue();
+    assertThat(response.getMaterializedViews(0).getColumnsCount() == 1).isTrue();
+    assertThat(response.getMaterializedViews(0).getColumns(0).getName().equals("c")).isTrue();
   }
 }
