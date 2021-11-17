@@ -536,8 +536,8 @@ public class ReactiveDocumentService {
   }
 
   private Collection<List<String>> getFields(String fields) {
-    Collection<List<String>> fieldPaths = Collections.emptyList();
     if (null != fields) {
+      Collection<List<String>> fieldPaths = Collections.emptyList();
       try {
         JsonNode fieldsNode = objectMapper.readTree(fields);
         fieldPaths =
@@ -545,8 +545,9 @@ public class ReactiveDocumentService {
       } catch (JsonProcessingException ex) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
       }
+      return fieldPaths;
     }
-    return fieldPaths;
+    return null;
   }
 
   // we need to transform the stuff to support array elements
@@ -750,7 +751,7 @@ public class ReactiveDocumentService {
       boolean numericBooleans) {
     // filter needed rows only
     List<Row> rows = doc.rows();
-    if (!fieldPaths.isEmpty()) {
+    if (fieldPaths != null && !fieldPaths.isEmpty()) {
       rows =
           doc.rows().stream()
               .filter(

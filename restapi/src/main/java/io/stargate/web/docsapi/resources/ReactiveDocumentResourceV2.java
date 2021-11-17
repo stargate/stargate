@@ -17,7 +17,6 @@ import io.stargate.web.docsapi.models.DocumentResponseWrapper;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ReactiveDocumentService;
@@ -35,7 +34,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -288,45 +286,55 @@ public class ReactiveDocumentResourceV2 {
               required = true)
           @HeaderParam("X-Cassandra-Token")
           String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
-      @ApiParam(
-              value = "the field names that you want to restrict the results to",
-              required = false)
-          @QueryParam("fields")
-          String fields,
-      @ApiParam(
-              value =
-                  "the max number of documents to return, max "
-                      + DocsApiConfiguration.MAX_PAGE_SIZE
-                      + ", default 3",
-              defaultValue = "3")
-          @QueryParam("page-size")
-          @Min(value = 1, message = "the minimum number of documents to return is one")
-          @Max(
-              value = 20,
-              message =
-                  "the max number of documents to return is " + DocsApiConfiguration.MAX_PAGE_SIZE)
-          Integer pageSizeParam,
-      @ApiParam(
-              value = "Cassandra page state, used for pagination on consecutive requests",
-              required = false)
-          @QueryParam("page-state")
-          String pageStateParam,
+      //      @ApiParam(value = "the namespace that the collection is in", required = true)
+      //          @PathParam("namespace-id")
+      //          String namespace,
+      //      @ApiParam(value = "the name of the collection", required = true)
+      // @PathParam("collection-id")
+      //          String collection,
+      //      @ApiParam(value = WHERE_DESCRIPTION) @QueryParam("where") String where,
+      //      @ApiParam(
+      //              value = "the field names that you want to restrict the results to",
+      //              required = false)
+      //          @QueryParam("fields")
+      //          String fields,
+      //      @ApiParam(
+      //              value =
+      //                  "the max number of documents to return, max "
+      //                      + DocsApiConfiguration.MAX_PAGE_SIZE
+      //                      + ", default 3",
+      //              defaultValue = "3")
+      //          @QueryParam("page-size")
+      //          @Min(value = 1, message = "the minimum number of documents to return is one")
+      //          @Max(
+      //              value = 20,
+      //              message =
+      //                  "the max number of documents to return is " +
+      // DocsApiConfiguration.MAX_PAGE_SIZE)
+      //          Integer pageSizeParam,
+      //      @ApiParam(
+      //              value = "Cassandra page state, used for pagination on consecutive requests",
+      //              required = false)
+      //          @QueryParam("page-state")
+      //          String pageStateParam,
       // TODO: Someday, support this in a non-restrictive way
       // @QueryParam("sort") String sort,
-      @ApiParam(
-              value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false")
-          @QueryParam("profile")
-          Boolean profile,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
+      //      @ApiParam(
+      //              value = "Whether to include profiling information in the response (advanced)",
+      //              defaultValue = "false")
+      //          @QueryParam("profile")
+      //          Boolean profile,
+      // @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw") Boolean raw,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
+    Boolean raw = false;
+    Boolean profile = false;
+    String pageStateParam = null;
+    Integer pageSizeParam = 3;
+    String fields = null;
+    String where = "{\"$or\":[{\"match1\":{\"$lt\":1}},{\"match3\":{\"$eq\":true}}]}";
+    String collection = "docs_collection";
+    String namespace = "docs_search_basic";
     int pageSize = Optional.ofNullable(pageSizeParam).orElse(3);
     final Paginator paginator = new Paginator(pageStateParam, pageSize);
     // init sequence
