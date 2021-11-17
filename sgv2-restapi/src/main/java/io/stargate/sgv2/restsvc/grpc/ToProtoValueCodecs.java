@@ -197,13 +197,9 @@ public class ToProtoValueCodecs {
     }
 
     @Override
-    public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
       if (value instanceof Boolean) {
         return Values.of((Boolean) value);
-      }
-      // 16-Nov-2021, tatu: Logic from rest-api v1, "resources.Converters#toCqlValue()"
-      if (value instanceof String) {
-        return protoValueFromStringified((String) value);
       }
       return cannotCoerce(value);
     }
@@ -234,7 +230,7 @@ public class ToProtoValueCodecs {
     }
 
     @Override
-    public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
       int v;
       if (value instanceof Integer) {
         v = ((Integer) value).intValue();
@@ -263,7 +259,7 @@ public class ToProtoValueCodecs {
     }
 
     @Override
-    public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
       long v;
       if (value instanceof Long) {
         v = ((Long) value).longValue();
@@ -293,7 +289,7 @@ public class ToProtoValueCodecs {
     }
 
     @Override
-    public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
       return Values.of(String.valueOf(value));
     }
 
@@ -309,7 +305,7 @@ public class ToProtoValueCodecs {
     }
 
     @Override
-    public QueryOuterClass.Value protoValueFromJsonTyped(Object value) {
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
       // Could also support Binary, in theory, but JSON won't expose as such:
       if (value instanceof String) {
         return protoValueFromStringified((String) value);

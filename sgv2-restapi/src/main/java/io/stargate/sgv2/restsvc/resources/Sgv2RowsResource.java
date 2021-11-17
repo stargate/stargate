@@ -316,7 +316,7 @@ public class Sgv2RowsResource extends ResourceBase {
       final String fieldName = entry.getKey();
       insert = insert.value(fieldName, QueryBuilder.bindMarker());
       valuesBuilder.addValues(
-          toProtoConverter.protoValueFromJsonTyped(fieldName, entry.getValue()));
+          toProtoConverter.protoValueFromLooselyTyped(fieldName, entry.getValue()));
     }
     return ((Insert) insert).asCql();
   }

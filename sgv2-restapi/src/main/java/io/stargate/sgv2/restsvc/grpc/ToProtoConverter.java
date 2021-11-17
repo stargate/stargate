@@ -20,12 +20,35 @@ public class ToProtoConverter {
 
   /**
    * Method that will convert a "partially typed" Java value (conforming to "natural" binding from
-   * JSON) into Bridge Protobuf {@link QueryOuterClass.Value}.
+   * JSON) into Bridge Protobuf {@link QueryOuterClass.Value} optionally considering "stringified"
+   * alternatives for values (that is: any CQL type may be passed as JSON String, and further
+   * decoded and coerced as necessary).
    */
-  public QueryOuterClass.Value protoValueFromJsonTyped(String fieldName, Object value) {
+  public QueryOuterClass.Value protoValueFromLooselyTyped(String fieldName, Object value) {
     final ToProtoValueCodec codec = getCodec(fieldName);
     try {
-      return codec.protoValueFromJsonTyped(value);
+      if (value instanceof String) {
+        return codec.protoValueFromStringified((String) value);
+      }
+      return codec.protoValueFromLooselyTyped(value);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Failed to deserialize field '%s', problem: %s",
+              fullFieldName(fieldName), e.getMessage()),
+          e);
+    }
+  }
+
+  /**
+   * Method that will convert a "partially typed" Java value (conforming to "natural" binding from
+   * JSON) into Bridge Protobuf {@link QueryOuterClass.Value} but WITHOUT considering "stringified"
+   * alternatives.
+   */
+  public QueryOuterClass.Value protoValueFromStrictlyTyped(String fieldName, Object value) {
+    final ToProtoValueCodec codec = getCodec(fieldName);
+    try {
+      return codec.protoValueFromStrictlyTyped(value);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           String.format(
