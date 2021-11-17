@@ -24,7 +24,11 @@ public class ByteBufferUtils {
   private ByteBufferUtils() {}
 
   public static String toBase64(ByteBuffer buffer) {
-    return Base64.getEncoder().encodeToString(getArray(buffer));
+    return toBase64(getArray(buffer));
+  }
+
+  public static String toBase64(byte[] bytes) {
+    return Base64.getEncoder().encodeToString(bytes);
   }
 
   public static ByteBuffer fromBase64(String base64) {
@@ -32,18 +36,22 @@ public class ByteBufferUtils {
   }
 
   public static String toBase64ForUrl(ByteBuffer buffer) {
-    return Base64.getUrlEncoder().encodeToString(getArray(buffer));
+    return toBase64ForUrl(getArray(buffer));
+  }
+
+  public static String toBase64ForUrl(byte[] bytes) {
+    return Base64.getUrlEncoder().encodeToString(bytes);
   }
 
   public static ByteBuffer fromBase64UrlParam(String base64) {
-    // TODO: remove support for legacy use cases when they are no longer relevant
-    if (base64.chars().anyMatch(c -> c == '/' || c == '+' || c == ' ')) {
-      // Fix legacy strings that got broken by decoding `+` at HTTP level
-      base64 = base64.replace(' ', '+');
-      // Use the decoder compatible with the encoder previously used for URL params
-      return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
-    }
-
+    // As per PR #1405 (and earlier issue #1041), special handling no longer needed
+    /*    if (base64.chars().anyMatch(c -> c == '/' || c == '+' || c == ' ')) {
+    Fix legacy strings that got broken by decoding `+` at HTTP level
+         base64 = base64.replace(' ', '+');
+         // Use the decoder compatible with the encoder previously used for URL params
+         return ByteBuffer.wrap(Base64.getDecoder().decode(base64));
+       }
+    */
     return ByteBuffer.wrap(Base64.getUrlDecoder().decode(base64));
   }
 
