@@ -12,6 +12,7 @@ import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
@@ -173,10 +174,15 @@ public class DocsShredder {
       String key,
       boolean patching,
       boolean numericBooleans) {
+    // the converter can not handle empty field names, thus add manually
     String bracketedPath = DocsApiUtils.convertJsonToBracketedPath(parsingContext.getJsonPath());
-    Map<String, Object> bindMap = DocsApiUtils.newBindMap(path, config.getMaxDepth());
+    if (Objects.equals("", parsingContext.getCurrentFieldName())) {
+      bracketedPath += "['']";
+    }
 
+    Map<String, Object> bindMap = DocsApiUtils.newBindMap(path, config.getMaxDepth());
     bindMap.put("key", key);
+
     String leaf = null;
     int i = path.size();
 

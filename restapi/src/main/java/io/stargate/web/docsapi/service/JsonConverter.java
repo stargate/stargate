@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.inject.Inject;
 
 public class JsonConverter {
@@ -97,7 +98,7 @@ public class JsonConverter {
       for (int i = 0; i < maxDepth; i++) {
         String p = row.getString("p" + i);
         String nextP = i < maxDepth - 1 ? row.getString("p" + (i + 1)) : "";
-        boolean endOfPath = nextP.equals("");
+        boolean endOfPath = nextP.equals("") && Objects.equals(p, rowLeaf);
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
 

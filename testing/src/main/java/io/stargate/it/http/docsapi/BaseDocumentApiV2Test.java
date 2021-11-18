@@ -760,6 +760,17 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testJsonEmptyKey() throws IOException {
+    String json = "{\"\": \"value\", \"nested\": {\"\": \"value\"}}";
+
+    Response resp = RestUtils.postRaw(authToken, collectionPath, json, 201);
+    String docLocation = resp.header("location");
+    String r = RestUtils.get(authToken, docLocation + "?raw=true", 200);
+
+    assertThat(OBJECT_MAPPER.readTree(r)).isEqualTo(OBJECT_MAPPER.readTree(json));
+  }
+
+  @Test
   public void testWriteManyDocs() throws IOException {
     // Create documents using multiExample that creates random ID's
     URL url = Resources.getResource("multiExample.json");

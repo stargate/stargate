@@ -453,7 +453,7 @@ public class JsonConverterTest {
     data2.put("p2", "");
     data2.put("p3", "");
     data2.put("text_value", "initial");
-    data2.put("leaf", "a");
+    data2.put("leaf", "[0]");
 
     Map<String, Object> data3 = new HashMap<>();
 
@@ -464,7 +464,7 @@ public class JsonConverterTest {
     data3.put("p2", "[0]");
     data3.put("dbl_value", 1.23);
     data3.put("p3", "");
-    data3.put("leaf", "a");
+    data3.put("leaf", "[0]");
 
     Map<String, Object> data4 = new HashMap<>();
 
