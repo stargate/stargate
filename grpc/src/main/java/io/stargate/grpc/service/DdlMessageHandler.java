@@ -24,6 +24,7 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
+import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableListType;
@@ -55,12 +56,17 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
       MessageT message,
       Persistence.Connection connection,
       Persistence persistence,
-      QueryBuilder queryBuilder,
+      TypedValue.Codec valueCodec,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
     super(message, responseObserver);
     this.connection = connection;
+
+    // Note that, due to executor being null, the returned queries are not executable. This is only
+    // intended to construct CQL query strings.
+    QueryBuilder queryBuilder = new QueryBuilder(persistence.schema(), valueCodec, null);
+
     this.query = buildQuery(message, persistence, queryBuilder);
     this.schemaAgreementHelper =
         new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);

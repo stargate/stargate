@@ -34,6 +34,7 @@ service Stargate {
   // Schema creation
   rpc CreateTable(CqlTableCreate) returns (Response) {}
   rpc CreateKeyspace(CqlKeyspaceCreate) returns (Response) {}
+  rpc CreateUserDefinedType(UserDefinedTypeCreate) returns (Response) {}
 
   // Similar to CQL "DESCRIBE KEYSPACE"
   rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
