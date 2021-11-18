@@ -59,9 +59,6 @@ import org.slf4j.LoggerFactory;
 public class Sgv2RowsResource extends ResourceBase {
   private static final int DEFAULT_PAGE_SIZE = 100;
 
-  private static final BridgeProtoValueConverters PROTO_CONVERTERS =
-      BridgeProtoValueConverters.instance();
-
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -262,13 +259,18 @@ public class Sgv2RowsResource extends ResourceBase {
 
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = PROTO_CONVERTERS.toProtoConverter(tableDef);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
     try {
       cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
+    } catch (IllegalArgumentException e) {
+      // No logging since this is due to something bad client sent:
+      return jaxrsBadRequestError(e.getMessage()).build();
     } catch (Exception e) {
+      // Unrecognized problem to be converted to something known; log:
+      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
       return jaxrsServiceError(
-              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload " + e.getMessage())
+              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
           .build();
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);

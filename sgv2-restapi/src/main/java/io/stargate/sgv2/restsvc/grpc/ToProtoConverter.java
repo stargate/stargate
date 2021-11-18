@@ -83,8 +83,8 @@ public class ToProtoConverter {
     if (codec == null) {
       throw new IllegalArgumentException(
           String.format(
-              "Unknown field '%s' (known fields: %s)",
-              fullFieldName(fieldName), codecsByName.keySet()));
+              "Unknown field name '%s' (table '%s'); known fields: %s",
+              fieldName, tableName, codecsByName.keySet()));
     }
     return codec;
   }

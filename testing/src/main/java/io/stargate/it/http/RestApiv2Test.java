@@ -1481,7 +1481,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription())
-        .isEqualTo("Bad request: Unknown field name 'invalid_field'.");
+        .contains("Bad request: Unknown field name 'invalid_field'");
   }
 
   @Test
