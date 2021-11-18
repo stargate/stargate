@@ -49,7 +49,6 @@ public class GrpcImpl {
   public GrpcImpl(
       Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
 
-    //    persistence.registerEventListener();
     String listenAddress = null;
 
     try {
@@ -67,6 +66,7 @@ public class GrpcImpl {
     executor =
         Executors.newScheduledThreadPool(
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("grpc-stargate-executor", true));
+    CustomChannelFactory customChannelFactory = new CustomChannelFactory();
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
@@ -75,11 +75,12 @@ public class GrpcImpl {
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
-            .channelFactory(new CustomChannelFactory())
+            .channelFactory(customChannelFactory)
             .workerEventLoopGroup(CustomEventLoopGroup.worker())
             .bossEventLoopGroup(CustomEventLoopGroup.boss())
             .build();
-    //    ((ServerImpl) server).getListenSockets();
+
+    persistence.registerEventListener(new EventNotifier(customChannelFactory));
   }
 
   public void start() {
