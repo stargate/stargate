@@ -17,6 +17,7 @@ package io.stargate.grpc.impl;
 
 import io.grpc.Server;
 import io.grpc.internal.GrpcUtil;
+import io.grpc.netty.shaded.io.grpc.netty.CustomChannelFactory;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
@@ -47,6 +48,7 @@ public class GrpcImpl {
   public GrpcImpl(
       Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
 
+    //    persistence.registerEventListener();
     String listenAddress = null;
 
     try {
@@ -72,7 +74,9 @@ public class GrpcImpl {
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
+            .channelFactory(new CustomChannelFactory())
             .build();
+    //    ((ServerImpl) server).getListenSockets();
   }
 
   public void start() {
