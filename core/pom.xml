@@ -109,6 +109,9 @@
                           ch.qos.logback.classic,
                           ch.qos.logback.classic.helpers,
                           ch.qos.logback.classic.spi,
+                          ch.qos.logback.core,
+                          ch.qos.logback.core.helpers,
+                          ch.qos.logback.core.spi,
                         ]]></Export-Package>
                         <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>
