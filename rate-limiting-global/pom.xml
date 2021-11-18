@@ -35,6 +35,9 @@
             <Bundle-SymbolicName>io.stargate.db.limiter.global</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.limiter.global.GlobalRateLimitingActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
               org.osgi.framework,
               io.stargate.core.*,
               io.stargate.db,

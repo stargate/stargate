@@ -212,6 +212,13 @@
             <Bundle-SymbolicName>io.stargate.db.cassandra_3_11</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.cassandra.Cassandra311PersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.event,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
+                            ch.qos.logback.classic,
+                            ch.qos.logback.classic.helpers,
+                            ch.qos.logback.classic.spi,
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth.*,
