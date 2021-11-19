@@ -45,6 +45,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1136,8 +1137,21 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    String rowIdentifier = UUID.randomUUID().toString();
+    // To try to ensure we actually find the right entry, create one other entry first
     Map<String, String> row = new HashMap<>();
+    row.put("id", UUID.nameUUIDFromBytes("abc".getBytes(StandardCharsets.UTF_8)).toString());
+    row.put("firstName", "Michael");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    // and then the row we are actually looking for:
+    String rowIdentifier =
+        UUID.nameUUIDFromBytes("xyz".getBytes(StandardCharsets.UTF_8)).toString();
+    row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
 
@@ -1157,6 +1171,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     ListOfMapsGetResponseWrapper getResponseWrapper =
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
+    // Verify we fetch one and only one entry
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.size()).isEqualTo(1);
+    // and that its contents match
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
   }
