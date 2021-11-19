@@ -152,6 +152,7 @@
         <module>grpc-proto</module>
         <module>grpc</module>
         <module>metrics-jersey</module>
+        <module>grpc-examples</module>
         <!-- testing last -->
         <module>testing-services</module>
         <module>testing</module>
