@@ -74,7 +74,19 @@ message CqlMaterializedView {
 
 message CqlKeyspace {
   string name = 1;
-  map<string, string> options = 2;
+  map<string, string> options = 2; // TODO remove?
+
+  message SimpleReplication {
+      uint32 replication_factor = 1;
+  }
+  message NetworkReplication {
+      map<string, uint32> replication_factors = 2;
+  }
+  oneof replication {
+    SimpleReplication simple_replication = 3;
+    NetworkReplication network_replication = 4;
+  }
+  bool durable_writes = 5;
 }
 
 message CqlKeyspaceCreate {

@@ -29,6 +29,8 @@ import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema;
+import io.stargate.proto.Schema.CqlKeyspace;
+import io.stargate.proto.Schema.CqlKeyspaceCreate;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import io.stargate.proto.Schema.UserDefinedTypeCreate;
@@ -41,6 +43,48 @@ public class CreateSchemaTest extends GrpcIntegrationTest {
 
   private static final TypeSpec INT_TYPE = TypeSpec.newBuilder().setBasic(INT).build();
   private static final TypeSpec TEXT_TYPE = TypeSpec.newBuilder().setBasic(TEXT).build();
+
+  @Test
+  public void shouldCreateKeyspace(CqlSession session) {
+    // Given
+    CqlIdentifier keyspace = CqlIdentifier.fromInternal("grpc_CreateSchemaTest");
+    assertThat(session.getMetadata().getKeyspace(keyspace)).isEmpty();
+
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    CqlKeyspaceCreate createKeyspacePayload =
+        CqlKeyspaceCreate.newBuilder()
+            .setKeyspace(
+                CqlKeyspace.newBuilder()
+                    .setName(keyspace.asInternal())
+                    .setSimpleReplication(
+                        CqlKeyspace.SimpleReplication.newBuilder().setReplicationFactor(1).build())
+                    .build())
+            .setIfNotExists(true)
+            .build();
+
+    // When
+    Response response = stub.createKeyspace(createKeyspacePayload);
+
+    // Then
+    assertThat(response.hasSchemaChange()).isTrue();
+    SchemaChange schemaChange = response.getSchemaChange();
+    assertThat(schemaChange.getChangeType()).isEqualTo(SchemaChange.Type.CREATED);
+    assertThat(schemaChange.getTarget()).isEqualTo(SchemaChange.Target.KEYSPACE);
+    assertThat(schemaChange.getKeyspace()).isEqualTo(keyspace.asInternal());
+    assertThat(schemaChange.hasName()).isFalse();
+    assertThat(schemaChange.getArgumentTypesCount()).isZero();
+
+    assertThat(session.refreshSchema().getKeyspace(keyspace)).isPresent();
+
+    // When
+    response = stub.createKeyspace(createKeyspacePayload);
+
+    // Then
+    assertThat(response.hasSchemaChange()).isFalse();
+
+    session.execute("DROP KEYSPACE " + keyspace.asCql(false));
+  }
 
   @Test
   public void shouldCreateTable(CqlSession session, @TestKeyspace CqlIdentifier keyspace) {
