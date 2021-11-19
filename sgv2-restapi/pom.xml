@@ -41,7 +41,7 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- DataStax/Cassandar dependencies -->
+    <!-- DataStax/Cassandra dependencies -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-query-builder</artifactId>
@@ -114,6 +114,11 @@
       <groupId>com.github.rvesse</groupId>
       <artifactId>airline</artifactId>
       <version>${airline.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.uuid</groupId>
+      <artifactId>java-uuid-generator</artifactId>
+      <version>4.0.1</version>
     </dependency>
 
     <!-- test dependencies -->

@@ -18,7 +18,6 @@ import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -70,11 +69,10 @@ public class Sgv2RowsResource extends ResourceBase {
   @ApiOperation(
       value = "Get row(s)",
       notes = "Get rows from a table based on the primary key.",
-      response = Sgv2GetResponse.class,
-      responseContainer = "List")
+      response = Sgv2RowsResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2GetResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2RowsResponse.class),
         @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(
@@ -116,12 +114,11 @@ public class Sgv2RowsResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
-    //     "primaryKey" segments to actual columns.
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
-        });
+    List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
+    logger.info("getRows(): try to call backend with CQL of '{}'", cql);
+
+    return fetchRows(token, pageSizeParam, pageStateParam, raw, cql);
   }
 
   @Timed
@@ -172,8 +169,13 @@ public class Sgv2RowsResource extends ResourceBase {
     final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
     logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
 
+    return fetchRows(token, pageSizeParam, pageStateParam, raw, cql);
+  }
+
+  private javax.ws.rs.core.Response fetchRows(
+      String authToken, int pageSizeParam, String pageStateParam, boolean raw, String cql) {
     StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(authToken));
     QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
     if (!isStringEmpty(pageStateParam)) {
       // surely there must better way to make Protobuf accept plain old byte[]? But if not:
