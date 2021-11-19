@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.Schema;
+import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import java.io.IOException;
 import java.util.Base64;
@@ -19,6 +22,9 @@ import javax.ws.rs.core.Response;
 public abstract class ResourceBase {
   protected static final ObjectMapper JSON_MAPPER = new JsonMapper();
   protected static final ObjectReader MAP_READER = JSON_MAPPER.readerFor(Map.class);
+
+  protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
+      BridgeProtoValueConverters.instance();
 
   // // // Helper methods for Response construction
 
@@ -38,13 +44,19 @@ public abstract class ResourceBase {
     return Response.status(status).entity(new RestServiceError(msg, status.getStatusCode()));
   }
 
+  protected static Response.ResponseBuilder jaxrsBadRequestError(String msgSuffix) {
+    Response.Status status = Response.Status.BAD_REQUEST;
+    String msg = "Bad request: " + msgSuffix;
+    return Response.status(status).entity(new RestServiceError(msg, status.getStatusCode()));
+  }
+
   // // // Helper methods for JSON decoding
 
   protected static Map<String, Object> parseJsonAsMap(String jsonString) throws IOException {
     return MAP_READER.readValue(jsonString);
   }
 
-  // // // Helper methods for gRPC type manipulation
+  // // // Helper methods for Bridge/gRPC type manipulation
 
   protected static String extractPagingStateFromResultSet(QueryOuterClass.ResultSet rs) {
     BytesValue pagingStateOut = rs.getPagingState();
@@ -57,6 +69,10 @@ public abstract class ResourceBase {
       }
     }
     return null;
+  }
+
+  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef) {
+    return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
   // // // Helper methods for input validation

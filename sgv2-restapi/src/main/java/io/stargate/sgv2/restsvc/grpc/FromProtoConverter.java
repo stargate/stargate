@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Converter that knows how to convert a single row from the "external" Stargate Protobuf result
- * into a representation (currently {@link java.util.Map} with column name as key, Java value that
- * can be serialized by frontend framework (like DropWizard) as value, usually as JSON.
+ * Converter that knows how to convert a single row from the "Bridge" Stargate Protobuf result into
+ * a representation (currently {@link java.util.Map} with column name as key, Java value that can be
+ * serialized by frontend framework (like DropWizard) as value, usually as JSON.
  */
 public class FromProtoConverter {
   static final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
@@ -23,12 +23,16 @@ public class FromProtoConverter {
     this.codecs = codecs;
   }
 
+  /**
+   * Factory method for constructing converter instances, given ordered sets of column names and
+   * matching {@link FromProtoValueCodec}s.
+   */
   public static FromProtoConverter construct(String[] columnNames, FromProtoValueCodec[] codecs) {
     return new FromProtoConverter(columnNames, codecs);
   }
 
   /**
-   * Method called to convert External Protobuf values into Java value objects serializable by web
+   * Method called to convert Bridge Protobuf values into Java value objects serializable by web
    * service such as DropWizard and other JAX-RS implementations.
    */
   public Map<String, Object> mapFromProtoValues(List<QueryOuterClass.Value> values) {
@@ -39,6 +43,11 @@ public class FromProtoConverter {
     return result;
   }
 
+  /**
+   * Method called to convert Bridge Protobuf values into {@link ObjectNode}s: node values are
+   * easier to manipulate than "simple" Java {@code java.lang.Object} values, and also as
+   * serializable by web service such as DropWizard and other JAX-RS implementations.
+   */
   public ObjectNode objectNodeFromProtoValues(List<QueryOuterClass.Value> values) {
     ObjectNode result = jsonNodeFactory.objectNode();
     for (int i = 0, end = values.size(); i < end; ++i) {

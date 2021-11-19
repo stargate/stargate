@@ -10,10 +10,12 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
-import io.stargate.sgv2.restsvc.grpc.JsonToProtoValueConverter;
+import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
@@ -116,7 +118,7 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
     //     "primaryKey" segments to actual columns.
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
         });
@@ -186,7 +188,7 @@ public class Sgv2RowsResource extends ResourceBase {
 
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
@@ -252,17 +254,27 @@ public class Sgv2RowsResource extends ResourceBase {
     QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
     final String cql;
 
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+
     try {
-      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder);
+      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
+    } catch (IllegalArgumentException e) {
+      // No logging since this is due to something bad client sent:
+      return jaxrsBadRequestError(e.getMessage()).build();
     } catch (Exception e) {
+      // Unrecognized problem to be converted to something known; log:
+      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
       return jaxrsServiceError(
-              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload " + e.getMessage())
+              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
           .build();
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
-    StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     QueryOuterClass.QueryParameters params =
         QueryOuterClass.QueryParameters.newBuilder()
             .setConsistency(
@@ -276,7 +288,7 @@ public class Sgv2RowsResource extends ResourceBase {
             .setValues(valuesBuilder.build())
             .build();
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
@@ -299,11 +311,14 @@ public class Sgv2RowsResource extends ResourceBase {
       String keyspaceName,
       String tableName,
       Map<String, Object> payloadMap,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
     OngoingValues insert = QueryBuilder.insertInto(keyspaceName, tableName);
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
-      insert = insert.value(entry.getKey(), QueryBuilder.bindMarker());
-      valuesBuilder.addValues(JsonToProtoValueConverter.protoValueFor(entry.getValue()));
+      final String fieldName = entry.getKey();
+      insert = insert.value(fieldName, QueryBuilder.bindMarker());
+      valuesBuilder.addValues(
+          toProtoConverter.protoValueFromLooselyTyped(fieldName, entry.getValue()));
     }
     return ((Insert) insert).asCql();
   }
@@ -312,7 +327,7 @@ public class Sgv2RowsResource extends ResourceBase {
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
-        ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {

@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.ExtProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -122,7 +122,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     logger.info("getAllKeyspaces, cql = " + cql);
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Query query =
               QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
@@ -192,7 +192,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
 
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
@@ -262,7 +262,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    return Sgv2RequestHandler.handle(
+    return Sgv2RequestHandler.handleMainOperation(
         () -> {
           SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
           try {
@@ -334,7 +334,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
   private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
-        ExtProtoValueConverters.instance().createConverter(rs.getColumnsList());
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
