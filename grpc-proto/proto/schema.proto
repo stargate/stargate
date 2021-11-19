@@ -43,9 +43,8 @@ enum ColumnOrderBy {
 message CqlIndex {
   string name = 1;
   string column_name = 2;
-  bool custom = 3;
-  string custom_type = 4;
-  map<string, string> options = 5;
+  google.protobuf.StringValue custom_type = 3;
+  map<string, string> options = 4;
 }
 
 // MATERIALIZED VIEWS

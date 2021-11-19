@@ -15,6 +15,7 @@
  */
 package io.stargate.grpc.service;
 
+import com.google.protobuf.StringValue;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.*;
@@ -149,8 +150,7 @@ class SchemaHandler {
     return CqlIndex.newBuilder()
         .setName(index.name())
         .setColumnName(index.column().name())
-        .setCustom(index.isCustom())
-        .setCustomType(index.indexTypeName())
+        .setCustomType(StringValue.newBuilder().setValue(index.indexTypeName()).build())
         .build();
   }
 
