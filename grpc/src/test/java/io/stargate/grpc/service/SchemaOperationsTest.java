@@ -211,12 +211,11 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
     assertThat(response.getMaterializedViews(0).getClusteringKeyColumnsCount() == 1).isTrue();
     assertThat(response.getMaterializedViews(0).getClusteringKeyColumns(0).getName().equals("a"))
         .isTrue();
-    assertThat(response.getMaterializedViews(0).getClusteringKeyColumnSortOrdersCount() == 1)
-        .isTrue();
+    assertThat(response.getMaterializedViews(0).getClusteringOrdersCount() == 1).isTrue();
     assertThat(
             response
                 .getMaterializedViews(0)
-                .getClusteringKeyColumnSortOrdersMap()
+                .getClusteringOrdersMap()
                 .get("a")
                 .equals(Schema.ColumnOrderBy.DESC))
         .isTrue();

@@ -165,7 +165,7 @@ class SchemaHandler {
 
     for (Column clusteringKeyColumn : materializedView.clusteringKeyColumns()) {
       builder.addClusteringKeyColumns(buildColumnSpec(clusteringKeyColumn));
-      builder.putClusteringKeyColumnSortOrders(
+      builder.putClusteringOrders(
           clusteringKeyColumn.name(),
           ColumnOrderBy.forNumber(clusteringKeyColumn.order().ordinal()));
     }
