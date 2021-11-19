@@ -25,12 +25,10 @@ package stargate;
 
 // TYPES
 
-// TABLES
-
 message UserDefinedTypeCreate {
-  string keyspaceName = 1;
+  string keyspace_name = 1;
   TypeSpec.Udt udt = 2;
-  bool ifNotExists = 3;
+  bool if_not_exists = 3;
 }
 
 // COLUMNS
@@ -40,34 +38,44 @@ enum ColumnOrderBy {
   DESC = 0x01;
 }
 
-// TABLES
-
-message CqlTable {
-  string name = 1;
-  map<string, string> options = 2;
-  repeated ColumnSpec partitionKeyColumns = 3;
-  repeated ColumnSpec clusteringKeyColumns = 4;
-  repeated ColumnSpec staticColumns = 5;
-  repeated ColumnSpec columns = 6;
-  map <string, ColumnOrderBy> clusteringOrders = 7;
-}
-
-message CqlTableCreate {
-  string keyspaceName = 1;
-  CqlTable table = 2;
-  bool ifNotExists = 3;
-}
-
 // INDEXES
 
 message CqlIndex {
-  // TODO
+  string name = 1;
+  string column_name = 2;
+  google.protobuf.StringValue custom_type = 3;
+  map<string, string> options = 4;
 }
 
 // MATERIALIZED VIEWS
 
 message CqlMaterializedView {
-  // TODO
+  string name = 1;
+  map<string, string> options = 2;
+  repeated ColumnSpec partition_key_columns = 3;
+  repeated ColumnSpec clustering_key_columns = 4;
+  repeated ColumnSpec columns = 5;
+  map <string, ColumnOrderBy> clustering_orders = 6;
+}
+
+// TABLES
+
+message CqlTable {
+  string name = 1;
+  map<string, string> options = 2;
+  repeated ColumnSpec partition_key_columns = 3;
+  repeated ColumnSpec clustering_key_columns = 4;
+  repeated ColumnSpec static_columns = 5;
+  repeated ColumnSpec columns = 6;
+  map <string, ColumnOrderBy> clustering_orders = 7;
+  repeated CqlIndex indexes = 8;
+  repeated CqlMaterializedView materialized_views = 9;
+}
+
+message CqlTableCreate {
+  string keyspace_name = 1;
+  CqlTable table = 2;
+  bool if_not_exists = 3;
 }
 
 // KEYSPACES
@@ -79,24 +87,24 @@ message CqlKeyspace {
 
 message CqlKeyspaceCreate {
   CqlKeyspace keyspace = 1;
-  bool ifNotExists = 2;
+  bool if_not_exists = 2;
 }
 
 message DescribeKeyspaceQuery {
-  string keyspaceName = 1;
+  string keyspace_name = 1;
 }
 
 message CqlKeyspaceDescribe {
-  CqlKeyspace cqlKeyspace = 1;
+  CqlKeyspace cql_keyspace = 1;
   repeated TypeSpec.Udt types = 2;
   repeated CqlTable tables = 3;
   repeated CqlIndex indexes = 4;
-  repeated CqlMaterializedView materializedViews = 5;
+  repeated CqlMaterializedView materialized_views = 5;
 }
 
 message DescribeTableQuery {
-  string keyspaceName = 1;
-  string tableName = 2;
+  string keyspace_name = 1;
+  string table_name = 2;
 }
 
 // Note: the existing Response type is designed for both DML and DDL (schema) queries

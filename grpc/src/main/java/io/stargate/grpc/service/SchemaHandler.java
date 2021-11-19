@@ -15,6 +15,7 @@
  */
 package io.stargate.grpc.service;
 
+import com.google.protobuf.StringValue;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.*;
@@ -22,8 +23,10 @@ import io.stargate.db.schema.*;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema.ColumnOrderBy;
+import io.stargate.proto.Schema.CqlIndex;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.CqlMaterializedView;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
@@ -59,7 +62,6 @@ class SchemaHandler {
       //      }
       //    }
 
-      // TODO: Persistence implementation doesn't seem to actually set this
       if (keyspace.durableWrites().isPresent()) {
         cqlKeyspaceBuilder.putOptions("durable_writes", keyspace.durableWrites().get().toString());
       }
@@ -82,8 +84,6 @@ class SchemaHandler {
       for (Table table : keyspace.tables()) {
         describeResultBuilder.addTables(buildCqlTable(table));
       }
-
-      // TODO: indexes and materialized views?
 
       responseObserver.onNext(describeResultBuilder.build());
       responseObserver.onCompleted();
@@ -111,8 +111,7 @@ class SchemaHandler {
 
   @NotNull
   private static CqlTable buildCqlTable(Table table) throws StatusException {
-    CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder();
-    cqlTableBuilder.setName(table.name());
+    CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder().setName(table.name());
 
     for (Column partitionKeyColumn : table.partitionKeyColumns()) {
       cqlTableBuilder.addPartitionKeyColumns(buildColumnSpec(partitionKeyColumn));
@@ -134,9 +133,51 @@ class SchemaHandler {
     }
 
     // TODO: no table options in Table?
-    // cqlTableBuilder.addTableOptions();
+    // cqlTableBuilder.putOptions(...);
+
+    for (Index index : table.indexes()) {
+      if (index instanceof SecondaryIndex) {
+        cqlTableBuilder.addIndexes(buildSecondaryIndex((SecondaryIndex) index));
+      } else if (index instanceof MaterializedView) {
+        cqlTableBuilder.addMaterializedViews(buildMaterializedView((MaterializedView) index));
+      }
+    }
 
     return cqlTableBuilder.build();
+  }
+
+  private static CqlIndex buildSecondaryIndex(SecondaryIndex index) {
+    return CqlIndex.newBuilder()
+        .setName(index.name())
+        .setColumnName(index.column().name())
+        .setCustomType(StringValue.newBuilder().setValue(index.indexTypeName()).build())
+        .build();
+  }
+
+  private static CqlMaterializedView buildMaterializedView(MaterializedView materializedView)
+      throws StatusException {
+    CqlMaterializedView.Builder builder =
+        CqlMaterializedView.newBuilder().setName(materializedView.name());
+
+    for (Column partitionKeyColumn : materializedView.partitionKeyColumns()) {
+      builder.addPartitionKeyColumns(buildColumnSpec(partitionKeyColumn));
+    }
+
+    for (Column clusteringKeyColumn : materializedView.clusteringKeyColumns()) {
+      builder.addClusteringKeyColumns(buildColumnSpec(clusteringKeyColumn));
+      builder.putClusteringOrders(
+          clusteringKeyColumn.name(),
+          ColumnOrderBy.forNumber(clusteringKeyColumn.order().ordinal()));
+    }
+
+    for (Column column : materializedView.regularAndStaticColumns()) {
+      builder.addColumns(buildColumnSpec(column));
+    }
+
+    // TODO: no options in MaterializedView?
+    // builder.putOptions(materializedView.TBD);
+
+    return builder.build();
   }
 
   @NotNull
