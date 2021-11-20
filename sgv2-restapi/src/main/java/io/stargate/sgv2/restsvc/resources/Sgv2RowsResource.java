@@ -355,13 +355,12 @@ public class Sgv2RowsResource extends ResourceBase {
               keysIncluded, partitionKeys.size(), clusteringKeys.size()));
     }
 
-    int i = 0;
-    for (QueryOuterClass.ColumnSpec column : primaryKeys) {
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      final String keyValue = pkValues.get(i++).getPath();
       select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
       valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
-      ++i;
     }
 
     return select.asCql();
