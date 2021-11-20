@@ -219,7 +219,8 @@ public class Sgv2RowsResource extends ResourceBase {
           final int count = rs.getRowsCount();
 
           String pageStateStr = extractPagingStateFromResultSet(rs);
-          Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+          List<Map<String, Object>> rows = convertRows(rs);
+          Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
           return jaxrsResponse(Response.Status.OK).entity(response).build();
         });
   }
