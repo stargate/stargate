@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.0.43](https://github.com/stargate/stargate/tree/v1.0.43) (2021-11-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.42...v1.0.43)
+
+**Closed issues:**
+
+- Add `byte\[\]` taking variant\(s\) in `ByteBufferUtils` for Base64 handling [\#1404](https://github.com/stargate/stargate/issues/1404)
+- Implement "addRow\(\)" for SGv2 prototype [\#1399](https://github.com/stargate/stargate/issues/1399)
+- Improve JWT documentation [\#1384](https://github.com/stargate/stargate/issues/1384)
+
+**Merged pull requests:**
+
+- Also export logback core from for persistence backends [\#1417](https://github.com/stargate/stargate/pull/1417) ([mpenick](https://github.com/mpenick))
+- Implement gRPC createTable operation [\#1411](https://github.com/stargate/stargate/pull/1411) ([olim7t](https://github.com/olim7t))
+- Centralize logging [\#1410](https://github.com/stargate/stargate/pull/1410) ([mpenick](https://github.com/mpenick))
+- Fix parameterized keyspace regression in the gRPC API [\#1408](https://github.com/stargate/stargate/pull/1408) ([mpenick](https://github.com/mpenick))
+- Fix \#1404: add/expose "byte\[\]" methods; remove legacy \(broken\) base64 handling workaround [\#1405](https://github.com/stargate/stargate/pull/1405) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1395](https://github.com/stargate/stargate/pull/1395) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.42](https://github.com/stargate/stargate/tree/v1.0.42) (2021-11-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.41...v1.0.42)
