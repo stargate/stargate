@@ -1,9 +1,12 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import com.datastax.oss.driver.api.querybuilder.BuildableQuery;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.delete.Delete;
 import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
+import com.datastax.oss.driver.api.querybuilder.relation.OngoingWhereClause;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
 import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
@@ -35,9 +38,11 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -276,7 +281,6 @@ public class Sgv2RowsResource extends ResourceBase {
           .build();
     }
     final String cql;
-
     final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
@@ -315,7 +319,121 @@ public class Sgv2RowsResource extends ResourceBase {
         });
   }
 
-  // // // Helper methods: Query construction
+  @Timed
+  @PUT
+  @ApiOperation(
+      value = "Replace row(s)",
+      notes = "Update existing rows in a table.",
+      response = Object.class)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "resource updated", response = Object.class),
+        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  @Path("/{primaryKey: .*}")
+  public Response updateRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+          final boolean raw,
+      @ApiParam(value = "", required = true) String payload,
+      @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    // !!! TO BE IMPLEMENTED
+    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+  }
+
+  @Timed
+  @DELETE
+  @ApiOperation(value = "Delete row(s)", notes = "Delete one or more rows in a table")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
+        @ApiResponse(
+            code = 500,
+            message = "Internal server error",
+            response = RestServiceError.class)
+      })
+  @Path("/{primaryKey: .*}")
+  public Response deleteRows(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String token,
+      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @ApiParam(value = "Name of the table to use for the request.", required = true)
+          @PathParam("tableName")
+          final String tableName,
+      @ApiParam(
+              value =
+                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+              required = true)
+          @PathParam("primaryKey")
+          List<PathSegment> path,
+      @Context HttpServletRequest request) {
+    if (isAuthTokenInvalid(token)) {
+      return invalidTokenFailure();
+    }
+    // To bind path/key parameters, need converter; and for that we need table metadata:
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+
+    final String cql =
+        buildDeleteRowsByPKCQL(
+            keyspaceName, tableName, path, tableDef, valuesBuilder, toProtoConverter);
+
+    QueryOuterClass.QueryParameters params = parametersForLocalQuorum();
+    final QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder()
+            .setParameters(params)
+            .setCql(cql)
+            .setValues(valuesBuilder.build())
+            .build();
+
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+          return jaxrsResponse(Response.Status.NO_CONTENT).build();
+        });
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Query construction
+  /////////////////////////////////////////////////////////////////////////
+   */
 
   private String buildGetRowsByPKCQL(
       String keyspaceName,
@@ -333,6 +451,43 @@ public class Sgv2RowsResource extends ResourceBase {
       select = selectFrom.columns(columns);
     }
     final int keysIncluded = pkValues.size();
+    final List<QueryOuterClass.ColumnSpec> primaryKeys =
+        getAndValidatePrimaryKeys(tableDef, keysIncluded);
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
+      final String fieldName = column.getName();
+      select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
+    }
+
+    return select.asCql();
+  }
+
+  private String buildDeleteRowsByPKCQL(
+      String keyspaceName,
+      String tableName,
+      List<PathSegment> pkValues,
+      Schema.CqlTable tableDef,
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
+    final int keysIncluded = pkValues.size();
+    final List<QueryOuterClass.ColumnSpec> primaryKeys =
+        getAndValidatePrimaryKeys(tableDef, keysIncluded);
+    OngoingWhereClause<Delete> delete = QueryBuilder.deleteFrom(keyspaceName, tableName);
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
+      final String fieldName = column.getName();
+      delete = delete.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
+    }
+
+    return ((BuildableQuery) delete).asCql();
+  }
+
+  private List<QueryOuterClass.ColumnSpec> getAndValidatePrimaryKeys(
+      Schema.CqlTable tableDef, int keysIncluded) {
     List<QueryOuterClass.ColumnSpec> partitionKeys = tableDef.getPartitionKeyColumnsList();
 
     // Check we have "just right" number of keys
@@ -350,16 +505,7 @@ public class Sgv2RowsResource extends ResourceBase {
               "Number of key values provided (%d) exceeds number of partition keys (%d) and clustering keys (%d)",
               keysIncluded, partitionKeys.size(), clusteringKeys.size()));
     }
-
-    for (int i = 0; i < keysIncluded; ++i) {
-      final String keyValue = pkValues.get(i).getPath();
-      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
-      final String fieldName = column.getName();
-      select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
-      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
-    }
-
-    return select.asCql();
+    return primaryKeys;
   }
 
   private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
@@ -387,7 +533,11 @@ public class Sgv2RowsResource extends ResourceBase {
     return ((Insert) insert).asCql();
   }
 
-  // // // Helper methods: Structural/nested conversions
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Structural/nested/scalar conversions
+  /////////////////////////////////////////////////////////////////////////
+   */
 
   private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
@@ -399,8 +549,6 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     return resultRows;
   }
-
-  // // // Helper methods: Simple scalar conversions
 
   private static List<String> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
