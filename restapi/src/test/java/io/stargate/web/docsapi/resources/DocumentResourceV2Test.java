@@ -59,7 +59,7 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.postDoc(
-            headers, ui, authToken, keyspace, collection, payload, false, httpServletRequest);
+            headers, ui, authToken, keyspace, collection, payload, null, false, httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(201);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -77,7 +77,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.writeManyDocs(
-            headers, ui, authToken, keyspace, collection, payload, null, false, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            payload,
+            null,
+            null,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(202);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
@@ -96,7 +105,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.putDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            payload,
+            null,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
@@ -124,6 +142,7 @@ public class DocumentResourceV2Test {
             id,
             path,
             payload,
+            null,
             false,
             httpServletRequest);
 
@@ -145,7 +164,16 @@ public class DocumentResourceV2Test {
 
     Response r =
         documentResourceV2.patchDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
+            headers,
+            ui,
+            authToken,
+            keyspace,
+            collection,
+            id,
+            payload,
+            null,
+            false,
+            httpServletRequest);
 
     assertThat(r.getStatus()).isEqualTo(200);
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
@@ -174,6 +202,7 @@ public class DocumentResourceV2Test {
             id,
             path,
             payload,
+            null,
             false,
             httpServletRequest);
 
