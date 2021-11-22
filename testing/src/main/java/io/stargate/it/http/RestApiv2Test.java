@@ -1171,13 +1171,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("firstname", "Michael");
 
     RestUtils.post(
-            authToken,
-            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(row),
-            HttpStatus.SC_CREATED);
+        authToken,
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
 
     // and then the row we are actually looking for:
-    String rowIdentifier = UUID.nameUUIDFromBytes("xyz".getBytes(StandardCharsets.UTF_8)).toString();
+    String rowIdentifier =
+        UUID.nameUUIDFromBytes("xyz".getBytes(StandardCharsets.UTF_8)).toString();
     row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstname", "John");
