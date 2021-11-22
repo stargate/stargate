@@ -111,7 +111,7 @@ public class Sgv2Table {
 
     @JsonCreator
     public TableOptions(
-        @JsonProperty("defaultTimeToLive") final int defaultTimeToLive,
+        @JsonProperty("defaultTimeToLive") final Integer defaultTimeToLive,
         @JsonProperty("clusteringExpression")
             final List<ClusteringExpression> clusteringExpression) {
       this.defaultTimeToLive = defaultTimeToLive;
