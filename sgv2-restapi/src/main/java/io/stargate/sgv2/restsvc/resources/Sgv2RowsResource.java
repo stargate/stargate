@@ -4,6 +4,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
+import com.datastax.oss.driver.api.querybuilder.select.Select;
 import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
@@ -18,7 +19,6 @@ import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2GetResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -70,11 +70,10 @@ public class Sgv2RowsResource extends ResourceBase {
   @ApiOperation(
       value = "Get row(s)",
       notes = "Get rows from a table based on the primary key.",
-      response = Sgv2GetResponse.class,
-      responseContainer = "List")
+      response = Sgv2RowsResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2GetResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2RowsResponse.class),
         @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(
@@ -116,12 +115,22 @@ public class Sgv2RowsResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    // 10-Nov-2021, tatu: Can not implement quite yet due to lack of schema access to bind
-    //     "primaryKey" segments to actual columns.
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
-        });
+    List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+
+    // To bind path/key parameters, need converter; and for that we need table metadata:
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+
+    final String cql =
+        buildGetRowsByPKCQL(
+            keyspaceName, tableName, path, columns, tableDef, valuesBuilder, toProtoConverter);
+    logger.info("getRows(): try to call backend with CQL of '{}'", cql);
+
+    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
   }
 
   @Timed
@@ -172,8 +181,18 @@ public class Sgv2RowsResource extends ResourceBase {
     final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
     logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
 
-    StargateGrpc.StargateBlockingStub blockingStub =
+    final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, null);
+  }
+
+  private javax.ws.rs.core.Response fetchRows(
+      StargateGrpc.StargateBlockingStub blockingStub,
+      int pageSizeParam,
+      String pageStateParam,
+      boolean raw,
+      String cql,
+      QueryOuterClass.Values.Builder values) {
     QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
     if (!isStringEmpty(pageStateParam)) {
       // surely there must better way to make Protobuf accept plain old byte[]? But if not:
@@ -186,8 +205,12 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
 
-    final QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Query.Builder b =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql);
+    if (values != null) {
+      b = b.setValues(values);
+    }
+    final QueryOuterClass.Query query = b.build();
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
@@ -196,7 +219,8 @@ public class Sgv2RowsResource extends ResourceBase {
           final int count = rs.getRowsCount();
 
           String pageStateStr = extractPagingStateFromResultSet(rs);
-          Sgv2RowsResponse response = new Sgv2RowsResponse(count, pageStateStr, convertRows(rs));
+          List<Map<String, Object>> rows = convertRows(rs);
+          Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
           return jaxrsResponse(Response.Status.OK).entity(response).build();
         });
   }
@@ -251,7 +275,6 @@ public class Sgv2RowsResource extends ResourceBase {
               Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
           .build();
     }
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
     final String cql;
 
     final StargateGrpc.StargateBlockingStub blockingStub =
@@ -260,6 +283,7 @@ public class Sgv2RowsResource extends ResourceBase {
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
     try {
       cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
@@ -297,6 +321,51 @@ public class Sgv2RowsResource extends ResourceBase {
   }
 
   // // // Helper methods: Query construction
+
+  private String buildGetRowsByPKCQL(
+      String keyspaceName,
+      String tableName,
+      List<PathSegment> pkValues,
+      List<String> columns,
+      Schema.CqlTable tableDef,
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
+    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
+    Select select;
+    if (columns.isEmpty()) {
+      select = selectFrom.all();
+    } else {
+      select = selectFrom.columns(columns);
+    }
+    final int keysIncluded = pkValues.size();
+    List<QueryOuterClass.ColumnSpec> partitionKeys = tableDef.getPartitionKeyColumnsList();
+
+    // Check we have "just right" number of keys
+    if (keysIncluded < partitionKeys.size()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Number of key values provided (%d) less than number of partition keys (%d)",
+              keysIncluded, partitionKeys.size()));
+    }
+    List<QueryOuterClass.ColumnSpec> clusteringKeys = tableDef.getClusteringKeyColumnsList();
+    List<QueryOuterClass.ColumnSpec> primaryKeys = concat(partitionKeys, clusteringKeys);
+    if (keysIncluded > primaryKeys.size()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Number of key values provided (%d) exceeds number of partition keys (%d) and clustering keys (%d)",
+              keysIncluded, partitionKeys.size(), clusteringKeys.size()));
+    }
+
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
+      final String fieldName = column.getName();
+      select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
+    }
+
+    return select.asCql();
+  }
 
   private String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
     // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
@@ -348,5 +417,17 @@ public class Sgv2RowsResource extends ResourceBase {
   private static byte[] decodeBase64(String base64encoded) {
     // TODO: error handling
     return Base64.getDecoder().decode(base64encoded);
+  }
+
+  private static <T> List<T> concat(List<T> a, List<T> b) {
+    if (a.isEmpty()) {
+      return b;
+    }
+    if (b.isEmpty()) {
+      return a;
+    }
+    ArrayList<T> result = new ArrayList<>(a);
+    result.addAll(b);
+    return result;
   }
 }
