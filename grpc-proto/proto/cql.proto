@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "query.proto";
+
+package stargate;
+
+// A static term used: on the right-hand side of a clause, as a collection index, etc.
+message Term {
+
+  // A function call, as in `IF ts > now()`
+  message FunctionCallTerm {
+    string function_name = 1;
+    repeated Term arguments = 2;
+  }
+
+  oneof inner {
+    Value value = 1;
+    FunctionCallTerm function_call = 2;
+
+    // TODO (low priority): arithmetic operations, as in `WHERE c = 1+1`
+    // (Technically valid in Cassandra 4, but probably not that useful)
+  }
+}
+
+// An element in a SELECT clause.
+message Selector {
+
+  // A UDT field reference, as in `SELECT user.name`.
+  message FieldSelector {
+    Selector udt = 1;
+    string field_name = 2;
+  }
+
+  // A function call, as in `SELECT writetime(c)`
+  message FunctionCallSelector {
+    google.protobuf.StringValue keyspace_name = 1;
+    string function_name = 2;
+    repeated Selector arguments = 3;
+  }
+
+  // A set or map element, as in `SELECT m['key'], s[2]`
+  message ElementSelector {
+    Selector collection = 1;
+    Term index = 2;
+  }
+
+  // TODO (low priority) collection slices: `SELECT l[4..8]`
+  // TODO (low priority) arithmetic operators: `SELECT a+b, -c...`
+  // TODO (low priority) collections literals: `SELECT [a,b,c], {a,b,c}, (a,b,c), {a:b}`
+  // TODO (low priority) type hint / casting: `SELECT (double)1/3, CAST(a AS double)`
+
+  // An optional selector alias, as in `SELECT c AS foo`
+  google.protobuf.StringValue alias = 1;
+
+  oneof inner {
+    string column_name = 2;
+    FieldSelector field = 3;
+    FunctionCallSelector function_call = 4;
+    ElementSelector element = 5;
+    Value value = 6;
+  }
+}
+
+// A relation in a WHERE or IF clause.
+message Relation {
+
+  // The target of the relation, i.e. the left-hand side of the operator.
+  message Target {
+
+    // A UDT field reference, as in `IF user.name = ...`.
+    // Note that this is only valid in IF conditions, not in WHERE conditions.
+    message FieldTarget {
+      string udt = 1;
+      string field_name = 2;
+    }
+
+    // A set or map element, as in `WHERE m['key'] = ... AND s[2] = ...`
+    message ElementTarget {
+      string collection = 1;
+      Term index = 2;
+    }
+
+    // A tuple of columns, as in `WHERE (c1, c2) IN ...`
+    message TupleTarget {
+      repeated string columns = 1;
+    }
+
+    // The token function applied to one or more columns, as in `WHERE TOKEN(c1, c2) < ...`
+    message TokenTarget {
+      repeated string columns = 1;
+    }
+
+    oneof inner {
+      string column_name = 1;
+      FieldTarget field = 2;
+      ElementTarget element = 3;
+      TupleTarget tuple = 4;
+      TokenTarget token = 5;
+    }
+  }
+
+  enum Operator {
+    EQ = 0;
+    LT = 1;
+    LTE = 2;
+    GT = 3;
+    GTE = 4;
+    NEQ = 5;
+    LIKE = 6;
+    IS_NOT_NULL = 7;
+    IN = 8;
+  }
+
+  Target target = 1;
+  Operator operator = 2;
+  Term term = 3;
+
+  // TODO (low priority) custom index expressions: `WHERE expr(indexName, term)`. This can be achieved with an additional operator.
+}
+
+message Select {
+  string keyspace_name = 1;
+  string table_name = 2;
+  // The columns or expressions to select. By convention, an empty list means `*` (all columns)
+  repeated Selector selectors = 3;
+  // The WHERE clauses to filter the result.
+  repeated Relation where = 4;
+}
+
+message Statement {
+  oneof inner {
+    Select select = 1;
+  }
+}
