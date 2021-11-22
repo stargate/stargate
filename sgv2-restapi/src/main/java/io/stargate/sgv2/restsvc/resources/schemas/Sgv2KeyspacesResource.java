@@ -341,6 +341,12 @@ public class Sgv2KeyspacesResource extends ResourceBase {
         });
   }
 
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for structural conversions
+  /////////////////////////////////////////////////////////////////////////
+   */
+
   private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
