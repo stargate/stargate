@@ -1,6 +1,11 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.grpc.StargateBearerToken;
+import io.stargate.proto.Schema;
+import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
+import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.swagger.annotations.Api;
@@ -9,6 +14,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.Map;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
@@ -24,6 +30,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Api(
     produces = MediaType.APPLICATION_JSON,
@@ -39,8 +47,11 @@ public class Sgv2TablesResource extends ResourceBase {
   static class TableAdd { // testing only
   }
 
-  static class Table { // testing only
-  }
+  // Singleton resource so no need to be static
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
+  /** Entity used to connect to backend gRPC service. */
+  @Inject private GrpcClientFactory grpcFactory;
 
   @Timed
   @GET
@@ -75,6 +86,7 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
+    logger.info("getAllTables() called for KS '" + keyspaceName + "'");
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
@@ -83,10 +95,10 @@ public class Sgv2TablesResource extends ResourceBase {
   @ApiOperation(
       value = "Get a table",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Table.class)
+      response = TableResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
         @ApiResponse(
@@ -114,6 +126,16 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
+
+    logger.info("getOneTable() called for KS '" + keyspaceName + "', table '" + tableName + "'");
+
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+
+    logger.info("getOneTable() found table '" + tableName + "': " + tableDef);
+
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
@@ -150,6 +172,8 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
+    logger.info("createTable() called for KS '" + keyspaceName + "'");
+
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
@@ -190,6 +214,7 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
+    logger.info("updateTable() called for KS '" + keyspaceName + "'");
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
@@ -225,6 +250,7 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
+    logger.info("deleteTable() called for KS '" + keyspaceName + "', table '" + tableName + "'");
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 }
