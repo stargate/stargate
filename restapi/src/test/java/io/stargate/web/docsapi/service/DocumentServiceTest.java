@@ -324,6 +324,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "id1",
         "{\"a\":123, \"b\":true, \"c\":\"text\", \"d\":{}, \"e\":[], \"f\":null, \"g\":[{\"h\":1}]}",
         ImmutableList.of(),
+        null,
         false,
         documentDBFactory,
         true,
@@ -360,6 +361,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "id2",
         "{\"a\":123}",
         ImmutableList.of(p("x"), p("y"), p("[000000]")),
+        null,
         false,
         documentDBFactory,
         true,
@@ -398,6 +400,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         "id3",
         "{\"a\":123}",
         ImmutableList.of(),
+        null,
         true,
         documentDBFactory,
         true,
@@ -416,6 +419,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 "id3",
                 "{\"a\":123}",
                 ImmutableList.of(),
+                null,
                 true,
                 documentDBFactory,
                 true,
@@ -456,6 +460,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         table.name(),
         in,
         Optional.of("a"),
+        null,
         documentDBFactory,
         ExecutionContext.NOOP_CONTEXT,
         Collections.emptyMap());
@@ -473,6 +478,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                     table.name(),
                     in,
                     Optional.of("no.good"),
+                    null,
                     documentDBFactory,
                     ExecutionContext.NOOP_CONTEXT,
                     Collections.emptyMap()))
@@ -548,6 +554,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                   table.name(),
                   "id3",
                   "{\"a\":123}",
+                  null,
                   true,
                   request));
       assertThat(r.getProfile())
@@ -583,6 +590,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
               table.name(),
               new ByteArrayInputStream("[{\"a\":\"123\"},{\"a\":\"234\"}]".getBytes()),
               "a",
+              null,
               true,
               request);
       MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
@@ -621,6 +629,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                   table.name(),
                   "id3",
                   "{\"a\":123}",
+                  null,
                   true,
                   request));
       assertThat(r.getProfile())

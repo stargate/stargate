@@ -127,6 +127,11 @@ public class DocumentResourceV2 {
           String collection,
       @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false",
               required = false)
@@ -154,6 +159,7 @@ public class DocumentResourceV2 {
               newId,
               payload,
               new ArrayList<>(),
+              ttl,
               false,
               dbFactory,
               isJson,
@@ -212,6 +218,11 @@ public class DocumentResourceV2 {
               required = false)
           @QueryParam("id-path")
           String idPath,
+      @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
       @QueryParam("profile") Boolean profile,
       @Context HttpServletRequest request) {
     // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
@@ -227,6 +238,7 @@ public class DocumentResourceV2 {
                   collection,
                   payload,
                   Optional.ofNullable(idPath),
+                  ttl,
                   dbFactory,
                   context,
                   getAllHeaders(request));
@@ -274,6 +286,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -297,6 +314,7 @@ public class DocumentResourceV2 {
               id,
               payload,
               new ArrayList<>(),
+              ttl,
               false,
               dbFactory,
               isJson,
@@ -351,6 +369,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -374,6 +397,7 @@ public class DocumentResourceV2 {
               id,
               payload,
               path,
+              ttl,
               false,
               dbFactory,
               isJson,
@@ -425,6 +449,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -448,6 +477,7 @@ public class DocumentResourceV2 {
               id,
               payload,
               new ArrayList<>(),
+              ttl,
               true,
               dbFactory,
               isJson,
@@ -503,6 +533,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -526,6 +561,7 @@ public class DocumentResourceV2 {
               id,
               payload,
               path,
+              ttl,
               true,
               dbFactory,
               isJson,

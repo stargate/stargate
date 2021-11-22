@@ -304,6 +304,26 @@ public class DocumentDB {
         .join();
   }
 
+  private Query getInsertQueryForTableUsingTtl(ImmutableKeyspaceAndTable info, int ttl) {
+    // Add a bind position for each column
+    List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
+    for (String columnName : allColumnNames) {
+      markers.add(ValueModifier.marker(columnName));
+    }
+
+    // Add a bind position for a timestamp, build, and return
+    return dataStore
+        .prepare(
+            dataStore
+                .queryBuilder()
+                .insertInto(info.getKeyspace(), info.getTable())
+                .value(markers)
+                .ttl(ttl)
+                .timestamp()
+                .build())
+        .join();
+  }
+
   private void createDefaultIndexes(String keyspaceName, String tableName)
       throws InterruptedException, ExecutionException {
     for (String name : DocsApiConstants.VALUE_COLUMN_NAMES) {
@@ -370,7 +390,11 @@ public class DocumentDB {
   }
 
   public BoundQuery getInsertStatement(
-      String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
+      String keyspaceName,
+      String tableName,
+      long microsTimestamp,
+      Object[] columnValues,
+      Integer ttl) {
     Object[] boundParams = new Object[columnValues.length + 1];
     boundParams[boundParams.length - 1] = microsTimestamp;
     for (int i = 0; i < columnValues.length; i++) {
@@ -379,8 +403,13 @@ public class DocumentDB {
 
     ImmutableKeyspaceAndTable info =
         ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
-    // Hits a cache if the insert has been called for this table in the last 5 minutes
-    Query insertQuery = insertQueryForTable.get(info);
+    Query insertQuery;
+    if (ttl != null) {
+      insertQuery = getInsertQueryForTableUsingTtl(info, ttl);
+    } else {
+      // Hits a cache if the insert has been called for this table in the last 5 minutes
+      insertQuery = insertQueryForTable.get(info);
+    }
     return insertQuery.bind(boundParams);
   }
 
@@ -524,6 +553,7 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       long microsSinceEpoch,
+      Integer ttl,
       ExecutionContext context)
       throws UnauthorizedException {
 
@@ -537,7 +567,7 @@ public class DocumentDB {
     queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
 
     for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
+      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values, ttl));
     }
 
     executeBatch(queries, context);
@@ -554,6 +584,7 @@ public class DocumentDB {
       List<Object[]> vars,
       List<String> pathToDelete,
       long microsSinceEpoch,
+      Integer ttl,
       ExecutionContext context)
       throws UnauthorizedException {
 
@@ -570,7 +601,7 @@ public class DocumentDB {
                     keyspace, table, key, microsSinceEpoch - 1, pathToDelete)));
 
     for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
+      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values, ttl));
     }
 
     executeBatch(queries, context);
@@ -588,6 +619,7 @@ public class DocumentDB {
       List<String> pathToDelete,
       List<String> patchedKeys,
       long microsSinceEpoch,
+      Integer ttl,
       ExecutionContext context)
       throws UnauthorizedException {
     boolean hasPath = !pathToDelete.isEmpty();
@@ -603,7 +635,7 @@ public class DocumentDB {
 
     List<BoundQuery> queries = new ArrayList<>(vars.size() + 3);
     for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, insertTs, values));
+      queries.add(getInsertStatement(keyspace, table, insertTs, values, ttl));
     }
 
     if (hasPath) {

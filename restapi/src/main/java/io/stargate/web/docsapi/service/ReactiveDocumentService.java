@@ -660,6 +660,7 @@ public class ReactiveDocumentService {
         bindParams,
         processedPath,
         timeSource.currentTimeMicros(),
+        null,
         context.nested("ASYNC INSERT"));
   }
 

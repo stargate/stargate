@@ -88,6 +88,7 @@ public class DocumentService {
       String collection,
       InputStream payload,
       Optional<String> idPath,
+      Integer ttl,
       DocumentDBFactory dbFactory,
       ExecutionContext context,
       Map<String, String> headers)
@@ -160,6 +161,7 @@ public class DocumentService {
             bindVariableList,
             Collections.emptyList(),
             now,
+            ttl,
             context.nested("ASYNC INSERT"));
       } catch (Exception e) {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_FAILED);
@@ -177,6 +179,7 @@ public class DocumentService {
       String id,
       String payload,
       List<PathSegment> path,
+      Integer ttl,
       boolean patching,
       DocumentDBFactory dbFactory,
       boolean isJson,
@@ -231,6 +234,7 @@ public class DocumentService {
           convertedPath,
           firstLevelKeys,
           now,
+          ttl,
           context.nested("ASYNC PATCH"));
     } else {
       db.deleteThenInsertBatch(
@@ -240,6 +244,7 @@ public class DocumentService {
           bindVariableList,
           convertedPath,
           now,
+          ttl,
           context.nested("ASYNC INSERT"));
     }
   }
