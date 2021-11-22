@@ -7,6 +7,7 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -41,9 +42,6 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class Sgv2TablesResource extends ResourceBase {
-  static class TableResponse { // testing only
-  }
-
   static class TableAdd { // testing only
   }
 
@@ -58,11 +56,11 @@ public class Sgv2TablesResource extends ResourceBase {
   @ApiOperation(
       value = "Get all tables",
       notes = "Retrieve all tables in a specific keyspace.",
-      response = TableResponse.class,
+      response = Sgv2Table.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2Table.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
         @ApiResponse(
@@ -95,10 +93,10 @@ public class Sgv2TablesResource extends ResourceBase {
   @ApiOperation(
       value = "Get a table",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = TableResponse.class)
+      response = Sgv2Table.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2Table.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
         @ApiResponse(

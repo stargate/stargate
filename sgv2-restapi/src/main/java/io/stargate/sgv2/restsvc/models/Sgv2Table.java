@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import java.util.ArrayList;
 import java.util.List;
 
 // Note: copy from SGv1 TableResponse
@@ -14,16 +15,16 @@ public class Sgv2Table {
   private final String name;
   private final String keyspace;
   private final List<Sgv2ColumnDefinition> columnDefinitions;
-  private final Sgv2PrimaryKey primaryKey;
-  private final Sgv2TableOptions tableOptions;
+  private final PrimaryKey primaryKey;
+  private final TableOptions tableOptions;
 
   @JsonCreator
   public Sgv2Table(
       @JsonProperty("name") final String name,
       @JsonProperty("keyspace") final String keyspace,
       @JsonProperty("columnDefinitions") final List<Sgv2ColumnDefinition> columnDefinitions,
-      @JsonProperty("primaryKey") final Sgv2PrimaryKey primaryKey,
-      @JsonProperty("tableOptions") final Sgv2TableOptions tableOptions) {
+      @JsonProperty("primaryKey") final PrimaryKey primaryKey,
+      @JsonProperty("tableOptions") final TableOptions tableOptions) {
     this.name = name;
     this.keyspace = keyspace;
     this.columnDefinitions = columnDefinitions;
@@ -48,12 +49,119 @@ public class Sgv2Table {
 
   @ApiModelProperty(
       value = "The definition of the partition and clustering keys that make up the primary key.")
-  public Sgv2PrimaryKey getPrimaryKey() {
+  public PrimaryKey getPrimaryKey() {
     return primaryKey;
   }
 
   @ApiModelProperty(value = "Table options that are applied to the table.")
-  public Sgv2TableOptions getTableOptions() {
+  public TableOptions getTableOptions() {
     return tableOptions;
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Nested classes used within
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  @ApiModel(
+      value = "PrimaryKey",
+      description =
+          "Defines a column list for the primary key. Can be either a single column, compound primary key, or composite partition key. Provide multiple columns for the partition key to define a composite partition key.")
+  public static class PrimaryKey {
+    private List<String> partitionKey;
+    private List<String> clusteringKey;
+
+    public PrimaryKey(final List<String> partitionKey, final List<String> clusteringKey) {
+      this.partitionKey = partitionKey;
+      this.clusteringKey = clusteringKey;
+    }
+
+    public PrimaryKey() {
+      this(new ArrayList<>(), new ArrayList<>());
+    }
+
+    @ApiModelProperty(
+        required = true,
+        value = "Name of the column(s) that constitute the partition key.")
+    public List<String> getPartitionKey() {
+      return partitionKey;
+    }
+
+    @ApiModelProperty(value = "Name of the column or columns that constitute the clustering key.")
+    public List<String> getClusteringKey() {
+      return clusteringKey;
+    }
+
+    public void setPartitionKey(List<String> partitionKey) {
+      this.partitionKey = partitionKey;
+    }
+
+    public void setClusteringKey(List<String> clusteringKey) {
+      this.clusteringKey = clusteringKey;
+    }
+  }
+
+  // copy of SGv1 TableOptions
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @ApiModel(value = "TableOptions")
+  public static class TableOptions {
+    private Integer defaultTimeToLive;
+    private List<ClusteringExpression> clusteringExpression;
+
+    @JsonCreator
+    public TableOptions(
+        @JsonProperty("defaultTimeToLive") final int defaultTimeToLive,
+        @JsonProperty("clusteringExpression")
+            final List<ClusteringExpression> clusteringExpression) {
+      this.defaultTimeToLive = defaultTimeToLive;
+      this.clusteringExpression = clusteringExpression;
+    }
+
+    @ApiModelProperty(
+        value =
+            "Defines the Time To Live (TTL), which determines the time period (in seconds) to expire data. If the value is >0, TTL is enabled for the entire table and an expiration timestamp is added to each column. The maximum value is 630720000 (20 years). A new TTL timestamp is calculated each time the data is updated and the row is removed after the data expires.")
+    public Integer getDefaultTimeToLive() {
+      return defaultTimeToLive;
+    }
+
+    @ApiModelProperty(
+        value =
+            "Order rows storage to make use of the on-disk sorting of columns. Specifying order can make query results more efficient. Defaults to ascending if not provided.")
+    public List<ClusteringExpression> getClusteringExpression() {
+      return clusteringExpression;
+    }
+
+    public void setDefaultTimeToLive(int defaultTimeToLive) {
+      this.defaultTimeToLive = defaultTimeToLive;
+    }
+
+    public void setClusteringExpression(List<ClusteringExpression> clusteringExpression) {
+      this.clusteringExpression = clusteringExpression;
+    }
+  }
+
+  // copied from SGv1 ClusteringExpression
+  @ApiModel(value = "ClusteringExpression")
+  public static class ClusteringExpression {
+    private final String column;
+    private final String order;
+
+    @JsonCreator
+    public ClusteringExpression(
+        @JsonProperty("name") String column, @JsonProperty("order") String order) {
+      this.column = column;
+      this.order = order;
+    }
+
+    @ApiModelProperty(required = true, value = "The name of the column to order by")
+    public String getColumn() {
+      return column;
+    }
+
+    @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
+    public String getOrder() {
+      return order;
+    }
   }
 }

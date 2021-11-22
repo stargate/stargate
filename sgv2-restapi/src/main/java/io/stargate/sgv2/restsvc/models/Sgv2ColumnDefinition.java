@@ -3,10 +3,12 @@ package io.stargate.sgv2.restsvc.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 // Copied from SGv1 ColumnDefinition
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@ApiModel(value = "ColumnDefinition")
 public class Sgv2ColumnDefinition {
   private String name;
   private String typeDefinition;
