@@ -328,8 +328,17 @@ public class Sgv2KeyspacesResource extends ResourceBase {
       return invalidTokenFailure();
     }
 
-    // !!! TO IMPLEMENT
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).entity(Collections.emptyMap()).build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          String cql = SchemaBuilder.dropKeyspace(keyspaceName).ifExists().asCql();
+          StargateGrpc.StargateBlockingStub blockingStub =
+              grpcFactory
+                  .constructBlockingStub()
+                  .withCallCredentials(new StargateBearerToken(token));
+          QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+          /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+          return jaxrsResponse(Response.Status.NO_CONTENT).build();
+        });
   }
 
   private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {

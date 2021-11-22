@@ -193,7 +193,7 @@ public class Sgv2RowsResource extends ResourceBase {
       boolean raw,
       String cql,
       QueryOuterClass.Values.Builder values) {
-    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
+    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
     if (!isStringEmpty(pageStateParam)) {
       // surely there must better way to make Protobuf accept plain old byte[]? But if not:
       paramsB =
@@ -299,12 +299,7 @@ public class Sgv2RowsResource extends ResourceBase {
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
-    QueryOuterClass.QueryParameters params =
-        QueryOuterClass.QueryParameters.newBuilder()
-            .setConsistency(
-                QueryOuterClass.ConsistencyValue.newBuilder()
-                    .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM))
-            .build();
+    QueryOuterClass.QueryParameters params = parametersForLocalQuorum();
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
             .setParameters(params)
