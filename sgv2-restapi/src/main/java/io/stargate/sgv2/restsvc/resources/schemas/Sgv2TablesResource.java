@@ -7,13 +7,16 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
+import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.Collections;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -129,12 +132,15 @@ public class Sgv2TablesResource extends ResourceBase {
 
     final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
-    Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
 
-    logger.info("getOneTable() found table '" + tableName + "': " + tableDef);
-
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          Schema.CqlTable tableDef =
+              BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+          Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
+          final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
+          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+        });
   }
 
   @Timed
@@ -250,5 +256,26 @@ public class Sgv2TablesResource extends ResourceBase {
     }
     logger.info("deleteTable() called for KS '" + keyspaceName + "', table '" + tableName + "'");
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for structural conversions
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
+    return new Sgv2Table(
+        grpcTable.getName(),
+        keyspace,
+        Collections.emptyList(), // column defs
+        new Sgv2Table.PrimaryKey(), // primary key defs
+        new Sgv2Table.TableOptions(null, Collections.emptyList()));
+    /*
+         @JsonProperty("columnDefinitions") final List<Sgv2ColumnDefinition> columnDefinitions,
+         @JsonProperty("primaryKey") final PrimaryKey primaryKey,
+         @JsonProperty("tableOptions") final TableOptions tableOptions) {
+
+    */
   }
 }
