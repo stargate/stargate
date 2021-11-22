@@ -1139,7 +1139,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // To try to ensure we actually find the right entry, create one other entry first
     Map<String, String> row = new HashMap<>();
-    row.put("id", UUID.nameUUIDFromBytes("abc".getBytes(StandardCharsets.UTF_8)).toString());
+    row.put("id", UUID.randomUUID().toString());
     row.put("firstName", "Michael");
 
     RestUtils.post(
@@ -1149,8 +1149,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     // and then the row we are actually looking for:
-    String rowIdentifier =
-        UUID.nameUUIDFromBytes("xyz".getBytes(StandardCharsets.UTF_8)).toString();
+    String rowIdentifier = UUID.randomUUID().toString();
     row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
