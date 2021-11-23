@@ -25,6 +25,7 @@ public class BridgeSchemaClient {
             .setKeyspaceName(keyspace)
             .setTableName(tableName)
             .build();
+    // !!! TODO: error handling to expose proper failure downstream
     final Schema.CqlTable table = blockingStub.describeTable(descTableQuery);
     return table;
   }
@@ -32,6 +33,7 @@ public class BridgeSchemaClient {
   public List<Schema.CqlTable> findAllTables(String keyspace) {
     final Schema.DescribeKeyspaceQuery descKsQuery =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspace).build();
+    // !!! TODO: error handling to expose proper failure downstream
     final Schema.CqlKeyspaceDescribe ksResponse = blockingStub.describeKeyspace(descKsQuery);
     return ksResponse.getTablesList();
   }
