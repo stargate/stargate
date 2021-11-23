@@ -295,8 +295,10 @@ public class Sgv2TablesResource extends ResourceBase {
     for (QueryOuterClass.ColumnSpec column : grpcTable.getColumnsList()) {
       columns.add(column2column(column, false));
     }
+    // !!! TODO: convert clustering expressions (sort/order) too:
+    List<Sgv2Table.ClusteringExpression> clustering = Collections.emptyList();
     final Sgv2Table.TableOptions tableOptions =
-        new Sgv2Table.TableOptions(null, Collections.emptyList());
+        new Sgv2Table.TableOptions(null, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 
