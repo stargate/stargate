@@ -81,6 +81,14 @@ public class Sgv2Table {
       this(new ArrayList<>(), new ArrayList<>());
     }
 
+    public void addPartitionKey(String key) {
+      partitionKey.add(key);
+    }
+
+    public void addClusteringKey(String key) {
+      clusteringKey.add(key);
+    }
+
     @ApiModelProperty(
         required = true,
         value = "Name of the column(s) that constitute the partition key.")
