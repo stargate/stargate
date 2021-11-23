@@ -815,7 +815,6 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
         .atLeast(2, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
-              // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
               Iterator<JsonNode> iter = documentIds.iterator();
               // After the TTL is up, all the docs should be gone
               while (iter.hasNext()) {

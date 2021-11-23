@@ -24,14 +24,6 @@ public class ExecuteBuiltInFunction {
 
   @JsonCreator
   public ExecuteBuiltInFunction(
-      @JsonProperty("operation") String operation, @JsonProperty("value") Object value) {
-    this.operation = operation;
-    this.value = value;
-    this.ttl = null;
-  }
-
-  @JsonCreator
-  public ExecuteBuiltInFunction(
       @JsonProperty("operation") String operation,
       @JsonProperty("value") Object value,
       @JsonProperty("ttl") Integer ttl) {
