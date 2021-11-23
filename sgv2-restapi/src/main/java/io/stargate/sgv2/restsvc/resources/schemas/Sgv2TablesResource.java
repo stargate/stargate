@@ -294,8 +294,9 @@ public class Sgv2TablesResource extends ResourceBase {
     for (QueryOuterClass.ColumnSpec column : grpcTable.getColumnsList()) {
       columns.add(column2column(column, false));
     }
-    // !!! TODO: convert clustering expressions (sort/order) too:
-    List<Sgv2Table.ClusteringExpression> clustering = new ArrayList<>();
+    // !!! TODO: figure out where to find TTL?
+    List<Sgv2Table.ClusteringExpression> clustering =
+        clustering2clustering(grpcTable.getClusteringOrdersMap());
     final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(null, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
@@ -303,5 +304,24 @@ public class Sgv2TablesResource extends ResourceBase {
   private Sgv2ColumnDefinition column2column(QueryOuterClass.ColumnSpec column, boolean isStatic) {
     return new Sgv2ColumnDefinition(
         column.getName(), BridgeProtoTypeTranslator.fromProtoToCqlType(column.getType()), isStatic);
+  }
+
+  private List<Sgv2Table.ClusteringExpression> clustering2clustering(
+      Map<String, Schema.ColumnOrderBy> orders) {
+    final List<Sgv2Table.ClusteringExpression> result = new ArrayList<>();
+    orders.forEach(
+        (k, v) -> {
+          switch (v) {
+            case ASC:
+              result.add(
+                  new Sgv2Table.ClusteringExpression(k, Sgv2Table.ClusteringExpression.VALUE_ASC));
+              break;
+            case DESC:
+              result.add(
+                  new Sgv2Table.ClusteringExpression(k, Sgv2Table.ClusteringExpression.VALUE_DESC));
+              break;
+          }
+        });
+    return result;
   }
 }

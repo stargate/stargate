@@ -152,6 +152,9 @@ public class Sgv2Table {
   // copied from SGv1 ClusteringExpression
   @ApiModel(value = "ClusteringExpression")
   public static class ClusteringExpression {
+    public static final String VALUE_ASC = "asc";
+    public static final String VALUE_DESC = "desc";
+
     private final String column;
     private final String order;
 
