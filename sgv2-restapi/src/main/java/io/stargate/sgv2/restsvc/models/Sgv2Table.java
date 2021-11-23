@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 // Note: copy from SGv1 TableResponse
@@ -124,6 +125,10 @@ public class Sgv2Table {
             final List<ClusteringExpression> clusteringExpression) {
       this.defaultTimeToLive = defaultTimeToLive;
       this.clusteringExpression = clusteringExpression;
+    }
+
+    public TableOptions() {
+      this(null, Collections.emptyList());
     }
 
     @ApiModelProperty(

@@ -370,7 +370,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   @Test
   public void createTable() throws IOException {
     createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTable(keyspaceName, tableName, restUrlBase);
 
     String body =
         RestUtils.get(
@@ -383,7 +383,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty().hasSize(4);
   }
 
   @Test
@@ -2822,6 +2822,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
+    // !!! TODO: change to SGv2 when done
+    createTable(keyspaceName, tableName, legacyRestUrlBase);
+  }
+
+  private void createTable(String keyspaceName, String tableName, String urlBase)
+      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -2841,7 +2847,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // TODO: change to restUrlBase after new REST service implements table creation
     RestUtils.post(
         authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/tables", legacyRestUrlBase, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", urlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2962,7 +2968,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   private void createKeyspace(String keyspaceName) throws IOException {
     // TODO: change to restUrlBase after new REST service implements keyspace creation
-    createKeyspace(keyspaceName, legacyRestUrlBase);
+    createKeyspace(keyspaceName, restUrlBase);
   }
 
   private void createKeyspace(String keyspaceName, String urlBaseToUse) throws IOException {

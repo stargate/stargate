@@ -13,6 +13,7 @@ import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
+import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
@@ -21,6 +22,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -185,14 +187,33 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(required = true) @NotNull final TableAdd tableAdd,
+      @ApiParam(required = true) @NotNull final Sgv2TableAddRequest tableAdd,
       @Context HttpServletRequest request) {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    logger.info("createTable() called for KS '" + keyspaceName + "'");
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be non-empty").build();
+    }
+    final String tableName = tableAdd.getName();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("Table name must be non-empty").build();
+    }
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          Schema.CqlTableCreate addTable =
+              Schema.CqlTableCreate.newBuilder()
+                  .setKeyspaceName(keyspaceName)
+                  .setTable(table2table(tableAdd))
+                  .build();
+          BridgeSchemaClient.create(blockingStub).createTable(addTable);
+          return jaxrsResponse(Response.Status.CREATED)
+              .entity(Collections.singletonMap("name", tableName))
+              .build();
+        });
   }
 
   @Timed
@@ -286,6 +307,11 @@ public class Sgv2TablesResource extends ResourceBase {
   // Helper methods for structural conversions
   /////////////////////////////////////////////////////////////////////////
    */
+
+  private Schema.CqlTable table2table(Sgv2TableAddRequest restTable) {
+    final String name = restTable.getName();
+    return Schema.CqlTable.newBuilder().setName(name).build();
+  }
 
   private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
     final List<Sgv2ColumnDefinition> columns = new ArrayList<>();
