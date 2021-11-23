@@ -46,7 +46,6 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -320,6 +319,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
   }
 
   @Test
@@ -334,6 +334,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
   }
 
   @Test
@@ -352,6 +353,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
     ColumnDefinition columnDefinition =
         table.getColumnDefinitions().stream()
             .filter(c -> c.getName().equals("col1"))
@@ -360,6 +362,9 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(columnDefinition)
         .usingRecursiveComparison()
         .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+
+    // but also check we seem to have right number of columns as well
+    assertThat(table.getColumnDefinitions()).hasSize(4);
   }
 
   @Test
