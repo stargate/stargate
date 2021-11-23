@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -92,8 +93,19 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    logger.info("getAllTables() called for KS '" + keyspaceName + "'");
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          List<Schema.CqlTable> tableDefs =
+              BridgeSchemaClient.create(blockingStub).findAllTables(keyspaceName);
+          List<Sgv2Table> tableResponses =
+              tableDefs.stream()
+                  .map(t -> table2table(t, keyspaceName))
+                  .collect(Collectors.toList());
+          final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
+          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+        });
   }
 
   @Timed

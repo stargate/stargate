@@ -2,6 +2,7 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import java.util.List;
 
 /**
  * Client for accessing Schema information from Bridge/gRPC service. Initially used by REST
@@ -26,5 +27,12 @@ public class BridgeSchemaClient {
             .build();
     final Schema.CqlTable table = blockingStub.describeTable(descTableQuery);
     return table;
+  }
+
+  public List<Schema.CqlTable> findAllTables(String keyspace) {
+    final Schema.DescribeKeyspaceQuery descKsQuery =
+        Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspace).build();
+    final Schema.CqlKeyspaceDescribe ksResponse = blockingStub.describeKeyspace(descKsQuery);
+    return ksResponse.getTablesList();
   }
 }
