@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
@@ -132,9 +133,6 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-
-    logger.info("getOneTable() called for KS '" + keyspaceName + "', table '" + tableName + "'");
-
     final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
@@ -259,8 +257,17 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    logger.info("deleteTable() called for KS '" + keyspaceName + "', table '" + tableName + "'");
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          String cql = SchemaBuilder.dropTable(keyspaceName, tableName).ifExists().asCql();
+          StargateGrpc.StargateBlockingStub blockingStub =
+              grpcFactory
+                  .constructBlockingStub()
+                  .withCallCredentials(new StargateBearerToken(token));
+          QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+          /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+          return jaxrsResponse(Response.Status.NO_CONTENT).build();
+        });
   }
 
   /*
