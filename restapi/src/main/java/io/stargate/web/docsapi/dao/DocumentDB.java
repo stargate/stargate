@@ -286,25 +286,10 @@ public class DocumentDB {
   }
 
   private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
-    // Add a bind position for each column
-    List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
-    for (String columnName : allColumnNames) {
-      markers.add(ValueModifier.marker(columnName));
-    }
-
-    // Add a bind position for a timestamp, build, and return
-    return dataStore
-        .prepare(
-            dataStore
-                .queryBuilder()
-                .insertInto(info.getKeyspace(), info.getTable())
-                .value(markers)
-                .timestamp()
-                .build())
-        .join();
+    return getInsertQueryForTable(info, null);
   }
 
-  private Query getInsertQueryForTableUsingTtl(ImmutableKeyspaceAndTable info, int ttl) {
+  private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info, Integer ttl) {
     // Add a bind position for each column
     List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
     for (String columnName : allColumnNames) {
@@ -312,16 +297,28 @@ public class DocumentDB {
     }
 
     // Add a bind position for a timestamp, build, and return
-    return dataStore
-        .prepare(
-            dataStore
-                .queryBuilder()
-                .insertInto(info.getKeyspace(), info.getTable())
-                .value(markers)
-                .ttl(ttl)
-                .timestamp()
-                .build())
-        .join();
+    if (ttl != null) {
+      return dataStore
+          .prepare(
+              dataStore
+                  .queryBuilder()
+                  .insertInto(info.getKeyspace(), info.getTable())
+                  .value(markers)
+                  .ttl(ttl)
+                  .timestamp()
+                  .build())
+          .join();
+    } else {
+      return dataStore
+              .prepare(
+                      dataStore
+                              .queryBuilder()
+                              .insertInto(info.getKeyspace(), info.getTable())
+                              .value(markers)
+                              .timestamp()
+                              .build())
+              .join();
+    }
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
@@ -405,7 +402,9 @@ public class DocumentDB {
         ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
     Query insertQuery;
     if (ttl != null) {
-      insertQuery = getInsertQueryForTableUsingTtl(info, ttl);
+      // Don't hit/write to cache if TTL is defined - TTL can be any integer and so can pollute the cache
+      // pretty heavily.
+      insertQuery = getInsertQueryForTable(info, ttl);
     } else {
       // Hits a cache if the insert has been called for this table in the last 5 minutes
       insertQuery = insertQueryForTable.get(info);

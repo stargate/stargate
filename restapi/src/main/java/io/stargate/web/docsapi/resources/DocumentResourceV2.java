@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -130,6 +131,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
@@ -222,6 +224,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @QueryParam("profile") Boolean profile,
       @Context HttpServletRequest request) {
@@ -289,6 +292,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
@@ -372,6 +376,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
@@ -452,6 +457,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
@@ -536,6 +542,7 @@ public class DocumentResourceV2 {
               value = "Include this to put a time-to-live on the document in the data store",
               required = false)
           @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
           Integer ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",

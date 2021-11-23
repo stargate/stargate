@@ -359,12 +359,12 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in ten seconds\" }");
     JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\", \"a\": \"b\" }");
     JsonNode subObj2 = OBJECT_MAPPER.readTree("{ \"delete this as well\": \"in ten seconds\" }");
-    RestUtils.put(authToken, collectionPath + "/1?ttl=10", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/1?ttl=1", obj1.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/2", obj2.toString(), 200);
-    RestUtils.put(authToken, collectionPath + "/2/a?ttl=10", subObj2.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2/a?ttl=1", subObj2.toString(), 200);
 
     try {
-      Thread.sleep(11000);
+      Thread.sleep(2000);
     } catch (InterruptedException e) {
 
     }
@@ -805,13 +805,13 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     // Create documents using multiExample that creates random ID's
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
-    String resp = RestUtils.post(authToken, collectionPath + "/batch?ttl=10", body, 202);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?ttl=1", body, 202);
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
 
     try {
-      Thread.sleep(11000);
+      Thread.sleep(2000);
     } catch (InterruptedException e) {
 
     }
