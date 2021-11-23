@@ -457,7 +457,6 @@ public class ReactiveDocumentService {
    * @param path the path within the document
    * @param context execution context
    * @return Maybe containing DocumentResponseWrapper with result node of the function
-   * @throws UnauthorizedException
    */
   public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
       DocumentDB db,
@@ -466,8 +465,7 @@ public class ReactiveDocumentService {
       String id,
       ExecuteBuiltInFunction funcPayload,
       List<PathSegment> path,
-      ExecutionContext context)
-      throws UnauthorizedException {
+      ExecutionContext context) {
     return Maybe.defer(
         () -> {
           List<String> pathString =
@@ -477,10 +475,19 @@ public class ReactiveDocumentService {
           if (function == BuiltInApiFunction.ARRAY_PUSH) {
             result =
                 handlePush(
-                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
+                    db,
+                    keyspace,
+                    collection,
+                    id,
+                    funcPayload.getValue(),
+                    pathString,
+                    funcPayload.getTtl(),
+                    context);
           } else if (function == BuiltInApiFunction.ARRAY_POP) {
-            result = handlePop(db, keyspace, collection, id, pathString, context);
+            result =
+                handlePop(db, keyspace, collection, id, pathString, funcPayload.getTtl(), context);
           }
+
           if (result == null) {
             throw new IllegalStateException(
                 "Invalid operation found at execution time: " + function.name);
@@ -639,6 +646,7 @@ public class ReactiveDocumentService {
       String id,
       JsonNode jsonArray,
       List<String> pathString,
+      Integer ttl,
       ExecutionContext context)
       throws UnauthorizedException {
     List<String> processedPath = processSubDocumentPath(pathString);
@@ -660,7 +668,7 @@ public class ReactiveDocumentService {
         bindParams,
         processedPath,
         timeSource.currentTimeMicros(),
-        null,
+        ttl,
         context.nested("ASYNC INSERT"));
   }
 
@@ -671,11 +679,12 @@ public class ReactiveDocumentService {
       String id,
       Object valueToPush,
       List<String> pathString,
+      Integer ttl,
       ExecutionContext context) {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
         .map(
             jsonArray -> {
-              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context);
+              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, ttl, context);
               return jsonArray;
             });
   }
@@ -686,12 +695,20 @@ public class ReactiveDocumentService {
       String collection,
       String id,
       List<String> pathString,
+      Integer ttl,
       ExecutionContext context) {
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
         .map(
             arrayAndValue -> {
               writeNewArrayState(
-                  db, keyspace, collection, id, arrayAndValue.getValue0(), pathString, context);
+                  db,
+                  keyspace,
+                  collection,
+                  id,
+                  arrayAndValue.getValue0(),
+                  pathString,
+                  ttl,
+                  context);
               return arrayAndValue.getValue1();
             });
   }

@@ -310,14 +310,14 @@ public class DocumentDB {
           .join();
     } else {
       return dataStore
-              .prepare(
-                      dataStore
-                              .queryBuilder()
-                              .insertInto(info.getKeyspace(), info.getTable())
-                              .value(markers)
-                              .timestamp()
-                              .build())
-              .join();
+          .prepare(
+              dataStore
+                  .queryBuilder()
+                  .insertInto(info.getKeyspace(), info.getTable())
+                  .value(markers)
+                  .timestamp()
+                  .build())
+          .join();
     }
   }
 
@@ -402,7 +402,8 @@ public class DocumentDB {
         ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
     Query insertQuery;
     if (ttl != null) {
-      // Don't hit/write to cache if TTL is defined - TTL can be any integer and so can pollute the cache
+      // Don't hit/write to cache if TTL is defined - TTL can be any integer and so can pollute the
+      // cache
       // pretty heavily.
       insertQuery = getInsertQueryForTable(info, ttl);
     } else {

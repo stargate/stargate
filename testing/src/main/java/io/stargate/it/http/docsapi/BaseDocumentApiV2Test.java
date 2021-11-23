@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -38,6 +39,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -363,17 +365,16 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/2", obj2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/2/a?ttl=1", subObj2.toString(), 200);
 
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-
-    }
-
-    // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
-    RestUtils.get(authToken, collectionPath + "/1?raw=true", 404);
-    String resp = RestUtils.get(authToken, collectionPath + "/2?raw=true", 200);
-    assertThat(OBJECT_MAPPER.readTree(resp))
-        .isEqualTo(OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\" }"));
+    Awaitility.await()
+        .atLeast(2, TimeUnit.SECONDS)
+        .untilAsserted(
+            () -> {
+              // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
+              RestUtils.get(authToken, collectionPath + "/1?raw=true", 404);
+              String resp = RestUtils.get(authToken, collectionPath + "/2?raw=true", 200);
+              assertThat(OBJECT_MAPPER.readTree(resp))
+                  .isEqualTo(OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\" }"));
+            });
   }
 
   @Test
@@ -810,18 +811,18 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
 
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-
-    }
-
-    Iterator<JsonNode> iter = documentIds.iterator();
-    // After the TTL is up, all the docs should be gone
-    while (iter.hasNext()) {
-      String docId = iter.next().textValue();
-      RestUtils.get(authToken, collectionPath + "/" + docId, 404);
-    }
+    Awaitility.await()
+        .atLeast(2, TimeUnit.SECONDS)
+        .untilAsserted(
+            () -> {
+              // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
+              Iterator<JsonNode> iter = documentIds.iterator();
+              // After the TTL is up, all the docs should be gone
+              while (iter.hasNext()) {
+                String docId = iter.next().textValue();
+                RestUtils.get(authToken, collectionPath + "/" + docId, 404);
+              }
+            });
   }
 
   @Test

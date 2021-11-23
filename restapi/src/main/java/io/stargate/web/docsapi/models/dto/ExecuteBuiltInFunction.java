@@ -19,11 +19,25 @@ public class ExecuteBuiltInFunction {
   @JsonProperty("value")
   private final Object value;
 
+  @JsonProperty("ttl")
+  private final Integer ttl;
+
   @JsonCreator
   public ExecuteBuiltInFunction(
       @JsonProperty("operation") String operation, @JsonProperty("value") Object value) {
     this.operation = operation;
     this.value = value;
+    this.ttl = null;
+  }
+
+  @JsonCreator
+  public ExecuteBuiltInFunction(
+      @JsonProperty("operation") String operation,
+      @JsonProperty("value") Object value,
+      @JsonProperty("ttl") Integer ttl) {
+    this.operation = operation;
+    this.value = value;
+    this.ttl = ttl;
   }
 
   @ApiModelProperty(required = true, value = "The name of the operation.", example = "$push")
@@ -36,5 +50,11 @@ public class ExecuteBuiltInFunction {
   @JsonProperty("value")
   public Object getValue() {
     return value;
+  }
+
+  @ApiModelProperty(value = "The TTL of the value", example = "10")
+  @JsonProperty("ttl")
+  public Integer getTtl() {
+    return ttl;
   }
 }
