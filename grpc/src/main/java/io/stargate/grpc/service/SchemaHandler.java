@@ -20,8 +20,8 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.*;
-import io.stargate.db.schema.*;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.db.schema.*;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema.ColumnOrderBy;
@@ -60,15 +60,14 @@ class SchemaHandler {
         String strategyName = replication.remove("class");
         if (strategyName.equals("SimpleStrategy")) {
           cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
-        }
-        else if (strategyName.equals("NetworkTopologyStrategy")) {
+        } else if (strategyName.equals("NetworkTopologyStrategy")) {
           Map<String, Integer> replicationMap = new HashMap<String, Integer>();
           for (Map.Entry<String, String> entry : replication.entrySet()) {
             replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
           }
 
-          cqlKeyspaceBuilder.putOptions("replication",
-                  Replication.networkTopologyStrategy(replicationMap).toString());
+          cqlKeyspaceBuilder.putOptions(
+              "replication", Replication.networkTopologyStrategy(replicationMap).toString());
         }
       }
 
