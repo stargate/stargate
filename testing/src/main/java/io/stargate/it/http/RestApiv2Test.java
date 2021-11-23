@@ -302,7 +302,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
   }
 
   @Test
@@ -316,7 +316,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
   }
 
   @Test
@@ -334,15 +334,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
-    assertThat(table.getColumnDefinitions()).isNotNull();
-    ColumnDefinition columnDefinition =
-        table.getColumnDefinitions().stream()
-            .filter(c -> c.getName().equals("col1"))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("Column not found"));
-    assertThat(columnDefinition)
-        .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+    assertThat(table.getColumnDefinitions())
+        .hasSize(4)
+        .anySatisfy(
+            columnDefinition ->
+                assertThat(columnDefinition)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false)));
   }
 
   @Test
