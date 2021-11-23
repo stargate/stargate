@@ -37,7 +37,9 @@ import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQue
 import io.stargate.web.docsapi.service.query.search.resolver.BaseResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.web.docsapi.service.query.search.resolver.impl.SubDocumentsResolver;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -281,20 +283,45 @@ public class DocumentSearchService {
     // combine
     return candidates
         .concatMapSingle(doc -> preparedSingle.map(prepared -> Pair.of(doc, prepared)))
-        .concatMap(
-            p -> {
-              // bind for this doc id
-              RawDocument document = p.getLeft();
-              BoundQuery query = p.getRight().bind(document.id());
 
-              // fetch, take one and then populate into the original doc
-              // since we have the doc id, use the max storage page size to grab all the rows for
-              // that doc
-              return queryExecutor
-                  .queryDocs(query, configuration.getMaxStoragePageSize(), false, null, context)
-                  .firstElement()
-                  .map(document::populateFrom)
-                  .toFlowable();
+        // buffer some amount of elements, so we can do the document population in parallel
+        // since max page size is 20, this means max of 4 buffering
+        .buffer(5)
+        .flatMap(
+            all -> {
+              // map to many flowables of RawDocument
+              List<Flowable<RawDocument>> flowables =
+                  all.stream()
+                      .map(
+                          p -> {
+                            // bind for this doc id
+                            RawDocument document = p.getLeft();
+                            BoundQuery query = p.getRight().bind(document.id());
+
+                            // fetch, take one and then populate into the original doc
+                            // since we have the doc id, use the max storage page size to grab all
+                            // the rows
+                            // for
+                            // that doc
+                            return queryExecutor
+                                .queryDocs(
+                                    query,
+                                    configuration.getMaxStoragePageSize(),
+                                    false,
+                                    null,
+                                    context)
+                                .firstElement()
+                                .map(document::populateFrom)
+                                .toFlowable();
+                          })
+                      .collect(Collectors.toList());
+
+              // this is the trick to execute the all 5 in parallel
+              // once they are all done, just map back to flowable
+              // note that this respects the order, so we always return in correct order
+              return Flowable.zip(
+                      flowables, objects -> Arrays.stream(objects).map(RawDocument.class::cast))
+                  .flatMap(Flowable::fromStream);
             });
   }
 

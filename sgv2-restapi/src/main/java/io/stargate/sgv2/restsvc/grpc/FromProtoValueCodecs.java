@@ -3,16 +3,29 @@ package io.stargate.sgv2.restsvc.grpc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.uuid.impl.UUIDUtil;
 import io.stargate.proto.QueryOuterClass;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Factory for accessing {@link FromProtoValueCodec}s to convert from proto values into externally
  * serializable values.
  */
 public class FromProtoValueCodecs {
-  static final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
+  private static final JsonNodeFactory jsonNodeFactory =
+      JsonNodeFactory.withExactBigDecimals(false);
+
+  private static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
+
+  private static final ByteCodec CODEC_BYTE = new ByteCodec();
+  private static final IntCodec CODEC_INT = new IntCodec();
+  private static final LongCodec CODEC_LONG = new LongCodec();
+  private static final ShortCodec CODEC_SHORT = new ShortCodec();
+
+  private static final TextCodec CODEC_TEXT = new TextCodec();
+  private static final UUIDCodec CODEC_UUID = new UUIDCodec();
 
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
@@ -59,14 +72,33 @@ public class FromProtoValueCodecs {
       case CUSTOM:
         throw new IllegalArgumentException(
             "Unsupported ColumnSpec basic type CUSTOM for column: " + columnSpec);
+
+        // // Supported Scalars
+
+        // Supported Scalars: text
       case ASCII:
       case TEXT:
       case VARCHAR:
-        return TextCodec.INSTANCE;
-      case BOOLEAN:
-        return BooleanCodec.INSTANCE;
+        return CODEC_TEXT;
+
+        // Supported Scalars: numeric
       case BIGINT:
-        break;
+        return CODEC_LONG;
+      case INT:
+        return CODEC_INT;
+      case SMALLINT:
+        return CODEC_SHORT;
+      case TINYINT:
+        return CODEC_BYTE;
+
+        // Supported Scalars: other
+      case BOOLEAN:
+        return CODEC_BOOLEAN;
+      case UUID:
+        return CODEC_UUID;
+
+        // // // To Be Implemented:
+
       case BLOB:
         break;
       case COUNTER:
@@ -77,11 +109,7 @@ public class FromProtoValueCodecs {
         break;
       case FLOAT:
         break;
-      case INT:
-        break;
       case TIMESTAMP:
-        break;
-      case UUID:
         break;
       case VARINT:
         break;
@@ -92,10 +120,6 @@ public class FromProtoValueCodecs {
       case DATE:
         break;
       case TIME:
-        break;
-      case SMALLINT:
-        break;
-      case TINYINT:
         break;
       case UNRECOGNIZED:
       default:
@@ -122,7 +146,7 @@ public class FromProtoValueCodecs {
         "Can not (yet) create Codec for SET column specified as: " + columnSpec);
   }
 
-  /* Basic codec implementations */
+  /* Basic/scalar codec implementations: textual */
 
   protected static final class TextCodec extends FromProtoValueCodec {
     public static final TextCodec INSTANCE = new TextCodec();
@@ -138,9 +162,65 @@ public class FromProtoValueCodecs {
     }
   }
 
-  protected static final class BooleanCodec extends FromProtoValueCodec {
-    public static final BooleanCodec INSTANCE = new BooleanCodec();
+  /* Basic/scalar codec implementations: numeric */
 
+  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
+  // without bothering with casting to avoid creation of unnecessary wrappers.
+  protected static final class IntCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getInt();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  protected static final class LongCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getInt();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
+  // without bothering with casting to avoid creation of unnecessary wrappers.
+  protected static final class ShortCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getInt();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
+  // without bothering with casting to avoid creation of unnecessary wrappers.
+  protected static final class ByteCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getInt();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  /* Basic/scalar codec implementations: other */
+
+  protected static final class BooleanCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
       return value.getBoolean();
@@ -151,6 +231,34 @@ public class FromProtoValueCodecs {
       return jsonNodeFactory.booleanNode(value.getBoolean());
     }
   }
+
+  protected static final class UUIDCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      // 19-Nov-2021, tatu: Two choices here, both of which JAX-RS can deal with it:
+      //   (a) just return UUID as-is; (b) convert to String.
+      //   Going with (a) for now
+      return uuidFrom(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      // 19-Nov-2021, tatu: As with above, go with "native"/embedded
+      return jsonNodeFactory.pojoNode(uuidFrom(value));
+    }
+
+    private UUID uuidFrom(QueryOuterClass.Value value) {
+      // Must be careful not to get bytes for Message (has 2 type bytes) but Value within
+      byte[] bs = value.getUuid().getValue().toByteArray();
+      if (bs.length != 16) {
+        throw new IllegalArgumentException(
+            "Wrong length for UUID encoding: expected 16, was: " + bs.length);
+      }
+      return UUIDUtil.uuid(bs);
+    }
+  }
+
+  /* Structured codec implementations */
 
   protected static final class MapCodec extends FromProtoValueCodec {
     private final FromProtoValueCodec keyCodec, valueCodec;

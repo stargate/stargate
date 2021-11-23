@@ -56,6 +56,19 @@ public abstract class ResourceBase {
     return MAP_READER.readValue(jsonString);
   }
 
+  // // // Helper methods for Bridge/gRPC query construction
+
+  protected static QueryOuterClass.QueryParameters parametersForLocalQuorum() {
+    return parametersBuilderForLocalQuorum().build();
+  }
+
+  protected static QueryOuterClass.QueryParameters.Builder parametersBuilderForLocalQuorum() {
+    return QueryOuterClass.QueryParameters.newBuilder()
+        .setConsistency(
+            QueryOuterClass.ConsistencyValue.newBuilder()
+                .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM));
+  }
+
   // // // Helper methods for Bridge/gRPC type manipulation
 
   protected static String extractPagingStateFromResultSet(QueryOuterClass.ResultSet rs) {

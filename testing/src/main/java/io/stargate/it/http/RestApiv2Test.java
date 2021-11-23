@@ -319,6 +319,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
   }
 
   @Test
@@ -333,6 +334,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
   }
 
   @Test
@@ -351,6 +353,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
     assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotEmpty();
     ColumnDefinition columnDefinition =
         table.getColumnDefinitions().stream()
             .filter(c -> c.getName().equals("col1"))
@@ -359,6 +362,9 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(columnDefinition)
         .usingRecursiveComparison()
         .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+
+    // but also check we seem to have right number of columns as well
+    assertThat(table.getColumnDefinitions()).hasSize(4);
   }
 
   @Test
@@ -1164,8 +1170,20 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    String rowIdentifier = UUID.randomUUID().toString();
+    // To try to ensure we actually find the right entry, create one other entry first
     Map<String, String> row = new HashMap<>();
+    row.put("id", UUID.randomUUID().toString());
+    row.put("firstname", "Michael");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    // and then the row we are actually looking for:
+    String rowIdentifier = UUID.randomUUID().toString();
+    row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstname", "John");
 
@@ -1184,7 +1202,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+
     List<Map<String, Object>> data = getResponseWrapper.getData();
+    // Verify we fetch one and only one entry
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.size()).isEqualTo(1);
+    // and that its contents match
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
