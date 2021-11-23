@@ -16,10 +16,12 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.StringValue;
+import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.*;
 import io.stargate.db.schema.*;
+import io.stargate.db.query.builder.Replication;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema.ColumnOrderBy;
@@ -30,6 +32,8 @@ import io.stargate.proto.Schema.CqlMaterializedView;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
+import java.util.HashMap;
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
 class SchemaHandler {
@@ -42,25 +46,31 @@ class SchemaHandler {
         persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
 
     try {
-      // TODO: check if null or access allowed?
       Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+      if (keyspace == null) {
+        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
+      }
 
       CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
       CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
       cqlKeyspaceBuilder.setName(keyspace.name());
 
-      // TODO: Persistence implementation doesn't set replication strategy
-      //    Map<String, String> replication = new HashMap<String, String>(keyspace.replication());
-      //    if (replication.containsKey("class")) {
-      //      cqlKeyspaceBuilder.setReplicationStrategy(replication.remove("class"));
-      //      for (String datacenter : replication.keySet()) {
-      //        cqlKeyspaceBuilder.addReplicationFactors(
-      //            CqlDatacenterReplication.newBuilder()
-      //                .setDatacenterName(datacenter)
-      //                .setReplicationFactor(Integer.parseInt(replication.get(datacenter)))
-      //                .build());
-      //      }
-      //    }
+      HashMap<String, String> replication = new HashMap<String, String>(keyspace.replication());
+      if (replication.containsKey("class")) {
+        String strategyName = replication.remove("class");
+        if (strategyName.equals("SimpleStrategy")) {
+          cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
+        }
+        else if (strategyName.equals("NetworkTopologyStrategy")) {
+          Map<String, Integer> replicationMap = new HashMap<String, Integer>();
+          for (Map.Entry<String, String> entry : replication.entrySet()) {
+            replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
+          }
+
+          cqlKeyspaceBuilder.putOptions("replication",
+                  Replication.networkTopologyStrategy(replicationMap).toString());
+        }
+      }
 
       if (keyspace.durableWrites().isPresent()) {
         cqlKeyspaceBuilder.putOptions("durable_writes", keyspace.durableWrites().get().toString());
@@ -101,7 +111,14 @@ class SchemaHandler {
 
     try {
       Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+      if (keyspace == null) {
+        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
+      }
       Table table = keyspace.table(query.getTableName());
+      if (table == null) {
+        throw Status.NOT_FOUND.withDescription("Table not found").asException();
+      }
+
       responseObserver.onNext(buildCqlTable(table));
       responseObserver.onCompleted();
     } catch (StatusException e) {
