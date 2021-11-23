@@ -6,7 +6,7 @@ import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeConverter;
+import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -21,7 +21,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
@@ -296,14 +295,13 @@ public class Sgv2TablesResource extends ResourceBase {
       columns.add(column2column(column, false));
     }
     // !!! TODO: convert clustering expressions (sort/order) too:
-    List<Sgv2Table.ClusteringExpression> clustering = Collections.emptyList();
-    final Sgv2Table.TableOptions tableOptions =
-        new Sgv2Table.TableOptions(null, clustering);
+    List<Sgv2Table.ClusteringExpression> clustering = new ArrayList<>();
+    final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(null, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 
   private Sgv2ColumnDefinition column2column(QueryOuterClass.ColumnSpec column, boolean isStatic) {
     return new Sgv2ColumnDefinition(
-        column.getName(), BridgeProtoTypeConverter.fromProtoToCqlType(column.getType()), isStatic);
+        column.getName(), BridgeProtoTypeTranslator.fromProtoToCqlType(column.getType()), isStatic);
   }
 }

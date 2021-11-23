@@ -3,7 +3,11 @@ package io.stargate.sgv2.restsvc.grpc;
 import io.stargate.proto.QueryOuterClass;
 import java.util.stream.Collectors;
 
-public class BridgeProtoTypeConverter {
+/**
+ * Helper class that contains functionality for translating between type names used by REST/CQL and
+ * Bridge/gRPC when describing things like column types.
+ */
+public class BridgeProtoTypeTranslator {
   public static String fromProtoToCqlType(QueryOuterClass.TypeSpec type) {
     boolean frozen;
     String desc;
