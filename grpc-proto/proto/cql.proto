@@ -10,8 +10,9 @@ message Term {
 
   // A function call, as in `IF ts > now()`
   message FunctionCallTerm {
-    string function_name = 1;
-    repeated Term arguments = 2;
+    google.protobuf.StringValue keyspace_name = 1;
+    string function_name = 2;
+    repeated Term arguments = 3;
   }
 
   oneof inner {
