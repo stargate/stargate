@@ -116,8 +116,8 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // if we have evaluate on missing then we have single query, so go for the
               // getStoragePageSize
               // otherwise the page size for each query should be requested page size + 1
-              // since we are doing an order merge of the results to preserve sorting
-              // we can not fetch less document
+              // since we are doing in order merge of the results to preserve sorting
+              // we can not fetch fewer document
               int pageSize =
                   evaluateOnMissing
                       ? config.getApproximateStoragePageSize(paginator.docPageSize)
