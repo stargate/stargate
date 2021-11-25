@@ -1,0 +1,402 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package io.stargate.web.docsapi.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.Mockito.lenient;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class JsonDocumentShredderTest {
+
+  private JsonDocumentShredder shredder;
+
+  private ObjectMapper objectMapper;
+
+  @Mock DocsApiConfiguration configuration;
+
+  @BeforeEach
+  public void init() {
+    lenient().when(configuration.getMaxArrayLength()).thenReturn(2);
+    lenient().when(configuration.getMaxDepth()).thenReturn(3);
+    objectMapper = new ObjectMapper();
+    shredder = new JsonDocumentShredder(configuration, objectMapper);
+  }
+
+  @Nested
+  public class Shred {
+
+    @Test
+    public void primitive() throws JsonProcessingException {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      JsonNode payload = objectMapper.readTree("22");
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).isEmpty();
+                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isEqualTo(22d);
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void simpleObjectStringValue() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isEqualTo("text");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void simpleObjectNumericValue() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", 22);
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isEqualTo(22d);
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void simpleObjectBooleanValue() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", true);
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isEqualTo(Boolean.TRUE);
+              });
+    }
+
+    @Test
+    public void simpleObjectBooleanValueNumeric() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", true);
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), true);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isEqualTo(1);
+              });
+    }
+
+    @Test
+    public void simpleObjectNullValue() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().putNull("field");
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void emptyObject() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode();
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).isEmpty();
+                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_OBJECT_MARKER);
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withEmptyObject() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload =
+          objectMapper.createObjectNode().set("field", objectMapper.createObjectNode());
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_OBJECT_MARKER);
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withNestedObject() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode n1 = objectMapper.createObjectNode().put("key1", "value1");
+      ObjectNode n2 = objectMapper.createObjectNode().put("key2", 44.22d);
+      ObjectNode payload = objectMapper.createObjectNode();
+      payload.set("n1", n1);
+      payload.set("n2", n2);
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .hasSize(2)
+          .anySatisfy(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("n1", "key1");
+                assertThat(row.getLeaf()).isEqualTo("key1");
+                assertThat(row.getStringValue()).isEqualTo("value1");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              })
+          .anySatisfy(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("n2", "key2");
+                assertThat(row.getLeaf()).isEqualTo("key2");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isEqualTo(44.22d);
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void emptyArray() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ArrayNode payload = objectMapper.createArrayNode();
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).isEmpty();
+                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_ARRAY_MARKER);
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withEmptyArray() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload =
+          objectMapper.createObjectNode().set("field", objectMapper.createArrayNode());
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_ARRAY_MARKER);
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withArrayElements() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload =
+          objectMapper
+              .createObjectNode()
+              .set("field", objectMapper.createArrayNode().add("first").add("second"));
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .hasSize(2)
+          .anySatisfy(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field", "[000000]");
+                assertThat(row.getLeaf()).isEqualTo("[000000]");
+                assertThat(row.getStringValue()).isEqualTo("first");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              })
+          .anySatisfy(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("field", "[000001]");
+                assertThat(row.getLeaf()).isEqualTo("[000001]");
+                assertThat(row.getStringValue()).isEqualTo("second");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withArrayOverflow() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload =
+          objectMapper
+              .createObjectNode()
+              .set("field", objectMapper.createArrayNode().add("first").add("second").add("third"));
+
+      Throwable result =
+          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList(), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue(
+              "errorCode", ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
+    }
+
+    @Test
+    public void withEscapedFields() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("period\\\\.", "text");
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("period\\.");
+                assertThat(row.getLeaf()).isEqualTo("period\\.");
+                assertThat(row.getStringValue()).isEqualTo("text");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withPrependPath() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
+
+      List<JsonShreddedRow> result =
+          shredder.shred(payload, key, Arrays.asList("one", "two"), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("one", "two", "field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isEqualTo("text");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void maxDepthExceeded() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
+
+      Throwable result =
+          catchThrowable(
+              () -> shredder.shred(payload, key, Arrays.asList("one", "two", "three"), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
+    }
+  }
+}
