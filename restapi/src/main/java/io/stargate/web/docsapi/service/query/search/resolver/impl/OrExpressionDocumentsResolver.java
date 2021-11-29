@@ -115,11 +115,13 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               // execute them all by respecting the paging state
               // if we have evaluate on missing then we have single query, so go for the
               // getStoragePageSize
-              // otherwise determine the page size for each query based on the requested docs
+              // otherwise the page size for each query should be requested page size + 1
+              // since we are doing in order merge of the results to preserve sorting
+              // we can not fetch fewer document
               int pageSize =
                   evaluateOnMissing
                       ? config.getApproximateStoragePageSize(paginator.docPageSize)
-                      : determinePageSize(paginator.docPageSize, boundQueries.size());
+                      : paginator.docPageSize + 1;
               return queryExecutor.queryDocs(
                   boundQueries, pageSize, true, paginator.getCurrentDbPageState(), context);
             })
@@ -138,15 +140,6 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               rules.put(FilterExpression.EXPR_TYPE, new RawDocumentEvalRule(doc));
               return EvalEngine.evaluate(expression, rules);
             });
-  }
-
-  // page size in the queries executed is determined by slicing the number of requested documents
-  // and queries
-  // for example, having 20 docs requested with 3 OR queries would make it 6
-  // this is to level out the pressure of finding the documents and favor queries that are taken
-  // into account first
-  private int determinePageSize(int docPageSize, int numberOfQueries) {
-    return Math.max(2, Math.floorDiv(docPageSize, numberOfQueries));
   }
 
   private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
