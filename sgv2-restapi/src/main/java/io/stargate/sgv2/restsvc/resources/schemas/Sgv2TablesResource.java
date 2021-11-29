@@ -208,6 +208,7 @@ public class Sgv2TablesResource extends ResourceBase {
               Schema.CqlTableCreate.newBuilder()
                   .setKeyspaceName(keyspaceName)
                   .setTable(table2table(tableAdd))
+                  .setIfNotExists(tableAdd.getIfNotExists())
                   .build();
           BridgeSchemaClient.create(blockingStub).createTable(addTable);
           return jaxrsResponse(Response.Status.CREATED)
@@ -341,7 +342,9 @@ public class Sgv2TablesResource extends ResourceBase {
 
   private Sgv2ColumnDefinition column2column(QueryOuterClass.ColumnSpec column, boolean isStatic) {
     return new Sgv2ColumnDefinition(
-        column.getName(), BridgeProtoTypeTranslator.fromProtoToCqlType(column.getType()), isStatic);
+        column.getName(),
+        BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(column.getType()),
+        isStatic);
   }
 
   private List<Sgv2Table.ClusteringExpression> clustering2clustering(
