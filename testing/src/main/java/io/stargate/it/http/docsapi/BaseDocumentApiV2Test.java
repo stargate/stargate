@@ -361,14 +361,12 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in ten seconds\" }");
     JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\", \"a\": \"b\" }");
     JsonNode subObj2 = OBJECT_MAPPER.readTree("{ \"delete this as well\": \"in ten seconds\" }");
-    long t0 = System.currentTimeMillis();
     RestUtils.put(authToken, collectionPath + "/1?ttl=1", obj1.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/2", obj2.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/2/a?ttl=1", subObj2.toString(), 200);
-    long requestDuration = System.currentTimeMillis() - t0;
 
     Awaitility.await()
-        .atLeast(1000 - requestDuration, TimeUnit.MILLISECONDS)
+        .atLeast(0, TimeUnit.MILLISECONDS)
         .untilAsserted(
             () -> {
               // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
@@ -808,15 +806,13 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     // Create documents using multiExample that creates random ID's
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
-    long t0 = System.currentTimeMillis();
     String resp = RestUtils.post(authToken, collectionPath + "/batch?ttl=1", body, 202);
-    long requestDuration = System.currentTimeMillis() - t0;
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
 
     Awaitility.await()
-        .atLeast(1000 - requestDuration, TimeUnit.MILLISECONDS)
+        .atLeast(0, TimeUnit.MILLISECONDS)
         .untilAsserted(
             () -> {
               Iterator<JsonNode> iter = documentIds.iterator();
