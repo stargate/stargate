@@ -44,7 +44,7 @@ public class ExecuteBuiltInFunction {
     return value;
   }
 
-  @ApiModelProperty(value = "The TTL of the value", example = "10")
+  @ApiModelProperty(value = "The TTL of the value, in seconds", example = "10")
   @JsonProperty("ttl")
   public Integer getTtl() {
     return ttl;
