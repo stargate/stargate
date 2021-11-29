@@ -369,7 +369,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void createTable() throws IOException {
-    createKeyspace(keyspaceName);
+    createKeyspace(keyspaceName, restUrlBase);
     createTable(keyspaceName, tableName, restUrlBase);
 
     String body =
