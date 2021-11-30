@@ -27,14 +27,15 @@ import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 public class JsonDocumentShredder {
 
-  @Inject private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
+  private final ObjectMapper objectMapper;
 
-  @Inject private ObjectMapper objectMapper;
-
+  @Inject
   public JsonDocumentShredder(DocsApiConfiguration config, ObjectMapper objectMapper) {
     this.config = config;
     this.objectMapper = objectMapper;
@@ -55,12 +56,19 @@ public class JsonDocumentShredder {
 
   public List<JsonShreddedRow> shred(
       JsonNode node, String documentId, List<String> subDocumentPath, boolean numericBooleans) {
+
+    // sub-paths escaped
+    List<String> subPathsEscaped =
+        subDocumentPath.stream()
+            .map(DocsApiUtils::convertEscapedCharacters)
+            .collect(Collectors.toList());
+
     Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder =
         () ->
             ImmutableJsonShreddedRow.builder()
                 .key(documentId)
                 .maxDepth(config.getMaxDepth())
-                .addAllPath(subDocumentPath); // TODO should we also convert these parts with escape
+                .addAllPath(subPathsEscaped);
 
     List<JsonShreddedRow> result = new ArrayList<>();
     processNode(node, rowBuilder, numericBooleans, result);
@@ -130,12 +138,21 @@ public class JsonDocumentShredder {
     node.fields()
         .forEachRemaining(
             field -> {
-              // TODO is this still valid
-              //  ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME
+              String fieldName = field.getKey();
+
+              // check for valid field name
+              if (DocsApiUtils.containsIllegalSequences(fieldName)) {
+                String msg =
+                    String.format(
+                        "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",
+                        fieldName);
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
+              }
 
               // escape the field path
               // then create new next row builder
-              String fieldPath = DocsApiUtils.convertEscapedCharacters(field.getKey());
+              String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
               Supplier<ImmutableJsonShreddedRow.Builder> nextRowBuilder =
                   () -> rowBuilder.get().addPath(fieldPath);
 

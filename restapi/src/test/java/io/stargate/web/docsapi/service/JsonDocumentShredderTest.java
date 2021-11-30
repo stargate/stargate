@@ -347,7 +347,7 @@ class JsonDocumentShredderTest {
     @Test
     public void withEscapedFields() {
       String key = RandomStringUtils.randomAlphanumeric(16);
-      ObjectNode payload = objectMapper.createObjectNode().put("period\\\\.", "text");
+      ObjectNode payload = objectMapper.createObjectNode().put("period\\.", "text");
 
       List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
 
@@ -356,12 +356,25 @@ class JsonDocumentShredderTest {
           .satisfies(
               row -> {
                 assertThat(row.getKey()).isEqualTo(key);
-                assertThat(row.getPath()).containsExactly("period\\.");
-                assertThat(row.getLeaf()).isEqualTo("period\\.");
+                assertThat(row.getPath()).containsExactly("period.");
+                assertThat(row.getLeaf()).isEqualTo("period.");
                 assertThat(row.getStringValue()).isEqualTo("text");
                 assertThat(row.getDoubleValue()).isNull();
                 assertThat(row.getBooleanValue()).isNull();
               });
+    }
+
+    @Test
+    public void withInvalidFields() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("period.", "text");
+
+      Throwable result =
+          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList(), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME);
     }
 
     @Test
@@ -378,6 +391,26 @@ class JsonDocumentShredderTest {
               row -> {
                 assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("one", "two", "field");
+                assertThat(row.getLeaf()).isEqualTo("field");
+                assertThat(row.getStringValue()).isEqualTo("text");
+                assertThat(row.getDoubleValue()).isNull();
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void withEscapedPrependPath() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
+
+      List<JsonShreddedRow> result = shredder.shred(payload, key, Arrays.asList("one\\\\."), false);
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getKey()).isEqualTo(key);
+                assertThat(row.getPath()).containsExactly("one\\.", "field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo("text");
                 assertThat(row.getDoubleValue()).isNull();
