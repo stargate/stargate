@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
+import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
@@ -35,7 +36,7 @@ class CreateTableHandler extends DdlMessageHandler<CqlTableCreate> {
       CqlTableCreate createTable,
       Persistence.Connection connection,
       Persistence persistence,
-      QueryBuilder queryBuilder,
+      TypedValue.Codec valueCodec,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<QueryOuterClass.Response> responseObserver) {
@@ -43,7 +44,7 @@ class CreateTableHandler extends DdlMessageHandler<CqlTableCreate> {
         createTable,
         connection,
         persistence,
-        queryBuilder,
+        valueCodec,
         executor,
         schemaAgreementRetries,
         responseObserver);
