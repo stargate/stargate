@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restsvc.models;
 
 import io.swagger.annotations.ApiModelProperty;
+import java.util.Collections;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 
@@ -64,5 +65,17 @@ public class Sgv2TableAddRequest {
 
   public void setTableOptions(Sgv2Table.TableOptions tableOptions) {
     this.tableOptions = tableOptions;
+  }
+
+  // // // Convenience access
+
+  public List<Sgv2Table.ClusteringExpression> findClusteringExpressions() {
+    if (tableOptions != null) {
+      List<Sgv2Table.ClusteringExpression> clustering = tableOptions.getClusteringExpression();
+      if (clustering != null) {
+        return clustering;
+      }
+    }
+    return Collections.emptyList();
   }
 }

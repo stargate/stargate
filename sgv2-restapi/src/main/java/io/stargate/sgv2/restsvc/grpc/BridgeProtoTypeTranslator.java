@@ -14,9 +14,6 @@ import java.util.stream.Collectors;
  * Bridge/gRPC when describing things like column types.
  */
 public class BridgeProtoTypeTranslator {
-  private static final EnumMap<QueryOuterClass.TypeSpec.Basic, String> simpleBridgeToCqlTypes =
-      CqlAndProtoTypesHelper.simpleBridgeToCqlTypes;
-
   /**
    * Method for constructing CQL type definition String like {@code map<string, uuid>} from
    * Bridge/gRPC {@code TypeSpec}: type definition String should be something that may be included
@@ -88,7 +85,7 @@ public class BridgeProtoTypeTranslator {
 
   private static String basicBridgeToCqlType(QueryOuterClass.TypeSpec.Basic type) {
     // For now we should have full mapping available:
-    String cqlBasicType = simpleBridgeToCqlTypes.get(type);
+    String cqlBasicType = BridgeToCqlTypesHelper.findBasicCqlType(type);
     if (cqlBasicType == null) {
       throw new IllegalArgumentException("Unrecognized TypeSpec.Basic: " + type.name());
     }
@@ -99,16 +96,11 @@ public class BridgeProtoTypeTranslator {
    * Method for constructing valid Bridge/gRPC {@code TypeSpec} given a valid CQL type description
    * String.
    *
-   * @param cqlTypeDescription Valid CQL type description String (like {code String} or {@code
-   *     map<string, uuid>}.
+   * @param cqlType Valid CQL type description String (like {code String} or {@code map<string,
+   *     uuid>}.
    * @return Valid {@code TypeSpec} that defines same type as the given CQL type description.
    */
-  public static QueryOuterClass.TypeSpec cqlTypeFromBridgeTypeSpec(String cqlTypeDescription) {
-    return fromCqlDefinitionOf(cqlTypeDescription);
-  }
-
-  // Copied from SGv1 'Column'
-  public static QueryOuterClass.TypeSpec fromCqlDefinitionOf(String cqlType) {
+  public static QueryOuterClass.TypeSpec cqlTypeFromBridgeTypeSpec(String cqlType) {
     cqlType = cqlType.trim();
     if (cqlType.isEmpty()) {
       throw new IllegalArgumentException("Invalid empty cql type name");
@@ -122,29 +114,61 @@ public class BridgeProtoTypeTranslator {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private static class CqlAndProtoTypesHelper {
-    public static final EnumMap<QueryOuterClass.TypeSpec.Basic, String> simpleBridgeToCqlTypes;
-    public static final Map<String, QueryOuterClass.TypeSpec> simpleCqlToBridgeTypes;
+  private static class CqlToBridgeTypesHelper {
+    private final Map<String, QueryOuterClass.TypeSpec> simpleCqlToBridgeTypes;
 
-    static {
-      simpleBridgeToCqlTypes = new EnumMap<>(QueryOuterClass.TypeSpec.Basic.class);
+    private static final CqlToBridgeTypesHelper instance = new CqlToBridgeTypesHelper();
+
+    CqlToBridgeTypesHelper() {
       simpleCqlToBridgeTypes = new LinkedHashMap<>();
       for (QueryOuterClass.TypeSpec.Basic basicType : QueryOuterClass.TypeSpec.Basic.values()) {
+        // 29-Nov-2021, tatu: Lovely! Trying to get name of this extra entry will explode
+        //    everything... so must avoid, explicitly.
+        if (basicType == QueryOuterClass.TypeSpec.Basic.UNRECOGNIZED) {
+          continue;
+        }
         // At least for now, there is full 1-to-1 mapping between enum upper-case name, matching
         // lower-case CQL type name
         final String cqlTypeName = basicType.name().toLowerCase();
-        simpleBridgeToCqlTypes.put(basicType, cqlTypeName);
-        simpleCqlToBridgeTypes.put(
-            cqlTypeName, QueryOuterClass.TypeSpec.newBuilder().setBasic(basicType).build());
+        QueryOuterClass.TypeSpec bridgeType =
+            QueryOuterClass.TypeSpec.newBuilder().setBasic(basicType).build();
+        simpleCqlToBridgeTypes.put(cqlTypeName, bridgeType);
       }
+    }
+
+    public static QueryOuterClass.TypeSpec findBasicBridgeTypeCaseInsensitive(String cqlType) {
+      return instance.find(cqlType);
+    }
+
+    private QueryOuterClass.TypeSpec find(String cqlType) {
+      QueryOuterClass.TypeSpec bridgeType = simpleCqlToBridgeTypes.get(cqlType);
+      if (bridgeType == null) {
+        String lc = cqlType.toLowerCase(Locale.ROOT);
+        if (lc != cqlType) {
+          bridgeType = simpleCqlToBridgeTypes.get(lc);
+        }
+      }
+      return bridgeType;
+    }
+  }
+
+  private static class BridgeToCqlTypesHelper {
+    private static final EnumMap<QueryOuterClass.TypeSpec.Basic, String> simpleBridgeToCqlTypes;
+
+    static {
+      simpleBridgeToCqlTypes = new EnumMap<>(QueryOuterClass.TypeSpec.Basic.class);
+      for (QueryOuterClass.TypeSpec.Basic basicType : QueryOuterClass.TypeSpec.Basic.values()) {
+        simpleBridgeToCqlTypes.put(basicType, basicType.name().toLowerCase());
+      }
+    }
+
+    public static String findBasicCqlType(QueryOuterClass.TypeSpec.Basic type) {
+      return simpleBridgeToCqlTypes.get(type);
     }
   }
 
   // Lifted from "DataTypeCqlNameParser" of DataStax OSS Java driver
   private static class CqlTypeParser {
-    private static final Map<String, QueryOuterClass.TypeSpec> simpleCqlToBridgeTypes =
-        CqlAndProtoTypesHelper.simpleCqlToBridgeTypes;
-
     public static QueryOuterClass.TypeSpec parse(String toParse, boolean frozen) {
       if (toParse.startsWith("'")) {
         throw new IllegalArgumentException("Custom types are not supported");
@@ -153,7 +177,7 @@ public class BridgeProtoTypeTranslator {
       String type = scanner.parseTypeName();
 
       QueryOuterClass.TypeSpec nativeType =
-          simpleCqlToBridgeTypes.get(type.toLowerCase(Locale.ROOT));
+          new CqlToBridgeTypesHelper().findBasicBridgeTypeCaseInsensitive(type);
       if (nativeType != null) {
         return nativeType;
       }

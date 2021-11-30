@@ -28,8 +28,9 @@ public class Sgv2Table {
       @JsonProperty("tableOptions") final TableOptions tableOptions) {
     this.name = name;
     this.keyspace = keyspace;
-    this.columnDefinitions = columnDefinitions;
-    this.primaryKey = primaryKey;
+    this.columnDefinitions =
+        (columnDefinitions == null) ? Collections.emptyList() : columnDefinitions;
+    this.primaryKey = (primaryKey == null) ? new PrimaryKey() : primaryKey;
     this.tableOptions = tableOptions;
   }
 
@@ -109,6 +110,14 @@ public class Sgv2Table {
     public void setClusteringKey(List<String> clusteringKey) {
       this.clusteringKey = clusteringKey;
     }
+
+    public boolean hasPartitionKey(String key) {
+      return (partitionKey != null) && partitionKey.contains(key);
+    }
+
+    public boolean hasClusteringKey(String key) {
+      return (clusteringKey != null) && clusteringKey.contains(key);
+    }
   }
 
   // copy of SGv1 TableOptions
@@ -128,7 +137,7 @@ public class Sgv2Table {
     }
 
     public TableOptions() {
-      this(null, Collections.emptyList());
+      this(null, null);
     }
 
     @ApiModelProperty(
@@ -178,6 +187,14 @@ public class Sgv2Table {
     @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
     public String getOrder() {
       return order;
+    }
+
+    public boolean hasOrderAsc() {
+      return VALUE_ASC.equals(order);
+    }
+
+    public boolean hasOrderDesc() {
+      return VALUE_DESC.equals(order);
     }
   }
 }
