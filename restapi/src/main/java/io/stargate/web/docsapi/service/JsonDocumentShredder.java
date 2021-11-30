@@ -56,6 +56,10 @@ public class JsonDocumentShredder {
 
   public List<JsonShreddedRow> shred(
       JsonNode node, String documentId, List<String> subDocumentPath, boolean numericBooleans) {
+    // check if this is a valid root node
+    if (subDocumentPath.isEmpty()) {
+      checkRoot(node);
+    }
 
     // sub-paths escaped
     List<String> subPathsEscaped =
@@ -73,6 +77,22 @@ public class JsonDocumentShredder {
     List<JsonShreddedRow> result = new ArrayList<>();
     processNode(node, rowBuilder, numericBooleans, result);
     return result;
+  }
+
+  private void checkRoot(JsonNode root) {
+    // empty object and arrays not allowed
+    if (root.isContainerNode() && root.isEmpty()) {
+      String msg =
+          "Updating a key with just an empty object or an empty array is not allowed. Hint: update the parent path with a defined object instead.";
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID, msg);
+    }
+
+    // scalars not allowed
+    if (root.isValueNode()) {
+      String msg =
+          "Updating a key with just a JSON primitive is not allowed. Hint: update the parent path with a defined object instead.";
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID, msg);
+    }
   }
 
   private void processNode(

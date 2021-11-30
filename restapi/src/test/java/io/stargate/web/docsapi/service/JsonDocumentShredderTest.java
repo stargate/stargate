@@ -65,19 +65,33 @@ class JsonDocumentShredderTest {
       String key = RandomStringUtils.randomAlphanumeric(16);
       JsonNode payload = objectMapper.readTree("22");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+      List<JsonShreddedRow> result =
+          shredder.shred(payload, key, Collections.singletonList("field"), false);
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
                 assertThat(row.getKey()).isEqualTo(key);
-                assertThat(row.getPath()).isEmpty();
-                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getPath()).containsExactly("field");
+                assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isNull();
                 assertThat(row.getDoubleValue()).isEqualTo(22d);
                 assertThat(row.getBooleanValue()).isNull();
               });
+    }
+
+    @Test
+    public void primitiveRoot() throws JsonProcessingException {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      JsonNode payload = objectMapper.readTree("22");
+
+      Throwable result =
+          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList(), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID);
     }
 
     @Test
@@ -185,19 +199,33 @@ class JsonDocumentShredderTest {
       String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode();
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+      List<JsonShreddedRow> result =
+          shredder.shred(payload, key, Collections.singletonList("path"), false);
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
                 assertThat(row.getKey()).isEqualTo(key);
-                assertThat(row.getPath()).isEmpty();
-                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getPath()).containsExactly("path");
+                assertThat(row.getLeaf()).isEqualTo("path");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_OBJECT_MARKER);
                 assertThat(row.getDoubleValue()).isNull();
                 assertThat(row.getBooleanValue()).isNull();
               });
+    }
+
+    @Test
+    public void emptyObjectRoot() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ObjectNode payload = objectMapper.createObjectNode();
+
+      Throwable result =
+          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList(), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID);
     }
 
     @Test
@@ -259,19 +287,33 @@ class JsonDocumentShredderTest {
       String key = RandomStringUtils.randomAlphanumeric(16);
       ArrayNode payload = objectMapper.createArrayNode();
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList(), false);
+      List<JsonShreddedRow> result =
+          shredder.shred(payload, key, Collections.singletonList("path"), false);
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
                 assertThat(row.getKey()).isEqualTo(key);
-                assertThat(row.getPath()).isEmpty();
-                assertThat(row.getLeaf()).isNull();
+                assertThat(row.getPath()).containsExactly("path");
+                assertThat(row.getLeaf()).isEqualTo("path");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_ARRAY_MARKER);
                 assertThat(row.getDoubleValue()).isNull();
                 assertThat(row.getBooleanValue()).isNull();
               });
+    }
+
+    @Test
+    public void emptyArrayRoot() {
+      String key = RandomStringUtils.randomAlphanumeric(16);
+      ArrayNode payload = objectMapper.createArrayNode();
+
+      Throwable result =
+          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList(), false));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID);
     }
 
     @Test

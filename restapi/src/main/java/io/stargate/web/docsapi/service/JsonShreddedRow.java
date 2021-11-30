@@ -47,8 +47,7 @@ public interface JsonShreddedRow {
     if (path != null && !path.isEmpty()) {
       return path.get(path.size() - 1);
     } else {
-      return null; // TODO is this fine? what do we return as leaf for empty objects and empty
-      // arrays
+      throw new IllegalStateException("Shredded row does not contain a single path.");
     }
   }
 
