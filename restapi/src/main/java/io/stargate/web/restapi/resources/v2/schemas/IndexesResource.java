@@ -27,6 +27,7 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableCollectionIndexingType;
@@ -115,7 +116,7 @@ public class IndexesResource {
           restDB.authorizeDataRead(keyspaceName, tableName, SourceAPI.REST);
 
           try {
-            Table tableMetadata = restDB.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
+            AbstractTable tableMetadata = restDB.getTable(SYSTEM_SCHEMA, INDEXES_TABLE);
             List<Column> columns = tableMetadata.columns();
             BoundQuery query =
                 restDB
@@ -209,7 +210,7 @@ public class IndexesResource {
           }
 
           try {
-            final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+            final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
             final Column col = tableMetadata.column(columnName);
             if (col == null) {
               return Response.status(Response.Status.NOT_FOUND)
@@ -314,8 +315,9 @@ public class IndexesResource {
           }
 
           try {
-            final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
-            Index index = tableMetadata.index(indexName);
+            final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
+            Index index =
+                tableMetadata instanceof Table ? ((Table) tableMetadata).index(indexName) : null;
             if (index == null && !ifExists) {
               return Response.status(Response.Status.NOT_FOUND)
                   .entity(

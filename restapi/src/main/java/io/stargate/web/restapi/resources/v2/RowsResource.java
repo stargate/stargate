@@ -32,8 +32,8 @@ import io.stargate.db.query.BoundSelect;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ColumnOrder;
 import io.stargate.db.query.builder.ValueModifier;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
@@ -168,7 +168,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           Object response =
               getRows(
@@ -244,7 +244,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
           try {
@@ -318,7 +318,7 @@ public class RowsResource {
           }
 
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
-          final Table tableMetadata = restDB.getTableForRead(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           Object response =
               getRows(
@@ -378,7 +378,7 @@ public class RowsResource {
 
           Map<String, Object> requestBody = ResourceUtils.readJson(payload);
 
-          Table table = restDB.getTable(keyspaceName, tableName);
+          AbstractTable table = restDB.getTable(keyspaceName, tableName);
 
           List<ValueModifier> values =
               requestBody.entrySet().stream()
@@ -489,7 +489,7 @@ public class RowsResource {
         () -> {
           RestDB restDB = dbFactory.getRestDBForToken(token, getAllHeaders(request));
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           List<BuiltCondition> where;
           try {
@@ -579,7 +579,7 @@ public class RowsResource {
       throws Exception {
     RestDB restDB = dbFactory.getRestDBForToken(token, headers);
 
-    final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+    final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
     List<BuiltCondition> where;
     try {
@@ -625,7 +625,7 @@ public class RowsResource {
       boolean raw,
       String sort,
       RestDB restDB,
-      Table tableMetadata,
+      AbstractTable tableMetadata,
       List<BuiltCondition> where,
       ByteBuffer pageState,
       int pageSize)
@@ -694,7 +694,8 @@ public class RowsResource {
     return order;
   }
 
-  private List<BuiltCondition> buildWhereForPath(Table tableMetadata, List<PathSegment> path) {
+  private List<BuiltCondition> buildWhereForPath(
+      AbstractTable tableMetadata, List<PathSegment> path) {
     List<Column> keys = tableMetadata.primaryKeyColumns();
     boolean notAllPartitionKeys = path.size() < tableMetadata.partitionKeyColumns().size();
     boolean tooManyValues = path.size() > keys.size();
