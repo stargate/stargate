@@ -13,6 +13,7 @@ import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
+import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
@@ -21,6 +22,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -185,14 +187,34 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(required = true) @NotNull final TableAdd tableAdd,
+      @ApiParam(required = true) @NotNull final Sgv2TableAddRequest tableAdd,
       @Context HttpServletRequest request) {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    logger.info("createTable() called for KS '" + keyspaceName + "'");
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    final String tableName = tableAdd.getName();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          Schema.CqlTableCreate addTable =
+              Schema.CqlTableCreate.newBuilder()
+                  .setKeyspaceName(keyspaceName)
+                  .setTable(table2table(tableAdd))
+                  .setIfNotExists(tableAdd.getIfNotExists())
+                  .build();
+          BridgeSchemaClient.create(blockingStub).createTable(addTable);
+          return jaxrsResponse(Response.Status.CREATED)
+              .entity(Collections.singletonMap("name", tableName))
+              .build();
+        });
   }
 
   @Timed
@@ -287,6 +309,46 @@ public class Sgv2TablesResource extends ResourceBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
+  private Schema.CqlTable table2table(Sgv2TableAddRequest restTable) {
+    final String name = restTable.getName();
+    Schema.CqlTable.Builder b = Schema.CqlTable.newBuilder().setName(name);
+
+    // First, convert and add column definitions:
+    final Sgv2Table.PrimaryKey primaryKeys = restTable.getPrimaryKey();
+    for (Sgv2ColumnDefinition columnDef : restTable.getColumnDefinitions()) {
+      final String columnName = columnDef.getName();
+      QueryOuterClass.ColumnSpec column =
+          QueryOuterClass.ColumnSpec.newBuilder()
+              .setName(columnName)
+              .setType(
+                  BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(
+                      columnDef.getTypeDefinition()))
+              .build();
+      if (primaryKeys.hasPartitionKey(columnName)) {
+        b.addPartitionKeyColumns(column);
+      } else if (primaryKeys.hasClusteringKey(columnName)) {
+        b.addClusteringKeyColumns(column);
+      } else if (columnDef.getIsStatic()) {
+        b.addStaticColumns(column);
+      } else {
+        b.addColumns(column);
+      }
+    }
+
+    // And then add ordering (ASC, DESC)
+    for (Sgv2Table.ClusteringExpression expr : restTable.findClusteringExpressions()) {
+      if (expr.hasOrderAsc()) {
+        b.putClusteringOrders(expr.getColumn(), Schema.ColumnOrderBy.ASC);
+      } else if (expr.hasOrderDesc()) {
+        b.putClusteringOrders(expr.getColumn(), Schema.ColumnOrderBy.DESC);
+      } else {
+        throw new IllegalArgumentException("Unrecognized ordering value '" + expr.getOrder() + "'");
+      }
+    }
+
+    return b.build();
+  }
+
   private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
     final List<Sgv2ColumnDefinition> columns = new ArrayList<>();
     final Sgv2Table.PrimaryKey primaryKeys = new Sgv2Table.PrimaryKey();
@@ -315,7 +377,9 @@ public class Sgv2TablesResource extends ResourceBase {
 
   private Sgv2ColumnDefinition column2column(QueryOuterClass.ColumnSpec column, boolean isStatic) {
     return new Sgv2ColumnDefinition(
-        column.getName(), BridgeProtoTypeTranslator.fromProtoToCqlType(column.getType()), isStatic);
+        column.getName(),
+        BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(column.getType()),
+        isStatic);
   }
 
   private List<Sgv2Table.ClusteringExpression> clustering2clustering(

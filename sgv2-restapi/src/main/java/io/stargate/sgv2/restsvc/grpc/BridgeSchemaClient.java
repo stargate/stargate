@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import java.util.List;
@@ -17,6 +18,12 @@ public class BridgeSchemaClient {
 
   public static BridgeSchemaClient create(StargateGrpc.StargateBlockingStub blockingStub) {
     return new BridgeSchemaClient(blockingStub);
+  }
+
+  public QueryOuterClass.Response createTable(Schema.CqlTableCreate request) {
+    // !!! TODO: error handling to expose proper failure downstream
+    final QueryOuterClass.Response resp = blockingStub.createTable(request);
+    return resp;
   }
 
   public Schema.CqlTable findTable(String keyspace, String tableName) {
