@@ -193,11 +193,11 @@ public class Sgv2TablesResource extends ResourceBase {
       return invalidTokenFailure();
     }
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be non-empty").build();
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
     }
     final String tableName = tableAdd.getName();
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("Table name must be non-empty").build();
+      return jaxrsBadRequestError("table name must be provided").build();
     }
     final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
@@ -324,10 +324,10 @@ public class Sgv2TablesResource extends ResourceBase {
                   BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(
                       columnDef.getTypeDefinition()))
               .build();
-      if (primaryKeys.hasClusteringKey(columnName)) {
-        b.addClusteringKeyColumns(column);
-      } else if (primaryKeys.hasClusteringKey(columnName)) {
+      if (primaryKeys.hasPartitionKey(columnName)) {
         b.addPartitionKeyColumns(column);
+      } else if (primaryKeys.hasClusteringKey(columnName)) {
+        b.addClusteringKeyColumns(column);
       } else if (columnDef.getIsStatic()) {
         b.addStaticColumns(column);
       } else {
