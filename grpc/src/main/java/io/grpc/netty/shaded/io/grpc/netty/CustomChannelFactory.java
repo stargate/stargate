@@ -13,6 +13,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
+/**
+ * Tracks all the created sessions. It wraps the {@link Utils#DEFAULT_SERVER_CHANNEL_FACTORY} and
+ * uses it for session creation. Once it's notified via the {@code closeFilter()} method, it closes
+ * all channels matching the predicate.
+ */
 public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
 
   private final ChannelFactory<? extends ServerChannel> channelFactory;
@@ -43,6 +48,10 @@ public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
     writeToGroup(allChannels);
   }
 
+  /**
+   * It writes the {@link GracefulServerCloseCommand} that allows the {@link NettyServerHandler} to
+   * close the underlying connection gracefully.
+   */
   private void writeToGroup(ChannelGroup allChannels) {
     GracefulServerCloseCommand streamClosed = new GracefulServerCloseCommand("Stream closed");
     try {

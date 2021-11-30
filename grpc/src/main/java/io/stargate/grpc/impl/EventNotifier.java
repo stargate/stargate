@@ -18,7 +18,7 @@ public class EventNotifier implements EventListenerWithChannelFilter {
   @Override
   public void onClose(Predicate<Map<String, String>> headerFilter) {
     if (headerFilter != null) {
-      customChannelFactory.closeFilter(headerFilter); // close
+      customChannelFactory.closeFilter(headerFilter);
     }
   }
 

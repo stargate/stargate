@@ -75,6 +75,11 @@ public class GrpcImpl {
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
+            // We only want to pass a customChannelFactory.
+            // However, we also need to provide custom worker and boss groups if the ChannelFactory
+            // is provided.
+            // Otherwise, it will throw: All of BossEventLoopGroup, WorkerEventLoopGroup and
+            // ChannelType should be provided or neither should be
             .channelFactory(customChannelFactory)
             .workerEventLoopGroup(CustomEventLoopGroup.worker())
             .bossEventLoopGroup(CustomEventLoopGroup.boss())

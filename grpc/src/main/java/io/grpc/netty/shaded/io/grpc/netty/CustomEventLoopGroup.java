@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
 
+/** It is a pass-through decorator. */
 public class CustomEventLoopGroup implements EventLoopGroup {
 
   private final SharedResourcePool<EventLoopGroup> group;
