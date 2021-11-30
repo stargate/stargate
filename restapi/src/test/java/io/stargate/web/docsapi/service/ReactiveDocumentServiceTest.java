@@ -125,8 +125,11 @@ class ReactiveDocumentServiceTest {
         new ReactiveDocumentService(
             expressionParser,
             searchService,
+            null, // TODO
             jsonConverter,
+            null, // TODO
             docsShredder,
+            null, // TODO
             objectMapper,
             timeSource,
             config);

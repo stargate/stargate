@@ -25,12 +25,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
@@ -50,6 +52,7 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import io.stargate.web.docsapi.service.write.DocumentWriteService;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,8 +73,11 @@ public class ReactiveDocumentService {
 
   @Inject ExpressionParser expressionParser;
   @Inject DocumentSearchService searchService;
+  @Inject DocumentWriteService writeService;
   @Inject JsonConverter jsonConverter;
+  @Inject JsonSchemaHandler jsonSchemaHandler;
   @Inject DocsShredder docsShredder;
+  @Inject JsonDocumentShredder jsonDocumentShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
   @Inject DocsApiConfiguration configuration;
@@ -81,18 +87,120 @@ public class ReactiveDocumentService {
   public ReactiveDocumentService(
       ExpressionParser expressionParser,
       DocumentSearchService searchService,
+      DocumentWriteService writeService,
       JsonConverter jsonConverter,
+      JsonSchemaHandler jsonSchemaHandler,
       DocsShredder docsShredder,
+      JsonDocumentShredder jsonDocumentShredder,
       ObjectMapper objectMapper,
       TimeSource timeSource,
       DocsApiConfiguration configuration) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
+    this.writeService = writeService;
     this.jsonConverter = jsonConverter;
+    this.jsonSchemaHandler = jsonSchemaHandler;
     this.docsShredder = docsShredder;
+    this.jsonDocumentShredder = jsonDocumentShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
     this.configuration = configuration;
+  }
+
+  public Single<Object> writeDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+
+    return Single.defer(
+        () -> {
+
+          // authentication for writing before anything
+          // we don't need the DELETE scope here
+          AuthorizationService authorizationService = db.getAuthorizationService();
+          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+          authorizationService.authorizeDataWrite(
+              authenticationSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+
+          // read the root
+          // TODO proper error mapping in case of failure
+          JsonNode root = objectMapper.readTree(payload);
+
+          // check the schema
+          checkSchemaFullDocument(db, namespace, collection, root);
+
+          // shred rows
+          List<JsonShreddedRow> rows =
+              jsonDocumentShredder.shred(
+                  root, documentId, Collections.emptyList(), db.treatBooleansAsNumeric());
+
+          // call write document
+          return writeService.writeDocument(
+              db.getQueryExecutor().getDataStore(),
+              namespace,
+              collection,
+              documentId,
+              rows,
+              context);
+        });
+  }
+
+  public Single<Object> updateDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+
+    return Single.defer(
+        () -> {
+
+          // authentication for writing before anything
+          AuthorizationService authorizationService = db.getAuthorizationService();
+          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+          authorizationService.authorizeDataWrite(
+              authenticationSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+          authorizationService.authorizeDataWrite(
+              authenticationSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+
+          // read the root
+          // TODO proper error mapping in case of failure
+          JsonNode root = objectMapper.readTree(payload);
+
+          // check the schema
+          checkSchemaFullDocument(db, namespace, collection, root);
+
+          // shred rows
+          List<JsonShreddedRow> rows =
+              jsonDocumentShredder.shred(
+                  root, documentId, Collections.emptyList(), db.treatBooleansAsNumeric());
+
+          // call write document
+          return writeService.updateDocument(
+              db.getQueryExecutor().getDataStore(),
+              namespace,
+              collection,
+              documentId,
+              rows,
+              context);
+        });
+  }
+
+  private void checkSchemaFullDocument(
+      DocumentDB db, String namespace, String collection, JsonNode root) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (null != schema) {
+      try {
+        jsonSchemaHandler.validate(schema, root);
+      } catch (ProcessingException e) {
+        // TODO validate unchecked better?
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**

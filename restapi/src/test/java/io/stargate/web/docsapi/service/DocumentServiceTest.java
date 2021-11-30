@@ -531,39 +531,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    void putDoc() throws JsonProcessingException {
-      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
-
-      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
-      withQuery(table, delete, 199L, "id3").returningNothing();
-
-      now.set(200);
-      DocumentResponseWrapper<Object> r =
-          unwrap(
-              resource.putDoc(
-                  headers,
-                  uriInfo,
-                  authToken,
-                  keyspace.name(),
-                  table.name(),
-                  "id3",
-                  "{\"a\":123}",
-                  true,
-                  request));
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("ASYNC INSERT")
-                          // row count for DELETE is not known
-                          .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
-                          .build())
-                  .build());
-    }
-
-    @Test
     void putManyDocs() throws JsonProcessingException {
       String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
       withQuery(table, delete, 199L, "123").returningNothing();
