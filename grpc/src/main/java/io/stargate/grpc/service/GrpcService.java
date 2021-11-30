@@ -15,71 +15,42 @@
  */
 package io.stargate.grpc.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
-import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
-import io.stargate.db.Result.Prepared;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.immutables.value.Value;
 
 public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase {
 
   public static final Context.Key<Connection> CONNECTION_KEY = Context.key("connection");
+  public static final Context.Key<Map<String, String>> HEADERS_KEY = Context.key("headers");
   public static final int DEFAULT_PAGE_SIZE = 100;
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
 
-  // TODO: Add a maximum size and add tuning options
-  private final Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache =
-      Caffeine.newBuilder().build();
-
   private final Persistence persistence;
-
-  @SuppressWarnings("unused")
-  private final Metrics metrics;
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
 
-  /** Used as key for the the local prepare cache. */
-  @Value.Immutable
-  interface PrepareInfo {
-
-    @Nullable
-    String keyspace();
-
-    @Nullable
-    String user();
-
-    String cql();
-  }
-
-  public GrpcService(Persistence persistence, Metrics metrics, ScheduledExecutorService executor) {
-    this(persistence, metrics, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
+  public GrpcService(Persistence persistence, ScheduledExecutorService executor) {
+    this(persistence, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
   }
 
   GrpcService(
-      Persistence persistence,
-      Metrics metrics,
-      ScheduledExecutorService executor,
-      int schemaAgreementRetries) {
+      Persistence persistence, ScheduledExecutorService executor, int schemaAgreementRetries) {
     this.persistence = persistence;
-    this.metrics = metrics;
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
-    assert this.metrics != null;
   }
 
   @Override
@@ -87,7 +58,6 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     new QueryHandler(
             query,
             CONNECTION_KEY.get(),
-            preparedCache,
             persistence,
             executor,
             schemaAgreementRetries,
@@ -97,8 +67,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
-    new BatchHandler(batch, CONNECTION_KEY.get(), preparedCache, persistence, responseObserver)
-        .handle();
+    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {

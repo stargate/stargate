@@ -10,7 +10,7 @@ import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customOptions = "customizePageSize")
-public class PaginationTest extends BaseOsgiIntegrationTest {
+public class PaginationTest extends BaseIntegrationTest {
 
   private static final String QUERY = "SELECT v FROM test WHERE k = ?";
   private static final String KEY = "test";

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
-import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Parameters;
@@ -40,7 +40,6 @@ import io.stargate.grpc.Utils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.ResultSet;
@@ -54,7 +53,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -62,7 +63,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class ExecuteQueryTest extends BaseGrpcServiceTest {
   @Test
-  public void simpleQuery() throws InvalidProtocolBufferException {
+  public void simpleQuery() {
     final String query = "SELECT release_version FROM system.local WHERE key = ?";
     final String releaseVersion = "4.0.0";
 
@@ -130,8 +131,6 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                 .build()); // No payload
 
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().hasData()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
   }
 
   @ParameterizedTest
@@ -213,8 +212,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
   @ParameterizedTest
   @MethodSource("columnMetadataValues")
   public void columnMetadata(
-      ResultMetadata resultMetadata, List<ColumnSpec> expected, boolean skipMetadata)
-      throws InvalidProtocolBufferException {
+      ResultMetadata resultMetadata, List<ColumnSpec> expected, boolean skipMetadata) {
     Prepared prepared = Utils.makePrepared();
 
     when(connection.prepare(anyString(), any(Parameters.class)))
@@ -239,8 +237,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                 .build());
 
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getColumnsList()).containsExactlyElementsOf(expected);
   }
 
@@ -318,11 +315,94 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
             .build(true));
   }
 
-  private void validateResponse(String releaseVersion, QueryOuterClass.Response response)
-      throws InvalidProtocolBufferException {
+  @Test
+  public void unhandledClientExceptionDuringPrepare() {
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenThrow(new UnhandledClientException(""));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
+  }
+
+  @Test
+  public void unhandledClientExceptionDuringExecute() {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenThrow(new UnhandledClientException(""));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
+  }
+
+  @Test
+  public void unhandledClientExceptionWrapped() {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .thenThrow(new CompletionException(new UnhandledClientException("")));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeQuery(
+                      Query.newBuilder()
+                          .setCql("INSERT INTO test (c1, c2) VALUE (1, 'a')")
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
+  }
+
+  private void validateResponse(String releaseVersion, QueryOuterClass.Response response) {
     assertThat(response.hasResultSet()).isTrue();
-    assertThat(response.getResultSet().getType()).isEqualTo(Payload.Type.CQL);
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValues(0).getString()).isEqualTo(releaseVersion);

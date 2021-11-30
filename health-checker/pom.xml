@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.39-SNAPSHOT</version>
+    <version>1.0.44-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
@@ -50,7 +50,6 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
-      <version>4.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -77,14 +76,6 @@
       <artifactId>validation-api</artifactId>
       <version>1.1.0.Final</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -135,6 +126,9 @@
             <Bundle-Activator>io.stargate.health.HealthCheckerActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
               org.osgi.framework,
               com.codahale.metrics,
               com.codahale.metrics.*,
@@ -165,14 +159,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>

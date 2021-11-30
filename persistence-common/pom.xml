@@ -4,12 +4,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.39-SNAPSHOT</version>
+    <version>1.0.44-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-common</artifactId>
   <properties>
-    <cassandra.version>3.11.8</cassandra.version>
+    <cassandra.version>3.11.9</cassandra.version>
   </properties>
   <dependencies>
     <dependency>

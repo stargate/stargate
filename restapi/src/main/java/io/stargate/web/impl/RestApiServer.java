@@ -29,7 +29,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
+import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
@@ -185,10 +185,9 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, RestApiActivator.MODULE_NAME);
-    environment.jersey().register(metricListener);
+    MetricsBinder metricsBinder =
+        new MetricsBinder(metrics, httpMetricsTagProvider, RestApiActivator.MODULE_NAME);
+    metricsBinder.register(environment.jersey());
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);

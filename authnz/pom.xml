@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.39-SNAPSHOT</version>
+    <version>1.0.44-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth</groupId>
   <artifactId>authnz</artifactId>
@@ -29,6 +29,9 @@
             </Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth</Bundle-SymbolicName>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
               org.osgi.framework,
               io.stargate.db,
               io.stargate.db.*,

@@ -71,7 +71,7 @@ public class UdtTest extends GrpcIntegrationTest {
                 queryParameters(keyspace),
                 Values.of("a")));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("a"));
@@ -110,7 +110,7 @@ public class UdtTest extends GrpcIntegrationTest {
                 queryParameters(keyspace),
                 Values.of("b")));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(1);
     assertThat(rs.getRows(0).getValuesCount()).isEqualTo(2);
     assertThat(rs.getRows(0).getValues(0)).isEqualTo(Values.of("b"));
@@ -180,7 +180,7 @@ public class UdtTest extends GrpcIntegrationTest {
             cqlQuery(
                 "SELECT id, address FROM users_with_address WHERE id = 1",
                 queryParameters(keyspace)));
-    ResultSet resultSet = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet resultSet = response.getResultSet();
     QueryOuterClass.UdtValue udtResult = resultSet.getRows(0).getValues(1).getUdt();
     assertThat(udtResult.getFieldsMap().get("street").getString()).isEqualTo("Long st");
     assertThat(udtResult.getFieldsMap().get("number").getInt()).isEqualTo(123);

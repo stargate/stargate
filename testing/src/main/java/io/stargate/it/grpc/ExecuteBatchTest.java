@@ -60,14 +60,14 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
 
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(Values.of("a"), Values.of(1)),
-                    cqlRow(Values.of("b"), Values.of(2)),
-                    cqlRow(Values.of("c"), Values.of(3)))));
+                    rowOf(Values.of("a"), Values.of(1)),
+                    rowOf(Values.of("b"), Values.of(2)),
+                    rowOf(Values.of("c"), Values.of(3)))));
   }
 
   @Test
@@ -102,14 +102,14 @@ public class ExecuteBatchTest extends GrpcIntegrationTest {
 
     response = stub.executeQuery(cqlQuery("SELECT * FROM ks1.tbl1"));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(Values.of("a"), Values.of(1)),
-                    cqlRow(Values.of("b"), Values.of(2)),
-                    cqlRow(Values.of("c"), Values.of(3)))));
+                    rowOf(Values.of("a"), Values.of(1)),
+                    rowOf(Values.of("b"), Values.of(2)),
+                    rowOf(Values.of("c"), Values.of(3)))));
 
     // Drop the keyspace to cause the existing prepared queries to be purged from the backend query
     // cache

@@ -16,7 +16,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -36,7 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE counter2 (k0 text PRIMARY KEY, c counter)",
       "CREATE TABLE counter3 (k0 text PRIMARY KEY, c counter)",
     })
-public class BatchStatementTest extends BaseOsgiIntegrationTest {
+public class BatchStatementTest extends BaseIntegrationTest {
 
   private static final int batchCount = 100;
 

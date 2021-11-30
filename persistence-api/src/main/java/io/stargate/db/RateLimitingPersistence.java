@@ -101,11 +101,6 @@ public class RateLimitingPersistence implements Persistence {
   }
 
   @Override
-  public void waitForSchemaAgreement() {
-    persistence.waitForSchemaAgreement();
-  }
-
-  @Override
   public Map<String, List<String>> cqlSupportedOptions() {
     return persistence.cqlSupportedOptions();
   }

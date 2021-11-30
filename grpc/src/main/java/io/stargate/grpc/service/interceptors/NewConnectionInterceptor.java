@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import javax.annotation.Nullable;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.immutables.value.Value;
 
 public class NewConnectionInterceptor implements ServerInterceptor {
@@ -75,22 +76,31 @@ public class NewConnectionInterceptor implements ServerInterceptor {
         return new NopListener<>();
       }
 
+      Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
       RequestInfo info =
           ImmutableRequestInfo.builder()
               .token(token)
-              .headers(convertAndFilterHeaders(headers))
+              .headers(stringHeaders)
               .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
               .build();
 
       Connection connection = connectionCache.get(info);
 
       Context context = Context.current();
-      context = context.withValue(GrpcService.CONNECTION_KEY, connection);
+      context =
+          context.withValues(
+              GrpcService.CONNECTION_KEY, connection, GrpcService.HEADERS_KEY, stringHeaders);
       return Contexts.interceptCall(context, call, headers, next);
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
+    } catch (Exception e) {
+      Throwable cause = e;
+      if (cause instanceof CompletionException) {
+        cause = e.getCause();
+      }
+      if (cause instanceof UnauthorizedException) {
         call.close(
             Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
+      } else if (cause instanceof UnhandledClientException) {
+        call.close(Status.UNAVAILABLE.withDescription(e.getMessage()).withCause(e), new Metadata());
       } else {
         call.close(
             Status.INTERNAL

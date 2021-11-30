@@ -218,4 +218,16 @@ public interface EventListenerWithChannelFilter extends EventListener {
   default void onMove(InetAddress endpoint, int port) {
     onMove(endpoint, port, null);
   }
+
+  /**
+   * This is an event from persistence to close any connections and resources for any clients that
+   * match the header filter predicate. This usually means that the persistence layer is unable to
+   * handle a client and this lets the transport layer know that its should close any connections to
+   * that client.
+   *
+   * @param headerFilter a predicate used to match affected clients.
+   */
+  default void onClose(Predicate<Map<String, String>> headerFilter) {
+    // No implementation by default when not required
+  }
 }

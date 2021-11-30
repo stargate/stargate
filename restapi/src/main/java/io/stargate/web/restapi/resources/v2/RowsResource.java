@@ -41,7 +41,6 @@ import io.stargate.web.restapi.dao.RestDB;
 import io.stargate.web.restapi.dao.RestDBFactory;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
-import io.stargate.web.restapi.models.Rows;
 import io.stargate.web.restapi.resources.ResourceUtils;
 import io.stargate.web.service.WhereParser;
 import io.swagger.annotations.Api;
@@ -272,10 +271,11 @@ public class RowsResource {
   @ApiOperation(
       value = "Retrieve all rows",
       notes = "Get all rows from a table.",
-      response = Rows.class)
+      response = GetResponseWrapper.class,
+      responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Rows.class),
+        @ApiResponse(code = 200, message = "OK", response = GetResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),

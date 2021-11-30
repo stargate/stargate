@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.39-SNAPSHOT</version>
+    <version>1.0.44-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
@@ -12,7 +12,7 @@
     <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
-      <version>4.0.0</version>
+      <version>4.0.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
@@ -61,7 +61,6 @@
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-      <version>2.8.5</version>
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -123,6 +122,9 @@
             <Bundle-Activator>io.stargate.cql.CqlActivator</Bundle-Activator>
             <!-- TODO [doug] do this the right way https://baptiste-wicht.com/posts/2010/03/bundle-non-osgi-dependencies-maven.html -->
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth,
@@ -156,14 +158,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>

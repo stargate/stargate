@@ -1,8 +1,8 @@
 package io.stargate.it.driver;
 
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.it.storage.StargateContainer;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateExtension;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +13,12 @@ public class DefaultContactPointResolver implements ContactPointResolver {
   public List<InetSocketAddress> resolve(ExtensionContext context) {
     StargateEnvironmentInfo stargate =
         (StargateEnvironmentInfo)
-            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateContainer.STORE_KEY);
+            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateExtension.STORE_KEY);
     if (stargate == null) {
       throw new IllegalStateException(
           String.format(
               "%s can only be used in conjunction with %s (make sure it is declared last)",
-              CqlSessionExtension.class.getSimpleName(), StargateContainer.class.getSimpleName()));
+              CqlSessionExtension.class.getSimpleName(), StargateExtension.class.getSimpleName()));
     }
     List<InetSocketAddress> contactPoints = new ArrayList<>();
     for (StargateConnectionInfo node : stargate.nodes()) {

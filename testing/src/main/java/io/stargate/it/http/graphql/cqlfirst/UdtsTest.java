@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -36,9 +36,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TYPE IF NOT EXISTS \"B\"(i int)",
       "CREATE TYPE IF NOT EXISTS \"A\"(b frozen<\"B\">)",
-      "CREATE TABLE IF NOT EXISTS \"Udts\"(a frozen<\"A\"> PRIMARY KEY, bs list<frozen<\"B\">>)"
+      "CREATE TABLE IF NOT EXISTS \"Udts\"(a frozen<\"A\"> PRIMARY KEY, bs list<frozen<\"B\">>)",
+      "CREATE TABLE IF NOT EXISTS \"Udts2\"(k int PRIMARY KEY, a \"A\")"
     })
-public class UdtsTest extends BaseOsgiIntegrationTest {
+public class UdtsTest extends BaseIntegrationTest {
 
   private static CqlFirstClient CLIENT;
 
@@ -78,5 +79,34 @@ public class UdtsTest extends BaseOsgiIntegrationTest {
     assertThat(JsonPath.<Integer>read(response, "$.Udts.values[0].a.b.i")).isEqualTo(1);
     assertThat(JsonPath.<Integer>read(response, "$.Udts.values[0].bs[0].i")).isEqualTo(2);
     assertThat(JsonPath.<Integer>read(response, "$.Udts.values[0].bs[1].i")).isEqualTo(3);
+  }
+
+  @Test
+  @DisplayName("Should insert null UDT")
+  public void nullUdtTest(@TestKeyspace CqlIdentifier keyspaceId) {
+    Map<String, Object> response =
+        CLIENT.executeDmlQuery(
+            keyspaceId,
+            "mutation {\n"
+                + "  insertUdts2(value: {\n"
+                + "    k: 1\n"
+                + "    a: null\n"
+                + "  }) {\n"
+                + "        applied\n"
+                + "    }\n"
+                + "}");
+    assertThat(JsonPath.<Boolean>read(response, "$.insertUdts2.applied")).isTrue();
+
+    response =
+        CLIENT.executeDmlQuery(
+            keyspaceId,
+            "{\n"
+                + "    Udts2(value: { k: 1 }) {\n"
+                + "        values {\n"
+                + "            a { b { i } }\n"
+                + "        }\n"
+                + "    }\n"
+                + "}");
+    assertThat(JsonPath.<Object>read(response, "$.Udts2.values[0].a")).isNull();
   }
 }

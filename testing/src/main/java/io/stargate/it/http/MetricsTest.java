@@ -19,7 +19,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
@@ -41,7 +41,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
-public class MetricsTest extends BaseOsgiIntegrationTest {
+public class MetricsTest extends BaseIntegrationTest {
 
   private static String host;
 
@@ -53,6 +53,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
     builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
     builder.putSystemProperties(
         "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
+    builder.putSystemProperties(
+        "stargate.metrics.http_counter_listener.ignore_http_tags_provider", "true");
   }
 
   @BeforeAll
@@ -81,12 +83,13 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
               String result =
                   RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-              List<String> lines =
+              // metered http request lines
+              List<String> meterLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests"))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
                       .collect(Collectors.toList());
 
-              assertThat(lines)
+              assertThat(meterLines)
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -95,7 +98,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/v1/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.95\""))
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -104,7 +108,26 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/v1/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.99\""));
+                              .contains("quantile=\"0.99\""))
+                  .doesNotContain("error");
+
+              // counted http request lines
+              List<String> counterLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(counterLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"restapi\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"/v1/keyspaces\"")
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .doesNotContain(
+                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
             });
   }
 
@@ -129,12 +152,12 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
               String result =
                   RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-              List<String> lines =
+              List<String> meteredLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests"))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
                       .collect(Collectors.toList());
 
-              assertThat(lines)
+              assertThat(meteredLines)
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -143,7 +166,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"NOT_FOUND\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.95\""))
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -152,7 +176,25 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"NOT_FOUND\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.99\""));
+                              .contains("quantile=\"0.99\"")
+                              .doesNotContain("error"));
+
+              List<String> countedLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(countedLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"docsapi\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"NOT_FOUND\"")
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .doesNotContain(
+                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
             });
   }
 
@@ -177,12 +219,12 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
               String result =
                   RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-              List<String> lines =
+              List<String> meteredLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests"))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
                       .collect(Collectors.toList());
 
-              assertThat(lines)
+              assertThat(meteredLines)
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -191,7 +233,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/graphql\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.95\""))
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -200,7 +243,25 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/graphql\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.99\""));
+                              .contains("quantile=\"0.99\"")
+                              .doesNotContain("error"));
+
+              List<String> countedLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(countedLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"graphqlapi\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"/graphql\"")
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .doesNotContain(
+                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
             });
   }
 
@@ -225,12 +286,12 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
               String result =
                   RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-              List<String> lines =
+              List<String> meteredLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests"))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
                       .collect(Collectors.toList());
 
-              assertThat(lines)
+              assertThat(meteredLines)
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -240,7 +301,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
-                              .contains("keyspaceName=\"someKeyspace\""))
+                              .contains("keyspaceName=\"someKeyspace\"")
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -250,7 +312,26 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\"")
-                              .contains("keyspaceName=\"someKeyspace\""));
+                              .contains("keyspaceName=\"someKeyspace\"")
+                              .doesNotContain("error"));
+
+              List<String> countedLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(countedLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"graphqlapi\"")
+                              .contains("keyspaceName=\"someKeyspace\"")
+                              .doesNotContain("method=\"POST\"")
+                              .doesNotContain("uri=\"/graphql/{keyspaceName}\"")
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .doesNotContain(
+                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
             });
   }
 
@@ -275,12 +356,12 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
               String result =
                   RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
-              List<String> lines =
+              List<String> meteredLines =
                   Arrays.stream(result.split(System.getProperty("line.separator")))
-                      .filter(line -> line.startsWith("http_server_requests"))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
                       .collect(Collectors.toList());
 
-              assertThat(lines)
+              assertThat(meteredLines)
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -289,7 +370,8 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/v1/auth\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.95\""))
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
@@ -298,7 +380,25 @@ public class MetricsTest extends BaseOsgiIntegrationTest {
                               .contains("uri=\"/v1/auth\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                              .contains("quantile=\"0.99\""));
+                              .contains("quantile=\"0.99\"")
+                              .doesNotContain("error"));
+
+              List<String> countedLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(countedLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"authapi\"")
+                              .doesNotContain("method=\"POST\"")
+                              .doesNotContain("uri=\"/v1/auth\"")
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .doesNotContain(
+                                  TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
             });
   }
 

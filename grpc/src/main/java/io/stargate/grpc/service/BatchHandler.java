@@ -15,11 +15,8 @@
  */
 package io.stargate.grpc.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.google.protobuf.Any;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
@@ -27,16 +24,11 @@ import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
-import io.stargate.db.Result.Prepared;
 import io.stargate.db.Statement;
-import io.stargate.grpc.payload.PayloadHandler;
-import io.stargate.grpc.payload.PayloadHandlers;
-import io.stargate.grpc.service.GrpcService.PrepareInfo;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.BatchQuery;
-import io.stargate.proto.QueryOuterClass.Payload;
 import io.stargate.proto.QueryOuterClass.Response;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -57,13 +49,20 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
       Math.max(Integer.getInteger("stargate.grpc.max_concurrent_prepares_for_batch", 1), 1);
 
+  private final String decoratedKeyspace;
+
   BatchHandler(
       Batch batch,
       Connection connection,
-      Cache<PrepareInfo, CompletionStage<Prepared>> preparedCache,
       Persistence persistence,
       StreamObserver<Response> responseObserver) {
-    super(batch, connection, preparedCache, persistence, responseObserver);
+    super(batch, connection, persistence, responseObserver);
+    BatchParameters batchParameters = batch.getParameters();
+    this.decoratedKeyspace =
+        batchParameters.hasKeyspace()
+            ? persistence.decorateKeyspaceName(
+                batchParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
+            : null;
   }
 
   @Override
@@ -71,21 +70,11 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
     if (message.getQueriesCount() == 0) {
       throw Status.INVALID_ARGUMENT.withDescription("No queries in batch").asException();
     }
-
-    Payload.Type type = message.getQueries(0).getValues().getType();
-    boolean allTypesMatch =
-        message.getQueriesList().stream().allMatch(v -> v.getValues().getType().equals(type));
-    if (!allTypesMatch) {
-      throw Status.INVALID_ARGUMENT
-          .withDescription(
-              "Types for all queries within batch must be the same, and equal to: " + type)
-          .asException();
-    }
   }
 
   @Override
-  protected CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
-    return new BatchPreparer().prepare(shouldInvalidate);
+  protected CompletionStage<BatchAndIdempotencyInfo> prepare() {
+    return new BatchPreparer().prepare();
   }
 
   @Override
@@ -113,11 +102,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
 
     if (result.kind == Result.Kind.Rows) {
       // all queries within a batch must have the same type
-      Payload.Type type = message.getQueries(0).getValues().getType();
-      PayloadHandler handler = PayloadHandlers.get(type);
       try {
-        Any data = handler.processResult((Result.Rows) result, message.getParameters());
-        responseBuilder.setResultSet(Payload.newBuilder().setType(type).setData(data));
+        responseBuilder.setResultSet(
+            ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
       } catch (Exception e) {
         throw new CompletionException(e);
       }
@@ -142,8 +129,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
             ? ConsistencyLevel.fromCode(parameters.getConsistency().getValue().getNumber())
             : GrpcService.DEFAULT_CONSISTENCY);
 
-    if (parameters.hasKeyspace()) {
-      builder.defaultKeyspace(parameters.getKeyspace().getValue());
+    if (decoratedKeyspace != null) {
+      builder.defaultKeyspace(decoratedKeyspace);
     }
 
     builder.serialConsistencyLevel(
@@ -186,17 +173,17 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
      *
      * @return A future which completes with an internal batch statement with all queries prepared.
      */
-    CompletionStage<BatchAndIdempotencyInfo> prepare(boolean shouldInvalidate) {
+    CompletionStage<BatchAndIdempotencyInfo> prepare() {
       int numToPrepare = Math.min(message.getQueriesCount(), MAX_CONCURRENT_PREPARES_FOR_BATCH);
       assert numToPrepare != 0;
       for (int i = 0; i < numToPrepare; ++i) {
-        next(shouldInvalidate);
+        next();
       }
       return future;
     }
 
     /** Asynchronously prepares the next query in the batch. */
-    private void next(boolean shouldInvalidate) {
+    private void next() {
       int index = this.queryIndex.getAndIncrement();
       // When there are no more queries to prepare then construct the batch with the prepared
       // statements and complete the future.
@@ -209,18 +196,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       }
 
       BatchQuery query = message.getQueries(index);
-      BatchParameters batchParameters = message.getParameters();
-
-      PrepareInfo prepareInfo =
-          ImmutablePrepareInfo.builder()
-              .keyspace(
-                  batchParameters.hasKeyspace() ? batchParameters.getKeyspace().getValue() : null)
-              .user(connection.loggedUser().map(AuthenticatedUser::name).orElse(null))
-              .cql(query.getCql())
-              .build();
 
       BatchHandler.this
-          .prepare(prepareInfo, shouldInvalidate)
+          .prepare(query.getCql(), decoratedKeyspace)
           .whenComplete(
               (prepared, t) -> {
                 if (t != null) {
@@ -230,9 +208,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
                     // if any statement in a batch is non idempotent, then all statements are non
                     // idempotent
                     isIdempotent.compareAndSet(true, prepared.isIdempotent);
-                    PayloadHandler handler = PayloadHandlers.get(query.getValues().getType());
-                    statements.add(bindValues(handler, prepared, query.getValues()));
-                    next(shouldInvalidate); // Prepare the next query in the batch
+                    statements.add(bindValues(prepared, query.getValues()));
+                    next(); // Prepare the next query in the batch
                   } catch (Throwable th) {
                     future.completeExceptionally(th);
                   }

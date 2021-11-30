@@ -1,5 +1,120 @@
 # Changelog
 
+## [v1.0.43](https://github.com/stargate/stargate/tree/v1.0.43) (2021-11-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.42...v1.0.43)
+
+**Closed issues:**
+
+- Add `byte\[\]` taking variant\(s\) in `ByteBufferUtils` for Base64 handling [\#1404](https://github.com/stargate/stargate/issues/1404)
+- Implement "addRow\(\)" for SGv2 prototype [\#1399](https://github.com/stargate/stargate/issues/1399)
+- Improve JWT documentation [\#1384](https://github.com/stargate/stargate/issues/1384)
+
+**Merged pull requests:**
+
+- Also export logback core from for persistence backends [\#1417](https://github.com/stargate/stargate/pull/1417) ([mpenick](https://github.com/mpenick))
+- Implement gRPC createTable operation [\#1411](https://github.com/stargate/stargate/pull/1411) ([olim7t](https://github.com/olim7t))
+- Centralize logging [\#1410](https://github.com/stargate/stargate/pull/1410) ([mpenick](https://github.com/mpenick))
+- Fix parameterized keyspace regression in the gRPC API [\#1408](https://github.com/stargate/stargate/pull/1408) ([mpenick](https://github.com/mpenick))
+- Fix \#1404: add/expose "byte\[\]" methods; remove legacy \(broken\) base64 handling workaround [\#1405](https://github.com/stargate/stargate/pull/1405) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1395](https://github.com/stargate/stargate/pull/1395) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.42](https://github.com/stargate/stargate/tree/v1.0.42) (2021-11-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.41...v1.0.42)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#1391](https://github.com/stargate/stargate/pull/1391) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Remove OSGI references from integration tests [\#1390](https://github.com/stargate/stargate/pull/1390) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.41](https://github.com/stargate/stargate/tree/v1.0.41) (2021-11-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.40...v1.0.41)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Closed issues:**
+
+- Incorrect documented return type for `RowsResource.getAllRows\(\)` [\#1378](https://github.com/stargate/stargate/issues/1378)
+- Incorrect tests in `RestApiv2Test`, "createTableMissingClustering\(\)", "createTableWithNullOptions\(\)" [\#1376](https://github.com/stargate/stargate/issues/1376)
+- Add read-me for the `metric-jersey` module [\#1312](https://github.com/stargate/stargate/issues/1312)
+
+**Merged pull requests:**
+
+- Add schema agreement check to persistence connection [\#1389](https://github.com/stargate/stargate/pull/1389) ([mpenick](https://github.com/mpenick))
+- Remove the unpack\(\) call from gRPC docs [\#1387](https://github.com/stargate/stargate/pull/1387) ([tomekl007](https://github.com/tomekl007))
+- GraphQL CQL-first: handle null values for complex types \(fixes \#1347\) [\#1380](https://github.com/stargate/stargate/pull/1380) ([olim7t](https://github.com/olim7t))
+- Fix \#1378: change Swagger annotations to indicate correct response type [\#1379](https://github.com/stargate/stargate/pull/1379) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1376 \(2 tests using wrong response types\) [\#1377](https://github.com/stargate/stargate/pull/1377) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unused `Any` import from gRPC proto file [\#1375](https://github.com/stargate/stargate/pull/1375) ([mpenick](https://github.com/mpenick))
+- Improve RestV2 tests for "getAllRows\(\)" end point [\#1374](https://github.com/stargate/stargate/pull/1374) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1373](https://github.com/stargate/stargate/pull/1373) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Return UNAVAILABLE for unhandled clients [\#1366](https://github.com/stargate/stargate/pull/1366) ([mpenick](https://github.com/mpenick))
+- closes \#1312: metric-jersey final refactoring and README [\#1364](https://github.com/stargate/stargate/pull/1364) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.40](https://github.com/stargate/stargate/tree/v1.0.40) (2021-10-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.39...v1.0.40)
+
+**Fixed bugs:**
+
+- Astra declines correct value of keyspace if the keyspace name is given in the query parameters [\#1317](https://github.com/stargate/stargate/issues/1317)
+- Error when creating a new UDF [\#1092](https://github.com/stargate/stargate/issues/1092)
+
+**Closed issues:**
+
+- Change `config-store-yaml` to use Caffeine cache instead of Guava [\#1255](https://github.com/stargate/stargate/issues/1255)
+- Stargate isn't able to load schema if Solr is used on a table [\#606](https://github.com/stargate/stargate/issues/606)
+
+**Merged pull requests:**
+
+- Add one missing piece wrt \#1255 for config-store-yaml/Caffeine dependency [\#1371](https://github.com/stargate/stargate/pull/1371) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove `Payload` type from the gRPC API [\#1370](https://github.com/stargate/stargate/pull/1370) ([mpenick](https://github.com/mpenick))
+- Support User-Defined Function creation \(fixes \#1092\) [\#1362](https://github.com/stargate/stargate/pull/1362) ([olim7t](https://github.com/olim7t))
+- Fix \#1255: replace Guava cache with Caffeine in config-store-yaml [\#1361](https://github.com/stargate/stargate/pull/1361) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Adapt CreateIndexTest for backends that default to SAI [\#1360](https://github.com/stargate/stargate/pull/1360) ([olim7t](https://github.com/olim7t))
+- Simplify "maven-surefire-plugin" setup by removing per-module config [\#1358](https://github.com/stargate/stargate/pull/1358) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add Jeff to codeowners [\#1355](https://github.com/stargate/stargate/pull/1355) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add empty implementation for DSE search indexes \(fixes \#606\) [\#1354](https://github.com/stargate/stargate/pull/1354) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1353](https://github.com/stargate/stargate/pull/1353) ([github-actions[bot]](https://github.com/apps/github-actions))
+- gRPC: decorate keyspace if provided in query parameters \(fixes \#1317\) [\#1351](https://github.com/stargate/stargate/pull/1351) ([olim7t](https://github.com/olim7t))
+- Rest api test factoring wrt json handling [\#1350](https://github.com/stargate/stargate/pull/1350) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- GraphQL schema-first: also pre-check where conditions on SAI indexes [\#1344](https://github.com/stargate/stargate/pull/1344) ([olim7t](https://github.com/olim7t))
+- Fix gRPC prepared cache invalidation [\#1335](https://github.com/stargate/stargate/pull/1335) ([mpenick](https://github.com/mpenick))
+- add request counter metrics possibility [\#1311](https://github.com/stargate/stargate/pull/1311) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.39](https://github.com/stargate/stargate/tree/v1.0.39) (2021-10-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.38...v1.0.39)
+
+**Closed issues:**
+
+- Trim "authnz" \(auth api\) package by removing slf4j dependency [\#1342](https://github.com/stargate/stargate/issues/1342)
+- "auth-api" refactoring to follow conventions \(from `restapi`\) [\#1339](https://github.com/stargate/stargate/issues/1339)
+- UDT fields messed up on writes through gRPC [\#1329](https://github.com/stargate/stargate/issues/1329)
+
+**Merged pull requests:**
+
+- Sync some missing \(4.0.0-\>4.0.1 / 3.11.8-\>3.11.9\) changes from \#1337, renaming [\#1346](https://github.com/stargate/stargate/pull/1346) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1342: remove trivial usage, dependency to slf4j/logback, by `authnz` to shrink jar/bundle by 95% [\#1343](https://github.com/stargate/stargate/pull/1343) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Revisit PROXY protocol rules [\#1341](https://github.com/stargate/stargate/pull/1341) ([olim7t](https://github.com/olim7t))
+- Fix \#1339: refactoring/renaming of "auth-api" classes, entities [\#1340](https://github.com/stargate/stargate/pull/1340) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add close event to `EventListenerWithChannelFilter` [\#1338](https://github.com/stargate/stargate/pull/1338) ([mpenick](https://github.com/mpenick))
+- Update C\*4.0 to latest \(4.0.1\) and 3.11 to next \(3.11.9\) [\#1337](https://github.com/stargate/stargate/pull/1337) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update dse-core 6.8.13 -\> 6.8.16; driver to bit newer as well [\#1334](https://github.com/stargate/stargate/pull/1334) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Insert/Delete query optimization [\#1333](https://github.com/stargate/stargate/pull/1333) ([EricBorczuk](https://github.com/EricBorczuk))
+- Enable GraphQL schema-first by default [\#1332](https://github.com/stargate/stargate/pull/1332) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1331](https://github.com/stargate/stargate/pull/1331) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Encode Udt field values in the correct order [\#1330](https://github.com/stargate/stargate/pull/1330) ([pkolaczk](https://github.com/pkolaczk))
+- Enforce DSE guardrails when using external auth [\#1304](https://github.com/stargate/stargate/pull/1304) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.38](https://github.com/stargate/stargate/tree/v1.0.38) (2021-10-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.37...v1.0.38)

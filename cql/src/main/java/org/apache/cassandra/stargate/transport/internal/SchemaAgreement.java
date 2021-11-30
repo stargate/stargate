@@ -24,14 +24,14 @@ public class SchemaAgreement {
   private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
   public static CompletableFuture<? extends Result> maybeWaitForAgreement(
-      CompletableFuture<? extends Result> future, Persistence persistence) {
+      CompletableFuture<? extends Result> future, Persistence.Connection connection) {
     return future.thenCompose(
         (result) -> {
           CompletableFuture<? extends Result> resultFuture = future;
           if (result.kind == Result.Kind.SchemaChange) {
             CompletableFuture<Result> agreementFuture = new CompletableFuture<Result>();
             EXECUTOR.schedule(
-                new SchemaAgreement.Handler(agreementFuture, result, persistence),
+                new SchemaAgreement.Handler(agreementFuture, result, connection),
                 SCHEMA_AGREEMENT_RETRIES_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
             resultFuture = agreementFuture;
@@ -42,20 +42,20 @@ public class SchemaAgreement {
 
   private static class Handler implements Runnable {
     private final CompletableFuture<Result> future;
-    private final Persistence persistence;
+    private final Persistence.Connection connection;
     private final Result result;
     private int count;
 
-    Handler(CompletableFuture<Result> future, Result result, Persistence persistence) {
+    Handler(CompletableFuture<Result> future, Result result, Persistence.Connection connection) {
       this.future = future;
-      this.persistence = persistence;
+      this.connection = connection;
       this.result = result;
       this.count = SCHEMA_AGREEMENT_WAIT_RETRIES;
     }
 
     @Override
     public void run() {
-      if (persistence.isInSchemaAgreement()) {
+      if (connection.isInSchemaAgreement()) {
         future.complete(result);
       } else if (count > 0) {
         count--;

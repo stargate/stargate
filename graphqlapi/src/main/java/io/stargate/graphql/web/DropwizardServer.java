@@ -37,7 +37,7 @@ import io.stargate.graphql.web.resources.DmlResource;
 import io.stargate.graphql.web.resources.FilesResource;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import io.stargate.graphql.web.resources.PlaygroundResource;
-import io.stargate.metrics.jersey.ResourceMetricsEventListener;
+import io.stargate.metrics.jersey.MetricsBinder;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -154,10 +154,9 @@ public class DropwizardServer extends Application<Configuration> {
 
     enableCors(environment);
 
-    ResourceMetricsEventListener metricListener =
-        new ResourceMetricsEventListener(
-            metrics, httpMetricsTagProvider, GraphqlActivator.MODULE_NAME);
-    environment.jersey().register(metricListener);
+    MetricsBinder metricsBinder =
+        new MetricsBinder(metrics, httpMetricsTagProvider, GraphqlActivator.MODULE_NAME);
+    metricsBinder.register(environment.jersey());
 
     environment
         .lifecycle()

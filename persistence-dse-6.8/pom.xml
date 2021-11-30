@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.39-SNAPSHOT</version>
+    <version>1.0.44-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
@@ -85,6 +85,15 @@
           <artifactId>azure-storage-blob</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <!--
+      dse-java-driver-core is a transitive dependency of dse-core, but if we don't redeclare it
+      explicitly then for some reason Stargate can't gossip with peers in integration tests.
+    -->
+    <dependency>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-java-driver-core</artifactId>
+      <version>1.10.0-dse+20210424</version>
     </dependency>
     <dependency>
       <groupId>com.datastax.dse</groupId>
@@ -179,12 +188,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-      <version>1.10.0-dse+20210424</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
@@ -214,18 +217,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <dependencies>
-          <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-surefire-provider</artifactId>
-            <version>1.3.2</version>
-          </dependency>
-          <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -320,6 +311,15 @@
             <Bundle-SymbolicName>io.stargate.db.dse</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
+              ch.qos.logback.classic,
+              ch.qos.logback.classic.helpers,
+              ch.qos.logback.classic.spi,
+              ch.qos.logback.core,
+              ch.qos.logback.core.helpers,
+              ch.qos.logback.core.spi,
               org.osgi.framework,
               io.stargate.core.*,
               io.stargate.auth.*,

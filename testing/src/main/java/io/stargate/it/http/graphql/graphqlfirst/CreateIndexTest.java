@@ -16,6 +16,7 @@
 package io.stargate.it.http.graphql.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -35,6 +36,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 public class CreateIndexTest extends GraphqlFirstTestBase {
+
+  private static final String SAI_INDEX_CLASS_NAME =
+      "org.apache.cassandra.index.sai.StorageAttachedIndex";
 
   private static GraphqlFirstClient CLIENT;
   private static final CqlIdentifier USER_TABLE_ID = CqlIdentifier.fromInternal("User");
@@ -66,9 +70,7 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
     IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
     assertThat(index.getTarget()).isEqualTo("name");
-    assertThat(index.getKind()).isEqualTo(IndexKind.COMPOSITES);
-    assertThat(index.getClassName()).isEmpty();
-    assertThat(index.getOptions()).hasSize(1).containsEntry("target", "name");
+    assertDefaultOrSai(index, "name");
   }
 
   @Test
@@ -85,10 +87,7 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
     CqlIdentifier indexId = CqlIdentifier.fromInternal("myIndex");
     IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
-    assertThat(index.getTarget()).isEqualTo("name");
-    assertThat(index.getKind()).isEqualTo(IndexKind.COMPOSITES);
-    assertThat(index.getClassName()).isEmpty();
-    assertThat(index.getOptions()).hasSize(1).containsEntry("target", "name");
+    assertDefaultOrSai(index, "name");
   }
 
   @Test
@@ -133,10 +132,7 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
     CqlIdentifier indexId = CqlIdentifier.fromInternal("User_names_idx");
     IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
-    assertThat(index.getTarget()).isEqualTo("values(names)");
-    assertThat(index.getKind()).isEqualTo(IndexKind.COMPOSITES);
-    assertThat(index.getClassName()).isEmpty();
-    assertThat(index.getOptions()).hasSize(1).containsEntry("target", "values(names)");
+    assertDefaultOrSai(index, "values(names)");
   }
 
   @Test
@@ -174,10 +170,7 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
     IndexMetadata index =
         deploySchemaAndGetIndex(keyspaceId, version1, newSchema, indexId, session);
 
-    assertThat(index.getTarget()).isEqualTo("name");
-    assertThat(index.getKind()).isEqualTo(IndexKind.COMPOSITES);
-    assertThat(index.getClassName()).isEmpty();
-    assertThat(index.getOptions()).hasSize(1).containsEntry("target", "name");
+    assertDefaultOrSai(index, "name");
   }
 
   private IndexMetadata deploySchemaAndGetIndex(
@@ -204,5 +197,26 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
               return t.getIndex(indexId);
             })
         .orElseThrow(AssertionError::new);
+  }
+
+  // Some storage backends default to SAI instead of regular secondary when no class name is
+  // specified. Handle both so that the test can run everywhere.
+  private void assertDefaultOrSai(IndexMetadata index, String expectedTarget) {
+    assertThat(index.getTarget()).isEqualTo(expectedTarget);
+    switch (index.getKind()) {
+      case COMPOSITES:
+        assertThat(index.getClassName()).isEmpty();
+        assertThat(index.getOptions()).hasSize(1).containsEntry("target", expectedTarget);
+        break;
+      case CUSTOM:
+        assertThat(index.getClassName()).contains(SAI_INDEX_CLASS_NAME);
+        assertThat(index.getOptions())
+            .hasSize(2)
+            .containsEntry("target", expectedTarget)
+            .containsEntry("class_name", SAI_INDEX_CLASS_NAME);
+        break;
+      default:
+        fail("Unexpected index kind %s", index.getKind());
+    }
   }
 }

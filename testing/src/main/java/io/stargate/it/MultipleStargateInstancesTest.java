@@ -44,7 +44,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     customOptions = "configureDriverMetrics",
     initQueries = "CREATE TABLE IF NOT EXISTS test (k int, cc int, v int, PRIMARY KEY(k, cc))")
-public class MultipleStargateInstancesTest extends BaseOsgiIntegrationTest {
+public class MultipleStargateInstancesTest extends BaseIntegrationTest {
 
   public static void configureDriverMetrics(OptionsMap options) {
     options.put(

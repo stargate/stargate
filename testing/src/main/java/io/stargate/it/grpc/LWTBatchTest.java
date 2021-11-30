@@ -60,12 +60,12 @@ public class LWTBatchTest extends GrpcIntegrationTest {
 
     response = stub.executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
     assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    cqlRow(Values.of("a"), Values.of(1)), cqlRow(Values.of("b"), Values.of(2)))));
+                    rowOf(Values.of("a"), Values.of(1)), rowOf(Values.of("b"), Values.of(2)))));
 
     // when batch insert with LWTs
     response =
@@ -80,7 +80,7 @@ public class LWTBatchTest extends GrpcIntegrationTest {
 
     // then response should contain one record
     assertThat(response).isNotNull();
-    ResultSet resultSet = response.getResultSet().getData().unpack(ResultSet.class);
+    ResultSet resultSet = response.getResultSet();
     QueryOuterClass.Row row = resultSet.getRows(0);
     boolean applied = row.getValues(0).getBoolean();
     assertThat(applied).isFalse();
