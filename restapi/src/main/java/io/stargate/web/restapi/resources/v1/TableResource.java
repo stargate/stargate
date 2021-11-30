@@ -236,10 +236,10 @@ public class TableResource {
   @ApiOperation(
       value = "Return a table",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Table.class)
+      response = TableResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
