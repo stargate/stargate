@@ -21,7 +21,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.query.TypedValue;
-import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -47,7 +46,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
 
   private final Persistence persistence;
-  private final QueryBuilder queryBuilder;
+  private final TypedValue.Codec valueCodec;
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
@@ -59,11 +58,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   GrpcService(
       Persistence persistence, ScheduledExecutorService executor, int schemaAgreementRetries) {
     this.persistence = persistence;
-    // Note that, due to executor being null, the returned queries are not executable. This is only
-    // intended to construct CQL query strings.
-    this.queryBuilder =
-        new QueryBuilder(
-            persistence.schema(), new TypedValue.Codec(ProtocolVersion.CURRENT, persistence), null);
+    this.valueCodec = new TypedValue.Codec(ProtocolVersion.CURRENT, persistence);
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
   }
@@ -95,7 +90,7 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
             createTable,
             CONNECTION_KEY.get(),
             persistence,
-            queryBuilder,
+            valueCodec,
             executor,
             schemaAgreementRetries,
             responseObserver)
