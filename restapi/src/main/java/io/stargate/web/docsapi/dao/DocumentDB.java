@@ -151,6 +151,13 @@ public class DocumentDB {
       throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
     }
 
+    // if table exists, do nothing
+    Table table = ks.table(tableName);
+    if (table != null) {
+      return false;
+    }
+
+    // otherwise, check that the name is  valid
     if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
       String message =
           String.format(
@@ -159,8 +166,7 @@ public class DocumentDB {
       throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_NAME_INVALID, message);
     }
 
-    if (ks.table(tableName) != null) return false;
-
+    // and create the table
     try {
       List<Column> columns = new ArrayList<>();
       columns.add(Column.create("key", Kind.PartitionKey, Type.Text));
