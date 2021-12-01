@@ -198,19 +198,21 @@ public class DocumentService {
       Map<String, String> headers,
       ExecutionContext context)
       throws UnauthorizedException, ProcessingException {
-    Integer ttlValue;
-    try {
-      ttlValue = Integer.parseInt(ttl);
-      if (ttlValue <= 0) {
-        throw new ErrorCodeRuntimeException(
-            ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
+    Integer ttlValue = null;
+    if (ttl != null) {
+      try {
+        ttlValue = Integer.parseInt(ttl);
+        if (ttlValue <= 0) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
+        }
+      } catch (NumberFormatException e) {
+        if (!ttl.equals("auto")) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
+        }
+        ttlValue = determineDocumentTtl(authToken, keyspace, collection, id, dbFactory, headers);
       }
-    } catch (NumberFormatException e) {
-      if (!ttl.equals("auto")) {
-        throw new ErrorCodeRuntimeException(
-            ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
-      }
-      ttlValue = determineDocumentTtl(authToken, keyspace, collection, id, dbFactory, headers);
     }
 
     putAtPath(

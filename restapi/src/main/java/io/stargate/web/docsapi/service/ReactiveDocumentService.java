@@ -681,10 +681,17 @@ public class ReactiveDocumentService {
       List<String> pathString,
       Integer ttl,
       ExecutionContext context) {
+    Integer ttlValue;
+    if (ttl == null) {
+      ttlValue = db.getTtlForDocument(keyspace, collection, id);
+    } else {
+      ttlValue = ttl;
+    }
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
         .map(
             jsonArray -> {
-              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, ttl, context);
+              writeNewArrayState(
+                  db, keyspace, collection, id, jsonArray, pathString, ttlValue, context);
               return jsonArray;
             });
   }
@@ -697,6 +704,13 @@ public class ReactiveDocumentService {
       List<String> pathString,
       Integer ttl,
       ExecutionContext context) {
+    Integer ttlValue;
+    if (ttl == null) {
+      ttlValue = db.getTtlForDocument(keyspace, collection, id);
+    } else {
+      ttlValue = ttl;
+    }
+
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
         .map(
             arrayAndValue -> {
@@ -707,7 +721,7 @@ public class ReactiveDocumentService {
                   id,
                   arrayAndValue.getValue0(),
                   pathString,
-                  ttl,
+                  ttlValue,
                   context);
               return arrayAndValue.getValue1();
             });
