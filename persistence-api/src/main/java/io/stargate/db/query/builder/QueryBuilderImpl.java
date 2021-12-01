@@ -1683,6 +1683,14 @@ public class QueryBuilderImpl {
       return function(columnName, alias, "WRITETIME");
     }
 
+    public static FunctionCall ttl(String columnName) {
+      return ttl(columnName, null);
+    }
+
+    public static FunctionCall ttl(String columnName, String alias) {
+      return function(columnName, alias, "TTL");
+    }
+
     public void setAlias(String alias) {
       this.alias = alias;
     }

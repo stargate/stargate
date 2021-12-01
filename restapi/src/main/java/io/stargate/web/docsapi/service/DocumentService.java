@@ -172,6 +172,62 @@ public class DocumentService {
     return idsWritten;
   }
 
+  private Integer determineDocumentTtl(
+      String authToken,
+      String keyspace,
+      String collection,
+      String id,
+      DocumentDBFactory dbFactory,
+      Map<String, String> headers)
+      throws UnauthorizedException {
+    DocumentDB db = dbFactory.getDocDBForToken(authToken, headers);
+    return db.getTtlForDocument(keyspace, collection, id);
+  }
+
+  public void putAtPath(
+      String authToken,
+      String keyspace,
+      String collection,
+      String id,
+      String payload,
+      List<PathSegment> path,
+      String ttl,
+      boolean patching,
+      DocumentDBFactory dbFactory,
+      boolean isJson,
+      Map<String, String> headers,
+      ExecutionContext context)
+      throws UnauthorizedException, ProcessingException {
+    Integer ttlValue;
+    try {
+      ttlValue = Integer.parseInt(ttl);
+      if (ttlValue <= 0) {
+        throw new ErrorCodeRuntimeException(
+            ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
+      }
+    } catch (NumberFormatException e) {
+      if (!ttl.equals("auto")) {
+        throw new ErrorCodeRuntimeException(
+            ErrorCode.DOCS_API_INVALID_TTL, "TTL must be a positive integer, or 'auto'");
+      }
+      ttlValue = determineDocumentTtl(authToken, keyspace, collection, id, dbFactory, headers);
+    }
+
+    putAtPath(
+        authToken,
+        keyspace,
+        collection,
+        id,
+        payload,
+        path,
+        ttlValue,
+        patching,
+        dbFactory,
+        isJson,
+        headers,
+        context);
+  }
+
   public void putAtPath(
       String authToken,
       String keyspace,

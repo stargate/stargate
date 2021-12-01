@@ -378,6 +378,31 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testInvalidTtl() throws IOException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    RestUtils.put(authToken, collectionPath + "/1?ttl=-1", obj1.toString(), 400);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=otto", obj2.toString(), 400);
+    RestUtils.put(authToken, collectionPath + "/1?ttl=auto", obj2.toString(), 404);
+  }
+
+  @Test
+  public void testPatchWithAutoTtl() throws IOException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    RestUtils.put(authToken, collectionPath + "/1?ttl=5", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=auto", obj2.toString(), 200);
+
+    Awaitility.await()
+        .atLeast(4000, TimeUnit.MILLISECONDS)
+        .untilAsserted(
+            () -> {
+              // After the TTL is up, obj1 should be gone, with no remnants
+              RestUtils.get(authToken, collectionPath + "/1?raw=true", 404);
+            });
+  }
+
+  @Test
   public void testWeirdButAllowedKeys() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{ \"$\": \"weird but allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);

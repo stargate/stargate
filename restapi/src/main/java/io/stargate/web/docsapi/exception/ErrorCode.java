@@ -52,6 +52,7 @@ public enum ErrorCode {
       "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names."),
 
   DOCS_API_INVALID_BUILTIN_FUNCTION(Response.Status.BAD_REQUEST, "Invalid Built-In function name."),
+  DOCS_API_INVALID_TTL(Response.Status.BAD_REQUEST, "TTL must be a positive integer, or 'auto'"),
 
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,

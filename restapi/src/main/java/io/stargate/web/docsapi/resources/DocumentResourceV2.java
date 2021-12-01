@@ -373,11 +373,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to put a time-to-live on the document in the data store",
+              value =
+                  "Include this to put a time-to-live on the document in the data store; use 'auto' to make the TTL match that of the parent document.",
               required = false)
           @QueryParam("ttl")
-          @Min(value = 1, message = "TTL value must be a positive integer.")
-          Integer ttl,
+          String ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -539,11 +539,11 @@ public class DocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to put a time-to-live on the document in the data store",
+              value =
+                  "Include this to put a time-to-live on the document in the data store; use 'auto' to make the TTL match that of the parent document.",
               required = false)
           @QueryParam("ttl")
-          @Min(value = 1, message = "TTL value must be a positive integer.")
-          Integer ttl,
+          String ttl,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
