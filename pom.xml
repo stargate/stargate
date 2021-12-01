@@ -636,6 +636,11 @@
         <artifactId>javax.servlet-api</artifactId>
         <version>4.0.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>1.33</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <repositories>
