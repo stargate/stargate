@@ -1,7 +1,9 @@
 package io.grpc.netty.shaded.io.grpc.netty;
 
+import io.grpc.internal.SharedResourcePool;
 import io.grpc.netty.shaded.io.netty.channel.Channel;
 import io.grpc.netty.shaded.io.netty.channel.ChannelFactory;
+import io.grpc.netty.shaded.io.netty.channel.EventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.ServerChannel;
 import io.grpc.netty.shaded.io.netty.channel.group.ChannelGroup;
 import io.grpc.netty.shaded.io.netty.channel.group.DefaultChannelGroup;
@@ -25,6 +27,18 @@ public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
 
   public CustomChannelFactory() {
     this.channelFactory = Utils.DEFAULT_SERVER_CHANNEL_FACTORY;
+  }
+
+  public static EventLoopGroup worker() {
+    SharedResourcePool<EventLoopGroup> group =
+        SharedResourcePool.forResource(Utils.DEFAULT_WORKER_EVENT_LOOP_GROUP);
+    return group.getObject();
+  }
+
+  public static EventLoopGroup boss() {
+    SharedResourcePool<EventLoopGroup> group =
+        SharedResourcePool.forResource(Utils.DEFAULT_BOSS_EVENT_LOOP_GROUP);
+    return group.getObject();
   }
 
   @Override

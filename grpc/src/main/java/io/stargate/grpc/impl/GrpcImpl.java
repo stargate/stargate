@@ -18,7 +18,6 @@ package io.stargate.grpc.impl;
 import io.grpc.Server;
 import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.CustomChannelFactory;
-import io.grpc.netty.shaded.io.grpc.netty.CustomEventLoopGroup;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
@@ -75,14 +74,9 @@ public class GrpcImpl {
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
-            // We only want to pass a customChannelFactory.
-            // However, we also need to provide custom worker and boss groups if the ChannelFactory
-            // is provided.
-            // Otherwise, it will throw: All of BossEventLoopGroup, WorkerEventLoopGroup and
-            // ChannelType should be provided or neither should be
             .channelFactory(customChannelFactory)
-            .workerEventLoopGroup(CustomEventLoopGroup.worker())
-            .bossEventLoopGroup(CustomEventLoopGroup.boss())
+            .workerEventLoopGroup(CustomChannelFactory.worker())
+            .bossEventLoopGroup(CustomChannelFactory.boss())
             .build();
 
     persistence.registerEventListener(new EventNotifier(customChannelFactory));
