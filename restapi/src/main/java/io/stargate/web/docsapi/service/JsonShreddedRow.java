@@ -57,7 +57,7 @@ public interface JsonShreddedRow {
   @Nullable
   Double getDoubleValue();
 
-  // booleans can be int or bools
+  // booleans can be int or bools, storage should handle
   @Nullable
-  Object getBooleanValue();
+  Boolean getBooleanValue();
 }

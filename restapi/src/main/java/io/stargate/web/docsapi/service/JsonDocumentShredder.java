@@ -42,10 +42,10 @@ public class JsonDocumentShredder {
   }
 
   public List<JsonShreddedRow> shred(
-      String payload, String documentId, List<String> subDocumentPath, boolean numericBooleans) {
+      String payload, String documentId, List<String> subDocumentPath) {
     try {
       JsonNode node = objectMapper.readTree(payload);
-      return shred(node, documentId, subDocumentPath, numericBooleans);
+      return shred(node, documentId, subDocumentPath);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE,
@@ -55,7 +55,7 @@ public class JsonDocumentShredder {
   }
 
   public List<JsonShreddedRow> shred(
-      JsonNode node, String documentId, List<String> subDocumentPath, boolean numericBooleans) {
+      JsonNode node, String documentId, List<String> subDocumentPath) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {
       checkRoot(node);
@@ -75,7 +75,7 @@ public class JsonDocumentShredder {
                 .addAllPath(subPathsEscaped);
 
     List<JsonShreddedRow> result = new ArrayList<>();
-    processNode(node, rowBuilder, numericBooleans, result);
+    processNode(node, rowBuilder, result);
     return result;
   }
 
@@ -98,21 +98,19 @@ public class JsonDocumentShredder {
   private void processNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      boolean numericBooleans,
       List<JsonShreddedRow> result) {
     if (node.isArray()) {
-      processArrayNode(node, rowBuilder, numericBooleans, result);
+      processArrayNode(node, rowBuilder, result);
     } else if (node.isObject()) {
-      processObjectNode(node, rowBuilder, numericBooleans, result);
+      processObjectNode(node, rowBuilder, result);
     } else {
-      processValueNode(node, rowBuilder, numericBooleans, result);
+      processValueNode(node, rowBuilder, result);
     }
   }
 
   private void processArrayNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      boolean numericBooleans,
       List<JsonShreddedRow> result) {
     // empty array, simply create a reference to empty node and return
     if (node.isEmpty()) {
@@ -122,14 +120,14 @@ public class JsonDocumentShredder {
       return;
     }
 
+    // make sure we are not overflowing the array
+    if (node.size() > config.getMaxArrayLength()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
+    }
+
     // otherwise, iterate all nodes
     int idx = 0;
     for (JsonNode inner : node) {
-      // make sure we didn't exceed the maximum array length
-      if (idx >= config.getMaxArrayLength()) {
-        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED);
-      }
-
       // convert the array index into path
       // then create new next row builder
       String arrayPath = "[" + DocsApiUtils.leftPadTo6(String.valueOf(idx)) + "]";
@@ -137,7 +135,7 @@ public class JsonDocumentShredder {
           () -> rowBuilder.get().addPath(arrayPath);
 
       // process inner node and increase the index
-      processNode(inner, nextRowBuilder, numericBooleans, result);
+      processNode(inner, nextRowBuilder, result);
       idx++;
     }
   }
@@ -145,7 +143,6 @@ public class JsonDocumentShredder {
   private void processObjectNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      boolean numericBooleans,
       List<JsonShreddedRow> result) {
     // empty object, simply create a reference to empty node and return
     if (node.isEmpty()) {
@@ -177,20 +174,19 @@ public class JsonDocumentShredder {
                   () -> rowBuilder.get().addPath(fieldPath);
 
               // process inner node and increase the index
-              processNode(field.getValue(), nextRowBuilder, numericBooleans, result);
+              processNode(field.getValue(), nextRowBuilder, result);
             });
   }
 
   private void processValueNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      boolean numericBooleans,
       List<JsonShreddedRow> result) {
     ImmutableJsonShreddedRow.Builder builder = rowBuilder.get();
 
     // depending on the value type set values
     if (node.isBoolean()) {
-      builder.booleanValue(convertToBackendBooleanValue(node.asBoolean(), numericBooleans));
+      builder.booleanValue(node.asBoolean());
     } else if (node.isNumber()) {
       builder.doubleValue(node.asDouble());
     } else if (!node.isNull()) {
@@ -200,12 +196,5 @@ public class JsonDocumentShredder {
     // build and add to the results
     ImmutableJsonShreddedRow row = builder.build();
     result.add(row);
-  }
-
-  private Object convertToBackendBooleanValue(boolean value, boolean numericBooleans) {
-    if (numericBooleans) {
-      return value ? 1 : 0;
-    }
-    return value;
   }
 }
