@@ -32,7 +32,6 @@ import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -62,17 +61,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void primitive() throws JsonProcessingException {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       JsonNode payload = objectMapper.readTree("22");
 
-      List<JsonShreddedRow> result =
-          shredder.shred(payload, key, Collections.singletonList("field"));
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.singletonList("field"));
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isNull();
@@ -83,11 +79,9 @@ class JsonDocumentShredderTest {
 
     @Test
     public void primitiveRoot() throws JsonProcessingException {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       JsonNode payload = objectMapper.readTree("22");
 
-      Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList()));
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -96,16 +90,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void simpleObjectStringValue() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo("text");
@@ -116,16 +108,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void simpleObjectNumericValue() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", 22);
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isNull();
@@ -136,16 +126,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void simpleObjectBooleanValue() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", true);
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isNull();
@@ -156,16 +144,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void simpleObjectNullValue() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().putNull("field");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isNull();
@@ -176,17 +162,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void emptyObject() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode();
 
-      List<JsonShreddedRow> result =
-          shredder.shred(payload, key, Collections.singletonList("path"));
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.singletonList("path"));
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("path");
                 assertThat(row.getLeaf()).isEqualTo("path");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_OBJECT_MARKER);
@@ -197,11 +180,9 @@ class JsonDocumentShredderTest {
 
     @Test
     public void emptyObjectRoot() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode();
 
-      Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList()));
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -210,17 +191,15 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withEmptyObject() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload =
           objectMapper.createObjectNode().set("field", objectMapper.createObjectNode());
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_OBJECT_MARKER);
@@ -231,20 +210,18 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withNestedObject() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode n1 = objectMapper.createObjectNode().put("key1", "value1");
       ObjectNode n2 = objectMapper.createObjectNode().put("key2", 44.22d);
       ObjectNode payload = objectMapper.createObjectNode();
       payload.set("n1", n1);
       payload.set("n2", n2);
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .hasSize(2)
           .anySatisfy(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("n1", "key1");
                 assertThat(row.getLeaf()).isEqualTo("key1");
                 assertThat(row.getStringValue()).isEqualTo("value1");
@@ -253,7 +230,6 @@ class JsonDocumentShredderTest {
               })
           .anySatisfy(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("n2", "key2");
                 assertThat(row.getLeaf()).isEqualTo("key2");
                 assertThat(row.getStringValue()).isNull();
@@ -264,17 +240,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void emptyArray() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ArrayNode payload = objectMapper.createArrayNode();
 
-      List<JsonShreddedRow> result =
-          shredder.shred(payload, key, Collections.singletonList("path"));
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.singletonList("path"));
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("path");
                 assertThat(row.getLeaf()).isEqualTo("path");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_ARRAY_MARKER);
@@ -285,11 +258,9 @@ class JsonDocumentShredderTest {
 
     @Test
     public void emptyArrayRoot() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ArrayNode payload = objectMapper.createArrayNode();
 
-      Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList()));
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -298,17 +269,15 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withEmptyArray() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload =
           objectMapper.createObjectNode().set("field", objectMapper.createArrayNode());
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo(DocsApiConstants.EMPTY_ARRAY_MARKER);
@@ -319,19 +288,17 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withArrayElements() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload =
           objectMapper
               .createObjectNode()
               .set("field", objectMapper.createArrayNode().add("first").add("second"));
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .hasSize(2)
           .anySatisfy(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field", "[000000]");
                 assertThat(row.getLeaf()).isEqualTo("[000000]");
                 assertThat(row.getStringValue()).isEqualTo("first");
@@ -340,7 +307,6 @@ class JsonDocumentShredderTest {
               })
           .anySatisfy(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("field", "[000001]");
                 assertThat(row.getLeaf()).isEqualTo("[000001]");
                 assertThat(row.getStringValue()).isEqualTo("second");
@@ -351,14 +317,13 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withArrayOverflow() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
+
       ObjectNode payload =
           objectMapper
               .createObjectNode()
               .set("field", objectMapper.createArrayNode().add("first").add("second").add("third"));
 
-      Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList()));
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -368,16 +333,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withEscapedFields() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("period\\.", "text");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Collections.emptyList());
+      List<JsonShreddedRow> result = shredder.shred(payload, Collections.emptyList());
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("period.");
                 assertThat(row.getLeaf()).isEqualTo("period.");
                 assertThat(row.getStringValue()).isEqualTo("text");
@@ -388,11 +351,9 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withInvalidFields() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("period.", "text");
 
-      Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Collections.emptyList()));
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -401,16 +362,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withPrependPath() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Arrays.asList("one", "two"));
+      List<JsonShreddedRow> result = shredder.shred(payload, Arrays.asList("one", "two"));
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("one", "two", "field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo("text");
@@ -421,16 +380,14 @@ class JsonDocumentShredderTest {
 
     @Test
     public void withEscapedPrependPath() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
 
-      List<JsonShreddedRow> result = shredder.shred(payload, key, Arrays.asList("one\\\\."));
+      List<JsonShreddedRow> result = shredder.shred(payload, Arrays.asList("one\\\\."));
 
       assertThat(result)
           .singleElement()
           .satisfies(
               row -> {
-                assertThat(row.getKey()).isEqualTo(key);
                 assertThat(row.getPath()).containsExactly("one\\.", "field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo("text");
@@ -441,11 +398,10 @@ class JsonDocumentShredderTest {
 
     @Test
     public void maxDepthExceeded() {
-      String key = RandomStringUtils.randomAlphanumeric(16);
       ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
 
       Throwable result =
-          catchThrowable(() -> shredder.shred(payload, key, Arrays.asList("one", "two", "three")));
+          catchThrowable(() -> shredder.shred(payload, Arrays.asList("one", "two", "three")));
 
       assertThat(result)
           .isInstanceOf(ErrorCodeRuntimeException.class)

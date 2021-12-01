@@ -41,11 +41,10 @@ public class JsonDocumentShredder {
     this.objectMapper = objectMapper;
   }
 
-  public List<JsonShreddedRow> shred(
-      String payload, String documentId, List<String> subDocumentPath) {
+  public List<JsonShreddedRow> shred(String payload, List<String> subDocumentPath) {
     try {
       JsonNode node = objectMapper.readTree(payload);
-      return shred(node, documentId, subDocumentPath);
+      return shred(node, subDocumentPath);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE,
@@ -54,8 +53,7 @@ public class JsonDocumentShredder {
     }
   }
 
-  public List<JsonShreddedRow> shred(
-      JsonNode node, String documentId, List<String> subDocumentPath) {
+  public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {
       checkRoot(node);
@@ -70,7 +68,6 @@ public class JsonDocumentShredder {
     Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder =
         () ->
             ImmutableJsonShreddedRow.builder()
-                .key(documentId)
                 .maxDepth(config.getMaxDepth())
                 .addAllPath(subPathsEscaped);
 

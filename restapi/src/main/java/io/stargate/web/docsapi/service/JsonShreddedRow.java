@@ -35,8 +35,6 @@ public interface JsonShreddedRow {
     }
   }
 
-  String getKey();
-
   int getMaxDepth();
 
   List<String> getPath();
