@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.service.write;
 
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.core.SingleSource;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
@@ -68,7 +69,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
-   * @param b
+   * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -124,7 +125,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
-   * @param b
+   * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -191,17 +192,18 @@ public class DocumentWriteService {
   private SingleSource<ResultSet> executeBatch(
       DataStore dataStore, List<BoundQuery> boundQueries, ExecutionContext context) {
     return RxUtils.singleFromFuture(
-        () -> {
-          // trace queries in context
-          boundQueries.forEach(context::traceDeferredDml);
+            () -> {
+              // trace queries in context
+              boundQueries.forEach(context::traceDeferredDml);
 
-          // then execute batch
-          boolean loggedBatch = useLoggedBatches.orElse(dataStore.supportsLoggedBatches());
-          if (loggedBatch) {
-            return dataStore.batch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
-          } else {
-            return dataStore.unloggedBatch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
-          }
-        });
+              // then execute batch
+              boolean loggedBatch = useLoggedBatches.orElse(dataStore.supportsLoggedBatches());
+              if (loggedBatch) {
+                return dataStore.batch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
+              } else {
+                return dataStore.unloggedBatch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
+              }
+            })
+        .observeOn(Schedulers.io());
   }
 }
