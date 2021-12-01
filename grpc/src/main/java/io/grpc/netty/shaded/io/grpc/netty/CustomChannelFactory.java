@@ -71,7 +71,7 @@ public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
    * close the underlying connection gracefully.
    */
   private void writeToGroup(ChannelGroup allChannels) {
-    logger.info("Closing channels");
+    logger.info("Closing channels, number of channels: {} ", allChannels.size());
     GracefulServerCloseCommand streamClosed = new GracefulServerCloseCommand("Stream closed");
     try {
       allChannels.writeAndFlush(streamClosed).get();
