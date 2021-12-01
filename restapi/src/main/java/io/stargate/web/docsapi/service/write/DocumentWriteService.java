@@ -68,6 +68,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
+   * @param b
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -77,6 +78,7 @@ public class DocumentWriteService {
       String collection,
       String documentId,
       List<JsonShreddedRow> rows,
+      boolean numericBooleans,
       ExecutionContext context) {
     // create and cache the insert query prepare
     return RxUtils.singleFromFuture(
@@ -100,7 +102,8 @@ public class DocumentWriteService {
               rows.forEach(
                   row -> {
                     BoundQuery query =
-                        insertQueryBuilder.bind(insertPrepared, documentId, row, timestamp);
+                        insertQueryBuilder.bind(
+                            insertPrepared, documentId, row, timestamp, numericBooleans);
                     queries.add(query);
                   });
 
@@ -121,6 +124,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
+   * @param b
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -130,6 +134,7 @@ public class DocumentWriteService {
       String collection,
       String documentId,
       List<JsonShreddedRow> rows,
+      boolean numericBooleans,
       ExecutionContext context) {
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
@@ -170,7 +175,8 @@ public class DocumentWriteService {
               rows.forEach(
                   row -> {
                     BoundQuery query =
-                        insertQueryBuilder.bind(insertPrepared, documentId, row, timestamp);
+                        insertQueryBuilder.bind(
+                            insertPrepared, documentId, row, timestamp, numericBooleans);
                     queries.add(query);
                   });
 

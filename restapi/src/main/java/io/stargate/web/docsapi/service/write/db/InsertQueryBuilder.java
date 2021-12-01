@@ -53,7 +53,11 @@ public class InsertQueryBuilder {
   }
 
   public <E extends Query<? extends BoundQuery>> BoundQuery bind(
-      E builtQuery, String documentId, JsonShreddedRow row, long timestamp) {
+      E builtQuery,
+      String documentId,
+      JsonShreddedRow row,
+      long timestamp,
+      boolean numericBooleans) {
     // sanity check
     if (maxDepth != row.getMaxDepth()) {
       String msg =
@@ -82,11 +86,18 @@ public class InsertQueryBuilder {
     values[maxDepth + 1] = row.getLeaf();
     values[maxDepth + 2] = row.getStringValue();
     values[maxDepth + 3] = row.getDoubleValue();
-    values[maxDepth + 4] = row.getBooleanValue();
+    values[maxDepth + 4] = convertToBackendBooleanValue(row.getBooleanValue(), numericBooleans);
 
     // respect the timestamp
     values[maxDepth + 5] = timestamp;
 
     return builtQuery.bind(values);
+  }
+
+  private Object convertToBackendBooleanValue(Boolean value, boolean numericBooleans) {
+    if (numericBooleans) {
+      return Boolean.TRUE.equals(value) ? 1 : 0;
+    }
+    return value;
   }
 }

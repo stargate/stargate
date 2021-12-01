@@ -133,9 +133,7 @@ public class ReactiveDocumentService {
           checkSchemaFullDocument(db, namespace, collection, root);
 
           // shred rows
-          List<JsonShreddedRow> rows =
-              jsonDocumentShredder.shred(
-                  root, documentId, Collections.emptyList(), db.treatBooleansAsNumeric());
+          List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, Collections.emptyList());
 
           // call write document
           return writeService.writeDocument(
@@ -144,6 +142,7 @@ public class ReactiveDocumentService {
               collection,
               documentId,
               rows,
+              db.treatBooleansAsNumeric(),
               context);
         });
   }
@@ -175,9 +174,7 @@ public class ReactiveDocumentService {
           checkSchemaFullDocument(db, namespace, collection, root);
 
           // shred rows
-          List<JsonShreddedRow> rows =
-              jsonDocumentShredder.shred(
-                  root, documentId, Collections.emptyList(), db.treatBooleansAsNumeric());
+          List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, Collections.emptyList());
 
           // call write document
           return writeService.updateDocument(
@@ -186,6 +183,7 @@ public class ReactiveDocumentService {
               collection,
               documentId,
               rows,
+              db.treatBooleansAsNumeric(),
               context);
         });
   }
