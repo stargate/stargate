@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracks all the created sessions. It wraps the {@link Utils#DEFAULT_SERVER_CHANNEL_FACTORY} and
@@ -21,7 +23,7 @@ import java.util.function.Predicate;
  * all channels matching the predicate.
  */
 public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
-
+  private static final Logger logger = LoggerFactory.getLogger(CustomChannelFactory.class);
   private final ChannelFactory<? extends ServerChannel> channelFactory;
   private final List<Channel> channels = new ArrayList<>();
 
@@ -54,8 +56,10 @@ public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
         .filter(
             channel -> {
               ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
+              logger.info("proxyInfo:" + proxyInfo);
               Map<String, String> headers =
                   proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
+              logger.info("headers: " + headers);
               return headerFilter.test(headers);
             })
         .forEach(allChannels::add);
@@ -67,6 +71,7 @@ public class CustomChannelFactory implements ChannelFactory<ServerChannel> {
    * close the underlying connection gracefully.
    */
   private void writeToGroup(ChannelGroup allChannels) {
+    logger.info("Closing channels");
     GracefulServerCloseCommand streamClosed = new GracefulServerCloseCommand("Stream closed");
     try {
       allChannels.writeAndFlush(streamClosed).get();

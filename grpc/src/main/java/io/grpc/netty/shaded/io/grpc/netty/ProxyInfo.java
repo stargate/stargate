@@ -29,4 +29,16 @@ public class ProxyInfo {
   public Map<String, String> toHeaders() {
     return headers;
   }
+
+  @Override
+  public String toString() {
+    return "ProxyInfo{"
+        + "destinationAddress="
+        + destinationAddress
+        + ", sourceAddress="
+        + sourceAddress
+        + ", headers="
+        + headers
+        + '}';
+  }
 }
