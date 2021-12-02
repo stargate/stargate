@@ -15,13 +15,13 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class QueryBuilderTest {
 
@@ -197,6 +197,126 @@ public class QueryBuilderTest {
       arguments(
           new QueryBuilder().drop().index("idx").ifExists().build(), "DROP INDEX IF EXISTS idx"),
       arguments(new QueryBuilder().drop().index("ks", "idx").build(), "DROP INDEX ks.idx"),
+      arguments(
+          new QueryBuilder()
+              .create()
+              .materializedView("ks", "v")
+              .asSelect()
+              .column("a", Column.Kind.PARTITION_KEY)
+              .column("b")
+              .column("c")
+              .from("ks", "tbl")
+              .build(),
+          "CREATE MATERIALIZED VIEW ks.v "
+              + "AS SELECT a, b, c "
+              + "FROM ks.tbl "
+              + "WHERE a IS NOT NULL "
+              + "AND b IS NOT NULL "
+              + "AND c IS NOT NULL "
+              + "PRIMARY KEY ((a))"),
+      arguments(
+          new QueryBuilder().drop().materializedView("ks", "tbl").build(),
+          "DROP MATERIALIZED VIEW ks.tbl"),
+      arguments(
+          new QueryBuilder().drop().materializedView("ks", "tbl").ifExists().build(),
+          "DROP MATERIALIZED VIEW IF EXISTS ks.tbl"),
+      arguments(
+          new QueryBuilder().create().type("ks", "t").column("a", "int").column("b", "int").build(),
+          "CREATE TYPE ks.t(a int, b int)"),
+      arguments(
+          new QueryBuilder()
+              .alter()
+              .type("ks", "t")
+              .renameColumn("a", "a2")
+              .renameColumn("b", "b2")
+              .build(),
+          "ALTER TYPE ks.t RENAME a TO a2 AND b TO b2"),
+      arguments(new QueryBuilder().drop().type("ks", "t").build(), "DROP TYPE ks.t"),
+      arguments(
+          new QueryBuilder().drop().type("ks", "t").ifExists().build(), "DROP TYPE IF EXISTS ks.t"),
+      arguments(
+          new QueryBuilder()
+              .alter()
+              .type("ks", "t")
+              .addColumn("c", "int")
+              .addColumn("d", "int")
+              .build(),
+          "ALTER TYPE ks.t ADD c int, d int"),
+      arguments(
+          new QueryBuilder()
+              .insertInto("ks", "tbl")
+              .value("a", 1)
+              .value(ValueModifier.marker("b"))
+              .build(),
+          "INSERT INTO ks.tbl (a, b) VALUES (1, ?)"),
+      arguments(
+          new QueryBuilder()
+              .insertInto("ks", "tbl")
+              .value("a", "text")
+              .value(ValueModifier.marker("b"))
+              .ifNotExists()
+              .ttl()
+              .timestamp(1L)
+              .build(),
+          "INSERT INTO ks.tbl (a, b) VALUES ('text', ?) IF NOT EXISTS USING TTL ? AND TIMESTAMP 1"),
+      arguments(
+          new QueryBuilder()
+              .update("ks", "tbl")
+              .value("a")
+              .value("b", "test")
+              .value(
+                  ValueModifier.of(
+                      ValueModifier.Target.column("c"),
+                      ValueModifier.Operation.PREPEND,
+                      Value.marker()))
+              .where("k", Predicate.EQ)
+              .ifs("v", Predicate.GT)
+              .ifExists()
+              .build(),
+          "UPDATE ks.tbl SET a = ?, "
+              + "b = 'test', "
+              + "c = ? + c "
+              + "WHERE k = ? "
+              + "IF EXISTS "
+              + "AND v > ?"),
+      arguments(
+          new QueryBuilder()
+              .delete()
+              .column("a", "b", "c")
+              .from("ks", "tbl")
+              .where("k", Predicate.EQ)
+              .ifs("v", Predicate.IN)
+              .build(),
+          "DELETE a, b, c FROM ks.tbl WHERE k = ? IF v IN ?"),
+      arguments(new QueryBuilder().select().from("ks", "tbl").build(), "SELECT * FROM ks.tbl"),
+      arguments(
+          new QueryBuilder().select().column("a", "b", "c").from("ks", "tbl").build(),
+          "SELECT a, b, c FROM ks.tbl"),
+      arguments(
+          new QueryBuilder().select().count("a").from("ks", "tbl").build(),
+          "SELECT COUNT(a) FROM ks.tbl"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .column("a", "b", "c")
+              .from("ks", "tbl")
+              .where("k", Predicate.EQ)
+              .where("cc", Predicate.GT)
+              .build(),
+          "SELECT a, b, c FROM ks.tbl WHERE k = ? AND cc > ?"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .star()
+              .from("ks", "tbl")
+              .where("k", Predicate.GT)
+              .groupBy("k")
+              .groupBy("cc1")
+              .groupBy("cc2")
+              .orderBy("cc1", Column.Order.ASC)
+              .orderBy("cc2", Column.Order.DESC)
+              .build(),
+          "SELECT * FROM ks.tbl WHERE k > ? GROUP BY k, cc1, cc2 ORDER BY cc1 ASC, cc2 DESC"),
     };
   }
 }

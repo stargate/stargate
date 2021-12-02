@@ -15,12 +15,6 @@
  */
 package io.stargate.db.query.builder;
 
-import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkArgument;
-import static io.stargate.db.query.BindMarker.markerFor;
-import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
-
 import com.datastax.oss.driver.internal.core.util.Strings;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.github.misberner.apcommons.util.AFModifier;
@@ -58,6 +52,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.javatuples.Pair;
+
+import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkArgument;
+import static io.stargate.db.query.BindMarker.markerFor;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 /** Convenience builder for creating queries. */
 @GenerateEmbeddedDSL(

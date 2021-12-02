@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import javax.annotation.Nullable;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
 
@@ -57,9 +58,11 @@ public interface ValueModifier {
     String columnName();
 
     /** only set for UDT field access */
+    @Nullable
     String fieldName();
 
     /** only set for map value access */
+    @Nullable
     Value<?> mapKey();
 
     static Target column(String columnName) {

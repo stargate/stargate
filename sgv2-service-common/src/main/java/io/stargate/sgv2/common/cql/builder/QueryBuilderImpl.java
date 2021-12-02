@@ -824,13 +824,12 @@ public class QueryBuilderImpl {
           name, Arrays.deepToString(columns.toArray()));
     }
     query
-        .append("PRIMARY KEY ((")
+        .append("PRIMARY KEY (")
         .append(
             columns.stream()
                 .filter(c -> c.kind() == Column.Kind.PARTITION_KEY)
                 .map(Column::cqlName)
-                .collect(Collectors.joining(", ")))
-        .append(")");
+                .collect(Collectors.joining(", ", "(", ")")));
     if (columns.stream().anyMatch(c -> c.kind() == Column.Kind.CLUSTERING)) {
       query.append(", ");
     }
@@ -846,13 +845,11 @@ public class QueryBuilderImpl {
   private void addClusteringOrder(WithAdder with, List<Column> columns) {
     if (columns.stream().anyMatch(c -> c.kind() == Column.Kind.CLUSTERING && c.order() != null)) {
       StringBuilder query = with.add();
-      query.append(" CLUSTERING ORDER BY (");
       query.append(
           columns.stream()
               .filter(c -> c.kind() == Column.Kind.CLUSTERING)
               .map(c -> c.cqlName() + " " + c.order().name().toUpperCase())
-              .collect(Collectors.joining(", ")));
-      query.append(")");
+              .collect(Collectors.joining(", ", " CLUSTERING ORDER BY (", ")")));
     }
   }
 
@@ -910,7 +907,6 @@ public class QueryBuilderImpl {
     StringBuilder query = new StringBuilder("ALTER TABLE ").append(maybeQualify(tableName));
 
     if (!addColumns.isEmpty()) {
-      query.append(" ADD (");
       query.append(
           addColumns.stream()
               .map(
@@ -919,23 +915,19 @@ public class QueryBuilderImpl {
                           + " "
                           + c.type()
                           + (c.kind() == Column.Kind.STATIC ? " STATIC" : ""))
-              .collect(Collectors.joining(", ")));
-      query.append(")");
+              .collect(Collectors.joining(", ", " ADD (", ")")));
     }
     if (!dropColumns.isEmpty()) {
-      query.append(" DROP (");
       query.append(
-          dropColumns.stream().map(QueryBuilderImpl::cqlName).collect(Collectors.joining(", ")));
-      query.append(")");
+          dropColumns.stream()
+              .map(QueryBuilderImpl::cqlName)
+              .collect(Collectors.joining(", ", " DROP (", ")")));
     }
     if (!columnRenames.isEmpty()) {
-      query.append(" RENAME ");
-      boolean isFirst = true;
-      for (Map.Entry<String, String> rename : columnRenames.entrySet()) {
-        if (isFirst) isFirst = false;
-        else query.append(" AND ");
-        query.append(cqlName(rename.getKey())).append(" TO ").append(cqlName(rename.getValue()));
-      }
+      query.append(
+          columnRenames.entrySet().stream()
+              .map(rename -> cqlName(rename.getKey()) + " TO " + cqlName(rename.getValue()))
+              .collect(Collectors.joining(" AND ", " RENAME ", "")));
     }
     WithAdder with = new WithAdder(query);
     addComment(with);
@@ -1057,7 +1049,7 @@ public class QueryBuilderImpl {
         .append(
             createColumns.stream()
                 .map(c -> c.cqlName() + " " + c.type())
-                .collect(Collectors.joining(", ")));
+                .collect(Collectors.joining(", ", "(", ")")));
     return query.toString();
   }
 
@@ -1093,16 +1085,16 @@ public class QueryBuilderImpl {
     StringBuilder query =
         new StringBuilder("INSERT INTO ")
             .append(maybeQualify(tableName))
-            .append("(")
+            .append(" (")
             .append(
                 dmlModifications.stream()
                     .map(m -> cqlName(m.target().columnName()))
-                    .collect(Collectors.joining(",")))
+                    .collect(Collectors.joining(", ")))
             .append(") VALUES (")
             .append(
                 dmlModifications.stream()
                     .map(m -> formatValue(m.value()))
-                    .collect(Collectors.joining(",")))
+                    .collect(Collectors.joining(", ")))
             .append(")");
     if (ifNotExists) {
       query.append(" IF NOT EXISTS");
@@ -1157,11 +1149,13 @@ public class QueryBuilderImpl {
 
     builder
         .append(targetString)
+        .append(" ")
         .append(operationStr(modifier.operation()))
+        .append(" ")
         .append(formatValue(modifier.value()));
     // Unfortunately, prepend cannot be expressed with a concise operator and we have to add to it
     if (modifier.operation() == ValueModifier.Operation.PREPEND) {
-      builder.append("+").append(targetString);
+      builder.append(" + ").append(targetString);
     }
 
     return builder.toString();
@@ -1188,7 +1182,7 @@ public class QueryBuilderImpl {
     builder
         .append(" SET ")
         .append(
-            dmlModifications.stream().map(this::formatModifier).collect(Collectors.joining(",")));
+            dmlModifications.stream().map(this::formatModifier).collect(Collectors.joining(", ")));
     appendWheres(builder);
     appendIfs(builder);
     return builder.toString();
@@ -1205,7 +1199,7 @@ public class QueryBuilderImpl {
   private void appendConditions(
       List<BuiltCondition> conditions, String initialPrefix, StringBuilder builder) {
     String prefix = initialPrefix;
-    if (ifExists) {
+    if (initialPrefix.contains("IF") && ifExists) {
       builder.append(prefix).append("EXISTS");
       prefix = " AND ";
     }
@@ -1225,7 +1219,7 @@ public class QueryBuilderImpl {
     StringBuilder builder =
         new StringBuilder("DELETE ")
             .append(
-                selection.stream().map(QueryBuilderImpl::cqlName).collect(Collectors.joining(",")))
+                selection.stream().map(QueryBuilderImpl::cqlName).collect(Collectors.joining(", ")))
             .append(" FROM ")
             .append(maybeQualify(tableName));
     addUsingClause(builder);
@@ -1243,7 +1237,7 @@ public class QueryBuilderImpl {
           Stream.concat(
                   selection.stream().map(QueryBuilderImpl::cqlName),
                   functionCalls.stream().map(QueryBuilderImpl::formatFunctionCall))
-              .collect(Collectors.joining(",")));
+              .collect(Collectors.joining(", ")));
     }
     builder.append(" FROM ").append(maybeQualify(tableName));
 
@@ -1253,7 +1247,7 @@ public class QueryBuilderImpl {
       builder
           .append(" GROUP BY ")
           .append(
-              groupBys.stream().map(QueryBuilderImpl::cqlName).collect(Collectors.joining(",")));
+              groupBys.stream().map(QueryBuilderImpl::cqlName).collect(Collectors.joining(", ")));
     }
 
     if (!orders.isEmpty()) {
