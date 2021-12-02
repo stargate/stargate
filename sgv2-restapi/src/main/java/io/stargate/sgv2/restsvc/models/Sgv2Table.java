@@ -166,8 +166,8 @@ public class Sgv2Table {
   // copied from SGv1 ClusteringExpression
   @ApiModel(value = "ClusteringExpression")
   public static class ClusteringExpression {
-    public static final String VALUE_ASC = "asc";
-    public static final String VALUE_DESC = "desc";
+    public static final String VALUE_ASC = "ASC";
+    public static final String VALUE_DESC = "DESC";
 
     private final String column;
     private final String order;
@@ -184,17 +184,17 @@ public class Sgv2Table {
       return column;
     }
 
-    @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "asc,desc")
+    @ApiModelProperty(required = true, value = "The clustering order", allowableValues = "ASC,DESC")
     public String getOrder() {
       return order;
     }
 
     public boolean hasOrderAsc() {
-      return VALUE_ASC.equals(order);
+      return VALUE_ASC.equalsIgnoreCase(order);
     }
 
     public boolean hasOrderDesc() {
-      return VALUE_DESC.equals(order);
+      return VALUE_DESC.equalsIgnoreCase(order);
     }
   }
 }
