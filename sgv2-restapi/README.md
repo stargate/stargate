@@ -7,9 +7,12 @@ for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
 It does not use OSGi or run on a Coordinator: in its current form
 all database access is by calling gRPC API which runs on a Coordinator node.
 
+REST API runs as a DropWizard (2.0.x) service, same as Stargate V1 APIs
+and uses standard DropWizard configuration approach.
+
 ## Packaging
 
-Project produces a single uber/fat jar like:
+Project produces a single runnable uber/fat jar like:
 
     sgv2-restapi/target/sgv2-rest-service-1.0.45-SNAPSHOT.jar
 
@@ -18,6 +21,8 @@ which can be run with something like:
     java -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
 
 and assumes existence of an already running Stargate V1 instance (to use its gRPC API).
+Jar contains everything needed for running including DropWizard platform
+as well as Swagger set up.
 
 ## Configuration
 
