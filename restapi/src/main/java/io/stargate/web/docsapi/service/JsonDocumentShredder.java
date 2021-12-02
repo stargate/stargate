@@ -27,7 +27,6 @@ import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 public class JsonDocumentShredder {
@@ -41,6 +40,15 @@ public class JsonDocumentShredder {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Shreds the JSON payload and returns the list of {@link JsonShreddedRow} for each value that
+   * should be stored in the data store.
+   *
+   * @param payload JSON payload as string
+   * @param subDocumentPath Prefix path to use. Note that paths are added to each row path as they
+   *     are given, without any modifications.
+   * @return List of shredded rows
+   */
   public List<JsonShreddedRow> shred(String payload, List<String> subDocumentPath) {
     try {
       JsonNode node = objectMapper.readTree(payload);
@@ -53,23 +61,26 @@ public class JsonDocumentShredder {
     }
   }
 
+  /**
+   * Shreds the {@link JsonNode} and returns the list of {@link JsonShreddedRow} for each value that
+   * should be stored in the data store.
+   *
+   * @param node {@link JsonNode}
+   * @param subDocumentPath Prefix path to use. Note that paths are added to each row path as they
+   *     are given, without any modifications.
+   * @return List of shredded rows
+   */
   public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {
       checkRoot(node);
     }
 
-    // sub-paths escaped
-    List<String> subPathsEscaped =
-        subDocumentPath.stream()
-            .map(DocsApiUtils::convertEscapedCharacters)
-            .collect(Collectors.toList());
-
     Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder =
         () ->
             ImmutableJsonShreddedRow.builder()
                 .maxDepth(config.getMaxDepth())
-                .addAllPath(subPathsEscaped);
+                .addAllPath(subDocumentPath);
 
     List<JsonShreddedRow> result = new ArrayList<>();
     processNode(node, rowBuilder, result);

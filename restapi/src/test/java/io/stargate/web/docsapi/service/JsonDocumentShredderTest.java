@@ -57,7 +57,7 @@ class JsonDocumentShredderTest {
   }
 
   @Nested
-  public class Shred {
+  class Shred {
 
     @Test
     public void primitive() throws JsonProcessingException {
@@ -371,24 +371,6 @@ class JsonDocumentShredderTest {
           .satisfies(
               row -> {
                 assertThat(row.getPath()).containsExactly("one", "two", "field");
-                assertThat(row.getLeaf()).isEqualTo("field");
-                assertThat(row.getStringValue()).isEqualTo("text");
-                assertThat(row.getDoubleValue()).isNull();
-                assertThat(row.getBooleanValue()).isNull();
-              });
-    }
-
-    @Test
-    public void withEscapedPrependPath() {
-      ObjectNode payload = objectMapper.createObjectNode().put("field", "text");
-
-      List<JsonShreddedRow> result = shredder.shred(payload, Arrays.asList("one\\\\."));
-
-      assertThat(result)
-          .singleElement()
-          .satisfies(
-              row -> {
-                assertThat(row.getPath()).containsExactly("one\\.", "field");
                 assertThat(row.getLeaf()).isEqualTo("field");
                 assertThat(row.getStringValue()).isEqualTo("text");
                 assertThat(row.getDoubleValue()).isNull();
