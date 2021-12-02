@@ -403,6 +403,20 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testPatchWithAutoTtlNullParent() throws IOException, InterruptedException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    // No ttl on the parent
+    RestUtils.put(authToken, collectionPath + "/1", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=auto", obj2.toString(), 200);
+
+    TimeUnit.SECONDS.sleep(5);
+
+    String res = RestUtils.get(authToken, collectionPath + "/1/b?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(res)).isEqualTo(obj2);
+  }
+
+  @Test
   public void testWeirdButAllowedKeys() throws IOException {
     JsonNode obj = OBJECT_MAPPER.readTree("{ \"$\": \"weird but allowed\" }");
     RestUtils.put(authToken, collectionPath + "/1/path", obj.toString(), 200);

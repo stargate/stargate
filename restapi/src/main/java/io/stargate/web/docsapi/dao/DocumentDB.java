@@ -131,16 +131,18 @@ public class DocumentDB {
         this.dataStore
             .queryBuilder()
             .select()
-            .function(ImmutableList.of(QueryBuilderImpl.FunctionCall.ttl("leaf")))
+            .function(
+                ImmutableList.of(
+                    QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME)))
             .from(namespace, collection)
-            .where(BuiltCondition.of("key", Predicate.EQ, docId))
+            .where(BuiltCondition.of(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ, docId))
             .build()
             .execute()
             .join()
             .rows();
     try {
       return result.stream()
-          .map(row -> row.getInt("ttl(leaf)"))
+          .map(row -> row.getInt(String.format("ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
           .filter(Objects::nonNull)
           .mapToInt(Integer::valueOf)
           .max()
