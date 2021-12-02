@@ -7,9 +7,12 @@ for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
 It does not use OSGi or run on a Coordinator: in its current form
 all database access is by calling gRPC API which runs on a Coordinator node.
 
+REST API runs as a DropWizard (2.0.x) service, same as Stargate V1 APIs
+and uses standard DropWizard configuration approach.
+
 ## Packaging
 
-Project produces a single uber/fat jar like:
+Project produces a single runnable uber/fat jar like:
 
     sgv2-restapi/target/sgv2-rest-service-1.0.45-SNAPSHOT.jar
 
@@ -18,6 +21,8 @@ which can be run with something like:
     java -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
 
 and assumes existence of an already running Stargate V1 instance (to use its gRPC API).
+Jar contains everything needed for running including DropWizard platform
+as well as Swagger set up.
 
 ## Configuration
 
@@ -31,21 +36,47 @@ are 3 layers of configuration (from lowest to highest precedence)
 While the first two are usually packaged into the uber-jar, system properties are specified by command-line, like so:
 
 ```
-java -Ddw.stargate.grpc.host=127.0.0.2 -Ddw.stargate.grpc.port=8090 \
+java -Ddw.server.connector.port=8085 \
+   -Ddw.stargate.grpc.host=127.0.0.2 -Ddw.stargate.grpc.port=8090 \
    -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
 ```
 
+Also note that file `sgv2-restapi/src/main/resources/config.yaml` contains
+explicit values for many things that have defaults in DropWizard default
+`Configuration` or our `RestServiceServerConfiguration`.
+
+Finally, note that linkage between server type "sgv2-rest-service" and actual
+service implementation class is defined by resource file at:
+
+    sgv2-restapi/src/main/resources/META-INF/services/io.dropwizard.server.ServerFactory
+
+which is cumbersome, non-obvious and odd, but is the way it is handled
+to support polymorphism in POJOs used for configuration access.
+
 ## Configuration options: standard DropWizard
 
-(To be filled)
+Note: many settings changed between DropWizard 0.6 and 1.0; we are using
+DropWizard 2.0.x)
+
+Note: need to prefix properties with `dw.` when passing in command-line; included below.
+
+* `dw.server.connector.port`: Main HTTP port service listens to; defaults to `8088` in `config.yaml`
+
+For example:
+
+```
+java -Ddw.server.connector.port=8090 \
+   -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
+
+```
+
 
 ## Configuration options: Stargate-specific
 
 Options available can be seen from `io.stargate.sgv2.restsvc.impl.RestServiceServerConfiguration`:
 
-(To be filled)
+Note: need to prefix properties with `dw.` when passing in command-line; included below.
 
-
-
-
+* `dw.stargate.grpc.host` (default: `localhost`): Host where gRPC service to use runs on
+* `dw.stargate.grpc.port` (default: `8090`): Port number of gRPC service to use runs on
 
