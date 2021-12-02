@@ -1,5 +1,31 @@
 # Changelog
 
+## [v1.0.44](https://github.com/stargate/stargate/tree/v1.0.44) (2021-12-02)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.43...v1.0.44)
+
+**Closed issues:**
+
+- REST `TablesResource.getOneTable\(\)`endpoint swagger claims result is `Table` but is actually `TableResponse` [\#1444](https://github.com/stargate/stargate/issues/1444)
+- Implement Stargate V2 REST endpoints for "createTable" using new gRPC endpoint [\#1435](https://github.com/stargate/stargate/issues/1435)
+- Implement Stargate V2 REST endpoints for getting table metadata using new gRPC endpoints  [\#1426](https://github.com/stargate/stargate/issues/1426)
+- Implement Stargate V2 REST endpoints for keyspace CRUD operations using new gRPC endpoints [\#1425](https://github.com/stargate/stargate/issues/1425)
+- Implement "getRows\(\)" \(PK access\) for SGv2 prototype [\#1422](https://github.com/stargate/stargate/issues/1422)
+- TracingQueryTest flaky on DSE builds [\#1388](https://github.com/stargate/stargate/issues/1388)
+
+**Merged pull requests:**
+
+- increment gRPC version [\#1447](https://github.com/stargate/stargate/pull/1447) ([tomekl007](https://github.com/tomekl007))
+- Fix \#1444 by changing swagger annotated response type to correct one [\#1445](https://github.com/stargate/stargate/pull/1445) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- maybe create table should not check for valid name if it exists [\#1438](https://github.com/stargate/stargate/pull/1438) ([ivansenic](https://github.com/ivansenic))
+- increase initial page size for `$or` search in docs api [\#1434](https://github.com/stargate/stargate/pull/1434) ([ivansenic](https://github.com/ivansenic))
+- check connection getPrepare before executing the prepare [\#1432](https://github.com/stargate/stargate/pull/1432) ([ivansenic](https://github.com/ivansenic))
+- Tiny improvements to REST/getTable IT checks to avoid passing with no columns [\#1430](https://github.com/stargate/stargate/pull/1430) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- doing document population in parallel batches [\#1424](https://github.com/stargate/stargate/pull/1424) ([ivansenic](https://github.com/ivansenic))
+- Improve test "getRows\(\)" for RESTv2 test [\#1421](https://github.com/stargate/stargate/pull/1421) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1420](https://github.com/stargate/stargate/pull/1420) ([github-actions[bot]](https://github.com/apps/github-actions))
+- closes \#1388: improved channel handling in the gRPC integration tests [\#1419](https://github.com/stargate/stargate/pull/1419) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.43](https://github.com/stargate/stargate/tree/v1.0.43) (2021-11-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.42...v1.0.43)
