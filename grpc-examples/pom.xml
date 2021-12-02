@@ -20,7 +20,7 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.40.1</version>
+            <version>${grpc.version}</version>
         </dependency>
         <dependency>
             <groupId>io.stargate.grpc</groupId>
