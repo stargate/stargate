@@ -11,7 +11,6 @@
   <artifactId>auth-api</artifactId>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
-    <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
     <dependency>
