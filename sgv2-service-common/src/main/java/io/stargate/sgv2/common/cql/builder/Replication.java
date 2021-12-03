@@ -39,7 +39,7 @@ public class Replication {
   public static Replication networkTopologyStrategy(
       Map<String, Integer> dataCenterReplicationFactors) {
     StringBuilder sb = new StringBuilder();
-    sb.append("{ 'class' : 'NetworkTopologyStrategy'");
+    sb.append("{ 'class': 'NetworkTopologyStrategy'");
     for (Map.Entry<String, Integer> entry : dataCenterReplicationFactors.entrySet()) {
       String dcName = entry.getKey();
       int dcReplication = entry.getValue();

@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.util.LinkedHashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -59,6 +60,22 @@ public class QueryBuilderTest {
               .build(),
           "CREATE KEYSPACE IF NOT EXISTS ks "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 }"),
+      arguments(
+          new QueryBuilder()
+              .create()
+              .keyspace("ks")
+              .ifNotExists()
+              .withReplication(
+                  Replication.networkTopologyStrategy(
+                      new LinkedHashMap<String, Integer>() {
+                        {
+                          put("dc1", 3);
+                          put("dc2", 4);
+                        }
+                      }))
+              .build(),
+          "CREATE KEYSPACE IF NOT EXISTS ks "
+              + "WITH replication = { 'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 4 }"),
       arguments(
           new QueryBuilder()
               .alter()
