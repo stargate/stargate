@@ -82,6 +82,13 @@ public class Sgv2RequestHandler {
       case UNAUTHENTICATED:
         return grpcResponse(
             sc, Response.Status.UNAUTHORIZED, "Unauthenticated gRPC operation", grpcE.getMessage());
+      case UNAVAILABLE:
+        // Should this be SERVICE_UNAVAILABLE (503) or BAD_GATEWAY (502)?
+        return grpcResponse(
+            sc,
+            Response.Status.SERVICE_UNAVAILABLE,
+            "gRPC service unavailable",
+            grpcE.getMessage());
       case UNIMPLEMENTED:
         return grpcResponse(
             sc,
@@ -100,7 +107,6 @@ public class Sgv2RequestHandler {
       case ABORTED:
       case OUT_OF_RANGE:
       case INTERNAL:
-      case UNAVAILABLE:
       case DATA_LOSS:
         break;
     }
