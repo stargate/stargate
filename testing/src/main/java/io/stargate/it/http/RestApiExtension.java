@@ -15,6 +15,8 @@
  */
 package io.stargate.it.http;
 
+import static java.lang.management.ManagementFactory.getRuntimeMXBean;
+
 import io.stargate.it.exec.ProcessRunner;
 import io.stargate.it.storage.*;
 import java.io.File;
@@ -228,6 +230,14 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
 
+      if (isDebug()) {
+        int debuggerPort = 5200;
+        cmd.addArgument(
+            "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,"
+                + "address=localhost:"
+                + debuggerPort);
+      }
+
       cmd.addArgument("-jar");
       cmd.addArgument(starterJar().getAbsolutePath());
 
@@ -241,6 +251,11 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
     private void start() {
       start(cmd, Collections.emptyMap());
+    }
+
+    private static boolean isDebug() {
+      String args = getRuntimeMXBean().getInputArguments().toString();
+      return args.contains("-agentlib:jdwp") || args.contains("-Xrunjdwp");
     }
   }
 }
