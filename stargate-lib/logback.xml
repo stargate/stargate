@@ -50,7 +50,7 @@
     </encoder>
   </appender>
 
-  <root level="${stargate.logging.level.root:-INFO}">
+  <root level="${stargate.logging.level.root:-WARN}">
     <appender-ref ref="SYSTEMLOG" />
     <appender-ref ref="STDOUT" />
     <appender-ref ref="ASYNCDEBUGLOG" /> <!-- Comment this line to disable debug.log -->

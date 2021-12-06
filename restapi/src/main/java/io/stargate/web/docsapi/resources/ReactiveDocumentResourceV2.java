@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.resources;
 import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHeaders;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
 import io.stargate.auth.UnauthorizedException;
@@ -41,7 +42,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -81,6 +81,7 @@ public class ReactiveDocumentResourceV2 {
   @Inject private DocumentDBFactory dbFactory;
   @Inject private ReactiveDocumentService reactiveDocumentService;
   @Inject private DocsSchemaChecker schemaChecker;
+  @Inject private ObjectMapper objectMapper;
 
   @POST
   @ManagedAsync
@@ -148,10 +149,11 @@ public class ReactiveDocumentResourceV2 {
                             String.format(
                                 "/v2/namespaces/%s/collections/%s/%s",
                                 namespace, collection, documentId);
-                        DocumentResponseWrapper<Void> entity =
+                        DocumentResponseWrapper<Void> result =
                             new DocumentResponseWrapper<>(
                                 documentId, null, null, context.toProfile());
-                        return Response.created(URI.create(url)).entity(entity).build();
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.created(URI.create(url)).entity(response).build();
                       });
             })
 
@@ -192,10 +194,7 @@ public class ReactiveDocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true)
-          @NotNull(message = "payload not provided")
-          @NotBlank(message = "payload must not be empty")
-          String payload,
+      @ApiParam(value = "The JSON document", required = true) String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -219,9 +218,10 @@ public class ReactiveDocumentResourceV2 {
                   // map to response
                   .map(
                       any -> {
-                        DocumentResponseWrapper<Void> entity =
+                        DocumentResponseWrapper<Void> result =
                             new DocumentResponseWrapper<>(id, null, null, context.toProfile());
-                        return Response.ok().entity(entity).build();
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.ok().entity(response).build();
                       });
             })
 
@@ -605,11 +605,13 @@ public class ReactiveDocumentResourceV2 {
   private Function<DocumentResponseWrapper<? extends JsonNode>, Response> rawDocumentHandler(
       Boolean raw) {
     return results -> {
+      String result;
       if (raw != null && raw) {
-        return Response.ok(results.getData()).build();
+        result = objectMapper.writeValueAsString(results.getData());
       } else {
-        return Response.ok(results).build();
+        result = objectMapper.writeValueAsString(results);
       }
+      return Response.ok(result).build();
     };
   }
 }
