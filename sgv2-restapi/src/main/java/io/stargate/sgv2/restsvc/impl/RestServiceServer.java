@@ -28,7 +28,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
-import io.stargate.sgv2.restsvc.resources.Sgv2RowsResource;
+import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResource;
@@ -110,7 +110,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(HealthResource.class);
 
     // Main data endpoints
-    environment.jersey().register(Sgv2RowsResource.class);
+    environment.jersey().register(Sgv2RowsResourceImpl.class);
 
     // Schema endpoints
     environment.jersey().register(Sgv2KeyspacesResource.class);
