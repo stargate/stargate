@@ -29,8 +29,12 @@ import java.util.concurrent.CompletionException;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NewConnectionInterceptor implements ServerInterceptor {
+
+  private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
 
   public static final Metadata.Key<String> TOKEN_KEY =
       Metadata.Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
@@ -77,6 +81,8 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       }
 
       Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
+      stringHeaders.put("host", call.getAuthority());
+
       RequestInfo info =
           ImmutableRequestInfo.builder()
               .token(token)
@@ -102,11 +108,9 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       } else if (cause instanceof UnhandledClientException) {
         call.close(Status.UNAVAILABLE.withDescription(e.getMessage()).withCause(e), new Metadata());
       } else {
-        call.close(
-            Status.INTERNAL
-                .withDescription("Error attempting to create connection to persistence")
-                .withCause(e),
-            new Metadata());
+        final String message = "Error attempting to create connection to persistence";
+        logger.error(message, cause);
+        call.close(Status.INTERNAL.withDescription(message).withCause(e), new Metadata());
       }
     }
     return new NopListener<>();
