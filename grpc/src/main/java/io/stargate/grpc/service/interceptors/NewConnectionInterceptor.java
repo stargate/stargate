@@ -88,7 +88,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
       String authority = call.getAuthority();
       if (authority != null && !authority.isEmpty()) {
-        stringHeaders.put("host", call.getAuthority());
+        stringHeaders.put("host", authority);
       }
 
       RequestInfo info =
