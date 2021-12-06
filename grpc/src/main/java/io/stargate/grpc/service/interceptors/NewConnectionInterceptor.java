@@ -81,6 +81,11 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       }
 
       Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
+
+      // Some authentication service and persistence implementations depend on the "host" header
+      // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
+      // `grpc-netty-shaded` implementation will move the "host" header into the ":authority" value:
+      // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
       stringHeaders.put("host", call.getAuthority());
 
       RequestInfo info =
