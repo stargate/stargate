@@ -34,6 +34,9 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
  */
 public interface Persistence extends SchemaAgreementChecker {
 
+  boolean SUPPORTS_SECONDARY_INDEX =
+      Boolean.parseBoolean(System.getProperty("stargate.persistence.2i.support.default", "true"));
+
   /** Name describing the persistence implementation. */
   String name();
 
@@ -87,8 +90,7 @@ public interface Persistence extends SchemaAgreementChecker {
   boolean isInSchemaAgreementWithStorage();
 
   default boolean supportsSecondaryIndex() {
-    return Boolean.parseBoolean(
-        System.getProperty("stargate.persistence.2i.support.default", "true"));
+    return SUPPORTS_SECONDARY_INDEX;
   }
 
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
