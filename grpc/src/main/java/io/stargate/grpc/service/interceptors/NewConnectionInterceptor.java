@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionException;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,10 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
       // `grpc-netty-shaded` implementation will move the "host" header into the ":authority" value:
       // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
-      stringHeaders.put("host", call.getAuthority());
+      String authority = call.getAuthority();
+      if (authority != null && !authority.isEmpty()) {
+        stringHeaders.put("host", call.getAuthority());
+      }
 
       RequestInfo info =
           ImmutableRequestInfo.builder()
