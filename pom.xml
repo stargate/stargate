@@ -39,6 +39,7 @@
     <immutables.version>2.5.6</immutables.version>
     <grpc.version>1.42.1</grpc.version>
     <caffeine.version>2.9.2</caffeine.version>
+    <swagger-ui.version>3.52.5</swagger-ui.version>
   </properties>
   <dependencies>
     <!-- Basic OSGi dependency, provided by container -->
