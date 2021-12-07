@@ -2852,14 +2852,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // create table
     String body =
-            RestUtils.post(
-                    authToken,
-                    String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
-                    objectMapper.writeValueAsString(tableAdd),
-                    HttpStatus.SC_CREATED);
+        RestUtils.post(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
 
     TableResponse tableResponse =
-            objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+        objectMapper.readValue(body, new TypeReference<TableResponse>() {});
     assertThat(tableResponse.getName()).isEqualTo(tableName);
 
     // insert a row
@@ -2878,26 +2878,27 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("inspection_notes", "working");
 
     RestUtils.post(
-            authToken,
-            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(row),
-            HttpStatus.SC_CREATED);
+        authToken,
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
 
     // retrieve the row by ID
-    String whereClause = String.format(
+    String whereClause =
+        String.format(
             "{\"hour_created\":{\"$eq\":\"%s\"},\"serial_number\":{\"$eq\":[\"%s\"]}}",
             timestamp, serialNumber);
 
     body =
-            RestUtils.get(
-                    authToken,
-                    String.format(
-                            "%s/v2/keyspaces/%s/%s?where=%s",
-                            restUrlBase, keyspaceName, tableName, whereClause),
-                    HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
-            LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
     assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
     assertThat(data.get(0).get("serial_number")).isEqualTo(serialNumber);
@@ -2918,11 +2919,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("inspection_notes", "frayed cable");
 
     RestUtils.post(
-            authToken,
-            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(row2),
-            HttpStatus.SC_CREATED);
-
+        authToken,
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row2),
+        HttpStatus.SC_CREATED);
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
