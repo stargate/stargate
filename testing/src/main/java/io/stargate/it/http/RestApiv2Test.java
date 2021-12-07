@@ -46,6 +46,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2819,6 +2820,105 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("lastName")).isEqualTo("Doe");
+  }
+
+  @Test
+  public void testTimestampHandling() throws IOException {
+    createKeyspace(keyspaceName);
+
+//CREATE TABLE IF NOT EXISTS widgets
+//                                  |(
+//                                  |  hour_created timestamp,
+//                                  |  serial_number text,
+//                                  |  machine_code text,
+//                                  |  part_name text,
+//                                  |  part_number text,
+//                                  |  factory_code text,
+//                                  |  created_at timestamp,
+//                                  |  last_inspected_at timestamp,
+//                                  |  times_inspected int,
+//                                  |  est_unit_cost decimal,
+//                                  |  est_unit_cost_updated timestamp,
+//                                  |  inspection_notes text,
+//                                  |  PRIMARY KEY((hour_created, machine_code), serial_number)
+
+
+    String tableName = "widgets";
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("hour_created", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("serial_number", "text"));
+    columnDefinitions.add(new ColumnDefinition("machine_code", "text"));
+    columnDefinitions.add(new ColumnDefinition("part_name", "text"));
+    columnDefinitions.add(new ColumnDefinition("part_number", "text"));
+    columnDefinitions.add(new ColumnDefinition("created_at", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("last_inspected_at", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("times_inspected", "int"));
+    columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
+    columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("hour_created", "machine_code"));
+    primaryKey.setClusteringKey(Arrays.asList("serial_number"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    // create table
+    String body =
+            RestUtils.post(
+                    authToken,
+                    String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+                    objectMapper.writeValueAsString(tableAdd),
+                    HttpStatus.SC_CREATED);
+
+    TableResponse tableResponse =
+            objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    assertThat(tableResponse.getName()).isEqualTo(tableName);
+
+    // insert a row
+    String timestamp = String.valueOf(Instant.now().getEpochSecond());
+    String serialNumber = "ABC123";
+    Map<String, String> row = new HashMap<>();
+    row.put("hour_created", timestamp);
+    row.put("serial_number", serialNumber);
+    row.put("machine_code", "DEF456");
+    row.put("part_name", "Engine");
+    row.put("part_number", "DEF456");
+    row.put("last_inspected_at", timestamp);
+    row.put("times_inspected", "2");
+    row.put("est_unit_cost", "599.99");
+    row.put("est_unit_cost_updated", timestamp);
+    row.put("inspection_notes", "working");
+
+    RestUtils.post(
+            authToken,
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_CREATED);
+
+    // retrieve the row by ID
+    String whereClause = String.format(
+            "{\"hour_created\":{\"$eq\":\"%s\"},\"serial_number\":{\"$eq\":[\"%s\"]}}",
+            timestamp, serialNumber);
+
+    body =
+            RestUtils.get(
+                    authToken,
+                    String.format(
+                            "%s/v2/keyspaces/%s/%s?where=%s",
+                            restUrlBase, keyspaceName, tableName, whereClause),
+                    HttpStatus.SC_OK);
+
+    ListOfMapsGetResponseWrapper getResponseWrapper =
+            LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+    List<Map<String, Object>> data = getResponseWrapper.getData();
+    assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
+    assertThat(data.get(0).get("serial_number")).isEqualTo(serialNumber);
+    assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
