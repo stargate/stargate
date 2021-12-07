@@ -11,6 +11,7 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
@@ -23,8 +24,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -476,11 +479,21 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     // Need to process values in order they are included in query...
 
+    Set<String> counters = findCounterNames(tableDef);
+
     // First, values to update
     List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
       final String columnName = entry.getKey();
-      valueModifiers.add(ValueModifier.marker(columnName));
+      // Special handling for counter updates, cannot Set
+      ValueModifier mod =
+          counters.contains(columnName)
+              ? ValueModifier.of(
+                  ValueModifier.Target.column(columnName),
+                  ValueModifier.Operation.INCREMENT,
+                  Value.marker())
+              : ValueModifier.marker(columnName);
+      valueModifiers.add(mod);
       valuesBuilder.addValues(
           toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
     }
@@ -511,7 +524,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
@@ -522,7 +535,23 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return resultRows;
   }
 
-  protected static List<Column> splitColumns(String columnStr) {
+  private Set<String> findCounterNames(Schema.CqlTable tableDef) {
+    // Only need to check static and regular columns; primary keys cannot be Counters.
+    // NOTE: could probably optimize knowing that Counters are "all-or-nothing", cannot
+    // mix-and-match. But for now will just check them all.
+
+    // also don't think Counter is valid for static columns?
+    Set<String> counterNames = null;
+    for (QueryOuterClass.ColumnSpec column : tableDef.getColumnsList()) {
+      if (counterNames == null) {
+        counterNames = new HashSet<>();
+      }
+      counterNames.add(column.getName());
+    }
+    return (counterNames == null) ? Collections.emptySet() : counterNames;
+  }
+
+  private List<Column> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
         .map(String::trim)
         .filter(c -> c.length() != 0)
@@ -530,7 +559,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .collect(Collectors.toList());
   }
 
-  protected static byte[] decodeBase64(String base64encoded) {
+  private static byte[] decodeBase64(String base64encoded) {
     // TODO: error handling
     return Base64.getDecoder().decode(base64encoded);
   }
