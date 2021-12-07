@@ -283,6 +283,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
                 new QueryBuilder()
                     .create()
                     .keyspace(keyspaceName)
+                    .ifNotExists()
                     .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
                     .build();
           } else {
@@ -290,6 +291,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
                 new QueryBuilder()
                     .create()
                     .keyspace(keyspaceName)
+                    .ifNotExists()
                     .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
                     .build();
           }

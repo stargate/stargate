@@ -326,7 +326,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
         getAndValidatePrimaryKeys(tableDef, keysIncluded);
-    List<BuiltCondition> whereConditions = new ArrayList<>();
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
     for (int i = 0; i < keysIncluded; ++i) {
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
@@ -362,7 +362,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
         getAndValidatePrimaryKeys(tableDef, keysIncluded);
 
-    List<BuiltCondition> whereConditions = new ArrayList<>();
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
     for (int i = 0; i < keysIncluded; ++i) {
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
@@ -402,7 +402,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       Map<String, Object> payloadMap,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    List<ValueModifier> valueModifiers = new ArrayList<>();
+    List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
       final String columnName = entry.getKey();
       valueModifiers.add(ValueModifier.marker(columnName));
