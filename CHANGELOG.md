@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.0.45](https://github.com/stargate/stargate/tree/v1.0.45) (2021-12-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.44...v1.0.45)
+
+**Merged pull requests:**
+
+- gRPC: Set "host" header to ":authority" pseudo-header value [\#1457](https://github.com/stargate/stargate/pull/1457) ([mpenick](https://github.com/mpenick))
+- avoid going to props every time for supportsSecondaryIndex [\#1456](https://github.com/stargate/stargate/pull/1456) ([ivansenic](https://github.com/ivansenic))
+- Upgrade swagger-ui dependency from 3.35.0 to the latest 3.x, 3.52.5. [\#1452](https://github.com/stargate/stargate/pull/1452) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1449](https://github.com/stargate/stargate/pull/1449) ([github-actions[bot]](https://github.com/apps/github-actions))
+- refactored shredding of json payload [\#1439](https://github.com/stargate/stargate/pull/1439) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.44](https://github.com/stargate/stargate/tree/v1.0.44) (2021-12-02)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.43...v1.0.44)
