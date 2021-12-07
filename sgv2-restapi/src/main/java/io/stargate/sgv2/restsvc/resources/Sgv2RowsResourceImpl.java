@@ -17,6 +17,7 @@ import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
+import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -179,10 +180,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
-    QueryOuterClass.QueryParameters params = parametersForLocalQuorum();
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
-            .setParameters(params)
+            .setParameters(parametersForLocalQuorum())
             .setCql(cql)
             .setValues(valuesBuilder.build())
             .build();
@@ -204,11 +204,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
-    // !!! TO BE IMPLEMENTED
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
   }
 
   @Override
@@ -257,11 +253,68 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
+    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
+  }
+
+  /** Implementation of POST/PATCH (update/patch rows) endpoints */
+  private Response modifyRow(
+      final String token,
+      final String keyspaceName,
+      final String tableName,
+      final List<PathSegment> path,
+      final boolean raw,
+      final String payloadAsString,
+      final HttpServletRequest request) {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    // !!! TO BE IMPLEMENTED
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    Map<String, Object> payloadMap;
+    try {
+      payloadMap = parseJsonAsMap(payloadAsString);
+    } catch (Exception e) {
+      return jaxrsServiceError(
+              Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
+          .build();
+    }
+    final String cql;
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+
+    try {
+      cql =
+          buildUpdateRowCQL(
+              keyspaceName, tableName, path, tableDef, payloadMap, valuesBuilder, toProtoConverter);
+    } catch (IllegalArgumentException e) {
+      // No logging since this is due to something bad client sent:
+      return jaxrsBadRequestError(e.getMessage()).build();
+    } catch (Exception e) {
+      // Unrecognized problem to be converted to something known; log:
+      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
+      return jaxrsServiceError(
+              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
+          .build();
+    }
+    logger.info("modifyRow(): try to call backend with CQL of '{}'", cql);
+
+    final QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder()
+            .setParameters(parametersForLocalQuorum())
+            .setCql(cql)
+            .setValues(valuesBuilder.build())
+            .build();
+
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
+          return jaxrsResponse(Response.Status.OK).entity(responsePayload).build();
+        });
   }
 
   /*
@@ -410,6 +463,46 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
     }
     return new QueryBuilder().insertInto(keyspaceName, tableName).value(valueModifiers).build();
+  }
+
+  protected String buildUpdateRowCQL(
+      String keyspaceName,
+      String tableName,
+      List<PathSegment> pkValues,
+      Schema.CqlTable tableDef,
+      Map<String, Object> payloadMap,
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
+
+    // Need to process values in order they are included in query...
+
+    // First, values to update
+    List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
+    for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
+      final String columnName = entry.getKey();
+      valueModifiers.add(ValueModifier.marker(columnName));
+      valuesBuilder.addValues(
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
+    }
+
+    // Second, where clause from primary key
+    final int keysIncluded = pkValues.size();
+    final List<QueryOuterClass.ColumnSpec> primaryKeys =
+        getAndValidatePrimaryKeys(tableDef, keysIncluded);
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
+      final String columnName = column.getName();
+      whereConditions.add(BuiltCondition.ofMarker(columnName, Predicate.EQ));
+      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(columnName, keyValue));
+    }
+
+    return new QueryBuilder()
+        .update(keyspaceName, tableName)
+        .value(valueModifiers)
+        .where(whereConditions)
+        .build();
   }
 
   /*
