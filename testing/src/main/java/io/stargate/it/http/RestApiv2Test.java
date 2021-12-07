@@ -2826,23 +2826,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void testTimestampHandling() throws IOException {
     createKeyspace(keyspaceName);
 
-//CREATE TABLE IF NOT EXISTS widgets
-//                                  |(
-//                                  |  hour_created timestamp,
-//                                  |  serial_number text,
-//                                  |  machine_code text,
-//                                  |  part_name text,
-//                                  |  part_number text,
-//                                  |  factory_code text,
-//                                  |  created_at timestamp,
-//                                  |  last_inspected_at timestamp,
-//                                  |  times_inspected int,
-//                                  |  est_unit_cost decimal,
-//                                  |  est_unit_cost_updated timestamp,
-//                                  |  inspection_notes text,
-//                                  |  PRIMARY KEY((hour_created, machine_code), serial_number)
-
-
     String tableName = "widgets";
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
@@ -2919,6 +2902,27 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
     assertThat(data.get(0).get("serial_number")).isEqualTo(serialNumber);
     assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
+
+    // insert a row, ensuring we can use literals for numeric values
+    String timestamp2 = String.valueOf(Instant.now().getEpochSecond());
+    Map<String, Object> row2 = new HashMap<>();
+    row2.put("hour_created", timestamp2);
+    row2.put("serial_number", "ZXY765");
+    row2.put("machine_code", "MNO432");
+    row2.put("part_name", "Adapter");
+    row2.put("part_number", "QRS246");
+    row2.put("last_inspected_at", timestamp2);
+    row2.put("times_inspected", 5);
+    row2.put("est_unit_cost", 38.95);
+    row2.put("est_unit_cost_updated", timestamp2);
+    row2.put("inspection_notes", "frayed cable");
+
+    RestUtils.post(
+            authToken,
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+            objectMapper.writeValueAsString(row2),
+            HttpStatus.SC_CREATED);
+
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
