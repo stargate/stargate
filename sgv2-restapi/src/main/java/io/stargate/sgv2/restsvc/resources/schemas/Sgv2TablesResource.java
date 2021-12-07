@@ -1,11 +1,11 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
@@ -292,7 +292,7 @@ public class Sgv2TablesResource extends ResourceBase {
     }
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
-          String cql = SchemaBuilder.dropTable(keyspaceName, tableName).ifExists().asCql();
+          String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
           StargateGrpc.StargateBlockingStub blockingStub =
               grpcFactory
                   .constructBlockingStub()
