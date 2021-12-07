@@ -4,6 +4,7 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -21,6 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 
@@ -28,9 +30,13 @@ import javax.ws.rs.core.Response;
  * Definition of REST API endpoint methods including both JAX-RS and Swagger annotations. No
  * implementations.
  *
- * <p>NOTE: class annotations cannot be included in the interface (at least for JAX-RS) and must be
- * included in the implementation class.
+ * <p>NOTE: JAX-RS class annotations cannot be included in the interface and must be included in the
+ * implementation class. Swagger annotations are ok tho.
  */
+@Api(
+    produces = MediaType.APPLICATION_JSON,
+    consumes = MediaType.APPLICATION_JSON,
+    tags = {"data"})
 public interface Sgv2RowsResourceApi {
   @Timed
   @GET
@@ -49,7 +55,7 @@ public interface Sgv2RowsResourceApi {
             message = "Internal server error",
             response = RestServiceError.class)
       })
-  public Response getRowWithWhere(
+  Response getRowWithWhere(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -110,7 +116,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response getRows(
+  Response getRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -125,7 +131,10 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @ApiParam(
               value =
-                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+                  "Value from the primary key column for the table. Define composite keys by separating values"
+                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
+                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
+                      + " then the primary key in the path would be `race_year/race_name` ",
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
@@ -160,7 +169,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   @Path("/rows")
-  public javax.ws.rs.core.Response getAllRows(
+  javax.ws.rs.core.Response getAllRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -188,7 +197,8 @@ public interface Sgv2RowsResourceApi {
   @ApiOperation(
       value = "Add row",
       notes =
-          "Add a row to a table in your database. If the new row has the same primary key as that of an existing row, the database processes it as an update to the existing row.",
+          "Add a row to a table in your database. If the new row has the same primary key as that of"
+              + " an existing row, the database processes it as an update to the existing row.",
       response = String.class,
       responseContainer = "Map",
       code = 201)
@@ -207,7 +217,7 @@ public interface Sgv2RowsResourceApi {
             message = "Internal server error",
             response = RestServiceError.class)
       })
-  public Response createRow(
+  Response createRow(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -240,7 +250,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response updateRows(
+  Response updateRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -255,7 +265,10 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @ApiParam(
               value =
-                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+                  "Value from the primary key column for the table. Define composite keys by separating"
+                      + " values with slashes (`val1/val2...`) in the order they were defined. </br>"
+                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
+                      + " then the primary key in the path would be `race_year/race_name` ",
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
@@ -277,7 +290,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response deleteRows(
+  Response deleteRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -292,7 +305,10 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @ApiParam(
               value =
-                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+                  "Value from the primary key column for the table. Define composite keys by separating values"
+                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
+                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
+                      + " then the primary key in the path would be `race_year/race_name` ",
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
@@ -315,7 +331,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   @Path("/{primaryKey: .*}")
-  public Response patchRows(
+  Response patchRows(
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -330,7 +346,10 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @ApiParam(
               value =
-                  "Value from the primary key column for the table. Define composite keys by separating values with slashes (`val1/val2...`) in the order they were defined. </br> For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)` then the primary key in the path would be `race_year/race_name` ",
+                  "Value from the primary key column for the table. Define composite keys by separating values"
+                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
+                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
+                      + " then the primary key in the path would be `race_year/race_name` ",
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,

@@ -21,7 +21,6 @@ import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
-import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -41,10 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // note: JAX-RS Class Annotations MUST be in the impl class; only method annotations inherited
-@Api(
-    produces = MediaType.APPLICATION_JSON,
-    consumes = MediaType.APPLICATION_JSON,
-    tags = {"data"})
+// (but Swagger allows inheritance)
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
