@@ -1,11 +1,7 @@
 package io.stargate.sgv2.restsvc.resources;
 
-import com.datastax.oss.driver.api.querybuilder.BuildableQuery;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.delete.Delete;
 import com.datastax.oss.driver.api.querybuilder.insert.Insert;
 import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
-import com.datastax.oss.driver.api.querybuilder.relation.OngoingWhereClause;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
 import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
@@ -15,6 +11,8 @@ import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
@@ -319,7 +317,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       Schema.CqlTable tableDef,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
+    SelectFrom selectFrom =
+        com.datastax.oss.driver.api.querybuilder.QueryBuilder.selectFrom(keyspaceName, tableName);
     Select select;
     if (columns.isEmpty()) {
       select = selectFrom.all();
@@ -333,7 +332,10 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      select =
+          select
+              .whereColumn(fieldName)
+              .isEqualTo(com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker());
       valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
     }
 
@@ -350,16 +352,19 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
         getAndValidatePrimaryKeys(tableDef, keysIncluded);
-    OngoingWhereClause<Delete> delete = QueryBuilder.deleteFrom(keyspaceName, tableName);
+
+    List<BuiltCondition> whereConditions = new ArrayList<>();
     for (int i = 0; i < keysIncluded; ++i) {
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      delete = delete.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      whereConditions.add(BuiltCondition.ofMarker(fieldName, Predicate.EQ));
       valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
     }
 
-    return ((BuildableQuery) delete).asCql();
+    io.stargate.sgv2.common.cql.builder.QueryBuilder qb =
+        new io.stargate.sgv2.common.cql.builder.QueryBuilder();
+    return qb.delete().from(keyspaceName, tableName).where(whereConditions).build();
   }
 
   private List<QueryOuterClass.ColumnSpec> getAndValidatePrimaryKeys(
@@ -386,7 +391,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   protected String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
     // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
-    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
+    SelectFrom selectFrom =
+        com.datastax.oss.driver.api.querybuilder.QueryBuilder.selectFrom(keyspaceName, tableName);
     if (columns.isEmpty()) {
       return selectFrom.all().asCql();
     }
@@ -399,10 +405,13 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       Map<String, Object> payloadMap,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    OngoingValues insert = QueryBuilder.insertInto(keyspaceName, tableName);
+    OngoingValues insert =
+        com.datastax.oss.driver.api.querybuilder.QueryBuilder.insertInto(keyspaceName, tableName);
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
       final String fieldName = entry.getKey();
-      insert = insert.value(fieldName, QueryBuilder.bindMarker());
+      insert =
+          insert.value(
+              fieldName, com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker());
       valuesBuilder.addValues(
           toProtoConverter.protoValueFromLooselyTyped(fieldName, entry.getValue()));
     }
