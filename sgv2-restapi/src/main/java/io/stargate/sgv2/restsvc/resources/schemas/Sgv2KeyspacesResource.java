@@ -280,14 +280,14 @@ public class Sgv2KeyspacesResource extends ResourceBase {
           String cql;
           if (ksCreateDef.datacenters == null) {
             cql =
-                new io.stargate.sgv2.common.cql.builder.QueryBuilder()
+                new QueryBuilder()
                     .create()
                     .keyspace(keyspaceName)
                     .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
                     .build();
           } else {
             cql =
-                new io.stargate.sgv2.common.cql.builder.QueryBuilder()
+                new QueryBuilder()
                     .create()
                     .keyspace(keyspaceName)
                     .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
@@ -341,12 +341,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
-          String cql =
-              new io.stargate.sgv2.common.cql.builder.QueryBuilder()
-                  .drop()
-                  .keyspace(keyspaceName)
-                  .ifExists()
-                  .build();
+          String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
           StargateGrpc.StargateBlockingStub blockingStub =
               grpcFactory
                   .constructBlockingStub()
