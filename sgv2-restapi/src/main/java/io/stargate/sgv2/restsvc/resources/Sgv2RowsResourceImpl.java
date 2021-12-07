@@ -1,7 +1,5 @@
 package io.stargate.sgv2.restsvc.resources;
 
-import com.datastax.oss.driver.api.querybuilder.insert.Insert;
-import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
@@ -13,6 +11,7 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
@@ -403,17 +402,14 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       Map<String, Object> payloadMap,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    OngoingValues insert =
-        com.datastax.oss.driver.api.querybuilder.QueryBuilder.insertInto(keyspaceName, tableName);
+    List<ValueModifier> valueModifiers = new ArrayList<>();
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
-      final String fieldName = entry.getKey();
-      insert =
-          insert.value(
-              fieldName, com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker());
+      final String columnName = entry.getKey();
+      valueModifiers.add(ValueModifier.marker(columnName));
       valuesBuilder.addValues(
-          toProtoConverter.protoValueFromLooselyTyped(fieldName, entry.getValue()));
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
     }
-    return ((Insert) insert).asCql();
+    return new QueryBuilder().insertInto(keyspaceName, tableName).value(valueModifiers).build();
   }
 
   /*
