@@ -1,13 +1,5 @@
 package io.stargate.sgv2.restsvc.resources;
 
-import com.datastax.oss.driver.api.querybuilder.BuildableQuery;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.delete.Delete;
-import com.datastax.oss.driver.api.querybuilder.insert.Insert;
-import com.datastax.oss.driver.api.querybuilder.insert.OngoingValues;
-import com.datastax.oss.driver.api.querybuilder.relation.OngoingWhereClause;
-import com.datastax.oss.driver.api.querybuilder.select.Select;
-import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
@@ -15,6 +7,11 @@ import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.common.cql.builder.Column;
+import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
@@ -93,7 +90,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final StargateGrpc.StargateBlockingStub blockingStub =
         grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
@@ -125,8 +122,15 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    List<String> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    final String cql = buildGetAllRowsCQL(keyspaceName, tableName, columns);
+    List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final String cql;
+
+    if (columns.isEmpty()) {
+      cql = new QueryBuilder().select().star().from(keyspaceName, tableName).build();
+    } else {
+      cql = new QueryBuilder().select().column(columns).from(keyspaceName, tableName).build();
+    }
+
     logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
 
     final StargateGrpc.StargateBlockingStub blockingStub =
@@ -315,29 +319,36 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
-      List<String> columns,
+      List<Column> columns,
       Schema.CqlTable tableDef,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
-    Select select;
-    if (columns.isEmpty()) {
-      select = selectFrom.all();
-    } else {
-      select = selectFrom.columns(columns);
-    }
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
         getAndValidatePrimaryKeys(tableDef, keysIncluded);
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
     for (int i = 0; i < keysIncluded; ++i) {
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      select = select.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      whereConditions.add(BuiltCondition.ofMarker(fieldName, Predicate.EQ));
       valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
     }
 
-    return select.asCql();
+    if (columns.isEmpty()) {
+      return new QueryBuilder()
+          .select()
+          .star()
+          .from(keyspaceName, tableName)
+          .where(whereConditions)
+          .build();
+    }
+    return new QueryBuilder()
+        .select()
+        .column(columns)
+        .from(keyspaceName, tableName)
+        .where(whereConditions)
+        .build();
   }
 
   private String buildDeleteRowsByPKCQL(
@@ -350,16 +361,17 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
         getAndValidatePrimaryKeys(tableDef, keysIncluded);
-    OngoingWhereClause<Delete> delete = QueryBuilder.deleteFrom(keyspaceName, tableName);
+
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
     for (int i = 0; i < keysIncluded; ++i) {
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      delete = delete.whereColumn(fieldName).isEqualTo(QueryBuilder.bindMarker());
+      whereConditions.add(BuiltCondition.ofMarker(fieldName, Predicate.EQ));
       valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
     }
 
-    return ((BuildableQuery) delete).asCql();
+    return new QueryBuilder().delete().from(keyspaceName, tableName).where(whereConditions).build();
   }
 
   private List<QueryOuterClass.ColumnSpec> getAndValidatePrimaryKeys(
@@ -384,29 +396,20 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return primaryKeys;
   }
 
-  protected String buildGetAllRowsCQL(String keyspaceName, String tableName, List<String> columns) {
-    // return String.format("SELECT %s from %s.%s", fields, keyspaceName, tableName);
-    SelectFrom selectFrom = QueryBuilder.selectFrom(keyspaceName, tableName);
-    if (columns.isEmpty()) {
-      return selectFrom.all().asCql();
-    }
-    return selectFrom.columns(columns).asCql();
-  }
-
   protected String buildAddRowCQL(
       String keyspaceName,
       String tableName,
       Map<String, Object> payloadMap,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-    OngoingValues insert = QueryBuilder.insertInto(keyspaceName, tableName);
+    List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
-      final String fieldName = entry.getKey();
-      insert = insert.value(fieldName, QueryBuilder.bindMarker());
+      final String columnName = entry.getKey();
+      valueModifiers.add(ValueModifier.marker(columnName));
       valuesBuilder.addValues(
-          toProtoConverter.protoValueFromLooselyTyped(fieldName, entry.getValue()));
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
     }
-    return ((Insert) insert).asCql();
+    return new QueryBuilder().insertInto(keyspaceName, tableName).value(valueModifiers).build();
   }
 
   /*
@@ -426,10 +429,11 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return resultRows;
   }
 
-  protected static List<String> splitColumns(String columnStr) {
+  protected static List<Column> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
         .map(String::trim)
         .filter(c -> c.length() != 0)
+        .map(c -> Column.reference(c))
         .collect(Collectors.toList());
   }
 
