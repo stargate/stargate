@@ -46,13 +46,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- DataStax/Cassandra dependencies -->
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-query-builder</artifactId>
-      <version>${driver.version}</version>
-    </dependency>
-
     <!-- Web platform (DropWizard, Jersey) deps -->
     <dependency>
       <groupId>io.dropwizard</groupId>
