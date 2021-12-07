@@ -16,15 +16,16 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
-import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.driver.api.querybuilder.schema.CreateKeyspaceStart;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
@@ -115,10 +116,12 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
 
     String cql =
-        QueryBuilder.selectFrom("system_schema", "keyspaces")
+        new QueryBuilder()
+            .select()
             .column("keyspace_name")
             .column("replication")
-            .asCql();
+            .from("system_schema", "keyspaces")
+            .build();
 
     logger.info("getAllKeyspaces, cql = " + cql);
 
@@ -180,14 +183,13 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
 
     String cql =
-        QueryBuilder.selectFrom("system_schema", "keyspaces")
+        new QueryBuilder()
+            .select()
             .column("keyspace_name")
             .column("replication")
-            .whereColumn("keyspace_name")
-            .isEqualTo(QueryBuilder.literal(keyspaceName))
-            .asCql();
-
-    logger.info("getOneKeyspace, cql = " + cql);
+            .from("system_schema", "keyspaces")
+            .where(BuiltCondition.of("keyspace_name", Predicate.EQ, keyspaceName))
+            .build();
 
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
@@ -275,12 +277,21 @@ public class Sgv2KeyspacesResource extends ResourceBase {
                 .build();
           }
           final String keyspaceName = ksCreateDef.name;
-          CreateKeyspaceStart start = SchemaBuilder.createKeyspace(keyspaceName).ifNotExists();
           String cql;
           if (ksCreateDef.datacenters == null) {
-            cql = start.withSimpleStrategy(ksCreateDef.replicas).asCql();
+            cql =
+                new io.stargate.sgv2.common.cql.builder.QueryBuilder()
+                    .create()
+                    .keyspace(keyspaceName)
+                    .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
+                    .build();
           } else {
-            cql = start.withNetworkTopologyStrategy(ksCreateDef.datacenters).asCql();
+            cql =
+                new io.stargate.sgv2.common.cql.builder.QueryBuilder()
+                    .create()
+                    .keyspace(keyspaceName)
+                    .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
+                    .build();
           }
 
           logger.info("Sending CREATE KEYSPACE with cql: [" + cql + "]");
@@ -330,7 +341,12 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
-          String cql = SchemaBuilder.dropKeyspace(keyspaceName).ifExists().asCql();
+          String cql =
+              new io.stargate.sgv2.common.cql.builder.QueryBuilder()
+                  .drop()
+                  .keyspace(keyspaceName)
+                  .ifExists()
+                  .build();
           StargateGrpc.StargateBlockingStub blockingStub =
               grpcFactory
                   .constructBlockingStub()
