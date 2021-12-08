@@ -2840,7 +2840,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("created_at", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("last_inspected_at", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("times_inspected", "int"));
-    columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
+    // columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
     tableAdd.setColumnDefinitions(columnDefinitions);
@@ -2863,17 +2863,17 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(tableResponse.getName()).isEqualTo(tableName);
 
     // insert a row
-    String timestamp = String.valueOf(Instant.now().getEpochSecond());
-    String serialNumber = "ABC123";
-    Map<String, String> row = new HashMap<>();
+    long timestamp = Instant.now().toEpochMilli();
+    String machineCode = "ABC123";
+    Map<String, Object> row = new HashMap<>();
     row.put("hour_created", timestamp);
-    row.put("serial_number", serialNumber);
-    row.put("machine_code", "DEF456");
+    row.put("serial_number", "123456789Z");
+    row.put("machine_code", machineCode);
     row.put("part_name", "Engine");
     row.put("part_number", "DEF456");
     row.put("last_inspected_at", timestamp);
     row.put("times_inspected", "2");
-    row.put("est_unit_cost", "599.99");
+    // row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
 
@@ -2883,29 +2883,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
-    // retrieve the row by ID
-    String whereClause =
-        String.format(
-            "{\"hour_created\":{\"$eq\":\"%s\"},\"serial_number\":{\"$eq\":[\"%s\"]}}",
-            timestamp, serialNumber);
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s?where=%s",
-                restUrlBase, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_OK);
-
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    List<Map<String, Object>> data = getResponseWrapper.getData();
-    assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
-    assertThat(data.get(0).get("serial_number")).isEqualTo(serialNumber);
-    assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
-
     // insert a row, ensuring we can use literals for numeric values
-    String timestamp2 = String.valueOf(Instant.now().getEpochSecond());
+    String timestamp2 = String.valueOf(Instant.now().toEpochMilli());
     Map<String, Object> row2 = new HashMap<>();
     row2.put("hour_created", timestamp2);
     row2.put("serial_number", "ZXY765");
@@ -2914,7 +2893,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("part_number", "QRS246");
     row2.put("last_inspected_at", timestamp2);
     row2.put("times_inspected", 5);
-    row2.put("est_unit_cost", 38.95);
+    // row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
 
@@ -2923,6 +2902,22 @@ public class RestApiv2Test extends BaseIntegrationTest {
         String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row2),
         HttpStatus.SC_CREATED);
+
+    // retrieve the first row by primary key
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s/%s",
+                restUrlBase, keyspaceName, tableName, timestamp, machineCode),
+            HttpStatus.SC_OK);
+
+    ListOfMapsGetResponseWrapper getResponseWrapper =
+        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+    List<Map<String, Object>> data = getResponseWrapper.getData();
+    assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
+    assertThat(data.get(0).get("machine_code")).isEqualTo(machineCode);
+    assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {

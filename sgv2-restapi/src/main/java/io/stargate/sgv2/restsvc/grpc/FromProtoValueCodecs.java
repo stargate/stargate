@@ -83,6 +83,7 @@ public class FromProtoValueCodecs {
 
         // Supported Scalars: numeric
       case BIGINT:
+      case TIMESTAMP:
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
@@ -108,8 +109,6 @@ public class FromProtoValueCodecs {
       case DOUBLE:
         break;
       case FLOAT:
-        break;
-      case TIMESTAMP:
         break;
       case VARINT:
         break;

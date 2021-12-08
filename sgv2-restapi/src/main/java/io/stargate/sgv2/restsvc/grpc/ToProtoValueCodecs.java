@@ -13,6 +13,7 @@ public class ToProtoValueCodecs {
   protected static final IntCodec CODEC_INT = new IntCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
   protected static final LongCodec CODEC_COUNTER = new LongCodec("COUNTER");
+  protected static final LongCodec CODEC_TIMESTAMP = new LongCodec("TIMESTAMP");
 
   // Same codecs for UUIDs but for error messages need to create different instances
   protected static final UUIDCodec CODEC_UUID = new UUIDCodec("UUID");
@@ -74,6 +75,8 @@ public class ToProtoValueCodecs {
         return CODEC_INT;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
+      case TIMESTAMP:
+        return CODEC_TIMESTAMP; // represented as LONG
 
       case UUID:
         return CODEC_UUID;
@@ -88,8 +91,6 @@ public class ToProtoValueCodecs {
       case DOUBLE:
         break;
       case FLOAT:
-        break;
-      case TIMESTAMP:
         break;
       case VARINT:
         break;
