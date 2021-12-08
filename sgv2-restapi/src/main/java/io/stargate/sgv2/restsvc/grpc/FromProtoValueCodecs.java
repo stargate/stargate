@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -209,16 +208,12 @@ public class FromProtoValueCodecs {
   protected static final class DecimalCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return convertProtoValue(value);
+      return Values.decimal(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(convertProtoValue(value));
-    }
-
-    private BigDecimal convertProtoValue(QueryOuterClass.Value value) {
-      return Values.decimal(value);
+      return jsonNodeFactory.numberNode(Values.decimal(value));
     }
   }
 
