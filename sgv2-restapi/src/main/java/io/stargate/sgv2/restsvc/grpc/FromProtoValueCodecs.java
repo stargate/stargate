@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
+import com.google.protobuf.ByteString;
 import io.stargate.proto.QueryOuterClass;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +26,7 @@ public class FromProtoValueCodecs {
   private static final IntCodec CODEC_INT = new IntCodec();
   private static final LongCodec CODEC_LONG = new LongCodec();
   private static final ShortCodec CODEC_SHORT = new ShortCodec();
+  private static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
 
   private static final TextCodec CODEC_TEXT = new TextCodec();
   private static final UUIDCodec CODEC_UUID = new UUIDCodec();
@@ -91,6 +95,8 @@ public class FromProtoValueCodecs {
         return CODEC_SHORT;
       case TINYINT:
         return CODEC_BYTE;
+      case DECIMAL:
+        return CODEC_DECIMAL;
 
         // Supported Scalars: other
       case BOOLEAN:
@@ -103,8 +109,6 @@ public class FromProtoValueCodecs {
       case BLOB:
         break;
       case COUNTER:
-        break;
-      case DECIMAL:
         break;
       case DOUBLE:
         break;
@@ -200,6 +204,31 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  protected static final class DecimalCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return convertProtoValue(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(convertProtoValue(value));
+    }
+
+    private BigDecimal convertProtoValue(QueryOuterClass.Value value) {
+      QueryOuterClass.Decimal decimal = value.getDecimal();
+      ByteString bi = decimal.getValue();
+      int scale = decimal.getScale();
+      byte[] bibytes = bi.toByteArray();
+
+      ByteBuffer bytes = ByteBuffer.allocate(4 + bibytes.length);
+      bytes.putInt(scale);
+      bytes.put(bibytes);
+      bytes.rewind();
+      return new BigDecimal(bytes.asCharBuffer().array());
     }
   }
 

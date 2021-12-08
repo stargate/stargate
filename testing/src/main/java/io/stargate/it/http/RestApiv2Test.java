@@ -2840,7 +2840,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("created_at", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("last_inspected_at", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("times_inspected", "int"));
-    // columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
+    columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
     tableAdd.setColumnDefinitions(columnDefinitions);
@@ -2873,7 +2873,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("part_number", "DEF456");
     row.put("last_inspected_at", timestamp);
     row.put("times_inspected", "2");
-    // row.put("est_unit_cost", "599.99");
+    row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
 
@@ -2893,7 +2893,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("part_number", "QRS246");
     row2.put("last_inspected_at", timestamp2);
     row2.put("times_inspected", 5);
-    // row2.put("est_unit_cost", 38.95);
+    row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
 

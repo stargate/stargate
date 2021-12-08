@@ -2,6 +2,7 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -11,6 +12,7 @@ public class ToProtoValueCodecs {
   protected static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
   protected static final TextCodec CODEC_TEXT = new TextCodec();
   protected static final IntCodec CODEC_INT = new IntCodec();
+  protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
   protected static final LongCodec CODEC_COUNTER = new LongCodec("COUNTER");
   protected static final LongCodec CODEC_TIMESTAMP = new LongCodec("TIMESTAMP");
@@ -77,6 +79,8 @@ public class ToProtoValueCodecs {
         return CODEC_COUNTER; // actually same as LONG
       case TIMESTAMP:
         return CODEC_TIMESTAMP; // represented as LONG
+      case DECIMAL:
+        return CODEC_DECIMAL;
 
       case UUID:
         return CODEC_UUID;
@@ -85,8 +89,6 @@ public class ToProtoValueCodecs {
 
         // And then not-yet-implemented ones:
       case BLOB:
-        break;
-      case DECIMAL:
         break;
       case DOUBLE:
         break;
@@ -277,6 +279,32 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Long.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class DecimalCodec extends ToProtoCodecBase {
+    public DecimalCodec() {
+      super("TypeSpec.Basic.DECIMAL");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof BigDecimal) {
+        return Values.of((BigDecimal) value);
+      } else if (value instanceof Number) {
+        Number n = (Number) value;
+        return Values.of(new BigDecimal(n.toString()));
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(new BigDecimal(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
