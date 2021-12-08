@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
-import com.google.protobuf.ByteString;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -219,16 +218,7 @@ public class FromProtoValueCodecs {
     }
 
     private BigDecimal convertProtoValue(QueryOuterClass.Value value) {
-      QueryOuterClass.Decimal decimal = value.getDecimal();
-      ByteString bi = decimal.getValue();
-      int scale = decimal.getScale();
-      byte[] bibytes = bi.toByteArray();
-
-      ByteBuffer bytes = ByteBuffer.allocate(4 + bibytes.length);
-      bytes.putInt(scale);
-      bytes.put(bibytes);
-      bytes.rewind();
-      return new BigDecimal(bytes.asCharBuffer().array());
+      return Values.decimal(value);
     }
   }
 
