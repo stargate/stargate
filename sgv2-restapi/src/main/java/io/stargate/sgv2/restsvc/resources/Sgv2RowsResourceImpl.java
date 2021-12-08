@@ -549,10 +549,12 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   private Set<String> findCounterNames(
       Set<String> counterNames, List<QueryOuterClass.ColumnSpec> columns) {
     for (QueryOuterClass.ColumnSpec column : columns) {
-      if (counterNames == null) {
-        counterNames = new HashSet<>();
+      if (column.getType().getBasic() == QueryOuterClass.TypeSpec.Basic.COUNTER) {
+        if (counterNames == null) {
+          counterNames = new HashSet<>();
+        }
+        counterNames.add(column.getName());
       }
-      counterNames.add(column.getName());
     }
     return counterNames;
   }
