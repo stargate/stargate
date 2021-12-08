@@ -423,12 +423,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -473,8 +473,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: An index named test_idx already exists");
+    assertThat(response.getDescription()).contains("Index test_idx already exists");
 
     // successufully index a collection
     indexAdd.setColumn("email");
@@ -505,13 +504,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
     String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
-    indexAdd.setColumn("lastname");
+    indexAdd.setColumn("lastName");
     indexAdd.setName("test_custom_idx");
     indexAdd.setType(indexType);
     indexAdd.setIfNotExists(false);
@@ -539,7 +538,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
 
     assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
-    assertThat(optionsReturned.get("target")).isEqualTo("\"lastname\"");
+    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
     assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
@@ -549,13 +548,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     // invalid table
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     String body =
         RestUtils.post(
             authToken,
@@ -566,7 +565,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             HttpStatus.SC_NOT_FOUND);
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
+    assertThat(response.getDescription()).contains("Table not found");
 
     // invalid column
     indexAdd.setColumn("invalid_column");
@@ -584,7 +583,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
 
     // invalid index kind
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setKind(IndexKind.ENTRIES);
     body =
         RestUtils.post(
@@ -597,8 +596,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: Indexing entries can only be used with a map");
+    assertThat(response.getDescription()).contains("Cannot create entries() index on firstName");
   }
 
   @Test
@@ -607,7 +605,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
@@ -621,7 +619,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(body).isEqualTo("[]");
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -652,12 +650,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
