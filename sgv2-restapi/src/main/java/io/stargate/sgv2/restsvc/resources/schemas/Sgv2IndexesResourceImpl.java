@@ -22,7 +22,7 @@ import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
-import io.stargate.sgv2.restsvc.resources.Authenticated;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import java.util.Collections;
@@ -37,7 +37,7 @@ import javax.ws.rs.core.Response;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@Authenticated
+@CreateGrpcStub
 public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2IndexesResourceApi {
 
   @Override

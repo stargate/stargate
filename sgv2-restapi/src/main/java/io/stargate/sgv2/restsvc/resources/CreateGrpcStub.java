@@ -19,7 +19,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import javax.ws.rs.NameBinding;
 
-/** Annotates resources that we want filtered with {@link AuthenticationFilter}. */
+/** Annotates resources that we want filtered with {@link CreateGrpcStubFilter}. */
 @NameBinding
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Authenticated {}
+public @interface CreateGrpcStub {}

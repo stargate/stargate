@@ -28,7 +28,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateGrpc;
-import io.stargate.sgv2.restsvc.resources.AuthenticationFilter;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
@@ -95,7 +95,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
     final GrpcClientFactory grpc = GrpcClientFactory.construct(grpcEndpoint);
 
-    environment.jersey().register(new AuthenticationFilter(grpc));
+    environment.jersey().register(new CreateGrpcStubFilter(grpc));
 
     environment
         .jersey()

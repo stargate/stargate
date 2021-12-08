@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@Authenticated
+@CreateGrpcStub
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
 
   // Singleton resource so no need to be static

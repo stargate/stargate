@@ -27,20 +27,20 @@ import javax.ws.rs.ext.Provider;
 /**
  * Validates that the auth token is present and pre-builds the gRPC stub before each request.
  *
- * <p>Note that the resource class or method must be annotated with {@link Authenticated} in order
+ * <p>Note that the resource class or method must be annotated with {@link CreateGrpcStub} in order
  * for this filter to run.
  *
  * @see GrpcStubFactory
  */
 @Provider
-@Authenticated
-public class AuthenticationFilter implements ContainerRequestFilter {
+@CreateGrpcStub
+public class CreateGrpcStubFilter implements ContainerRequestFilter {
 
   public static final String GRPC_STUB_KEY = "io.stargate.sgv2.restsvc.resources.GrpcStub";
 
   private final GrpcClientFactory grpcClientFactory;
 
-  public AuthenticationFilter(GrpcClientFactory grpcClientFactory) {
+  public CreateGrpcStubFilter(GrpcClientFactory grpcClientFactory) {
     this.grpcClientFactory = grpcClientFactory;
   }
 

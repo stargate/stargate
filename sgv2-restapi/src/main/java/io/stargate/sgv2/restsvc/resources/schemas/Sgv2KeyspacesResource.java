@@ -30,7 +30,7 @@ import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.resources.Authenticated;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@Authenticated
+@CreateGrpcStub
 public class Sgv2KeyspacesResource extends ResourceBase {
   private static final String DC_META_ENTRY_CLASS = "class";
 
