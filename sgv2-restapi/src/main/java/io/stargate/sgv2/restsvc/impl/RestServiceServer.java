@@ -30,6 +30,7 @@ import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
+import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResource;
 import io.swagger.config.ScannerFactory;
@@ -115,6 +116,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     // Schema endpoints
     environment.jersey().register(Sgv2KeyspacesResource.class);
     environment.jersey().register(Sgv2TablesResource.class);
+    environment.jersey().register(Sgv2IndexesResourceImpl.class);
 
     // Swagger endpoints
     environment.jersey().register(SwaggerSerializers.class);

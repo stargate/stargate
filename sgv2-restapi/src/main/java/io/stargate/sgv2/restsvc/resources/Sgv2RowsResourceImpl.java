@@ -1,8 +1,5 @@
 package io.stargate.sgv2.restsvc.resources;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.BytesValue;
-import com.google.protobuf.Int32Value;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
@@ -13,16 +10,12 @@ import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
-import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
-import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -46,7 +39,6 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-  protected static final int DEFAULT_PAGE_SIZE = 100;
 
   // Singleton resource so no need to be static
   protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -322,51 +314,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Helper methods for row access
-  /////////////////////////////////////////////////////////////////////////
-   */
-
-  protected javax.ws.rs.core.Response fetchRows(
-      StargateGrpc.StargateBlockingStub blockingStub,
-      int pageSizeParam,
-      String pageStateParam,
-      boolean raw,
-      String cql,
-      QueryOuterClass.Values.Builder values) {
-    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
-    if (!isStringEmpty(pageStateParam)) {
-      // surely there must better way to make Protobuf accept plain old byte[]? But if not:
-      paramsB =
-          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
-    }
-    int pageSize = DEFAULT_PAGE_SIZE;
-    if (pageSizeParam > 0) {
-      pageSize = pageSizeParam;
-    }
-    paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
-
-    QueryOuterClass.Query.Builder b =
-        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql);
-    if (values != null) {
-      b = b.setValues(values);
-    }
-    final QueryOuterClass.Query query = b.build();
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
-
-          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-          final int count = rs.getRowsCount();
-
-          String pageStateStr = extractPagingStateFromResultSet(rs);
-          List<Map<String, Object>> rows = convertRows(rs);
-          Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-          return jaxrsResponse(Response.Status.OK).entity(response).build();
-        });
-  }
-
-  /*
-  /////////////////////////////////////////////////////////////////////////
   // Helper methods for Query construction
   /////////////////////////////////////////////////////////////////////////
    */
@@ -524,17 +471,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
-    FromProtoConverter converter =
-        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
-    List<Map<String, Object>> resultRows = new ArrayList<>();
-    List<QueryOuterClass.Row> rows = rs.getRowsList();
-    for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
-    }
-    return resultRows;
-  }
-
   private Set<String> findCounterNames(Schema.CqlTable tableDef) {
     // Only need to check static and regular columns; primary keys cannot be Counters.
     // NOTE: could probably optimize knowing that Counters are "all-or-nothing", cannot
@@ -565,11 +501,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .filter(c -> c.length() != 0)
         .map(c -> Column.reference(c))
         .collect(Collectors.toList());
-  }
-
-  private static byte[] decodeBase64(String base64encoded) {
-    // TODO: error handling
-    return Base64.getDecoder().decode(base64encoded);
   }
 
   private static <T> List<T> concat(List<T> a, List<T> b) {

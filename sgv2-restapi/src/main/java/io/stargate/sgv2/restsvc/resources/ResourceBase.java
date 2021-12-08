@@ -5,13 +5,19 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
+import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Response;
 
@@ -22,6 +28,7 @@ import javax.ws.rs.core.Response;
 public abstract class ResourceBase {
   protected static final ObjectMapper JSON_MAPPER = new JsonMapper();
   protected static final ObjectReader MAP_READER = JSON_MAPPER.readerFor(Map.class);
+  protected static final int DEFAULT_PAGE_SIZE = 100;
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
@@ -101,5 +108,59 @@ public abstract class ResourceBase {
 
   protected static final boolean isStringEmpty(String str) {
     return (str == null) || str.isEmpty();
+  }
+
+  protected Response fetchRows(
+      StargateGrpc.StargateBlockingStub blockingStub,
+      int pageSizeParam,
+      String pageStateParam,
+      boolean raw,
+      String cql,
+      QueryOuterClass.Values.Builder values) {
+    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
+    if (!isStringEmpty(pageStateParam)) {
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+    int pageSize = DEFAULT_PAGE_SIZE;
+    if (pageSizeParam > 0) {
+      pageSize = pageSizeParam;
+    }
+    paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
+
+    QueryOuterClass.Query.Builder b =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB).setCql(cql);
+    if (values != null) {
+      b = b.setValues(values);
+    }
+    final QueryOuterClass.Query query = b.build();
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+          final int count = rs.getRowsCount();
+
+          String pageStateStr = extractPagingStateFromResultSet(rs);
+          List<Map<String, Object>> rows = convertRows(rs);
+          Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
+          return jaxrsResponse(Response.Status.OK).entity(response).build();
+        });
+  }
+
+  private static byte[] decodeBase64(String base64encoded) {
+    // TODO: error handling
+    return Base64.getDecoder().decode(base64encoded);
+  }
+
+  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    FromProtoConverter converter =
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
+    }
+    return resultRows;
   }
 }

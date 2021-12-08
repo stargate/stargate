@@ -423,12 +423,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -473,8 +473,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: An index named test_idx already exists");
+    assertThat(response.getDescription()).contains("Index test_idx already exists");
 
     // successufully index a collection
     indexAdd.setColumn("email");
@@ -505,13 +504,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "lastname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
     String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
-    indexAdd.setColumn("lastname");
+    indexAdd.setColumn("lastName");
     indexAdd.setName("test_custom_idx");
     indexAdd.setType(indexType);
     indexAdd.setIfNotExists(false);
@@ -539,7 +538,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
 
     assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
-    assertThat(optionsReturned.get("target")).isEqualTo("\"lastname\"");
+    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
     assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
@@ -549,13 +548,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     // invalid table
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     String body =
         RestUtils.post(
             authToken,
@@ -566,7 +565,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             HttpStatus.SC_NOT_FOUND);
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
+    assertThat(response.getDescription()).contains("Table not found");
 
     // invalid column
     indexAdd.setColumn("invalid_column");
@@ -584,7 +583,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
 
     // invalid index kind
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setKind(IndexKind.ENTRIES);
     body =
         RestUtils.post(
@@ -597,8 +596,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: Indexing entries can only be used with a map");
+    assertThat(response.getDescription()).contains("Cannot create entries() index on firstName");
   }
 
   @Test
@@ -607,7 +605,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
@@ -621,7 +619,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(body).isEqualTo("[]");
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -652,12 +650,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_createtable_" + System.currentTimeMillis();
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstname text", "email list<text>"),
+        Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
     IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstname");
+    indexAdd.setColumn("firstName");
     indexAdd.setName("test_idx");
     indexAdd.setIfNotExists(false);
 
@@ -2843,6 +2841,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
+    columnDefinitions.add(new ColumnDefinition("mean_failure_time_hours", "double"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2863,12 +2862,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(tableResponse.getName()).isEqualTo(tableName);
 
     // insert a row
-    String timestamp = String.valueOf(Instant.now().getEpochSecond());
-    String serialNumber = "ABC123";
-    Map<String, String> row = new HashMap<>();
+    long timestamp = Instant.now().toEpochMilli();
+    String machineCode = "ABC123";
+    Map<String, Object> row = new HashMap<>();
     row.put("hour_created", timestamp);
-    row.put("serial_number", serialNumber);
-    row.put("machine_code", "DEF456");
+    row.put("serial_number", "123456789Z");
+    row.put("machine_code", machineCode);
     row.put("part_name", "Engine");
     row.put("part_number", "DEF456");
     row.put("last_inspected_at", timestamp);
@@ -2876,6 +2875,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
+    row.put("mean_failure_time_hours", "29111.595");
 
     RestUtils.post(
         authToken,
@@ -2883,29 +2883,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
-    // retrieve the row by ID
-    String whereClause =
-        String.format(
-            "{\"hour_created\":{\"$eq\":\"%s\"},\"serial_number\":{\"$eq\":[\"%s\"]}}",
-            timestamp, serialNumber);
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s?where=%s",
-                restUrlBase, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_OK);
-
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    List<Map<String, Object>> data = getResponseWrapper.getData();
-    assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
-    assertThat(data.get(0).get("serial_number")).isEqualTo(serialNumber);
-    assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
-
     // insert a row, ensuring we can use literals for numeric values
-    String timestamp2 = String.valueOf(Instant.now().getEpochSecond());
+    String timestamp2 = String.valueOf(Instant.now().toEpochMilli());
     Map<String, Object> row2 = new HashMap<>();
     row2.put("hour_created", timestamp2);
     row2.put("serial_number", "ZXY765");
@@ -2917,12 +2896,29 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
+    row2.put("mean_failure_time_hours", 5917321.12334);
 
     RestUtils.post(
         authToken,
         String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row2),
         HttpStatus.SC_CREATED);
+
+    // retrieve the first row by primary key
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s/%s",
+                restUrlBase, keyspaceName, tableName, timestamp, machineCode),
+            HttpStatus.SC_OK);
+
+    ListOfMapsGetResponseWrapper getResponseWrapper =
+        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+    List<Map<String, Object>> data = getResponseWrapper.getData();
+    assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
+    assertThat(data.get(0).get("machine_code")).isEqualTo(machineCode);
+    assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
