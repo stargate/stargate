@@ -541,14 +541,20 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     // mix-and-match. But for now will just check them all.
 
     // also don't think Counter is valid for static columns?
-    Set<String> counterNames = null;
-    for (QueryOuterClass.ColumnSpec column : tableDef.getColumnsList()) {
+    Set<String> counterNames = findCounterNames(null, tableDef.getColumnsList());
+    counterNames = findCounterNames(counterNames, tableDef.getColumnsList());
+    return (counterNames == null) ? Collections.emptySet() : counterNames;
+  }
+
+  private Set<String> findCounterNames(
+      Set<String> counterNames, List<QueryOuterClass.ColumnSpec> columns) {
+    for (QueryOuterClass.ColumnSpec column : columns) {
       if (counterNames == null) {
         counterNames = new HashSet<>();
       }
       counterNames.add(column.getName());
     }
-    return (counterNames == null) ? Collections.emptySet() : counterNames;
+    return counterNames;
   }
 
   private List<Column> splitColumns(String columnStr) {
