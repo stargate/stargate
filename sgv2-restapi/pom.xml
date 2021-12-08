@@ -22,6 +22,11 @@
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.stargate</groupId>
+      <artifactId>sgv2-service-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- this should also bring transitively "io.grpc:grpc-netty-shaded"...
          but somehow does not seem to, despite being listed as a dep?!
       -->
@@ -39,13 +44,6 @@
       <groupId>io.stargate.metrics</groupId>
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
-    </dependency>
-
-    <!-- DataStax/Cassandra dependencies -->
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-query-builder</artifactId>
-      <version>${driver.version}</version>
     </dependency>
 
     <!-- Web platform (DropWizard, Jersey) deps -->
