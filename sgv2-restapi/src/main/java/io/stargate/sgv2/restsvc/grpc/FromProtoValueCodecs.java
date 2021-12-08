@@ -27,6 +27,7 @@ public class FromProtoValueCodecs {
   private static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   private static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
 
+  private static final CounterCodec CODEC_COUNTER = new CounterCodec();
   private static final TextCodec CODEC_TEXT = new TextCodec();
   private static final UUIDCodec CODEC_UUID = new UUIDCodec();
 
@@ -102,14 +103,16 @@ public class FromProtoValueCodecs {
         // Supported Scalars: other
       case BOOLEAN:
         return CODEC_BOOLEAN;
+      case COUNTER:
+        // 07-Dec-2021, tatu: Protobuf definitions suggest sint64 value type, BUT SGv1
+        //    tests seem to expect JSON String value. So need coercion, alas
+        return CODEC_COUNTER;
       case UUID:
         return CODEC_UUID;
 
         // // // To Be Implemented:
 
       case BLOB:
-        break;
-      case COUNTER:
         break;
       case FLOAT:
         break;
@@ -241,6 +244,20 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  // NOTE! Should be able to just use `LongCodec` but SGv1 seems to expect JSON String as
+  // return value, and not more logical choice of integral number
+  protected static final class CounterCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return String.valueOf(value.getInt());
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(String.valueOf(value.getInt()));
     }
   }
 
