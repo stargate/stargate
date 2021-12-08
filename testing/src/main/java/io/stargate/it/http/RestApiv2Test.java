@@ -2843,6 +2843,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
+    columnDefinitions.add(new ColumnDefinition("mean_failure_time_hours", "double"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2876,6 +2877,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
+    row.put("mean_failure_time_hours", "29111.595");
 
     RestUtils.post(
         authToken,
@@ -2896,6 +2898,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
+    row2.put("mean_failure_time_hours", 5917321.12334);
 
     RestUtils.post(
         authToken,

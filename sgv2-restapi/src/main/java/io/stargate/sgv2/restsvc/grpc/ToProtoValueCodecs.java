@@ -12,6 +12,7 @@ public class ToProtoValueCodecs {
   protected static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
   protected static final TextCodec CODEC_TEXT = new TextCodec();
   protected static final IntCodec CODEC_INT = new IntCodec();
+  protected static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
   protected static final LongCodec CODEC_COUNTER = new LongCodec("COUNTER");
@@ -79,6 +80,8 @@ public class ToProtoValueCodecs {
         return CODEC_COUNTER; // actually same as LONG
       case TIMESTAMP:
         return CODEC_TIMESTAMP; // represented as LONG
+      case DOUBLE:
+        return CODEC_DOUBLE;
       case DECIMAL:
         return CODEC_DECIMAL;
 
@@ -89,8 +92,6 @@ public class ToProtoValueCodecs {
 
         // And then not-yet-implemented ones:
       case BLOB:
-        break;
-      case DOUBLE:
         break;
       case FLOAT:
         break;
@@ -279,6 +280,32 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Long.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class DoubleCodec extends ToProtoCodecBase {
+    public DoubleCodec() {
+      super("TypeSpec.Basic.DOUBLE");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Double) {
+        return Values.of((Double) value);
+      } else if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        return Values.of(((Number) value).doubleValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Double.valueOf(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
