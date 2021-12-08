@@ -11,19 +11,23 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
+import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -179,10 +183,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
-    QueryOuterClass.QueryParameters params = parametersForLocalQuorum();
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
-            .setParameters(params)
+            .setParameters(parametersForLocalQuorum())
             .setCql(cql)
             .setValues(valuesBuilder.build())
             .build();
@@ -204,11 +207,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
-    // !!! TO BE IMPLEMENTED
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
   }
 
   @Override
@@ -257,11 +256,68 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
+    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
+  }
+
+  /** Implementation of POST/PATCH (update/patch rows) endpoints */
+  private Response modifyRow(
+      final String token,
+      final String keyspaceName,
+      final String tableName,
+      final List<PathSegment> path,
+      final boolean raw,
+      final String payloadAsString,
+      final HttpServletRequest request) {
     if (isAuthTokenInvalid(token)) {
       return invalidTokenFailure();
     }
-    // !!! TO BE IMPLEMENTED
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    Map<String, Object> payloadMap;
+    try {
+      payloadMap = parseJsonAsMap(payloadAsString);
+    } catch (Exception e) {
+      return jaxrsServiceError(
+              Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
+          .build();
+    }
+    final String cql;
+    final StargateGrpc.StargateBlockingStub blockingStub =
+        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
+
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+
+    try {
+      cql =
+          buildUpdateRowCQL(
+              keyspaceName, tableName, path, tableDef, payloadMap, valuesBuilder, toProtoConverter);
+    } catch (IllegalArgumentException e) {
+      // No logging since this is due to something bad client sent:
+      return jaxrsBadRequestError(e.getMessage()).build();
+    } catch (Exception e) {
+      // Unrecognized problem to be converted to something known; log:
+      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
+      return jaxrsServiceError(
+              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
+          .build();
+    }
+    logger.info("modifyRow(): try to call backend with CQL of '{}'", cql);
+
+    final QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder()
+            .setParameters(parametersForLocalQuorum())
+            .setCql(cql)
+            .setValues(valuesBuilder.build())
+            .build();
+
+    return Sgv2RequestHandler.handleMainOperation(
+        () -> {
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
+          return jaxrsResponse(Response.Status.OK).entity(responsePayload).build();
+        });
   }
 
   /*
@@ -412,13 +468,63 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return new QueryBuilder().insertInto(keyspaceName, tableName).value(valueModifiers).build();
   }
 
+  protected String buildUpdateRowCQL(
+      String keyspaceName,
+      String tableName,
+      List<PathSegment> pkValues,
+      Schema.CqlTable tableDef,
+      Map<String, Object> payloadMap,
+      QueryOuterClass.Values.Builder valuesBuilder,
+      ToProtoConverter toProtoConverter) {
+
+    // Need to process values in order they are included in query...
+
+    Set<String> counters = findCounterNames(tableDef);
+
+    // First, values to update
+    List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
+    for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
+      final String columnName = entry.getKey();
+      // Special handling for counter updates, cannot Set
+      ValueModifier mod =
+          counters.contains(columnName)
+              ? ValueModifier.of(
+                  ValueModifier.Target.column(columnName),
+                  ValueModifier.Operation.INCREMENT,
+                  Value.marker())
+              : ValueModifier.marker(columnName);
+      valueModifiers.add(mod);
+      valuesBuilder.addValues(
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
+    }
+
+    // Second, where clause from primary key
+    final int keysIncluded = pkValues.size();
+    final List<QueryOuterClass.ColumnSpec> primaryKeys =
+        getAndValidatePrimaryKeys(tableDef, keysIncluded);
+    List<BuiltCondition> whereConditions = new ArrayList<>(keysIncluded);
+    for (int i = 0; i < keysIncluded; ++i) {
+      final String keyValue = pkValues.get(i).getPath();
+      QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
+      final String columnName = column.getName();
+      whereConditions.add(BuiltCondition.ofMarker(columnName, Predicate.EQ));
+      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(columnName, keyValue));
+    }
+
+    return new QueryBuilder()
+        .update(keyspaceName, tableName)
+        .value(valueModifiers)
+        .where(whereConditions)
+        .build();
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods for Structural/nested/scalar conversions
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  private List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
@@ -429,7 +535,29 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return resultRows;
   }
 
-  protected static List<Column> splitColumns(String columnStr) {
+  private Set<String> findCounterNames(Schema.CqlTable tableDef) {
+    // Only need to check static and regular columns; primary keys cannot be Counters.
+    // NOTE: could probably optimize knowing that Counters are "all-or-nothing", cannot
+    // mix-and-match. But for now will just check them all.
+
+    // also don't think Counter is valid for static columns?
+    Set<String> counterNames = findCounterNames(null, tableDef.getColumnsList());
+    counterNames = findCounterNames(counterNames, tableDef.getColumnsList());
+    return (counterNames == null) ? Collections.emptySet() : counterNames;
+  }
+
+  private Set<String> findCounterNames(
+      Set<String> counterNames, List<QueryOuterClass.ColumnSpec> columns) {
+    for (QueryOuterClass.ColumnSpec column : columns) {
+      if (counterNames == null) {
+        counterNames = new HashSet<>();
+      }
+      counterNames.add(column.getName());
+    }
+    return counterNames;
+  }
+
+  private List<Column> splitColumns(String columnStr) {
     return Arrays.stream(columnStr.split(","))
         .map(String::trim)
         .filter(c -> c.length() != 0)
@@ -437,7 +565,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .collect(Collectors.toList());
   }
 
-  protected static byte[] decodeBase64(String base64encoded) {
+  private static byte[] decodeBase64(String base64encoded) {
     // TODO: error handling
     return Base64.getDecoder().decode(base64encoded);
   }
