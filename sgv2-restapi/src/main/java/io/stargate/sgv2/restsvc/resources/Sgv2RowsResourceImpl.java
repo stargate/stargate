@@ -1,7 +1,6 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
@@ -13,7 +12,6 @@ import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
-import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -41,13 +38,11 @@ import org.slf4j.LoggerFactory;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
+@CreateGrpcStub
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
 
   // Singleton resource so no need to be static
   protected final Logger logger = LoggerFactory.getLogger(getClass());
-
-  /** Entity used to connect to backend gRPC service. */
-  @Inject protected GrpcClientFactory grpcFactory;
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -57,7 +52,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRowWithWhere(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String where,
@@ -67,16 +62,32 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
+    if (isStringEmpty(where)) {
+      return jaxrsBadRequestError("where parameter is required").build();
     }
-    // !!! TO BE IMPLEMENTED
+
+    final List<Column> columns =
+        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final Map<String, Column.Order> sortOrder;
+    try {
+      sortOrder = decodeSortOrder(sortJson);
+    } catch (IllegalArgumentException e) {
+      return jaxrsBadRequestError(e.getMessage()).build();
+    }
+
+    // To bind path/key parameters, need converter; and for that we need table metadata:
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+
+    // !!! To Be Implemented:
+
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
   @Override
   public Response getRows(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -86,14 +97,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
-    List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
-
-    Map<String, Column.Order> sortOrder;
+    final List<Column> columns =
+        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final Map<String, Column.Order> sortOrder;
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
@@ -123,7 +129,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public javax.ws.rs.core.Response getAllRows(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String fields,
@@ -132,9 +138,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -160,21 +163,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               .orderBy(sortOrder)
               .build();
     }
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, null);
   }
 
   @Override
   public Response createRow(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String payloadAsString,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -184,8 +182,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           .build();
     }
     final String cql;
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
@@ -223,29 +219,24 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response updateRows(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
+    return modifyRow(blockingStub, keyspaceName, tableName, path, raw, payload, request);
   }
 
   @Override
   public Response deleteRows(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     // To bind path/key parameters, need converter; and for that we need table metadata:
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
@@ -272,28 +263,25 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response patchRows(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(token, keyspaceName, tableName, path, raw, payload, request);
+    return modifyRow(blockingStub, keyspaceName, tableName, path, raw, payload, request);
   }
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
   private Response modifyRow(
-      final String token,
+      final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       final boolean raw,
       final String payloadAsString,
       final HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -303,9 +291,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           .build();
     }
     final String cql;
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
-
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
