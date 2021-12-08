@@ -1,22 +1,23 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
-import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -26,13 +27,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -49,18 +48,23 @@ import org.slf4j.LoggerFactory;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
+@ApiImplicitParams({
+  @ApiImplicitParam(
+      name = "X-Cassandra-Token",
+      paramType = "header",
+      value = "The token returned from the authorization endpoint. Use this token in each request.",
+      required = true)
+})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
+@CreateGrpcStub
 public class Sgv2TablesResource extends ResourceBase {
   static class TableAdd { // testing only
   }
 
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
-
-  /** Entity used to connect to backend gRPC service. */
-  @Inject private GrpcClientFactory grpcFactory;
 
   @Timed
   @GET
@@ -80,23 +84,13 @@ public class Sgv2TablesResource extends ResourceBase {
             response = RestServiceError.class)
       })
   public Response getAllTables(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           List<Schema.CqlTable> tableDefs =
@@ -128,12 +122,7 @@ public class Sgv2TablesResource extends ResourceBase {
       })
   @Path("/{tableName}")
   public Response getOneTable(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -143,12 +132,6 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
-
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           Schema.CqlTable tableDef =
@@ -178,20 +161,12 @@ public class Sgv2TablesResource extends ResourceBase {
             response = RestServiceError.class)
       })
   public Response createTable(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(required = true) @NotNull final Sgv2TableAddRequest tableAdd,
       @Context HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     if (isStringEmpty(keyspaceName)) {
       return jaxrsBadRequestError("keyspaceName must be provided").build();
     }
@@ -199,8 +174,6 @@ public class Sgv2TablesResource extends ResourceBase {
     if (isStringEmpty(keyspaceName)) {
       return jaxrsBadRequestError("table name must be provided").build();
     }
-    final StargateGrpc.StargateBlockingStub blockingStub =
-        grpcFactory.constructBlockingStub().withCallCredentials(new StargateBearerToken(token));
 
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
@@ -237,12 +210,7 @@ public class Sgv2TablesResource extends ResourceBase {
       })
   @Path("/{tableName}")
   public Response updateTable(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -251,9 +219,6 @@ public class Sgv2TablesResource extends ResourceBase {
           final String tableName,
       @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate,
       @Context HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     logger.info("updateTable() called for KS '" + keyspaceName + "'");
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
@@ -274,12 +239,7 @@ public class Sgv2TablesResource extends ResourceBase {
       })
   @Path("/{tableName}")
   public Response deleteTable(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -287,16 +247,9 @@ public class Sgv2TablesResource extends ResourceBase {
           @PathParam("tableName")
           final String tableName,
       @Context HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-          StargateGrpc.StargateBlockingStub blockingStub =
-              grpcFactory
-                  .constructBlockingStub()
-                  .withCallCredentials(new StargateBearerToken(token));
           QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
           /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
           return jaxrsResponse(Response.Status.NO_CONTENT).build();
