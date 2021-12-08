@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,6 +24,8 @@ public class FromProtoValueCodecs {
   private static final IntCodec CODEC_INT = new IntCodec();
   private static final LongCodec CODEC_LONG = new LongCodec();
   private static final ShortCodec CODEC_SHORT = new ShortCodec();
+  private static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
+  private static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
 
   private static final CounterCodec CODEC_COUNTER = new CounterCodec();
   private static final TextCodec CODEC_TEXT = new TextCodec();
@@ -84,6 +87,7 @@ public class FromProtoValueCodecs {
 
         // Supported Scalars: numeric
       case BIGINT:
+      case TIMESTAMP:
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
@@ -91,6 +95,10 @@ public class FromProtoValueCodecs {
         return CODEC_SHORT;
       case TINYINT:
         return CODEC_BYTE;
+      case DOUBLE:
+        return CODEC_DOUBLE;
+      case DECIMAL:
+        return CODEC_DECIMAL;
 
         // Supported Scalars: other
       case BOOLEAN:
@@ -106,13 +114,7 @@ public class FromProtoValueCodecs {
 
       case BLOB:
         break;
-      case DECIMAL:
-        break;
-      case DOUBLE:
-        break;
       case FLOAT:
-        break;
-      case TIMESTAMP:
         break;
       case VARINT:
         break;
@@ -193,6 +195,18 @@ public class FromProtoValueCodecs {
     }
   }
 
+  protected static final class DoubleCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getDouble();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getDouble());
+    }
+  }
+
   // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
   // without bothering with casting to avoid creation of unnecessary wrappers.
   protected static final class ShortCodec extends FromProtoValueCodec {
@@ -204,6 +218,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  protected static final class DecimalCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Values.decimal(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(Values.decimal(value));
     }
   }
 
