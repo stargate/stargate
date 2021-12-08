@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.resources;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -61,6 +62,10 @@ public abstract class ResourceBase {
 
   protected static Map<String, Object> parseJsonAsMap(String jsonString) throws IOException {
     return MAP_READER.readValue(jsonString);
+  }
+
+  protected static JsonNode parseJsonAsNode(String jsonString) throws IOException {
+    return JSON_MAPPER.readTree(jsonString);
   }
 
   // // // Helper methods for Bridge/gRPC query construction
