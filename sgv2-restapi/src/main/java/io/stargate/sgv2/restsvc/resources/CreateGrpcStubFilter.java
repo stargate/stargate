@@ -15,10 +15,12 @@
  */
 package io.stargate.sgv2.restsvc.resources;
 
+import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
-import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
+import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.impl.GrpcStubFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Response;
@@ -38,10 +40,10 @@ public class CreateGrpcStubFilter implements ContainerRequestFilter {
 
   public static final String GRPC_STUB_KEY = "io.stargate.sgv2.restsvc.resources.GrpcStub";
 
-  private final GrpcClientFactory grpcClientFactory;
+  private final ManagedChannel grpcChannel;
 
-  public CreateGrpcStubFilter(GrpcClientFactory grpcClientFactory) {
-    this.grpcClientFactory = grpcClientFactory;
+  public CreateGrpcStubFilter(ManagedChannel grpcChannel) {
+    this.grpcChannel = grpcChannel;
   }
 
   @Override
@@ -55,11 +57,12 @@ public class CreateGrpcStubFilter implements ContainerRequestFilter {
                       "Missing or invalid Auth Token",
                       Response.Status.UNAUTHORIZED.getStatusCode()))
               .build());
+    } else {
+      context.setProperty(
+          GRPC_STUB_KEY,
+          StargateGrpc.newBlockingStub(grpcChannel)
+              .withDeadlineAfter(5, TimeUnit.SECONDS)
+              .withCallCredentials(new StargateBearerToken(token)));
     }
-    context.setProperty(
-        GRPC_STUB_KEY,
-        grpcClientFactory
-            .constructBlockingStub()
-            .withCallCredentials(new StargateBearerToken(token)));
   }
 }
