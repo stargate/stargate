@@ -75,7 +75,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       return jaxrsBadRequestError(e.getMessage()).build();
     }
 
-    // To bind path/key parameters, need converter; and for that we need table metadata:
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
