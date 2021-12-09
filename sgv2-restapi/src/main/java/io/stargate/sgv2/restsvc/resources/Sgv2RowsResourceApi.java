@@ -1,10 +1,13 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -14,7 +17,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -37,6 +39,13 @@ import javax.ws.rs.core.Response;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"data"})
+@ApiImplicitParams({
+  @ApiImplicitParam(
+      name = "X-Cassandra-Token",
+      paramType = "header",
+      value = "The token returned from the authorization endpoint. Use this token in each request.",
+      required = true)
+})
 public interface Sgv2RowsResourceApi {
   @Timed
   @GET
@@ -56,12 +65,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   Response getRowWithWhere(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -117,12 +121,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response getRows(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -170,12 +169,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/rows")
   javax.ws.rs.core.Response getAllRows(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -218,12 +212,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   Response createRow(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -251,12 +240,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response updateRows(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -291,12 +275,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response deleteRows(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -332,12 +311,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response patchRows(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,

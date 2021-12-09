@@ -27,6 +27,8 @@ import io.dropwizard.util.JarLocation;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
+import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
@@ -45,6 +47,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +96,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
     final GrpcClientFactory grpc = GrpcClientFactory.construct(grpcEndpoint);
 
+    environment.jersey().register(new CreateGrpcStubFilter(grpc));
+
     environment
         .jersey()
         .register(
@@ -100,7 +105,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
               @Override
               protected void configure() {
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
-                bind(grpc).to(GrpcClientFactory.class);
+                bindFactory(GrpcStubFactory.class)
+                    .to(StargateGrpc.StargateBlockingStub.class)
+                    .in(RequestScoped.class);
               }
             });
 

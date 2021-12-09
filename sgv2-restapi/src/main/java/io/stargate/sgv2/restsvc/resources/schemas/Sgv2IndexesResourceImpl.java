@@ -15,20 +15,18 @@
  */
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
-import io.stargate.sgv2.restsvc.impl.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import java.util.Collections;
 import java.util.Map;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -39,16 +37,15 @@ import javax.ws.rs.core.Response;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
+@CreateGrpcStub
 public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2IndexesResourceApi {
-
-  @Inject private GrpcClientFactory grpcFactory;
 
   @Override
   public Response getAllIndexesForTable(
-      String token, String keyspaceName, String tableName, HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
+      StargateGrpc.StargateBlockingStub blockingStub,
+      String keyspaceName,
+      String tableName,
+      HttpServletRequest request) {
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           if (isStringEmpty(keyspaceName)) {
@@ -57,11 +54,6 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
           if (isStringEmpty(tableName)) {
             return jaxrsBadRequestError("tableName must be provided").build();
           }
-
-          StargateGrpc.StargateBlockingStub blockingStub =
-              grpcFactory
-                  .constructBlockingStub()
-                  .withCallCredentials(new StargateBearerToken(token));
 
           BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
 
@@ -76,15 +68,13 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
         });
   }
 
+  @Override
   public Response addIndex(
-      String token,
+      StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final Sgv2IndexAddRequest indexAdd,
       HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           if (isStringEmpty(keyspaceName)) {
@@ -98,11 +88,6 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
           if (isStringEmpty(columnName)) {
             return jaxrsBadRequestError("columnName must be provided").build();
           }
-
-          StargateGrpc.StargateBlockingStub blockingStub =
-              grpcFactory
-                  .constructBlockingStub()
-                  .withCallCredentials(new StargateBearerToken(token));
 
           Schema.CqlTable table =
               BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
@@ -132,15 +117,12 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
   @Override
   public Response dropIndex(
-      String token,
+      StargateGrpc.StargateBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String indexName,
       boolean ifExists,
       HttpServletRequest request) {
-    if (isAuthTokenInvalid(token)) {
-      return invalidTokenFailure();
-    }
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           if (isStringEmpty(keyspaceName)) {
@@ -152,11 +134,6 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
           if (isStringEmpty(indexName)) {
             return jaxrsBadRequestError("columnName must be provided").build();
           }
-
-          StargateGrpc.StargateBlockingStub blockingStub =
-              grpcFactory
-                  .constructBlockingStub()
-                  .withCallCredentials(new StargateBearerToken(token));
 
           Schema.CqlTable table =
               BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
