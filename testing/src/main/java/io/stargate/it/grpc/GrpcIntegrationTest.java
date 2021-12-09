@@ -41,23 +41,25 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 @IfBundleAvailable(bundleName = "grpc")
 public class GrpcIntegrationTest extends BaseIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  protected StargateBlockingStub stub;
-  protected String authToken;
+  protected static ManagedChannel managedChannel;
+  protected static StargateBlockingStub stub;
+  protected static String authToken;
 
-  @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
+  @BeforeAll
+  public static void setup(StargateConnectionInfo cluster) throws IOException {
     String seedAddress = cluster.seedAddress();
 
-    ManagedChannel channel =
-        ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
-    stub = StargateGrpc.newBlockingStub(channel);
+    managedChannel = ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
+    stub = StargateGrpc.newBlockingStub(managedChannel);
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -71,6 +73,22 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
     AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
     authToken = authTokenResponse.getAuthToken();
     assertThat(authToken).isNotNull();
+  }
+
+  @AfterAll
+  public static void cleanUp() {
+    managedChannel.shutdown();
+    try {
+      if (!managedChannel.awaitTermination(3, TimeUnit.SECONDS)) {
+        managedChannel.shutdownNow();
+        if (!managedChannel.awaitTermination(5, TimeUnit.SECONDS)) {
+          throw new RuntimeException("ManagedChannel failed to terminate, aborting..");
+        }
+      }
+    } catch (InterruptedException ie) {
+      managedChannel.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
   }
 
   protected StargateBlockingStub stubWithCallCredentials(String token) {

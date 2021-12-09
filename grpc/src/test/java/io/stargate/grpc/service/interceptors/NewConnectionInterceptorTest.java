@@ -179,4 +179,47 @@ public class NewConnectionInterceptorTest {
     verify(authenticationService, times(1)).validateToken(anyString(), any(Map.class));
     verify(next, never()).startCall(any(ServerCall.class), any(Metadata.class));
   }
+
+  @Test
+  public void setHostHeaderUsingAuthorityPseudoHeader() throws UnauthorizedException {
+    AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
+    when(authenticatedUser.name()).thenReturn("abc");
+
+    AuthenticationSubject authenticationSubject = mock(AuthenticationSubject.class);
+    when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
+
+    AuthenticationService authenticationService = mock(AuthenticationService.class);
+    when(authenticationService.validateToken(anyString(), any(Map.class)))
+        .then(
+            invocation -> {
+              Map<String, String> headers = invocation.getArgument(1, Map.class);
+              assertThat(headers).containsEntry("host", "example.com");
+              return authenticationSubject;
+            });
+
+    Connection connection = mock(Connection.class);
+    when(connection.loggedUser()).thenReturn(Optional.of(authenticatedUser));
+
+    Persistence persistence = mock(Persistence.class);
+    when(persistence.newConnection(any())).thenReturn(connection);
+
+    ServerCallHandler next = mock(ServerCallHandler.class);
+    ServerCall call = mock(ServerCall.class);
+
+    when(call.getAuthority()).thenReturn("example.com");
+
+    Attributes attributes =
+        Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
+            .build();
+    when(call.getAttributes()).thenReturn(attributes);
+
+    Metadata metadata = new Metadata();
+    metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
+    NewConnectionInterceptor interceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
+    interceptor.interceptCall(call, metadata, next);
+
+    verify(authenticationService, times(1)).validateToken(anyString(), any(Map.class));
+  }
 }

@@ -207,12 +207,15 @@ public class TracingQueryTest extends GrpcIntegrationTest {
     assertThat(traces.getStartedAt()).isGreaterThan(0);
     assertThat(traces.getId()).isNotNull();
 
-    assertThat(traces.getEventsList()).isNotEmpty();
-    QueryOuterClass.Traces.Event event = traces.getEvents(0);
-
-    assertThat(event.getActivity()).isNotEmpty();
-    assertThat(event.getSourceElapsed()).isGreaterThan(0);
-    assertThat(event.getThread()).isNotEmpty();
-    assertThat(event.getSource()).isNotEmpty();
+    assertThat(traces.getEventsList())
+        .isNotEmpty()
+        .allSatisfy(
+            event -> {
+              assertThat(event.getEventId()).isNotEmpty();
+              assertThat(event.getActivity()).isNotEmpty();
+              assertThat(event.getThread()).isNotEmpty();
+              assertThat(event.getSource()).isNotEmpty();
+              assertThat(event.getSourceElapsed()).isGreaterThanOrEqualTo(0);
+            });
   }
 }
