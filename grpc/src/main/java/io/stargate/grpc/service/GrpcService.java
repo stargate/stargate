@@ -70,6 +70,33 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
   }
 
+  @Override
+  public StreamObserver<Query> executeQueryStream(StreamObserver<Response> responseObserver) {
+    return new StreamObserver<Query>() {
+      @Override
+      public void onNext(Query query) {
+        new StreamingQueryHandler(
+                query,
+                CONNECTION_KEY.get(),
+                persistence,
+                executor,
+                schemaAgreementRetries,
+                responseObserver)
+            .handle();
+      }
+
+      @Override
+      public void onError(Throwable t) {
+        new ExceptionHandler(responseObserver).handleException(t);
+      }
+
+      @Override
+      public void onCompleted() {
+        responseObserver.onCompleted();
+      }
+    };
+  }
+
   static class ResponseAndTraceId {
 
     final @Nullable UUID tracingId;

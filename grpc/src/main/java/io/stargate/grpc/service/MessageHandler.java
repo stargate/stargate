@@ -18,11 +18,9 @@ package io.stargate.grpc.service;
 import static io.stargate.grpc.retries.RetryDecision.RETHROW;
 
 import com.google.protobuf.GeneratedMessageV3;
-import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
-import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.ImmutableParameters;
@@ -36,16 +34,8 @@ import io.stargate.grpc.retries.DefaultRetryPolicy;
 import io.stargate.grpc.retries.RetryDecision;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.grpc.tracing.TraceEventsMapper;
-import io.stargate.proto.QueryOuterClass.AlreadyExists;
-import io.stargate.proto.QueryOuterClass.CasWriteUnknown;
-import io.stargate.proto.QueryOuterClass.FunctionFailure;
-import io.stargate.proto.QueryOuterClass.ReadFailure;
-import io.stargate.proto.QueryOuterClass.ReadTimeout;
 import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.QueryOuterClass.Unavailable;
 import io.stargate.proto.QueryOuterClass.Values;
-import io.stargate.proto.QueryOuterClass.WriteFailure;
-import io.stargate.proto.QueryOuterClass.WriteTimeout;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -54,18 +44,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
-import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
-import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
-import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
-import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
-import org.apache.cassandra.stargate.exceptions.UnavailableException;
-import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
-import org.apache.cassandra.stargate.exceptions.WriteFailureException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @param <MessageT> the type of gRPC message being handled.
@@ -73,32 +54,14 @@ import org.slf4j.LoggerFactory;
  */
 abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultRetryPolicy.class);
-
-  static final Metadata.Key<Unavailable> UNAVAILABLE_KEY =
-      ProtoUtils.keyForProto(Unavailable.getDefaultInstance());
-  static final Metadata.Key<WriteTimeout> WRITE_TIMEOUT_KEY =
-      ProtoUtils.keyForProto(WriteTimeout.getDefaultInstance());
-  static final Metadata.Key<ReadTimeout> READ_TIMEOUT_KEY =
-      ProtoUtils.keyForProto(ReadTimeout.getDefaultInstance());
-  static final Metadata.Key<ReadFailure> READ_FAILURE_KEY =
-      ProtoUtils.keyForProto(ReadFailure.getDefaultInstance());
-  static final Metadata.Key<FunctionFailure> FUNCTION_FAILURE_KEY =
-      ProtoUtils.keyForProto(FunctionFailure.getDefaultInstance());
-  static final Metadata.Key<WriteFailure> WRITE_FAILURE_KEY =
-      ProtoUtils.keyForProto(WriteFailure.getDefaultInstance());
-  static final Metadata.Key<AlreadyExists> ALREADY_EXISTS_KEY =
-      ProtoUtils.keyForProto(AlreadyExists.getDefaultInstance());
-  static final Metadata.Key<CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
-      ProtoUtils.keyForProto(CasWriteUnknown.getDefaultInstance());
-
   protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
   protected final MessageT message;
   protected final Connection connection;
   protected final Persistence persistence;
-  private final StreamObserver<Response> responseObserver;
+  protected final StreamObserver<Response> responseObserver;
   private final DefaultRetryPolicy retryPolicy;
+  private final ExceptionHandler exceptionHandler;
 
   protected MessageHandler(
       MessageT message,
@@ -110,6 +73,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     this.persistence = persistence;
     this.responseObserver = responseObserver;
     this.retryPolicy = new DefaultRetryPolicy();
+    this.exceptionHandler = new ExceptionHandler(responseObserver);
   }
 
   void handle() {
@@ -118,7 +82,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       executeWithRetry(0);
 
     } catch (Throwable t) {
-      handleException(t);
+      exceptionHandler.handleException(t);
     }
   }
 
@@ -133,7 +97,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                     executeWithRetry(retryCount + 1);
                     break;
                   case RETHROW:
-                    handleException(error);
+                    exceptionHandler.handleException(error);
                     break;
                   default:
                     throw new UnsupportedOperationException(
@@ -305,210 +269,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected void setSuccess(Response response) {
     responseObserver.onNext(response);
     responseObserver.onCompleted();
-  }
-
-  protected void handleException(Throwable throwable) {
-    if (throwable instanceof CompletionException
-        || throwable instanceof ExceptionWithIdempotencyInfo) {
-      handleException(throwable.getCause());
-    } else if (throwable instanceof StatusException
-        || throwable instanceof StatusRuntimeException) {
-      responseObserver.onError(throwable);
-    } else if (throwable instanceof UnhandledClientException) {
-      onError(Status.UNAVAILABLE, throwable);
-    } else if (throwable instanceof PersistenceException) {
-      handlePersistenceException((PersistenceException) throwable);
-    } else {
-      LOG.error("Unhandled error returning UNKNOWN to the client", throwable);
-      responseObserver.onError(
-          Status.UNKNOWN
-              .withDescription(throwable.getMessage())
-              .withCause(throwable)
-              .asRuntimeException());
-    }
-  }
-
-  private void handlePersistenceException(PersistenceException pe) {
-    switch (pe.code()) {
-      case SERVER_ERROR:
-      case PROTOCOL_ERROR: // Fallthrough
-      case UNPREPARED: // Fallthrough
-        onError(Status.INTERNAL, pe);
-        break;
-      case INVALID:
-      case SYNTAX_ERROR: // Fallthrough
-        onError(Status.INVALID_ARGUMENT, pe);
-        break;
-      case TRUNCATE_ERROR:
-      case CDC_WRITE_FAILURE: // Fallthrough
-        onError(Status.ABORTED, pe);
-        break;
-      case BAD_CREDENTIALS:
-        onError(Status.UNAUTHENTICATED, pe);
-        break;
-      case UNAVAILABLE:
-        handleUnavailable((UnavailableException) pe);
-        break;
-      case OVERLOADED:
-        onError(Status.RESOURCE_EXHAUSTED, pe);
-        break;
-      case IS_BOOTSTRAPPING:
-        onError(Status.UNAVAILABLE, pe);
-        break;
-      case WRITE_TIMEOUT:
-        handleWriteTimeout((WriteTimeoutException) pe);
-        break;
-      case READ_TIMEOUT:
-        handleReadTimeout((ReadTimeoutException) pe);
-        break;
-      case READ_FAILURE:
-        handleReadFailure((ReadFailureException) pe);
-        break;
-      case FUNCTION_FAILURE:
-        handleFunctionExecutionException((FunctionExecutionException) pe);
-        break;
-      case WRITE_FAILURE:
-        handleWriteFailure((WriteFailureException) pe);
-        break;
-      case CAS_WRITE_UNKNOWN:
-        handleCasWriteUnknown((CasWriteUnknownResultException) pe);
-        break;
-      case UNAUTHORIZED:
-        onError(Status.PERMISSION_DENIED, pe);
-        break;
-      case CONFIG_ERROR:
-        onError(Status.FAILED_PRECONDITION, pe);
-        break;
-      case ALREADY_EXISTS:
-        handleAlreadyExists((AlreadyExistsException) pe);
-        break;
-      default:
-        LOG.error("Unhandled persistence exception returning UNKNOWN to the client", pe);
-        onError(Status.UNKNOWN, pe);
-        break;
-    }
-  }
-
-  private void handleUnavailable(UnavailableException ue) {
-    onError(
-        Status.UNAVAILABLE,
-        ue,
-        makeTrailer(
-            UNAVAILABLE_KEY,
-            Unavailable.newBuilder()
-                .setConsistencyValue(ue.consistency.code)
-                .setAlive(ue.alive)
-                .setRequired(ue.required)
-                .build()));
-  }
-
-  private void handleWriteTimeout(WriteTimeoutException wte) {
-    onError(
-        Status.DEADLINE_EXCEEDED,
-        wte,
-        makeTrailer(
-            WRITE_TIMEOUT_KEY,
-            WriteTimeout.newBuilder()
-                .setConsistencyValue(wte.consistency.code)
-                .setBlockFor(wte.blockFor)
-                .setReceived(wte.received)
-                .setWriteType(wte.writeType.name())
-                .build()));
-  }
-
-  private void handleReadTimeout(ReadTimeoutException rte) {
-    onError(
-        Status.DEADLINE_EXCEEDED,
-        rte,
-        makeTrailer(
-            READ_TIMEOUT_KEY,
-            ReadTimeout.newBuilder()
-                .setConsistencyValue(rte.consistency.code)
-                .setBlockFor(rte.blockFor)
-                .setReceived(rte.received)
-                .setDataPresent(rte.dataPresent)
-                .build()));
-  }
-
-  private void handleReadFailure(ReadFailureException rfe) {
-    onError(
-        Status.ABORTED,
-        rfe,
-        makeTrailer(
-            READ_FAILURE_KEY,
-            ReadFailure.newBuilder()
-                .setConsistencyValue(rfe.consistency.code)
-                .setNumFailures(rfe.failureReasonByEndpoint.size())
-                .setBlockFor(rfe.blockFor)
-                .setReceived(rfe.received)
-                .setDataPresent(rfe.dataPresent)
-                .build()));
-  }
-
-  private void handleFunctionExecutionException(FunctionExecutionException fee) {
-    onError(
-        Status.FAILED_PRECONDITION,
-        fee,
-        makeTrailer(
-            FUNCTION_FAILURE_KEY,
-            FunctionFailure.newBuilder()
-                .setKeyspace(fee.functionName.keyspace)
-                .setFunction(fee.functionName.name)
-                .addAllArgTypes(fee.argTypes)
-                .build()));
-  }
-
-  private void handleWriteFailure(WriteFailureException wfe) {
-    onError(
-        Status.ABORTED,
-        wfe,
-        makeTrailer(
-            WRITE_FAILURE_KEY,
-            WriteFailure.newBuilder()
-                .setConsistencyValue(wfe.consistency.code)
-                .setNumFailures(wfe.failureReasonByEndpoint.size())
-                .setBlockFor(wfe.blockFor)
-                .setReceived(wfe.received)
-                .setWriteType(wfe.writeType.name())
-                .build()));
-  }
-
-  private void handleCasWriteUnknown(CasWriteUnknownResultException cwe) {
-    onError(
-        Status.ABORTED,
-        cwe,
-        makeTrailer(
-            CAS_WRITE_UNKNOWN_KEY,
-            CasWriteUnknown.newBuilder()
-                .setConsistencyValue(cwe.consistency.code)
-                .setBlockFor(cwe.blockFor)
-                .setReceived(cwe.received)
-                .build()));
-  }
-
-  private void handleAlreadyExists(AlreadyExistsException aee) {
-    onError(
-        Status.ALREADY_EXISTS,
-        aee,
-        makeTrailer(
-            ALREADY_EXISTS_KEY,
-            AlreadyExists.newBuilder().setKeyspace(aee.ksName).setTable(aee.cfName).build()));
-  }
-
-  private void onError(Status status, Throwable throwable, Metadata trailer) {
-    status = status.withDescription(throwable.getMessage()).withCause(throwable);
-    responseObserver.onError(
-        trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
-  }
-
-  private void onError(Status status, Throwable throwable) {
-    onError(status, throwable, null);
-  }
-
-  private <T> Metadata makeTrailer(Metadata.Key<T> key, T value) {
-    Metadata trailer = new Metadata();
-    trailer.put(key, value);
-    return trailer;
   }
 
   protected <V> CompletionStage<V> failedFuture(Exception e, boolean isIdempotent) {

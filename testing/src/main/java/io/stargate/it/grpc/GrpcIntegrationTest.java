@@ -39,6 +39,7 @@ import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Values;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
+import io.stargate.proto.StargateGrpc.StargateStub;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,7 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
 
   protected static ManagedChannel managedChannel;
   protected static StargateBlockingStub stub;
+  protected static StargateStub asyncStub;
   protected static String authToken;
 
   @BeforeAll
@@ -60,6 +62,7 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
 
     managedChannel = ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
     stub = StargateGrpc.newBlockingStub(managedChannel);
+    asyncStub = StargateGrpc.newStub(managedChannel);
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -95,8 +98,16 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
     return stub.withCallCredentials(new StargateBearerToken(token));
   }
 
+  protected StargateStub asyncStubWithCallCredentials(String token) {
+    return asyncStub.withCallCredentials(new StargateBearerToken(token));
+  }
+
   protected StargateBlockingStub stubWithCallCredentials() {
     return stubWithCallCredentials(authToken);
+  }
+
+  protected StargateStub asyncStubWithCallCredentials() {
+    return asyncStubWithCallCredentials(authToken);
   }
 
   protected QueryParameters.Builder queryParameters(
