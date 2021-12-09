@@ -171,7 +171,7 @@ public class Sgv2TablesResource extends ResourceBase {
       return jaxrsBadRequestError("keyspaceName must be provided").build();
     }
     final String tableName = tableAdd.getName();
-    if (isStringEmpty(keyspaceName)) {
+    if (isStringEmpty(tableName)) {
       return jaxrsBadRequestError("table name must be provided").build();
     }
 

@@ -1,9 +1,12 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
+import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -13,7 +16,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -27,6 +29,13 @@ import javax.ws.rs.core.Response;
     produces = MediaType.APPLICATION_JSON,
     consumes = MediaType.APPLICATION_JSON,
     tags = {"schemas"})
+@ApiImplicitParams({
+  @ApiImplicitParam(
+      name = "X-Cassandra-Token",
+      paramType = "header",
+      value = "The token returned from the authorization endpoint. Use this token in each request.",
+      required = true)
+})
 public interface Sgv2ColumnsResourceApi {
   @Timed
   @GET
@@ -46,12 +55,7 @@ public interface Sgv2ColumnsResourceApi {
             response = RestServiceError.class)
       })
   Response getAllColumns(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -81,12 +85,7 @@ public interface Sgv2ColumnsResourceApi {
             response = RestServiceError.class)
       })
   Response createColumn(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -114,12 +113,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   Response getOneColumn(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -152,12 +146,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   Response updateColumn(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -182,12 +171,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   public Response deleteColumn(
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String token,
+      @Context StargateGrpc.StargateBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
