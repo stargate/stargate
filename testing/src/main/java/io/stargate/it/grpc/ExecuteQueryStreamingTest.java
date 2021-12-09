@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -33,6 +34,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -106,5 +108,37 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
             new HashSet<>(
                 Arrays.asList(
                     rowOf(Values.of("a"), Values.of(1)), rowOf(Values.of("b"), Values.of(2)))));
+  }
+
+  @Test
+  public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace)
+      throws InterruptedException {
+    AtomicReference<Throwable> error = new AtomicReference<>();
+
+    StargateStub stub = asyncStubWithCallCredentials();
+    StreamObserver<Response> responseStreamObserver =
+        new StreamObserver<Response>() {
+          @Override
+          public void onNext(Response value) {}
+
+          @Override
+          public void onError(Throwable t) {
+            error.set(t);
+          }
+
+          @Override
+          public void onCompleted() {}
+        };
+
+    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+
+    requestObserver.onNext(
+        cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+
+    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> error.get() != null);
+    Throwable throwable = error.get();
+    assertThat(throwable).isInstanceOf(StatusRuntimeException.class);
+    assertThat(throwable.getMessage())
+        .isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
   }
 }
