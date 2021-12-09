@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.resources;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
@@ -16,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,9 +60,27 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final int pageSizeParam,
       final String pageStateParam,
       final boolean raw,
-      final String sort,
+      final String sortJson,
       final HttpServletRequest request) {
-    // !!! TO BE IMPLEMENTED
+    if (isStringEmpty(where)) {
+      return jaxrsBadRequestError("where parameter is required").build();
+    }
+
+    final List<Column> columns =
+        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final Map<String, Column.Order> sortOrder;
+    try {
+      sortOrder = decodeSortOrder(sortJson);
+    } catch (IllegalArgumentException e) {
+      return jaxrsBadRequestError(e.getMessage()).build();
+    }
+
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+
+    // !!! To Be Implemented:
+
     return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
   }
 
@@ -73,9 +94,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final int pageSizeParam,
       final String pageStateParam,
       final boolean raw,
-      final String sort,
+      final String sortJson,
       final HttpServletRequest request) {
-    List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final List<Column> columns =
+        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+    final Map<String, Column.Order> sortOrder;
+    try {
+      sortOrder = decodeSortOrder(sortJson);
+    } catch (IllegalArgumentException e) {
+      return jaxrsBadRequestError(e.getMessage()).build();
+    }
 
     // To bind path/key parameters, need converter; and for that we need table metadata:
     Schema.CqlTable tableDef =
@@ -85,7 +113,14 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     final String cql =
         buildGetRowsByPKCQL(
-            keyspaceName, tableName, path, columns, tableDef, valuesBuilder, toProtoConverter);
+            keyspaceName,
+            tableName,
+            path,
+            columns,
+            sortOrder,
+            tableDef,
+            valuesBuilder,
+            toProtoConverter);
     logger.info("getRows(): try to call backend with CQL of '{}'", cql);
 
     return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
@@ -100,19 +135,33 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final int pageSizeParam,
       final String pageStateParam,
       final boolean raw,
-      final String sort,
+      final String sortJson,
       final HttpServletRequest request) {
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    final String cql;
-
-    if (columns.isEmpty()) {
-      cql = new QueryBuilder().select().star().from(keyspaceName, tableName).build();
-    } else {
-      cql = new QueryBuilder().select().column(columns).from(keyspaceName, tableName).build();
+    Map<String, Column.Order> sortOrder;
+    try {
+      sortOrder = decodeSortOrder(sortJson);
+    } catch (IllegalArgumentException e) {
+      return jaxrsBadRequestError(e.getMessage()).build();
     }
-
-    logger.info("getAllRows(): try to call backend with CQL of '{}'", cql);
-
+    final String cql;
+    if (columns.isEmpty()) {
+      cql =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(keyspaceName, tableName)
+              .orderBy(sortOrder)
+              .build();
+    } else {
+      cql =
+          new QueryBuilder()
+              .select()
+              .column(columns)
+              .from(keyspaceName, tableName)
+              .orderBy(sortOrder)
+              .build();
+    }
     return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, null);
   }
 
@@ -289,6 +338,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       String tableName,
       List<PathSegment> pkValues,
       List<Column> columns,
+      Map<String, Column.Order> sortOrder,
       Schema.CqlTable tableDef,
       QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
@@ -310,6 +360,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           .star()
           .from(keyspaceName, tableName)
           .where(whereConditions)
+          .orderBy(sortOrder)
           .build();
     }
     return new QueryBuilder()
@@ -317,6 +368,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .column(columns)
         .from(keyspaceName, tableName)
         .where(whereConditions)
+        .orderBy(sortOrder)
         .build();
   }
 
@@ -436,6 +488,36 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   // Helper methods for Structural/nested/scalar conversions
   /////////////////////////////////////////////////////////////////////////
    */
+
+  private Map<String, Column.Order> decodeSortOrder(String sortOrderJson) {
+    if (isStringEmpty(sortOrderJson)) {
+      return Collections.emptyMap();
+    }
+    JsonNode root;
+    try {
+      root = parseJsonAsNode(sortOrderJson);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid 'sort' argument, not valid JSON (%s): %s", sortOrderJson, e.getMessage()));
+    }
+    if (!root.isObject()) {
+      throw new IllegalArgumentException(
+          String.format("Invalid 'sort' argument, not JSON Object (%s)", sortOrderJson));
+    }
+    if (root.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    Map<String, Column.Order> order = new LinkedHashMap<>();
+    Iterator<Map.Entry<String, JsonNode>> it = root.fields();
+    while (it.hasNext()) {
+      Map.Entry<String, JsonNode> entry = it.next();
+      String value = entry.getValue().asText();
+      order.put(entry.getKey(), "desc".equals(value) ? Column.Order.DESC : Column.Order.ASC);
+    }
+    return order;
+  }
 
   private Set<String> findCounterNames(Schema.CqlTable tableDef) {
     // Only need to check static and regular columns; primary keys cannot be Counters.
