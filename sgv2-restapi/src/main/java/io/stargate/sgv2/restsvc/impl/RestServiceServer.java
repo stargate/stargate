@@ -138,6 +138,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
+
+    environment.jersey().register(new GrpcExceptionMapper());
   }
 
   private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {

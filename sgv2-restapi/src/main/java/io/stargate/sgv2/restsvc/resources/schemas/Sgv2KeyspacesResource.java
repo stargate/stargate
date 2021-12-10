@@ -32,7 +32,6 @@ import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
-import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -118,22 +117,19 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     logger.info("getAllKeyspaces, cql = " + cql);
 
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          QueryOuterClass.Query query =
-              QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Query query =
+        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
-          // two-part conversion: first from proto to JsonNode for easier traversability,
-          // then from that to actual response we need:
-          ArrayNode ksRows = convertRowsToJsonNode(rs);
-          List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
-          final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
-        });
+    final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
+    return jaxrsResponse(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -176,26 +172,23 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
 
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-          if (rs.getRowsCount() == 0) {
-            return jaxrsResponse(Response.Status.NOT_FOUND)
-                .entity(
-                    new RestServiceError(
-                        "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
-                .build();
-          }
-          // two-part conversion: first from proto to JsonNode for easier traversability,
-          // then from that to actual response we need:
-          ArrayNode ksRows = convertRowsToJsonNode(rs);
-          Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+    if (rs.getRowsCount() == 0) {
+      return jaxrsResponse(Response.Status.NOT_FOUND)
+          .entity(
+              new RestServiceError(
+                  "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
+          .build();
+    }
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
 
-          final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
-        });
+    final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
+    return jaxrsResponse(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -238,49 +231,43 @@ public class Sgv2KeyspacesResource extends ResourceBase {
                       + "```")
           JsonNode payload,
       @Context HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
-          try {
-            ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
-          } catch (IllegalArgumentException e) {
-            return jaxrsResponse(Response.Status.BAD_REQUEST)
-                .entity(
-                    new RestServiceError(
-                        e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
-                .build();
-          }
-          final String keyspaceName = ksCreateDef.name;
-          String cql;
-          if (ksCreateDef.datacenters == null) {
-            cql =
-                new QueryBuilder()
-                    .create()
-                    .keyspace(keyspaceName)
-                    .ifNotExists()
-                    .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
-                    .build();
-          } else {
-            cql =
-                new QueryBuilder()
-                    .create()
-                    .keyspace(keyspaceName)
-                    .ifNotExists()
-                    .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
-                    .build();
-          }
+    SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
+    try {
+      ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
+    } catch (IllegalArgumentException e) {
+      return jaxrsResponse(Response.Status.BAD_REQUEST)
+          .entity(new RestServiceError(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
+          .build();
+    }
+    final String keyspaceName = ksCreateDef.name;
+    String cql;
+    if (ksCreateDef.datacenters == null) {
+      cql =
+          new QueryBuilder()
+              .create()
+              .keyspace(keyspaceName)
+              .ifNotExists()
+              .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
+              .build();
+    } else {
+      cql =
+          new QueryBuilder()
+              .create()
+              .keyspace(keyspaceName)
+              .ifNotExists()
+              .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
+              .build();
+    }
 
-          logger.info("Sending CREATE KEYSPACE with cql: [" + cql + "]");
+    logger.info("Sending CREATE KEYSPACE with cql: [" + cql + "]");
 
-          QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-          // No real contents; can ignore ResultSet it seems and only worry about exceptions
+    // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
-          final Map<String, Object> responsePayload =
-              Collections.singletonMap("name", keyspaceName);
-          return jaxrsResponse(Response.Status.CREATED).entity(responsePayload).build();
-        });
+    final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
+    return jaxrsResponse(Response.Status.CREATED).entity(responsePayload).build();
   }
 
   @Timed
@@ -302,13 +289,10 @@ public class Sgv2KeyspacesResource extends ResourceBase {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @Context HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-          QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-          /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-          return jaxrsResponse(Response.Status.NO_CONTENT).build();
-        });
+    String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    return jaxrsResponse(Response.Status.NO_CONTENT).build();
   }
 
   /*

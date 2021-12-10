@@ -14,7 +14,6 @@ import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
-import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -88,17 +87,12 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          List<Schema.CqlTable> tableDefs =
-              BridgeSchemaClient.create(blockingStub).findAllTables(keyspaceName);
-          List<Sgv2Table> tableResponses =
-              tableDefs.stream()
-                  .map(t -> table2table(t, keyspaceName))
-                  .collect(Collectors.toList());
-          final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
-        });
+    List<Schema.CqlTable> tableDefs =
+        BridgeSchemaClient.create(blockingStub).findAllTables(keyspaceName);
+    List<Sgv2Table> tableResponses =
+        tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
+    final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
+    return jaxrsResponse(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -137,14 +131,11 @@ public class Sgv2TablesResource extends ResourceBase {
     }
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          Schema.CqlTable tableDef =
-              BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-          Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
-          final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
-        });
+    Schema.CqlTable tableDef =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
+    final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
+    return jaxrsResponse(Response.Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -180,19 +171,16 @@ public class Sgv2TablesResource extends ResourceBase {
       return jaxrsBadRequestError("table name must be provided").build();
     }
 
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          Schema.CqlTableCreate addTable =
-              Schema.CqlTableCreate.newBuilder()
-                  .setKeyspaceName(keyspaceName)
-                  .setTable(table2table(tableAdd))
-                  .setIfNotExists(tableAdd.getIfNotExists())
-                  .build();
-          BridgeSchemaClient.create(blockingStub).createTable(addTable);
-          return jaxrsResponse(Response.Status.CREATED)
-              .entity(Collections.singletonMap("name", tableName))
-              .build();
-        });
+    Schema.CqlTableCreate addTable =
+        Schema.CqlTableCreate.newBuilder()
+            .setKeyspaceName(keyspaceName)
+            .setTable(table2table(tableAdd))
+            .setIfNotExists(tableAdd.getIfNotExists())
+            .build();
+    BridgeSchemaClient.create(blockingStub).createTable(addTable);
+    return jaxrsResponse(Response.Status.CREATED)
+        .entity(Collections.singletonMap("name", tableName))
+        .build();
   }
 
   @Timed
@@ -288,13 +276,10 @@ public class Sgv2TablesResource extends ResourceBase {
           @PathParam("tableName")
           final String tableName,
       @Context HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-          QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-          /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-          return jaxrsResponse(Response.Status.NO_CONTENT).build();
-        });
+    String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    return jaxrsResponse(Response.Status.NO_CONTENT).build();
   }
 
   /*

@@ -165,18 +165,15 @@ public abstract class ResourceBase {
       b = b.setValues(values);
     }
     final QueryOuterClass.Query query = b.build();
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-          final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-          final int count = rs.getRowsCount();
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+    final int count = rs.getRowsCount();
 
-          String pageStateStr = extractPagingStateFromResultSet(rs);
-          List<Map<String, Object>> rows = convertRows(rs);
-          Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-          return jaxrsResponse(Response.Status.OK).entity(response).build();
-        });
+    String pageStateStr = extractPagingStateFromResultSet(rs);
+    List<Map<String, Object>> rows = convertRows(rs);
+    Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
+    return jaxrsResponse(Response.Status.OK).entity(response).build();
   }
 
   private static byte[] decodeBase64(String base64encoded) {
