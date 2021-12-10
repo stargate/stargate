@@ -40,6 +40,8 @@ public class FromProtoValueCodecs {
   private static final DateCodec CODEC_DATE = new DateCodec();
   private static final TimeCodec CODEC_TIME = new TimeCodec();
 
+  private static final InetCodec CODEC_INET = new InetCodec();
+
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
   }
@@ -128,12 +130,15 @@ public class FromProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
+
+      case INET:
+        return CODEC_INET;
+
         // // // To Be Implemented:
 
       case BLOB:
         break;
-      case INET:
-        break;
+
       case UNRECOGNIZED:
       default:
         throw new IllegalArgumentException(
@@ -366,6 +371,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.textNode(LocalTime.ofNanoOfDay(value.getTime()).toString());
+    }
+  }
+
+  protected static final class InetCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Values.inet(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(Values.inet(value).toString());
     }
   }
 

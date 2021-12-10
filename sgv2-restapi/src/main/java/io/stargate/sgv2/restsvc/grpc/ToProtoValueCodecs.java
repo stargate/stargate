@@ -4,6 +4,8 @@ import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -32,6 +34,8 @@ public class ToProtoValueCodecs {
   protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   protected static final DateCodec CODEC_DATE = new DateCodec();
   protected static final TimeCodec CODEC_TIME = new TimeCodec();
+
+  protected static final InetCodec CODEC_INET = new InetCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -112,11 +116,11 @@ public class ToProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
+      case INET:
+        return CODEC_INET;
 
         // And then not-yet-implemented ones:
       case BLOB:
-        break;
-      case INET:
         break;
 
         // As well as ones we don't plan or can't support:
@@ -491,6 +495,33 @@ public class ToProtoValueCodecs {
       try {
         return Values.of(UUID.fromString(value));
       } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class InetCodec extends ToProtoCodecBase {
+    public InetCodec() {
+      super("TypeSpec.Basic.INET");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      } else if (value instanceof InetAddress) {
+        return Values.of((InetAddress) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(InetAddress.getByName(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      } catch (UnknownHostException e) {
         return invalidStringValue(value);
       }
     }

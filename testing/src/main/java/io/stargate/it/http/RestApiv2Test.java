@@ -2849,6 +2849,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("stars", "tinyint"));
     columnDefinitions.add(new ColumnDefinition("likes", "smallint"));
     columnDefinitions.add(new ColumnDefinition("test_runs", "varint"));
+    columnDefinitions.add(new ColumnDefinition("source_ip", "inet"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2889,6 +2890,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("stars", "5");
     row.put("likes", "1048");
     row.put("test_runs", BigInteger.TEN);
+    row.put("source_ip", "127.0.0.1");
 
     RestUtils.post(
         authToken,
@@ -2915,6 +2917,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("stars", (byte) 4);
     row2.put("likes", (short) 926);
     row.put("test_runs", BigInteger.ONE);
+    row.put("source_ip", "FE80:CD00:0:CDE:1257:0:211E:729C");
 
     RestUtils.post(
         authToken,
