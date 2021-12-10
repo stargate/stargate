@@ -2844,6 +2844,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
     columnDefinitions.add(new ColumnDefinition("mean_failure_time_hours", "double"));
     columnDefinitions.add(new ColumnDefinition("audit_id", "timeuuid"));
+    columnDefinitions.add(new ColumnDefinition("rating", "float"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2880,6 +2881,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("inspection_notes", "working");
     row.put("mean_failure_time_hours", "29111.595");
     row.put("audit_id", Uuids.timeBased());
+    row.put("rating", "98.6");
 
     RestUtils.post(
         authToken,
@@ -2902,6 +2904,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
     row2.put("mean_failure_time_hours", 5917321.12334);
+    row2.put("rating", (float) 92.6);
 
     RestUtils.post(
         authToken,

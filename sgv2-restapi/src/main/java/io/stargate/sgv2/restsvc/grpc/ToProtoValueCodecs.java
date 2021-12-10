@@ -15,6 +15,7 @@ public class ToProtoValueCodecs {
   protected static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
   protected static final TextCodec CODEC_TEXT = new TextCodec();
   protected static final IntCodec CODEC_INT = new IntCodec();
+  protected static final FloatCodec CODEC_FLOAT = new FloatCodec();
   protected static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
@@ -84,6 +85,8 @@ public class ToProtoValueCodecs {
         return CODEC_INT;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
+      case FLOAT:
+        return CODEC_FLOAT;
       case DOUBLE:
         return CODEC_DOUBLE;
       case DECIMAL:
@@ -102,8 +105,6 @@ public class ToProtoValueCodecs {
 
         // And then not-yet-implemented ones:
       case BLOB:
-        break;
-      case FLOAT:
         break;
       case VARINT:
         break;
@@ -286,6 +287,31 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Long.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class FloatCodec extends ToProtoCodecBase {
+    public FloatCodec() {
+      super("TypeSpec.Basic.FLOAT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Double, this handles that case
+        return Values.of(((Number) value).floatValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Float.valueOf(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }

@@ -27,6 +27,7 @@ public class FromProtoValueCodecs {
   private static final IntCodec CODEC_INT = new IntCodec();
   private static final LongCodec CODEC_LONG = new LongCodec();
   private static final ShortCodec CODEC_SHORT = new ShortCodec();
+  private static final FloatCodec CODEC_FLOAT = new FloatCodec();
   private static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   private static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
 
@@ -101,6 +102,8 @@ public class FromProtoValueCodecs {
         return CODEC_SHORT;
       case TINYINT:
         return CODEC_BYTE;
+      case FLOAT:
+        return CODEC_FLOAT;
       case DOUBLE:
         return CODEC_DOUBLE;
       case DECIMAL:
@@ -125,8 +128,6 @@ public class FromProtoValueCodecs {
         // // // To Be Implemented:
 
       case BLOB:
-        break;
-      case FLOAT:
         break;
       case VARINT:
         break;
@@ -198,6 +199,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  protected static final class FloatCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getFloat();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getFloat());
     }
   }
 
