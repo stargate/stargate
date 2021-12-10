@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -30,6 +31,8 @@ public class FromProtoValueCodecs {
   private static final CounterCodec CODEC_COUNTER = new CounterCodec();
   private static final TextCodec CODEC_TEXT = new TextCodec();
   private static final UUIDCodec CODEC_UUID = new UUIDCodec();
+
+  private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
 
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
@@ -87,7 +90,6 @@ public class FromProtoValueCodecs {
 
         // Supported Scalars: numeric
       case BIGINT:
-      case TIMESTAMP:
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
@@ -109,6 +111,8 @@ public class FromProtoValueCodecs {
         return CODEC_COUNTER;
       case UUID:
         return CODEC_UUID;
+      case TIMESTAMP:
+        return CODEC_TIMESTAMP;
 
         // // // To Be Implemented:
 
@@ -298,6 +302,18 @@ public class FromProtoValueCodecs {
             "Wrong length for UUID encoding: expected 16, was: " + bs.length);
       }
       return UUIDUtil.uuid(bs);
+    }
+  }
+
+  protected static final class TimestampCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Instant.ofEpochMilli(value.getInt()).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(Instant.ofEpochMilli(value.getInt()).toString());
     }
   }
 

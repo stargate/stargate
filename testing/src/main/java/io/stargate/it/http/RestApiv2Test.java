@@ -2862,7 +2862,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(tableResponse.getName()).isEqualTo(tableName);
 
     // insert a row
-    long timestamp = Instant.now().toEpochMilli();
+    String timestamp = Instant.now().toString();
     String machineCode = "ABC123";
     Map<String, Object> row = new HashMap<>();
     row.put("hour_created", timestamp);
@@ -2884,7 +2884,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     // insert a row, ensuring we can use literals for numeric values
-    String timestamp2 = String.valueOf(Instant.now().toEpochMilli());
+    String timestamp2 = Instant.now().toString();
     Map<String, Object> row2 = new HashMap<>();
     row2.put("hour_created", timestamp2);
     row2.put("serial_number", "ZXY765");

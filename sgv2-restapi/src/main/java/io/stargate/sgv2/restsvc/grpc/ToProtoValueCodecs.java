@@ -3,6 +3,7 @@ package io.stargate.sgv2.restsvc.grpc;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -16,11 +17,12 @@ public class ToProtoValueCodecs {
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
   protected static final LongCodec CODEC_COUNTER = new LongCodec("COUNTER");
-  protected static final LongCodec CODEC_TIMESTAMP = new LongCodec("TIMESTAMP");
 
   // Same codecs for UUIDs but for error messages need to create different instances
   protected static final UUIDCodec CODEC_UUID = new UUIDCodec("UUID");
   protected static final UUIDCodec CODEC_TIME_UUID = new UUIDCodec("TIMEUUID");
+
+  protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -78,8 +80,6 @@ public class ToProtoValueCodecs {
         return CODEC_INT;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
-      case TIMESTAMP:
-        return CODEC_TIMESTAMP; // represented as LONG
       case DOUBLE:
         return CODEC_DOUBLE;
       case DECIMAL:
@@ -89,6 +89,8 @@ public class ToProtoValueCodecs {
         return CODEC_UUID;
       case TIMEUUID:
         return CODEC_TIME_UUID;
+      case TIMESTAMP:
+        return CODEC_TIMESTAMP;
 
         // And then not-yet-implemented ones:
       case BLOB:
@@ -378,6 +380,32 @@ public class ToProtoValueCodecs {
       //  but first let's make it work, then make it fast
       try {
         return Values.of(UUID.fromString(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class TimestampCodec extends ToProtoCodecBase {
+    public TimestampCodec() {
+      super("TypeSpec.Basic.TIMESTAMP");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        // TODO: this implementation requires full date/time specification including timezone
+        // we could support more flexibility in format as requested in
+        // https://github.com/stargate/stargate/issues/839
+        return Values.of(Instant.parse(value).toEpochMilli());
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
