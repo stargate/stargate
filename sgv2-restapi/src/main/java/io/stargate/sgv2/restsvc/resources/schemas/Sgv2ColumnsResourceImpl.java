@@ -96,8 +96,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         keyspaceName,
         tableName,
         (tableDef) -> {
-          // !!! TO BE IMPLEMENTED
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+          Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
+          if (column == null) {
+            return jaxrsBadRequestError(
+                    String.format("column '%s' not found in table '%s'", columnName, tableName))
+                .build();
+          }
+          final Object payload = raw ? column : new Sgv2RESTResponse(column);
+          return jaxrsResponse(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -183,5 +189,30 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         column.getName(),
         BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(column.getType()),
         isStatic);
+  }
+
+  private Sgv2ColumnDefinition findColumn(Schema.CqlTable grpcTable, String columnName) {
+    Sgv2ColumnDefinition column =
+        findColumn(grpcTable.getPartitionKeyColumnsList(), columnName, false);
+    if (column == null) {
+      column = findColumn(grpcTable.getClusteringKeyColumnsList(), columnName, false);
+      if (column == null) {
+        column = findColumn(grpcTable.getStaticColumnsList(), columnName, true);
+        if (column == null) {
+          column = findColumn(grpcTable.getColumnsList(), columnName, false);
+        }
+      }
+    }
+    return column;
+  }
+
+  private Sgv2ColumnDefinition findColumn(
+      List<QueryOuterClass.ColumnSpec> columns, String columnName, boolean isStatic) {
+    for (QueryOuterClass.ColumnSpec column : columns) {
+      if (columnName.equals(column.getName())) {
+        return column2column(column, isStatic);
+      }
+    }
+    return null;
   }
 }
