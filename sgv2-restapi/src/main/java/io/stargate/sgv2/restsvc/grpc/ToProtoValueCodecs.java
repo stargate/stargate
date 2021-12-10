@@ -3,6 +3,7 @@ package io.stargate.sgv2.restsvc.grpc;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,6 +18,7 @@ public class ToProtoValueCodecs {
   protected static final IntCodec CODEC_INT = new IntCodec();
   protected static final ShortCodec CODEC_SHORT = new ShortCodec();
   protected static final ByteCodec CODEC_BYTE = new ByteCodec();
+  protected static final VarintCodec CODEC_VARINT = new VarintCodec();
   protected static final FloatCodec CODEC_FLOAT = new FloatCodec();
   protected static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
@@ -89,6 +91,8 @@ public class ToProtoValueCodecs {
         return CODEC_SHORT;
       case TINYINT:
         return CODEC_BYTE;
+      case VARINT:
+        return CODEC_VARINT;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
       case FLOAT:
@@ -111,8 +115,6 @@ public class ToProtoValueCodecs {
 
         // And then not-yet-implemented ones:
       case BLOB:
-        break;
-      case VARINT:
         break;
       case INET:
         break;
@@ -339,6 +341,32 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Long.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class VarintCodec extends ToProtoCodecBase {
+    public VarintCodec() {
+      super("TypeSpec.Basic.VARINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof BigInteger) {
+        return Values.of((BigInteger) value);
+      } else if (value instanceof Number) {
+        Number n = (Number) value;
+        return Values.of(new BigInteger(n.toString()));
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(new BigInteger(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }

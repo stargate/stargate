@@ -47,6 +47,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2847,6 +2848,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("rating", "float"));
     columnDefinitions.add(new ColumnDefinition("stars", "tinyint"));
     columnDefinitions.add(new ColumnDefinition("likes", "smallint"));
+    columnDefinitions.add(new ColumnDefinition("test_runs", "varint"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2886,6 +2888,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("rating", "98.6");
     row.put("stars", "5");
     row.put("likes", "1048");
+    row.put("test_runs", BigInteger.TEN);
 
     RestUtils.post(
         authToken,
@@ -2911,6 +2914,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("rating", (float) 92.6);
     row2.put("stars", (byte) 4);
     row2.put("likes", (short) 926);
+    row.put("test_runs", BigInteger.ONE);
 
     RestUtils.post(
         authToken,
