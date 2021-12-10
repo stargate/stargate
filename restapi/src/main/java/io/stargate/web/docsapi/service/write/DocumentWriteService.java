@@ -37,8 +37,13 @@ import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DocumentWriteService {
+
+  private static final Logger logger = LoggerFactory.getLogger(DocumentWriteService.class);
 
   private final TimeSource timeSource;
   private final DocsApiConfiguration config;
@@ -139,29 +144,43 @@ public class DocumentWriteService {
       ExecutionContext context) {
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
-        RxUtils.singleFromFuture(
+        Single.fromCallable(
                 () -> {
-                  BuiltQuery<? extends BoundQuery> query =
-                      deleteQueryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection);
-                  return dataStore.prepare(query);
+                  return deleteQueryBuilder.buildQuery(
+                      dataStore::queryBuilder, keyspace, collection);
                 })
+            .subscribeOn(Schedulers.computation())
+            .flatMap(
+                query ->
+                    RxUtils.singleFromFuture(
+                            () -> {
+                              return dataStore.prepare(query);
+                            })
+                        .subscribeOn(Schedulers.io()))
             .cache();
 
     // create and cache the insert query prepare
     Single<? extends Query<? extends BoundQuery>> insertQueryPrepare =
-        RxUtils.singleFromFuture(
+        Single.fromCallable(
                 () -> {
-                  BuiltQuery<? extends BoundQuery> query =
-                      insertQueryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection);
-                  return dataStore.prepare(query);
+                  return insertQueryBuilder.buildQuery(
+                      dataStore::queryBuilder, keyspace, collection);
                 })
+            .subscribeOn(Schedulers.computation())
+            .flatMap(
+                query ->
+                    RxUtils.singleFromFuture(
+                            () -> {
+                              return dataStore.prepare(query);
+                            })
+                        .subscribeOn(Schedulers.io()))
             .cache();
 
     // execute in parallel
-    return Single.zip(
-            deleteQueryPrepare,
-            insertQueryPrepare,
-            (deletePrepared, insertPrepared) -> {
+    return Single.zip(deleteQueryPrepare, insertQueryPrepare, Pair::of)
+        .observeOn(Schedulers.single())
+        .map(
+            pair -> {
               // take current timestamp for binding
               long timestamp = timeSource.currentTimeMicros();
 
@@ -169,7 +188,7 @@ public class DocumentWriteService {
               List<BoundQuery> queries = new ArrayList<>(rows.size() + 1);
 
               // add delete
-              BoundQuery deleteExistingQuery = deletePrepared.bind(timestamp - 1, documentId);
+              BoundQuery deleteExistingQuery = pair.getLeft().bind(timestamp - 1, documentId);
               queries.add(deleteExistingQuery);
 
               // then all inserts
@@ -177,7 +196,7 @@ public class DocumentWriteService {
                   row -> {
                     BoundQuery query =
                         insertQueryBuilder.bind(
-                            insertPrepared, documentId, row, timestamp, numericBooleans);
+                            pair.getRight(), documentId, row, timestamp, numericBooleans);
                     queries.add(query);
                   });
 
@@ -204,6 +223,7 @@ public class DocumentWriteService {
                 return dataStore.unloggedBatch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
               }
             })
-        .observeOn(Schedulers.io());
+        .subscribeOn(Schedulers.io())
+        .observeOn(Schedulers.computation());
   }
 }

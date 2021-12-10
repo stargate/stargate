@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
@@ -61,6 +62,8 @@ import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.glassfish.jersey.server.ManagedAsync;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/v2/namespaces/{namespace-id: [a-zA-Z_0-9]+}")
 @Api(
@@ -70,6 +73,8 @@ import org.glassfish.jersey.server.ManagedAsync;
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 public class ReactiveDocumentResourceV2 {
+
+  private static final Logger logger = LoggerFactory.getLogger(ReactiveDocumentResourceV2.class);
 
   private static final String WHERE_DESCRIPTION =
       "a JSON blob with search filters;"
@@ -164,7 +169,6 @@ public class ReactiveDocumentResourceV2 {
   }
 
   @PUT
-  @ManagedAsync
   @ApiOperation(value = "Create or update a document with the provided document-id")
   @ApiResponses(
       value = {
@@ -205,6 +209,7 @@ public class ReactiveDocumentResourceV2 {
     // create table if needed, if not validate it's a doc table
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
+        .subscribeOn(Schedulers.io())
 
         // then generate id and create execution context
         .flatMap(
@@ -222,7 +227,8 @@ public class ReactiveDocumentResourceV2 {
                             new DocumentResponseWrapper<>(id, null, null, context.toProfile());
                         String response = objectMapper.writeValueAsString(result);
                         return Response.ok().entity(response).build();
-                      });
+                      })
+                  .subscribeOn(Schedulers.computation());
             })
 
         // then subscribe
