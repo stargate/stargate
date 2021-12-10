@@ -3,12 +3,14 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
@@ -129,8 +131,27 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         keyspaceName,
         tableName,
         (tableDef) -> {
-          // !!! TO BE IMPLEMENTED
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+          final String newName = columnUpdate.getName();
+          // Optional, could let backend verify but this gives us better error reporting
+          if (findColumn(tableDef, columnName) == null) {
+            return jaxrsBadRequestError(
+                    String.format("column '%s' not found in table '%s'", columnName, tableName))
+                .build();
+          }
+          String cql =
+              new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .renameColumn(columnName, newName)
+                  .build();
+          blockingStub.executeQuery(
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .build());
+          return jaxrsResponse(Response.Status.OK)
+              .entity(Collections.singletonMap("name", newName))
+              .build();
         });
   }
 
@@ -155,8 +176,24 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         keyspaceName,
         tableName,
         (tableDef) -> {
-          // !!! TO BE IMPLEMENTED
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+          // Optional, could let backend verify but this gives us better error reporting
+          if (findColumn(tableDef, columnName) == null) {
+            return jaxrsBadRequestError(
+                    String.format("column '%s' not found in table '%s'", columnName, tableName))
+                .build();
+          }
+          String cql =
+              new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .dropColumn(columnName)
+                  .build();
+          blockingStub.executeQuery(
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .build());
+          return jaxrsResponse(Response.Status.NO_CONTENT).build();
         });
   }
 
