@@ -4,6 +4,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Client for accessing Schema information from Bridge/gRPC service. Initially used by REST
@@ -13,7 +14,7 @@ public class BridgeSchemaClient {
   private final StargateGrpc.StargateBlockingStub blockingStub;
 
   protected BridgeSchemaClient(StargateGrpc.StargateBlockingStub blockingStub) {
-    this.blockingStub = blockingStub;
+    this.blockingStub = Objects.requireNonNull(blockingStub);
   }
 
   public static BridgeSchemaClient create(StargateGrpc.StargateBlockingStub blockingStub) {

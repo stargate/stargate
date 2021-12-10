@@ -245,10 +245,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         buildDeleteRowsByPKCQL(
             keyspaceName, tableName, path, tableDef, valuesBuilder, toProtoConverter);
 
-    QueryOuterClass.QueryParameters params = parametersForLocalQuorum();
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
-            .setParameters(params)
+            .setParameters(parametersForLocalQuorum())
             .setCql(cql)
             .setValues(valuesBuilder.build())
             .build();

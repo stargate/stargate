@@ -60,9 +60,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2TablesResource extends ResourceBase {
-  static class TableAdd { // testing only
-  }
-
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -132,6 +129,14 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request) {
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
+    // missing Table; here we specifically want 404 instead.
     return Sgv2RequestHandler.handleMainOperation(
         () -> {
           Schema.CqlTable tableDef =
@@ -171,7 +176,7 @@ public class Sgv2TablesResource extends ResourceBase {
       return jaxrsBadRequestError("keyspaceName must be provided").build();
     }
     final String tableName = tableAdd.getName();
-    if (isStringEmpty(keyspaceName)) {
+    if (isStringEmpty(tableName)) {
       return jaxrsBadRequestError("table name must be provided").build();
     }
 
@@ -217,10 +222,46 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "table name", required = true) @NotNull final TableAdd tableUpdate,
+      @ApiParam(value = "table name", required = true) @NotNull
+          final Sgv2TableAddRequest tableUpdate,
       @Context HttpServletRequest request) {
-    logger.info("updateTable() called for KS '" + keyspaceName + "'");
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
+          List<?> clusteringExpressions = options.getClusteringExpression();
+          if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
+            return jaxrsBadRequestError("Cannot update the clustering order of a table").build();
+          }
+          Integer defaultTTL = options.getDefaultTimeToLive();
+          // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
+          //    probably since this is the only thing that can actually be changed:
+          if (defaultTTL == null) {
+            return jaxrsBadRequestError("No update provided for defaultTTL").build();
+          }
+          String cql =
+              new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .withDefaultTTL(options.getDefaultTimeToLive())
+                  .build();
+          blockingStub.executeQuery(
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .build());
+          return jaxrsResponse(Response.Status.OK)
+              .entity(Collections.singletonMap("name", tableName))
+              .build();
+        });
   }
 
   @Timed

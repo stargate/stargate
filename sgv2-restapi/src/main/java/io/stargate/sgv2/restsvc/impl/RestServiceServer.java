@@ -34,6 +34,7 @@ import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
+import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResource;
@@ -119,6 +120,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(Sgv2RowsResourceImpl.class);
 
     // Schema endpoints
+    environment.jersey().register(Sgv2ColumnsResourceImpl.class);
     environment.jersey().register(Sgv2KeyspacesResource.class);
     environment.jersey().register(Sgv2TablesResource.class);
     environment.jersey().register(Sgv2IndexesResourceImpl.class);

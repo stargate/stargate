@@ -40,21 +40,27 @@ public class Sgv2RequestHandler {
   public static Response handleMainOperation(Callable<Response> action) {
     try {
       return action.call();
-    } catch (StatusRuntimeException grpcE) { // from gRPC
-      return failResponseForGrpcException(grpcE);
-    } catch (NotFoundException nfe) { // does this actually occur?
-      return Response.status(Response.Status.NOT_FOUND)
-          .entity(
-              new RestServiceError(
-                  "Resource not found: " + nfe.getMessage(),
-                  Response.Status.NOT_FOUND.getStatusCode()))
-          .build();
     } catch (Exception e) {
-      return failResponseForOtherException(e);
+      return failResponseForAnyException(e);
     }
   }
 
-  private static Response failResponseForGrpcException(StatusRuntimeException grpcE) {
+  public static Response failResponseForAnyException(Exception e) {
+    if (e instanceof StatusRuntimeException) {
+      return failResponseForGrpcException((StatusRuntimeException) e);
+    }
+    if (e instanceof NotFoundException) {
+      return Response.status(Response.Status.NOT_FOUND)
+          .entity(
+              new RestServiceError(
+                  "Resource not found: " + e.getMessage(),
+                  Response.Status.NOT_FOUND.getStatusCode()))
+          .build();
+    }
+    return failResponseForOtherException(e);
+  }
+
+  public static Response failResponseForGrpcException(StatusRuntimeException grpcE) {
     Status.Code sc = grpcE.getStatus().getCode();
 
     // Handling partly based on information from:
@@ -114,7 +120,7 @@ public class Sgv2RequestHandler {
         sc, Response.Status.INTERNAL_SERVER_ERROR, "Unhandled gRPC failure", grpcE.getMessage());
   }
 
-  private static Response failResponseForOtherException(Exception e) {
+  public static Response failResponseForOtherException(Exception e) {
     if (e instanceof IllegalArgumentException) {
       logger.info("Bad request (IllegalArgumentException->BAD_REQUEST): {}", e.getMessage());
       return Response.status(Response.Status.BAD_REQUEST)
