@@ -616,6 +616,7 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
+      // TODO: does this need special decoding?
       return Values.of(value.getBytes());
     }
   }
