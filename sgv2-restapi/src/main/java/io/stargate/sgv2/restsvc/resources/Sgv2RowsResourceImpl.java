@@ -83,7 +83,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     // !!! To Be Implemented:
 
-    return jaxrsResponse(Status.NOT_IMPLEMENTED).build();
+    return Response.status(Status.NOT_IMPLEMENTED).build();
   }
 
   @Override
@@ -204,7 +204,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
     // apparently no useful data in ResultSet, we should simply return payload we got:
-    return jaxrsResponse(Status.CREATED).entity(payloadAsString).build();
+    return Response.status(Status.CREATED).entity(payloadAsString).build();
   }
 
   @Override
@@ -244,7 +244,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             .build();
 
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Status.NO_CONTENT).build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -300,7 +300,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
     // apparently no useful data in ResultSet, we should simply return payload we got:
     final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
-    return jaxrsResponse(Status.OK).entity(responsePayload).build();
+    return Response.status(Status.OK).entity(responsePayload).build();
   }
 
   /*

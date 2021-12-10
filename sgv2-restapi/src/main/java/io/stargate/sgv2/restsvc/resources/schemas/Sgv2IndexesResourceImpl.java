@@ -105,7 +105,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
     blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
 
     Map<String, Object> responsePayload = Collections.singletonMap("success", true);
-    return jaxrsResponse(Status.CREATED).entity(responsePayload).build();
+    return Response.status(Status.CREATED).entity(responsePayload).build();
   }
 
   @Override
@@ -138,6 +138,6 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
         new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
     blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
 
-    return jaxrsResponse(Status.NO_CONTENT).build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 }

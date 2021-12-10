@@ -94,7 +94,7 @@ public class Sgv2TablesResource extends ResourceBase {
     List<Sgv2Table> tableResponses =
         tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
     final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-    return jaxrsResponse(Status.OK).entity(payload).build();
+    return Response.status(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -137,7 +137,7 @@ public class Sgv2TablesResource extends ResourceBase {
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
     final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
-    return jaxrsResponse(Status.OK).entity(payload).build();
+    return Response.status(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -180,7 +180,7 @@ public class Sgv2TablesResource extends ResourceBase {
             .setIfNotExists(tableAdd.getIfNotExists())
             .build();
     BridgeSchemaClient.create(blockingStub).createTable(addTable);
-    return jaxrsResponse(Status.CREATED)
+    return Response.status(Status.CREATED)
         .entity(Collections.singletonMap("name", tableName))
         .build();
   }
@@ -250,7 +250,7 @@ public class Sgv2TablesResource extends ResourceBase {
                   .setParameters(parametersForLocalQuorum())
                   .setCql(cql)
                   .build());
-          return jaxrsResponse(Response.Status.OK)
+          return Response.status(Status.OK)
               .entity(Collections.singletonMap("name", tableName))
               .build();
         });
@@ -283,7 +283,7 @@ public class Sgv2TablesResource extends ResourceBase {
     String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Status.NO_CONTENT).build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   /*

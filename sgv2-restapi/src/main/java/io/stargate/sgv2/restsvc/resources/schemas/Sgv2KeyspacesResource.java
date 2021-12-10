@@ -131,7 +131,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
     final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
-    return jaxrsResponse(Status.OK).entity(payload).build();
+    return Response.status(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -186,7 +186,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
 
     final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
-    return jaxrsResponse(Status.OK).entity(payload).build();
+    return Response.status(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -263,7 +263,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
     final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
-    return jaxrsResponse(Status.CREATED).entity(responsePayload).build();
+    return Response.status(Status.CREATED).entity(responsePayload).build();
   }
 
   @Timed
@@ -288,7 +288,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Status.NO_CONTENT).build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   /*

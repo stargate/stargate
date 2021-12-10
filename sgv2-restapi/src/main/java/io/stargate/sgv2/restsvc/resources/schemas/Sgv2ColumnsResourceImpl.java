@@ -53,7 +53,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         (tableDef) -> {
           List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
           final Object payload = raw ? columns : new Sgv2RESTResponse(columns);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+          return Response.status(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -100,7 +100,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .setCql(cql)
                   .build());
 
-          return jaxrsResponse(Response.Status.CREATED)
+          return Response.status(Response.Status.CREATED)
               .entity(Collections.singletonMap("name", columnName))
               .build();
         });
@@ -136,7 +136,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                 Response.Status.BAD_REQUEST);
           }
           final Object payload = raw ? column : new Sgv2RESTResponse(column);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+          return Response.status(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -184,7 +184,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                     .setCql(cql)
                     .build());
           }
-          return jaxrsResponse(Response.Status.OK)
+          return Response.status(Response.Status.OK)
               .entity(Collections.singletonMap("name", newName))
               .build();
         });
@@ -229,7 +229,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .setParameters(parametersForLocalQuorum())
                   .setCql(cql)
                   .build());
-          return jaxrsResponse(Response.Status.NO_CONTENT).build();
+          return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
 

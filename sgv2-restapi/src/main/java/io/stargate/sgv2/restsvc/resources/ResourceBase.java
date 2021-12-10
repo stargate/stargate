@@ -69,12 +69,6 @@ public abstract class ResourceBase {
     return function.apply(tableDef);
   }
 
-  // // // Helper methods for Response construction
-
-  protected static Response.ResponseBuilder jaxrsResponse(Response.Status status) {
-    return Response.status(status);
-  }
-
   // // // Helper methods for JSON decoding
 
   protected static Map<String, Object> parseJsonAsMap(String jsonString) throws IOException {
@@ -155,7 +149,7 @@ public abstract class ResourceBase {
     String pageStateStr = extractPagingStateFromResultSet(rs);
     List<Map<String, Object>> rows = convertRows(rs);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-    return jaxrsResponse(Response.Status.OK).entity(response).build();
+    return Response.status(Response.Status.OK).entity(response).build();
   }
 
   private static byte[] decodeBase64(String base64encoded) {
