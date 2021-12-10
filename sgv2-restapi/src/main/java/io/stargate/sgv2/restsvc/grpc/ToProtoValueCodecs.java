@@ -15,6 +15,8 @@ public class ToProtoValueCodecs {
   protected static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
   protected static final TextCodec CODEC_TEXT = new TextCodec();
   protected static final IntCodec CODEC_INT = new IntCodec();
+  protected static final ShortCodec CODEC_SHORT = new ShortCodec();
+  protected static final ByteCodec CODEC_BYTE = new ByteCodec();
   protected static final FloatCodec CODEC_FLOAT = new FloatCodec();
   protected static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
@@ -83,6 +85,10 @@ public class ToProtoValueCodecs {
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
+      case SMALLINT:
+        return CODEC_SHORT;
+      case TINYINT:
+        return CODEC_BYTE;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
       case FLOAT:
@@ -109,10 +115,6 @@ public class ToProtoValueCodecs {
       case VARINT:
         break;
       case INET:
-        break;
-      case SMALLINT:
-        break;
-      case TINYINT:
         break;
 
         // As well as ones we don't plan or can't support:
@@ -258,6 +260,56 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Integer.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class ShortCodec extends ToProtoCodecBase {
+    public ShortCodec() {
+      super("TypeSpec.Basic.SMALLINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Integer, this handles that case
+        return Values.of(((Number) value).shortValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Short.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class ByteCodec extends ToProtoCodecBase {
+    public ByteCodec() {
+      super("TypeSpec.Basic.TINYINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Integer, this handles that case
+        return Values.of(((Number) value).byteValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Byte.valueOf(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
