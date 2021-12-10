@@ -4,12 +4,10 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
-import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
-import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Singleton;
@@ -18,12 +16,17 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
 public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2ColumnsResourceApi {
+  // Singleton resource so no need to be static
+  protected final Logger logger = LoggerFactory.getLogger(getClass());
+
   @Override
   public Response getAllColumns(
       StargateGrpc.StargateBlockingStub blockingStub,
@@ -37,10 +40,11 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(tableName)) {
       return jaxrsBadRequestError("table name must be provided").build();
     }
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          Schema.CqlTable tableDef =
-              BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
           List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
           final Object payload = raw ? columns : new Sgv2RESTResponse(columns);
           return jaxrsResponse(Response.Status.OK).entity(payload).build();
@@ -54,7 +58,20 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String tableName,
       Sgv2ColumnDefinition columnDefinition,
       HttpServletRequest request) {
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          // !!! TO BE IMPLEMENTED
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+        });
   }
 
   @Override
@@ -65,7 +82,23 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String columnName,
       boolean raw,
       HttpServletRequest request) {
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    if (isStringEmpty(columnName)) {
+      return jaxrsBadRequestError("columnName must be provided").build();
+    }
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          // !!! TO BE IMPLEMENTED
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+        });
   }
 
   @Override
@@ -76,7 +109,23 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String columnName,
       Sgv2ColumnDefinition columnUpdate,
       HttpServletRequest request) {
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    if (isStringEmpty(columnName)) {
+      return jaxrsBadRequestError("columnName must be provided").build();
+    }
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          // !!! TO BE IMPLEMENTED
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+        });
   }
 
   @Override
@@ -86,7 +135,23 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String tableName,
       String columnName,
       HttpServletRequest request) {
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    if (isStringEmpty(keyspaceName)) {
+      return jaxrsBadRequestError("keyspaceName must be provided").build();
+    }
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("table name must be provided").build();
+    }
+    if (isStringEmpty(columnName)) {
+      return jaxrsBadRequestError("columnName must be provided").build();
+    }
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          // !!! TO BE IMPLEMENTED
+          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+        });
   }
 
   /*
