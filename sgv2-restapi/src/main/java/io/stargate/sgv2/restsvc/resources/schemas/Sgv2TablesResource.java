@@ -37,9 +37,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +94,7 @@ public class Sgv2TablesResource extends ResourceBase {
     List<Sgv2Table> tableResponses =
         tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
     final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-    return jaxrsResponse(Response.Status.OK).entity(payload).build();
+    return jaxrsResponse(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -124,10 +126,10 @@ public class Sgv2TablesResource extends ResourceBase {
           final boolean raw,
       @Context HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
     }
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
@@ -135,7 +137,7 @@ public class Sgv2TablesResource extends ResourceBase {
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
     final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
-    return jaxrsResponse(Response.Status.OK).entity(payload).build();
+    return jaxrsResponse(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -164,11 +166,11 @@ public class Sgv2TablesResource extends ResourceBase {
       @ApiParam(required = true) @NotNull final Sgv2TableAddRequest tableAdd,
       @Context HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
     }
     final String tableName = tableAdd.getName();
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
     }
 
     Schema.CqlTableCreate addTable =
@@ -178,7 +180,7 @@ public class Sgv2TablesResource extends ResourceBase {
             .setIfNotExists(tableAdd.getIfNotExists())
             .build();
     BridgeSchemaClient.create(blockingStub).createTable(addTable);
-    return jaxrsResponse(Response.Status.CREATED)
+    return jaxrsResponse(Status.CREATED)
         .entity(Collections.singletonMap("name", tableName))
         .build();
   }
@@ -214,10 +216,10 @@ public class Sgv2TablesResource extends ResourceBase {
           final Sgv2TableAddRequest tableUpdate,
       @Context HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -227,13 +229,15 @@ public class Sgv2TablesResource extends ResourceBase {
           Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
           List<?> clusteringExpressions = options.getClusteringExpression();
           if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
-            return jaxrsBadRequestError("Cannot update the clustering order of a table").build();
+            throw new WebApplicationException(
+                "Cannot update the clustering order of a table", Status.BAD_REQUEST);
           }
           Integer defaultTTL = options.getDefaultTimeToLive();
           // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
           //    probably since this is the only thing that can actually be changed:
           if (defaultTTL == null) {
-            return jaxrsBadRequestError("No update provided for defaultTTL").build();
+            throw new WebApplicationException(
+                "No update provided for defaultTTL", Status.BAD_REQUEST);
           }
           String cql =
               new QueryBuilder()
@@ -279,7 +283,7 @@ public class Sgv2TablesResource extends ResourceBase {
     String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Response.Status.NO_CONTENT).build();
+    return jaxrsResponse(Status.NO_CONTENT).build();
   }
 
   /*

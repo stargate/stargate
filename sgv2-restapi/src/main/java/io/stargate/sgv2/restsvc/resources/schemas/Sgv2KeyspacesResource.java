@@ -53,9 +53,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +131,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
     final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
-    return jaxrsResponse(Response.Status.OK).entity(payload).build();
+    return jaxrsResponse(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -176,11 +178,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     if (rs.getRowsCount() == 0) {
-      return jaxrsResponse(Response.Status.NOT_FOUND)
-          .entity(
-              new RestServiceError(
-                  "unable to describe keyspace", Response.Status.NOT_FOUND.getStatusCode()))
-          .build();
+      throw new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND);
     }
     // two-part conversion: first from proto to JsonNode for easier traversability,
     // then from that to actual response we need:
@@ -188,7 +186,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
 
     final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
-    return jaxrsResponse(Response.Status.OK).entity(payload).build();
+    return jaxrsResponse(Status.OK).entity(payload).build();
   }
 
   @Timed
@@ -235,9 +233,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
     } catch (IllegalArgumentException e) {
-      return jaxrsResponse(Response.Status.BAD_REQUEST)
-          .entity(new RestServiceError(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode()))
-          .build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
     final String keyspaceName = ksCreateDef.name;
     String cql;
@@ -267,7 +263,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
     final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
-    return jaxrsResponse(Response.Status.CREATED).entity(responsePayload).build();
+    return jaxrsResponse(Status.CREATED).entity(responsePayload).build();
   }
 
   @Timed
@@ -292,7 +288,7 @@ public class Sgv2KeyspacesResource extends ResourceBase {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Response.Status.NO_CONTENT).build();
+    return jaxrsResponse(Status.NO_CONTENT).build();
   }
 
   /*

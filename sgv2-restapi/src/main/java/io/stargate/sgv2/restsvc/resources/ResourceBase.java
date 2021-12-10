@@ -15,7 +15,6 @@ import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +22,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 /**
@@ -56,12 +56,13 @@ public abstract class ResourceBase {
         case NOT_FOUND:
           final String msg = grpcE.getMessage();
           if (msg.contains("Keyspace not found")) {
-            return jaxrsBadRequestError(String.format("Keyspace '%s' not found", keyspaceName))
-                .build();
+            throw new WebApplicationException(
+                String.format("Keyspace '%s' not found", keyspaceName),
+                Response.Status.BAD_REQUEST);
           }
-          return jaxrsBadRequestError(
-                  String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName))
-              .build();
+          throw new WebApplicationException(
+              String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+              Response.Status.BAD_REQUEST);
       }
       throw grpcE;
     }
@@ -72,16 +73,6 @@ public abstract class ResourceBase {
 
   protected static Response.ResponseBuilder jaxrsResponse(Response.Status status) {
     return Response.status(status);
-  }
-
-  protected static Response.ResponseBuilder jaxrsServiceError(Response.Status status, String msg) {
-    return Response.status(status).entity(new RestServiceError(msg, status.getStatusCode()));
-  }
-
-  protected static Response.ResponseBuilder jaxrsBadRequestError(String msgSuffix) {
-    Response.Status status = Response.Status.BAD_REQUEST;
-    String msg = "Bad request: " + msgSuffix;
-    return Response.status(status).entity(new RestServiceError(msg, status.getStatusCode()));
   }
 
   // // // Helper methods for JSON decoding
@@ -127,15 +118,6 @@ public abstract class ResourceBase {
   }
 
   // // // Helper methods for input validation
-
-  /**
-   * Method that checks for some common types of invalidity for Auth Token: currently simply its
-   * existence (cannot be {@code null}) or empty ({code !string.isEmpty()}), but may be extended
-   * with heuristics in future.
-   */
-  protected static final boolean isAuthTokenInvalid(String authToken) {
-    return isStringEmpty(authToken);
-  }
 
   protected static final boolean isStringEmpty(String str) {
     return (str == null) || str.isEmpty();

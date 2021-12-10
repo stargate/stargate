@@ -27,9 +27,11 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +65,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String sortJson,
       final HttpServletRequest request) {
     if (isStringEmpty(where)) {
-      return jaxrsBadRequestError("where parameter is required").build();
+      throw new WebApplicationException("where parameter is required", Status.BAD_REQUEST);
     }
 
     final List<Column> columns =
@@ -72,7 +74,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      return jaxrsBadRequestError(e.getMessage()).build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
     Schema.CqlTable tableDef =
@@ -81,7 +83,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     // !!! To Be Implemented:
 
-    return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+    return jaxrsResponse(Status.NOT_IMPLEMENTED).build();
   }
 
   @Override
@@ -102,7 +104,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      return jaxrsBadRequestError(e.getMessage()).build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
     // To bind path/key parameters, need converter; and for that we need table metadata:
@@ -142,7 +144,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      return jaxrsBadRequestError(e.getMessage()).build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
     final String cql;
     if (columns.isEmpty()) {
@@ -176,9 +178,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      return jaxrsServiceError(
-              Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
-          .build();
+      throw new WebApplicationException(
+          "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
     final String cql;
 
@@ -190,14 +191,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
     } catch (IllegalArgumentException e) {
-      // No logging since this is due to something bad client sent:
-      return jaxrsBadRequestError(e.getMessage()).build();
-    } catch (Exception e) {
-      // Unrecognized problem to be converted to something known; log:
-      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
-      return jaxrsServiceError(
-              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
-          .build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
     logger.info("createRow(): try to call backend with CQL of '{}'", cql);
 
@@ -210,7 +204,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
     // apparently no useful data in ResultSet, we should simply return payload we got:
-    return jaxrsResponse(Response.Status.CREATED).entity(payloadAsString).build();
+    return jaxrsResponse(Status.CREATED).entity(payloadAsString).build();
   }
 
   @Override
@@ -250,7 +244,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             .build();
 
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return jaxrsResponse(Response.Status.NO_CONTENT).build();
+    return jaxrsResponse(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -278,9 +272,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      return jaxrsServiceError(
-              Response.Status.BAD_REQUEST, "Invalid JSON payload: " + e.getMessage())
-          .build();
+      throw new WebApplicationException(
+          "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
     final String cql;
     Schema.CqlTable tableDef =
@@ -293,14 +286,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           buildUpdateRowCQL(
               keyspaceName, tableName, path, tableDef, payloadMap, valuesBuilder, toProtoConverter);
     } catch (IllegalArgumentException e) {
-      // No logging since this is due to something bad client sent:
-      return jaxrsBadRequestError(e.getMessage()).build();
-    } catch (Exception e) {
-      // Unrecognized problem to be converted to something known; log:
-      logger.error("Unknown payload bind problem: " + e.getMessage(), e);
-      return jaxrsServiceError(
-              Response.Status.INTERNAL_SERVER_ERROR, "Failure to bind payload: " + e.getMessage())
-          .build();
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
     logger.info("modifyRow(): try to call backend with CQL of '{}'", cql);
 
@@ -314,7 +300,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
     // apparently no useful data in ResultSet, we should simply return payload we got:
     final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
-    return jaxrsResponse(Response.Status.OK).entity(responsePayload).build();
+    return jaxrsResponse(Status.OK).entity(responsePayload).build();
   }
 
   /*
