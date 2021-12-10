@@ -7,10 +7,12 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import javax.ws.rs.core.Response;
 
 /**
@@ -34,15 +37,38 @@ public abstract class ResourceBase {
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
 
-  // // // Helper methods for Response construction
+  // // // Helper methods for Schema access
 
-  protected static Response invalidTokenFailure() {
-    return jaxrsResponse(Response.Status.UNAUTHORIZED)
-        .entity(
-            new RestServiceError(
-                "Missing or invalid Auth Token", Response.Status.UNAUTHORIZED.getStatusCode()))
-        .build();
+  /**
+   * Method to call to try to access Table metadata and call given Function with it (if successful),
+   * or, create and return an appropriate error Response if access fails.
+   */
+  protected Response callWithTable(
+      StargateGrpc.StargateBlockingStub blockingStub,
+      String keyspaceName,
+      String tableName,
+      Function<Schema.CqlTable, Response> function) {
+    final Schema.CqlTable tableDef;
+    try {
+      tableDef = BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    } catch (StatusRuntimeException grpcE) {
+      switch (grpcE.getStatus().getCode()) {
+        case NOT_FOUND:
+          final String msg = grpcE.getMessage();
+          if (msg.contains("Keyspace not found")) {
+            return jaxrsBadRequestError(String.format("Keyspace '%s' not found", keyspaceName))
+                .build();
+          }
+          return jaxrsBadRequestError(
+                  String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName))
+              .build();
+      }
+      throw grpcE;
+    }
+    return function.apply(tableDef);
   }
+
+  // // // Helper methods for Response construction
 
   protected static Response.ResponseBuilder jaxrsResponse(Response.Status status) {
     return Response.status(status);

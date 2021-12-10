@@ -24,6 +24,8 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
@@ -32,6 +34,7 @@ import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
+import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResource;
@@ -90,12 +93,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
-    // Jackson configuration, gRPC access
-    final RestServiceServerConfiguration.EndpointConfig grpcEndpoint = appConfig.stargate.grpc;
-    logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
-    final GrpcClientFactory grpc = GrpcClientFactory.construct(grpcEndpoint);
 
-    environment.jersey().register(new CreateGrpcStubFilter(grpc));
+    environment.jersey().register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.grpc)));
 
     environment
         .jersey()
@@ -121,6 +120,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(Sgv2RowsResourceImpl.class);
 
     // Schema endpoints
+    environment.jersey().register(Sgv2ColumnsResourceImpl.class);
     environment.jersey().register(Sgv2KeyspacesResource.class);
     environment.jersey().register(Sgv2TablesResource.class);
     environment.jersey().register(Sgv2IndexesResourceImpl.class);
@@ -138,6 +138,18 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
+  }
+
+  private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {
+    logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
+    ManagedChannelBuilder<?> builder =
+        ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
+    if (grpcEndpoint.useTls) {
+      builder = builder.useTransportSecurity();
+    } else {
+      builder = builder.usePlaintext();
+    }
+    return builder.build();
   }
 
   public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {
