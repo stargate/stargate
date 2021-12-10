@@ -3,6 +3,8 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.Column;
+import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
@@ -66,13 +68,38 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(tableName)) {
       return jaxrsBadRequestError("table name must be provided").build();
     }
+    final String columnName = columnDefinition.getName();
+    if (isStringEmpty(tableName)) {
+      return jaxrsBadRequestError("columnName must be provided").build();
+    }
     return callWithTable(
         blockingStub,
         keyspaceName,
         tableName,
         (tableDef) -> {
-          // !!! TO BE IMPLEMENTED
-          return jaxrsResponse(Response.Status.NOT_IMPLEMENTED).build();
+          Column.Kind kind =
+              columnDefinition.getIsStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
+          Column columnDef =
+              ImmutableColumn.builder()
+                  .name(columnName)
+                  .kind(kind)
+                  .type(columnDefinition.getTypeDefinition())
+                  .build();
+          String cql =
+              new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .addColumn(columnDef)
+                  .build();
+          blockingStub.executeQuery(
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .build());
+
+          return jaxrsResponse(Response.Status.CREATED)
+              .entity(Collections.singletonMap("name", columnName))
+              .build();
         });
   }
 
