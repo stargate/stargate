@@ -4,6 +4,7 @@ import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -23,6 +24,7 @@ public class ToProtoValueCodecs {
   protected static final UUIDCodec CODEC_TIME_UUID = new UUIDCodec("TIMEUUID");
 
   protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
+  protected static final DateCodec CODEC_DATE = new DateCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -91,6 +93,8 @@ public class ToProtoValueCodecs {
         return CODEC_TIME_UUID;
       case TIMESTAMP:
         return CODEC_TIMESTAMP;
+      case DATE:
+        return CODEC_DATE;
 
         // And then not-yet-implemented ones:
       case BLOB:
@@ -100,8 +104,6 @@ public class ToProtoValueCodecs {
       case VARINT:
         break;
       case INET:
-        break;
-      case DATE:
         break;
       case TIME:
         break;
@@ -406,6 +408,29 @@ public class ToProtoValueCodecs {
         // we could support more flexibility in format as requested in
         // https://github.com/stargate/stargate/issues/839
         return Values.of(Instant.parse(value).toEpochMilli());
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class DateCodec extends ToProtoCodecBase {
+    public DateCodec() {
+      super("TypeSpec.Basic.DATE");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(LocalDate.parse(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }

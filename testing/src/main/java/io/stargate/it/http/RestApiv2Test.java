@@ -2836,7 +2836,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("part_name", "text"));
     columnDefinitions.add(new ColumnDefinition("part_number", "text"));
     columnDefinitions.add(new ColumnDefinition("created_at", "timestamp"));
-    columnDefinitions.add(new ColumnDefinition("last_inspected_at", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("last_inspected_at", "date"));
     columnDefinitions.add(new ColumnDefinition("times_inspected", "int"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
@@ -2870,7 +2870,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("machine_code", machineCode);
     row.put("part_name", "Engine");
     row.put("part_number", "DEF456");
-    row.put("last_inspected_at", timestamp);
+    row.put("last_inspected_at", "2021-12-10");
     row.put("times_inspected", "2");
     row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
@@ -2891,7 +2891,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("machine_code", "MNO432");
     row2.put("part_name", "Adapter");
     row2.put("part_number", "QRS246");
-    row2.put("last_inspected_at", timestamp2);
+    row2.put("last_inspected_at", "2020-02-01");
     row2.put("times_inspected", 5);
     row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
