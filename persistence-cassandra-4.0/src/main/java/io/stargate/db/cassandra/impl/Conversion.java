@@ -438,8 +438,18 @@ public class Conversion {
 
   public static Result toResult(
       ResultMessage resultMessage, org.apache.cassandra.transport.ProtocolVersion version) {
-    return toResultInternal(resultMessage, version)
-        .setTracingId(ReflectionUtils.getTracingId(resultMessage));
+    return toResult(resultMessage, version, true);
+  }
+
+  public static Result toResult(
+      ResultMessage resultMessage,
+      org.apache.cassandra.transport.ProtocolVersion version,
+      boolean includeTracingInfo) {
+    Result result = toResultInternal(resultMessage, version);
+    if (includeTracingInfo) {
+      result.setTracingId(ReflectionUtils.getTracingId(resultMessage));
+    }
+    return result;
   }
 
   private static Result toResultInternal(
