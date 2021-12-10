@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -2842,6 +2843,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
     columnDefinitions.add(new ColumnDefinition("mean_failure_time_hours", "double"));
+    columnDefinitions.add(new ColumnDefinition("audit_id", "timeuuid"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2877,6 +2879,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
     row.put("mean_failure_time_hours", "29111.595");
+    row.put("audit_id", Uuids.timeBased());
 
     RestUtils.post(
         authToken,

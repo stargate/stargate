@@ -114,6 +114,7 @@ public class FromProtoValueCodecs {
         //    tests seem to expect JSON String value. So need coercion, alas
         return CODEC_COUNTER;
       case UUID:
+      case TIMEUUID:
         return CODEC_UUID;
       case TIMESTAMP:
         return CODEC_TIMESTAMP;
@@ -128,8 +129,6 @@ public class FromProtoValueCodecs {
       case FLOAT:
         break;
       case VARINT:
-        break;
-      case TIMEUUID:
         break;
       case INET:
         break;
