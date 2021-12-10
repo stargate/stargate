@@ -5,6 +5,7 @@ import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -25,6 +26,7 @@ public class ToProtoValueCodecs {
 
   protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   protected static final DateCodec CODEC_DATE = new DateCodec();
+  protected static final TimeCodec CODEC_TIME = new TimeCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -95,6 +97,8 @@ public class ToProtoValueCodecs {
         return CODEC_TIMESTAMP;
       case DATE:
         return CODEC_DATE;
+      case TIME:
+        return CODEC_TIME;
 
         // And then not-yet-implemented ones:
       case BLOB:
@@ -104,8 +108,6 @@ public class ToProtoValueCodecs {
       case VARINT:
         break;
       case INET:
-        break;
-      case TIME:
         break;
       case SMALLINT:
         break;
@@ -437,5 +439,27 @@ public class ToProtoValueCodecs {
     }
   }
 
+  protected static final class TimeCodec extends ToProtoCodecBase {
+    public TimeCodec() {
+      super("TypeSpec.Basic.TIME");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(LocalTime.parse(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
   /* Structured type codec implementations */
 }

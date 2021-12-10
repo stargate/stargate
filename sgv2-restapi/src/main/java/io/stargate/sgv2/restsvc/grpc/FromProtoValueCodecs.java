@@ -8,6 +8,7 @@ import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -35,6 +36,7 @@ public class FromProtoValueCodecs {
 
   private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   private static final DateCodec CODEC_DATE = new DateCodec();
+  private static final TimeCodec CODEC_TIME = new TimeCodec();
 
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
@@ -117,7 +119,8 @@ public class FromProtoValueCodecs {
         return CODEC_TIMESTAMP;
       case DATE:
         return CODEC_DATE;
-
+      case TIME:
+        return CODEC_TIME;
         // // // To Be Implemented:
 
       case BLOB:
@@ -129,8 +132,6 @@ public class FromProtoValueCodecs {
       case TIMEUUID:
         break;
       case INET:
-        break;
-      case TIME:
         break;
       case UNRECOGNIZED:
       default:
@@ -328,6 +329,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.textNode(LocalDate.ofEpochDay(value.getDate()).toString());
+    }
+  }
+
+  protected static final class TimeCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return LocalTime.ofNanoOfDay(value.getTime()).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(LocalTime.ofNanoOfDay(value.getTime()).toString());
     }
   }
 
