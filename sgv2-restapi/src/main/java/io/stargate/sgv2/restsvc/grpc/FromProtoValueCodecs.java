@@ -39,8 +39,8 @@ public class FromProtoValueCodecs {
   private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   private static final DateCodec CODEC_DATE = new DateCodec();
   private static final TimeCodec CODEC_TIME = new TimeCodec();
-
   private static final InetCodec CODEC_INET = new InetCodec();
+  private static final BlobCodec CODEC_BLOB = new BlobCodec();
 
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
@@ -130,22 +130,15 @@ public class FromProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
-
       case INET:
         return CODEC_INET;
-
-        // // // To Be Implemented:
-
       case BLOB:
-        break;
+        return CODEC_BLOB;
 
       case UNRECOGNIZED:
       default:
-        throw new IllegalArgumentException(
-            "Invalid Basic ColumnSpec value for column: " + columnSpec);
     }
-    throw new IllegalArgumentException(
-        "Unsupported Basic ColumnSpec value for column: " + columnSpec);
+    throw new IllegalArgumentException("Invalid Basic ColumnSpec value for column: " + columnSpec);
   }
 
   protected FromProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -383,6 +376,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.textNode(Values.inet(value).toString());
+    }
+  }
+
+  protected static final class BlobCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Values.bytes(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.binaryNode(Values.bytes(value));
     }
   }
 

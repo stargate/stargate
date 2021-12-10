@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,8 +35,8 @@ public class ToProtoValueCodecs {
   protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   protected static final DateCodec CODEC_DATE = new DateCodec();
   protected static final TimeCodec CODEC_TIME = new TimeCodec();
-
   protected static final InetCodec CODEC_INET = new InetCodec();
+  protected static final BlobCodec CODEC_BLOB = new BlobCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -118,10 +119,8 @@ public class ToProtoValueCodecs {
         return CODEC_TIME;
       case INET:
         return CODEC_INET;
-
-        // And then not-yet-implemented ones:
       case BLOB:
-        break;
+        return CODEC_BLOB;
 
         // As well as ones we don't plan or can't support:
       case CUSTOM:
@@ -598,5 +597,28 @@ public class ToProtoValueCodecs {
       }
     }
   }
+
+  protected static final class BlobCodec extends ToProtoCodecBase {
+
+    public BlobCodec() {
+      super("TypeSpec.Basic.BLOB");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof byte[]) {
+        return Values.of((byte[]) value);
+      } else if (value instanceof ByteBuffer) {
+        return Values.of((ByteBuffer) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      return Values.of(value.getBytes());
+    }
+  }
+
   /* Structured type codec implementations */
 }
