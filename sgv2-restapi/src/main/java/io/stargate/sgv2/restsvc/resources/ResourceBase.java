@@ -79,14 +79,6 @@ public abstract class ResourceBase {
 
   // // // Helper methods for Response construction
 
-  protected static Response invalidTokenFailure() {
-    return jaxrsResponse(Response.Status.UNAUTHORIZED)
-        .entity(
-            new RestServiceError(
-                "Missing or invalid Auth Token", Response.Status.UNAUTHORIZED.getStatusCode()))
-        .build();
-  }
-
   protected static Response.ResponseBuilder jaxrsResponse(Response.Status status) {
     return Response.status(status);
   }

@@ -165,17 +165,20 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                     String.format("column '%s' not found in table '%s'", columnName, tableName))
                 .build();
           }
-          String cql =
-              new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .renameColumn(columnName, newName)
-                  .build();
-          blockingStub.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          // Avoid call if there is no need to rename
+          if (!columnName.equals(newName)) {
+            String cql =
+                new QueryBuilder()
+                    .alter()
+                    .table(keyspaceName, tableName)
+                    .renameColumn(columnName, newName)
+                    .build();
+            blockingStub.executeQuery(
+                QueryOuterClass.Query.newBuilder()
+                    .setParameters(parametersForLocalQuorum())
+                    .setCql(cql)
+                    .build());
+          }
           return jaxrsResponse(Response.Status.OK)
               .entity(Collections.singletonMap("name", newName))
               .build();
