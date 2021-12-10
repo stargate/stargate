@@ -51,30 +51,21 @@ public abstract class ResourceBase {
     final Schema.CqlTable tableDef;
     try {
       tableDef = BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    } catch (Exception e) {
-      if (e instanceof StatusRuntimeException) {
-        StatusRuntimeException grpcE = (StatusRuntimeException) e;
-        switch (grpcE.getStatus().getCode()) {
-          case NOT_FOUND:
-            final String msg = e.getMessage();
-            if (msg.contains("Keyspace not found")) {
-              return jaxrsBadRequestError(String.format("Keyspace '%s' not found", keyspaceName))
-                  .build();
-            }
-            return jaxrsBadRequestError(
-                    String.format(
-                        "Table: '%s' not found (in keyspace %s)", tableName, keyspaceName))
+    } catch (StatusRuntimeException grpcE) {
+      switch (grpcE.getStatus().getCode()) {
+        case NOT_FOUND:
+          final String msg = grpcE.getMessage();
+          if (msg.contains("Keyspace not found")) {
+            return jaxrsBadRequestError(String.format("Keyspace '%s' not found", keyspaceName))
                 .build();
-        }
+          }
+          return jaxrsBadRequestError(
+                  String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName))
+              .build();
       }
-      // something else: use default mappings
-      return Sgv2RequestHandler.failResponseForAnyException(e);
+      throw grpcE;
     }
-    try {
-      return function.apply(tableDef);
-    } catch (Exception e) {
-      return Sgv2RequestHandler.failResponseForAnyException(e);
-    }
+    return function.apply(tableDef);
   }
 
   // // // Helper methods for Response construction
