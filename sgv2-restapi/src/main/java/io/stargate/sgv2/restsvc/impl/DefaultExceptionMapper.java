@@ -16,7 +16,6 @@
 package io.stargate.sgv2.restsvc.impl;
 
 import io.stargate.sgv2.restsvc.models.RestServiceError;
-import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -40,47 +39,33 @@ public class DefaultExceptionMapper implements ExceptionMapper<Throwable> {
       Response.Status.Family family = response.getStatusInfo().getFamily();
       if (family.equals(Response.Status.Family.REDIRECTION)) {
         return response;
+      } else if (family.equals(Response.Status.Family.SERVER_ERROR)) {
+        return handleUnexpected(exception);
+      } else {
+        return Response.fromResponse(response)
+            .type(MediaType.APPLICATION_JSON_TYPE)
+            .entity(new RestServiceError(exception.getLocalizedMessage(), response.getStatus()))
+            .build();
       }
-      if (family.equals(Response.Status.Family.SERVER_ERROR)) {
-        logException(exception);
-      }
-
-      return Response.fromResponse(response)
-          .type(MediaType.APPLICATION_JSON_TYPE)
-          .entity(new RestServiceError(exception.getLocalizedMessage(), response.getStatus()))
-          .build();
+    } else {
+      return handleUnexpected(exception);
     }
+  }
 
-    // Else the thrown exception is a not a web exception, so the exception is most likely
-    // unexpected. We'll create a unique id in the server error response that is also logged for
-    // correlation
-    final long id = logException(exception);
+  // The thrown exception is a not a web exception, so the exception is most likely unexpected.
+  // We'll create a unique id in the server error response that is also logged for correlation
+  private Response handleUnexpected(Throwable exception) {
+    String uniqueId = Long.toHexString(ThreadLocalRandom.current().nextLong());
+    LOGGER.error("Error handling a request: {}", uniqueId, exception);
     return Response.status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
         .type(MediaType.APPLICATION_JSON_TYPE)
         .entity(
             new RestServiceError(
-                formatErrorMessage(id), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
+                    String.format(
+                        "There was an error processing your request. It has been logged (ID %s).",
+                        uniqueId),
+                    Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                .internalTxId(uniqueId))
         .build();
-  }
-
-  private String formatErrorMessage(long id) {
-    return String.format(
-        Locale.ROOT,
-        "There was an error processing your request. It has been logged (ID %016x).",
-        id);
-  }
-
-  private long logException(Throwable exception) {
-    final long id = ThreadLocalRandom.current().nextLong();
-    logException(id, exception);
-    return id;
-  }
-
-  private void logException(long id, Throwable exception) {
-    LOGGER.error(formatLogMessage(id), exception);
-  }
-
-  private String formatLogMessage(long id) {
-    return String.format(Locale.ROOT, "Error handling a request: %016x", id);
   }
 }
