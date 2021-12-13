@@ -36,7 +36,7 @@ import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResource;
+import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
@@ -123,7 +123,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // Schema endpoints
     environment.jersey().register(Sgv2ColumnsResourceImpl.class);
-    environment.jersey().register(Sgv2KeyspacesResource.class);
+    environment.jersey().register(Sgv2KeyspacesResourceImpl.class);
     environment.jersey().register(Sgv2TablesResource.class);
     environment.jersey().register(Sgv2IndexesResourceImpl.class);
 
