@@ -24,15 +24,16 @@ import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
-import io.stargate.sgv2.restsvc.resources.Sgv2RequestHandler;
 import java.util.Collections;
 import java.util.Map;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,26 +47,23 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       String keyspaceName,
       String tableName,
       HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          if (isStringEmpty(keyspaceName)) {
-            return jaxrsBadRequestError("keyspaceName must be provided").build();
-          }
-          if (isStringEmpty(tableName)) {
-            return jaxrsBadRequestError("tableName must be provided").build();
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
 
-          BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
 
-          String cql =
-              new QueryBuilder()
-                  .select()
-                  .from("system_schema", "indexes")
-                  .where("keyspace_name", Predicate.EQ, keyspaceName)
-                  .where("table_name", Predicate.EQ, tableName)
-                  .build();
-          return fetchRows(blockingStub, -1, null, true, cql, null);
-        });
+    String cql =
+        new QueryBuilder()
+            .select()
+            .from("system_schema", "indexes")
+            .where("keyspace_name", Predicate.EQ, keyspaceName)
+            .where("table_name", Predicate.EQ, tableName)
+            .build();
+    return fetchRows(blockingStub, -1, null, true, cql, null);
   }
 
   @Override
@@ -75,44 +73,39 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       final String tableName,
       final Sgv2IndexAddRequest indexAdd,
       HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          if (isStringEmpty(keyspaceName)) {
-            return jaxrsBadRequestError("keyspaceName must be provided").build();
-          }
-          if (isStringEmpty(tableName)) {
-            return jaxrsBadRequestError("tableName must be provided").build();
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
 
-          String columnName = indexAdd.getColumn();
-          if (isStringEmpty(columnName)) {
-            return jaxrsBadRequestError("columnName must be provided").build();
-          }
+    String columnName = indexAdd.getColumn();
+    if (isStringEmpty(columnName)) {
+      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
+    }
 
-          Schema.CqlTable table =
-              BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-          if (table.getColumnsList().stream().noneMatch(c -> columnName.equals(c.getName()))) {
-            return jaxrsServiceError(
-                    Response.Status.NOT_FOUND,
-                    String.format("Column '%s' not found in table.", columnName))
-                .build();
-          }
+    Schema.CqlTable table =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    if (table.getColumnsList().stream().noneMatch(c -> columnName.equals(c.getName()))) {
+      throw new WebApplicationException(
+          String.format("Column '%s' not found in table.", columnName), Status.NOT_FOUND);
+    }
 
-          String cql =
-              new QueryBuilder()
-                  .create()
-                  .index(indexAdd.getName())
-                  .ifNotExists(indexAdd.getIfNotExists())
-                  .on(keyspaceName, tableName)
-                  .column(columnName)
-                  .indexingType(indexAdd.getKind())
-                  .custom(indexAdd.getType(), indexAdd.getOptions())
-                  .build();
-          blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
+    String cql =
+        new QueryBuilder()
+            .create()
+            .index(indexAdd.getName())
+            .ifNotExists(indexAdd.getIfNotExists())
+            .on(keyspaceName, tableName)
+            .column(columnName)
+            .indexingType(indexAdd.getKind())
+            .custom(indexAdd.getType(), indexAdd.getOptions())
+            .build();
+    blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
 
-          Map<String, Object> responsePayload = Collections.singletonMap("success", true);
-          return jaxrsResponse(Response.Status.CREATED).entity(responsePayload).build();
-        });
+    Map<String, Object> responsePayload = Collections.singletonMap("success", true);
+    return Response.status(Status.CREATED).entity(responsePayload).build();
   }
 
   @Override
@@ -123,32 +116,28 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       String indexName,
       boolean ifExists,
       HttpServletRequest request) {
-    return Sgv2RequestHandler.handleMainOperation(
-        () -> {
-          if (isStringEmpty(keyspaceName)) {
-            return jaxrsBadRequestError("keyspaceName must be provided").build();
-          }
-          if (isStringEmpty(tableName)) {
-            return jaxrsBadRequestError("tableName must be provided").build();
-          }
-          if (isStringEmpty(indexName)) {
-            return jaxrsBadRequestError("columnName must be provided").build();
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(indexName)) {
+      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
+    }
 
-          Schema.CqlTable table =
-              BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-          if (!ifExists
-              && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
-            return jaxrsServiceError(
-                    Response.Status.NOT_FOUND, String.format("Index '%s' not found.", indexName))
-                .build();
-          }
+    Schema.CqlTable table =
+        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    if (!ifExists
+        && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
+      throw new WebApplicationException(
+          String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
+    }
 
-          String cql =
-              new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
-          blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
+    String cql =
+        new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
+    blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
 
-          return jaxrsResponse(Response.Status.NO_CONTENT).build();
-        });
+    return Response.status(Status.NO_CONTENT).build();
   }
 }

@@ -18,6 +18,7 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -39,10 +40,11 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       boolean raw,
       HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -51,7 +53,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         (tableDef) -> {
           List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
           final Object payload = raw ? columns : new Sgv2RESTResponse(columns);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+          return Response.status(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -63,14 +65,15 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       Sgv2ColumnDefinition columnDefinition,
       HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
     }
     final String columnName = columnDefinition.getName();
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("columnName must be provided").build();
+      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -97,7 +100,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .setCql(cql)
                   .build());
 
-          return jaxrsResponse(Response.Status.CREATED)
+          return Response.status(Response.Status.CREATED)
               .entity(Collections.singletonMap("name", columnName))
               .build();
         });
@@ -112,13 +115,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       boolean raw,
       HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(columnName)) {
-      return jaxrsBadRequestError("columnName must be provided").build();
+      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -127,12 +131,12 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         (tableDef) -> {
           Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
           if (column == null) {
-            return jaxrsBadRequestError(
-                    String.format("column '%s' not found in table '%s'", columnName, tableName))
-                .build();
+            throw new WebApplicationException(
+                String.format("column '%s' not found in table '%s'", columnName, tableName),
+                Response.Status.BAD_REQUEST);
           }
           final Object payload = raw ? column : new Sgv2RESTResponse(column);
-          return jaxrsResponse(Response.Status.OK).entity(payload).build();
+          return Response.status(Response.Status.OK).entity(payload).build();
         });
   }
 
@@ -145,13 +149,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       Sgv2ColumnDefinition columnUpdate,
       HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(columnName)) {
-      return jaxrsBadRequestError("columnName must be provided").build();
+      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -161,9 +166,9 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
           final String newName = columnUpdate.getName();
           // Optional, could let backend verify but this gives us better error reporting
           if (findColumn(tableDef, columnName) == null) {
-            return jaxrsBadRequestError(
-                    String.format("column '%s' not found in table '%s'", columnName, tableName))
-                .build();
+            throw new WebApplicationException(
+                String.format("column '%s' not found in table '%s'", columnName, tableName),
+                Response.Status.BAD_REQUEST);
           }
           // Avoid call if there is no need to rename
           if (!columnName.equals(newName)) {
@@ -179,7 +184,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                     .setCql(cql)
                     .build());
           }
-          return jaxrsResponse(Response.Status.OK)
+          return Response.status(Response.Status.OK)
               .entity(Collections.singletonMap("name", newName))
               .build();
         });
@@ -193,13 +198,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String columnName,
       HttpServletRequest request) {
     if (isStringEmpty(keyspaceName)) {
-      return jaxrsBadRequestError("keyspaceName must be provided").build();
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(tableName)) {
-      return jaxrsBadRequestError("table name must be provided").build();
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
     }
     if (isStringEmpty(columnName)) {
-      return jaxrsBadRequestError("columnName must be provided").build();
+      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
         blockingStub,
@@ -208,9 +214,9 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         (tableDef) -> {
           // Optional, could let backend verify but this gives us better error reporting
           if (findColumn(tableDef, columnName) == null) {
-            return jaxrsBadRequestError(
-                    String.format("column '%s' not found in table '%s'", columnName, tableName))
-                .build();
+            throw new WebApplicationException(
+                String.format("column '%s' not found in table '%s'", columnName, tableName),
+                Response.Status.BAD_REQUEST);
           }
           String cql =
               new QueryBuilder()
@@ -223,7 +229,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .setParameters(parametersForLocalQuorum())
                   .setCql(cql)
                   .build());
-          return jaxrsResponse(Response.Status.NO_CONTENT).build();
+          return Response.status(Response.Status.NO_CONTENT).build();
         });
   }
 
