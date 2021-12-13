@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.time.Instant;
@@ -382,7 +383,7 @@ public class FromProtoValueCodecs {
   protected static final class BlobCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.bytes(value);
+      return ByteBufferUtils.toBase64(Values.bytes(value));
     }
 
     @Override

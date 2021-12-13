@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
@@ -616,8 +617,7 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
-      // TODO: does this need special decoding?
-      return Values.of(value.getBytes());
+      return Values.of(ByteBufferUtils.fromBase64(value));
     }
   }
 
