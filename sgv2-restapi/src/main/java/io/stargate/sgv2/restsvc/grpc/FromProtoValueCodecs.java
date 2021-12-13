@@ -383,11 +383,13 @@ public class FromProtoValueCodecs {
   protected static final class BlobCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
+      // 13-Dec-2021, jsc: Use base-64 encoded value here
       return ByteBufferUtils.toBase64(Values.bytes(value));
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      // 13-Dec-2021, jsc: Use raw bytes here
       return jsonNodeFactory.binaryNode(Values.bytes(value));
     }
   }
