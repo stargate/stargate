@@ -55,6 +55,13 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
+    System.out.println(
+        "Execute query, CONNECTION_KEY.get(): "
+            + CONNECTION_KEY.get()
+            + "thread: "
+            + Thread.currentThread().getName()
+            + " class: "
+            + Thread.currentThread().getClass());
     new QueryHandler(
             query,
             CONNECTION_KEY.get(),

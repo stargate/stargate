@@ -308,6 +308,13 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   }
 
   protected void handleException(Throwable throwable) {
+    System.out.println(
+        "handleException for: "
+            + throwable.getMessage()
+            + " thread: "
+            + Thread.currentThread().getName()
+            + " class: "
+            + Thread.currentThread().getClass());
     if (throwable instanceof CompletionException
         || throwable instanceof ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());

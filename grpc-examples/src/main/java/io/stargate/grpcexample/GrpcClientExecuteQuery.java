@@ -31,7 +31,8 @@ public class GrpcClientExecuteQuery {
   private final StargateGrpc.StargateBlockingStub blockingStub;
   private final StargateGrpc.StargateStub asyncStub;
 
-  private static final String STARGATE_TOKEN = ""; // you need to set the token
+  private static final String STARGATE_TOKEN =
+      "31d0e953-50fc-4f1c-8d20-9ca7a84d4d85"; // you need to set the token
   private static final String STARGATE_HOST = "localhost";
   private static final int STARGATE_GRPC_PORT = 8090;
 

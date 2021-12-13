@@ -100,6 +100,13 @@ public class NewConnectionInterceptor implements ServerInterceptor {
 
       Connection connection = connectionCache.get(info);
 
+      System.out.println(
+          "setting stringHeaders in the connection interceptor: "
+              + stringHeaders
+              + "thread: "
+              + Thread.currentThread().getName()
+              + " class: "
+              + Thread.currentThread().getClass());
       Context context = Context.current();
       context =
           context.withValues(
