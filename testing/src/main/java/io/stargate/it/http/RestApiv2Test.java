@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +47,7 @@ import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2834,13 +2836,20 @@ public class RestApiv2Test extends BaseIntegrationTest {
     columnDefinitions.add(new ColumnDefinition("machine_code", "text"));
     columnDefinitions.add(new ColumnDefinition("part_name", "text"));
     columnDefinitions.add(new ColumnDefinition("part_number", "text"));
-    columnDefinitions.add(new ColumnDefinition("created_at", "timestamp"));
-    columnDefinitions.add(new ColumnDefinition("last_inspected_at", "timestamp"));
+    columnDefinitions.add(new ColumnDefinition("created_at", "time"));
+    columnDefinitions.add(new ColumnDefinition("last_inspected_at", "date"));
     columnDefinitions.add(new ColumnDefinition("times_inspected", "int"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost", "decimal"));
     columnDefinitions.add(new ColumnDefinition("est_unit_cost_updated", "timestamp"));
     columnDefinitions.add(new ColumnDefinition("inspection_notes", "text"));
     columnDefinitions.add(new ColumnDefinition("mean_failure_time_hours", "double"));
+    columnDefinitions.add(new ColumnDefinition("audit_id", "timeuuid"));
+    columnDefinitions.add(new ColumnDefinition("rating", "float"));
+    columnDefinitions.add(new ColumnDefinition("stars", "tinyint"));
+    columnDefinitions.add(new ColumnDefinition("likes", "smallint"));
+    columnDefinitions.add(new ColumnDefinition("test_runs", "varint"));
+    columnDefinitions.add(new ColumnDefinition("source_ip", "inet"));
+    columnDefinitions.add(new ColumnDefinition("description", "blob"));
     tableAdd.setColumnDefinitions(columnDefinitions);
 
     PrimaryKey primaryKey = new PrimaryKey();
@@ -2861,7 +2870,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(tableResponse.getName()).isEqualTo(tableName);
 
     // insert a row
-    long timestamp = Instant.now().toEpochMilli();
+    String timestamp = Instant.now().toString();
     String machineCode = "ABC123";
     Map<String, Object> row = new HashMap<>();
     row.put("hour_created", timestamp);
@@ -2869,12 +2878,20 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row.put("machine_code", machineCode);
     row.put("part_name", "Engine");
     row.put("part_number", "DEF456");
-    row.put("last_inspected_at", timestamp);
+    row.put("created_at", "10:12");
+    row.put("last_inspected_at", "2021-12-10");
     row.put("times_inspected", "2");
     row.put("est_unit_cost", "599.99");
     row.put("est_unit_cost_updated", timestamp);
     row.put("inspection_notes", "working");
     row.put("mean_failure_time_hours", "29111.595");
+    row.put("audit_id", Uuids.timeBased());
+    row.put("rating", "98.6");
+    row.put("stars", "5");
+    row.put("likes", "1048");
+    row.put("test_runs", BigInteger.TEN);
+    row.put("source_ip", "127.0.0.1");
+    row.put("description", "0x010203fffee0122301");
 
     RestUtils.post(
         authToken,
@@ -2883,19 +2900,26 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
 
     // insert a row, ensuring we can use literals for numeric values
-    String timestamp2 = String.valueOf(Instant.now().toEpochMilli());
+    String timestamp2 = Instant.now().toString();
     Map<String, Object> row2 = new HashMap<>();
     row2.put("hour_created", timestamp2);
     row2.put("serial_number", "ZXY765");
     row2.put("machine_code", "MNO432");
     row2.put("part_name", "Adapter");
     row2.put("part_number", "QRS246");
-    row2.put("last_inspected_at", timestamp2);
+    row2.put("created_at", "23:19");
+    row2.put("last_inspected_at", "2020-02-01");
     row2.put("times_inspected", 5);
     row2.put("est_unit_cost", 38.95);
     row2.put("est_unit_cost_updated", timestamp2);
     row2.put("inspection_notes", "frayed cable");
     row2.put("mean_failure_time_hours", 5917321.12334);
+    row2.put("rating", (float) 92.6);
+    row2.put("stars", (byte) 4);
+    row2.put("likes", (short) 926);
+    row2.put("test_runs", BigInteger.ONE);
+    row2.put("source_ip", "FE80:CD00:0:CDE:1257:0:211E:729C");
+    row2.put("description", (new String("AQID//7gEiMB")).getBytes());
 
     RestUtils.post(
         authToken,

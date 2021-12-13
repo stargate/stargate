@@ -4,8 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.uuid.impl.UUIDUtil;
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -24,12 +28,20 @@ public class FromProtoValueCodecs {
   private static final IntCodec CODEC_INT = new IntCodec();
   private static final LongCodec CODEC_LONG = new LongCodec();
   private static final ShortCodec CODEC_SHORT = new ShortCodec();
+  private static final VarintCodec CODEC_VARINT = new VarintCodec();
+  private static final FloatCodec CODEC_FLOAT = new FloatCodec();
   private static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   private static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
 
   private static final CounterCodec CODEC_COUNTER = new CounterCodec();
   private static final TextCodec CODEC_TEXT = new TextCodec();
   private static final UUIDCodec CODEC_UUID = new UUIDCodec();
+
+  private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
+  private static final DateCodec CODEC_DATE = new DateCodec();
+  private static final TimeCodec CODEC_TIME = new TimeCodec();
+  private static final InetCodec CODEC_INET = new InetCodec();
+  private static final BlobCodec CODEC_BLOB = new BlobCodec();
 
   public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
     return codecFor(columnSpec, columnSpec.getType());
@@ -87,7 +99,6 @@ public class FromProtoValueCodecs {
 
         // Supported Scalars: numeric
       case BIGINT:
-      case TIMESTAMP:
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
@@ -95,6 +106,10 @@ public class FromProtoValueCodecs {
         return CODEC_SHORT;
       case TINYINT:
         return CODEC_BYTE;
+      case VARINT:
+        return CODEC_VARINT;
+      case FLOAT:
+        return CODEC_FLOAT;
       case DOUBLE:
         return CODEC_DOUBLE;
       case DECIMAL:
@@ -108,31 +123,23 @@ public class FromProtoValueCodecs {
         //    tests seem to expect JSON String value. So need coercion, alas
         return CODEC_COUNTER;
       case UUID:
-        return CODEC_UUID;
-
-        // // // To Be Implemented:
-
-      case BLOB:
-        break;
-      case FLOAT:
-        break;
-      case VARINT:
-        break;
       case TIMEUUID:
-        break;
-      case INET:
-        break;
+        return CODEC_UUID;
+      case TIMESTAMP:
+        return CODEC_TIMESTAMP;
       case DATE:
-        break;
+        return CODEC_DATE;
       case TIME:
-        break;
+        return CODEC_TIME;
+      case INET:
+        return CODEC_INET;
+      case BLOB:
+        return CODEC_BLOB;
+
       case UNRECOGNIZED:
       default:
-        throw new IllegalArgumentException(
-            "Invalid Basic ColumnSpec value for column: " + columnSpec);
     }
-    throw new IllegalArgumentException(
-        "Unsupported Basic ColumnSpec value for column: " + columnSpec);
+    throw new IllegalArgumentException("Invalid Basic ColumnSpec value for column: " + columnSpec);
   }
 
   protected FromProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -195,6 +202,18 @@ public class FromProtoValueCodecs {
     }
   }
 
+  protected static final class FloatCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return value.getFloat();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(value.getFloat());
+    }
+  }
+
   protected static final class DoubleCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
@@ -218,6 +237,18 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       return jsonNodeFactory.numberNode(value.getInt());
+    }
+  }
+
+  protected static final class VarintCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Values.varint(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.numberNode(Values.varint(value));
     }
   }
 
@@ -298,6 +329,68 @@ public class FromProtoValueCodecs {
             "Wrong length for UUID encoding: expected 16, was: " + bs.length);
       }
       return UUIDUtil.uuid(bs);
+    }
+  }
+
+  protected static final class TimestampCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Instant.ofEpochMilli(value.getInt()).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(Instant.ofEpochMilli(value.getInt()).toString());
+    }
+  }
+
+  protected static final class DateCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return LocalDate.ofEpochDay(value.getDate()).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(LocalDate.ofEpochDay(value.getDate()).toString());
+    }
+  }
+
+  protected static final class TimeCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return LocalTime.ofNanoOfDay(value.getTime()).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(LocalTime.ofNanoOfDay(value.getTime()).toString());
+    }
+  }
+
+  protected static final class InetCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return Values.inet(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return jsonNodeFactory.textNode(Values.inet(value).toString());
+    }
+  }
+
+  protected static final class BlobCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      // 13-Dec-2021, jsc: Use base-64 encoded value here
+      return ByteBufferUtils.toBase64(Values.bytes(value));
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      // 13-Dec-2021, jsc: Use raw bytes here
+      return jsonNodeFactory.binaryNode(Values.bytes(value));
     }
   }
 

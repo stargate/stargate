@@ -1,8 +1,16 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -12,15 +20,24 @@ public class ToProtoValueCodecs {
   protected static final BooleanCodec CODEC_BOOLEAN = new BooleanCodec();
   protected static final TextCodec CODEC_TEXT = new TextCodec();
   protected static final IntCodec CODEC_INT = new IntCodec();
+  protected static final ShortCodec CODEC_SHORT = new ShortCodec();
+  protected static final ByteCodec CODEC_BYTE = new ByteCodec();
+  protected static final VarintCodec CODEC_VARINT = new VarintCodec();
+  protected static final FloatCodec CODEC_FLOAT = new FloatCodec();
   protected static final DoubleCodec CODEC_DOUBLE = new DoubleCodec();
   protected static final DecimalCodec CODEC_DECIMAL = new DecimalCodec();
   protected static final LongCodec CODEC_LONG = new LongCodec("LONG");
   protected static final LongCodec CODEC_COUNTER = new LongCodec("COUNTER");
-  protected static final LongCodec CODEC_TIMESTAMP = new LongCodec("TIMESTAMP");
 
   // Same codecs for UUIDs but for error messages need to create different instances
   protected static final UUIDCodec CODEC_UUID = new UUIDCodec("UUID");
   protected static final UUIDCodec CODEC_TIME_UUID = new UUIDCodec("TIMEUUID");
+
+  protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
+  protected static final DateCodec CODEC_DATE = new DateCodec();
+  protected static final TimeCodec CODEC_TIME = new TimeCodec();
+  protected static final InetCodec CODEC_INET = new InetCodec();
+  protected static final BlobCodec CODEC_BLOB = new BlobCodec();
 
   public ToProtoValueCodecs() {}
 
@@ -76,10 +93,16 @@ public class ToProtoValueCodecs {
         return CODEC_LONG;
       case INT:
         return CODEC_INT;
+      case SMALLINT:
+        return CODEC_SHORT;
+      case TINYINT:
+        return CODEC_BYTE;
+      case VARINT:
+        return CODEC_VARINT;
       case COUNTER:
         return CODEC_COUNTER; // actually same as LONG
-      case TIMESTAMP:
-        return CODEC_TIMESTAMP; // represented as LONG
+      case FLOAT:
+        return CODEC_FLOAT;
       case DOUBLE:
         return CODEC_DOUBLE;
       case DECIMAL:
@@ -89,24 +112,16 @@ public class ToProtoValueCodecs {
         return CODEC_UUID;
       case TIMEUUID:
         return CODEC_TIME_UUID;
-
-        // And then not-yet-implemented ones:
-      case BLOB:
-        break;
-      case FLOAT:
-        break;
-      case VARINT:
-        break;
-      case INET:
-        break;
+      case TIMESTAMP:
+        return CODEC_TIMESTAMP;
       case DATE:
-        break;
+        return CODEC_DATE;
       case TIME:
-        break;
-      case SMALLINT:
-        break;
-      case TINYINT:
-        break;
+        return CODEC_TIME;
+      case INET:
+        return CODEC_INET;
+      case BLOB:
+        return CODEC_BLOB;
 
         // As well as ones we don't plan or can't support:
       case CUSTOM:
@@ -257,6 +272,56 @@ public class ToProtoValueCodecs {
     }
   }
 
+  protected static final class ShortCodec extends ToProtoCodecBase {
+    public ShortCodec() {
+      super("TypeSpec.Basic.SMALLINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Integer, this handles that case
+        return Values.of(((Number) value).shortValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Short.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class ByteCodec extends ToProtoCodecBase {
+    public ByteCodec() {
+      super("TypeSpec.Basic.TINYINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Integer, this handles that case
+        return Values.of(((Number) value).byteValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Byte.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
   protected static final class LongCodec extends ToProtoCodecBase {
     public LongCodec(String numberType) {
       super("TypeSpec.Basic." + numberType);
@@ -280,6 +345,57 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(Long.valueOf(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class VarintCodec extends ToProtoCodecBase {
+    public VarintCodec() {
+      super("TypeSpec.Basic.VARINT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof BigInteger) {
+        return Values.of((BigInteger) value);
+      } else if (value instanceof Number) {
+        Number n = (Number) value;
+        return Values.of(new BigInteger(n.toString()));
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(new BigInteger(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class FloatCodec extends ToProtoCodecBase {
+    public FloatCodec() {
+      super("TypeSpec.Basic.FLOAT");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Number) {
+        // !!! TODO: bounds checks
+        // Note: Java defaults to treating as Double, this handles that case
+        return Values.of(((Number) value).floatValue());
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(Float.valueOf(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
@@ -381,6 +497,127 @@ public class ToProtoValueCodecs {
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
+    }
+  }
+
+  protected static final class InetCodec extends ToProtoCodecBase {
+    public InetCodec() {
+      super("TypeSpec.Basic.INET");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      } else if (value instanceof InetAddress) {
+        return Values.of((InetAddress) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(InetAddress.getByName(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      } catch (UnknownHostException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class TimestampCodec extends ToProtoCodecBase {
+    public TimestampCodec() {
+      super("TypeSpec.Basic.TIMESTAMP");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        // TODO: this implementation requires full date/time specification including timezone
+        // we could support more flexibility in format as requested in
+        // https://github.com/stargate/stargate/issues/839
+        return Values.of(Instant.parse(value).toEpochMilli());
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class DateCodec extends ToProtoCodecBase {
+    public DateCodec() {
+      super("TypeSpec.Basic.DATE");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(LocalDate.parse(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class TimeCodec extends ToProtoCodecBase {
+    public TimeCodec() {
+      super("TypeSpec.Basic.TIME");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(LocalTime.parse(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class BlobCodec extends ToProtoCodecBase {
+
+    public BlobCodec() {
+      super("TypeSpec.Basic.BLOB");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof byte[]) {
+        return Values.of((byte[]) value);
+      } else if (value instanceof ByteBuffer) {
+        return Values.of((ByteBuffer) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      return Values.of(ByteBufferUtils.fromBase64(value));
     }
   }
 
