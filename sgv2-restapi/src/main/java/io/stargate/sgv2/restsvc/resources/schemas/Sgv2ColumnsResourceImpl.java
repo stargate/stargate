@@ -115,7 +115,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
           if (column == null) {
             throw new WebApplicationException(
                 String.format("column '%s' not found in table '%s'", columnName, tableName),
-                Response.Status.BAD_REQUEST);
+                Response.Status.NOT_FOUND);
           }
           final Object payload = raw ? column : new Sgv2RESTResponse(column);
           return Response.status(Response.Status.OK).entity(payload).build();
@@ -142,6 +142,8 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
           final String newName = columnUpdate.getName();
           // Optional, could let backend verify but this gives us better error reporting
           if (findColumn(tableDef, columnName) == null) {
+            // 13-Dec-2021, tatu: Seems like maybe it should be NOT_FOUND but SGv1 returns
+            // BAD_REQUEST
             throw new WebApplicationException(
                 String.format("column '%s' not found in table '%s'", columnName, tableName),
                 Response.Status.BAD_REQUEST);
