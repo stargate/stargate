@@ -112,6 +112,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     // Endpoint, handler registrations:
 
     environment.jersey().register(new JerseyViolationExceptionMapper());
+    environment.jersey().register(new GrpcExceptionMapper());
+    environment.jersey().register(new DefaultExceptionMapper());
 
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
