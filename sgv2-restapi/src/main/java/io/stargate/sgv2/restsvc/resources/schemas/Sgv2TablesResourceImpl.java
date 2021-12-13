@@ -1,26 +1,17 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import com.codahale.metrics.annotation.Timed;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,67 +19,30 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Api(
-    produces = MediaType.APPLICATION_JSON,
-    consumes = MediaType.APPLICATION_JSON,
-    tags = {"schemas"})
-@ApiImplicitParams({
-  @ApiImplicitParam(
-      name = "X-Cassandra-Token",
-      paramType = "header",
-      value = "The token returned from the authorization endpoint. Use this token in each request.",
-      required = true)
-})
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
-public class Sgv2TablesResource extends ResourceBase {
+public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesResourceApi {
   // Singleton resource so no need to be static
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  @Timed
-  @GET
-  @ApiOperation(
-      value = "Get all tables",
-      notes = "Retrieve all tables in a specific keyspace.",
-      response = Sgv2Table.class,
-      responseContainer = "List")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Table.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
-      })
+  @Override
   public Response getAllTables(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw,
-      @Context HttpServletRequest request) {
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final boolean raw,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspace(keyspaceName);
     List<Schema.CqlTable> tableDefs =
         BridgeSchemaClient.create(blockingStub).findAllTables(keyspaceName);
     List<Sgv2Table> tableResponses =
@@ -97,40 +51,14 @@ public class Sgv2TablesResource extends ResourceBase {
     return Response.status(Status.OK).entity(payload).build();
   }
 
-  @Timed
-  @GET
-  @ApiOperation(
-      value = "Get a table",
-      notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Sgv2Table.class)
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Table.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
-      })
-  @Path("/{tableName}")
+  @Override
   public Response getOneTable(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw,
-      @Context HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
-    }
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final String tableName,
+      final boolean raw,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
     Schema.CqlTable tableDef =
@@ -140,39 +68,14 @@ public class Sgv2TablesResource extends ResourceBase {
     return Response.status(Status.OK).entity(payload).build();
   }
 
-  @Timed
-  @POST
-  @ApiOperation(
-      value = "Create a table",
-      notes = "Add a table in a specific keyspace.",
-      response = Map.class,
-      code = 201)
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 409, message = "Conflict", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
-      })
+  @Override
   public Response createTable(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(required = true) @NotNull final Sgv2TableAddRequest tableAdd,
-      @Context HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final Sgv2TableAddRequest tableAdd,
+      final HttpServletRequest request) {
     final String tableName = tableAdd.getName();
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
-    }
-
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Schema.CqlTableCreate addTable =
         Schema.CqlTableCreate.newBuilder()
             .setKeyspaceName(keyspaceName)
@@ -185,42 +88,14 @@ public class Sgv2TablesResource extends ResourceBase {
         .build();
   }
 
-  @Timed
-  @PUT
-  @ApiOperation(
-      value = "Replace a table definition",
-      notes = "Update a single table definition, except for columns, in a keyspace.",
-      response = Map.class)
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "resource updated", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
-        @ApiResponse(code = 409, message = "Conflict", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
-      })
-  @Path("/{tableName}")
+  @Override
   public Response updateTable(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
-      @ApiParam(value = "table name", required = true) @NotNull
-          final Sgv2TableAddRequest tableUpdate,
-      @Context HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Status.BAD_REQUEST);
-    }
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final String tableName,
+      final Sgv2TableAddRequest tableUpdate,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
         blockingStub,
         keyspaceName,
@@ -256,30 +131,13 @@ public class Sgv2TablesResource extends ResourceBase {
         });
   }
 
-  @Timed
-  @DELETE
-  @ApiOperation(
-      value = "Delete a table",
-      notes = "Delete a single table in the specified keyspace.")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
-      })
-  @Path("/{tableName}")
+  @Override
   public Response deleteTable(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @ApiParam(value = "Name of the table to use for the request.", required = true)
-          @PathParam("tableName")
-          final String tableName,
-      @Context HttpServletRequest request) {
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final String tableName,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
