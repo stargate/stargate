@@ -64,6 +64,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(where)) {
       throw new WebApplicationException("where parameter is required", Status.BAD_REQUEST);
     }
@@ -98,6 +99,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final List<Column> columns =
         isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final Map<String, Column.Order> sortOrder;
@@ -139,6 +141,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -174,6 +177,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final String payloadAsString,
       final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -226,6 +230,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final List<PathSegment> path,
       HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     // To bind path/key parameters, need converter; and for that we need table metadata:
     Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
@@ -268,6 +273,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payloadAsString,
       final HttpServletRequest request) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
