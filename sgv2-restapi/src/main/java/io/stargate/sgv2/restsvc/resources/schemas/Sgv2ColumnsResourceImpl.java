@@ -39,13 +39,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String tableName,
       boolean raw,
       HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
         blockingStub,
         keyspaceName,
@@ -64,13 +58,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String tableName,
       Sgv2ColumnDefinition columnDefinition,
       HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final String columnName = columnDefinition.getName();
     if (isStringEmpty(tableName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
@@ -114,13 +102,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String columnName,
       boolean raw,
       HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
@@ -148,13 +130,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String columnName,
       Sgv2ColumnDefinition columnUpdate,
       HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
@@ -197,13 +173,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       String tableName,
       String columnName,
       HttpServletRequest request) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
