@@ -2942,6 +2942,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("hour_created")).isEqualTo(timestamp);
     assertThat(data.get(0).get("machine_code")).isEqualTo(machineCode);
     assertThat(data.get(0).get("times_inspected")).isEqualTo(2);
+    assertThat(data.get(0).get("last_inspected_at")).isEqualTo("2021-12-10");
+    assertThat(data.get(0).get("est_unit_cost")).isEqualTo(599.99);
   }
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
