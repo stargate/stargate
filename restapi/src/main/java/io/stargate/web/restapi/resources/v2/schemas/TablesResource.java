@@ -28,7 +28,6 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
