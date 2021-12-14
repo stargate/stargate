@@ -15,6 +15,7 @@ import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
+import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -111,26 +112,6 @@ public abstract class ResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  // // // Helper methods for input validation
-
-  protected static void requireNonEmptyKeyspace(String keyspaceName) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-  }
-
-  protected static void requireNonEmptyKeyspaceAndTable(String keyspaceName, String tableName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
-  }
-
-  protected static final boolean isStringEmpty(String str) {
-    return (str == null) || str.isEmpty();
-  }
-
   protected Response fetchRows(
       StargateGrpc.StargateBlockingStub blockingStub,
       int pageSizeParam,
@@ -166,11 +147,6 @@ public abstract class ResourceBase {
     return Response.status(Response.Status.OK).entity(response).build();
   }
 
-  private static byte[] decodeBase64(String base64encoded) {
-    // TODO: error handling
-    return Base64.getDecoder().decode(base64encoded);
-  }
-
   protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
@@ -180,5 +156,38 @@ public abstract class ResourceBase {
       resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
     }
     return resultRows;
+  }
+
+  // // // Helper methods for input validation
+
+  protected static void requireNonEmptyKeyspace(String keyspaceName) {
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException(
+          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
+    }
+  }
+
+  protected static void requireNonEmptyKeyspaceAndTable(String keyspaceName, String tableName) {
+    requireNonEmptyKeyspace(keyspaceName);
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
+    }
+  }
+
+  protected static final boolean isStringEmpty(String str) {
+    return (str == null) || str.isEmpty();
+  }
+
+  protected static byte[] decodeBase64(String base64encoded) {
+    // TODO: error handling
+    return Base64.getDecoder().decode(base64encoded);
+  }
+
+  // // // Helper methods for JAX-RS response construction
+
+  protected static Response restServiceError(Response.Status httpStatus, String failMessage) {
+    return Response.status(httpStatus)
+        .entity(new RestServiceError(failMessage, httpStatus.getStatusCode()))
+        .build();
   }
 }
