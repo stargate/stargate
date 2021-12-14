@@ -3,16 +3,12 @@ package io.stargate.sgv2.restsvc.grpc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.uuid.impl.UUIDUtil;
 import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Factory for accessing {@link FromProtoValueCodec}s to convert from proto values into externally
@@ -165,12 +161,12 @@ public class FromProtoValueCodecs {
 
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getString();
+      return Values.string(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(value.getString());
+      return jsonNodeFactory.textNode(Values.string(value));
     }
   }
 
@@ -181,48 +177,48 @@ public class FromProtoValueCodecs {
   protected static final class IntCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getInt();
+      return Values.int_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getInt());
+      return jsonNodeFactory.numberNode(Values.int_(value));
     }
   }
 
   protected static final class LongCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getInt();
+      return Values.int_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getInt());
+      return jsonNodeFactory.numberNode(Values.int_(value));
     }
   }
 
   protected static final class FloatCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getFloat();
+      return Values.float_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getFloat());
+      return jsonNodeFactory.numberNode(Values.float_(value));
     }
   }
 
   protected static final class DoubleCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getDouble();
+      return Values.double_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getDouble());
+      return jsonNodeFactory.numberNode(Values.double_(value));
     }
   }
 
@@ -231,12 +227,12 @@ public class FromProtoValueCodecs {
   protected static final class ShortCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getInt();
+      return Values.smallint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getInt());
+      return jsonNodeFactory.numberNode(Values.smallint(value));
     }
   }
 
@@ -269,12 +265,12 @@ public class FromProtoValueCodecs {
   protected static final class ByteCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getInt();
+      return Values.tinyint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(value.getInt());
+      return jsonNodeFactory.numberNode(Values.tinyint(value));
     }
   }
 
@@ -283,12 +279,12 @@ public class FromProtoValueCodecs {
   protected static final class CounterCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return String.valueOf(value.getInt());
+      return String.valueOf(Values.int_(value));
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(String.valueOf(value.getInt()));
+      return jsonNodeFactory.textNode(String.valueOf(Values.int_(value)));
     }
   }
 
@@ -297,38 +293,24 @@ public class FromProtoValueCodecs {
   protected static final class BooleanCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return value.getBoolean();
+      return Values.bool(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.booleanNode(value.getBoolean());
+      return jsonNodeFactory.booleanNode(Values.bool(value));
     }
   }
 
   protected static final class UUIDCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      // 19-Nov-2021, tatu: Two choices here, both of which JAX-RS can deal with it:
-      //   (a) just return UUID as-is; (b) convert to String.
-      //   Going with (a) for now
-      return uuidFrom(value);
+      return Values.uuid(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      // 19-Nov-2021, tatu: As with above, go with "native"/embedded
-      return jsonNodeFactory.pojoNode(uuidFrom(value));
-    }
-
-    private UUID uuidFrom(QueryOuterClass.Value value) {
-      // Must be careful not to get bytes for Message (has 2 type bytes) but Value within
-      byte[] bs = value.getUuid().getValue().toByteArray();
-      if (bs.length != 16) {
-        throw new IllegalArgumentException(
-            "Wrong length for UUID encoding: expected 16, was: " + bs.length);
-      }
-      return UUIDUtil.uuid(bs);
+      return jsonNodeFactory.pojoNode(Values.uuid(value));
     }
   }
 
@@ -347,24 +329,24 @@ public class FromProtoValueCodecs {
   protected static final class DateCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return LocalDate.ofEpochDay(value.getDate()).toString();
+      return Values.date(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(LocalDate.ofEpochDay(value.getDate()).toString());
+      return jsonNodeFactory.textNode(Values.date(value).toString());
     }
   }
 
   protected static final class TimeCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return LocalTime.ofNanoOfDay(value.getTime()).toString();
+      return Values.time(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(LocalTime.ofNanoOfDay(value.getTime()).toString());
+      return jsonNodeFactory.textNode(Values.time(value).toString());
     }
   }
 
