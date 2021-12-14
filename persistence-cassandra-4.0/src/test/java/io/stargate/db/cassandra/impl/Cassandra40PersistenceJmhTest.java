@@ -19,6 +19,7 @@ package io.stargate.db.cassandra.impl;
 
 import static io.stargate.db.cassandra.Cassandra40PersistenceActivator.makeConfig;
 
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
@@ -35,14 +36,17 @@ import io.stargate.db.datastore.DataStoreOptions;
 import io.stargate.db.datastore.ImmutableDataStoreOptions;
 import io.stargate.db.datastore.PersistenceBackedDataStore;
 import io.stargate.db.datastore.ResultSet;
+import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.Query;
+import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +71,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -90,13 +93,16 @@ public class Cassandra40PersistenceJmhTest {
   @Param({"10"})
   private int batchStatements;
 
-  @Param({"45"})
+  @Param({"64"})
   private int maxDepth;
 
   private Persistence.Connection connection;
   private DataStore dataStore;
   private List<ValueModifier> docValueModifiers;
   private Query<? extends BoundQuery> insertPrepared;
+  private Query<? extends BoundQuery> deletePrepared;
+  private ByteBuffer emptyStringEncoded;
+  private TypedValue.Codec codec;
 
   @Setup(Level.Trial)
   public void setup() throws Exception {
@@ -122,6 +128,10 @@ public class Cassandra40PersistenceJmhTest {
             .customProperties(Collections.singletonMap("Host", host))
             .build();
     dataStore = new PersistenceBackedDataStore(connection, dataStoreOptions);
+    codec = dataStore.valueCodec();
+    emptyStringEncoded =
+        TypeCodecs.TEXT.encode(
+            "", dataStoreOptions.defaultParameters().protocolVersion().toDriverVersion());
 
     connection
         .execute(
@@ -141,6 +151,7 @@ public class Cassandra40PersistenceJmhTest {
             .collect(Collectors.toList());
 
     insertPrepared = dataStore.prepare(getDocumentInsertQuery()).join();
+    deletePrepared = dataStore.prepare(getDocumentDeleteQuery()).join();
   }
 
   @TearDown(Level.Trial)
@@ -150,54 +161,57 @@ public class Cassandra40PersistenceJmhTest {
         .get();
   }
 
-  // @Benchmark
+  @Benchmark
   public void bindInsert(Blackhole blackhole) {
     Object[] insertBindValues = getInsertBindValues(Long.MAX_VALUE, "document-id", 128);
     BoundQuery bind = insertPrepared.bind(insertBindValues);
     blackhole.consume(bind);
   }
 
-  // @Benchmark
-  @Threads(Threads.MAX)
-  public void bindInsertThreadsMax(Blackhole blackhole) {
-    Object[] insertBindValues = getInsertBindValues(Long.MAX_VALUE, "document-id", 128);
-    BoundQuery bind = insertPrepared.bind(insertBindValues);
+  @Benchmark
+  public void bindDelete(Blackhole blackhole) {
+    BoundQuery bind = deletePrepared.bind(128, "document-db");
     blackhole.consume(bind);
   }
 
-  // @Benchmark
-  @Threads(120)
-  public void prepareAndExecuteDocumentBatchLoggedSingleOpThreads120(Blackhole blackhole) {
-    CompletableFuture<?> result =
-        getDocumentBatchStatement().thenCompose(queries -> dataStore.batch(queries));
+  @Benchmark
+  public void prepareDocumentStatements(Blackhole blackhole) {
+    BuiltQuery<? extends BoundQuery> documentInsertQuery = getDocumentInsertQuery();
+    BuiltQuery<? extends BoundQuery> documentDeleteQuery = getDocumentDeleteQuery();
+    CompletableFuture<Void> result =
+        CompletableFuture.allOf(
+            dataStore.prepare(documentInsertQuery), dataStore.prepare(documentDeleteQuery));
     blackhole.consume(result.join());
   }
 
-  // @Benchmark
-  @Threads(Threads.MAX)
-  public void prepareAndExecuteDocumentBatchLoggedSingleOpThreadsMaxCore(Blackhole blackhole) {
-    CompletableFuture<?> result =
-        getDocumentBatchStatement().thenCompose(queries -> dataStore.batch(queries));
+  @Benchmark
+  public void prepareAndBindDocumentBatch(Blackhole blackhole) {
+    CompletableFuture<Collection<BoundQuery>> result = getDocumentBatchStatement();
     blackhole.consume(result.join());
   }
 
-  // @Benchmark
-  public void prepareAndExecuteDocumentBatchLoggedSingleOp(Blackhole blackhole) {
+  @Benchmark
+  public void prepareBindAndExecuteDocumentBatchLoggedSingleOp(Blackhole blackhole) {
     CompletableFuture<?> result =
         getDocumentBatchStatement().thenCompose(queries -> dataStore.batch(queries));
     blackhole.consume(result.join());
-  }
-
-  // @Benchmark
-  @Threads(120)
-  public void prepareDocumentBatchSingleOp(Blackhole blackhole) {
-    Collection<BoundQuery> query = getDocumentBatchStatement().join();
-    blackhole.consume(query);
   }
 
   @Benchmark
   @OperationsPerInvocation(1000)
-  public void prepareAndExecuteDocumentBatchLogged(Blackhole blackhole) {
+  public void bindAndExecuteDocumentBatchLogged(Blackhole blackhole) {
+    CompletableFuture<?>[] all = new CompletableFuture<?>[1000];
+    for (int i = 0; i < 1000; i++) {
+      Collection<BoundQuery> queries = getDocumentBatchStatementCached();
+      all[i] = dataStore.batch(queries);
+    }
+    CompletableFuture<Void> result = CompletableFuture.allOf(all);
+    blackhole.consume(result.join());
+  }
+
+  @Benchmark
+  @OperationsPerInvocation(1000)
+  public void prepareBindAndExecuteDocumentBatchLogged1kOps(Blackhole blackhole) {
     CompletableFuture<?>[] all = new CompletableFuture<?>[1000];
     for (int i = 0; i < 1000; i++) {
       all[i] = getDocumentBatchStatement().thenCompose(queries -> dataStore.batch(queries));
@@ -206,9 +220,9 @@ public class Cassandra40PersistenceJmhTest {
     blackhole.consume(result.join());
   }
 
-  // @Benchmark
+  @Benchmark
   @OperationsPerInvocation(1000)
-  public void prepareAndExecuteDocumentBatchUnlogged(Blackhole blackhole) {
+  public void prepareBindAndExecuteDocumentBatchUnlogged1kOps(Blackhole blackhole) {
     CompletableFuture<?>[] all = new CompletableFuture<?>[1000];
     for (int i = 0; i < 1000; i++) {
       all[i] = getDocumentBatchStatement().thenCompose(batch -> dataStore.unloggedBatch(batch));
@@ -217,15 +231,23 @@ public class Cassandra40PersistenceJmhTest {
     blackhole.consume(result.join());
   }
 
-  // @Benchmark
-  @OperationsPerInvocation(1000)
-  public void prepareDocumentBatch(Blackhole blackhole) {
-    CompletableFuture<?>[] all = new CompletableFuture<?>[1000];
-    for (int i = 0; i < 1000; i++) {
-      all[i] = getDocumentBatchStatement();
+  private Collection<BoundQuery> getDocumentBatchStatementCached() {
+    Collection<BoundQuery> queries = new ArrayList<>(batchStatements + 1);
+    long timestamp = System.currentTimeMillis();
+    String documentId = UUID.randomUUID().toString();
+
+    // first delete
+    BoundQuery deleteBound = deletePrepared.bind(timestamp - 1, documentId);
+    queries.add(deleteBound);
+
+    // then set of inserts
+    for (int i = 0; i < batchStatements; i++) {
+      Object[] values = getInsertBindValues(timestamp, documentId, i);
+
+      BoundQuery bound = insertPrepared.bind(values);
+      queries.add(bound);
     }
-    CompletableFuture<Void> result = CompletableFuture.allOf(all);
-    blackhole.consume(result.join());
+    return queries;
   }
 
   private CompletableFuture<Collection<BoundQuery>> getDocumentBatchStatement() {
@@ -248,10 +270,15 @@ public class Cassandra40PersistenceJmhTest {
               queries.add(deleteBound);
 
               // then set of inserts
+              List<BindMarker> bindMarkers = insertQuery.bindMarkers();
+              TypedValue documentIdValue =
+                  TypedValue.forJavaValue(codec, bindMarkers.get(0), documentId);
+              TypedValue timestampValue =
+                  TypedValue.forJavaValue(codec, bindMarkers.get(maxDepth + 5), timestamp);
               for (int i = 0; i < batchStatements; i++) {
-                Object[] values = getInsertBindValues(timestamp, documentId, i);
-
-                BoundQuery bound = insertPrepare.join().bind(values);
+                List<TypedValue> values =
+                    getInsertBindValues(bindMarkers, timestampValue, documentIdValue, i);
+                BoundQuery bound = insertPrepare.join().bindValues(values);
                 queries.add(bound);
               }
               return queries;
@@ -280,6 +307,36 @@ public class Cassandra40PersistenceJmhTest {
 
     // respect the timestamp
     values[maxDepth + 5] = timestamp;
+    return values;
+  }
+
+  private List<TypedValue> getInsertBindValues(
+      List<BindMarker> bindMarkers, TypedValue timestamp, TypedValue documentId, int i) {
+    List<TypedValue> values = new ArrayList<>(maxDepth + 6);
+    // key at index 0
+    values.add(documentId);
+
+    // then the path, based on the max depth
+    TypedValue leafValue = null;
+    for (int j = 0; j < maxDepth; j++) {
+      if (j == 0) {
+        leafValue = TypedValue.forJavaValue(codec, bindMarkers.get(j + 1), String.valueOf(i));
+        values.add(leafValue);
+      } else {
+        values.add(TypedValue.forBytesValue(codec, bindMarkers.get(j + 1), emptyStringEncoded));
+      }
+    }
+
+    // rest at the end
+    values.add(leafValue);
+    values.add(
+        TypedValue.forJavaValue(
+            codec, bindMarkers.get(maxDepth + 2), RandomStringUtils.randomAlphabetic(8)));
+    values.add(TypedValue.forBytesValue(codec, bindMarkers.get(maxDepth + 3), null));
+    values.add(TypedValue.forBytesValue(codec, bindMarkers.get(maxDepth + 4), null));
+
+    // respect the timestamp
+    values.add(timestamp);
     return values;
   }
 
