@@ -6,6 +6,8 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
+import io.stargate.sgv2.restsvc.models.Sgv2UDT;
+import io.stargate.sgv2.restsvc.models.Sgv2UDTAddRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -43,11 +45,6 @@ import javax.ws.rs.core.Response;
       required = true)
 })
 public interface Sgv2UDTsResourceApi {
-  // !!! TESTING
-  static class UserDefinedTypeResponse {}
-
-  static class UserDefinedTypeAdd {}
-
   static class UserDefinedTypeUpdate {}
 
   @Timed
@@ -55,11 +52,11 @@ public interface Sgv2UDTsResourceApi {
   @ApiOperation(
       value = "Get all user defined types (UDT). ",
       notes = "Retrieve all user defined types (UDT) in a specific keyspace.",
-      response = UserDefinedTypeResponse.class,
+      response = Sgv2UDT.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = UserDefinedTypeResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = Sgv2UDT.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(
             code = 404,
@@ -141,7 +138,7 @@ public interface Sgv2UDTsResourceApi {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "", required = true) @NotNull final UserDefinedTypeAdd udtAdd,
+      @ApiParam(value = "", required = true) @NotNull final Sgv2UDTAddRequest udtAdd,
       @Context final HttpServletRequest request);
 
   @Timed
