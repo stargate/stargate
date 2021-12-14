@@ -3,7 +3,6 @@ package io.stargate.sgv2.restsvc.grpc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.stargate.core.util.ByteBufferUtils;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.time.Instant;
@@ -161,116 +160,146 @@ public class FromProtoValueCodecs {
 
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.string(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.string(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(Values.string(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.string(value));
     }
   }
 
   /* Basic/scalar codec implementations: numeric */
 
-  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
-  // without bothering with casting to avoid creation of unnecessary wrappers.
   protected static final class IntCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.int_(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.int_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.int_(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.int_(value));
     }
   }
 
   protected static final class LongCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.int_(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.bigint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.int_(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.bigint(value));
     }
   }
 
   protected static final class FloatCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.float_(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.float_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.float_(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.float_(value));
     }
   }
 
   protected static final class DoubleCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.double_(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.double_(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.double_(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.double_(value));
     }
   }
 
-  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
-  // without bothering with casting to avoid creation of unnecessary wrappers.
   protected static final class ShortCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.smallint(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.smallint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.smallint(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.smallint(value));
     }
   }
 
   protected static final class VarintCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.varint(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.varint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.varint(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.varint(value));
     }
   }
 
   protected static final class DecimalCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.decimal(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.decimal(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.decimal(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.decimal(value));
     }
   }
 
-  // NOTE! protobuf "getInt()" will return {@code long}; but we will leave that as-is
-  // without bothering with casting to avoid creation of unnecessary wrappers.
   protected static final class ByteCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.tinyint(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.tinyint(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.numberNode(Values.tinyint(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.numberNode(Values.tinyint(value));
     }
   }
 
@@ -279,12 +308,16 @@ public class FromProtoValueCodecs {
   protected static final class CounterCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return String.valueOf(Values.int_(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : String.valueOf(Values.int_(value));
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(String.valueOf(Values.int_(value)));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(String.valueOf(Values.int_(value)));
     }
   }
 
@@ -293,86 +326,112 @@ public class FromProtoValueCodecs {
   protected static final class BooleanCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.bool(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.bool(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.booleanNode(Values.bool(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.booleanNode(Values.bool(value));
     }
   }
 
   protected static final class UUIDCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.uuid(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.uuid(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.pojoNode(Values.uuid(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.pojoNode(Values.uuid(value));
     }
   }
 
   protected static final class TimestampCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Instant.ofEpochMilli(value.getInt()).toString();
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Instant.ofEpochMilli(value.getInt()).toString();
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(Instant.ofEpochMilli(value.getInt()).toString());
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Instant.ofEpochMilli(value.getInt()).toString());
     }
   }
 
   protected static final class DateCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.date(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.date(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(Values.date(value).toString());
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.date(value).toString());
     }
   }
 
   protected static final class TimeCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.time(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.time(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(Values.time(value).toString());
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.time(value).toString());
     }
   }
 
   protected static final class InetCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return Values.inet(value);
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.inet(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      return jsonNodeFactory.textNode(Values.inet(value).toString());
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.inet(value).toString());
     }
   }
 
   protected static final class BlobCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      // 13-Dec-2021, jsc: Use base-64 encoded value here
-      return ByteBufferUtils.toBase64(Values.bytes(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.bytes(value);
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
-      // 13-Dec-2021, jsc: Use raw bytes here
-      return jsonNodeFactory.binaryNode(Values.bytes(value));
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.binaryNode(Values.bytes(value));
     }
   }
 
