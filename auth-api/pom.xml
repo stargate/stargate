@@ -5,13 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.44-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.auth.api</groupId>
   <artifactId>auth-api</artifactId>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
-    <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
     <dependency>

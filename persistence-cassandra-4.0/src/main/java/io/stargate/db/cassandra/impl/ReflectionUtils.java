@@ -6,22 +6,17 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
 import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.Message.Response;
 
 class ReflectionUtils {
 
-  private static final Method requestExecute;
   private static final Method requestSetTracingRequested;
   private static final Method responseGetTracingId;
   private static final Constructor<? extends QueryOptions> optionsWithNamesCtor;
 
   static {
     try {
-      requestExecute = Request.class.getDeclaredMethod("execute", QueryState.class, long.class);
-      requestExecute.setAccessible(true);
-
       requestSetTracingRequested = Request.class.getDeclaredMethod("setTracingRequested");
       requestSetTracingRequested.setAccessible(true);
 
@@ -82,10 +77,6 @@ class ReflectionUtils {
         throw new RuntimeException(cause);
       }
     }
-  }
-
-  static Response execute(Request request, QueryState queryState, long queryStartNanoTime) {
-    return invoke(requestExecute, request, queryState, queryStartNanoTime);
   }
 
   static void setTracingRequested(Request request) {
