@@ -54,6 +54,22 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
       final boolean raw,
       final HttpServletRequest request) {
     requireNonEmptyKeyspace(keyspaceName);
+    requireNonEmptyTypename(typeName);
+
+    /*
+        String cql =
+                new QueryBuilder()
+                        .create()
+                        .type(keyspaceName, typeName)
+                        .column(columns2columns(udtAdd.getFields()))
+                        .build();
+        QueryOuterClass.Query query =
+                QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+        QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    //    final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
+    //    return Response.status(Response.Status.OK).entity(payload).build();
+         */
 
     // !!! TO IMPLEMENT
     return Response.status(Response.Status.NOT_IMPLEMENTED).build();
