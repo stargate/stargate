@@ -68,12 +68,14 @@ public class GrpcImpl {
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("grpc-stargate-executor", true));
     CustomChannelFactory customChannelFactory = new CustomChannelFactory();
     CustomEventLoopGroup worker = CustomEventLoopGroup.worker();
+    NewConnectionInterceptor newConnectionInterceptor =
+        new NewConnectionInterceptor(persistence, authenticationService);
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
             // thread pool for handling gRPC callbacks in `GrpcService`.
             .directExecutor()
-            .intercept(new NewConnectionInterceptor(persistence, authenticationService))
+            .intercept(newConnectionInterceptor)
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
             .channelFactory(customChannelFactory)
@@ -81,10 +83,11 @@ public class GrpcImpl {
             .bossEventLoopGroup(CustomEventLoopGroup.boss())
             .build();
 
-    EventNotifier eventNotifier = new EventNotifier(customChannelFactory, worker);
+    EventNotifier eventNotifier =
+        new EventNotifier(customChannelFactory, worker, newConnectionInterceptor);
     persistence.registerEventListener(eventNotifier);
     //    Executors.newScheduledThreadPool(EXECUTOR_SIZE, GrpcUtil.getThreadFactory("dummy", true))
-    //        .scheduleAtFixedRate(() -> eventNotifier.onClose(m -> false), 5, 5, TimeUnit.SECONDS);
+    //        .scheduleAtFixedRate(() -> eventNotifier.onClose(m -> true), 5, 5, TimeUnit.SECONDS);
   }
 
   public void start() {

@@ -23,9 +23,13 @@ import io.stargate.grpc.service.GrpcService;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.immutables.value.Value;
@@ -53,6 +57,10 @@ public class NewConnectionInterceptor implements ServerInterceptor {
           .maximumSize(CACHE_MAX_SIZE)
           .build(this::newConnection);
 
+  // todo maybe switch order to ServerCall -> StringHeaders
+  private final Map<Map<String, String>, List<ServerCall<?, ?>>> serverCallForHeadersCache =
+      new ConcurrentHashMap<>();
+
   @Value.Immutable
   interface RequestInfo {
 
@@ -77,7 +85,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       String token = headers.get(TOKEN_KEY);
       if (token == null) {
         call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
-        return new NopListener<>();
+        return new NopListener<>(call, serverCallForHeadersCache);
       }
 
       Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
@@ -97,6 +105,19 @@ public class NewConnectionInterceptor implements ServerInterceptor {
               .headers(stringHeaders)
               .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
               .build();
+
+      System.out.println("adding stringHeaders for a call");
+      serverCallForHeadersCache.compute(
+          stringHeaders,
+          (stringStringMap, serverCalls) -> {
+            if (serverCalls == null) {
+              serverCalls = new ArrayList<>();
+            }
+            System.out.println("Size of server calls: " + serverCalls.size());
+            serverCalls.add(call);
+
+            return serverCalls;
+          });
 
       Connection connection = connectionCache.get(info);
 
@@ -128,7 +149,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
         call.close(Status.INTERNAL.withDescription(message).withCause(e), new Metadata());
       }
     }
-    return new NopListener<>();
+    return new NopListener<>(call, serverCallForHeadersCache);
   }
 
   private Connection newConnection(RequestInfo info) throws UnauthorizedException {
@@ -173,5 +194,70 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     return stringHeaders;
   }
 
-  private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
+  public void closeFilter(Predicate<Map<String, String>> headerFilter) {
+    serverCallForHeadersCache.entrySet().stream()
+        .filter(
+            entry -> {
+              Map<String, String> headers = entry.getKey();
+              logger.info(
+                  "NewConnectionInterceptor.closeFilter(): nr of serverCalls: "
+                      + serverCallForHeadersCache.size()
+                      + " headers: "
+                      + headers
+                      + "Thread: "
+                      + Thread.currentThread().getName());
+              return headerFilter.test(headers);
+            })
+        .forEach(
+            e -> {
+              System.out.println("Attempt to close server calls, size: " + e.getValue().size());
+              e.getValue()
+                  .forEach(
+                      call -> {
+                        System.out.println("closing call:" + call);
+                        call.close(
+                            Status.UNAVAILABLE.withDescription("Connection closed"),
+                            new Metadata());
+                      });
+            });
+  }
+
+  private static class NopListener<ReqT, RespT> extends ServerCall.Listener<ReqT> {
+    private final ServerCall<ReqT, RespT> call;
+    private final Map<Map<String, String>, List<ServerCall<?, ?>>> serverCallForHeaders;
+
+    public NopListener(
+        ServerCall<ReqT, RespT> call,
+        Map<Map<String, String>, List<ServerCall<?, ?>>> serverCallForHeaders) {
+      this.call = call;
+      this.serverCallForHeaders = serverCallForHeaders;
+    }
+
+    @Override
+    public void onMessage(ReqT message) {
+      System.out.println("onMessage called, evicting call: " + call);
+    }
+
+    @Override
+    public void onHalfClose() {
+      System.out.println("onHalfClose called, evicting call: " + call);
+    }
+
+    @Override
+    public void onComplete() {
+      System.out.println("onComplete called, evicting call: " + call);
+      //      serverCallForHeaders.invalidate(call);
+    }
+
+    @Override
+    public void onCancel() {
+      System.out.println("onCancel called, evicting call: " + call);
+      //      serverCallForHeaders.invalidate(call);
+    }
+
+    @Override
+    public void onReady() {
+      System.out.println("onReady called, evicting call: " + call);
+    }
+  }
 }
