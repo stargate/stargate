@@ -16,25 +16,27 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.StringValue;
+import io.grpc.StatusException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
+import io.stargate.proto.Schema.SchemaNotification;
+import java.util.Collections;
 import java.util.List;
 
-class SchemaChangesHandler implements EventListener {
+class SchemaNotificationsHandler implements EventListener {
 
   private final Persistence persistence;
-  private final ServerCallStreamObserver<QueryOuterClass.SchemaChange> responseObserver;
+  private final ServerCallStreamObserver<SchemaNotification> responseObserver;
 
-  SchemaChangesHandler(
-      Persistence persistence, StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
+  SchemaNotificationsHandler(
+      Persistence persistence, StreamObserver<SchemaNotification> responseObserver) {
     this.persistence = persistence;
-    this.responseObserver =
-        (ServerCallStreamObserver<QueryOuterClass.SchemaChange>) responseObserver;
+    this.responseObserver = (ServerCallStreamObserver<SchemaNotification>) responseObserver;
   }
 
   public void handle() {
@@ -45,24 +47,44 @@ class SchemaChangesHandler implements EventListener {
         });
   }
 
+  private void onSchemaChange(
+      Type type, Target target, String keyspace, String name, List<String> argumentTypes) {
+    try {
+      SchemaChange.Builder change =
+          SchemaChange.newBuilder().setChangeType(type).setTarget(target).setKeyspace(keyspace);
+      if (name != null) {
+        change.setName(StringValue.of(name));
+      }
+      change.addAllArgumentTypes(argumentTypes);
+
+      SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
+      if (type != Type.DROPPED || target != Target.KEYSPACE) {
+        notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
+      }
+      responseObserver.onNext(notification.build());
+    } catch (StatusException e) {
+      responseObserver.onError(e);
+    }
+  }
+
   @Override
   public void onCreateKeyspace(String keyspace) {
-    onKeyspaceChange(Type.CREATED, keyspace);
+    onSchemaChange(Type.CREATED, Target.KEYSPACE, keyspace, null, Collections.emptyList());
   }
 
   @Override
   public void onCreateTable(String keyspace, String table) {
-    onSchemaChange(Type.CREATED, Target.TABLE, keyspace, table);
+    onSchemaChange(Type.CREATED, Target.TABLE, keyspace, table, Collections.emptyList());
   }
 
   @Override
   public void onCreateView(String keyspace, String view) {
-    onSchemaChange(Type.CREATED, Target.TABLE, keyspace, view);
+    onSchemaChange(Type.CREATED, Target.TABLE, keyspace, view, Collections.emptyList());
   }
 
   @Override
   public void onCreateType(String keyspace, String type) {
-    onSchemaChange(Type.CREATED, Target.TYPE, keyspace, type);
+    onSchemaChange(Type.CREATED, Target.TYPE, keyspace, type, Collections.emptyList());
   }
 
   @Override
@@ -77,22 +99,22 @@ class SchemaChangesHandler implements EventListener {
 
   @Override
   public void onAlterKeyspace(String keyspace) {
-    onKeyspaceChange(Type.UPDATED, keyspace);
+    onSchemaChange(Type.UPDATED, Target.KEYSPACE, keyspace, null, Collections.emptyList());
   }
 
   @Override
   public void onAlterTable(String keyspace, String table) {
-    onSchemaChange(Type.UPDATED, Target.TABLE, keyspace, table);
+    onSchemaChange(Type.UPDATED, Target.TABLE, keyspace, table, Collections.emptyList());
   }
 
   @Override
   public void onAlterView(String keyspace, String view) {
-    onSchemaChange(Type.UPDATED, Target.TABLE, keyspace, view);
+    onSchemaChange(Type.UPDATED, Target.TABLE, keyspace, view, Collections.emptyList());
   }
 
   @Override
   public void onAlterType(String keyspace, String type) {
-    onSchemaChange(Type.UPDATED, Target.TYPE, keyspace, type);
+    onSchemaChange(Type.UPDATED, Target.TYPE, keyspace, type, Collections.emptyList());
   }
 
   @Override
@@ -107,22 +129,22 @@ class SchemaChangesHandler implements EventListener {
 
   @Override
   public void onDropKeyspace(String keyspace) {
-    onKeyspaceChange(Type.DROPPED, keyspace);
+    onSchemaChange(Type.DROPPED, Target.KEYSPACE, keyspace, null, Collections.emptyList());
   }
 
   @Override
   public void onDropTable(String keyspace, String table) {
-    onSchemaChange(Type.DROPPED, Target.TABLE, keyspace, table);
+    onSchemaChange(Type.DROPPED, Target.TABLE, keyspace, table, Collections.emptyList());
   }
 
   @Override
   public void onDropView(String keyspace, String view) {
-    onSchemaChange(Type.DROPPED, Target.TABLE, keyspace, view);
+    onSchemaChange(Type.DROPPED, Target.TABLE, keyspace, view, Collections.emptyList());
   }
 
   @Override
   public void onDropType(String keyspace, String type) {
-    onSchemaChange(Type.DROPPED, Target.TYPE, keyspace, type);
+    onSchemaChange(Type.DROPPED, Target.TYPE, keyspace, type, Collections.emptyList());
   }
 
   @Override
@@ -133,33 +155,5 @@ class SchemaChangesHandler implements EventListener {
   @Override
   public void onDropAggregate(String keyspace, String aggregate, List<String> argumentTypes) {
     onSchemaChange(Type.DROPPED, Target.AGGREGATE, keyspace, aggregate, argumentTypes);
-  }
-
-  private void onKeyspaceChange(Type type, String keyspace) {
-    responseObserver.onNext(
-        QueryOuterClass.SchemaChange.newBuilder()
-            .setChangeType(type)
-            .setTarget(Target.KEYSPACE)
-            .setKeyspace(keyspace)
-            .build());
-  }
-
-  private void onSchemaChange(Type type, Target target, String keyspace, String name) {
-    responseObserver.onNext(newBuilder(type, target, keyspace, name).build());
-  }
-
-  private void onSchemaChange(
-      Type type, Target target, String keyspace, String name, List<String> argumentTypes) {
-    responseObserver.onNext(
-        newBuilder(type, target, keyspace, name).addAllArgumentTypes(argumentTypes).build());
-  }
-
-  private QueryOuterClass.SchemaChange.Builder newBuilder(
-      Type type, Target target, String keyspace, String name) {
-    return QueryOuterClass.SchemaChange.newBuilder()
-        .setChangeType(type)
-        .setTarget(target)
-        .setKeyspace(keyspace)
-        .setName(StringValue.of(name));
   }
 }

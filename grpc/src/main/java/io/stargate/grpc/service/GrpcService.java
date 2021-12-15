@@ -21,7 +21,6 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.query.TypedValue;
-import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -31,6 +30,8 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
+import io.stargate.proto.Schema.GetSchemaNotificationsParams;
+import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -110,10 +111,9 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   }
 
   @Override
-  public void getSchemaChanges(
-      QueryOuterClass.GetSchemaChangeParams ignored,
-      StreamObserver<QueryOuterClass.SchemaChange> responseObserver) {
-    new SchemaChangesHandler(persistence, responseObserver).handle();
+  public void getSchemaNotifications(
+      GetSchemaNotificationsParams request, StreamObserver<SchemaNotification> responseObserver) {
+    new SchemaNotificationsHandler(persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {

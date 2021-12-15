@@ -42,6 +42,6 @@ service Stargate {
   rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
 
   // Requests notification of schema changes.
-  rpc getSchemaChanges(GetSchemaChangeParams) returns (stream SchemaChange) {}
+  rpc getSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
 }
 

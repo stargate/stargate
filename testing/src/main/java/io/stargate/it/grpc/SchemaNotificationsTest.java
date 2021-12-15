@@ -14,10 +14,11 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.proto.QueryOuterClass.GetSchemaChangeParams;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
+import io.stargate.proto.Schema.GetSchemaNotificationsParams;
+import io.stargate.proto.Schema.SchemaNotification;
 import io.stargate.proto.StargateGrpc;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -28,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class SchemaChangesTest extends BaseIntegrationTest {
+public class SchemaNotificationsTest extends BaseIntegrationTest {
 
   private StargateGrpc.StargateStub asyncStub;
 
@@ -47,69 +48,77 @@ public class SchemaChangesTest extends BaseIntegrationTest {
   public void tableChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspace)
       throws Exception {
     // Given
-    SchemaChangeObserver changeObserver = new SchemaChangeObserver();
-    asyncStub.getSchemaChanges(GetSchemaChangeParams.newBuilder().build(), changeObserver);
+    SchemaNotificationObserver observer = new SchemaNotificationObserver();
+    asyncStub.getSchemaNotifications(GetSchemaNotificationsParams.newBuilder().build(), observer);
     // getSchemaChanges is async, wait a bit to ensure that the event listener has been registered
     TimeUnit.MILLISECONDS.sleep(500);
 
     // When
     session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
     // Then
-    assertNextChange(changeObserver, Type.CREATED, Target.TABLE, keyspace, "foo");
+    assertNextChange(observer, Type.CREATED, Target.TABLE, keyspace, "foo");
 
     // When
     session.execute("ALTER TABLE foo ADD v int");
     // Then
-    assertNextChange(changeObserver, Type.UPDATED, Target.TABLE, keyspace, "foo");
+    assertNextChange(observer, Type.UPDATED, Target.TABLE, keyspace, "foo");
 
     // When
     session.execute("DROP TABLE foo");
     // Then
-    assertNextChange(changeObserver, Type.DROPPED, Target.TABLE, keyspace, "foo");
+    assertNextChange(observer, Type.DROPPED, Target.TABLE, keyspace, "foo");
   }
 
   private void assertNextChange(
-      SchemaChangeObserver changeObserver,
+      SchemaNotificationObserver observer,
       Type type,
       Target target,
       CqlIdentifier keyspaceId,
       String name) {
-    await().until(changeObserver::hasNext);
-    SchemaChange change = changeObserver.next();
+    await().until(() -> observer.hasNext() || observer.error != null);
+    if (observer.error != null) {
+      throw observer.error;
+    }
+    SchemaNotification notification = observer.next();
+
+    SchemaChange change = notification.getChange();
     assertThat(change.getChangeType()).isEqualTo(type);
     assertThat(change.getTarget()).isEqualTo(target);
     assertThat(change.getKeyspace()).isEqualTo(keyspaceId.asInternal());
     assertThat(change.getName().getValue()).isEqualTo(name);
     assertThat(change.getArgumentTypesList()).isEmpty();
+
+    boolean isKeyspaceDrop =
+        change.getChangeType() == Type.DROPPED && change.getTarget() == Target.KEYSPACE;
+    assertThat(notification.hasKeyspace()).isEqualTo(!isKeyspaceDrop);
   }
 
-  static class SchemaChangeObserver implements StreamObserver<SchemaChange> {
+  static class SchemaNotificationObserver implements StreamObserver<SchemaNotification> {
 
-    private final ConcurrentLinkedQueue<SchemaChange> changes = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<SchemaNotification> changes = new ConcurrentLinkedQueue<>();
+    private volatile AssertionError error;
 
     boolean hasNext() {
       return !changes.isEmpty();
     }
 
-    SchemaChange next() {
+    SchemaNotification next() {
       return changes.poll();
     }
 
     @Override
-    public void onNext(SchemaChange change) {
+    public void onNext(SchemaNotification change) {
       changes.offer(change);
     }
 
     @Override
     public void onError(Throwable t) {
-      // TODO temporary, remove
-      t.printStackTrace();
+      error = new AssertionError("Unexpected onError", t);
     }
 
     @Override
     public void onCompleted() {
-      // TODO temporary, remove
-      System.out.println("Completed");
+      error = new AssertionError("Unexpected onCompleted");
     }
   }
 }
