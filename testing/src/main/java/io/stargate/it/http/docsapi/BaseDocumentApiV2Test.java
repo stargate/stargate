@@ -676,7 +676,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     r = RestUtils.put(authToken, collectionPath + "/1", obj.toString(), 400);
     assertThat(r)
         .isEqualTo(
-            "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: 3. Hint: update the parent path with a defined object instead.\",\"code\":400}");
+            "{\"description\":\"Updating a key with just a JSON primitive is not allowed. Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     obj = OBJECT_MAPPER.readTree("true");
     r = RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 400);

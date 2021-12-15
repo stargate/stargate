@@ -126,8 +126,7 @@ public class ReactiveDocumentService {
                   authenticationSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
 
               // read the root
-              // TODO proper error mapping in case of failure
-              JsonNode root = objectMapper.readTree(payload);
+              JsonNode root = readPayload(payload);
 
               // check the schema
               checkSchemaFullDocument(db, namespace, collection, root);
@@ -168,8 +167,7 @@ public class ReactiveDocumentService {
                   authenticationSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
 
               // read the root
-              // TODO proper error mapping in case of failure
-              JsonNode root = objectMapper.readTree(payload);
+              JsonNode root = readPayload(payload);
 
               // check the schema
               checkSchemaFullDocument(db, namespace, collection, root);
@@ -201,6 +199,15 @@ public class ReactiveDocumentService {
         // TODO validate unchecked better?
         throw new RuntimeException(e);
       }
+    }
+  }
+
+  private JsonNode readPayload(String payload) throws JsonProcessingException {
+    try {
+      return objectMapper.readTree(payload);
+    } catch (JsonProcessingException e) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
     }
   }
 

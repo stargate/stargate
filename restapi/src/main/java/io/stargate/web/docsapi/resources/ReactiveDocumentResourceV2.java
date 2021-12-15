@@ -42,6 +42,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -123,7 +124,9 @@ public class ReactiveDocumentResourceV2 {
           String namespace,
       @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
           String collection,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false",
@@ -195,7 +198,9 @@ public class ReactiveDocumentResourceV2 {
           String collection,
       @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
           String id,
-      @ApiParam(value = "The JSON document", required = true) String payload,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotBlank(message = "payload must not be empty")
+          String payload,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
