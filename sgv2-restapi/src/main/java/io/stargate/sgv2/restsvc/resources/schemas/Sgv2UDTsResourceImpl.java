@@ -121,6 +121,46 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
         .build();
   }
 
+  @Override
+  public Response delete(
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final String typeName,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspace(keyspaceName);
+    requireNonEmptyTypename(typeName);
+
+    String cql =
+        new QueryBuilder()
+            .drop()
+            .type(keyspaceName, typeName)
+            // 15-Dec-2021, tatu: Why no "ifExists" option? SGv1 had none which
+            //    seems inconsistent; would be good for idempotency
+            // .ifExists()
+            .build();
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    return Response.status(Response.Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response update(
+      final StargateGrpc.StargateBlockingStub blockingStub,
+      final String keyspaceName,
+      final UserDefinedTypeUpdate udtUpdate,
+      final HttpServletRequest request) {
+    requireNonEmptyKeyspace(keyspaceName);
+
+    // !!! TO IMPLEMENT
+    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods
+  /////////////////////////////////////////////////////////////////////////
+   */
+
   private List<Column> columns2columns(List<Sgv2UDT.UDTField> fields) {
     List<Column> result = new ArrayList<>();
     for (Sgv2UDT.UDTField colDef : fields) {
@@ -142,30 +182,6 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
           "There should be at least one field defined", Response.Status.BAD_REQUEST);
     }
     return result;
-  }
-
-  @Override
-  public Response delete(
-      final StargateGrpc.StargateBlockingStub blockingStub,
-      final String keyspaceName,
-      final String typeName,
-      final HttpServletRequest request) {
-    requireNonEmptyKeyspace(keyspaceName);
-
-    // !!! TO IMPLEMENT
-    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
-  }
-
-  @Override
-  public Response update(
-      final StargateGrpc.StargateBlockingStub blockingStub,
-      final String keyspaceName,
-      final UserDefinedTypeUpdate udtUpdate,
-      final HttpServletRequest request) {
-    requireNonEmptyKeyspace(keyspaceName);
-
-    // !!! TO IMPLEMENT
-    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
   }
 
   private static void requireNonEmptyTypename(String typeName) {
