@@ -16,6 +16,8 @@ import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -154,8 +156,43 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     final String typeName = udtUpdate.getName();
     requireNonEmptyTypename(typeName);
 
-    // !!! TO IMPLEMENT
-    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+    List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
+    List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
+
+    if ((addFields == null || addFields.isEmpty())
+        && (renameFields == null || renameFields.isEmpty())) {
+      return restServiceError(
+          Response.Status.BAD_REQUEST,
+          "addFields and/or renameFields is required to update an UDT");
+    }
+
+    if (addFields != null && !addFields.isEmpty()) {
+      List<Column> columns = columns2columns(addFields);
+      final String cql =
+          new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
+      QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+      /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    }
+
+    if (renameFields != null && !renameFields.isEmpty()) {
+      Map<String, String> columnRenames =
+          renameFields.stream()
+              .collect(
+                  Collectors.toMap(
+                      Sgv2UDTUpdateRequest.FieldRename::getFrom,
+                      Sgv2UDTUpdateRequest.FieldRename::getTo));
+
+      final String cql =
+          new QueryBuilder()
+              .alter()
+              .type(keyspaceName, typeName)
+              .renameColumn(columnRenames)
+              .build();
+      QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+      /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    }
+
+    return Response.status(Response.Status.OK).build();
   }
 
   /*

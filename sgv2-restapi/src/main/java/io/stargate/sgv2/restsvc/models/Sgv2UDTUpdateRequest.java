@@ -16,7 +16,7 @@ public class Sgv2UDTUpdateRequest {
   private List<Sgv2UDT.UDTField> addFields;
 
   @JsonProperty("renameFields")
-  private List<RenameUdtField> renameFields;
+  private List<FieldRename> renameFields;
 
   @ApiModelProperty(required = true, value = "User Defined Type name")
   public String getName() {
@@ -37,16 +37,17 @@ public class Sgv2UDTUpdateRequest {
   }
 
   @ApiModelProperty(value = "User Defined Type fields to rename")
-  public List<RenameUdtField> getRenameFields() {
+  public List<FieldRename> getRenameFields() {
     return renameFields;
   }
 
-  public void setRenameFields(List<RenameUdtField> renameFields) {
+  public void setRenameFields(List<FieldRename> renameFields) {
     this.renameFields = renameFields;
   }
 
+  @ApiModel(value = "UserDefinedTypeFieldRename")
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class RenameUdtField {
+  public static class FieldRename {
 
     private String from;
     private String to;
