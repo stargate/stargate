@@ -101,8 +101,8 @@
         <exclusion> <!-- conflicts with Validation API from DropWizard,
                          see https://github.com/dropwizard/dropwizard/issues/3089
                      -->
-	  <groupId>javax.validation</groupId>
-	  <artifactId>validation-api</artifactId>
+          <groupId>javax.validation</groupId>
+          <artifactId>validation-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
