@@ -78,7 +78,7 @@ public class RestDB {
   }
 
   /**
-   * Method for trying to find specific tableor materialized view that exists in given keyspace.
+   * Method for trying to find specific table or materialized view that exists in given keyspace.
    * Keyspace must exist for call to work; otherwise {@link NotFoundException} will be thrown
    *
    * @param keyspaceName Name of keyspace to look for tables (must exist)
