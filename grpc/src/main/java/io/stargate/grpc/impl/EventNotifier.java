@@ -2,8 +2,8 @@ package io.stargate.grpc.impl;
 
 import io.grpc.netty.shaded.io.grpc.netty.CustomChannelFactory;
 import io.grpc.netty.shaded.io.grpc.netty.CustomEventLoopGroup;
+import io.grpc.netty.shaded.io.grpc.netty.CustomServerTransportListener;
 import io.stargate.db.EventListenerWithChannelFilter;
-import io.stargate.grpc.service.interceptors.NewConnectionInterceptor;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
@@ -13,22 +13,21 @@ public class EventNotifier implements EventListenerWithChannelFilter {
 
   private final CustomChannelFactory customChannelFactory;
   private final CustomEventLoopGroup worker;
-  private final NewConnectionInterceptor newConnectionInterceptor;
+  private final CustomServerTransportListener serverStreamListener;
 
   public EventNotifier(
       CustomChannelFactory customChannelFactory,
       CustomEventLoopGroup worker,
-      NewConnectionInterceptor newConnectionInterceptor) {
+      CustomServerTransportListener serverStreamListener) {
     this.customChannelFactory = customChannelFactory;
     this.worker = worker;
-    this.newConnectionInterceptor = newConnectionInterceptor;
+    this.serverStreamListener = serverStreamListener;
   }
 
   @Override
   public void onClose(Predicate<Map<String, String>> headerFilter) {
     if (headerFilter != null) {
-      //      worker.closeFilter(headerFilter);
-      newConnectionInterceptor.closeFilter(headerFilter);
+      serverStreamListener.closeFilter(headerFilter);
     }
   }
 

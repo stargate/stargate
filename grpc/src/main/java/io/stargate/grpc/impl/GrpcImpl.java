@@ -19,6 +19,7 @@ import io.grpc.Server;
 import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.CustomChannelFactory;
 import io.grpc.netty.shaded.io.grpc.netty.CustomEventLoopGroup;
+import io.grpc.netty.shaded.io.grpc.netty.CustomServerTransportListener;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
@@ -70,6 +71,7 @@ public class GrpcImpl {
     CustomEventLoopGroup worker = CustomEventLoopGroup.worker();
     NewConnectionInterceptor newConnectionInterceptor =
         new NewConnectionInterceptor(persistence, authenticationService);
+    CustomServerTransportListener serverStreamListener = new CustomServerTransportListener();
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
@@ -81,10 +83,11 @@ public class GrpcImpl {
             .channelFactory(customChannelFactory)
             .workerEventLoopGroup(CustomEventLoopGroup.worker())
             .bossEventLoopGroup(CustomEventLoopGroup.boss())
+            .customListener(serverStreamListener)
             .build();
 
     EventNotifier eventNotifier =
-        new EventNotifier(customChannelFactory, worker, newConnectionInterceptor);
+        new EventNotifier(customChannelFactory, worker, serverStreamListener);
     persistence.registerEventListener(eventNotifier);
     //    Executors.newScheduledThreadPool(EXECUTOR_SIZE, GrpcUtil.getThreadFactory("dummy", true))
     //        .scheduleAtFixedRate(() -> eventNotifier.onClose(m -> true), 5, 5, TimeUnit.SECONDS);

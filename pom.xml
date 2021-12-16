@@ -37,7 +37,7 @@
     <errorprone.version>2.3.4</errorprone.version>
     <commons-io.version>2.7</commons-io.version>
     <immutables.version>2.5.6</immutables.version>
-    <grpc.version>1.42.1</grpc.version>
+    <grpc.version>1.44.0-SNAPSHOT</grpc.version>
     <caffeine.version>2.9.2</caffeine.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
   </properties>
