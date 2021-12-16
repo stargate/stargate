@@ -2466,9 +2466,9 @@ public class RestApiv2Test extends BaseIntegrationTest {
     ApiError apiError = objectMapper.readValue(response, ApiError.class);
     assertThat(apiError.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.getDescription())
-        .isEqualTo(
-            String.format(
-                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+        .contains("Bad request")
+        .contains(typeName)
+        .contains("already exists");
 
     // don't create and don't throw exception because ifNotExists = true
     udtString =
