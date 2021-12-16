@@ -1102,6 +1102,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getAllRowsFromMaterializedView(CqlSession session) throws IOException {
+    assumeThat(isCassandra4())
+        .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
+        .isFalse();
+
     createKeyspace(keyspaceName);
     tableName = "tbl_mvread_" + System.currentTimeMillis();
     createTestTable(
@@ -1118,14 +1122,17 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 Arrays.asList("id 3", "firstName Jane")));
 
     String materializedViewName = "mv_test_" + System.currentTimeMillis();
+
     ResultSet resultSet =
         session.execute(
             String.format(
-                "CREATE MATERIALIZED VIEW %s.%s "
-                    + "AS SELECT id, firstName, lastName "
-                    + "FROM %s.%s "
-                    + "WHERE lastName IS NOT NULL "
-                    + "PRIMARY KEY ((id))",
+                "CREATE MATERIALIZED VIEW \"%s\".%s "
+                    + "AS SELECT id, \"firstName\", \"lastName\" "
+                    + "FROM \"%s\".%s "
+                    + "WHERE id IS NOT NULL "
+                    + "AND \"firstName\" IS NOT NULL "
+                    + "AND \"lastName\" IS NOT NULL "
+                    + "PRIMARY KEY (id, \"lastName\")",
                 keyspaceName, materializedViewName, keyspaceName, tableName));
     assertThat(resultSet.wasApplied()).isTrue();
 

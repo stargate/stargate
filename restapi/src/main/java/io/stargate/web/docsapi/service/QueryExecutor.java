@@ -34,8 +34,8 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.BuiltSelect;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.rx.RxUtils;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.nio.ByteBuffer;
@@ -556,8 +556,8 @@ public class QueryExecutor {
     }
 
     @Value.Lazy
-    Table table() {
-      Set<Table> tables =
+    AbstractTable table() {
+      Set<AbstractTable> tables =
           selectQueries().stream().map(BuiltSelect::table).collect(Collectors.toSet());
 
       if (tables.isEmpty()) {
@@ -567,7 +567,7 @@ public class QueryExecutor {
       if (tables.size() > 1) {
         throw new IllegalArgumentException(
             "Too many tables are referenced by the provided queries: "
-                + tables.stream().map(Table::name).collect(Collectors.joining(", ")));
+                + tables.stream().map(AbstractTable::name).collect(Collectors.joining(", ")));
       }
 
       return tables.iterator().next();

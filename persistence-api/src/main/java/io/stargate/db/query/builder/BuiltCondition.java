@@ -21,11 +21,11 @@ import static java.lang.String.format;
 
 import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Predicate;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ColumnUtils;
-import io.stargate.db.schema.Table;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -73,7 +73,8 @@ public abstract class BuiltCondition {
         .build();
   }
 
-  void addToBuilder(Table table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
+  void addToBuilder(
+      AbstractTable table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
     Column receiver = lhs().appendToBuilder(table, builder, onMarker);
     builder.append(predicate().toString());
     ColumnType type = receiver.type();
@@ -169,7 +170,7 @@ public abstract class BuiltCondition {
     }
 
     abstract Column appendToBuilder(
-        Table table, QueryStringBuilder builder, Consumer<BindMarker> onMarker);
+        AbstractTable table, QueryStringBuilder builder, Consumer<BindMarker> onMarker);
 
     abstract String columnName();
 
@@ -204,7 +205,7 @@ public abstract class BuiltCondition {
 
       @Override
       Column appendToBuilder(
-          Table table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
+          AbstractTable table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
         Column column = table.existingColumn(columnName);
         builder.append(column);
         return column;
@@ -258,7 +259,7 @@ public abstract class BuiltCondition {
 
       @Override
       Column appendToBuilder(
-          Table table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
+          AbstractTable table, QueryStringBuilder builder, Consumer<BindMarker> onMarker) {
         Column column = table.existingColumn(columnName);
         ColumnType type = column.type();
         assert type != null;
