@@ -2,6 +2,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
@@ -44,6 +45,26 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
       final boolean raw,
       final HttpServletRequest request) {
     requireNonEmptyKeyspace(keyspaceName);
+
+    String cql =
+        new QueryBuilder()
+            .select()
+            .column("type_name")
+            .column("field_names")
+            .column("field_types")
+            .from("system_schema", "types")
+            .build();
+
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToArrayNode(rs);
+
+    logger.warn("JSON: " + ksRows.toPrettyString());
 
     // !!! TO IMPLEMENT
     return Response.status(Response.Status.NOT_IMPLEMENTED).build();
