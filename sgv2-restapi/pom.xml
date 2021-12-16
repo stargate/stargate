@@ -274,6 +274,11 @@
           <to>
             <image>docker.io/stargateio/stargate-restapi:${project.version}</image>
           </to>
+          <container>
+            <ports>
+              <port>8082</port>
+            </ports>
+          </container>
         </configuration>
       </plugin>
     </plugins>
