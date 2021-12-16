@@ -8,6 +8,7 @@ import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2UDT;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTAddRequest;
+import io.stargate.sgv2.restsvc.models.Sgv2UDTUpdateRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -45,8 +46,6 @@ import javax.ws.rs.core.Response;
       required = true)
 })
 public interface Sgv2UDTsResourceApi {
-  static class UserDefinedTypeUpdate {}
-
   @Timed
   @GET
   @ApiOperation(
@@ -187,6 +186,6 @@ public interface Sgv2UDTsResourceApi {
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "", required = true) @NotNull final UserDefinedTypeUpdate udtUpdate,
+      @ApiParam(value = "", required = true) @NotNull final Sgv2UDTUpdateRequest udtUpdate,
       @Context HttpServletRequest request);
 }

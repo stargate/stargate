@@ -10,6 +10,7 @@ import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.models.Sgv2UDT;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTAddRequest;
+import io.stargate.sgv2.restsvc.models.Sgv2UDTUpdateRequest;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
@@ -147,9 +148,11 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
   public Response update(
       final StargateGrpc.StargateBlockingStub blockingStub,
       final String keyspaceName,
-      final UserDefinedTypeUpdate udtUpdate,
+      final Sgv2UDTUpdateRequest udtUpdate,
       final HttpServletRequest request) {
     requireNonEmptyKeyspace(keyspaceName);
+    final String typeName = udtUpdate.getName();
+    requireNonEmptyTypename(typeName);
 
     // !!! TO IMPLEMENT
     return Response.status(Response.Status.NOT_IMPLEMENTED).build();
