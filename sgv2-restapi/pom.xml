@@ -274,12 +274,18 @@
           <to>
             <image>docker.io/stargateio/stargate-restapi:${project.version}</image>
           </to>
+          <!-- See: https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#container-object-->
           <container>
             <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
             <filesModificationTime>${maven.build.timestamp}</filesModificationTime>
             <ports>
               <port>8082</port>
             </ports>
+            <jvmFlags>
+              <jvmFlag>-Ddw.stargate.grpc.host=localhost</jvmFlag>
+              <jvmFlag>-Ddw.stargate.grpc.port=8090</jvmFlag>
+              <jvmFlag>-Ddw.server.connector.port=8082</jvmFlag>
+            </jvmFlags>
           </container>
         </configuration>
       </plugin>
