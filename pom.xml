@@ -15,6 +15,8 @@
     <doclint>none</doclint>
     <driver.version>4.9.0</driver.version>
     <xml-format.skip>true</xml-format.skip>
+
+    <!-- First DropWizard version and things it directly depends on that make sense to sync -->
     <dropwizard.version>2.0.26</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
@@ -25,21 +27,31 @@
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <jetty.version>9.4.41.v20210516</jetty.version>
-    <slf4j.version>1.7.30</slf4j.version>
-    <logback.version>1.2.3</logback.version>
+    <jetty.version>9.4.44.v20210927</jetty.version>
+    <!-- Logging framework likewise in sync -->
+    <slf4j.version>1.7.32</slf4j.version>
+    <logback.version>1.2.8</logback.version>
+
+    <!-- And then other 3rd party version dependencies, compile/runtime -->
+
+    <caffeine.version>2.9.3</caffeine.version>
+    <commons-io.version>2.7</commons-io.version>
+    <grpc.version>1.42.1</grpc.version>
+    <immutables.version>2.5.6</immutables.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.7.3</micrometer.version>
     <prometheus.version>0.10.0</prometheus.version>
-    <junit.version>5.7.0</junit.version>
-    <mockito.version>3.5.13</mockito.version>
-    <jacoco.version>0.8.6</jacoco.version>
-    <errorprone.version>2.3.4</errorprone.version>
-    <commons-io.version>2.7</commons-io.version>
-    <immutables.version>2.5.6</immutables.version>
-    <grpc.version>1.42.1</grpc.version>
-    <caffeine.version>2.9.2</caffeine.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
+
+    <!-- And finally test/build deps -->
+
+    <!-- 16-Dec-2021, tatu:  This is an old version (2.10.0 now latest)
+        but build fails with newer versions so keeping at this level
+      -->
+    <errorprone.version>2.3.4</errorprone.version>
+    <jacoco.version>0.8.6</jacoco.version>
+    <junit.version>5.8.2</junit.version>
+    <mockito.version>3.5.13</mockito.version>
   </properties>
   <dependencies>
     <!-- Basic OSGi dependency, provided by container -->
