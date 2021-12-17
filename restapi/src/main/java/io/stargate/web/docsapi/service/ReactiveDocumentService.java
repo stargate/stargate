@@ -120,10 +120,7 @@ public class ReactiveDocumentService {
 
               // authentication for writing before anything
               // we don't need the DELETE scope here
-              AuthorizationService authorizationService = db.getAuthorizationService();
-              AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-              authorizationService.authorizeDataWrite(
-                  authenticationSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+              authorizeWrite(db, namespace, collection, Scope.MODIFY);
 
               // read the root
               JsonNode root = readPayload(payload);
@@ -159,12 +156,7 @@ public class ReactiveDocumentService {
     return Single.defer(
             () -> {
               // authentication for writing before anything
-              AuthorizationService authorizationService = db.getAuthorizationService();
-              AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-              authorizationService.authorizeDataWrite(
-                  authenticationSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
-              authorizationService.authorizeDataWrite(
-                  authenticationSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+              authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
 
               // read the root
               JsonNode root = readPayload(payload);
@@ -187,28 +179,6 @@ public class ReactiveDocumentService {
                   context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
-  }
-
-  private void checkSchemaFullDocument(
-      DocumentDB db, String namespace, String collection, JsonNode root) {
-    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
-    if (null != schema) {
-      try {
-        jsonSchemaHandler.validate(schema, root);
-      } catch (ProcessingException e) {
-        // TODO validate unchecked better?
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  private JsonNode readPayload(String payload) throws JsonProcessingException {
-    try {
-      return objectMapper.readTree(payload);
-    } catch (JsonProcessingException e) {
-      throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
-    }
   }
 
   /**
@@ -242,10 +212,7 @@ public class ReactiveDocumentService {
           Collection<List<String>> fieldPaths = getFields(fields);
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // call the search service
           return searchService
@@ -334,10 +301,7 @@ public class ReactiveDocumentService {
           Collection<List<String>> fieldPaths = getFields(fields);
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // we need to check that we have no globs and transform the stuff to support array
           // elements
@@ -510,10 +474,7 @@ public class ReactiveDocumentService {
           }
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // we need to check that we have no globs and transform the stuff to support array
           // elements
@@ -565,7 +526,7 @@ public class ReactiveDocumentService {
    * <p>Currently supports the functions $push and $pop, which write to the end of or remove a value
    * from the end of an array, respectively.
    *
-   * @param db
+   * @param db @link DocumentDB} to execute the function in
    * @param keyspace the keyspace to execute the function against
    * @param collection the collection to execute the function against
    * @param id the document ID to execute the function against
@@ -573,7 +534,6 @@ public class ReactiveDocumentService {
    * @param path the path within the document
    * @param context execution context
    * @return Maybe containing DocumentResponseWrapper with result node of the function
-   * @throws UnauthorizedException
    */
   public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
       DocumentDB db,
@@ -582,8 +542,7 @@ public class ReactiveDocumentService {
       String id,
       ExecuteBuiltInFunction funcPayload,
       List<PathSegment> path,
-      ExecutionContext context)
-      throws UnauthorizedException {
+      ExecutionContext context) {
     return Maybe.defer(
         () -> {
           List<String> pathString =
@@ -759,6 +718,9 @@ public class ReactiveDocumentService {
       throws UnauthorizedException {
     List<String> processedPath = processSubDocumentPath(pathString);
 
+    // TODO use here the new shredder and move to the new writer once we implement the write with
+    // sub-path
+
     List<Object[]> bindParams =
         docsShredder.shredPayload(
                 JsonSurferJackson.INSTANCE,
@@ -811,7 +773,11 @@ public class ReactiveDocumentService {
             });
   }
 
-  public ObjectNode createJsonMap(
+  /////////////////////
+  // Object helpers  //
+  /////////////////////
+
+  private ObjectNode createJsonMap(
       DocumentDB db,
       List<RawDocument> docs,
       Collection<List<String>> fieldPaths,
@@ -828,7 +794,7 @@ public class ReactiveDocumentService {
     return docsResult;
   }
 
-  public ArrayNode createJsonArray(
+  private ArrayNode createJsonArray(
       DocumentDB db,
       List<RawDocument> docs,
       Collection<List<String>> fieldPaths,
@@ -849,7 +815,7 @@ public class ReactiveDocumentService {
     return docsResult;
   }
 
-  public JsonNode documentToNode(
+  private JsonNode documentToNode(
       RawDocument doc,
       Collection<List<String>> fieldPaths,
       boolean writeAllPathsAsObjects,
@@ -858,7 +824,7 @@ public class ReactiveDocumentService {
     return documentToNode(doc, fieldPaths, collector, writeAllPathsAsObjects, numericBooleans);
   }
 
-  public JsonNode documentToNode(
+  private JsonNode documentToNode(
       RawDocument doc,
       Collection<List<String>> fieldPaths,
       DeadLeafCollector collector,
@@ -878,5 +844,57 @@ public class ReactiveDocumentService {
 
     // create document node and set to result
     return jsonConverter.convertToJsonDoc(rows, collector, writeAllPathsAsObjects, numericBooleans);
+  }
+
+  /////////////////////
+  /// Write helpers ///
+  /////////////////////
+
+  // checks that node is in alignment with schema if exists
+  private void checkSchemaFullDocument(
+      DocumentDB db, String namespace, String collection, JsonNode root) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (null != schema) {
+      try {
+        jsonSchemaHandler.validate(schema, root);
+      } catch (ProcessingException e) {
+        // TODO validate unchecked better?
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  // reads JSON payload
+  private JsonNode readPayload(String payload) throws JsonProcessingException {
+    try {
+      return objectMapper.readTree(payload);
+    } catch (JsonProcessingException e) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
+    }
+  }
+
+  /////////////////////
+  ///  Auth helpers ///
+  /////////////////////
+
+  // authorizes read
+  private void authorizeRead(DocumentDB db, String namespace, String collection)
+      throws UnauthorizedException {
+    AuthorizationService authorizationService = db.getAuthorizationService();
+    AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+    authorizationService.authorizeDataRead(
+        authenticationSubject, namespace, collection, SourceAPI.REST);
+  }
+
+  // authorizes write on the given scopes
+  private void authorizeWrite(DocumentDB db, String namespace, String collection, Scope... scopes)
+      throws UnauthorizedException {
+    AuthorizationService authorizationService = db.getAuthorizationService();
+    AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+    for (Scope scope : scopes) {
+      authorizationService.authorizeDataWrite(
+          authenticationSubject, namespace, collection, scope, SourceAPI.REST);
+    }
   }
 }
