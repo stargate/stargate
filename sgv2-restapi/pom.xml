@@ -275,6 +275,8 @@
             <image>docker.io/stargateio/stargate-restapi:${project.version}</image>
           </to>
           <container>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <filesModificationTime>${maven.build.timestamp}</filesModificationTime>
             <ports>
               <port>8082</port>
             </ports>
