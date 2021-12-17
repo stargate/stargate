@@ -183,18 +183,6 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
-  public void testBasicForms() throws IOException {
-    RestUtils.putForm(authToken, collectionPath + "/1", "a=b&b=null&c.b=3.3&d.[0].[2]=true", 200);
-
-    String resp = RestUtils.get(authToken, collectionPath + "/1", 200);
-    JsonNode expected =
-        OBJECT_MAPPER.readTree(
-            "{\"a\":\"b\", \"b\":null, \"c\":{\"b\": 3.3}, \"d\":[[null, null, true]]}");
-    assertThat(OBJECT_MAPPER.readTree(resp).toString())
-        .isEqualTo(wrapResponse(expected, "1", null).toString());
-  }
-
-  @Test
   public void testInvalidKeyspaceAndTable() throws IOException {
     JsonNode obj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));

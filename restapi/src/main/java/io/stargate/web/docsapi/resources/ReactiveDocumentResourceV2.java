@@ -108,7 +108,7 @@ public class ReactiveDocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("collections/{collection-id}")
-  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void postDoc(
       @Context HttpHeaders headers,
@@ -180,7 +180,7 @@ public class ReactiveDocumentResourceV2 {
         @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
       })
   @Path("collections/{collection-id}/{document-id}")
-  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void putDoc(
       @Context HttpHeaders headers,
