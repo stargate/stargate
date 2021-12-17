@@ -2755,7 +2755,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
     assertThat(fields.size()).isEqualTo(1);
     assertThat(fields.get(0).get("name")).isEqualTo("firstname");
-    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("text");
   }
 
   @Test
