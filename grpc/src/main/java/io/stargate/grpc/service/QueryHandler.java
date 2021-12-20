@@ -79,7 +79,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
     long queryStartNanoTime = System.nanoTime();
 
     QueryParameters parameters = message.getParameters();
-
+    System.out.println("Executing: " + prepared);
     try {
       return connection.execute(
           bindValues(prepared, message.getValues()),
@@ -92,6 +92,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   @Override
   protected CompletionStage<ResponseAndTraceId> buildResponse(Result result) {
+    System.out.println("buildResponse: " + result);
     Response.Builder responseBuilder = makeResponseBuilder(result);
     switch (result.kind) {
       case Void:

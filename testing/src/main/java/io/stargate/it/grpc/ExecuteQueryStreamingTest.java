@@ -62,7 +62,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
         new StreamObserver<Response>() {
           @Override
           public void onNext(Response value) {
-            System.out.println("onNext: " + value);
+            System.out.println("client onNext: " + value);
             responses.add(value);
           }
 
@@ -71,7 +71,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
           @Override
           public void onCompleted() {
-            System.out.println("completed");
+            System.out.println("client completed");
           }
         };
 
@@ -87,13 +87,13 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
             Values.of("b"),
             Values.of(2)));
 
+    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
+
     requestObserver.onNext(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
-
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 3);
-
     // TODO PROBLEM - if we call onComplete before, all onNext calls are not executed
-    // onCompleted terminates all the calls
+    // onCompleted terminates all the calls - solved by inFlght counter
     requestObserver.onCompleted();
+    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 3);
 
     assertThat(responses.get(0)).isNotNull();
     assertThat(responses.get(1)).isNotNull();
@@ -102,7 +102,8 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet();
     // todo problem - all inserted records may be not visible to the 3rd query (SELECT)
-    // because all calls are non-blocking
+    // because all calls are non-blocking. Therefore, Bi-directional should not mix INSERTs with
+    // SELECTs
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(

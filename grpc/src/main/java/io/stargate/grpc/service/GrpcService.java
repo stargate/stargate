@@ -26,6 +26,7 @@ import io.stargate.proto.QueryOuterClass.Response;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
@@ -73,15 +74,21 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public StreamObserver<Query> executeQueryStream(StreamObserver<Response> responseObserver) {
     return new StreamObserver<Query>() {
+      final AtomicLong inFlight = new AtomicLong(0);
+
       @Override
       public void onNext(Query query) {
+        inFlight.incrementAndGet();
+        System.out.println(
+            "Server side onNext for: " + query + " thread: " + Thread.currentThread().getName());
         new StreamingQueryHandler(
                 query,
                 CONNECTION_KEY.get(),
                 persistence,
                 executor,
                 schemaAgreementRetries,
-                responseObserver)
+                responseObserver,
+                inFlight)
             .handle();
       }
 
@@ -92,6 +99,16 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
       @Override
       public void onCompleted() {
+        System.out.println(
+            "onCompleted server side "
+                + " thread: "
+                + Thread.currentThread().getName()
+                + " inFlight: "
+                + inFlight.get());
+        while (inFlight.get() > 0) {
+          // todo do we want to wait until in-flight is empty?
+          System.out.println("waiting while inFlight = 0");
+        }
         responseObserver.onCompleted();
       }
     };
