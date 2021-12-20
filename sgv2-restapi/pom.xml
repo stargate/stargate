@@ -281,11 +281,24 @@
             <ports>
               <port>8082</port>
             </ports>
+            <environment>
+              <STARGATE_GRPC_HOST>localhost</STARGATE_GRPC_HOST>
+              <STARGATE_GRPC_PORT>8090</STARGATE_GRPC_PORT>
+              <STARGATE_REST_PORT>8082</STARGATE_REST_PORT>
+            </environment>
             <jvmFlags>
-              <jvmFlag>-Ddw.stargate.grpc.host=localhost</jvmFlag>
-              <jvmFlag>-Ddw.stargate.grpc.port=8090</jvmFlag>
-              <jvmFlag>-Ddw.server.connector.port=8082</jvmFlag>
+              <jvmFlag></jvmFlag>
             </jvmFlags>
+            <args>
+              <arg>-Ddw.stargate.grpc.host=$STARGATE_GRPC_HOST</arg>
+              <arg>-Ddw.stargate.grpc.port=$STARGATE_GRPC_PORT</arg>
+              <arg>-Ddw.server.connector.port=$STARGATE_REST_PORT</arg>
+            </args>
+            <entrypoint>
+              <arg>/bin/sh</arg>
+              <arg>-c</arg>
+              <arg>exec java $JAVA_OPTS $ARGS -cp $( cat /app/jib-classpath-file ) $( cat /app/jib-main-class-file )</arg>
+            </entrypoint>
           </container>
         </configuration>
       </plugin>
