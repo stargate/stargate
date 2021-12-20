@@ -302,7 +302,10 @@ public class ValidatingDataStore implements DataStore {
       }
 
       assertThat(this.batchType)
-          .withFailMessage("Query does not match the expected batch type.")
+          .withFailMessage(
+              String.format(
+                  "Query with pattern %s does not match the expected batch type %s.",
+                  cqlPattern, batchType))
           .isEqualTo(batchType);
 
       ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
