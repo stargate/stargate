@@ -80,3 +80,26 @@ Note: need to prefix properties with `dw.` when passing in command-line; include
 * `dw.stargate.grpc.host` (default: `localhost`): Host where gRPC service to use runs on
 * `dw.stargate.grpc.port` (default: `8090`): Port number of gRPC service to use runs on
 
+## Running in Docker
+
+This module is configured to build Docker containers using [jib](https://github.com/GoogleContainerTools/jib). 
+
+To publish to a local Docker registry, you'll need to first execute a build at the base Stargate project level to build dependencies, for example:
+
+```
+mvn clean package
+```
+
+Then you can (re)compile and (re)build the docker container as follows:
+
+```
+mvn -pl sgv2-restapi compile jib:dockerBuild
+```
+
+The container exposes the following environment variables which can be overridden to configure how the service locates the Stargate backend (coordinator nodes) and exposes its own interface:
+
+| Variable           | Description |
+| ------------------ | ----------- |
+| STARGATE_GRPC_HOST | The name or IP address of the server or service providing the gRPC backend. Defaults to `localhost` for ease of use in development.   |
+| STARGATE_GRPC_PORT | The port number of the gRPC backend. Defaults to `8090`. |
+| STARGATE_REST_PORT | The port number on which to expose the REST API. Defaults to `8082`. |
