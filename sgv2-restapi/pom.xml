@@ -286,9 +286,6 @@
               <STARGATE_GRPC_PORT>8090</STARGATE_GRPC_PORT>
               <STARGATE_REST_PORT>8082</STARGATE_REST_PORT>
             </environment>
-            <jvmFlags>
-              <jvmFlag></jvmFlag>
-            </jvmFlags>
             <args>
               <arg>-Ddw.stargate.grpc.host=$STARGATE_GRPC_HOST</arg>
               <arg>-Ddw.stargate.grpc.port=$STARGATE_GRPC_PORT</arg>
