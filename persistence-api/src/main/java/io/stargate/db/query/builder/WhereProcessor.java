@@ -12,10 +12,10 @@ import io.stargate.db.query.RowsRange;
 import io.stargate.db.query.RowsRange.Bound;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.TypedValue.Codec;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.db.schema.Table;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,13 +40,13 @@ abstract class WhereProcessor {
     PARTITION_RANGE
   }
 
-  private final Table table;
+  private final AbstractTable table;
   private final Codec valueCodec;
   private final List<Column> primaryKeys;
   private PKCondition[] pkConditions;
   private boolean shouldIgnorePkConditions;
 
-  WhereProcessor(Table table, Codec valueCodec) {
+  WhereProcessor(AbstractTable table, Codec valueCodec) {
     this.table = table;
     this.valueCodec = valueCodec;
     this.primaryKeys = table.primaryKeyColumns();

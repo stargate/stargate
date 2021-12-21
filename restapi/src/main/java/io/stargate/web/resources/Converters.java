@@ -31,13 +31,13 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.Value;
 import io.stargate.db.query.builder.ValueModifier;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ParameterizedType.TupleType;
 import io.stargate.db.schema.ReservedKeywords;
-import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.web.restapi.models.ClusteringExpression;
 import io.stargate.web.restapi.models.ColumnDefinition;
@@ -165,7 +165,7 @@ public class Converters {
     return cqlValue;
   }
 
-  public static BuiltCondition idToWhere(String val, String name, Table tableData) {
+  public static BuiltCondition idToWhere(String val, String name, AbstractTable tableData) {
     Column column = tableData.column(name);
     if (column == null) {
       throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
@@ -180,7 +180,7 @@ public class Converters {
     return BuiltCondition.of(name, Predicate.EQ, value);
   }
 
-  public static ValueModifier colToValue(String name, Object value, Table tableData) {
+  public static ValueModifier colToValue(String name, Object value, AbstractTable tableData) {
     Column column = tableData.column(name);
     if (column == null) {
       throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));

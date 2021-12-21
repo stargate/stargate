@@ -21,6 +21,7 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -270,7 +271,7 @@ public class TableResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           final List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()

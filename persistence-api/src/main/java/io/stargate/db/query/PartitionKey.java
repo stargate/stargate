@@ -2,8 +2,8 @@ package io.stargate.db.query;
 
 import static java.lang.String.format;
 
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import java.util.List;
 
 /**
@@ -14,7 +14,8 @@ import java.util.List;
  * primary key of, and that the order of values corresponds to those keys as well.
  */
 public class PartitionKey extends SchemaKey {
-  public PartitionKey(Table table, List<TypedValue> values) {
+
+  public PartitionKey(AbstractTable table, List<TypedValue> values) {
     super(table, values);
   }
 

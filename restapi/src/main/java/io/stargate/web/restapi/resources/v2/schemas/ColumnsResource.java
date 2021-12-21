@@ -21,11 +21,11 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
@@ -109,7 +109,7 @@ public class ColumnsResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata;
+          final AbstractTable tableMetadata;
           try {
             tableMetadata = restDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
@@ -259,7 +259,7 @@ public class ColumnsResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata;
+          final AbstractTable tableMetadata;
           try {
             tableMetadata = restDB.getTable(keyspaceName, tableName);
           } catch (Exception e) {
