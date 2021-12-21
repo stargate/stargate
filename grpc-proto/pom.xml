@@ -31,7 +31,6 @@
       <artifactId>grpc-stub</artifactId>
       <version>${grpc.version}</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.salesforce.servicelibs/reactor-grpc-stub -->
     <dependency>
       <groupId>com.salesforce.servicelibs</groupId>
       <artifactId>reactor-grpc-stub</artifactId>

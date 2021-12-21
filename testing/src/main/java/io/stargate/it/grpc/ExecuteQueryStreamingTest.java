@@ -87,11 +87,12 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
             Values.of("b"),
             Values.of(2)));
 
+    // all inserted records may be not visible to the 3rd query (SELECT)
+    // because all calls are non-blocking. Therefore, we need to wait for response of two insert
+    // queries
     Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
 
     requestObserver.onNext(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
-    // TODO PROBLEM - if we call onComplete before, all onNext calls are not executed
-    // onCompleted terminates all the calls - solved by inFlght counter
     requestObserver.onCompleted();
     Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 3);
 
@@ -101,9 +102,6 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet();
-    // all inserted records may be not visible to the 3rd query (SELECT)
-    // because all calls are non-blocking. Therefore, Bi-directional should not mix INSERTs with
-    // SELECTs
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
