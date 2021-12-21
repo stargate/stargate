@@ -260,6 +260,67 @@
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
+      <!-- Plugin for building Docker images -->
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>3.1.4</version>
+        <configuration>
+          <from>
+            <image>openjdk:8u292-slim</image>
+          </from>
+          <to>
+            <image>docker.io/stargateio/stargate-4_0:v${project.version}</image>
+          </to>
+          <containerizingMode>packaged</containerizingMode>
+          <!-- See: https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#container-object-->
+          <container>
+            <mainClass>io.stargate.starter.Starter</mainClass>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <filesModificationTime>${maven.build.timestamp}</filesModificationTime>
+            <ports>
+              <!-- GraphQL (can remove when endpoint removed in SGv2) -->
+              <port>8080</port>
+              <!-- Auth (can remove when endpoint removed in SGv2) -->
+              <port>8081</port>
+              <!-- Health (can remove when endpoint removed in SGv2) -->
+              <port>8084</port>
+            </ports>
+            <entrypoint>
+              <arg>./starctl</arg>
+            </entrypoint>
+          </container>
+          <extraDirectories>
+            <paths>
+              <path>
+                <from>../stargate-lib/</from>
+                <into>/stargate-lib</into>
+                <includes>*.jar</includes>
+                <excludes>persistence*.jar</excludes>
+              </path>
+              <path>
+                <from>../stargate-lib/</from>
+                <into>/stargate-lib</into>
+                <includes>
+                  <include>persistence-api*.jar</include>
+                  <include>persistence-cassandra-4.0*.jar</include>
+                </includes>
+              </path>
+              <path>
+                <from>..</from>
+                <into>/</into>
+                <includes>starctl</includes>
+              </path>
+            </paths>
+            <permissions>
+              <permission>
+                <file>/starctl</file>
+                <mode>755</mode>
+              </permission>
+            </permissions>
+          </extraDirectories>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <profiles>
