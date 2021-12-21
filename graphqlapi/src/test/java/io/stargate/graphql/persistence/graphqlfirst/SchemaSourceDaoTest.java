@@ -15,7 +15,11 @@
  */
 package io.stargate.graphql.persistence.graphqlfirst;
 
-import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.*;
+import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.CONTENTS_COLUMN_NAME;
+import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.EXPECTED_TABLE;
+import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.KEYSPACE_NAME;
+import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.VERSION_COLUMN_NAME;
+import static io.stargate.graphql.persistence.graphqlfirst.SchemaSourceDao.parseReplication;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -28,9 +32,17 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.Replication;
-import io.stargate.db.schema.*;
+import io.stargate.db.schema.ImmutableKeyspace;
+import io.stargate.db.schema.ImmutableSchema;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.Schema;
 import io.stargate.graphql.schema.graphqlfirst.util.Uuids;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

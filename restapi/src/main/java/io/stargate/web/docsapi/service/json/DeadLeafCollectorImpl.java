@@ -1,6 +1,9 @@
 package io.stargate.web.docsapi.service.json;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class DeadLeafCollectorImpl implements DeadLeafCollector {
   private Map<String, Set<DeadLeaf>> deadPaths;
