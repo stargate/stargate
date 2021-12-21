@@ -61,7 +61,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
 
   private final boolean evaluateOnMissing;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   public OrExpressionDocumentsResolver(
       Or<FilterExpression> expression, ExecutionContext context, DocsApiConfiguration config) {

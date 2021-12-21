@@ -56,7 +56,7 @@ public abstract class BaseActivator implements BundleActivator {
 
   public Tracker tracker;
 
-  private List<ServiceRegistration<?>> targetServiceRegistrations = new ArrayList<>();
+  private final List<ServiceRegistration<?>> targetServiceRegistrations = new ArrayList<>();
 
   /** @param activatorName - The name used when logging the progress of registration. */
   public BaseActivator(String activatorName) {
@@ -353,7 +353,7 @@ public abstract class BaseActivator implements BundleActivator {
   }
 
   public static class LazyServicePointer<T> extends Service<T> {
-    private AtomicReference<T> service = new AtomicReference<>();
+    private final AtomicReference<T> service = new AtomicReference<>();
 
     private LazyServicePointer(Class<T> expectedClass, String identifier) {
       this.expectedClass = expectedClass;

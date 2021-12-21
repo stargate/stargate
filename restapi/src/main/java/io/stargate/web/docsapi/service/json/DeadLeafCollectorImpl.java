@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class DeadLeafCollectorImpl implements DeadLeafCollector {
-  private Map<String, Set<DeadLeaf>> deadPaths;
+  private final Map<String, Set<DeadLeaf>> deadPaths;
 
   public DeadLeafCollectorImpl() {
     deadPaths = new HashMap<>();

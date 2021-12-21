@@ -582,11 +582,7 @@ public class RowResource {
       return false;
     } else if (filter.getOperator() == null) {
       return false;
-    } else if (filter.getValue() == null || filter.getValue().size() == 0) {
-      return false;
-    }
-
-    return true;
+    } else return filter.getValue() != null && filter.getValue().size() != 0;
   }
 
   private List<BuiltCondition> buildWhereFromOperators(

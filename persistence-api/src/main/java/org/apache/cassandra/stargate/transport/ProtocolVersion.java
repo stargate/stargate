@@ -67,7 +67,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   /** All supported versions, published as an enumset */
   public static final EnumSet<ProtocolVersion> SUPPORTED =
-      EnumSet.copyOf(Arrays.asList((ProtocolVersion[]) SUPPORTED_VERSIONS));
+      EnumSet.copyOf(Arrays.asList(SUPPORTED_VERSIONS));
 
   /** Old unsupported versions, this is OK as long as we never add newer unsupported versions */
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);

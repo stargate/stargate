@@ -46,7 +46,7 @@ public class AuthChallenge extends Message.Response {
         }
       };
 
-  private byte[] token;
+  private final byte[] token;
 
   public AuthChallenge(byte[] token) {
     super(Message.Type.AUTH_CHALLENGE);

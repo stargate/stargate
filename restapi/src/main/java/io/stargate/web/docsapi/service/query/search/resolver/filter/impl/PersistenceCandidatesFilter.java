@@ -48,7 +48,7 @@ public class PersistenceCandidatesFilter implements CandidatesFilter {
 
   private final ExecutionContext context;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   private PersistenceCandidatesFilter(
       Collection<FilterExpression> expressions,

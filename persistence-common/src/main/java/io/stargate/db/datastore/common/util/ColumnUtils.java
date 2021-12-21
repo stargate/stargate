@@ -69,7 +69,7 @@ import org.immutables.value.Value;
 
 public class ColumnUtils {
   public static final Pattern WHITESPACE_PATTERN = Pattern.compile("(?U)\\s");
-  private static ZoneId UTC = ZoneId.of("UTC");
+  private static final ZoneId UTC = ZoneId.of("UTC");
 
   @Value.Immutable(prehash = true)
   abstract static class Codecs {
@@ -190,21 +190,19 @@ public class ColumnUtils {
             !type.isFrozen());
       case Tuple:
         return new org.apache.cassandra.db.marshal.TupleType(
-            (List)
-                type.parameters().stream()
-                    .map(p -> toInternalType(p))
-                    .collect(toList())); // TODO: Always frozen?
+            type.parameters().stream()
+                .map(p -> toInternalType(p))
+                .collect(toList())); // TODO: Always frozen?
       case UDT:
         UserDefinedType udt = (UserDefinedType) type;
         udt.checkKeyspaceSet();
         return new UserType(
             udt.keyspace(),
             ByteBuffer.wrap(udt.name().getBytes(StandardCharsets.UTF_8)),
-            (List)
-                udt.columns().stream()
-                    .map(c -> FieldIdentifier.forInternalString(c.name()))
-                    .collect(toList()),
-            (List) udt.columns().stream().map(c -> toInternalType(c.type())).collect(toList()),
+            udt.columns().stream()
+                .map(c -> FieldIdentifier.forInternalString(c.name()))
+                .collect(toList()),
+            udt.columns().stream().map(c -> toInternalType(c.type())).collect(toList()),
             !type.isFrozen());
       default:
         return CODECS.get(type.rawType()).internalType();

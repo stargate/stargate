@@ -234,7 +234,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       logger.debug(
           "authorized statement of type {} on {}.{}",
-          castStatement.getClass().toString(),
+          castStatement.getClass(),
           castStatement.keyspace(),
           castStatement.columnFamily());
     } else if (statement instanceof ModificationStatement) {
@@ -264,7 +264,7 @@ public class StargateQueryHandler implements QueryHandler {
 
       logger.debug(
           "authorized statement of type {} on {}.{}",
-          castStatement.getClass().toString(),
+          castStatement.getClass(),
           castStatement.keyspace(),
           castStatement.name());
     } else if (statement instanceof SchemaTransformation) {
@@ -330,7 +330,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     logger.debug(
         "authorized statement of type {} on {}.{}",
-        castStatement.getClass().toString(),
+        castStatement.getClass(),
         castStatement.keyspace(),
         castStatement.columnFamily());
   }
@@ -361,8 +361,7 @@ public class StargateQueryHandler implements QueryHandler {
             String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
-      logger.debug(
-          "authorized statement of type {} on {}", castStatement.getClass().toString(), role);
+      logger.debug("authorized statement of type {} on {}", castStatement.getClass(), role);
       return;
     } else if (statement instanceof DropRoleStatement) {
       DropRoleStatement stmt = (DropRoleStatement) castStatement;
@@ -390,8 +389,7 @@ public class StargateQueryHandler implements QueryHandler {
           String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
     }
 
-    logger.debug(
-        "authorized statement of type {} on {}", castStatement.getClass().toString(), role);
+    logger.debug("authorized statement of type {} on {}", castStatement.getClass(), role);
   }
 
   private void authorizeAuthorizationStatement(
@@ -420,8 +418,7 @@ public class StargateQueryHandler implements QueryHandler {
             e);
       }
 
-      logger.debug(
-          "authorized statement of type {} on {}", castStatement.getClass().toString(), resource);
+      logger.debug("authorized statement of type {} on {}", castStatement.getClass(), resource);
     } else if (statement instanceof ListRolesStatement) {
       ListRolesStatement stmt = (ListRolesStatement) castStatement;
       String role = getRoleResourceFromStatement(stmt, "grantee");
@@ -437,8 +434,7 @@ public class StargateQueryHandler implements QueryHandler {
             String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
-      logger.debug(
-          "authorized statement of type {} on {}", castStatement.getClass().toString(), role);
+      logger.debug("authorized statement of type {} on {}", castStatement.getClass(), role);
     } else if (statement instanceof ListPermissionsStatement) {
       ListPermissionsStatement stmt = (ListPermissionsStatement) castStatement;
       String role = getRoleResourceFromStatement(stmt, "grantee");
@@ -454,8 +450,7 @@ public class StargateQueryHandler implements QueryHandler {
             String.format("Missing correct permission on role %s: %s", role, e.getMessage()), e);
       }
 
-      logger.debug(
-          "authorized statement of type {} on {}", castStatement.getClass().toString(), role);
+      logger.debug("authorized statement of type {} on {}", castStatement.getClass(), role);
     }
   }
 
@@ -650,7 +645,7 @@ public class StargateQueryHandler implements QueryHandler {
 
     logger.debug(
         "authorized statement of type {} on {}.{}",
-        castStatement.getClass().toString(),
+        castStatement.getClass(),
         keyspaceName,
         tableName);
   }

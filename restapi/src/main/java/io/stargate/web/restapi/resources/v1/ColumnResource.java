@@ -67,7 +67,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Singleton
 public class ColumnResource {
 
-  private RestDBFactory dbFactory;
+  private final RestDBFactory dbFactory;
 
   @Inject
   public ColumnResource(RestDBFactory db) {

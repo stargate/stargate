@@ -23,7 +23,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BuiltInApiFunctionResponse {
 
-  private List<BuiltInApiFunction> functions;
+  private final List<BuiltInApiFunction> functions;
 
   @JsonProperty("functions")
   public List<BuiltInApiFunction> getFunctions() {

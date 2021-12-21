@@ -292,10 +292,8 @@ public abstract class Result {
       this.target = target;
       this.keyspace = keyspace;
       this.name = name;
-      if (!target.equals("KEYSPACE")) {
-        assert this.name != null
-            : "Table, type, function or aggregate name should be set for non-keyspace schema change events";
-      }
+      assert target.equals("KEYSPACE") || this.name != null
+          : "Table, type, function or aggregate name should be set for non-keyspace schema change events";
       this.argTypes = argTypes;
     }
   }
