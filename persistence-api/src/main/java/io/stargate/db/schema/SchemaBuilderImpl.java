@@ -51,27 +51,27 @@ import java.util.stream.Collectors;
     })
 public class SchemaBuilderImpl {
 
-  private final Set<Keyspace> keyspaces = new LinkedHashSet<>();
-  private final Set<Table> tables = new LinkedHashSet<>();
-  private final Set<Column> columns = new LinkedHashSet<>();
-  private final Set<Column> materializedViewColumns = new LinkedHashSet<>();
-  private final Set<Index> indexes = new LinkedHashSet<>();
+  private Set<Keyspace> keyspaces = new LinkedHashSet<>();
+  private Set<Table> tables = new LinkedHashSet<>();
+  private Set<Column> columns = new LinkedHashSet<>();
+  private Set<Column> materializedViewColumns = new LinkedHashSet<>();
+  private Set<Index> indexes = new LinkedHashSet<>();
   private String keyspaceName;
   private String tableName;
   private String materializedViewName;
   private Column secondaryIndexColumn;
   private String secondaryIndexName;
-  private final Optional<Consumer<Schema>> callback;
+  private Optional<Consumer<Schema>> callback;
   private String udtTypeName;
-  private final Set<UserDefinedType> udts = new LinkedHashSet<>();
+  private Set<UserDefinedType> udts = new LinkedHashSet<>();
   private boolean indexKeys;
   private boolean indexValues;
   private boolean indexEntries;
   private boolean indexFull;
   private String indexClass;
   private Map<String, String> indexOptions = new HashMap<>();
-  private final List<Column> fromColumns = new ArrayList<>();
-  private final List<Column> toColumns = new ArrayList<>();
+  private List<Column> fromColumns = new ArrayList<>();
+  private List<Column> toColumns = new ArrayList<>();
   private Map<String, String> replication = Collections.emptyMap();
   private Optional<Boolean> durableWrites = Optional.empty();
 
