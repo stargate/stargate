@@ -16,13 +16,14 @@
     </repository>
   </repositories>
   <dependencies>
-    <!-- Stargate -->
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -34,7 +35,8 @@
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- Other, runtime -->
+
+    <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
@@ -69,6 +71,7 @@
       <groupId>com.google.errorprone</groupId>
       <artifactId>error_prone_annotations</artifactId>
     </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

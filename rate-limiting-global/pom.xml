@@ -9,6 +9,7 @@
   <groupId>io.stargate.db.limiter.global</groupId>
   <artifactId>rate-limiting-global</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>

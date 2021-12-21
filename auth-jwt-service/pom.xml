@@ -9,6 +9,8 @@
   <groupId>io.stargate.auth.jwt</groupId>
   <artifactId>auth-jwt-service</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
+
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>
@@ -21,6 +23,8 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
@@ -31,6 +35,8 @@
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>9.0.1</version>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

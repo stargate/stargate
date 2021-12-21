@@ -18,11 +18,7 @@
     <cassandra.bundled-driver.version>3.11.0</cassandra.bundled-driver.version>
   </properties>
   <dependencies>
-    <dependency>
-      <groupId>org.immutables</groupId>
-      <artifactId>value</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
@@ -40,6 +36,14 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authnz</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
@@ -61,6 +65,24 @@
       <version>${cassandra.bundled-driver.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${driver.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.gridkit.jvmtool</groupId>
       <artifactId>sjk-core</artifactId>
       <version>0.14</version>
@@ -69,7 +91,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-graphite</artifactId>
-      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auto.factory</groupId>
@@ -93,27 +114,12 @@
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-core</artifactId>
-      <version>${driver.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-shaded-guava</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
       <artifactId>rxjava</artifactId>
       <version>2.2.15</version>
     </dependency>
-    <dependency>
-      <groupId>io.stargate.auth</groupId>
-      <artifactId>authnz</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

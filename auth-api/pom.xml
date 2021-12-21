@@ -13,6 +13,7 @@
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
   </properties>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
@@ -31,14 +32,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.dropwizard</groupId>
-      <artifactId>dropwizard-jersey</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard</groupId>
-      <artifactId>dropwizard-core</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
@@ -50,6 +43,16 @@
         </exclusion>
       </exclusions>
     </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-jersey</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard</groupId>
+      <artifactId>dropwizard-core</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
@@ -59,6 +62,8 @@
       <artifactId>swagger-jersey2-jaxrs</artifactId>
       <version>${swagger-jersey2-jaxrs.version}</version>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-testing</artifactId>

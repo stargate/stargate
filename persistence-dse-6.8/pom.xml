@@ -27,6 +27,7 @@
     </repository>
   </repositories>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-common</artifactId>
@@ -50,6 +51,14 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authnz</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-core</artifactId>
@@ -111,6 +120,13 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
       <scope>provided</scope>
@@ -130,7 +146,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-graphite</artifactId>
-      <version>${dropwizard.metrics.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auto.factory</groupId>
@@ -153,12 +168,8 @@
       <artifactId>javatuples</artifactId>
       <version>1.2</version>
     </dependency>
-    <dependency>
-      <groupId>io.stargate.auth</groupId>
-      <artifactId>authnz</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -184,11 +195,6 @@
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-shaded-guava</artifactId>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>

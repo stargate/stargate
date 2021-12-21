@@ -10,6 +10,7 @@
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
@@ -27,6 +28,8 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-jersey</artifactId>
@@ -44,7 +47,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
-      <version>${dropwizard.metrics.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -91,6 +93,8 @@
       <artifactId>oshi-core-shaded</artifactId>
       <version>5.3.6</version>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
