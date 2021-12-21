@@ -25,7 +25,8 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateStub;
@@ -46,7 +47,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
-public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
+public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
   @AfterEach
   public void cleanup(CqlSession session) {
@@ -54,56 +55,73 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
-   List<Response> responses = new ArrayList<>();
+  public void simpleStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
+    List<Response> responses = new ArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<Response> responseStreamObserver =
         new StreamObserver<Response>() {
           @Override
           public void onNext(Response value) {
+            System.out.println("client onNext: " + value);
             responses.add(value);
           }
 
           @Override
-          public void onError(Throwable t) {}
+          public void onError(Throwable t) {
+            System.out.println("error: " + t);
+          }
 
           @Override
-          public void onCompleted() {}
+          public void onCompleted() {
+            System.out.println("client completed ");
+          }
         };
 
-    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+            .addQueries(
+                cqlBatchQuery(
+                    "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
     requestObserver.onNext(
-        cqlQuery(
-            "INSERT INTO test (k, v) VALUES (?, ?)",
-            queryParameters(keyspace),
-            Values.of("b"),
-            Values.of(2)));
+        Batch.newBuilder()
+            .addQueries(
+                cqlBatchQuery(
+                    "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
-    // all inserted records may be not visible to the 3rd query (SELECT)
-    // because all calls are non-blocking. Therefore, we need to wait for response of two insert
+    // all inserted records may be not visible to the subsequent SELECT query
+    // because all reactive calls are non-blocking. Therefore, we need to wait for response of two
+    // batch insert
     // queries
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
-
-    requestObserver.onNext(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
+    Awaitility.await()
+        .atMost(10, TimeUnit.SECONDS)
+        .until(
+            () -> {
+              System.out.println("responses.size == " + responses.size());
+              return responses.size() == 1;
+            });
     requestObserver.onCompleted();
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 3);
 
-    assertThat(responses.get(0)).isNotNull();
-    assertThat(responses.get(1)).isNotNull();
-    Response response = responses.get(2);
-
+    Response response =
+        stubWithCallCredentials()
+            .executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    rowOf(Values.of("a"), Values.of(1)), rowOf(Values.of("b"), Values.of(2)))));
+                    rowOf(Values.of("a"), Values.of(1)),
+                    rowOf(Values.of("b"), Values.of(2)),
+                    rowOf(Values.of("c"), Values.of(3)))));
   }
 
   @Test
@@ -125,10 +143,14 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
           public void onCompleted() {}
         };
 
-    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+    StreamObserver<QueryOuterClass.Batch> requestObserver =
+        stub.executeBatchStream(responseStreamObserver);
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
     Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> error.get() != null);
     Throwable throwable = error.get();

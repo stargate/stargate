@@ -93,7 +93,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   @Override
   protected CompletionStage<ResponseAndTraceId> buildResponse(Result result) {
-    System.out.println("buildResponse: " + result);
+    System.out.println("buildResponse: " + result + " Thread:" + Thread.currentThread().getName());
     Response.Builder responseBuilder = makeResponseBuilder(result);
     switch (result.kind) {
       case Void:

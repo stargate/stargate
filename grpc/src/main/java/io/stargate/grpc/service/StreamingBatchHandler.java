@@ -3,34 +3,27 @@ package io.stargate.grpc.service;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.proto.QueryOuterClass;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class StreamingQueryHandler extends QueryHandler {
+public class StreamingBatchHandler extends BatchHandler {
   private final AtomicLong inFlight;
 
-  StreamingQueryHandler(
-      QueryOuterClass.Query query,
+  StreamingBatchHandler(
+      QueryOuterClass.Batch batch,
       Persistence.Connection connection,
       Persistence persistence,
-      ScheduledExecutorService executor,
-      int schemaAgreementRetries,
       StreamObserver<QueryOuterClass.Response> responseObserver,
       AtomicLong inFlight,
       ExceptionHandler exceptionHandler) {
-    super(
-        query,
-        connection,
-        persistence,
-        executor,
-        schemaAgreementRetries,
-        responseObserver,
-        exceptionHandler);
+    super(batch, connection, persistence, responseObserver, exceptionHandler);
     this.inFlight = inFlight;
   }
 
   @Override
   protected synchronized void setSuccess(QueryOuterClass.Response response) {
+    System.out.println(
+        "SetSuccess for Batch: " + response + "Thread: " + Thread.currentThread().getName());
+
     responseObserver.onNext(response);
     inFlight.decrementAndGet();
     // do not invoke onComplete. The caller(client) may invoke it
