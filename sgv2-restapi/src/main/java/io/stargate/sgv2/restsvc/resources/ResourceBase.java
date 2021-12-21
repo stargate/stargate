@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
@@ -154,6 +155,17 @@ public abstract class ResourceBase {
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
       resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
+    }
+    return resultRows;
+  }
+
+  protected static ArrayNode convertRowsToArrayNode(QueryOuterClass.ResultSet rs) {
+    FromProtoConverter converter =
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
+    ArrayNode resultRows = JSON_MAPPER.createArrayNode();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.objectNodeFromProtoValues(row.getValuesList()));
     }
     return resultRows;
   }

@@ -1,12 +1,17 @@
 package io.stargate.sgv2.restsvc.grpc;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 
 /**
@@ -54,9 +59,10 @@ public class FromProtoValueCodecs {
         return mapCodecFor(columnSpec);
       case SET:
         return setCodecFor(columnSpec);
+      case TUPLE:
+        return tupleCodecFor(columnSpec);
 
         // Cases not yet supported:
-      case TUPLE:
       case UDT:
         throw new IllegalArgumentException(
             "Can not (yet) create Codec for TypeSpec "
@@ -138,8 +144,8 @@ public class FromProtoValueCodecs {
   }
 
   protected FromProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for LIST column specified as: " + columnSpec);
+    QueryOuterClass.TypeSpec.List listSpec = columnSpec.getType().getList();
+    return new ListCodec(codecFor(columnSpec, listSpec.getElement()));
   }
 
   protected FromProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -149,8 +155,21 @@ public class FromProtoValueCodecs {
   }
 
   protected FromProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
+    return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
+  }
+
+  protected FromProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Tuple tupleSpec = columnSpec.getType().getTuple();
+
+    // !!! TO IMPLEMENT
     throw new IllegalArgumentException(
-        "Can not (yet) create Codec for SET column specified as: " + columnSpec);
+        "Can not (yet) create Codec for TUPLE column specified as: " + columnSpec);
+    /*
+    return new TupleCodec(
+            codecFor(columnSpec, tupleSpec.getElementsList()));
+
+     */
   }
 
   /* Basic/scalar codec implementations: textual */
@@ -435,7 +454,71 @@ public class FromProtoValueCodecs {
     }
   }
 
-  /* Structured codec implementations */
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Structured codec implementations
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected static final class ListCodec extends BaseCollectionCodec {
+    public ListCodec(FromProtoValueCodec ec) {
+      super(ec);
+    }
+
+    @Override
+    protected Collection<Object> constructCollection(int size) {
+      if (size == 0) {
+        return Collections.emptyList();
+      }
+      return new ArrayList<>(size);
+    }
+  }
+
+  protected static final class SetCodec extends BaseCollectionCodec {
+    public SetCodec(FromProtoValueCodec ec) {
+      super(ec);
+    }
+
+    @Override
+    protected Collection<Object> constructCollection(int size) {
+      if (size == 0) {
+        return Collections.emptySet();
+      }
+      return new LinkedHashSet<>(size);
+    }
+  }
+
+  protected abstract static class BaseCollectionCodec extends FromProtoValueCodec {
+    private final FromProtoValueCodec elementCodec;
+
+    protected BaseCollectionCodec(FromProtoValueCodec ec) {
+      elementCodec = ec;
+    }
+
+    protected abstract Collection<Object> constructCollection(int size);
+
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      final int len = coll.getElementsCount();
+      Collection<Object> result = constructCollection(len);
+      for (int i = 0; i < len; ++i) {
+        result.add(elementCodec.fromProtoValue(coll.getElements(i)));
+      }
+      return result;
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      ArrayNode result = jsonNodeFactory.arrayNode();
+      final int len = coll.getElementsCount();
+      for (int i = 0; i < len; ++i) {
+        result.add(elementCodec.jsonNodeFrom(coll.getElements(i)));
+      }
+      return result;
+    }
+  }
 
   protected static final class MapCodec extends FromProtoValueCodec {
     private final FromProtoValueCodec keyCodec, valueCodec;

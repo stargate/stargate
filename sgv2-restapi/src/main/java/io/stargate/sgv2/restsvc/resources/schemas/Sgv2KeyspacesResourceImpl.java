@@ -24,8 +24,6 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
-import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
@@ -63,7 +61,6 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       final StargateGrpc.StargateBlockingStub blockingStub,
       final boolean raw,
       final HttpServletRequest request) {
-    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
 
     String cql =
         new QueryBuilder()
@@ -73,15 +70,14 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
             .from("system_schema", "keyspaces")
             .build();
 
-    QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
     // two-part conversion: first from proto to JsonNode for easier traversability,
     // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    ArrayNode ksRows = convertRowsToArrayNode(rs);
     List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
 
     final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
@@ -94,8 +90,6 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
-    QueryOuterClass.QueryParameters.Builder paramsB = QueryOuterClass.QueryParameters.newBuilder();
-
     String cql =
         new QueryBuilder()
             .select()
@@ -105,8 +99,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
             .where(BuiltCondition.of("keyspace_name", Predicate.EQ, keyspaceName))
             .build();
 
-    QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
 
     QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
@@ -116,7 +109,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
     }
     // two-part conversion: first from proto to JsonNode for easier traversability,
     // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToJsonNode(rs);
+    ArrayNode ksRows = convertRowsToArrayNode(rs);
     Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
 
     final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
@@ -179,17 +172,6 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   // Helper methods for structural conversions
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private ArrayNode convertRowsToJsonNode(QueryOuterClass.ResultSet rs) {
-    FromProtoConverter converter =
-        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
-    ArrayNode resultRows = JSON_MAPPER.createArrayNode();
-    List<QueryOuterClass.Row> rows = rs.getRowsList();
-    for (QueryOuterClass.Row row : rows) {
-      resultRows.add(converter.objectNodeFromProtoValues(row.getValuesList()));
-    }
-    return resultRows;
-  }
 
   private static List<Sgv2Keyspace> keyspacesFrom(JsonNode ksRootNode) {
     List<Sgv2Keyspace> result =

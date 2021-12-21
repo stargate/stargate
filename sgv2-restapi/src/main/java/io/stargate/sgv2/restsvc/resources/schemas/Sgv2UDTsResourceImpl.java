@@ -2,12 +2,16 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
+import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2UDT;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTAddRequest;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTUpdateRequest;
@@ -45,8 +49,27 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
       final HttpServletRequest request) {
     requireNonEmptyKeyspace(keyspaceName);
 
-    // !!! TO IMPLEMENT
-    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+    String cql =
+        new QueryBuilder()
+            .select()
+            .column("type_name")
+            .column("field_names")
+            .column("field_types")
+            .from("system_schema", "types")
+            .where("keyspace_name", Predicate.EQ, keyspaceName)
+            .build();
+
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToArrayNode(rs);
+    List<Sgv2UDT> udts = jsonArray2Udts(keyspaceName, ksRows);
+    final Object payload = raw ? udts : new Sgv2RESTResponse(udts);
+    return Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Override
@@ -59,23 +82,43 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     requireNonEmptyKeyspace(keyspaceName);
     requireNonEmptyTypename(typeName);
 
-    /*
-        String cql =
-                new QueryBuilder()
-                        .create()
-                        .type(keyspaceName, typeName)
-                        .column(columns2columns(udtAdd.getFields()))
-                        .build();
-        QueryOuterClass.Query query =
-                QueryOuterClass.Query.newBuilder().setParameters(paramsB.build()).setCql(cql).build();
-        QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    String cql =
+        new QueryBuilder()
+            .select()
+            .column("type_name")
+            .column("field_names")
+            .column("field_types")
+            .from("system_schema", "types")
+            .where("keyspace_name", Predicate.EQ, keyspaceName)
+            .where("type_name", Predicate.EQ, typeName)
+            .build();
 
-    //    final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-    //    return Response.status(Response.Status.OK).entity(payload).build();
-         */
+    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
 
-    // !!! TO IMPLEMENT
-    return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
+
+    // two-part conversion: first from proto to JsonNode for easier traversability,
+    // then from that to actual response we need:
+    ArrayNode ksRows = convertRowsToArrayNode(rs);
+
+    // Must get one and only one response, verify
+    switch (ksRows.size()) {
+      case 0:
+        return Response.status(Response.Status.NOT_FOUND).build();
+      case 1:
+        break; // correct choice :)
+      default:
+        return restServiceError(
+            Response.Status.INTERNAL_SERVER_ERROR,
+            String.format(
+                "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
+                ksRows.size(), typeName, keyspaceName));
+    }
+
+    Sgv2UDT udt = jsonArray2Udts(keyspaceName, ksRows).get(0);
+    final Object payload = raw ? udt : new Sgv2RESTResponse(udt);
+    return Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Override
@@ -222,6 +265,58 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
           "There should be at least one field defined", Response.Status.BAD_REQUEST);
     }
     return result;
+  }
+
+  private List<Sgv2UDT> jsonArray2Udts(String keyspaceName, ArrayNode udtsJson) {
+    List<Sgv2UDT> result = new ArrayList<>(udtsJson.size());
+    for (JsonNode udtJson : udtsJson) {
+      result.add(jsonObject2Udt(keyspaceName, udtJson));
+    }
+    return result;
+  }
+
+  private Sgv2UDT jsonObject2Udt(String keyspace, JsonNode udtsJson) {
+    if (!udtsJson.isObject()) {
+      throw new IllegalArgumentException(
+          "UDT JSON Representation must be JSON Object, was: " + udtsJson);
+    }
+    final String typeName = nonEmptyStringProperty(udtsJson, "type_name");
+    final JsonNode fieldNames = nonEmptyArrayProperty(udtsJson, "field_names");
+    final JsonNode fieldTypes = nonEmptyArrayProperty(udtsJson, "field_types");
+    final int fieldNameCount = fieldNames.size();
+    if (fieldNameCount != fieldTypes.size()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "UDT JSON arrays for 'field_names' and 'field_types' must have same number of entries, got %d vs %d: %s",
+              fieldNameCount, fieldTypes.size(), udtsJson));
+    }
+    List<Sgv2UDT.UDTField> fields = new ArrayList<>(fieldNameCount);
+    for (int i = 0; i < fieldNameCount; ++i) {
+      fields.add(new Sgv2UDT.UDTField(fieldNames.path(i).asText(), fieldTypes.path(i).asText()));
+    }
+    return new Sgv2UDT(typeName, keyspace, fields);
+  }
+
+  private static String nonEmptyStringProperty(JsonNode object, String propertyName) {
+    String value = object.path(propertyName).asText();
+    if (isStringEmpty(value)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "UDT JSON must have non-empty String property '%s', does not: %s",
+              propertyName, object));
+    }
+    return value;
+  }
+
+  private static JsonNode nonEmptyArrayProperty(JsonNode object, String propertyName) {
+    JsonNode value = object.path(propertyName); // may return MissingNode but not null
+    if (!value.isArray() || value.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "UDT JSON must have non-empty Array property '%s', does not: %s",
+              propertyName, object));
+    }
+    return value;
   }
 
   private static void requireNonEmptyTypename(String typeName) {
