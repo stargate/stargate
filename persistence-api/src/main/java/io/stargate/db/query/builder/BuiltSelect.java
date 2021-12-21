@@ -9,10 +9,10 @@ import io.stargate.db.query.QueryType;
 import io.stargate.db.query.RowsImpacted;
 import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.TypedValue.Codec;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
-import io.stargate.db.schema.Table;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +24,8 @@ import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 
 public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
-  private final Table table;
+
+  private final AbstractTable table;
   private final String externalQueryString;
   private final String internalQueryString;
   private final Set<Column> selectedColumns;
@@ -35,7 +36,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
   private final @Nullable Value<Integer> perPartitionLimit;
 
   protected BuiltSelect(
-      Table table,
+      AbstractTable table,
       Codec codec,
       AsyncQueryExecutor executor,
       QueryStringBuilder builder,
@@ -69,7 +70,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
   }
 
   private BuiltSelect(
-      Table table,
+      AbstractTable table,
       Codec codec,
       @Nullable MD5Digest preparedId,
       AsyncQueryExecutor executor,
@@ -94,7 +95,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
     this.perPartitionLimit = perPartitionLimit;
   }
 
-  public Table table() {
+  public AbstractTable table() {
     return table;
   }
 
@@ -211,7 +212,7 @@ public class BuiltSelect extends BuiltQuery<BuiltSelect.Bound> {
     }
 
     @Override
-    public Table table() {
+    public AbstractTable table() {
       return source().query().table();
     }
 

@@ -1,17 +1,18 @@
 package io.stargate.db.query;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.db.schema.Table;
 import java.util.List;
 import java.util.Objects;
 
 public abstract class SchemaKey {
-  protected final Table table;
+
+  protected final AbstractTable table;
   protected final List<TypedValue> values;
 
-  public SchemaKey(Table table, List<TypedValue> values) {
+  public SchemaKey(AbstractTable table, List<TypedValue> values) {
     this.table = table;
     this.values = values;
 

@@ -24,8 +24,12 @@ import io.stargate.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModels
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 import io.stargate.graphql.schema.scalars.CqlScalar;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 class UpdateModelBuilder extends MutationModelBuilder {

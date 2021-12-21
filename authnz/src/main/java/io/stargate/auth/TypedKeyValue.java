@@ -7,9 +7,9 @@ import io.stargate.db.query.PrimaryKey;
 import io.stargate.db.query.RowsImpacted;
 import io.stargate.db.query.RowsRange;
 import io.stargate.db.query.TypedValue;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
-import io.stargate.db.schema.Table;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +43,8 @@ public class TypedKeyValue {
     return value;
   }
 
-  private static List<TypedKeyValue> fromImpactedRows(Table table, RowsImpacted rowsSelection) {
+  private static List<TypedKeyValue> fromImpactedRows(
+      AbstractTable table, RowsImpacted rowsSelection) {
     List<Column> keyColumns = table.primaryKeyColumns();
     List<TypedKeyValue> typedKeyValues = new ArrayList<>();
     if (rowsSelection.isKeys()) {

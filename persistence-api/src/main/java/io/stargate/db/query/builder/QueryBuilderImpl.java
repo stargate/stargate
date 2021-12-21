@@ -911,11 +911,20 @@ public class QueryBuilderImpl {
     return table;
   }
 
+  private AbstractTable tableOrMaterializedView() {
+    AbstractTable table = schemaKeyspace().tableOrMaterializedView(tableName);
+    if (table == null) {
+      throw invalid("Unknown table %s.%s ", cqlName(keyspaceName), cqlName(tableName));
+    }
+    return table;
+  }
+
   private static String cqlName(String name) {
     return ColumnUtils.maybeQuote(name);
   }
 
   private static class WithAdder {
+
     private final StringBuilder builder;
     private boolean withAdded;
 
@@ -1211,7 +1220,8 @@ public class QueryBuilderImpl {
     return columnNames.stream().map(table::existingColumn).collect(toList());
   }
 
-  private static List<Column> convertToColumns(Table table, Collection<String> columnNames) {
+  private static List<Column> convertToColumns(
+      AbstractTable table, Collection<String> columnNames) {
     return columnNames.stream().map(table::column).collect(toList());
   }
 
@@ -1533,7 +1543,8 @@ public class QueryBuilderImpl {
   }
 
   protected BuiltSelect selectQuery() {
-    Table table = schemaTable();
+    AbstractTable table = tableOrMaterializedView();
+
     QueryStringBuilder builder = new QueryStringBuilder(markerIndex);
     List<Column> selectedColumns = convertToColumns(table, selection);
     // Using a linked set for the minor convenience of get back the columns in the order they were

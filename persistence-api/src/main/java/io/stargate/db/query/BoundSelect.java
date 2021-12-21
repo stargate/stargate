@@ -1,7 +1,7 @@
 package io.stargate.db.query;
 
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -14,7 +14,8 @@ import java.util.Set;
  * exposed.
  */
 public interface BoundSelect extends BoundQuery {
-  Table table();
+
+  AbstractTable table();
 
   /**
    * The subset of the {@link #table} columns that are queried by this SELECT, or an empty set for
