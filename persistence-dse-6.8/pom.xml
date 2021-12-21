@@ -166,6 +166,7 @@
     <dependency>
       <groupId>org.javatuples</groupId>
       <artifactId>javatuples</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Test dependencies -->

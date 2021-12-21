@@ -111,6 +111,7 @@
     <dependency>
       <groupId>org.javatuples</groupId>
       <artifactId>javatuples</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
