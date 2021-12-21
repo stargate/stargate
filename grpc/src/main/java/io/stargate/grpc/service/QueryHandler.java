@@ -52,8 +52,9 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
-      StreamObserver<Response> responseObserver) {
-    super(query, connection, persistence, responseObserver);
+      StreamObserver<Response> responseObserver,
+      ExceptionHandler exceptionHandler) {
+    super(query, connection, persistence, responseObserver, exceptionHandler);
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
     QueryParameters queryParameters = query.getParameters();

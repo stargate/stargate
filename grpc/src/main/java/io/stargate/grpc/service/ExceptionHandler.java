@@ -8,6 +8,7 @@ import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
 import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
@@ -42,6 +43,7 @@ public class ExceptionHandler {
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
 
   private final StreamObserver<QueryOuterClass.Response> responseObserver;
+  private final AtomicBoolean exceptionOccurred = new AtomicBoolean(false);
 
   public ExceptionHandler(StreamObserver<QueryOuterClass.Response> responseObserver) {
 
@@ -49,6 +51,7 @@ public class ExceptionHandler {
   }
 
   protected void handleException(Throwable throwable) {
+    exceptionOccurred.set(true);
     if (throwable instanceof CompletionException
         || throwable instanceof MessageHandler.ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());
@@ -253,5 +256,9 @@ public class ExceptionHandler {
     Metadata trailer = new Metadata();
     trailer.put(key, value);
     return trailer;
+  }
+
+  public boolean getExceptionOccurred() {
+    return exceptionOccurred.get();
   }
 }

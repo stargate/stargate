@@ -55,8 +55,9 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       Batch batch,
       Connection connection,
       Persistence persistence,
-      StreamObserver<Response> responseObserver) {
-    super(batch, connection, persistence, responseObserver);
+      StreamObserver<Response> responseObserver,
+      ExceptionHandler exceptionHandler) {
+    super(batch, connection, persistence, responseObserver, exceptionHandler);
     BatchParameters batchParameters = batch.getParameters();
     this.decoratedKeyspace =
         batchParameters.hasKeyspace()

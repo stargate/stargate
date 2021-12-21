@@ -67,13 +67,14 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       MessageT message,
       Connection connection,
       Persistence persistence,
-      StreamObserver<Response> responseObserver) {
+      StreamObserver<Response> responseObserver,
+      ExceptionHandler exceptionHandler) {
     this.message = message;
     this.connection = connection;
     this.persistence = persistence;
     this.responseObserver = responseObserver;
     this.retryPolicy = new DefaultRetryPolicy();
-    this.exceptionHandler = new ExceptionHandler(responseObserver);
+    this.exceptionHandler = exceptionHandler;
   }
 
   void handle() {

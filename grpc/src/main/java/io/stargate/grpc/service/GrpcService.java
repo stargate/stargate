@@ -62,19 +62,27 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
             persistence,
             executor,
             schemaAgreementRetries,
-            responseObserver)
+            responseObserver,
+            new ExceptionHandler(responseObserver))
         .handle();
   }
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
-    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
+    new BatchHandler(
+            batch,
+            CONNECTION_KEY.get(),
+            persistence,
+            responseObserver,
+            new ExceptionHandler(responseObserver))
+        .handle();
   }
 
   @Override
   public StreamObserver<Query> executeQueryStream(StreamObserver<Response> responseObserver) {
     return new StreamObserver<Query>() {
       final AtomicLong inFlight = new AtomicLong(0);
+      final ExceptionHandler exceptionHandler = new ExceptionHandler(responseObserver);
 
       @Override
       public void onNext(Query query) {
@@ -88,17 +96,36 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 executor,
                 schemaAgreementRetries,
                 responseObserver,
-                inFlight)
+                inFlight,
+                exceptionHandler)
             .handle();
       }
 
       @Override
       public void onError(Throwable t) {
-        new ExceptionHandler(responseObserver).handleException(t);
+        System.out.println("onError for reactive streaming: " + t);
+        exceptionHandler.handleException(t);
       }
 
+      /**
+       * It completes the response Observer. If there are any in-flight Queries, it waits until all
+       * of them are processed.
+       *
+       * <p>According to reactive contract:
+       *
+       * <p>An Observable may make zero or more OnNext notifications, each representing a single
+       * emitted item, and it may then follow those emission notifications by either an OnCompleted
+       * or an OnError notification, but not both.
+       *
+       * <p>If there was any error (server-side or client-side) we are ignoring the onComplete()
+       * signal.
+       */
       @Override
       public void onCompleted() {
+        if (exceptionHandler.getExceptionOccurred()) {
+          return;
+        }
+
         System.out.println(
             "onCompleted server side "
                 + " thread: "
@@ -106,6 +133,9 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 + " inFlight: "
                 + inFlight.get());
         while (inFlight.get() > 0) {
+          if (exceptionHandler.getExceptionOccurred()) {
+            return;
+          }
           // todo do we want to wait until in-flight is empty?
           System.out.println("waiting while inFlight = 0");
         }

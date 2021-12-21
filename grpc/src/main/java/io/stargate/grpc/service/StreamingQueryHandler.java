@@ -16,8 +16,16 @@ public class StreamingQueryHandler extends QueryHandler {
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<QueryOuterClass.Response> responseObserver,
-      AtomicLong inFlight) {
-    super(query, connection, persistence, executor, schemaAgreementRetries, responseObserver);
+      AtomicLong inFlight,
+      ExceptionHandler exceptionHandler) {
+    super(
+        query,
+        connection,
+        persistence,
+        executor,
+        schemaAgreementRetries,
+        responseObserver,
+        exceptionHandler);
     this.inFlight = inFlight;
   }
 

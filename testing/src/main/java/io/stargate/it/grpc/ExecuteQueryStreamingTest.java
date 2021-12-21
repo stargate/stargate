@@ -31,6 +31,7 @@ import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateStub;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -53,9 +54,8 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace)
-      throws InterruptedException {
-    List<Response> responses = new ArrayList<>();
+  public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
+    List<Response> responses = Collections.synchronizedList(new ArrayList<>());
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<Response> responseStreamObserver =
@@ -101,7 +101,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet();
-    // todo problem - all inserted records may be not visible to the 3rd query (SELECT)
+    // all inserted records may be not visible to the 3rd query (SELECT)
     // because all calls are non-blocking. Therefore, Bi-directional should not mix INSERTs with
     // SELECTs
     assertThat(new HashSet<>(rs.getRowsList()))
@@ -112,8 +112,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace)
-      throws InterruptedException {
+  public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace) {
     AtomicReference<Throwable> error = new AtomicReference<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
