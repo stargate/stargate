@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.test.StepVerifier;
 
 @ExtendWith(CqlSessionExtension.class)
@@ -111,7 +112,7 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
       @TestKeyspace CqlIdentifier keyspace) {
     ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
 
-    Flux<QueryOuterClass.Query> wrongQuery =
+    Flux<QueryOuterClass.Query> streamWithError =
         Flux.create(
             emitter -> {
               emitter.next(
@@ -121,7 +122,7 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
               emitter.complete(); // complete signal is ignored
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(wrongQuery);
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
     StepVerifier.create(responseFlux)
         .expectErrorMatches(
             e ->
@@ -134,19 +135,29 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
   public void reactiveClientSideErrorPropagation() {
     ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
 
-    Flux<QueryOuterClass.Query> wrongQuery =
+    Flux<QueryOuterClass.Query> streamWithError =
         Flux.create(
             emitter -> {
               emitter.error(new IllegalArgumentException("some client side processing error"));
               emitter.complete(); // complete signal is ignored
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(wrongQuery);
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
     StepVerifier.create(responseFlux)
         .expectErrorMatches(
             e ->
                 e instanceof StatusRuntimeException
                     && e.getMessage().contains("CANCELLED: Cancelled by client"))
         .verify();
+  }
+
+  @Test
+  public void completeEmptyStream() {
+    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
+
+    Flux<QueryOuterClass.Query> emptyWithComplete = Flux.create(FluxSink::complete);
+
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(emptyWithComplete);
+    StepVerifier.create(responseFlux).expectComplete().verify();
   }
 }
