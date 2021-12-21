@@ -15,7 +15,8 @@
  */
 package io.stargate.graphql.schema.graphqlfirst.processor;
 
-import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.*;
+import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleListReturnType;
+import static io.stargate.graphql.schema.graphqlfirst.processor.OperationModel.SimpleReturnType;
 
 import graphql.Scalars;
 import graphql.language.Directive;
