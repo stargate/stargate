@@ -272,7 +272,7 @@
             <image>adoptopenjdk:8</image>
           </from>
           <to>
-            <image>docker.io/stargateio/stargate-restapi:${project.version}</image>
+            <image>docker.io/stargateio/stargate-restapi:v${project.version}</image>
           </to>
           <!-- See: https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#container-object-->
           <container>
