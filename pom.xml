@@ -42,6 +42,7 @@
     <micrometer.version>1.7.3</micrometer.version>
     <prometheus.version>0.10.0</prometheus.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
+    <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
 
     <!-- And finally test/build deps -->
 
