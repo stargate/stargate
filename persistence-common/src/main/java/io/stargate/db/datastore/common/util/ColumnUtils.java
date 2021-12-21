@@ -190,19 +190,21 @@ public class ColumnUtils {
             !type.isFrozen());
       case Tuple:
         return new org.apache.cassandra.db.marshal.TupleType(
-            type.parameters().stream()
-                .map(p -> toInternalType(p))
-                .collect(toList())); // TODO: Always frozen?
+            (List)
+                type.parameters().stream()
+                    .map(p -> toInternalType(p))
+                    .collect(toList())); // TODO: Always frozen?
       case UDT:
         UserDefinedType udt = (UserDefinedType) type;
         udt.checkKeyspaceSet();
         return new UserType(
             udt.keyspace(),
             ByteBuffer.wrap(udt.name().getBytes(StandardCharsets.UTF_8)),
-            udt.columns().stream()
-                .map(c -> FieldIdentifier.forInternalString(c.name()))
-                .collect(toList()),
-            udt.columns().stream().map(c -> toInternalType(c.type())).collect(toList()),
+            (List)
+                udt.columns().stream()
+                    .map(c -> FieldIdentifier.forInternalString(c.name()))
+                    .collect(toList()),
+            (List) udt.columns().stream().map(c -> toInternalType(c.type())).collect(toList()),
             !type.isFrozen());
       default:
         return CODECS.get(type.rawType()).internalType();
