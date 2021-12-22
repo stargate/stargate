@@ -1168,7 +1168,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows", host, keyspaceName, materializedViewName),
+                "%s/v2/keyspaces/%s/%s/rows", restUrlBase, keyspaceName, materializedViewName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
