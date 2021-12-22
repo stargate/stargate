@@ -104,8 +104,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
         .atMost(10, TimeUnit.SECONDS)
         .until(
             () -> {
-              System.out.println("responses.size == " + responses.size());
-              return responses.size() == 1;
+              return responses.size() == 2;
             });
     requestObserver.onCompleted();
 
