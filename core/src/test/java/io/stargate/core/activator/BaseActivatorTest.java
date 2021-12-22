@@ -54,10 +54,10 @@ import org.osgi.framework.ServiceRegistration;
 class BaseActivatorTest {
 
   @SuppressWarnings("JdkObsolete")
-  private static Hashtable<String, String> EXPECTED_PROPERTIES = new Hashtable<>();
+  private static final Hashtable<String, String> EXPECTED_PROPERTIES = new Hashtable<>();
 
   @SuppressWarnings("JdkObsolete")
-  private static Hashtable<String, String> EMPTY_PROPERTIES = new Hashtable<>();
+  private static final Hashtable<String, String> EMPTY_PROPERTIES = new Hashtable<>();
 
   static {
     EXPECTED_PROPERTIES.put("Identifier", "id_1");

@@ -268,9 +268,8 @@ public abstract class Event {
       this.target = target;
       this.keyspace = keyspace;
       this.name = name;
-      if (target != Target.KEYSPACE)
-        assert this.name != null
-            : "Table, type, function or aggregate name should be set for non-keyspace schema change events";
+      assert target == Target.KEYSPACE || this.name != null
+          : "Table, type, function or aggregate name should be set for non-keyspace schema change events";
       this.argTypes = argTypes;
     }
 

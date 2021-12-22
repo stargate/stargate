@@ -6,7 +6,7 @@ import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.schema.SchemaChangeListener;
 
 public class EventListenerWrapper extends SchemaChangeListener {
-  private EventListener wrapped;
+  private final EventListener wrapped;
 
   EventListenerWrapper(EventListener wrapped) {
     this.wrapped = wrapped;

@@ -264,7 +264,7 @@ public class Starter {
   private Felix framework;
   private List<Bundle> bundleList;
   private boolean watchBundles = true;
-  private AtomicBoolean startError = new AtomicBoolean();
+  private final AtomicBoolean startError = new AtomicBoolean();
 
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {

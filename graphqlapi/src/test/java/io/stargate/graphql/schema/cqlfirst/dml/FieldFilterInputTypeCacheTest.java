@@ -18,7 +18,7 @@ public class FieldFilterInputTypeCacheTest {
 
   @Mock private NameMapping nameMapping;
   private FieldFilterInputTypeCache fieldFilterInputTypes;
-  private List<String> warnings = new ArrayList<>();
+  private final List<String> warnings = new ArrayList<>();
 
   @BeforeEach
   public void setup() {

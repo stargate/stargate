@@ -31,7 +31,8 @@ import org.junit.jupiter.api.Test;
 
 class ClientInfoTest {
 
-  private static InetSocketAddress localhost = InetSocketAddress.createUnresolved("localhost", 1);
+  private static final InetSocketAddress localhost =
+      InetSocketAddress.createUnresolved("localhost", 1);
 
   private ClientInfo userInfo;
   private ClientInfo emptyInfo;

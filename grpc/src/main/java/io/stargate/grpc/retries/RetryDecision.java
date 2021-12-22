@@ -23,5 +23,4 @@ public enum RetryDecision {
   RETRY,
   /** Rethrow to the calling code, as the result of the execute operation. */
   RETHROW,
-  ;
 }

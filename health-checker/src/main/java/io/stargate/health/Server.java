@@ -27,7 +27,7 @@ import org.glassfish.jersey.server.ServerProperties;
 
 public class Server extends Application<ApplicationConfiguration> {
 
-  private BundleService bundleService;
+  private final BundleService bundleService;
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;

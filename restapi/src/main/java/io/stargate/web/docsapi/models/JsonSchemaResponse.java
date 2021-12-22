@@ -10,7 +10,7 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class JsonSchemaResponse {
-  private JsonNode schema;
+  private final JsonNode schema;
 
   private List<String> debug;
   private List<String> info;

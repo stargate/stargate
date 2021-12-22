@@ -43,7 +43,7 @@ abstract class WhereProcessor {
   private final AbstractTable table;
   private final Codec valueCodec;
   private final List<Column> primaryKeys;
-  private PKCondition[] pkConditions;
+  private final PKCondition[] pkConditions;
   private boolean shouldIgnorePkConditions;
 
   WhereProcessor(AbstractTable table, Codec valueCodec) {

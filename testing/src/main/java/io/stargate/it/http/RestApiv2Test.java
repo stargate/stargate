@@ -3112,7 +3112,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             .getTypeFactory()
             .constructParametricType(RESTResponseWrapper.class, wrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
-    return (T) wrapped.getData();
+    return wrapped.getData();
   }
 
   private <T> T readWrappedRESTResponse(String body, TypeReference wrappedType) throws IOException {
@@ -3122,6 +3122,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
             .getTypeFactory()
             .constructParametricType(RESTResponseWrapper.class, resolvedWrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
-    return (T) wrapped.getData();
+    return wrapped.getData();
   }
 }
