@@ -469,10 +469,6 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
-      final int len = value.length();
-      if (len >= 2 && value.charAt(0) == '\'' && value.charAt(len - 1) == '\'') {
-        value = value.substring(1, len - 1);
-      }
       return Values.of(value);
     }
   }
