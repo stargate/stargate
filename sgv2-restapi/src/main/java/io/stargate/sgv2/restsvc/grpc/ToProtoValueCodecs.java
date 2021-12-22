@@ -469,6 +469,10 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
+      final int len = value.length();
+      if (len >= 2 && value.charAt(0) == '\'' && value.charAt(len - 1) == '\'') {
+        value = value.substring(1, len - 1);
+      }
       return Values.of(value);
     }
   }
@@ -609,6 +613,13 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      // Since we are getting this JSON or path expression, it must be a
+      // Base64-encoded String:
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      // But just for sake of completeness I guess we can accept other theoritcal
+      // possibilities
       if (value instanceof byte[]) {
         return Values.of((byte[]) value);
       } else if (value instanceof ByteBuffer) {
