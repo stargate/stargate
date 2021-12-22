@@ -851,7 +851,6 @@ public abstract class PersistenceTest {
         .put(Timeuuid, timeBased())
         .put(Tinyint, (byte) 4)
         .put(Uuid, random())
-        .put(Text, "some Text")
         .put(Varint, BigInteger.valueOf(23))
         //                .put(Point, new Point(3.3, 4.4))
         //                .put(Polygon, new Polygon(new Point(30, 10), new Point(10, 20), new
