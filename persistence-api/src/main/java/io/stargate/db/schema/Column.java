@@ -709,7 +709,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
 
     private static Type parseBaseType(String str) {
-      if (str.equalsIgnoreCase("varchar")) {
+      if ("varchar".equalsIgnoreCase(str)) {
         return Text;
       }
       for (Type t : values()) {

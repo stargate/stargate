@@ -254,7 +254,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
             .addExpected(
                 ColumnSpec.newBuilder()
                     .setName("c2")
-                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.TEXT)))
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR)))
             .addExpected(
                 ColumnSpec.newBuilder()
                     .setName("c3")
@@ -269,7 +269,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                         TypeSpec.newBuilder()
                             .setList(
                                 TypeSpec.List.newBuilder()
-                                    .setElement(TypeSpec.newBuilder().setBasic(Basic.TEXT)))))
+                                    .setElement(TypeSpec.newBuilder().setBasic(Basic.VARCHAR)))))
             .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("l", Type.List.of(Type.Int)))
@@ -304,7 +304,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                         TypeSpec.newBuilder()
                             .setMap(
                                 TypeSpec.Map.newBuilder()
-                                    .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.TEXT))
+                                    .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR))
                                     .setValue(
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.BIGINT)))))
             .build(false),
