@@ -2,6 +2,7 @@ package io.stargate.it.grpc;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.test.StepVerifier;
 
 @ExtendWith(CqlSessionExtension.class)
@@ -78,82 +80,84 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
                     rowOf(Values.of("b"), Values.of(2)),
                     rowOf(Values.of("c"), Values.of(3)))));
   }
-  //
-  //  @Test
-  //  public void reactiveServerSideErrorPropagation(@TestKeyspace CqlIdentifier keyspace) {
-  //    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-  //
-  //    Flux<QueryOuterClass.Query> wrongQuery =
-  //        Flux.create(
-  //            emitter -> {
-  //              emitter.next(
-  //                  cqlQuery(
-  //                      "INSERT INTO not_existing (k, v) VALUES ('a', 1)",
-  //                      queryParameters(keyspace)));
-  //            });
-  //
-  //    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(wrongQuery);
-  //    StepVerifier.create(responseFlux)
-  //        .expectErrorMatches(
-  //            e ->
-  //                e instanceof StatusRuntimeException
-  //                    && e.getMessage().equals("INVALID_ARGUMENT: unconfigured table
-  // not_existing"))
-  //        .verify();
-  //  }
-  //
-  //  @Test
-  //  public void reactiveServerSideErrorPropagationCompleteProcessing(
-  //      @TestKeyspace CqlIdentifier keyspace) {
-  //    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-  //
-  //    Flux<QueryOuterClass.Query> streamWithError =
-  //        Flux.create(
-  //            emitter -> {
-  //              emitter.next(
-  //                  cqlQuery(
-  //                      "INSERT INTO not_existing (k, v) VALUES ('a', 1)",
-  //                      queryParameters(keyspace)));
-  //              emitter.complete(); // complete signal is ignored
-  //            });
-  //
-  //    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
-  //    StepVerifier.create(responseFlux)
-  //        .expectErrorMatches(
-  //            e ->
-  //                e instanceof StatusRuntimeException
-  //                    && e.getMessage().equals("INVALID_ARGUMENT: unconfigured table
-  // not_existing"))
-  //        .verify();
-  //  }
-  //
-  //  @Test
-  //  public void reactiveClientSideErrorPropagation() {
-  //    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-  //
-  //    Flux<QueryOuterClass.Query> streamWithError =
-  //        Flux.create(
-  //            emitter -> {
-  //              emitter.error(new IllegalArgumentException("some client side processing error"));
-  //              emitter.complete(); // complete signal is ignored
-  //            });
-  //
-  //    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
-  //    StepVerifier.create(responseFlux)
-  //        .expectErrorMatches(
-  //            e ->
-  //                e instanceof StatusRuntimeException
-  //                    && e.getMessage().contains("CANCELLED: Cancelled by client"))
-  //        .verify();
-  //  }
-  //
-  //  @Test
-  //  public void completeEmptyStream() {
-  //    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-  //
-  //    Flux<QueryOuterClass.Query> emptyWithComplete = Flux.create(FluxSink::complete);
-  //
-  //    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(emptyWithComplete);
-  //    StepVerifier.create(responseFlux).expectComplete().verify();
-  //  }
+
+  @Test
+  public void reactiveServerSideErrorPropagation(@TestKeyspace CqlIdentifier keyspace) {
+    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
+
+    Flux<QueryOuterClass.Batch> wrongQuery =
+        Flux.create(
+            emitter ->
+                emitter.next(
+                    QueryOuterClass.Batch.newBuilder()
+                        .addQueries(
+                            cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
+                        .setParameters(batchParameters(keyspace))
+                        .build()));
+
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(wrongQuery);
+    StepVerifier.create(responseFlux)
+        .expectErrorMatches(
+            e ->
+                e instanceof StatusRuntimeException
+                    && e.getMessage().contains("INVALID_ARGUMENT")
+                    && e.getMessage().contains("not_existing"))
+        .verify();
+  }
+
+  @Test
+  public void reactiveServerSideErrorPropagationCompleteProcessing(
+      @TestKeyspace CqlIdentifier keyspace) {
+    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
+
+    Flux<QueryOuterClass.Batch> wrongQuery =
+        Flux.create(
+            emitter -> {
+              emitter.next(
+                  QueryOuterClass.Batch.newBuilder()
+                      .addQueries(cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
+                      .setParameters(batchParameters(keyspace))
+                      .build());
+              emitter.complete(); // complete signal is ignored
+            });
+
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(wrongQuery);
+    StepVerifier.create(responseFlux)
+        .expectErrorMatches(
+            e ->
+                e instanceof StatusRuntimeException
+                    && e.getMessage().contains("INVALID_ARGUMENT")
+                    && e.getMessage().contains("not_existing"))
+        .verify();
+  }
+
+  @Test
+  public void reactiveClientSideErrorPropagation() {
+    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
+
+    Flux<QueryOuterClass.Batch> streamWithError =
+        Flux.create(
+            emitter -> {
+              emitter.error(new IllegalArgumentException("some client side processing error"));
+              emitter.complete(); // complete signal is ignored
+            });
+
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(streamWithError);
+    StepVerifier.create(responseFlux)
+        .expectErrorMatches(
+            e ->
+                e instanceof StatusRuntimeException
+                    && e.getMessage().contains("CANCELLED: Cancelled by client"))
+        .verify();
+  }
+
+  @Test
+  public void completeEmptyStream() {
+    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
+
+    Flux<QueryOuterClass.Batch> emptyWithComplete = Flux.create(FluxSink::complete);
+
+    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(emptyWithComplete);
+    StepVerifier.create(responseFlux).expectComplete().verify();
+  }
 }
