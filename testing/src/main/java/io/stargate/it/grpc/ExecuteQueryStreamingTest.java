@@ -132,7 +132,6 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
     Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> error.get() != null);
     Throwable throwable = error.get();
     assertThat(throwable).isInstanceOf(StatusRuntimeException.class);
-    assertThat(throwable.getMessage())
-        .isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
+    assertThat(throwable.getMessage()).contains("INVALID_ARGUMENT").contains("not_existing");
   }
 }

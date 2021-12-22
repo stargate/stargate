@@ -103,7 +103,8 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
         .expectErrorMatches(
             e ->
                 e instanceof StatusRuntimeException
-                    && e.getMessage().equals("INVALID_ARGUMENT: unconfigured table not_existing"))
+                    && e.getMessage().contains("INVALID_ARGUMENT")
+                    && e.getMessage().contains("not_existing"))
         .verify();
   }
 
@@ -127,7 +128,8 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
         .expectErrorMatches(
             e ->
                 e instanceof StatusRuntimeException
-                    && e.getMessage().equals("INVALID_ARGUMENT: unconfigured table not_existing"))
+                    && e.getMessage().contains("INVALID_ARGUMENT")
+                    && e.getMessage().contains("not_existing"))
         .verify();
   }
 
