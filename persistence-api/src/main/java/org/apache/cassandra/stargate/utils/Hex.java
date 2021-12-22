@@ -70,7 +70,7 @@ public class Hex {
     return bytesToHex(bytes, 0, bytes.length);
   }
 
-  public static String bytesToHex(byte bytes[], int offset, int length) {
+  public static String bytesToHex(byte[] bytes, int offset, int length) {
     char[] c = new char[length * 2];
     for (int i = 0; i < length; i++) {
       int bint = bytes[i + offset];

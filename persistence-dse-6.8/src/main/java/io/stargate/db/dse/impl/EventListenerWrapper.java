@@ -7,7 +7,7 @@ import org.apache.cassandra.schema.SchemaChangeListener;
 import org.apache.cassandra.schema.TableId;
 
 public class EventListenerWrapper implements SchemaChangeListener {
-  private EventListener wrapped;
+  private final EventListener wrapped;
 
   public EventListenerWrapper(EventListener wrapped) {
     this.wrapped = wrapped;

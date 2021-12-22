@@ -32,7 +32,7 @@ public class ConfigStoreActivator extends BaseActivator {
   public static final String CONFIG_STORE_YAML_IDENTIFIER = "ConfigStoreYaml";
 
   private final String configYamlLocation;
-  private ServicePointer<Metrics> metricsService = ServicePointer.create(Metrics.class);
+  private final ServicePointer<Metrics> metricsService = ServicePointer.create(Metrics.class);
 
   // for testing purpose
   public ConfigStoreActivator(String configYamlLocation) {

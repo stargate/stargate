@@ -444,8 +444,7 @@ public class ColumnTest {
     assertThat(type.validate(Byte.MAX_VALUE, "x")).isEqualTo((short) Byte.MAX_VALUE);
 
     // narrowing in range should work
-    assertThat(type.validate(BigInteger.valueOf((long) Short.MAX_VALUE), "x"))
-        .isEqualTo(Short.MAX_VALUE);
+    assertThat(type.validate(BigInteger.valueOf(Short.MAX_VALUE), "x")).isEqualTo(Short.MAX_VALUE);
     assertThat(type.validate((long) Short.MAX_VALUE, "x")).isEqualTo(Short.MAX_VALUE);
     assertThat(type.validate((int) Short.MAX_VALUE, "x")).isEqualTo(Short.MAX_VALUE);
 
@@ -476,8 +475,7 @@ public class ColumnTest {
     assertThat(type.validate(Byte.MAX_VALUE, "x")).isEqualTo(Byte.MAX_VALUE);
 
     // narrowing in range should work
-    assertThat(type.validate(BigInteger.valueOf((long) Byte.MAX_VALUE), "x"))
-        .isEqualTo(Byte.MAX_VALUE);
+    assertThat(type.validate(BigInteger.valueOf(Byte.MAX_VALUE), "x")).isEqualTo(Byte.MAX_VALUE);
     assertThat(type.validate((long) Byte.MAX_VALUE, "x")).isEqualTo(Byte.MAX_VALUE);
     assertThat(type.validate((int) Byte.MAX_VALUE, "x")).isEqualTo(Byte.MAX_VALUE);
     assertThat(type.validate((short) Byte.MAX_VALUE, "x")).isEqualTo(Byte.MAX_VALUE);

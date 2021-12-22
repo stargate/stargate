@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class TestServiceLazy {
   private final DependentService1 dependentService1;
-  private AtomicReference<DependentService2> dependentService2;
+  private final AtomicReference<DependentService2> dependentService2;
 
   public TestServiceLazy(
       DependentService1 dependentService1, AtomicReference<DependentService2> dependentService2) {

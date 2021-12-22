@@ -241,28 +241,26 @@ public enum DataType {
     if (dt == null) {
       if (type.isCollection()) {
         if (type instanceof ListType) {
-          return Pair.<DataType, Object>create(LIST, ((ListType) type).getElementsType());
+          return Pair.create(LIST, ((ListType) type).getElementsType());
         } else if (type instanceof MapType) {
           MapType mt = (MapType) type;
-          return Pair.<DataType, Object>create(
-              MAP, Arrays.asList(mt.getKeysType(), mt.getValuesType()));
+          return Pair.create(MAP, Arrays.asList(mt.getKeysType(), mt.getValuesType()));
         } else if (type instanceof SetType) {
-          return Pair.<DataType, Object>create(SET, ((SetType) type).getElementsType());
+          return Pair.create(SET, ((SetType) type).getElementsType());
         }
         throw new AssertionError();
       }
 
       if (type instanceof UserType && version.isGreaterOrEqualTo(UDT.protocolVersion))
-        return Pair.<DataType, Object>create(UDT, type);
+        return Pair.create(UDT, type);
 
       if (type instanceof TupleType && version.isGreaterOrEqualTo(TUPLE.protocolVersion))
-        return Pair.<DataType, Object>create(TUPLE, type);
+        return Pair.create(TUPLE, type);
 
-      return Pair.<DataType, Object>create(CUSTOM, type.toString());
+      return Pair.create(CUSTOM, type.toString());
     } else {
       // Fall back to CUSTOM if target doesn't know this data type
-      if (version.isSmallerThan(dt.protocolVersion))
-        return Pair.<DataType, Object>create(CUSTOM, type.toString());
+      if (version.isSmallerThan(dt.protocolVersion)) return Pair.create(CUSTOM, type.toString());
       return dt.pair;
     }
   }

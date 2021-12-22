@@ -53,11 +53,11 @@ public enum ConsistencyLevel {
     }
   }
 
-  private ConsistencyLevel(int code) {
+  ConsistencyLevel(int code) {
     this(code, false);
   }
 
-  private ConsistencyLevel(int code, boolean isDCLocal) {
+  ConsistencyLevel(int code, boolean isDCLocal) {
     this.code = code;
     this.isDCLocal = isDCLocal;
   }

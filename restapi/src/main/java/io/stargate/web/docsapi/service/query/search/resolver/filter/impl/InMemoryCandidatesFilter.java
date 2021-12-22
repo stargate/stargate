@@ -55,7 +55,7 @@ public class InMemoryCandidatesFilter implements CandidatesFilter {
 
   private final ExecutionContext context;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   private InMemoryCandidatesFilter(
       Collection<FilterExpression> expressions,

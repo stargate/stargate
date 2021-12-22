@@ -35,11 +35,11 @@ public class SwaggerUIResource {
 
   private static final Logger logger = LoggerFactory.getLogger(SwaggerUIResource.class);
 
-  private static Pattern fileExtensionPattern =
+  private static final Pattern fileExtensionPattern =
       Pattern.compile("([^\\s]+(\\.(?i)(css|png|js|map|html))$)");
 
-  private Bundle bundle;
-  private String indexFile;
+  private final Bundle bundle;
+  private final String indexFile;
 
   @Inject
   public SwaggerUIResource(Bundle bundle) throws IOException {

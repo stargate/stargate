@@ -120,7 +120,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
   @Mock private JsonSchemaHandler jsonSchemaHandler;
-  private DocsShredder docsShredder = new DocsShredder(config);
+  private final DocsShredder docsShredder = new DocsShredder(config);
   @Mock private AuthenticationService authenticationService;
   @Mock private AuthorizationService authorizationService;
   @Mock private DataStoreFactory dataStoreFactory;

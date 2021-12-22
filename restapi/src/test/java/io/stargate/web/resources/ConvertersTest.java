@@ -60,7 +60,7 @@ public class ConvertersTest {
                   .kind(Column.Kind.Regular)
                   .build())
           .build();
-  private static Table COUNTER_TABLE =
+  private static final Table COUNTER_TABLE =
       ImmutableTable.builder()
           .keyspace("library")
           .name("book_popular_count")

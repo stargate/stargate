@@ -47,7 +47,7 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
     (byte) 'Y', // Invalid request opcode
   };
 
-  private static int NUM_HEADER_BYTES = Math.max(BINARY_PREFIX.length, TEXT_PREFIX.length);
+  private static final int NUM_HEADER_BYTES = Math.max(BINARY_PREFIX.length, TEXT_PREFIX.length);
 
   @Override
   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {

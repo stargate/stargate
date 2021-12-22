@@ -134,7 +134,6 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
 
-    ;
     RuntimeException thrown =
         assertThrows(
             RuntimeException.class,

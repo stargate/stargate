@@ -46,7 +46,7 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
 
   private final ExecutionContext context;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   public PersistenceDocumentsResolver(
       FilterExpression expression, ExecutionContext context, DocsApiConfiguration config) {

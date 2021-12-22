@@ -21,9 +21,9 @@ import io.netty.buffer.ByteBuf;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 
 public interface CBCodec<T> {
-  public T decode(ByteBuf body, ProtocolVersion version);
+  T decode(ByteBuf body, ProtocolVersion version);
 
-  public void encode(T t, ByteBuf dest, ProtocolVersion version);
+  void encode(T t, ByteBuf dest, ProtocolVersion version);
 
-  public int encodedSize(T t, ProtocolVersion version);
+  int encodedSize(T t, ProtocolVersion version);
 }

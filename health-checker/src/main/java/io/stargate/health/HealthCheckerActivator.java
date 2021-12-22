@@ -23,14 +23,14 @@ public class HealthCheckerActivator extends BaseActivator {
   public static final String DATA_STORE_CHECK_NAME = "datastore";
   public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
-  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<MetricsScraper> metricsScraper =
+  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<MetricsScraper> metricsScraper =
       ServicePointer.create(MetricsScraper.class);
-  private ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
       ServicePointer.create(HttpMetricsTagProvider.class);
-  private ServicePointer<DataStoreFactory> dataStoreFactory =
+  private final ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
-  private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
   public HealthCheckerActivator() {
