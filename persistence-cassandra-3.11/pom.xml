@@ -10,7 +10,7 @@
   <artifactId>persistence-cassandra-3.11</artifactId>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <cassandra.version>3.11.9</cassandra.version>
+    <cassandra.version>3.11.11</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
