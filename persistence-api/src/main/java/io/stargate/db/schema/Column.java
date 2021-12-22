@@ -709,6 +709,9 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
 
     private static Type parseBaseType(String str) {
+      if (str.equalsIgnoreCase("varchar")) {
+        return Text;
+      }
       for (Type t : values()) {
         // Technically, the string "udt" does not correspond to a proper base type in CQL.
         if (t != UDT && t.name().equalsIgnoreCase(str)) {
