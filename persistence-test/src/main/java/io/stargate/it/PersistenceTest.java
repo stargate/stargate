@@ -503,7 +503,6 @@ public abstract class PersistenceTest {
             .put(Timeuuid, timeBased())
             .put(Tinyint, (byte) 4)
             .put(Uuid, random())
-            .put(Text, "some Text")
             .put(Varint, BigInteger.valueOf(23))
             //                .put(Point, new Point(3.3, 4.4))
             //                .put(Polygon, new Polygon(new Point(30, 10), new Point(10, 20), new
@@ -1006,7 +1005,7 @@ public abstract class PersistenceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "Invalid value provided for 'name': "
-                + "Java value 42 of type 'java.lang.Integer' is not a valid value for CQL type Text");
+                + "Java value 42 of type 'java.lang.Integer' is not a valid value for CQL type text");
   }
 
   @Disabled("Disabling for now since it fails with a strange MV schema generated")
