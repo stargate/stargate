@@ -45,7 +45,6 @@ public class ValueCodecs {
               .put(Type.Timeuuid, new UuidCodec())
               .put(Type.Tinyint, new TinyintCodec())
               .put(Type.Uuid, new UuidCodec())
-              .put(Type.Varchar, new StringCodec(TypeCodecs.TEXT))
               .put(Type.Varint, new VarintCodec())
               .put(Type.List, new CollectionCodec())
               .put(Type.Set, new CollectionCodec())

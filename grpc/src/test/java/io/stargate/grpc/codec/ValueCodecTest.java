@@ -296,9 +296,7 @@ public class ValueCodecTest {
   public static Stream<Arguments> stringValues() {
     return Stream.of(
         arguments(Type.Ascii, Values.of("Hello, world")),
-        arguments(Type.Varchar, Values.of("你好，世界")),
         arguments(Type.Text, Values.of("你好，世界")),
-        arguments(Type.Varchar, Values.of("")),
         arguments(Type.Text, Values.of("")),
         arguments(Type.Ascii, Values.of("")));
   }
@@ -306,7 +304,6 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidStringValues() {
     return Stream.of(
         arguments(Type.Text, Values.NULL, "Expected string type"),
-        arguments(Type.Varchar, Values.UNSET, "Expected string type"),
         arguments(
             Type.Ascii,
             Values.of("你好，世界"),
@@ -367,9 +364,9 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> listValues() {
     return Stream.of(
-        arguments(Type.List.of(Type.Varchar), Values.of()),
+        arguments(Type.List.of(Type.Text), Values.of()),
         arguments(
-            Type.List.of(Type.Varchar), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
+            Type.List.of(Type.Text), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
         arguments(Type.List.of(Type.Int), Values.of(Values.of(1), Values.of(2), Values.of(3))),
         arguments(
             Type.List.of(Type.Int),
@@ -379,27 +376,25 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidListValues() {
     return Stream.of(
         arguments(
-            Type.List.of(Type.Varchar),
+            Type.List.of(Type.Text),
             Values.of(Values.of("a"), Values.of(1)),
             "Expected string type"),
-        arguments(Type.List.of(Type.Varchar), Values.of(Values.UNSET), "Expected string type"),
+        arguments(Type.List.of(Type.Text), Values.of(Values.UNSET), "Expected string type"),
         arguments(Type.List.of(Type.Int), Values.NULL, "Expected collection type"),
         arguments(Type.List.of(Type.Int), Values.UNSET, "Expected collection type"),
         arguments(
-            Type.List.of(Type.Varchar),
-            Values.of(Values.NULL),
-            "null is not supported inside lists"),
+            Type.List.of(Type.Text), Values.of(Values.NULL), "null is not supported inside lists"),
         arguments(
             Type.List.of(Type.Int), Values.of(Values.NULL), "null is not supported inside lists"));
   }
 
   public static Stream<Arguments> setValues() {
     return Stream.of(
-        arguments(Type.Set.of(Type.Varchar), Values.of()),
+        arguments(Type.Set.of(Type.Text), Values.of()),
         arguments(
-            Type.Set.of(Type.Varchar), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
+            Type.Set.of(Type.Text), Values.of(Values.of("a"), Values.of("b"), Values.of("c"))),
         arguments(
-            Type.Set.of(Type.Varchar),
+            Type.Set.of(Type.Text),
             Values.of(
                 new HashSet<Value>() {
                   {
@@ -413,28 +408,28 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidSetValues() {
     return Stream.of(
         arguments(
-            Type.Set.of(Type.Varchar), Values.of(Values.NULL), "null is not supported inside sets"),
+            Type.Set.of(Type.Text), Values.of(Values.NULL), "null is not supported inside sets"),
         arguments(
             Type.Set.of(Type.Int), Values.of(Values.NULL), "null is not supported inside sets"));
   }
 
   public static Stream<Arguments> mapValues() {
     return Stream.of(
-        arguments(Type.Map.of(Type.Varchar, Type.Int), Values.of()),
+        arguments(Type.Map.of(Type.Text, Type.Int), Values.of()),
         arguments(
-            Type.Map.of(Type.Varchar, Type.Int),
+            Type.Map.of(Type.Text, Type.Int),
             Values.of(
                 Values.of("a"), Values.of(1),
                 Values.of("b"), Values.of(2),
                 Values.of("c"), Values.of(3))),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(
                 Values.of(Uuids.random()), Values.of("a"),
                 Values.of(Uuids.random()), Values.of("b"),
                 Values.of(Uuids.random()), Values.of("c"))),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(
                 ImmutableMap.<Value, Value>builder()
                     .put(Values.of(Uuids.random()), Values.of("a"))
@@ -446,28 +441,28 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidMapValues() {
     return Stream.of(
         arguments(
-            Type.Map.of(Type.Varchar, Type.Int),
+            Type.Map.of(Type.Text, Type.Int),
             Values.of(
                 Values.of("a"), Values.of(1),
                 Values.of("b"), Values.of(2),
                 Values.of("c"), Values.of(Uuids.random())),
             "Expected integer type"),
         arguments(
-            Type.Map.of(Type.Varchar, Type.Int),
+            Type.Map.of(Type.Text, Type.Int),
             Values.of(
                 Values.of("a"), Values.of(1),
                 Values.of("b"), Values.of(2),
                 Values.of("c"), Values.UNSET),
             "Expected integer type"),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(
                 Values.of(Uuids.random()), Values.of("a"),
                 Values.of(Uuids.random()), Values.of("b"),
                 Values.of(1), Values.of("c")),
             "Expected UUID type"),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(
                 Values.of(Uuids.random()),
                 Values.of("a"),
@@ -477,55 +472,52 @@ public class ValueCodecTest {
                 Values.of("c")),
             "Expected UUID type"),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(Values.of(Uuids.random())),
             "Expected an even number of elements"),
-        arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.NULL, "Expected collection type"),
-        arguments(Type.Map.of(Type.Uuid, Type.Varchar), Values.UNSET, "Expected collection type"),
+        arguments(Type.Map.of(Type.Uuid, Type.Text), Values.NULL, "Expected collection type"),
+        arguments(Type.Map.of(Type.Uuid, Type.Text), Values.UNSET, "Expected collection type"),
         arguments(
-            Type.Map.of(Type.Varchar, Type.Int),
+            Type.Map.of(Type.Text, Type.Int),
             Values.of(Values.of("a"), Values.NULL),
             "null is not supported inside maps"),
         arguments(
-            Type.Map.of(Type.Uuid, Type.Varchar),
+            Type.Map.of(Type.Uuid, Type.Text),
             Values.of(Values.NULL, Values.of("a")),
             "null is not supported inside maps"));
   }
 
   public static Stream<Arguments> tupleValues() {
     return Stream.of(
-        arguments(Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid), Values.of(Values.of("a"))),
+        arguments(Type.Tuple.of(Type.Text, Type.Int, Type.Uuid), Values.of(Values.of("a"))),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
-            Values.of(Values.of("a"), Values.of(1))),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid), Values.of(Values.of("a"), Values.of(1))),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid),
             Values.of(Values.of("a"), Values.of(1), Values.of(Uuids.random()))),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid),
             Values.of(Values.NULL, Values.NULL, Values.NULL)));
   }
 
   public static Stream<Arguments> invalidTupleValues() {
     return Stream.of(
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid),
             Values.of(Values.of("a"), Values.of(1), Values.of("wrong")),
             "Expected UUID type"),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid),
             Values.of(Values.of("a"), Values.of(1), Values.UNSET),
             "Expected UUID type"),
         arguments(
-            Type.Tuple.of(Type.Varchar),
+            Type.Tuple.of(Type.Text),
             Values.of(Values.of("a"), Values.of(1)),
             "Too many tuple fields. Expected 1, but received 2"),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
-            Values.NULL,
-            "Expected collection type"),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid), Values.NULL, "Expected collection type"),
         arguments(
-            Type.Tuple.of(Type.Varchar, Type.Int, Type.Uuid),
+            Type.Tuple.of(Type.Text, Type.Int, Type.Uuid),
             Values.UNSET,
             "Expected collection type"));
   }
@@ -533,33 +525,33 @@ public class ValueCodecTest {
   public static Stream<Arguments> udtValues() {
     return Stream.of(
         arguments( // Simple case
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
             Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc")))),
         arguments( // Flipped
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))),
             Values.udtOf(ImmutableMap.of("b", Values.of("abc"), "a", Values.of(1)))),
         arguments( // Single first value
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.of(1))),
             Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.NULL))),
         arguments( // Single second value
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("b", Values.of("abc"))),
             Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.of("abc")))),
         arguments( // Empty
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of()),
             Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
         arguments( // Null
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL)),
             Values.udtOf(ImmutableMap.of("a", Values.NULL, "b", Values.NULL))),
         arguments( // Embedded UDT
             udt(
                 Column.create(
-                    "c", udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)))),
+                    "c", udt(Column.create("a", Type.Int), Column.create("b", Type.Text)))),
             Values.udtOf(
                 ImmutableMap.of(
                     "c", Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of("abc"))))),
@@ -569,7 +561,7 @@ public class ValueCodecTest {
         arguments( // Embedded collections
             udt(
                 Column.create("a", Type.List.of(Type.Int)),
-                Column.create("b", Type.Tuple.of(Type.Varchar, Type.Boolean))),
+                Column.create("b", Type.Tuple.of(Type.Text, Type.Boolean))),
             Values.udtOf(
                 ImmutableMap.of(
                     "a",
@@ -587,23 +579,23 @@ public class ValueCodecTest {
   public static Stream<Arguments> invalidUdtValues() {
     return Stream.of(
         arguments(
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("c", Values.of(1))),
             "User-defined type doesn't contain a field named 'c'"),
         arguments(
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.of("abc"), "b", Values.of("abc"))),
             "Expected integer type"),
         arguments(
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.udtOf(ImmutableMap.of("a", Values.of(1), "b", Values.of(2))),
             "Expected string type"),
         arguments(
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.NULL,
             "Expected user-defined type"),
         arguments(
-            udt(Column.create("a", Type.Int), Column.create("b", Type.Varchar)),
+            udt(Column.create("a", Type.Int), Column.create("b", Type.Text)),
             Values.UNSET,
             "Expected user-defined type"));
   }

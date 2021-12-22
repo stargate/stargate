@@ -63,20 +63,19 @@ public class ColumnTest {
     assertThat(Type.Tinyint.fromString("2")).isEqualTo((byte) 2);
 
     assertThat(Type.Uuid.fromString(uuid.toString())).isEqualTo(uuid);
-    assertThat(Type.Varchar.fromString("2")).isEqualTo("2");
     assertThat(Type.Varint.fromString("2")).isEqualTo(BigInteger.valueOf(2L));
   }
 
   @Test
   public void tupleFromString() {
-    Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
+    Column.ColumnType tupleType = Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double));
     TupleValue tuple = tupleType.create("Test", tupleType.parameters().get(1).create(2, 3.0));
     assertThat(tupleType.fromString("('Test',(2,3.0))")).isEqualTo(tuple);
   }
 
   @Test
   public void udtFromString() {
-    Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
+    Column.ColumnType tupleType = Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double));
     Keyspace ks =
         Schema.build()
             .keyspace("test")
@@ -127,13 +126,13 @@ public class ColumnTest {
     assertThat(Type.Timeuuid.toString(null)).isEqualTo("null");
     assertThat(Type.Tinyint.toString(null)).isEqualTo("null");
     assertThat(Type.Uuid.toString(null)).isEqualTo("null");
-    assertThat(Type.Varchar.toString(null)).isEqualTo("null");
+    assertThat(Type.Text.toString(null)).isEqualTo("null");
     assertThat(Type.Varint.toString(null)).isEqualTo("null");
 
     assertThat(Type.List.of(Type.Int).toString(null)).isEqualTo("null");
     assertThat(Type.Set.of(Type.Int).toString(null)).isEqualTo("null");
     assertThat(Type.Map.of(Type.Int, Type.Int).toString(null)).isEqualTo("null");
-    assertThat(Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double)).toString(null))
+    assertThat(Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double)).toString(null))
         .isEqualTo("null");
 
     Keyspace ks =
@@ -214,8 +213,8 @@ public class ColumnTest {
     assertThatThrownBy(() -> Type.Tinyint.toString("2"))
         .hasMessage(invalidValueMsg(Type.Tinyint, "2", String.class));
 
-    assertThatThrownBy(() -> Type.Varchar.toString(2L))
-        .hasMessage(invalidValueMsg(Type.Varchar, 2L, Long.class));
+    assertThatThrownBy(() -> Type.Text.toString(2L))
+        .hasMessage(invalidValueMsg(Type.Text, 2L, Long.class));
 
     assertThatThrownBy(() -> Type.Varint.toString(BigInteger.valueOf(2L).toString()))
         .hasMessage(invalidValueMsg(Type.Varint, BigInteger.valueOf(2L).toString(), String.class));
@@ -246,7 +245,7 @@ public class ColumnTest {
     assertThat(Type.Tinyint.toString((byte) 2)).isEqualTo("2");
 
     assertThat(Type.Uuid.toString(uuid)).isEqualTo(uuid.toString());
-    assertThat(Type.Varchar.toString("2")).isEqualTo("2");
+    assertThat(Type.Text.toString("2")).isEqualTo("2");
     assertThat(Type.Varint.toString(BigInteger.valueOf(2L))).isEqualTo("2");
   }
 
@@ -301,14 +300,14 @@ public class ColumnTest {
 
   @Test
   public void tupleToString() {
-    Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
+    Column.ColumnType tupleType = Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double));
     TupleValue tuple = tupleType.create("Test", tupleType.parameters().get(1).create(2, 3.0));
     assertThat(tupleType.toString(tuple)).isEqualTo("('Test',(2,3.0))");
   }
 
   @Test
   public void tupleToStringWithInvalidType() {
-    Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
+    Column.ColumnType tupleType = Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double));
     TupleValue tuple = tupleType.create("Test", tupleType.parameters().get(1).create(2, 3.0));
     assertThatThrownBy(() -> tupleType.toString(tuple.toString()))
         .hasMessage(invalidValueMsg(tupleType, tuple.toString(), String.class));
@@ -327,7 +326,7 @@ public class ColumnTest {
   @Test
   public void udtToString() {
     // UDT
-    Column.ColumnType tupleType = Type.Tuple.of(Type.Varchar, Type.Tuple.of(Type.Int, Type.Double));
+    Column.ColumnType tupleType = Type.Tuple.of(Type.Text, Type.Tuple.of(Type.Int, Type.Double));
     Keyspace ks =
         Schema.build()
             .keyspace("test")

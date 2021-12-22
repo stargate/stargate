@@ -109,7 +109,6 @@ abstract class DeployedFetcher<ResultT> extends CassandraFetcher<ResultT> {
         expectedClass = Double.class;
         graphqlScalar = Scalars.GraphQLFloat;
         break;
-      case Varchar:
       case Text:
         expectedClass = String.class;
         graphqlScalar = Scalars.GraphQLString;

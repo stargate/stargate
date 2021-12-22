@@ -143,7 +143,6 @@ public class ConvertersTest {
     return new Arguments[] {
       // Primitives:
       arguments(Type.Text, "\"abc\"", "abc"),
-      arguments(Type.Varchar, "\"abc\"", "abc"),
       arguments(Type.Ascii, "\"abc\"", "abc"),
       arguments(Type.Boolean, "true", true),
       arguments(Type.Boolean, "\"true\"", true),
@@ -254,7 +253,6 @@ public class ConvertersTest {
   private static Arguments[] toCqlErrorSamples() {
     return new Arguments[] {
       arguments(Type.Text, "1", "Invalid Text value '1': expected a string"),
-      arguments(Type.Varchar, "[]", "Invalid Varchar value '[]': expected a string"),
       arguments(Type.Ascii, "true", "Invalid Ascii value 'true': expected a string"),
       arguments(Type.Boolean, "1", "Invalid Boolean value '1': expected a boolean or a string"),
       arguments(Type.Boolean, "\"a\"", "Invalid Boolean value 'a': cannot parse"),

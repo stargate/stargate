@@ -19,7 +19,6 @@ import static io.stargate.db.schema.Column.Kind.Regular;
 import static io.stargate.db.schema.Column.Type.Ascii;
 import static io.stargate.db.schema.Column.Type.Counter;
 import static io.stargate.db.schema.Column.Type.Timeuuid;
-import static io.stargate.db.schema.Column.Type.Varchar;
 import static java.lang.String.format;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -359,7 +358,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     Smallint(19, Short.class, false, "16-bit signed integer"),
 
-    Text(10, String.class, true, "UTF-8 encoded string"),
+    Text(13, String.class, true, "UTF-8 encoded string"),
 
     Time(
         18,
@@ -413,8 +412,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     },
 
     Uuid(12, UUID.class, false, "128 bit universally unique identifier (UUID)"),
-
-    Varchar(13, String.class, true, "UTF-8 encoded string"),
 
     Varint(14, BigInteger.class, false, "Arbitrary-precision integer"),
 
@@ -839,13 +836,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
           .put(Date.class, Type.Date)
           .putAll(
               Arrays.stream(Type.values())
-                  .filter(
-                      r ->
-                          !r.isCollection()
-                              && r != Counter
-                              && r != Ascii
-                              && r != Timeuuid
-                              && r != Varchar)
+                  .filter(r -> !r.isCollection() && r != Counter && r != Ascii && r != Timeuuid)
                   .collect(Collectors.toMap(r -> r.javaType, r -> r)))
           .build();
 
@@ -857,7 +848,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   public static boolean ofTypeText(ColumnType type) {
-    return Type.Varchar.equals(type) || Type.Text.equals(type);
+    return Type.Text.equals(type);
   }
 
   public boolean ofTypeListOrSet() {

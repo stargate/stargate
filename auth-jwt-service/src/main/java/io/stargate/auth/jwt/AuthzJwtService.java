@@ -283,7 +283,7 @@ public class AuthzJwtService implements AuthorizationService {
       // the request is not allowed.
       if (stargateClaims.has(STARGATE_PREFIX + typedKeyValue.getName())) {
         ColumnType targetCellType = typedKeyValue.getType();
-        if (!(targetCellType.equals(Type.Varchar) || targetCellType.equals(Type.Text))) {
+        if (!targetCellType.equals(Type.Text)) {
           throw new IllegalArgumentException(
               "Column must be of type text to be used for authorization");
         }

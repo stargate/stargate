@@ -68,13 +68,13 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             false,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -167,12 +167,12 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
         // Invalid arity
         arguments(
             org.assertj.core.util.Arrays.array(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+                Column.create("k", Type.Text), Column.create("v", Type.Int)),
             org.assertj.core.util.Arrays.array(Values.of("a")),
             "Invalid number of bind values. Expected 2, but received 1"),
         // Invalid type
         arguments(
-            org.assertj.core.util.Arrays.array(Column.create("k", Type.Varchar)),
+            org.assertj.core.util.Arrays.array(Column.create("k", Type.Text)),
             org.assertj.core.util.Arrays.array(Values.of(1)),
             "Invalid argument at position 1"));
   }
@@ -245,7 +245,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
     return Stream.of(
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("c1", Column.Type.Int))
-            .addActual(Column.create("c2", Column.Type.Varchar))
+            .addActual(Column.create("c2", Column.Type.Text))
             .addActual(Column.create("c3", Column.Type.Uuid))
             .addExpected(
                 ColumnSpec.newBuilder()
@@ -254,7 +254,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
             .addExpected(
                 ColumnSpec.newBuilder()
                     .setName("c2")
-                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR)))
+                    .setType(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.TEXT)))
             .addExpected(
                 ColumnSpec.newBuilder()
                     .setName("c3")
@@ -296,7 +296,7 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.UUID)))))
             .build(false),
         ColumnMetadataBuilder.builder()
-            .addActual(Column.create("m", Type.Map.of(Type.Varchar, Type.Bigint)))
+            .addActual(Column.create("m", Type.Map.of(Type.Text, Type.Bigint)))
             .addExpected(
                 ColumnSpec.newBuilder()
                     .setName("m")
@@ -304,13 +304,13 @@ public class ExecuteQueryTest extends BaseGrpcServiceTest {
                         TypeSpec.newBuilder()
                             .setMap(
                                 TypeSpec.Map.newBuilder()
-                                    .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.VARCHAR))
+                                    .setKey(TypeSpec.newBuilder().setBasic(TypeSpec.Basic.TEXT))
                                     .setValue(
                                         TypeSpec.newBuilder().setBasic(TypeSpec.Basic.BIGINT)))))
             .build(false),
         ColumnMetadataBuilder.builder()
             .addActual(Column.create("c1", Column.Type.Int))
-            .addActual(Column.create("c2", Column.Type.Varchar))
+            .addActual(Column.create("c2", Column.Type.Text))
             .addActual(Column.create("c3", Column.Type.Uuid))
             .build(true));
   }

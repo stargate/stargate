@@ -64,8 +64,7 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            Utils.makePreparedMetadata(Column.create("k", Type.Text), Column.create("v", Type.Int)),
             false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
@@ -202,12 +201,12 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
     return Stream.of(
         // Invalid arity
         arguments(
-            Arrays.array(Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            Arrays.array(Column.create("k", Type.Text), Column.create("v", Type.Int)),
             Arrays.array(Values.of("a")),
             "Invalid number of bind values. Expected 2, but received 1"),
         // Invalid type
         arguments(
-            Arrays.array(Column.create("k", Type.Varchar)),
+            Arrays.array(Column.create("k", Type.Text)),
             Arrays.array(Values.of(1)),
             "Invalid argument at position 1"));
   }
