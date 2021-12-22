@@ -37,7 +37,7 @@ public class InsertQueryBuilder {
   /**
    * Constructs the query builder for inserting document rows based on the defined max depth.
    *
-   * @param maxDepth Mac depth of the document storage
+   * @param maxDepth Max depth of the document storage
    */
   public InsertQueryBuilder(int maxDepth) {
     this.maxDepth = maxDepth;
