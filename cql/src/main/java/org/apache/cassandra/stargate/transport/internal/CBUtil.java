@@ -430,7 +430,7 @@ public abstract class CBUtil {
 
   public static List<ByteBuffer> readValueList(ByteBuf cb, ProtocolVersion protocolVersion) {
     int size = cb.readUnsignedShort();
-    if (size == 0) return Collections.<ByteBuffer>emptyList();
+    if (size == 0) return Collections.emptyList();
 
     List<ByteBuffer> l = new ArrayList<ByteBuffer>(size);
     for (int i = 0; i < size; i++) l.add(readBoundValue(cb, protocolVersion));
@@ -451,8 +451,7 @@ public abstract class CBUtil {
   public static Pair<List<String>, List<ByteBuffer>> readNameAndValueList(
       ByteBuf cb, ProtocolVersion protocolVersion) {
     int size = cb.readUnsignedShort();
-    if (size == 0)
-      return Pair.create(Collections.<String>emptyList(), Collections.<ByteBuffer>emptyList());
+    if (size == 0) return Pair.create(Collections.emptyList(), Collections.emptyList());
 
     List<String> s = new ArrayList<>(size);
     List<ByteBuffer> l = new ArrayList<>(size);

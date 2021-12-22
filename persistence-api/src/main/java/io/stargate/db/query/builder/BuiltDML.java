@@ -303,7 +303,7 @@ abstract class BuiltDML<Q extends AbstractBound<?> & BoundDMLQuery> extends Buil
 
     private Condition.LHS createLHS(BuiltCondition.LHS lhs) {
       if (lhs.isColumnName()) {
-        String name = ((BuiltCondition.LHS.ColumnName) lhs).columnName();
+        String name = lhs.columnName();
         return Condition.LHS.column(dml.table.existingColumn(name));
       } else if (lhs.isMapAccess()) {
         BuiltCondition.LHS.MapElement m = ((BuiltCondition.LHS.MapElement) lhs);

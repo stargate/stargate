@@ -20,5 +20,4 @@ import graphql.ErrorClassification;
 public enum ProcessingErrorType implements ErrorClassification {
   InvalidSyntax,
   InvalidMapping,
-  ;
 }

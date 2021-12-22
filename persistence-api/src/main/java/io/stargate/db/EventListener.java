@@ -19,7 +19,7 @@ import java.net.InetAddress;
 import java.util.List;
 
 public interface EventListener {
-  public static final int NO_PORT = -1;
+  int NO_PORT = -1;
 
   default void onCreateKeyspace(String keyspace) {}
 

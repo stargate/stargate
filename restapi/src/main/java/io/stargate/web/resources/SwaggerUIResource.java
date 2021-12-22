@@ -40,8 +40,8 @@ public class SwaggerUIResource {
 
   private static final Pattern bearerTokenPattern = Pattern.compile("^Bearer\\s");
 
-  private Bundle bundle;
-  private String indexFile;
+  private final Bundle bundle;
+  private final String indexFile;
 
   @Inject
   public SwaggerUIResource(Bundle bundle) throws IOException {

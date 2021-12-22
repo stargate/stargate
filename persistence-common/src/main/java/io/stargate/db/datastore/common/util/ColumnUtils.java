@@ -69,7 +69,7 @@ import org.immutables.value.Value;
 
 public class ColumnUtils {
   public static final Pattern WHITESPACE_PATTERN = Pattern.compile("(?U)\\s");
-  private static ZoneId UTC = ZoneId.of("UTC");
+  private static final ZoneId UTC = ZoneId.of("UTC");
 
   @Value.Immutable(prehash = true)
   abstract static class Codecs {

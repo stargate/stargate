@@ -54,7 +54,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
 
   private final boolean evaluateOnMissing;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   public InMemoryDocumentsResolver(
       FilterExpression expression, ExecutionContext context, DocsApiConfiguration config) {

@@ -20,5 +20,4 @@ import graphql.ErrorClassification;
 public enum ProcessingLogType implements ErrorClassification {
   Info,
   Warning,
-  ;
 }

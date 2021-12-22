@@ -34,7 +34,7 @@ class PersistenceBackedResultSet implements ResultSet {
   private final ProtocolVersion driverProtocolVersion;
   private final Deque<Row> fetchedRows;
   private final List<Column> columns;
-  private Predicate<Row> authzFilter;
+  private final Predicate<Row> authzFilter;
   private final Result.Rows initialPage; // Used for calling withRowInspector()
 
   // Paging state to fetch the next page, or null is we've fetched all pages.
