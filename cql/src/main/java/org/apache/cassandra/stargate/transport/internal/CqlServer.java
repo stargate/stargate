@@ -95,7 +95,7 @@ public class CqlServer implements CassandraDaemon.Server {
   public boolean useSSL = false;
   private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
-  private EventLoopGroup workerGroup;
+  private final EventLoopGroup workerGroup;
 
   private CqlServer(Builder builder) {
     this.persistence = builder.persistence;

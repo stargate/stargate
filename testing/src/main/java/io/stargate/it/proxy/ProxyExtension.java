@@ -100,8 +100,8 @@ public class ProxyExtension extends ExternalResource<ProxySpec, ProxyExtension.P
   }
 
   protected static class Proxy extends ExternalResource.Holder {
-    private List<TcpProxy> proxies = new ArrayList<>();
-    private List<InetSocketAddress> addresses = new ArrayList<>();
+    private final List<TcpProxy> proxies = new ArrayList<>();
+    private final List<InetSocketAddress> addresses = new ArrayList<>();
 
     List<InetSocketAddress> addresses() {
       return addresses;

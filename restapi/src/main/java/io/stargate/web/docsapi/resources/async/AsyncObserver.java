@@ -35,7 +35,7 @@ import javax.ws.rs.container.AsyncResponse;
  */
 public class AsyncObserver<V> implements SingleObserver<V> {
 
-  private AsyncResponse asyncResponse;
+  private final AsyncResponse asyncResponse;
 
   private final Function<Throwable, V> errorHandler;
 

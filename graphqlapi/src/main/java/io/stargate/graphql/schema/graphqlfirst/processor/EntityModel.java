@@ -29,7 +29,6 @@ public class EntityModel {
   public enum Target {
     TABLE,
     UDT,
-    ;
   }
 
   private final String graphqlName;

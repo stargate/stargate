@@ -46,14 +46,14 @@ public class GraphqlActivator extends BaseActivator {
   private static final boolean ENABLE_GRAPHQL_PLAYGROUND =
       !Boolean.getBoolean("stargate.graphql_playground.disabled");
 
-  private ServicePointer<AuthenticationService> authentication =
+  private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(AuthenticationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
-  private ServicePointer<AuthorizationService> authorization =
+  private final ServicePointer<AuthorizationService> authorization =
       ServicePointer.create(AuthorizationService.class, "AuthIdentifier", AUTH_IDENTIFIER);
-  private ServicePointer<Persistence> persistence =
+  private final ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
-  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
       ServicePointer.create(HttpMetricsTagProvider.class);
   private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);

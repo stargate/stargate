@@ -100,12 +100,11 @@ class IdempotencyAnalyzerTest extends BaseDseTest {
   @Test
   public void shouldReturnIdempotentIfAllStatementsWithinABatchAreIdempotent() {
     BatchStatement.Raw raw =
-        (BatchStatement.Parsed)
-            QueryProcessor.parseStatement(
-                "BEGIN BATCH\n"
-                    + "update ks1.my_table SET list_col = [1] WHERE pk = 1\n"
-                    + "UPDATE ks1.my_table SET map['key'] = 'V' WHERE pk = 123\n"
-                    + "APPLY BATCH;");
+        QueryProcessor.parseStatement(
+            "BEGIN BATCH\n"
+                + "update ks1.my_table SET list_col = [1] WHERE pk = 1\n"
+                + "UPDATE ks1.my_table SET map['key'] = 'V' WHERE pk = 123\n"
+                + "APPLY BATCH;");
 
     CQLStatement statement = raw.prepare(ClientState.forInternalCalls());
 

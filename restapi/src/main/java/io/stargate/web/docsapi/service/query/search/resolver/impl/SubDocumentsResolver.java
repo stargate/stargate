@@ -63,7 +63,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
 
   private final int keyDepth;
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   public SubDocumentsResolver(
       Expression<FilterExpression> expression,

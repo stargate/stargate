@@ -24,7 +24,7 @@ import io.stargate.proto.QueryOuterClass.Value.InnerCase;
 import java.nio.ByteBuffer;
 
 public class StringCodec implements ValueCodec {
-  private TypeCodec<String> innerCodec;
+  private final TypeCodec<String> innerCodec;
 
   public StringCodec(@NonNull TypeCodec<String> innerCodec) {
     this.innerCodec = innerCodec;

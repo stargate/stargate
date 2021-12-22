@@ -21,7 +21,7 @@ import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.service.MigrationListener;
 
 public class EventListenerWrapper extends MigrationListener {
-  private EventListener wrapped;
+  private final EventListener wrapped;
 
   EventListenerWrapper(EventListener wrapped) {
     this.wrapped = wrapped;

@@ -236,13 +236,13 @@ public class NameConversions {
           .put("conversionWarnings", "conversionWarningx73_")
           .build();
 
-  private static ImmutableMap<String, String> RESERVED_PREFIXES =
+  private static final ImmutableMap<String, String> RESERVED_PREFIXES =
       ImmutableMap.<String, String>builder()
           .put("Entry", "Entrx79_")
           .put("Tuple", "Tuplx65_")
           .build();
 
-  private static ImmutableMap<String, String> RESERVED_SUFFIXES =
+  private static final ImmutableMap<String, String> RESERVED_SUFFIXES =
       ImmutableMap.<String, String>builder()
           .put("Input", "Inpux74_")
           .put("Result", "Resulx74_")
