@@ -55,6 +55,11 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>cassandra-thrift</artifactId>
+      <version>${cassandra.version}</version>
+    </dependency>
     <!--
       Redeclare the driver dependency because it's optional in cassandra-all (this is required to
       correctly handle UDFs).
