@@ -31,7 +31,6 @@ import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateStub;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +54,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
   @Test
   public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
-   List<Response> responses = new ArrayList<>();
+    List<Response> responses = new ArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<Response> responseStreamObserver =
