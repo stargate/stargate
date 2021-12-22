@@ -25,7 +25,11 @@ public class ToProtoConverter {
    * decoded and coerced as necessary).
    */
   public QueryOuterClass.Value protoValueFromLooselyTyped(String fieldName, Object value) {
-    final ToProtoValueCodec codec = getCodec(fieldName);
+    return protoValueFromLooselyTyped(getCodec(fieldName), fieldName, value);
+  }
+
+  public QueryOuterClass.Value protoValueFromLooselyTyped(
+      ToProtoValueCodec codec, String fieldName, Object value) {
     try {
       if (value instanceof String) {
         return codec.protoValueFromStringified((String) value);
@@ -66,7 +70,11 @@ public class ToProtoConverter {
    * values.
    */
   public QueryOuterClass.Value protoValueFromStringified(String fieldName, String value) {
-    final ToProtoValueCodec codec = getCodec(fieldName);
+    return protoValueFromStringified(getCodec(fieldName), fieldName, value);
+  }
+
+  public QueryOuterClass.Value protoValueFromStringified(
+      ToProtoValueCodec codec, String fieldName, String value) {
     try {
       return codec.protoValueFromStringified(value);
     } catch (Exception e) {
@@ -78,7 +86,7 @@ public class ToProtoConverter {
     }
   }
 
-  private ToProtoValueCodec getCodec(String fieldName) {
+  public ToProtoValueCodec getCodec(String fieldName) {
     ToProtoValueCodec codec = codecsByName.get(fieldName);
     if (codec == null) {
       throw new IllegalArgumentException(

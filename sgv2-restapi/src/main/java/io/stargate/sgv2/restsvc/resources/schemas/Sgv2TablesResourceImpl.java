@@ -219,7 +219,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
   private Sgv2ColumnDefinition column2column(QueryOuterClass.ColumnSpec column, boolean isStatic) {
     return new Sgv2ColumnDefinition(
         column.getName(),
-        BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(column.getType()),
+        BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(column.getType(), true),
         isStatic);
   }
 
