@@ -233,8 +233,7 @@ public class RestApiTest extends BaseIntegrationTest {
     assertThat(columnDefinitions.size()).isEqualTo(4);
     columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
     assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
-    assertThat(columnDefinitions.get(0).getTypeDefinition())
-        .isEqualTo("frozen<map<date, text>>");
+    assertThat(columnDefinitions.get(0).getTypeDefinition()).isEqualTo("frozen<map<date, text>>");
   }
 
   @Test
@@ -1195,8 +1194,7 @@ public class RestApiTest extends BaseIntegrationTest {
     assertThat(columnDefinitions.size()).isEqualTo(4);
     columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
     assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
-    assertThat(columnDefinitions.get(0).getTypeDefinition())
-        .isEqualTo("frozen<map<date, text>>");
+    assertThat(columnDefinitions.get(0).getTypeDefinition()).isEqualTo("frozen<map<date, text>>");
   }
 
   @Test
