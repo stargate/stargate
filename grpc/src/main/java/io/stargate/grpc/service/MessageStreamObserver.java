@@ -81,6 +81,8 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
       // todo do we want to wait until in-flight is empty?
       System.out.println("waiting while inFlight = 0");
     }
-    responseObserver.onCompleted();
+    synchronized (responseObserver) {
+      responseObserver.onCompleted();
+    }
   }
 }

@@ -1,7 +1,5 @@
 package io.stargate.it.grpc;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.grpc.Values;
@@ -13,6 +11,7 @@ import io.stargate.proto.ReactorStargateGrpc;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +33,6 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
   @Test
   public void simpleReactiveBiDirectionalQueries(@TestKeyspace CqlIdentifier keyspace) {
     ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-    // due to async nature of all reactive queries, we should not mix selects and inserts
-    // because they may interleave
 
     Flux<QueryOuterClass.Batch> insertQueries =
         Flux.create(
@@ -62,40 +59,24 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
               emitter.complete(); // client-side complete signal
             });
 
-    Flux<QueryOuterClass.Batch> selectQueries =
-        Flux.create(
-            emitter -> {
-              emitter.next(
-                  QueryOuterClass.Batch.newBuilder()
-                      .addQueries(cqlBatchQuery("SELECT * FROM test"))
-                      .setParameters(batchParameters(keyspace))
-                      .build());
-              emitter.complete(); // client-side complete signal
-            });
-
     Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(insertQueries);
     StepVerifier.create(responseFlux)
         .expectNextMatches(Objects::nonNull)
         .expectNextMatches(Objects::nonNull)
         .expectComplete()
         .verify();
-
-    responseFlux = stub.executeBatchStream(selectQueries);
-    StepVerifier.create(responseFlux)
-        .expectNextMatches(
-            response -> {
-              assertThat(response.hasResultSet()).isTrue();
-              QueryOuterClass.ResultSet rs = response.getResultSet();
-              assertThat(new HashSet<>(rs.getRowsList()))
-                  .isEqualTo(
-                      new HashSet<>(
-                          Arrays.asList(
-                              rowOf(Values.of("a"), Values.of(1)),
-                              rowOf(Values.of("b"), Values.of(2)))));
-              return rs.getRowsList().size() == 2;
-            })
-        .expectComplete()
-        .verify();
+    QueryOuterClass.Response response =
+        stubWithCallCredentials()
+            .executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
+    Assertions.assertThat(response.hasResultSet()).isTrue();
+    QueryOuterClass.ResultSet rs = response.getResultSet();
+    Assertions.assertThat(new HashSet<>(rs.getRowsList()))
+        .isEqualTo(
+            new HashSet<>(
+                Arrays.asList(
+                    rowOf(Values.of("a"), Values.of(1)),
+                    rowOf(Values.of("b"), Values.of(2)),
+                    rowOf(Values.of("c"), Values.of(3)))));
   }
   //
   //  @Test
