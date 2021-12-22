@@ -152,6 +152,89 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Plugin for building Docker images -->
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>3.1.4</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.google.cloud.tools</groupId>
+            <artifactId>jib-layer-filter-extension-maven</artifactId>
+            <version>0.2.0</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <from>
+            <image>openjdk:8u292-slim</image>
+          </from>
+          <to>
+            <image>docker.io/stargateio/stargate-starter:v${project.version}</image>
+          </to>
+          <containerizingMode>packaged</containerizingMode>
+          <!-- See: https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#container-object-->
+          <container>
+            <mainClass>io.stargate.starter.Starter</mainClass>
+            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+            <filesModificationTime>${maven.build.timestamp}</filesModificationTime>
+            <ports>
+              <!-- GraphQL (can remove when endpoint removed in SGv2) -->
+              <port>8080</port>
+              <!-- Auth (can remove when endpoint removed in SGv2) -->
+              <port>8081</port>
+              <!-- Health (can remove when endpoint removed in SGv2) -->
+              <port>8084</port>
+            </ports>
+            <environment>
+              <STARGATE_HOME>/app/libs</STARGATE_HOME>
+            </environment>
+            <entrypoint>
+              <arg>./starctl</arg>
+            </entrypoint>
+          </container>
+          <extraDirectories>
+            <paths>
+              <path>
+                <from>../stargate-lib/</from>
+                <into>/app/libs</into>
+                <includes>*.jar</includes>
+                <excludes>persistence*.jar</excludes>
+              </path>
+              <path>
+                <from>../stargate-lib/</from>
+                <into>/app/libs</into>
+                <includes>
+                  <include>persistence-api*.jar</include>
+                </includes>
+              </path>
+              <path>
+                <from>${project.basedir}/..</from>
+                <into>/</into>
+                <includes>starctl</includes>
+              </path>
+            </paths>
+            <permissions>
+              <permission>
+                <file>/starctl</file>
+                <mode>755</mode>
+              </permission>
+            </permissions>
+          </extraDirectories>
+          <pluginExtensions>
+            <pluginExtension>
+              <implementation>com.google.cloud.tools.jib.maven.extension.layerfilter.JibLayerFilterExtension</implementation>
+              <configuration implementation="com.google.cloud.tools.jib.maven.extension.layerfilter.Configuration">
+                <filters>
+                  <!-- Remove duplicate Felix dependency -->
+                  <filter>
+                    <glob>**/org.apache.felix.framework*.jar</glob>
+                  </filter>
+                </filters>
+              </configuration>
+            </pluginExtension>
+          </pluginExtensions>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
