@@ -2,9 +2,6 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.QueryOuterClass;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /** Helper class that deals with "Stringified" variants of structured values. */
 public class StringifiedValueUtil {
@@ -79,28 +76,27 @@ public class StringifiedValueUtil {
       String value,
       ToProtoValueCodec keyCodec,
       ToProtoValueCodec valueCodec,
-      Collection<QueryOuterClass.Value> results)
-  {
+      Collection<QueryOuterClass.Value> results) {
     int idx = skipSpaces(value, 0);
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
-              String.format(
-                      "Invalid Map value '%s': at character %d expecting '{' but got EOF", value, idx));
+          String.format(
+              "Invalid Map value '%s': at character %d expecting '{' but got EOF", value, idx));
     }
     if (value.charAt(idx++) != '{') {
       throw new IllegalArgumentException(
-              String.format(
-                      "Invalid Map value '%s': at character %d expecting '{' but got '%c'",
-                      value, idx, value.charAt(idx)));
+          String.format(
+              "Invalid Map value '%s': at character %d expecting '{' but got '%c'",
+              value, idx, value.charAt(idx)));
     }
 
     idx = skipSpaces(value, idx);
 
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
-              String.format(
-                      "Invalid Map value '%s': at character %d expecting element or '}' but got EOF",
-                      value, idx));
+          String.format(
+              "Invalid Map value '%s': at character %d expecting element or '}' but got EOF",
+              value, idx));
     }
     if (value.charAt(idx) == '}') {
       return;
@@ -110,7 +106,7 @@ public class StringifiedValueUtil {
       int n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-                String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value k = keyCodec.protoValueFromStringified(value.substring(idx, n));
@@ -119,21 +115,21 @@ public class StringifiedValueUtil {
       idx = skipSpaces(value, idx);
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
-                String.format(
-                        "Invalid map value '%s': at character %d expecting ':' but got EOF", value, idx));
+            String.format(
+                "Invalid map value '%s': at character %d expecting ':' but got EOF", value, idx));
       }
       if (value.charAt(idx) != ':') {
         throw new IllegalArgumentException(
-                String.format(
-                        "Invalid map value '%s': at character %d expecting ':' but got '%c'",
-                        value, idx, value.charAt(idx)));
+            String.format(
+                "Invalid map value '%s': at character %d expecting ':' but got '%c'",
+                value, idx, value.charAt(idx)));
       }
       idx = skipSpaces(value, ++idx);
 
       n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-                String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value v = valueCodec.protoValueFromStringified(value.substring(idx, n));
@@ -145,24 +141,24 @@ public class StringifiedValueUtil {
       idx = skipSpaces(value, idx);
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
-                String.format(
-                        "Invalid map value '%s': at character %d expecting ',' or '}' but got EOF",
-                        value, idx));
+            String.format(
+                "Invalid map value '%s': at character %d expecting ',' or '}' but got EOF",
+                value, idx));
       }
       if (value.charAt(idx) == '}') {
         return;
       }
       if (value.charAt(idx++) != ',') {
         throw new IllegalArgumentException(
-                String.format(
-                        "Invalid map value '%s': at character %d expecting ',' but got '%c'",
-                        value, idx, value.charAt(idx)));
+            String.format(
+                "Invalid map value '%s': at character %d expecting ',' but got '%c'",
+                value, idx, value.charAt(idx)));
       }
 
       idx = skipSpaces(value, idx);
     }
     throw new IllegalArgumentException(
-            String.format("Invalid map value '%s': missing closing '}'", value));
+        String.format("Invalid map value '%s': missing closing '}'", value));
   }
 
   // // // Methods from "ParseUtils":

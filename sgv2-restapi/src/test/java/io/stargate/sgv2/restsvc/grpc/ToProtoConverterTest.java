@@ -26,6 +26,8 @@ public class ToProtoConverterTest {
       arguments(-4567L, basicType(TypeSpec.Basic.BIGINT), Values.of(-4567L)),
       arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("/w==", basicType(TypeSpec.Basic.BLOB), Values.of(new byte[] {(byte) 0xFF})),
+
+      // Lists, Sets
       arguments(
           Arrays.asList("foo", "bar"),
           listType(TypeSpec.Basic.TEXT),
@@ -42,15 +44,17 @@ public class ToProtoConverterTest {
           Arrays.asList(123, 456),
           setType(TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+
+      // Maps
       arguments(
-              Collections.singletonMap("foo", "bar"),
-              mapType(TypeSpec.Basic.TEXT, TypeSpec.Basic.TEXT),
-              // since internal representation is just as Collection...
-              Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+          Collections.singletonMap("foo", "bar"),
+          mapType(TypeSpec.Basic.TEXT, TypeSpec.Basic.TEXT),
+          // since internal representation is just as Collection...
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
-              Collections.singletonMap(123, Boolean.TRUE),
-              mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
-              Values.of(Arrays.asList(Values.of(123), Values.of(true)))),
+          Collections.singletonMap(123, Boolean.TRUE),
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Arrays.asList(Values.of(123), Values.of(true)))),
     };
   };
 
@@ -73,6 +77,8 @@ public class ToProtoConverterTest {
       arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("'abc'", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("'quoted=''value'''", basicType(TypeSpec.Basic.TEXT), Values.of("quoted='value'")),
+
+      // Lists, Sets
       arguments(
           "['foo','bar']",
           listType(TypeSpec.Basic.TEXT),
@@ -81,6 +87,16 @@ public class ToProtoConverterTest {
           "[123, 456]",
           listType(TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+      // Maps
+      arguments(
+          "{'foo': 'bar'}",
+          mapType(TypeSpec.Basic.TEXT, TypeSpec.Basic.TEXT),
+          // since internal representation is just as Collection...
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+          "{123:true}",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Arrays.asList(Values.of(123), Values.of(true)))),
     };
   };
 
@@ -139,9 +155,7 @@ public class ToProtoConverterTest {
 
   private static TypeSpec mapType(TypeSpec keyType, TypeSpec valueType) {
     return TypeSpec.newBuilder()
-            .setMap(TypeSpec.Map.newBuilder()
-                    .setKey(keyType)
-                    .setValue(valueType).build())
-            .build();
+        .setMap(TypeSpec.Map.newBuilder().setKey(keyType).setValue(valueType).build())
+        .build();
   }
 }
