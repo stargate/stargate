@@ -7,6 +7,7 @@ import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,6 +26,23 @@ public class ToProtoConverterTest {
       arguments(-4567L, basicType(TypeSpec.Basic.BIGINT), Values.of(-4567L)),
       arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("/w==", basicType(TypeSpec.Basic.BLOB), Values.of(new byte[] {(byte) 0xFF})),
+      arguments(
+          Arrays.asList("foo", "bar"),
+          listType(TypeSpec.Basic.TEXT),
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+          Arrays.asList(123, 456),
+          listType(TypeSpec.Basic.INT),
+          Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+
+      arguments(
+              Arrays.asList("foo", "bar"),
+              setType(TypeSpec.Basic.TEXT),
+              Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+              Arrays.asList(123, 456),
+              setType(TypeSpec.Basic.INT),
+              Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
     };
   };
 
@@ -47,12 +65,21 @@ public class ToProtoConverterTest {
       arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("'abc'", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
       arguments("'quoted=''value'''", basicType(TypeSpec.Basic.TEXT), Values.of("quoted='value'")),
+
+      arguments(
+              "['foo','bar']",
+              listType(TypeSpec.Basic.TEXT),
+              Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+              "[123, 456]",
+              listType(TypeSpec.Basic.INT),
+              Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
     };
   };
 
   @ParameterizedTest
   @MethodSource("fromExternalSamplesStringified")
-  @DisplayName("Should coerce external value to Bridge/grpc value")
+  @DisplayName("Should coerce 'stringified' external value to Bridge/grpc value")
   public void stringifiedExternalToBridgeValueTest(
       String externalValue, TypeSpec typeSpec, QueryOuterClass.Value bridgeValue) {
     ToProtoConverter conv = createConverter(typeSpec);
@@ -77,5 +104,25 @@ public class ToProtoConverterTest {
 
   private static TypeSpec basicType(TypeSpec.Basic basicType) {
     return TypeSpec.newBuilder().setBasic(basicType).build();
+  }
+
+  private static TypeSpec listType(TypeSpec.Basic basicElementType) {
+    return listType(basicType(basicElementType));
+  }
+
+  private static TypeSpec listType(TypeSpec elementType) {
+    return TypeSpec.newBuilder()
+        .setList(TypeSpec.List.newBuilder().setElement(elementType).build())
+        .build();
+  }
+
+  private static TypeSpec setType(TypeSpec.Basic basicElementType) {
+    return setType(basicType(basicElementType));
+  }
+
+  private static TypeSpec setType(TypeSpec elementType) {
+    return TypeSpec.newBuilder()
+        .setSet(TypeSpec.Set.newBuilder().setElement(elementType).build())
+        .build();
   }
 }
