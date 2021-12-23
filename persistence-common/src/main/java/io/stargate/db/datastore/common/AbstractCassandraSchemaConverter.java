@@ -1,6 +1,5 @@
 package io.stargate.db.datastore.common;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
@@ -21,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.cassandra.cql3.statements.IndexTarget;
 import org.apache.cassandra.stargate.utils.Streams;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -43,10 +41,11 @@ import org.slf4j.LoggerFactory;
  * @param <V> the concrete class for materialized views metadata in the persistence layer.
  */
 public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
-  protected static final Set<String> EXCLUDED_INDEX_OPTIONS =
-      ImmutableSet.of(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
   private static final Logger logger =
       LoggerFactory.getLogger(AbstractCassandraSchemaConverter.class);
+
+  /** The excluded name of the provided internal keyspace. */
+  protected abstract Set<String> getExcludedIndexOptions();
 
   /** The (unquoted) name of the provided internal keyspace. */
   protected abstract String keyspaceName(K keyspace);
