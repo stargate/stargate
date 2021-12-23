@@ -118,6 +118,11 @@ public class ValidatingDataStore implements DataStore {
   @Override
   public CompletableFuture<ResultSet> execute(
       BoundQuery query, UnaryOperator<Parameters> parametersModifier) {
+    return executeInternal(query, parametersModifier, null);
+  }
+
+  private CompletableFuture<ResultSet> executeInternal(
+      BoundQuery query, UnaryOperator<Parameters> parametersModifier, BatchType batchType) {
     MD5Digest preparedId =
         query
             .source()
@@ -132,7 +137,7 @@ public class ValidatingDataStore implements DataStore {
     QueryExpectation expectation = prepared.bindValues(query.values());
 
     Parameters parameters = parametersModifier.apply(Parameters.defaults());
-    return expectation.execute(parameters);
+    return expectation.execute(parameters, batchType);
   }
 
   @Override
@@ -142,7 +147,7 @@ public class ValidatingDataStore implements DataStore {
       UnaryOperator<Parameters> parametersModifier) {
     CompletableFuture<ResultSet> last = null;
     for (BoundQuery query : queries) {
-      last = execute(query);
+      last = executeInternal(query, p -> p, batchType);
     }
 
     assertThat(last).isNotNull();
@@ -240,6 +245,7 @@ public class ValidatingDataStore implements DataStore {
     private final Pattern cqlPattern;
     private final Object[] params;
     private int pageSize = Integer.MAX_VALUE;
+    private BatchType batchType;
     private List<Map<String, Object>> rows;
 
     private QueryExpectation(Table table, String cqlRegEx, Object[] params) {
@@ -256,6 +262,11 @@ public class ValidatingDataStore implements DataStore {
 
     public QueryExpectation withPageSize(int pageSize) {
       this.pageSize = pageSize;
+      return this;
+    }
+
+    public QueryExpectation inBatch(BatchType batchType) {
+      this.batchType = batchType;
       return this;
     }
 
@@ -280,7 +291,7 @@ public class ValidatingDataStore implements DataStore {
       return matches(cql) && (params == null || Arrays.equals(params, values(values)));
     }
 
-    private CompletableFuture<ResultSet> execute(Parameters parameters) {
+    private CompletableFuture<ResultSet> execute(Parameters parameters, BatchType batchType) {
       Optional<ByteBuffer> pagingState = parameters.pagingState();
       int pageSize;
       if (this.pageSize < Integer.MAX_VALUE) {
@@ -289,6 +300,13 @@ public class ValidatingDataStore implements DataStore {
       } else {
         pageSize = parameters.pageSize().orElse(this.pageSize);
       }
+
+      assertThat(this.batchType)
+          .withFailMessage(
+              String.format(
+                  "Query with pattern %s does not match the expected batch type %s.",
+                  cqlPattern, batchType))
+          .isEqualTo(batchType);
 
       ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
 
