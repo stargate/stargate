@@ -8,9 +8,6 @@
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-common</artifactId>
-  <properties>
-    <cassandra.version>3.11.9</cassandra.version>
-  </properties>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -21,12 +18,6 @@
     </dependency>
 
     <!-- Cassandra/DataStax -->
-    <dependency>
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>${cassandra.version}</version>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
