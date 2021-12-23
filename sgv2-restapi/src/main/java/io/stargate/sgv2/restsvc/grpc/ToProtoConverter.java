@@ -32,7 +32,9 @@ public class ToProtoConverter {
       ToProtoValueCodec codec, String fieldName, Object value) {
     try {
       if (value instanceof String) {
-        return codec.protoValueFromStringified((String) value);
+        // Need to allow optional use of "extra" single quotes
+        String strValue = StringifiedValueUtil.handleSingleQuotes((String) value);
+        return codec.protoValueFromStringified(strValue);
       }
       return codec.protoValueFromLooselyTyped(value);
     } catch (Exception e) {
@@ -76,7 +78,9 @@ public class ToProtoConverter {
   public QueryOuterClass.Value protoValueFromStringified(
       ToProtoValueCodec codec, String fieldName, String value) {
     try {
-      return codec.protoValueFromStringified(value);
+      // Need to allow optional use of "extra" single quotes
+      String strValue = StringifiedValueUtil.handleSingleQuotes(value);
+      return codec.protoValueFromStringified(strValue);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           String.format(
