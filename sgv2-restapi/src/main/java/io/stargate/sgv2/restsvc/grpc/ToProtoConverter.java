@@ -29,7 +29,7 @@ public class ToProtoConverter {
     try {
       if (value instanceof String) {
         // Need to allow optional use of "extra" single quotes
-        String strValue = handleSingleQuotes((String) value);
+        String strValue = StringifiedValueUtil.handleSingleQuotes((String) value);
         return codec.protoValueFromStringified(strValue);
       }
       return codec.protoValueFromLooselyTyped(value);
@@ -71,7 +71,7 @@ public class ToProtoConverter {
     final ToProtoValueCodec codec = getCodec(fieldName);
     try {
       // Need to allow optional use of "extra" single quotes
-      String strValue = handleSingleQuotes(value);
+      String strValue = StringifiedValueUtil.handleSingleQuotes(value);
       return codec.protoValueFromStringified(strValue);
     } catch (Exception e) {
       throw new IllegalArgumentException(
@@ -95,18 +95,5 @@ public class ToProtoConverter {
 
   private String fullFieldName(String fieldName) {
     return tableName + "." + fieldName;
-  }
-
-  private String handleSingleQuotes(String value) {
-    final int len = value.length();
-    if (len >= 2 && value.charAt(0) == '\'' && value.charAt(len - 1) == '\'') {
-      // First; remove surrounding single quotes
-      value = value.substring(1, len - 1);
-      // Second, replace doubled-up single quotes
-      if (value.indexOf('\'') >= 0) {
-        value = value.replaceAll("''", "'");
-      }
-    }
-    return value;
   }
 }

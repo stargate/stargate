@@ -3,7 +3,12 @@ package io.stargate.sgv2.restsvc.grpc;
 import io.stargate.proto.QueryOuterClass;
 import java.util.Collection;
 
-/** Helper class that deals with "Stringified" variants of structured values. */
+/**
+ * Helper class that deals with "Stringified" variants of structured values.
+ *
+ * <p>Note: most of the code copied from StargateV1 "Converters" ({@code
+ * io.stargate.web.resources.Converters}), unchanged.
+ */
 public class StringifiedValueUtil {
   public static void decodeStringifiedCollection(
       String value,
@@ -45,7 +50,8 @@ public class StringifiedValueUtil {
                 "Invalid %s value '%s': invalid CQL value at character %d", typeDesc, value, idx));
       }
 
-      results.add(elementCodec.protoValueFromStringified(value.substring(idx, n)));
+      results.add(
+          elementCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n))));
       idx = n;
 
       idx = skipSpaces(value, idx);
@@ -109,7 +115,8 @@ public class StringifiedValueUtil {
             String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
-      QueryOuterClass.Value k = keyCodec.protoValueFromStringified(value.substring(idx, n));
+      QueryOuterClass.Value k =
+          keyCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
       idx = n;
 
       idx = skipSpaces(value, idx);
@@ -132,7 +139,8 @@ public class StringifiedValueUtil {
             String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
       }
 
-      QueryOuterClass.Value v = valueCodec.protoValueFromStringified(value.substring(idx, n));
+      QueryOuterClass.Value v =
+          valueCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
       idx = n;
 
       results.add(k);
@@ -159,6 +167,29 @@ public class StringifiedValueUtil {
     }
     throw new IllegalArgumentException(
         String.format("Invalid map value '%s': missing closing '}'", value));
+  }
+
+  // // // Public helper methods
+
+  /**
+   * Helper method that checks for optional apostrophe quoting for "stringified" (aka CQL) values;
+   * and if any found, removes outermost ones and replaces possible inlined "double-apostrophes"
+   * with single instances.
+   *
+   * @param value Value to check and process
+   * @return Value after removing "extra" apostrophes
+   */
+  public static String handleSingleQuotes(String value) {
+    final int len = value.length();
+    if (len >= 2 && value.charAt(0) == '\'' && value.charAt(len - 1) == '\'') {
+      // First; remove surrounding single quotes
+      value = value.substring(1, len - 1);
+      // Second, replace doubled-up single quotes
+      if (value.indexOf('\'') >= 0) {
+        value = value.replaceAll("''", "'");
+      }
+    }
+    return value;
   }
 
   // // // Methods from "ParseUtils":
