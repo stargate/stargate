@@ -39,6 +39,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.db.BatchType;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.db.schema.Column;
@@ -271,14 +272,21 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   @Test
   void testPutAtPathRoot() throws UnauthorizedException, ProcessingException {
+    BatchType batchType =
+        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
+        .inBatch(batchType)
         .returningNothing();
 
     withQuery(table, insert, fillParams(70, "id1", "a", SEPARATOR, "a", null, 123.0d, null, 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(table, insert, fillParams(70, "id1", "b", SEPARATOR, "b", null, null, true, 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(table, insert, fillParams(70, "id1", "c", SEPARATOR, "c", "text", null, null, 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(
             table,
@@ -293,6 +301,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 null,
                 null,
                 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(
             table,
@@ -307,13 +316,16 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                 null,
                 null,
                 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(table, insert, fillParams(70, "id1", "f", SEPARATOR, "f", null, null, null, 100L))
+        .inBatch(batchType)
         .returningNothing();
     withQuery(
             table,
             insert,
             fillParams(70, "id1", "g", "[000000]", "h", SEPARATOR, "h", null, 1.0d, null, 100L))
+        .inBatch(batchType)
         .returningNothing();
 
     now.set(100);
@@ -333,6 +345,9 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   @Test
   void testPutAtPathNested() throws UnauthorizedException, ProcessingException {
+    BatchType batchType =
+        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+
     withQuery(
             table,
             "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?",
@@ -341,6 +356,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             "x",
             "y",
             "[000000]")
+        .inBatch(batchType)
         .returningNothing();
 
     String insert =
@@ -350,6 +366,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             insert,
             fillParams(
                 70, "id2", "x", "y", "[000000]", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+        .inBatch(batchType)
         .returningNothing();
 
     now.set(200);
@@ -369,9 +386,13 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   @Test
   void testPutAtPathPatch() throws UnauthorizedException, ProcessingException {
+    BatchType batchType =
+        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+
     String insert =
         "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
     withQuery(table, insert, fillParams(70, "id3", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+        .inBatch(batchType)
         .returningNothing();
 
     withQuery(
@@ -381,6 +402,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             "id3",
             "[000000]",
             "[999999]")
+        .inBatch(batchType)
         .returningNothing();
     withQuery(
             table,
@@ -388,6 +410,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             199L,
             "id3",
             ImmutableList.of("a"))
+        .inBatch(batchType)
         .returningNothing();
 
     now.set(200);
@@ -443,12 +466,16 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   @Test
   void testWriteManyDocs() throws UnauthorizedException, IOException {
+    BatchType batchType =
+        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
     ByteArrayInputStream in =
         new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
     now.set(200);
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 199L, "b")
+        .inBatch(batchType)
         .returningNothing();
     withQuery(table, insert, fillParams(70, "b", "a", SEPARATOR, "a", "b", null, null, 200L))
+        .inBatch(batchType)
         .returningNothing();
     service.writeManyDocs(
         authToken,
@@ -495,6 +522,8 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     @BeforeEach
     void setQueryExpectations() {
+      BatchType batchType =
+          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
 
       withQuery(table, dblValueGtQuery, params("a", "c", "", 1.0))
           .returning(ImmutableList.of(leafRow(id1), leafRow(id2), leafRow(id3)));
@@ -519,6 +548,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                   row(id2, 5.0, "a", "b"), row(id2, 10.0, "a", "c"), row(id2, 5.0, "a", "d")));
 
       withQuery(table, insert, fillParams(70, id3, "a", SEPARATOR, "a", null, 123.0d, null, 200L))
+          .inBatch(batchType)
           .returningNothing();
     }
 
@@ -531,46 +561,18 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     }
 
     @Test
-    void putDoc() throws JsonProcessingException {
-      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
-
-      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
-      withQuery(table, delete, 199L, "id3").returningNothing();
-
-      now.set(200);
-      DocumentResponseWrapper<Object> r =
-          unwrap(
-              resource.putDoc(
-                  headers,
-                  uriInfo,
-                  authToken,
-                  keyspace.name(),
-                  table.name(),
-                  "id3",
-                  "{\"a\":123}",
-                  true,
-                  request));
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("ASYNC INSERT")
-                          // row count for DELETE is not known
-                          .addQueries(QueryInfo.of(insert, 1, 1), QueryInfo.of(delete, 1, 0))
-                          .build())
-                  .build());
-    }
-
-    @Test
     void putManyDocs() throws JsonProcessingException {
+      BatchType batchType =
+          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+
       String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
-      withQuery(table, delete, 199L, "123").returningNothing();
-      withQuery(table, delete, 199L, "234").returningNothing();
+      withQuery(table, delete, 199L, "123").inBatch(batchType).returningNothing();
+      withQuery(table, delete, 199L, "234").inBatch(batchType).returningNothing();
       withQuery(table, insert, fillParams(70, "123", "a", SEPARATOR, "a", "123", null, null, 200L))
+          .inBatch(batchType)
           .returningNothing();
       withQuery(table, insert, fillParams(70, "234", "a", SEPARATOR, "a", "234", null, null, 200L))
+          .inBatch(batchType)
           .returningNothing();
 
       now.set(200);
@@ -601,14 +603,21 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     @Test
     void patchDoc() throws JsonProcessingException {
+      BatchType batchType =
+          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+
       when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
 
       String delete1 =
           "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
-      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]").returningNothing();
+      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]")
+          .inBatch(batchType)
+          .returningNothing();
       String delete2 =
           "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
-      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a")).returningNothing();
+      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a"))
+          .inBatch(batchType)
+          .returningNothing();
 
       now.set(200);
       DocumentResponseWrapper<Object> r =
