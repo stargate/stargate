@@ -50,24 +50,6 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void postDoc_success() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    when(headers.getHeaderString(anyString())).thenReturn("application/json");
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String payload = "{}";
-
-    Response r =
-        documentResourceV2.postDoc(
-            headers, ui, authToken, keyspace, collection, payload, false, httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(201);
-    mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
-  }
-
-  @Test
   public void postMultiDoc_success() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
     when(headers.getHeaderString(anyString())).thenReturn("application/json");
@@ -83,25 +65,6 @@ public class DocumentResourceV2Test {
 
     assertThat(r.getStatus()).isEqualTo(202);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
-  }
-
-  @Test
-  public void putDoc_success() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    when(headers.getHeaderString(anyString())).thenReturn("application/json");
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    String payload = "{}";
-
-    Response r =
-        documentResourceV2.putDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(200);
-    mapper.readTree((String) r.getEntity()).requiredAt("/documentId");
   }
 
   @Test

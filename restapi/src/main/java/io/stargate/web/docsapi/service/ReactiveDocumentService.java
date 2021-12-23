@@ -25,12 +25,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.Row;
@@ -50,12 +52,14 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
+import io.stargate.web.docsapi.service.write.DocumentWriteService;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
@@ -70,8 +74,11 @@ public class ReactiveDocumentService {
 
   @Inject ExpressionParser expressionParser;
   @Inject DocumentSearchService searchService;
+  @Inject DocumentWriteService writeService;
   @Inject JsonConverter jsonConverter;
+  @Inject JsonSchemaHandler jsonSchemaHandler;
   @Inject DocsShredder docsShredder;
+  @Inject JsonDocumentShredder jsonDocumentShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
   @Inject DocsApiConfiguration configuration;
@@ -81,18 +88,121 @@ public class ReactiveDocumentService {
   public ReactiveDocumentService(
       ExpressionParser expressionParser,
       DocumentSearchService searchService,
+      DocumentWriteService writeService,
       JsonConverter jsonConverter,
+      JsonSchemaHandler jsonSchemaHandler,
       DocsShredder docsShredder,
+      JsonDocumentShredder jsonDocumentShredder,
       ObjectMapper objectMapper,
       TimeSource timeSource,
       DocsApiConfiguration configuration) {
     this.expressionParser = expressionParser;
     this.searchService = searchService;
+    this.writeService = writeService;
     this.jsonConverter = jsonConverter;
+    this.jsonSchemaHandler = jsonSchemaHandler;
     this.docsShredder = docsShredder;
+    this.jsonDocumentShredder = jsonDocumentShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
     this.configuration = configuration;
+  }
+
+  /**
+   * Writes a document in the given namespace and collection using the randomly generated ID.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> writeDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String payload,
+      ExecutionContext context) {
+    // generate the document id
+    String documentId = UUID.randomUUID().toString();
+
+    return Single.defer(
+            () -> {
+
+              // authentication for writing before anything
+              // we don't need the DELETE scope here
+              authorizeWrite(db, namespace, collection, Scope.MODIFY);
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // check the schema
+              checkSchemaFullDocument(db, namespace, collection, root);
+
+              // shred rows
+              List<JsonShreddedRow> rows =
+                  jsonDocumentShredder.shred(root, Collections.emptyList());
+
+              // call write document
+              return writeService.writeDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  rows,
+                  db.treatBooleansAsNumeric(),
+                  context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Updates a document with given ID in the given namespace and collection. Any previously existing
+   * document with the same ID will be overwritten.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> updateDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // authentication for writing before anything
+              authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // check the schema
+              checkSchemaFullDocument(db, namespace, collection, root);
+
+              // shred rows
+              List<JsonShreddedRow> rows =
+                  jsonDocumentShredder.shred(root, Collections.emptyList());
+
+              // call write document
+              return writeService.updateDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  rows,
+                  db.treatBooleansAsNumeric(),
+                  context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
   }
 
   /**
@@ -126,10 +236,7 @@ public class ReactiveDocumentService {
           Collection<List<String>> fieldPaths = getFields(fields);
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // call the search service
           return searchService
@@ -218,10 +325,7 @@ public class ReactiveDocumentService {
           Collection<List<String>> fieldPaths = getFields(fields);
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // we need to check that we have no globs and transform the stuff to support array
           // elements
@@ -394,10 +498,7 @@ public class ReactiveDocumentService {
           }
 
           // authentication for the read before searching
-          AuthorizationService authorizationService = db.getAuthorizationService();
-          AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
-          authorizationService.authorizeDataRead(
-              authenticationSubject, namespace, collection, SourceAPI.REST);
+          authorizeRead(db, namespace, collection);
 
           // we need to check that we have no globs and transform the stuff to support array
           // elements
@@ -449,7 +550,7 @@ public class ReactiveDocumentService {
    * <p>Currently supports the functions $push and $pop, which write to the end of or remove a value
    * from the end of an array, respectively.
    *
-   * @param db
+   * @param db @link DocumentDB} to execute the function in
    * @param keyspace the keyspace to execute the function against
    * @param collection the collection to execute the function against
    * @param id the document ID to execute the function against
@@ -457,7 +558,6 @@ public class ReactiveDocumentService {
    * @param path the path within the document
    * @param context execution context
    * @return Maybe containing DocumentResponseWrapper with result node of the function
-   * @throws UnauthorizedException
    */
   public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
       DocumentDB db,
@@ -466,8 +566,7 @@ public class ReactiveDocumentService {
       String id,
       ExecuteBuiltInFunction funcPayload,
       List<PathSegment> path,
-      ExecutionContext context)
-      throws UnauthorizedException {
+      ExecutionContext context) {
     return Maybe.defer(
         () -> {
           List<String> pathString =
@@ -643,6 +742,9 @@ public class ReactiveDocumentService {
       throws UnauthorizedException {
     List<String> processedPath = processSubDocumentPath(pathString);
 
+    // TODO use here the new shredder and move to the new writer once we implement the write with
+    // sub-path
+
     List<Object[]> bindParams =
         docsShredder.shredPayload(
                 JsonSurferJackson.INSTANCE,
@@ -695,7 +797,11 @@ public class ReactiveDocumentService {
             });
   }
 
-  public ObjectNode createJsonMap(
+  /////////////////////
+  // Object helpers  //
+  /////////////////////
+
+  private ObjectNode createJsonMap(
       DocumentDB db,
       List<RawDocument> docs,
       Collection<List<String>> fieldPaths,
@@ -712,7 +818,7 @@ public class ReactiveDocumentService {
     return docsResult;
   }
 
-  public ArrayNode createJsonArray(
+  private ArrayNode createJsonArray(
       DocumentDB db,
       List<RawDocument> docs,
       Collection<List<String>> fieldPaths,
@@ -733,7 +839,7 @@ public class ReactiveDocumentService {
     return docsResult;
   }
 
-  public JsonNode documentToNode(
+  private JsonNode documentToNode(
       RawDocument doc,
       Collection<List<String>> fieldPaths,
       boolean writeAllPathsAsObjects,
@@ -742,7 +848,7 @@ public class ReactiveDocumentService {
     return documentToNode(doc, fieldPaths, collector, writeAllPathsAsObjects, numericBooleans);
   }
 
-  public JsonNode documentToNode(
+  private JsonNode documentToNode(
       RawDocument doc,
       Collection<List<String>> fieldPaths,
       DeadLeafCollector collector,
@@ -762,5 +868,57 @@ public class ReactiveDocumentService {
 
     // create document node and set to result
     return jsonConverter.convertToJsonDoc(rows, collector, writeAllPathsAsObjects, numericBooleans);
+  }
+
+  /////////////////////
+  /// Write helpers ///
+  /////////////////////
+
+  // checks that node is in alignment with schema if exists
+  private void checkSchemaFullDocument(
+      DocumentDB db, String namespace, String collection, JsonNode root) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (null != schema) {
+      try {
+        jsonSchemaHandler.validate(schema, root);
+      } catch (ProcessingException e) {
+        // TODO validate unchecked better?
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  // reads JSON payload
+  private JsonNode readPayload(String payload) throws JsonProcessingException {
+    try {
+      return objectMapper.readTree(payload);
+    } catch (JsonProcessingException e) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
+    }
+  }
+
+  /////////////////////
+  ///  Auth helpers ///
+  /////////////////////
+
+  // authorizes read
+  private void authorizeRead(DocumentDB db, String namespace, String collection)
+      throws UnauthorizedException {
+    AuthorizationService authorizationService = db.getAuthorizationService();
+    AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+    authorizationService.authorizeDataRead(
+        authenticationSubject, namespace, collection, SourceAPI.REST);
+  }
+
+  // authorizes write on the given scopes
+  private void authorizeWrite(DocumentDB db, String namespace, String collection, Scope... scopes)
+      throws UnauthorizedException {
+    AuthorizationService authorizationService = db.getAuthorizationService();
+    AuthenticationSubject authenticationSubject = db.getAuthenticationSubject();
+    for (Scope scope : scopes) {
+      authorizationService.authorizeDataWrite(
+          authenticationSubject, namespace, collection, scope, SourceAPI.REST);
+    }
   }
 }
