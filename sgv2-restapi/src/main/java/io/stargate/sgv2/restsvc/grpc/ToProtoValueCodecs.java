@@ -141,7 +141,8 @@ public class ToProtoValueCodecs {
 
   protected ToProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.List listSpec = columnSpec.getType().getList();
-    return new CollectionCodec("TypeSpec.List", codecFor(columnSpec, listSpec.getElement()));
+    return new CollectionCodec(
+        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement()), '[', ']');
   }
 
   protected ToProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -152,7 +153,8 @@ public class ToProtoValueCodecs {
 
   protected ToProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
-    return new CollectionCodec("TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()));
+    return new CollectionCodec(
+        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()), '{', '}');
   }
 
   protected static String columnDesc(QueryOuterClass.ColumnSpec columnSpec) {
@@ -642,10 +644,15 @@ public class ToProtoValueCodecs {
    */
   protected static final class CollectionCodec extends ToProtoCodecBase {
     protected final ToProtoValueCodec elementCodec;
+    protected final char openingBrace;
+    protected final char closingBrace;
 
-    public CollectionCodec(String id, ToProtoValueCodec elementCodec) {
+    public CollectionCodec(
+        String id, ToProtoValueCodec elementCodec, char openingBrace, char closingBrace) {
       super(id);
       this.elementCodec = elementCodec;
+      this.openingBrace = openingBrace;
+      this.closingBrace = closingBrace;
     }
 
     @Override
@@ -663,7 +670,8 @@ public class ToProtoValueCodecs {
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
-      StringifiedValueUtil.decodeStringifiedCollection(value, elementCodec, elements);
+      StringifiedValueUtil.decodeStringifiedCollection(
+          value, elementCodec, elements, openingBrace, closingBrace);
       return Values.of(elements);
     }
   }
