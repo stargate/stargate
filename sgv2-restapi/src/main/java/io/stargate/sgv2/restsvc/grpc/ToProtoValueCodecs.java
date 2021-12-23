@@ -141,7 +141,7 @@ public class ToProtoValueCodecs {
 
   protected ToProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.List listSpec = columnSpec.getType().getList();
-    return new ListCodec(codecFor(columnSpec, listSpec.getElement()));
+    return new CollectionCodec("TypeSpec.List", codecFor(columnSpec, listSpec.getElement()));
   }
 
   protected ToProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -152,7 +152,7 @@ public class ToProtoValueCodecs {
 
   protected ToProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
-    return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
+    return new CollectionCodec("TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()));
   }
 
   protected static String columnDesc(QueryOuterClass.ColumnSpec columnSpec) {
@@ -636,11 +636,15 @@ public class ToProtoValueCodecs {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected static final class ListCodec extends ToProtoCodecBase {
+  /**
+   * Note: since internally gRPC uses Collection to represent Lists and Sets alike, all we need is
+   * one codec.
+   */
+  protected static final class CollectionCodec extends ToProtoCodecBase {
     protected final ToProtoValueCodec elementCodec;
 
-    public ListCodec(ToProtoValueCodec elementCodec) {
-      super("TypeSpec.List");
+    public CollectionCodec(String id, ToProtoValueCodec elementCodec) {
+      super(id);
       this.elementCodec = elementCodec;
     }
 
@@ -658,37 +662,9 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
-      // !!! TO IMPLEMENT
-      throw new IllegalArgumentException(
-          "Decoding from 'stringified' List value (\"" + value + "\") not yet implemented");
-    }
-  }
-
-  protected static final class SetCodec extends ToProtoCodecBase {
-    protected final ToProtoValueCodec elementCodec;
-
-    public SetCodec(ToProtoValueCodec elementCodec) {
-      super("TypeSpec.Set");
-      this.elementCodec = elementCodec;
-    }
-
-    @Override
-    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object javaValue) {
-      if (javaValue instanceof Collection<?>) {
-        List<QueryOuterClass.Value> elements = new ArrayList<>();
-        for (Object value : (Collection<?>) javaValue) {
-          elements.add(elementCodec.protoValueFromStrictlyTyped(value));
-        }
-        return Values.of(elements);
-      }
-      return cannotCoerce(javaValue);
-    }
-
-    @Override
-    public QueryOuterClass.Value protoValueFromStringified(String value) {
-      // !!! TO IMPLEMENT
-      throw new IllegalArgumentException(
-          "Decoding from 'stringified' Set value (\"" + value + "\") not yet implemented");
+      List<QueryOuterClass.Value> elements = new ArrayList<>();
+      StringifiedValueUtil.decodeStringifiedCollection(value, elementCodec, elements);
+      return Values.of(elements);
     }
   }
 
@@ -717,9 +693,9 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
-      // !!! TO IMPLEMENT
-      throw new IllegalArgumentException(
-          "Decoding from 'stringified' Map value (\"" + value + "\") not yet implemented");
+      List<QueryOuterClass.Value> elements = new ArrayList<>();
+      StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
+      return Values.of(elements);
     }
   }
 }
