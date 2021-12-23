@@ -21,14 +21,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.cassandra.exceptions.ConfigurationException;
-import org.apache.cassandra.locator.SeedProvider;
 
-public class StargateSeedProvider implements SeedProvider {
+public abstract class AbstractStargateSeedProvider {
+
   private final List<InetAddress> seeds;
 
-  public StargateSeedProvider(Map<String, String> args) {
-    if (!args.containsKey("seeds")) throw new ConfigurationException("seeds arg required");
+  public AbstractStargateSeedProvider(Map<String, String> args) {
+    if (!args.containsKey("seeds")) {
+      throw getNoSeedsException();
+    }
 
     seeds =
         Arrays.stream(args.get("seeds").split(","))
@@ -44,7 +45,8 @@ public class StargateSeedProvider implements SeedProvider {
             .collect(Collectors.toList());
   }
 
-  @Override
+  protected abstract RuntimeException getNoSeedsException();
+
   public List<InetAddress> getSeeds() {
     return seeds;
   }

@@ -10,23 +10,42 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ *  See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package io.stargate.db.datastore.common;
 
+package io.stargate.db.cassandra.impl;
+
+import io.stargate.db.datastore.common.StargateSnitchProperties;
 import java.net.InetAddress;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.locator.GossipingPropertyFileSnitch;
 import org.apache.cassandra.utils.FBUtilities;
 
+/**
+ * The Stargate extension of the {@link GossipingPropertyFileSnitch}.
+ *
+ * <p><i>Note that similar copy of this class exists in all persistence implementations, thus please
+ * apply changes to all of them if needed.</i>
+ */
 public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
-  String dc = System.getProperty("stargate.datacenter", "DEFAULT_DC");
-  String rack = System.getProperty("stargate.rack", "DEFAULT_RACK");
+
+  private final StargateSnitchProperties snitchProperties;
+
+  public StargateConfigSnitch() throws ConfigurationException {
+    this(new StargateSnitchProperties("DEFAULT_DC", "DEFAULT_RACK"));
+  }
+
+  public StargateConfigSnitch(StargateSnitchProperties snitchProperties)
+      throws ConfigurationException {
+    this.snitchProperties = snitchProperties;
+  }
 
   @Override
   public String getRack(InetAddress inetAddress) {
     if (inetAddress.equals(FBUtilities.getBroadcastAddress())) {
-      return rack;
+      return snitchProperties.getRack();
     }
 
     return super.getRack(inetAddress);
@@ -35,22 +54,19 @@ public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
   @Override
   public String getDatacenter(InetAddress inetAddress) {
     if (inetAddress.equals(FBUtilities.getBroadcastAddress())) {
-      return dc;
+      return snitchProperties.getDc();
     }
 
     return super.getDatacenter(inetAddress);
   }
 
-  public String getLocalDatacenter() {
-    return this.dc;
-  }
-
-  public String getLocalRack() {
-    return this.rack;
-  }
-
   @Override
   public String toString() {
-    return "StargateConfigSnitch{myDC='" + this.dc + '\'' + ", myRack='" + this.rack + "'}";
+    return "StargateConfigSnitch{myDC='"
+        + snitchProperties.getDc()
+        + '\''
+        + ", myRack='"
+        + snitchProperties.getRack()
+        + "'}";
   }
 }
