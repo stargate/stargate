@@ -3,6 +3,7 @@ package io.stargate.web.docsapi.service;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;
+import io.stargate.web.docsapi.service.write.DocumentWriteService;
 import javax.inject.Singleton;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 
@@ -13,6 +14,7 @@ public class DocsApiComponentsBinder extends AbstractBinder {
 
     // services
     bindAsContract(JsonConverter.class).in(Singleton.class);
+    bindAsContract(JsonDocumentShredder.class).in(Singleton.class);
     bindAsContract(DocsShredder.class).in(Singleton.class);
     bindAsContract(DocsSchemaChecker.class).in(Singleton.class);
     bindAsContract(DocumentService.class).in(Singleton.class);
@@ -21,6 +23,7 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bindAsContract(ExpressionParser.class).in(Singleton.class);
     bindAsContract(ConditionParser.class).in(Singleton.class);
     bindAsContract(DocumentSearchService.class).in(Singleton.class);
+    bindAsContract(DocumentWriteService.class).in(Singleton.class);
     bindAsContract(ReactiveDocumentService.class).in(Singleton.class);
   }
 }

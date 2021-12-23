@@ -21,14 +21,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.ResponseHeader;
 import java.io.InputStream;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -87,88 +84,6 @@ public class DocumentResourceV2 {
     this.documentService = documentService;
     this.docsApiConfiguration = docsApiConfiguration;
     this.schemaChecker = schemaChecker;
-  }
-
-  @POST
-  @ManagedAsync
-  @ApiOperation(
-      value = "Create a new document",
-      notes =
-          "Auto-generates an ID for the newly created document. Use \\ to escape periods, commas, and asterisks.",
-      code = 201)
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            code = 201,
-            message = "Created",
-            responseHeaders = @ResponseHeader(name = "Location"),
-            response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
-      })
-  @Path("collections/{collection-id}")
-  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response postDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = "The JSON document", required = true) String payload,
-      @ApiParam(
-              value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false",
-              required = false)
-          @QueryParam("profile")
-          Boolean profile,
-      @Context HttpServletRequest request) {
-    // This route does nearly the same thing as PUT, except that it assigns an ID for the requester
-    // And returns it as a Location header/in JSON body
-    logger.debug("Post: Collection = {}", collection);
-    String newId = UUID.randomUUID().toString();
-    return handle(
-        () -> {
-          boolean isJson =
-              headers
-                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
-                  .toLowerCase()
-                  .contains("application/json");
-
-          ExecutionContext context = ExecutionContext.create(profile);
-
-          documentService.putAtPath(
-              authToken,
-              namespace,
-              collection,
-              newId,
-              payload,
-              new ArrayList<>(),
-              false,
-              dbFactory,
-              isJson,
-              getAllHeaders(request),
-              context);
-
-          return Response.created(
-                  URI.create(
-                      String.format(
-                          "/v2/namespaces/%s/collections/%s/%s", namespace, collection, newId)))
-              .entity(
-                  mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(newId, null, null, context.toProfile())))
-              .build();
-        });
   }
 
   @POST
@@ -234,78 +149,6 @@ public class DocumentResourceV2 {
           return Response.accepted()
               .entity(
                   mapper.writeValueAsString(new MultiDocsResponse(idsCreated, context.toProfile())))
-              .build();
-        });
-  }
-
-  @PUT
-  @ManagedAsync
-  @ApiOperation(value = "Create or update a document with the provided document-id")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
-        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
-        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
-      })
-  @Path("collections/{collection-id}/{document-id}")
-  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response putDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
-          String id,
-      @ApiParam(value = "The JSON document", required = true)
-          @NotNull(message = "payload not provided")
-          @NotBlank(message = "payload must not be empty")
-          String payload,
-      @ApiParam(
-              value = "Whether to include profiling information in the response (advanced)",
-              defaultValue = "false")
-          @QueryParam("profile")
-          Boolean profile,
-      @Context HttpServletRequest request) {
-    logger.debug("Put: Collection = {}, id = {}", collection, id);
-    return handle(
-        () -> {
-          boolean isJson =
-              headers
-                  .getHeaderString(HttpHeaders.CONTENT_TYPE)
-                  .toLowerCase()
-                  .contains("application/json");
-
-          ExecutionContext context = ExecutionContext.create(profile);
-
-          documentService.putAtPath(
-              authToken,
-              namespace,
-              collection,
-              id,
-              payload,
-              new ArrayList<>(),
-              false,
-              dbFactory,
-              isJson,
-              getAllHeaders(request),
-              context);
-          return Response.ok()
-              .entity(
-                  mapper.writeValueAsString(
-                      new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
         });
   }

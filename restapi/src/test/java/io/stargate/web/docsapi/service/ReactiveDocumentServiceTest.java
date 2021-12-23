@@ -23,8 +23,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -44,9 +46,11 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.ByteBufferUtils;
+import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -60,6 +64,7 @@ import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
+import io.stargate.web.docsapi.service.write.DocumentWriteService;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
@@ -69,6 +74,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.awaitility.Awaitility;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,15 +97,23 @@ class ReactiveDocumentServiceTest {
 
   @Mock DocumentSearchService searchService;
 
+  @Mock DocumentWriteService writeService;
+
   @Mock JsonConverter jsonConverter;
 
   @Mock DocsShredder docsShredder;
+
+  @Mock JsonDocumentShredder jsonDocumentShredder;
+
+  @Mock JsonSchemaHandler jsonSchemaHandler;
 
   @Mock TimeSource timeSource;
 
   @Mock DocumentDB documentDB;
 
   @Mock QueryExecutor queryExecutor;
+
+  @Mock DataStore dataStore;
 
   @Mock AuthorizationService authService;
 
@@ -125,8 +139,11 @@ class ReactiveDocumentServiceTest {
         new ReactiveDocumentService(
             expressionParser,
             searchService,
+            writeService,
             jsonConverter,
+            jsonSchemaHandler,
             docsShredder,
+            jsonDocumentShredder,
             objectMapper,
             timeSource,
             config);
@@ -136,6 +153,8 @@ class ReactiveDocumentServiceTest {
     lenient().when(documentDB.authorizeDeleteDeadLeaves(any(), any())).thenReturn(true);
     lenient().when(documentDB.getAuthorizationService()).thenReturn(authService);
     lenient().when(documentDB.getAuthenticationSubject()).thenReturn(authSubject);
+    lenient().when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
+    lenient().when(queryExecutor.getDataStore()).thenReturn(dataStore);
     lenient().when(expression.getFilterPath()).thenReturn(filterPath);
     lenient()
         .doAnswer(
@@ -147,6 +166,377 @@ class ReactiveDocumentServiceTest {
         .when(expression)
         .collectK(any(), anyInt());
     lenient().when(row.columnExists(any())).thenReturn(true);
+  }
+
+  @Nested
+  class WriteDocument {
+
+    @Mock List<JsonShreddedRow> rows;
+
+    @Test
+    public void happyPath() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeService.writeDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, context);
+
+      MutableObject<String> documentId = new MutableObject<>();
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                documentId.setValue(v.getDocumentId());
+                assertThat(v.getDocumentId()).isNotNull();
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId.getValue(), rows, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSchemaCheck() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+      JsonNode document = objectMapper.readTree(payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(false);
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+      when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
+      when(writeService.writeDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows),
+              eq(false),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, context);
+
+      MutableObject<String> documentId = new MutableObject<>();
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                documentId.setValue(v.getDocumentId());
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId.getValue(), rows, false, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verify(jsonSchemaHandler).validate(schema, document);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void malformedJson() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":}";
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void schemaCheckFailed() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      ObjectNode schema = objectMapper.createObjectNode();
+
+      ErrorCodeRuntimeException exception =
+          new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+      doThrow(exception).when(jsonSchemaHandler).validate(schema, objectMapper.readTree(payload));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, context);
+
+      result.test().await().assertError(exception);
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+  }
+
+  @Nested
+  class UpdateDocument {
+
+    @Mock List<JsonShreddedRow> rows;
+
+    @Test
+    public void happyPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, documentId, rows, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, documentId, rows, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSchemaCheck() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+      JsonNode document = objectMapper.readTree(payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(false);
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+      when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, documentId, rows, false, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, documentId, rows, false, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verify(jsonSchemaHandler).validate(schema, document);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void malformedJson() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":}";
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void schemaCheckFailed() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      ObjectNode schema = objectMapper.createObjectNode();
+
+      ErrorCodeRuntimeException exception =
+          new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+      doThrow(exception).when(jsonSchemaHandler).validate(schema, objectMapper.readTree(payload));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result.test().await().assertError(exception);
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      doNothing()
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
   }
 
   @Nested
@@ -165,7 +555,6 @@ class ReactiveDocumentServiceTest {
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
@@ -219,7 +608,6 @@ class ReactiveDocumentServiceTest {
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
@@ -273,7 +661,6 @@ class ReactiveDocumentServiceTest {
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
@@ -322,7 +709,6 @@ class ReactiveDocumentServiceTest {
       String where = "{}";
       String fields = "[\"myField\"]";
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
@@ -358,7 +744,6 @@ class ReactiveDocumentServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       byte[] pageState = RandomUtils.nextBytes(64);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.searchDocuments(
               queryExecutor, namespace, collection, Literal.getTrue(), paginator, context))
           .thenReturn(docs);
@@ -479,7 +864,6 @@ class ReactiveDocumentServiceTest {
       String fields = "[\"myField\"]";
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.getDocument(
               queryExecutor,
               namespace,
@@ -528,7 +912,6 @@ class ReactiveDocumentServiceTest {
       String fields = "[\"myField\"]";
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.getDocument(
               queryExecutor,
               namespace,
@@ -587,7 +970,6 @@ class ReactiveDocumentServiceTest {
       String fields = "[\"myField\"]";
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.getDocument(
               queryExecutor,
               namespace,
@@ -654,7 +1036,6 @@ class ReactiveDocumentServiceTest {
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       when(filterPath.getField()).thenReturn("myField");
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(
               Collections.emptyList(), objectMapper.readTree(where), true))
           .thenReturn(expression);
@@ -721,7 +1102,6 @@ class ReactiveDocumentServiceTest {
       byte[] pageState = RandomUtils.nextBytes(64);
       Flowable<RawDocument> docs = Flowable.just(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(searchService.searchSubDocuments(
               queryExecutor,
               namespace,
@@ -790,7 +1170,6 @@ class ReactiveDocumentServiceTest {
       when(filterPath.getField()).thenReturn("myField");
       when(filterPath.getParentPath()).thenReturn(Arrays.asList("prePath", "parentPath"));
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
-      when(documentDB.getQueryExecutor()).thenReturn(queryExecutor);
       when(expressionParser.constructFilterExpression(prePath, objectMapper.readTree(where), true))
           .thenReturn(expression);
       when(searchService.searchSubDocuments(
