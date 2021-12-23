@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -73,6 +74,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.awaitility.Awaitility;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,7 +175,6 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void happyPath() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
@@ -183,19 +184,27 @@ class ReactiveDocumentServiceTest {
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
           .thenReturn(rows);
       when(writeService.writeDocument(
-              dataStore, namespace, collection, documentId, rows, true, context))
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows),
+              eq(true),
+              eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, payload, context);
 
+      MutableObject<String> documentId = new MutableObject<>();
       result
           .test()
           .await()
           .assertValue(
               v -> {
-                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                documentId.setValue(v.getDocumentId());
+                assertThat(v.getDocumentId()).isNotNull();
                 assertThat(v.getData()).isNull();
                 assertThat(v.getPageState()).isNull();
                 assertThat(v.getProfile()).isEqualTo(context.toProfile());
@@ -203,7 +212,8 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .writeDocument(dataStore, namespace, collection, documentId, rows, true, context);
+          .writeDocument(
+              dataStore, namespace, collection, documentId.getValue(), rows, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
@@ -212,7 +222,6 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void happyPathWithSchemaCheck() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
@@ -225,19 +234,26 @@ class ReactiveDocumentServiceTest {
           .thenReturn(schema);
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
       when(writeService.writeDocument(
-              dataStore, namespace, collection, documentId, rows, false, context))
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows),
+              eq(false),
+              eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, payload, context);
 
+      MutableObject<String> documentId = new MutableObject<>();
       result
           .test()
           .await()
           .assertValue(
               v -> {
-                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                documentId.setValue(v.getDocumentId());
                 assertThat(v.getData()).isNull();
                 assertThat(v.getPageState()).isNull();
                 assertThat(v.getProfile()).isEqualTo(context.toProfile());
@@ -245,7 +261,8 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .writeDocument(dataStore, namespace, collection, documentId, rows, false, context);
+          .writeDocument(
+              dataStore, namespace, collection, documentId.getValue(), rows, false, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
@@ -255,7 +272,6 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void malformedJson() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
@@ -263,7 +279,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, payload, context);
 
       result
           .test()
@@ -284,7 +300,6 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void schemaCheckFailed() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
@@ -299,7 +314,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, payload, context);
 
       result.test().await().assertError(exception);
 
@@ -310,7 +325,6 @@ class ReactiveDocumentServiceTest {
 
     @Test
     public void unauthorized() throws Exception {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
@@ -322,7 +336,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, payload, context);
 
       result
           .test()

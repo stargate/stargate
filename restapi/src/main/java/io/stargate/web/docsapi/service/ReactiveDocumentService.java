@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.PathSegment;
@@ -107,13 +108,24 @@ public class ReactiveDocumentService {
     this.configuration = configuration;
   }
 
+  /**
+   * Writes a document in the given namespace and collection using the randomly generated ID.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
   public Single<DocumentResponseWrapper<Void>> writeDocument(
       DocumentDB db,
       String namespace,
       String collection,
-      String documentId,
       String payload,
       ExecutionContext context) {
+    // generate the document id
+    String documentId = UUID.randomUUID().toString();
 
     return Single.defer(
             () -> {
@@ -145,6 +157,18 @@ public class ReactiveDocumentService {
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
   }
 
+  /**
+   * Updates a document with given ID in the given namespace and collection. Any previously existing
+   * document with the same ID will be overwritten.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
   public Single<DocumentResponseWrapper<Void>> updateDocument(
       DocumentDB db,
       String namespace,

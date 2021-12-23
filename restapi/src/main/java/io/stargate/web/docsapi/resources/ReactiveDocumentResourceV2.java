@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -142,12 +141,11 @@ public class ReactiveDocumentResourceV2 {
         // then generate id and create execution context
         .flatMap(
             db -> {
-              String documentId = UUID.randomUUID().toString();
               ExecutionContext context = ExecutionContext.create(profile);
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .writeDocument(db, namespace, collection, documentId, payload, context)
+                  .writeDocument(db, namespace, collection, payload, context)
 
                   // map to response
                   .map(
@@ -155,7 +153,7 @@ public class ReactiveDocumentResourceV2 {
                         String url =
                             String.format(
                                 "/v2/namespaces/%s/collections/%s/%s",
-                                namespace, collection, documentId);
+                                namespace, collection, result.getDocumentId());
                         String response = objectMapper.writeValueAsString(result);
                         return Response.created(URI.create(url)).entity(response).build();
                       });
