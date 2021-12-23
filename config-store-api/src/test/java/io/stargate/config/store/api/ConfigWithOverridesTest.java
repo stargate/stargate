@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class ConfigWithOverridesTest {
 
-  private static final String SETTING_NAME = "key_" + UUID.randomUUID().toString();
+  private static final String SETTING_NAME = "key_" + UUID.randomUUID();
 
   private static final String MODULE_NAME = "module_1";
 

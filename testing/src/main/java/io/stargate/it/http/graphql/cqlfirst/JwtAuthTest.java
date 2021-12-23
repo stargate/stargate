@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE KEYSPACE IF NOT EXISTS stargate_graphql WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
       "GRANT SELECT ON KEYSPACE stargate_graphql TO web_user",
     })
-public class JwtAuthTest extends BaseOsgiIntegrationTest {
+public class JwtAuthTest extends BaseIntegrationTest {
 
   private static KeycloakContainer keycloakContainer;
 

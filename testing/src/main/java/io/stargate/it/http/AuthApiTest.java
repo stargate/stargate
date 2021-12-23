@@ -23,7 +23,7 @@ import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.auth.model.Credentials;
 import io.stargate.auth.model.Secret;
 import io.stargate.auth.model.UsernameCredentials;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 @NotThreadSafe
-public class AuthApiTest extends BaseOsgiIntegrationTest {
+public class AuthApiTest extends BaseIntegrationTest {
 
   private String host;
   private static final ObjectMapper objectMapper = new ObjectMapper();

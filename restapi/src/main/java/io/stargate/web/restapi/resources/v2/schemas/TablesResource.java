@@ -21,13 +21,13 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
@@ -134,10 +134,10 @@ public class TablesResource {
   @ApiOperation(
       value = "Get a table",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Table.class)
+      response = TableResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
         @ApiResponse(code = 404, message = "Not Found", response = ApiError.class),
         @ApiResponse(code = 500, message = "Internal server error", response = ApiError.class)
@@ -168,7 +168,7 @@ public class TablesResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           TableResponse tableResponse = getTable(tableMetadata);
           Object response = raw ? tableResponse : new RESTResponseWrapper(tableResponse);
@@ -407,7 +407,7 @@ public class TablesResource {
         });
   }
 
-  private TableResponse getTable(Table tableMetadata) {
+  private TableResponse getTable(AbstractTable tableMetadata) {
     final List<ColumnDefinition> columnDefinitions =
         tableMetadata.columns().stream()
             .map(

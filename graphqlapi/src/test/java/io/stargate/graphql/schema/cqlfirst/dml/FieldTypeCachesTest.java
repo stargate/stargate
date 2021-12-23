@@ -44,7 +44,7 @@ public class FieldTypeCachesTest {
   private FieldInputTypeCache fieldInputTypes;
   private FieldOutputTypeCache fieldOutputTypes;
 
-  private List<String> warnings = new ArrayList<>();
+  private final List<String> warnings = new ArrayList<>();
 
   @BeforeEach
   public void setup() {

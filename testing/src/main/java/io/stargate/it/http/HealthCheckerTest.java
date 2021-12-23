@@ -3,7 +3,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @NotThreadSafe
-public class HealthCheckerTest extends BaseOsgiIntegrationTest {
+public class HealthCheckerTest extends BaseIntegrationTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

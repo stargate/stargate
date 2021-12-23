@@ -285,9 +285,9 @@ There are two custom JUnit 5 extensions used when running integration tests.
   When this extension is active, it will automatically inject test method parameters of type
   `ClusterConnectionInfo`.
 
-* `StargateContainer` - manages starting and stopping Stargate nodes (OSGi containers).
+* `StargateCoordinator` - manages starting and stopping Stargate nodes.
   This extension is defined in the `testing` module.
-  The `@StargateSpec` annotation works in conjunction with `StargateContainer` and defines parameters
+  The `@StargateSpec` annotation works in conjunction with `StargateCoordinator` and defines parameters
   of the Stargate nodes.
   When this extension is active, it will automatically inject test method parameters of type
   `StargateConnectionInfo` and `StargateEnvironmentInfo`.
@@ -296,7 +296,7 @@ Integration tests that do not need Stargate nodes (e.g. `CassandraPersistenceIT`
 the `ExternalStorage` extension by having the `@ExtendWith(ExternalStorage.class)` annotation
 either directly on the test class or on one of its super-classes.
 
-Integration tests that need both storage and Stargate nodes, should use the `@UseStargateContainer`
+Integration tests that need both storage and Stargate nodes, should use the `@UseStargateCoordinator`
 annotation to activate both extensions in the right order.
 
 The code element holding `@ClusterSpec` or `@StargateSpec` annotations controls the lifecycle of

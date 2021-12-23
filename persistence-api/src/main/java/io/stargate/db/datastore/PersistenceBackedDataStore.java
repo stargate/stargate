@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -78,8 +79,18 @@ public class PersistenceBackedDataStore implements DataStore {
 
   @Override
   public <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query) {
-    return connection
-        .prepare(query.queryStringForPreparation(), parameters())
+    String queryToPrepare = query.queryStringForPreparation();
+
+    // check first in the connection cache
+    return Optional.ofNullable(connection.getPrepared(queryToPrepare, parameters()))
+
+        // if so finalize
+        .map(CompletableFuture::completedFuture)
+
+        // otherwise, go and prepare
+        .orElseGet(() -> connection.prepare(queryToPrepare, parameters()))
+
+        // then apply transformation to the BoundQuery
         .thenApply(prepared -> query.withPreparedId(prepared.statementId));
   }
 
@@ -201,7 +212,7 @@ public class PersistenceBackedDataStore implements DataStore {
 
   @Override
   public boolean isInSchemaAgreement() {
-    return persistence().isInSchemaAgreement();
+    return connection.isInSchemaAgreement();
   }
 
   @Override
@@ -221,7 +232,7 @@ public class PersistenceBackedDataStore implements DataStore {
 
   @Override
   public void waitForSchemaAgreement() {
-    persistence().waitForSchemaAgreement();
+    connection.waitForSchemaAgreement();
   }
 
   @Override

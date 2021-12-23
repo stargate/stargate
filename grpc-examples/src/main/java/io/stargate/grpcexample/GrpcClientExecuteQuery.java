@@ -1,6 +1,5 @@
 package io.stargate.grpcexample;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -37,8 +36,7 @@ public class GrpcClientExecuteQuery {
   private static final int STARGATE_GRPC_PORT = 8090;
 
   /** Runner of the GrpcClientExample */
-  public static void main(String[] args)
-      throws InvalidProtocolBufferException, InterruptedException {
+  public static void main(String[] args) throws InterruptedException {
     GrpcClientExecuteQuery grpcClientExecuteQuery = new GrpcClientExecuteQuery();
     grpcClientExecuteQuery.prepareSchema();
     grpcClientExecuteQuery.executeSingleQuery();
@@ -76,7 +74,7 @@ public class GrpcClientExecuteQuery {
             .withCallCredentials(new StargateBearerToken(STARGATE_TOKEN));
   }
 
-  public void executeSingleQuery() throws InvalidProtocolBufferException {
+  public void executeSingleQuery() {
     // insert
     QueryOuterClass.Response response =
         blockingStub.executeQuery(
@@ -97,7 +95,7 @@ public class GrpcClientExecuteQuery {
         "v = " + rs.getRows(0).getValues(1).getInt()); // it will return value for v = 1
   }
 
-  private void executeBatchQueries() throws InvalidProtocolBufferException {
+  private void executeBatchQueries() {
     // batch insert
     QueryOuterClass.Response response =
         blockingStub.executeBatch(

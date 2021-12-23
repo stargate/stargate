@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.41-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
@@ -311,6 +311,15 @@
             <Bundle-SymbolicName>io.stargate.db.dse</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.dse.DsePersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
+              ch.qos.logback.classic,
+              ch.qos.logback.classic.helpers,
+              ch.qos.logback.classic.spi,
+              ch.qos.logback.core,
+              ch.qos.logback.core.helpers,
+              ch.qos.logback.core.spi,
               org.osgi.framework,
               io.stargate.core.*,
               io.stargate.auth.*,

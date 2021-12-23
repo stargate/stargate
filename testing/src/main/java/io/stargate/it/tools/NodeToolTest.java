@@ -17,7 +17,7 @@ package io.stargate.it.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.io.File;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NodeToolTest extends BaseOsgiIntegrationTest {
+public class NodeToolTest extends BaseIntegrationTest {
   private static final Logger LOG = LoggerFactory.getLogger(NodeToolTest.class);
 
   private static File baseDir;

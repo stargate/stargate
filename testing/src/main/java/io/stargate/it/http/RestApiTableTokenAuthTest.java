@@ -6,7 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
-public class RestApiTableTokenAuthTest extends BaseOsgiIntegrationTest {
+public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final String keyspaceName = "table_token_test";

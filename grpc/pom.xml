@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.41-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.grpc</groupId>
   <artifactId>grpc</artifactId>
@@ -60,10 +60,6 @@
       <artifactId>micrometer-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
@@ -114,6 +110,9 @@
             <Bundle-SymbolicName>io.stargate.grpc</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.grpc.GrpcActivator</Bundle-Activator>
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth,

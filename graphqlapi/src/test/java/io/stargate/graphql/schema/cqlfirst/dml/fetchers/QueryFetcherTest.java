@@ -22,7 +22,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class QueryFetcherTest extends DmlTestBase {
-  private GraphQLSchema schema = createGraphQlSchema();
+  private final GraphQLSchema schema = createGraphQlSchema();
 
   @Override
   public Schema getCQLSchema() {

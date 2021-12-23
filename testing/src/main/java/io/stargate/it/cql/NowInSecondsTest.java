@@ -11,7 +11,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.util.function.Function;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     customOptions = "enableProtocolV5",
     initQueries = "CREATE TABLE test(k int PRIMARY KEY, v int)")
-public class NowInSecondsTest extends BaseOsgiIntegrationTest {
+public class NowInSecondsTest extends BaseIntegrationTest {
 
   public static void enableProtocolV5(OptionsMap config) {
     config.put(TypedDriverOption.PROTOCOL_VERSION, "V5");

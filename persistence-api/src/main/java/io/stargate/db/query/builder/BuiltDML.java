@@ -3,7 +3,18 @@ package io.stargate.db.query.builder;
 import static com.datastax.oss.driver.shaded.guava.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 
-import io.stargate.db.query.*;
+import io.stargate.db.query.AsyncQueryExecutor;
+import io.stargate.db.query.BindMarker;
+import io.stargate.db.query.BoundDMLQuery;
+import io.stargate.db.query.Condition;
+import io.stargate.db.query.ImmutableCondition;
+import io.stargate.db.query.ImmutableModification;
+import io.stargate.db.query.ModifiableEntity;
+import io.stargate.db.query.Modification;
+import io.stargate.db.query.Predicate;
+import io.stargate.db.query.QueryType;
+import io.stargate.db.query.RowsImpacted;
+import io.stargate.db.query.TypedValue;
 import io.stargate.db.query.TypedValue.Codec;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -292,7 +303,7 @@ abstract class BuiltDML<Q extends AbstractBound<?> & BoundDMLQuery> extends Buil
 
     private Condition.LHS createLHS(BuiltCondition.LHS lhs) {
       if (lhs.isColumnName()) {
-        String name = ((BuiltCondition.LHS.ColumnName) lhs).columnName();
+        String name = lhs.columnName();
         return Condition.LHS.column(dml.table.existingColumn(name));
       } else if (lhs.isMapAccess()) {
         BuiltCondition.LHS.MapElement m = ((BuiltCondition.LHS.MapElement) lhs);

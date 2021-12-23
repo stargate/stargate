@@ -130,7 +130,7 @@ public class JsonSchemaHandler {
       List<String> messages = new ArrayList<>();
       result.forEach(msg -> messages.add(msg.getMessage()));
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Invalid JSON: " + messages.toString());
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Invalid JSON: " + messages);
     }
   }
 }

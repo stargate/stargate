@@ -3,7 +3,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.41-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
     <groupId>io.stargate.config.store.yaml</groupId>
@@ -23,14 +23,6 @@
         <scope>provided</scope>
       </dependency>
       <!-- 3rd party dependencies -->
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-core</artifactId>
-      </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-yaml</artifactId>
@@ -79,6 +71,9 @@
 						<Bundle-SymbolicName>io.stargate.config.store.yaml</Bundle-SymbolicName>
 						<Bundle-Activator>io.stargate.config.store.yaml.ConfigStoreActivator</Bundle-Activator>
 						<Import-Package><![CDATA[
+                                        org.slf4j,
+                                        org.slf4j.helpers,
+                                        org.slf4j.spi,
                                         org.osgi.framework,
                                         io.stargate.config.store.api,
                                         io.stargate.core.*,

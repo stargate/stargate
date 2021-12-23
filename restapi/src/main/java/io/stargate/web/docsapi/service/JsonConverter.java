@@ -23,8 +23,8 @@ import java.util.Map;
 import javax.inject.Inject;
 
 public class JsonConverter {
-  private ObjectMapper mapper;
-  private DocsApiConfiguration docsApiConfiguration;
+  private final ObjectMapper mapper;
+  private final DocsApiConfiguration docsApiConfiguration;
 
   @Inject
   public JsonConverter(ObjectMapper mapper, DocsApiConfiguration docsApiConfiguration) {
@@ -283,7 +283,7 @@ public class JsonConverter {
       else n = new DoubleNode(dv);
     }
     if (ref == null)
-      throw new RuntimeException("Missing path @" + leaf + " v=" + n + " row=" + row.toString());
+      throw new RuntimeException("Missing path @" + leaf + " v=" + n + " row=" + row);
 
     boolean shouldWrite =
         !pathWriteTimes.containsKey(parentPath + "." + leaf)

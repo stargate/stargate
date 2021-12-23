@@ -21,6 +21,7 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
@@ -236,10 +237,10 @@ public class TableResource {
   @ApiOperation(
       value = "Return a table",
       notes = "Retrieve data for a single table in a specific keyspace.",
-      response = Table.class)
+      response = TableResponse.class)
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Table.class),
+        @ApiResponse(code = 200, message = "OK", response = TableResponse.class),
         @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
         @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
@@ -270,7 +271,7 @@ public class TableResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           final List<ColumnDefinition> columnDefinitions =
               tableMetadata.columns().stream()

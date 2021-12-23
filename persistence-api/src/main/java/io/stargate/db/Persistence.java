@@ -15,7 +15,6 @@
  */
 package io.stargate.db;
 
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.TableName;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
 /**
@@ -34,10 +32,10 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
  * higher level {@link DataStore} API which wraps an instance of this interface) to query the
  * underlying store, and thus the one interface that persistence extensions must implement.
  */
-public interface Persistence {
+public interface Persistence extends SchemaAgreementChecker {
 
-  int SCHEMA_AGREEMENT_WAIT_RETRIES =
-      Integer.getInteger("stargate.persistence.schema.agreement.wait.retries", 900);
+  boolean SUPPORTS_SECONDARY_INDEX =
+      Boolean.parseBoolean(System.getProperty("stargate.persistence.2i.support.default", "true"));
 
   /** Name describing the persistence implementation. */
   String name();
@@ -85,8 +83,6 @@ public interface Persistence {
    */
   ByteBuffer unsetValue();
 
-  boolean isInSchemaAgreement();
-
   /**
    * Returns <code>true</code> if the local schema agrees with all storage nodes, <code>false</code>
    * otherwise.
@@ -94,8 +90,7 @@ public interface Persistence {
   boolean isInSchemaAgreementWithStorage();
 
   default boolean supportsSecondaryIndex() {
-    return Boolean.parseBoolean(
-        System.getProperty("stargate.persistence.2i.support.default", "true"));
+    return SUPPORTS_SECONDARY_INDEX;
   }
 
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
@@ -103,20 +98,6 @@ public interface Persistence {
 
   default boolean supportsLoggedBatches() {
     return true;
-  }
-
-  /** Wait for schema to agree across the cluster */
-  default void waitForSchemaAgreement() {
-    for (int count = 0; count < SCHEMA_AGREEMENT_WAIT_RETRIES; count++) {
-      if (isInSchemaAgreement()) {
-        return;
-      }
-      Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
-    }
-    throw new IllegalStateException(
-        "Failed to reach schema agreement after "
-            + (200 * SCHEMA_AGREEMENT_WAIT_RETRIES)
-            + " milliseconds.");
   }
 
   /**
@@ -155,7 +136,7 @@ public interface Persistence {
    * <p>It is through this object that a user can be logged in and that the persistence can be
    * queried.
    */
-  interface Connection {
+  interface Connection extends SchemaAgreementChecker {
 
     /** The underlying persistence on which this is a connection. */
     Persistence persistence();
@@ -252,5 +233,16 @@ public interface Persistence {
 
     /** Makes a new {@link RowDecorator} for the given table. */
     RowDecorator makeRowDecorator(TableName table);
+
+    /**
+     * Checks whether this coordinator in schema agreement with the other nodes in the cluster. This
+     * is the same as {@code Persistence#isInSchemaAgreement()}, except that it *may* consider other
+     * connection specific properties to determine whether schema is in agreement.
+     *
+     * @return true if schema is agreement; otherwise false.
+     */
+    default boolean isInSchemaAgreement() {
+      return persistence().isInSchemaAgreement();
+    }
   }
 }

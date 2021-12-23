@@ -32,7 +32,12 @@ import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -151,6 +156,13 @@ public class DocumentDB {
       throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
     }
 
+    // if table exists, do nothing
+    Table table = ks.table(tableName);
+    if (table != null) {
+      return false;
+    }
+
+    // otherwise, check that the name is  valid
     if (!tableName.matches("^[a-zA-Z0-9_]+$")) {
       String message =
           String.format(
@@ -159,8 +171,7 @@ public class DocumentDB {
       throw new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_NAME_INVALID, message);
     }
 
-    if (ks.table(tableName) != null) return false;
-
+    // and create the table
     try {
       List<Column> columns = new ArrayList<>();
       columns.add(Column.create("key", Kind.PartitionKey, Type.Text));

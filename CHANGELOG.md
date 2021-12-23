@@ -1,5 +1,102 @@
 # Changelog
 
+## [v1.0.45](https://github.com/stargate/stargate/tree/v1.0.45) (2021-12-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.44...v1.0.45)
+
+**Merged pull requests:**
+
+- gRPC: Set "host" header to ":authority" pseudo-header value [\#1457](https://github.com/stargate/stargate/pull/1457) ([mpenick](https://github.com/mpenick))
+- avoid going to props every time for supportsSecondaryIndex [\#1456](https://github.com/stargate/stargate/pull/1456) ([ivansenic](https://github.com/ivansenic))
+- Upgrade swagger-ui dependency from 3.35.0 to the latest 3.x, 3.52.5. [\#1452](https://github.com/stargate/stargate/pull/1452) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1449](https://github.com/stargate/stargate/pull/1449) ([github-actions[bot]](https://github.com/apps/github-actions))
+- refactored shredding of json payload [\#1439](https://github.com/stargate/stargate/pull/1439) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.44](https://github.com/stargate/stargate/tree/v1.0.44) (2021-12-02)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.43...v1.0.44)
+
+**Closed issues:**
+
+- REST `TablesResource.getOneTable\(\)`endpoint swagger claims result is `Table` but is actually `TableResponse` [\#1444](https://github.com/stargate/stargate/issues/1444)
+- Implement Stargate V2 REST endpoints for "createTable" using new gRPC endpoint [\#1435](https://github.com/stargate/stargate/issues/1435)
+- Implement Stargate V2 REST endpoints for getting table metadata using new gRPC endpoints  [\#1426](https://github.com/stargate/stargate/issues/1426)
+- Implement Stargate V2 REST endpoints for keyspace CRUD operations using new gRPC endpoints [\#1425](https://github.com/stargate/stargate/issues/1425)
+- Implement "getRows\(\)" \(PK access\) for SGv2 prototype [\#1422](https://github.com/stargate/stargate/issues/1422)
+- TracingQueryTest flaky on DSE builds [\#1388](https://github.com/stargate/stargate/issues/1388)
+
+**Merged pull requests:**
+
+- increment gRPC version [\#1447](https://github.com/stargate/stargate/pull/1447) ([tomekl007](https://github.com/tomekl007))
+- Fix \#1444 by changing swagger annotated response type to correct one [\#1445](https://github.com/stargate/stargate/pull/1445) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- maybe create table should not check for valid name if it exists [\#1438](https://github.com/stargate/stargate/pull/1438) ([ivansenic](https://github.com/ivansenic))
+- increase initial page size for `$or` search in docs api [\#1434](https://github.com/stargate/stargate/pull/1434) ([ivansenic](https://github.com/ivansenic))
+- check connection getPrepare before executing the prepare [\#1432](https://github.com/stargate/stargate/pull/1432) ([ivansenic](https://github.com/ivansenic))
+- Tiny improvements to REST/getTable IT checks to avoid passing with no columns [\#1430](https://github.com/stargate/stargate/pull/1430) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- doing document population in parallel batches [\#1424](https://github.com/stargate/stargate/pull/1424) ([ivansenic](https://github.com/ivansenic))
+- Improve test "getRows\(\)" for RESTv2 test [\#1421](https://github.com/stargate/stargate/pull/1421) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1420](https://github.com/stargate/stargate/pull/1420) ([github-actions[bot]](https://github.com/apps/github-actions))
+- closes \#1388: improved channel handling in the gRPC integration tests [\#1419](https://github.com/stargate/stargate/pull/1419) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.43](https://github.com/stargate/stargate/tree/v1.0.43) (2021-11-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.42...v1.0.43)
+
+**Closed issues:**
+
+- Add `byte\[\]` taking variant\(s\) in `ByteBufferUtils` for Base64 handling [\#1404](https://github.com/stargate/stargate/issues/1404)
+- Implement "addRow\(\)" for SGv2 prototype [\#1399](https://github.com/stargate/stargate/issues/1399)
+- Improve JWT documentation [\#1384](https://github.com/stargate/stargate/issues/1384)
+
+**Merged pull requests:**
+
+- Also export logback core from for persistence backends [\#1417](https://github.com/stargate/stargate/pull/1417) ([mpenick](https://github.com/mpenick))
+- Implement gRPC createTable operation [\#1411](https://github.com/stargate/stargate/pull/1411) ([olim7t](https://github.com/olim7t))
+- Centralize logging [\#1410](https://github.com/stargate/stargate/pull/1410) ([mpenick](https://github.com/mpenick))
+- Fix parameterized keyspace regression in the gRPC API [\#1408](https://github.com/stargate/stargate/pull/1408) ([mpenick](https://github.com/mpenick))
+- Fix \#1404: add/expose "byte\[\]" methods; remove legacy \(broken\) base64 handling workaround [\#1405](https://github.com/stargate/stargate/pull/1405) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1395](https://github.com/stargate/stargate/pull/1395) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.42](https://github.com/stargate/stargate/tree/v1.0.42) (2021-11-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.41...v1.0.42)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#1391](https://github.com/stargate/stargate/pull/1391) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Remove OSGI references from integration tests [\#1390](https://github.com/stargate/stargate/pull/1390) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.41](https://github.com/stargate/stargate/tree/v1.0.41) (2021-11-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.40...v1.0.41)
+
+**Fixed bugs:**
+
+- GraphQL API doesn't support inserting null values for some types [\#1347](https://github.com/stargate/stargate/issues/1347)
+
+**Closed issues:**
+
+- Incorrect documented return type for `RowsResource.getAllRows\(\)` [\#1378](https://github.com/stargate/stargate/issues/1378)
+- Incorrect tests in `RestApiv2Test`, "createTableMissingClustering\(\)", "createTableWithNullOptions\(\)" [\#1376](https://github.com/stargate/stargate/issues/1376)
+- Add read-me for the `metric-jersey` module [\#1312](https://github.com/stargate/stargate/issues/1312)
+
+**Merged pull requests:**
+
+- Add schema agreement check to persistence connection [\#1389](https://github.com/stargate/stargate/pull/1389) ([mpenick](https://github.com/mpenick))
+- Remove the unpack\(\) call from gRPC docs [\#1387](https://github.com/stargate/stargate/pull/1387) ([tomekl007](https://github.com/tomekl007))
+- GraphQL CQL-first: handle null values for complex types \(fixes \#1347\) [\#1380](https://github.com/stargate/stargate/pull/1380) ([olim7t](https://github.com/olim7t))
+- Fix \#1378: change Swagger annotations to indicate correct response type [\#1379](https://github.com/stargate/stargate/pull/1379) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1376 \(2 tests using wrong response types\) [\#1377](https://github.com/stargate/stargate/pull/1377) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unused `Any` import from gRPC proto file [\#1375](https://github.com/stargate/stargate/pull/1375) ([mpenick](https://github.com/mpenick))
+- Improve RestV2 tests for "getAllRows\(\)" end point [\#1374](https://github.com/stargate/stargate/pull/1374) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1373](https://github.com/stargate/stargate/pull/1373) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Return UNAVAILABLE for unhandled clients [\#1366](https://github.com/stargate/stargate/pull/1366) ([mpenick](https://github.com/mpenick))
+- closes \#1312: metric-jersey final refactoring and README [\#1364](https://github.com/stargate/stargate/pull/1364) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.40](https://github.com/stargate/stargate/tree/v1.0.40) (2021-10-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.39...v1.0.40)

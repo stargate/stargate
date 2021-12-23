@@ -41,13 +41,13 @@ public class StargateLogExtension implements ParameterResolver {
         (StargateEnvironmentInfo)
             extensionContext
                 .getStore(ExtensionContext.Namespace.GLOBAL)
-                .get(StargateContainer.STORE_KEY);
+                .get(StargateExtension.STORE_KEY);
 
     if (stargate == null) {
       throw new IllegalStateException(
           String.format(
               "%s can only be used in conjunction with %s (make sure it is declared last)",
-              getClass().getSimpleName(), StargateContainer.class.getSimpleName()));
+              getClass().getSimpleName(), StargateExtension.class.getSimpleName()));
     }
 
     LogCollector collector = new LogCollector(stargate);

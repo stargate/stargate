@@ -27,9 +27,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import javax.annotation.Nullable;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NewConnectionInterceptor implements ServerInterceptor {
+
+  private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
 
   public static final Metadata.Key<String> TOKEN_KEY =
       Metadata.Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
@@ -76,6 +81,16 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       }
 
       Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
+
+      // Some authentication service and persistence implementations depend on the "host" header
+      // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
+      // `grpc-netty-shaded` implementation will move the "host" header into the ":authority" value:
+      // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
+      String authority = call.getAuthority();
+      if (authority != null && !authority.isEmpty()) {
+        stringHeaders.put("host", authority);
+      }
+
       RequestInfo info =
           ImmutableRequestInfo.builder()
               .token(token)
@@ -90,16 +105,20 @@ public class NewConnectionInterceptor implements ServerInterceptor {
           context.withValues(
               GrpcService.CONNECTION_KEY, connection, GrpcService.HEADERS_KEY, stringHeaders);
       return Contexts.interceptCall(context, call, headers, next);
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof UnauthorizedException) {
+    } catch (Exception e) {
+      Throwable cause = e;
+      if (cause instanceof CompletionException) {
+        cause = e.getCause();
+      }
+      if (cause instanceof UnauthorizedException) {
         call.close(
             Status.UNAUTHENTICATED.withDescription("Invalid token").withCause(e), new Metadata());
+      } else if (cause instanceof UnhandledClientException) {
+        call.close(Status.UNAVAILABLE.withDescription(e.getMessage()).withCause(e), new Metadata());
       } else {
-        call.close(
-            Status.INTERNAL
-                .withDescription("Error attempting to create connection to persistence")
-                .withCause(e),
-            new Metadata());
+        final String message = "Error attempting to create connection to persistence";
+        logger.error(message, cause);
+        call.close(Status.INTERNAL.withDescription(message).withCause(e), new Metadata());
       }
     }
     return new NopListener<>();

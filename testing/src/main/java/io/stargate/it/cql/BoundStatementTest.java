@@ -15,7 +15,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // table with composite partition key
       "CREATE TABLE IF NOT EXISTS test3 (pk1 int, pk2 int, v int, PRIMARY KEY ((pk1, pk2)))",
     })
-public class BoundStatementTest extends BaseOsgiIntegrationTest {
+public class BoundStatementTest extends BaseIntegrationTest {
 
   private static final String KEY = "test";
   private static final int VALUE = 7;

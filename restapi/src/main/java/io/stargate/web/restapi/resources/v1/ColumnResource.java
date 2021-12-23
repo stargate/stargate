@@ -21,11 +21,11 @@ import com.codahale.metrics.annotation.Timed;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.Keyspace;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.RequestHandler;
 import io.stargate.web.restapi.dao.RestDB;
@@ -67,7 +67,7 @@ import org.apache.cassandra.stargate.db.ConsistencyLevel;
 @Singleton
 public class ColumnResource {
 
-  private RestDBFactory dbFactory;
+  private final RestDBFactory dbFactory;
 
   @Inject
   public ColumnResource(RestDBFactory db) {
@@ -116,7 +116,7 @@ public class ColumnResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           List<ColumnDefinition> collect =
               tableMetadata.columns().stream()
@@ -250,7 +250,7 @@ public class ColumnResource {
               SourceAPI.REST,
               ResourceKind.TABLE);
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
           final Column col = tableMetadata.column(columnName);
           if (col == null) {
             return Response.status(Response.Status.NOT_FOUND)

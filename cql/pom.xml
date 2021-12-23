@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.41-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
@@ -122,6 +122,9 @@
             <Bundle-Activator>io.stargate.cql.CqlActivator</Bundle-Activator>
             <!-- TODO [doug] do this the right way https://baptiste-wicht.com/posts/2010/03/bundle-non-osgi-dependencies-maven.html -->
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth,

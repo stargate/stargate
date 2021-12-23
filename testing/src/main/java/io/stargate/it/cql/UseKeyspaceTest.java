@@ -8,7 +8,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = "CREATE TABLE IF NOT EXISTS test (k INT PRIMARY KEY)")
-public class UseKeyspaceTest extends BaseOsgiIntegrationTest {
+public class UseKeyspaceTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should fail unqualified query if not logged into any keyspace")

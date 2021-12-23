@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltCondition.LHS;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import io.stargate.web.resources.Converters;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class WhereParser {
     mapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
   }
 
-  public static List<BuiltCondition> parseWhere(String whereParam, Table tableData)
+  public static List<BuiltCondition> parseWhere(String whereParam, AbstractTable tableData)
       throws IOException {
     JsonNode jsonTree = parseJson(whereParam);
 
@@ -132,7 +132,7 @@ public class WhereParser {
     return () -> iterator;
   }
 
-  private static Column getColumn(Table tableData, String fieldName) {
+  private static Column getColumn(AbstractTable tableData, String fieldName) {
     Column column = tableData.column(fieldName);
     if (column == null) {
       throw new IllegalArgumentException(String.format("Unknown field name '%s'.", fieldName));

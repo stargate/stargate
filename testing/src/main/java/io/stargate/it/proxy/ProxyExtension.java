@@ -3,8 +3,8 @@ package io.stargate.it.proxy;
 import com.datastax.oss.driver.shaded.guava.common.net.InetAddresses;
 import io.stargate.it.storage.ExternalResource;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.it.storage.StargateContainer;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import io.stargate.it.storage.StargateExtension;
 import java.lang.reflect.Parameter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -55,12 +55,12 @@ public class ProxyExtension extends ExternalResource<ProxySpec, ProxyExtension.P
       Proxy existingResource, ProxySpec spec, ExtensionContext context) throws Exception {
     StargateEnvironmentInfo stargate =
         (StargateEnvironmentInfo)
-            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateContainer.STORE_KEY);
+            context.getStore(ExtensionContext.Namespace.GLOBAL).get(StargateExtension.STORE_KEY);
     if (stargate == null) {
       throw new IllegalStateException(
           String.format(
               "%s can only be used in conjunction with %s (make sure it is declared last)",
-              ProxyExtension.class.getSimpleName(), StargateContainer.class.getSimpleName()));
+              ProxyExtension.class.getSimpleName(), StargateExtension.class.getSimpleName()));
     }
     return Optional.of(new Proxy(spec != null ? spec : DEFAULT_PROXY_SPEC, stargate));
   }
@@ -100,8 +100,8 @@ public class ProxyExtension extends ExternalResource<ProxySpec, ProxyExtension.P
   }
 
   protected static class Proxy extends ExternalResource.Holder {
-    private List<TcpProxy> proxies = new ArrayList<>();
-    private List<InetSocketAddress> addresses = new ArrayList<>();
+    private final List<TcpProxy> proxies = new ArrayList<>();
+    private final List<InetSocketAddress> addresses = new ArrayList<>();
 
     List<InetSocketAddress> addresses() {
       return addresses;

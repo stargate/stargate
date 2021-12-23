@@ -22,11 +22,11 @@ import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * A convenience annotation for test classes that need a managed {@link StargateContainer}. This
- * annotation includes both {@link StargateContainer} and {@link ExternalStorage} in the right order
+ * A convenience annotation for test classes that need a managed {@link StargateExtension}. This
+ * annotation includes both {@link StargateExtension} and {@link ExternalStorage} in the right order
  * to ensure proper initialization.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@ExtendWith({ExternalStorage.class, StargateContainer.class})
-public @interface UseStargateContainer {}
+@ExtendWith({ExternalStorage.class, StargateExtension.class})
+public @interface UseStargateCoordinator {}

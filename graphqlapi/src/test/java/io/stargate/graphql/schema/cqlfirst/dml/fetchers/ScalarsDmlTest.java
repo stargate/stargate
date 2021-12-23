@@ -299,7 +299,7 @@ public class ScalarsDmlTest extends DmlTestBase {
 
   private static String toGraphQLValue(Object value) {
     if (value instanceof String) {
-      return String.format("\"%s\"", value.toString());
+      return String.format("\"%s\"", value);
     }
 
     return value.toString();

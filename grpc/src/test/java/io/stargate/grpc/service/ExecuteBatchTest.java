@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.db.Batch;
 import io.stargate.db.BatchType;
@@ -39,6 +40,7 @@ import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -236,5 +238,35 @@ public class ExecuteBatchTest extends BaseGrpcServiceTest {
                 .build());
 
     assertThat(response.getWarningsList()).containsAll(expectedWarnings);
+  }
+
+  @Test
+  public void unhandledClientException() {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.batch(any(Batch.class), any(Parameters.class), anyLong()))
+        .thenThrow(new UnhandledClientException(""));
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+
+    assertThatThrownBy(
+            () -> {
+              QueryOuterClass.Response response =
+                  stub.executeBatch(
+                      QueryOuterClass.Batch.newBuilder()
+                          .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+                          .build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNAVAILABLE.getCode());
   }
 }

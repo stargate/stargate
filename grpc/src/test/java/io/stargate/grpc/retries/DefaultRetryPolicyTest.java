@@ -21,7 +21,6 @@ import static org.apache.cassandra.stargate.db.ConsistencyLevel.QUORUM;
 import static org.apache.cassandra.stargate.db.WriteType.BATCH_LOG;
 import static org.apache.cassandra.stargate.db.WriteType.SIMPLE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;

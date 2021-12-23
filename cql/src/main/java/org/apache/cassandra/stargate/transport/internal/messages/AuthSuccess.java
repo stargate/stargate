@@ -53,7 +53,7 @@ public class AuthSuccess extends Message.Response {
         }
       };
 
-  private byte[] token;
+  private final byte[] token;
 
   public AuthSuccess(byte[] token) {
     super(Message.Type.AUTH_SUCCESS);

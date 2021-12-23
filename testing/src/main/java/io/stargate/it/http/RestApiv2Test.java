@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -26,7 +27,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -68,7 +69,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-public class RestApiv2Test extends BaseOsgiIntegrationTest {
+public class RestApiv2Test extends BaseIntegrationTest {
 
   private String keyspaceName;
   private String tableName;
@@ -302,7 +303,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
   }
 
   @Test
@@ -316,7 +317,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo("system");
     assertThat(table.getName()).isEqualTo("local");
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
   }
 
   @Test
@@ -334,15 +335,13 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
     assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
     assertThat(table.getName()).isEqualTo(tableName);
-    assertThat(table.getColumnDefinitions()).isNotNull();
-    ColumnDefinition columnDefinition =
-        table.getColumnDefinitions().stream()
-            .filter(c -> c.getName().equals("col1"))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("Column not found"));
-    assertThat(columnDefinition)
-        .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+    assertThat(table.getColumnDefinitions())
+        .hasSize(4)
+        .anySatisfy(
+            columnDefinition ->
+                assertThat(columnDefinition)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false)));
   }
 
   @Test
@@ -1102,6 +1101,63 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
   }
 
   @Test
+  public void getAllRowsFromMaterializedView(CqlSession session) throws IOException {
+    assumeThat(isCassandra4())
+        .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
+        .isFalse();
+
+    createKeyspace(keyspaceName);
+    tableName = "tbl_mvread_" + System.currentTimeMillis();
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "lastName text"),
+        Collections.singletonList("id"),
+        null);
+
+    List<Map<String, String>> expRows =
+        insertTestTableRows(
+            Arrays.asList(
+                Arrays.asList("id 1", "firstName John", "lastName Doe"),
+                Arrays.asList("id 2", "firstName Sarah", "lastName Smith"),
+                Arrays.asList("id 3", "firstName Jane")));
+
+    String materializedViewName = "mv_test_" + System.currentTimeMillis();
+
+    ResultSet resultSet =
+        session.execute(
+            String.format(
+                "CREATE MATERIALIZED VIEW \"%s\".%s "
+                    + "AS SELECT id, \"firstName\", \"lastName\" "
+                    + "FROM \"%s\".%s "
+                    + "WHERE id IS NOT NULL "
+                    + "AND \"firstName\" IS NOT NULL "
+                    + "AND \"lastName\" IS NOT NULL "
+                    + "PRIMARY KEY (id, \"lastName\")",
+                keyspaceName, materializedViewName, keyspaceName, tableName));
+    assertThat(resultSet.wasApplied()).isTrue();
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v2/keyspaces/%s/%s/rows", host, keyspaceName, materializedViewName),
+            HttpStatus.SC_OK);
+
+    ListOfMapsGetResponseWrapper getResponseWrapper =
+        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
+    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
+
+    // Alas, due to "id" as partition key, ordering is arbitrary; so need to
+    // convert from List to something like Set
+    List<Map<String, Object>> rows = getResponseWrapper.getData();
+
+    expRows.remove(2); // the MV should only return the rows with a lastName
+
+    assertThat(rows.size()).isEqualTo(2);
+    assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
+  }
+
+  @Test
   public void getInvalidWhereClause() throws IOException {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
@@ -1136,8 +1192,20 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    String rowIdentifier = UUID.randomUUID().toString();
+    // To try to ensure we actually find the right entry, create one other entry first
     Map<String, String> row = new HashMap<>();
+    row.put("id", UUID.randomUUID().toString());
+    row.put("firstName", "Michael");
+
+    RestUtils.post(
+        authToken,
+        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        objectMapper.writeValueAsString(row),
+        HttpStatus.SC_CREATED);
+
+    // and then the row we are actually looking for:
+    String rowIdentifier = UUID.randomUUID().toString();
+    row = new HashMap<>();
     row.put("id", rowIdentifier);
     row.put("firstName", "John");
 
@@ -1157,6 +1225,10 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
     ListOfMapsGetResponseWrapper getResponseWrapper =
         LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
     List<Map<String, Object>> data = getResponseWrapper.getData();
+    // Verify we fetch one and only one entry
+    assertThat(getResponseWrapper.getCount()).isEqualTo(1);
+    assertThat(data.size()).isEqualTo(1);
+    // and that its contents match
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
   }
@@ -3040,7 +3112,7 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             .getTypeFactory()
             .constructParametricType(RESTResponseWrapper.class, wrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
-    return (T) wrapped.getData();
+    return wrapped.getData();
   }
 
   private <T> T readWrappedRESTResponse(String body, TypeReference wrappedType) throws IOException {
@@ -3050,6 +3122,6 @@ public class RestApiv2Test extends BaseOsgiIntegrationTest {
             .getTypeFactory()
             .constructParametricType(RESTResponseWrapper.class, resolvedWrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
-    return (T) wrapped.getData();
+    return wrapped.getData();
   }
 }

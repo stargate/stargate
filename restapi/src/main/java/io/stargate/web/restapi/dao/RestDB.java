@@ -27,6 +27,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Keyspace;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
@@ -77,24 +78,29 @@ public class RestDB {
   }
 
   /**
-   * Method for trying to find specific table that exists in given keyspace. Keyspace must exist for
-   * call to work; otherise {@link NotFoundException} will be thrown
+   * Method for trying to find specific table or materialized view that exists in given keyspace.
+   * Keyspace must exist for call to work; otherwise {@link NotFoundException} will be thrown
    *
    * @param keyspaceName Name of keyspace to look for tables (must exist)
-   * @param table Name of table to look for (must exist)
+   * @param table Name of table or materialized view to look for (must exist)
    * @return Metadata for Table requested
-   * @throws NotFoundException If no keyspace with given keyspace exists in the underlying data
-   *     store, or if no table with specified name exists within that keyspace.
+   * @throws NotFoundException If no keyspace with given name exists in the underlying data store,
+   *     or if no table with specified name exists within that keyspace.
    */
-  public Table getTable(String keyspaceName, String table) {
+  public AbstractTable getTable(String keyspaceName, String table) {
     Keyspace keyspace = getKeyspace(keyspaceName);
     if (keyspace == null) {
       throw new NotFoundException(String.format("keyspace '%s' not found", keyspaceName));
     }
 
-    Table tableMetadata = keyspace.table(table);
+    // We could be working with a table or materialized view here but we don't know which so try by
+    // table and then fallback to materialized view.
+    AbstractTable tableMetadata = keyspace.table(table);
     if (tableMetadata == null) {
-      throw new NotFoundException(String.format("table '%s' not found", table));
+      tableMetadata = keyspace.materializedView(table);
+      if (tableMetadata == null) {
+        throw new NotFoundException(String.format("table '%s' not found", table));
+      }
     }
     return tableMetadata;
   }

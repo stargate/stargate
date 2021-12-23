@@ -23,13 +23,13 @@ import io.swagger.annotations.ApiModelProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocCollection {
   @JsonProperty("name")
-  private String name;
+  private final String name;
 
   @JsonProperty("upgradeAvailable")
-  private boolean upgradeAvailable;
+  private final boolean upgradeAvailable;
 
   @JsonProperty("upgradeType")
-  private CollectionUpgradeType upgradeType;
+  private final CollectionUpgradeType upgradeType;
 
   @ApiModelProperty(required = true, value = "The name of the collection.")
   @JsonProperty("name")

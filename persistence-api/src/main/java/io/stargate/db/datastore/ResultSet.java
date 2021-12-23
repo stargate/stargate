@@ -32,7 +32,7 @@ public interface ResultSet extends Iterable<Row> {
 
   class Empty implements ResultSet {
 
-    private boolean waitedForSchemaAgreement;
+    private final boolean waitedForSchemaAgreement;
 
     private Empty(boolean waitedForSchemaAgreement) {
 

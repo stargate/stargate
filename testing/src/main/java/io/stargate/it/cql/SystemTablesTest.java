@@ -9,7 +9,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(nodes = 2)
 @ExtendWith(CqlSessionExtension.class)
-class SystemTablesTest extends BaseOsgiIntegrationTest {
+class SystemTablesTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should expose Stargate addresses in system.local and system.peers")
   public void querySystemLocalAndPeers(CqlSession session) {

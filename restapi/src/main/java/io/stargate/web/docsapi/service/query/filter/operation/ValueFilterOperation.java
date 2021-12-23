@@ -42,7 +42,7 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    */
   default void validateStringFilterInput(String filterValue) {
     // default impl empty
-  };
+  }
 
   /**
    * Tests the filter {@link Number} value and database {@link Double} against this filter
@@ -64,7 +64,7 @@ public interface ValueFilterOperation extends BaseFilterOperation {
    */
   default void validateNumberFilterInput(Number filterValue) {
     // default impl empty
-  };
+  }
 
   /**
    * Tests the filter {@link Boolean} value and database {@link Boolean} against this filter

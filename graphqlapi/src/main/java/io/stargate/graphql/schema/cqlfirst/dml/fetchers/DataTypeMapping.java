@@ -40,6 +40,9 @@ class DataTypeMapping {
 
   /** Converts a value coming from the GraphQL runtime into a DB value. */
   static Object toDBValue(ColumnType type, Object graphQLValue, NameMapping nameMapping) {
+    if (graphQLValue == null) {
+      return null;
+    }
     if (type.isCollection()) {
       if (type.rawType() == Column.Type.List) {
         return convertCollection(type, graphQLValue, nameMapping, ArrayList::new);

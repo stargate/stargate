@@ -29,7 +29,7 @@ public class DocsShredder {
   private final Splitter FORM_SPLITTER = Splitter.on('&');
   private final Splitter PAIR_SPLITTER = Splitter.on('=');
 
-  private DocsApiConfiguration config;
+  private final DocsApiConfiguration config;
 
   @Inject
   public DocsShredder(DocsApiConfiguration config) {

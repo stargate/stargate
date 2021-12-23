@@ -25,7 +25,9 @@ import graphql.language.TypeName;
 import graphql.schema.idl.TypeUtil;
 import io.stargate.graphql.schema.graphqlfirst.util.TypeHelper;
 import io.stargate.graphql.schema.scalars.CqlScalar;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class IncrementModelBuilder extends ArgumentDirectiveModelBuilderBase<IncrementModel> {
 

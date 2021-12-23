@@ -5,13 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.41-SNAPSHOT</version>
+    <version>1.0.46-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
-    <swagger-ui.version>3.35.0</swagger-ui.version>
   </properties>
   <dependencies>
     <dependency>
@@ -91,14 +90,6 @@
       <artifactId>validation-api</artifactId>
       <version>1.1.0.Final</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -233,6 +224,9 @@
             <Bundle-Activator>io.stargate.web.impl.RestApiActivator</Bundle-Activator>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package><![CDATA[
+                            org.slf4j,
+                            org.slf4j.helpers,
+                            org.slf4j.spi,
                             org.osgi.framework,
                             io.stargate.auth,
                             io.stargate.auth.*,

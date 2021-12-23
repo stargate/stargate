@@ -440,8 +440,7 @@ public class Cassandra40Persistence
             }
             request.setCustomPayload(parameters.customPayload().orElse(null));
 
-            Message.Response response =
-                ReflectionUtils.execute(request, queryState, queryStartNanoTime);
+            Message.Response response = request.execute(queryState, queryStartNanoTime);
 
             // There is only 2 types of response that can come out: either a ResultMessage (which
             // itself can of different kind), or an ErrorMessage.
@@ -458,7 +457,8 @@ public class Cassandra40Persistence
                 (T)
                     Conversion.toResult(
                         (ResultMessage) response,
-                        Conversion.toInternal(parameters.protocolVersion()));
+                        Conversion.toInternal(parameters.protocolVersion()),
+                        parameters.tracingRequested());
             return result;
           },
           parameters.protocolVersion().isGreaterOrEqualTo(ProtocolVersion.V4));

@@ -71,10 +71,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   @Override
   protected CompletionStage<Prepared> prepare() {
-    QueryParameters queryParameters = message.getParameters();
-    return prepare(
-        message.getCql(),
-        queryParameters.hasKeyspace() ? queryParameters.getKeyspace().getValue() : null);
+    return prepare(message.getCql(), decoratedKeyspace);
   }
 
   @Override
@@ -198,7 +195,7 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private void waitForSchemaAgreement(
       int remainingAttempts, CompletableFuture<Void> agreementFuture) {
-    if (persistence.isInSchemaAgreement()) {
+    if (connection.isInSchemaAgreement()) {
       agreementFuture.complete(null);
       return;
     }

@@ -33,9 +33,9 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.ColumnOrder;
 import io.stargate.db.query.builder.ValueModifier;
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Order;
-import io.stargate.db.schema.Table;
 import io.stargate.web.models.ApiError;
 import io.stargate.web.resources.Converters;
 import io.stargate.web.resources.RequestHandler;
@@ -295,7 +295,7 @@ public class RowResource {
 
           RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           List<Column> selectedColumns = Collections.emptyList();
           if (queryModel.getColumnNames() != null && queryModel.getColumnNames().size() != 0) {
@@ -548,7 +548,7 @@ public class RowResource {
         () -> {
           RestDB restDB = dbProvider.getRestDBForToken(token, getAllHeaders(request));
 
-          final Table tableMetadata = restDB.getTable(keyspaceName, tableName);
+          final AbstractTable tableMetadata = restDB.getTable(keyspaceName, tableName);
 
           List<ValueModifier> changes =
               changeSet.getChangeset().stream()
@@ -582,14 +582,11 @@ public class RowResource {
       return false;
     } else if (filter.getOperator() == null) {
       return false;
-    } else if (filter.getValue() == null || filter.getValue().size() == 0) {
-      return false;
-    }
-
-    return true;
+    } else return filter.getValue() != null && filter.getValue().size() != 0;
   }
 
-  private List<BuiltCondition> buildWhereFromOperators(Table tableMetadata, List<Filter> filters) {
+  private List<BuiltCondition> buildWhereFromOperators(
+      AbstractTable tableMetadata, List<Filter> filters) {
     List<BuiltCondition> where = new ArrayList<>();
     for (Filter filter : filters) {
       String columnName = filter.getColumnName();
@@ -628,7 +625,7 @@ public class RowResource {
     }
   }
 
-  private static Object filterToValue(Object val, String name, Table tableData) {
+  private static Object filterToValue(Object val, String name, AbstractTable tableData) {
     Column column = tableData.column(name);
     if (column == null) {
       throw new IllegalArgumentException(String.format("Unknown field name '%s'.", name));
@@ -647,7 +644,7 @@ public class RowResource {
     return buildWhereClause(path, restDB.getTable(keyspaceName, tableName));
   }
 
-  private List<BuiltCondition> buildWhereClause(String path, Table tableMetadata) {
+  private List<BuiltCondition> buildWhereClause(String path, AbstractTable tableMetadata) {
     List<String> values = idFromPath(path);
 
     final List<Column> keys = tableMetadata.primaryKeyColumns();

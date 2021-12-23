@@ -1,7 +1,7 @@
 package io.stargate.db.query;
 
+import io.stargate.db.schema.AbstractTable;
 import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Table;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 public class PrimaryKey extends SchemaKey {
   private @Nullable PartitionKey partitionKey; // Lazily computed
 
-  public PrimaryKey(Table table, List<TypedValue> values) {
+  public PrimaryKey(AbstractTable table, List<TypedValue> values) {
     super(table, values);
   }
 

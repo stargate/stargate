@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseOsgiIntegrationTest;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -40,7 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "    c2 counter\n"
           + ")",
     })
-public class CounterUpdateTest extends BaseOsgiIntegrationTest {
+public class CounterUpdateTest extends BaseIntegrationTest {
 
   private static CqlFirstClient CLIENT;
   private static CqlIdentifier KEYSPACE_ID;

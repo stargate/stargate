@@ -9,7 +9,7 @@ import io.stargate.db.datastore.DataStoreFactory;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.osgi.framework.*;
+import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +23,14 @@ public class HealthCheckerActivator extends BaseActivator {
   public static final String DATA_STORE_CHECK_NAME = "datastore";
   public static final String SCHEMA_CHECK_NAME = "schema-agreement";
 
-  private ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
-  private ServicePointer<MetricsScraper> metricsScraper =
+  private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<MetricsScraper> metricsScraper =
       ServicePointer.create(MetricsScraper.class);
-  private ServicePointer<HttpMetricsTagProvider> httpTagProvider =
+  private final ServicePointer<HttpMetricsTagProvider> httpTagProvider =
       ServicePointer.create(HttpMetricsTagProvider.class);
-  private ServicePointer<DataStoreFactory> dataStoreFactory =
+  private final ServicePointer<DataStoreFactory> dataStoreFactory =
       ServicePointer.create(DataStoreFactory.class);
-  private ServicePointer<HealthCheckRegistry> healthCheckRegistry =
+  private final ServicePointer<HealthCheckRegistry> healthCheckRegistry =
       ServicePointer.create(HealthCheckRegistry.class);
 
   public HealthCheckerActivator() {

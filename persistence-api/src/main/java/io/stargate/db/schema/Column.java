@@ -456,12 +456,12 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
 
     private final int id;
     private final String usage;
-    private String description;
+    private final String description;
 
-    private Class<?> javaType;
+    private final Class<?> javaType;
     private final String marshalTypeName;
 
-    private boolean requiresQuotes;
+    private final boolean requiresQuotes;
 
     private static final Type[] ids;
 
