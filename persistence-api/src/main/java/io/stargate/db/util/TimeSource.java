@@ -15,12 +15,29 @@
  *
  */
 
-package io.stargate.core.util;
+package io.stargate.db.util;
 
+/** A simple interface capable of providing current time timestamps in millis and micros. */
 public interface TimeSource {
 
-  TimeSource SYSTEM = () -> System.currentTimeMillis() * 1000;
+  /** Implementation of the {@link TimeSource} based on {@link System} time. */
+  TimeSource SYSTEM =
+      new TimeSource() {
+
+        @Override
+        public long currentTimeMicros() {
+          return currentTimeMillis() * 1000;
+        }
+
+        @Override
+        public long currentTimeMillis() {
+          return System.currentTimeMillis();
+        }
+      };
 
   /** Microseconds since {@link java.lang.System#currentTimeMillis() epoch}. */
   long currentTimeMicros();
+
+  /** @return the current time in milliseconds */
+  long currentTimeMillis();
 }

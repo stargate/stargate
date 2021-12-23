@@ -15,9 +15,9 @@
  */
 package io.stargate.db.datastore.common.util;
 
+import io.stargate.db.util.TimeSource;
 import java.time.Duration;
 import java.util.function.Supplier;
-import org.apache.cassandra.utils.TimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -40,6 +40,7 @@ import io.stargate.db.cassandra.impl.interceptors.QueryInterceptor;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.datastore.common.util.SchemaAgreementAchievableCheck;
 import io.stargate.db.schema.TableName;
+import io.stargate.db.util.TimeSource;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -97,7 +98,6 @@ import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
-import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -577,7 +577,7 @@ public class Cassandra311Persistence
           Cassandra311Persistence.this::isInSchemaAgreement,
           Cassandra311Persistence.this::isStorageInSchemaAgreement,
           SCHEMA_SYNC_GRACE_PERIOD,
-          new SystemTimeSource());
+          TimeSource.SYSTEM);
     }
 
     @Override

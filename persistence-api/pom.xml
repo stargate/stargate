@@ -113,6 +113,7 @@
               io.stargate.db.schema,
               io.stargate.db.limiter,
               io.stargate.db.tracing,
+              io.stargate.db.util,
               org.javatuples,
               org.apache.cassandra.stargate,
               org.apache.cassandra.stargate.*,
