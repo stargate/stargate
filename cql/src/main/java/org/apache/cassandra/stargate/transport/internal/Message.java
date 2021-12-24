@@ -64,23 +64,7 @@ import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
-import org.apache.cassandra.stargate.transport.internal.messages.AuthChallenge;
-import org.apache.cassandra.stargate.transport.internal.messages.AuthResponse;
-import org.apache.cassandra.stargate.transport.internal.messages.AuthSuccess;
-import org.apache.cassandra.stargate.transport.internal.messages.AuthenticateMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.BatchMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.ExecuteMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.OptionsMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.PrepareMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.QueryMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.ReadyMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.RegisterMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.ResultMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.StartupMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.SupportedMessage;
-import org.apache.cassandra.stargate.transport.internal.messages.UnsupportedMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,27 +101,26 @@ public abstract class Message {
   }
 
   public enum Type {
-    ERROR(0, Direction.RESPONSE, ErrorMessage.codec),
-    STARTUP(1, Direction.REQUEST, StartupMessage.codec),
-    READY(2, Direction.RESPONSE, ReadyMessage.codec),
-    AUTHENTICATE(3, Direction.RESPONSE, AuthenticateMessage.codec),
-    CREDENTIALS(4, Direction.REQUEST, UnsupportedMessageCodec.instance),
-    OPTIONS(5, Direction.REQUEST, OptionsMessage.codec),
-    SUPPORTED(6, Direction.RESPONSE, SupportedMessage.codec),
-    QUERY(7, Direction.REQUEST, QueryMessage.codec),
-    RESULT(8, Direction.RESPONSE, ResultMessage.codec),
-    PREPARE(9, Direction.REQUEST, PrepareMessage.codec),
-    EXECUTE(10, Direction.REQUEST, ExecuteMessage.codec),
-    REGISTER(11, Direction.REQUEST, RegisterMessage.codec),
-    EVENT(12, Direction.RESPONSE, EventMessage.codec),
-    BATCH(13, Direction.REQUEST, BatchMessage.codec),
-    AUTH_CHALLENGE(14, Direction.RESPONSE, AuthChallenge.codec),
-    AUTH_RESPONSE(15, Direction.REQUEST, AuthResponse.codec),
-    AUTH_SUCCESS(16, Direction.RESPONSE, AuthSuccess.codec);
+    ERROR(0, Direction.RESPONSE),
+    STARTUP(1, Direction.REQUEST),
+    READY(2, Direction.RESPONSE),
+    AUTHENTICATE(3, Direction.RESPONSE),
+    CREDENTIALS(4, Direction.REQUEST),
+    OPTIONS(5, Direction.REQUEST),
+    SUPPORTED(6, Direction.RESPONSE),
+    QUERY(7, Direction.REQUEST),
+    RESULT(8, Direction.RESPONSE),
+    PREPARE(9, Direction.REQUEST),
+    EXECUTE(10, Direction.REQUEST),
+    REGISTER(11, Direction.REQUEST),
+    EVENT(12, Direction.RESPONSE),
+    BATCH(13, Direction.REQUEST),
+    AUTH_CHALLENGE(14, Direction.RESPONSE),
+    AUTH_RESPONSE(15, Direction.REQUEST),
+    AUTH_SUCCESS(16, Direction.RESPONSE);
 
     public final int opcode;
     public final Direction direction;
-    public final Codec<?> codec;
 
     private static final Type[] opcodeIdx;
 
@@ -151,10 +134,9 @@ public abstract class Message {
       }
     }
 
-    Type(int opcode, Direction direction, Codec<?> codec) {
+    Type(int opcode, Direction direction) {
       this.opcode = opcode;
       this.direction = direction;
-      this.codec = codec;
     }
 
     public static Type fromOpcode(int opcode, Direction direction) {
@@ -312,6 +294,13 @@ public abstract class Message {
 
   @ChannelHandler.Sharable
   public static class ProtocolDecoder extends MessageToMessageDecoder<Frame> {
+
+    private final Map<Message.Type, Message.Codec<?>> codecs;
+
+    public ProtocolDecoder(Map<Type, Codec<?>> codecs) {
+      this.codecs = codecs;
+    }
+
     @Override
     public void decode(ChannelHandlerContext ctx, Frame frame, List results) {
       boolean isRequest = frame.header.type.direction == Direction.REQUEST;
@@ -329,7 +318,7 @@ public abstract class Message {
           throw new ProtocolException(
               "Received frame with CUSTOM_PAYLOAD flag for native protocol version < 4");
 
-        Message message = frame.header.type.codec.decode(frame.body, frame.header.version);
+        Message message = codecs.get(frame.header.type).decode(frame.body, frame.header.version);
         message.setStreamId(frame.header.streamId);
         message.setSourceFrameBodySizeInBytes(frame.header.bodySizeInBytes);
         message.setCustomPayload(customPayload);
@@ -380,6 +369,13 @@ public abstract class Message {
 
   @ChannelHandler.Sharable
   public static class ProtocolEncoder extends MessageToMessageEncoder<Message> {
+
+    private final Map<Message.Type, Message.Codec<?>> codecs;
+
+    public ProtocolEncoder(Map<Type, Codec<?>> codecs) {
+      this.codecs = codecs;
+    }
+
     @Override
     public void encode(ChannelHandlerContext ctx, Message message, List results) {
       Connection connection = ctx.channel().attr(Connection.attributeKey).get();
@@ -389,7 +385,8 @@ public abstract class Message {
           connection == null ? ProtocolVersion.CURRENT : connection.getVersion();
       EnumSet<Frame.Header.Flag> flags = EnumSet.noneOf(Frame.Header.Flag.class);
 
-      Codec<Message> codec = (Codec<Message>) message.type.codec;
+      @SuppressWarnings("unchecked")
+      Codec<Message> codec = (Codec<Message>) codecs.get(message.type);
       try {
         int messageSize = codec.encodedSize(message, version);
         ByteBuf body;

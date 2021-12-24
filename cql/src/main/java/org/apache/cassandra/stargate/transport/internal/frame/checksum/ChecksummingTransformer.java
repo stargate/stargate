@@ -18,7 +18,6 @@
 
 package org.apache.cassandra.stargate.transport.internal.frame.checksum;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableTable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;
@@ -26,11 +25,8 @@ import java.util.EnumSet;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Frame;
-import org.apache.cassandra.stargate.transport.internal.TransportDescriptor;
 import org.apache.cassandra.stargate.transport.internal.frame.FrameBodyTransformer;
 import org.apache.cassandra.stargate.transport.internal.frame.compress.Compressor;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.LZ4Compressor;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.SnappyCompressor;
 import org.apache.cassandra.utils.ChecksumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,59 +103,9 @@ public class ChecksummingTransformer implements FrameBodyTransformer {
   private static final int CHUNK_HEADER_OVERHEAD =
       Integer.BYTES + Integer.BYTES + Integer.BYTES + Integer.BYTES;
 
-  private static final ChecksummingTransformer CRC32_NO_COMPRESSION =
-      new ChecksummingTransformer(ChecksumType.CRC32, null);
-  private static final ChecksummingTransformer ADLER32_NO_COMPRESSION =
-      new ChecksummingTransformer(ChecksumType.ADLER32, null);
-  private static final ImmutableTable<ChecksumType, Compressor, ChecksummingTransformer>
-      transformers;
-
-  static {
-    ImmutableTable.Builder<ChecksumType, Compressor, ChecksummingTransformer> builder =
-        ImmutableTable.builder();
-    builder.put(
-        ChecksumType.CRC32,
-        LZ4Compressor.INSTANCE,
-        new ChecksummingTransformer(ChecksumType.CRC32, LZ4Compressor.INSTANCE));
-    builder.put(
-        ChecksumType.CRC32,
-        SnappyCompressor.INSTANCE,
-        new ChecksummingTransformer(ChecksumType.CRC32, SnappyCompressor.INSTANCE));
-    builder.put(
-        ChecksumType.ADLER32,
-        LZ4Compressor.INSTANCE,
-        new ChecksummingTransformer(ChecksumType.ADLER32, LZ4Compressor.INSTANCE));
-    builder.put(
-        ChecksumType.ADLER32,
-        SnappyCompressor.INSTANCE,
-        new ChecksummingTransformer(ChecksumType.ADLER32, SnappyCompressor.INSTANCE));
-    transformers = builder.build();
-  }
-
   private final int blockSize;
   private final Compressor compressor;
   private final ChecksumType checksum;
-
-  public static ChecksummingTransformer getTransformer(
-      ChecksumType checksumType, Compressor compressor) {
-    ChecksummingTransformer transformer =
-        compressor == null
-            ? checksumType == ChecksumType.CRC32 ? CRC32_NO_COMPRESSION : ADLER32_NO_COMPRESSION
-            : transformers.get(checksumType, compressor);
-
-    if (transformer == null) {
-      logger.warn(
-          "Invalid compression/checksum options supplied. %s / %s",
-          checksumType, compressor.getClass().getName());
-      throw new RuntimeException("Invalid compression / checksum options supplied");
-    }
-
-    return transformer;
-  }
-
-  ChecksummingTransformer(ChecksumType checksumType, Compressor compressor) {
-    this(checksumType, TransportDescriptor.getNativeTransportFrameBlockSize(), compressor);
-  }
 
   ChecksummingTransformer(ChecksumType checksumType, int blockSize, Compressor compressor) {
     this.checksum = checksumType;

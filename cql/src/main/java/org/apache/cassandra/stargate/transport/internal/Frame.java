@@ -129,8 +129,6 @@ public class Frame {
   }
 
   public static class Decoder extends ByteToMessageDecoder {
-    private static final int MAX_FRAME_LENGTH =
-        TransportDescriptor.getNativeTransportMaxFrameSize();
 
     private boolean discardingTooLongFrame;
     private long tooLongFrameLength;
@@ -138,9 +136,13 @@ public class Frame {
     private int tooLongStreamId;
 
     private final Connection.Factory factory;
+    private final TransportDescriptor transportDescriptor;
+    private final int maxFrameLength;
 
-    public Decoder(Connection.Factory factory) {
+    public Decoder(Connection.Factory factory, TransportDescriptor transportDescriptor) {
       this.factory = factory;
+      this.transportDescriptor = transportDescriptor;
+      this.maxFrameLength = transportDescriptor.getNativeTransportMaxFrameSize();
     }
 
     Frame decodeFrame(ByteBuf buffer) throws Exception {
@@ -164,7 +166,7 @@ public class Frame {
       int versionNum = firstByte & PROTOCOL_VERSION_MASK;
       ProtocolVersion version =
           ProtocolVersion.decode(
-              versionNum, TransportDescriptor.getNativeTransportAllowOlderProtocols());
+              versionNum, transportDescriptor.getNativeTransportAllowOlderProtocols());
 
       // Wait until we have the complete header
       if (readableBytes < Header.LENGTH) return null;
@@ -193,7 +195,7 @@ public class Frame {
       idx += Header.BODY_LENGTH_SIZE;
 
       long frameLength = (long) bodyLength + Header.LENGTH;
-      if (frameLength > MAX_FRAME_LENGTH) {
+      if (frameLength > maxFrameLength) {
         // Enter the discard mode and discard everything received so far.
         discardingTooLongFrame = true;
         tooLongStreamId = streamId;
@@ -251,7 +253,7 @@ public class Frame {
       String msg =
           String.format(
               "Request is too big: length %d exceeds maximum allowed length %d.",
-              tooLongFrameLength, MAX_FRAME_LENGTH);
+              tooLongFrameLength, maxFrameLength);
       throw ErrorMessage.wrap(new InvalidRequestException(msg), tooLongStreamId);
     }
   }

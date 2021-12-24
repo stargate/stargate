@@ -13,9 +13,6 @@ import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.utils.FBUtilities;
 
 public class TransportDescriptor {
-  private static Config conf = new Config();
-
-  private static InetAddress rpcAddress;
 
   private enum ByteUnit {
     KIBI_BYTES(2048 * 1024, 1024),
@@ -42,106 +39,103 @@ public class TransportDescriptor {
     }
   }
 
-  public static void daemonInitialization(Config config) {
-    conf = config;
-    applyAddressConfig();
+  private final Config conf;
+  private final InetAddress rpcAddress;
+
+  public TransportDescriptor(Config config) {
+    this.conf = config;
+    this.rpcAddress = computeRpcAddress(config);
   }
 
-  public static void applyAddressConfig() {
-    applyAddressConfig(conf);
-  }
-
-  public static void applyAddressConfig(Config config) {
-    /* Local IP, hostname or interface to bind RPC server to */
-    if (config.rpc_address != null && config.rpc_interface != null) {
-      throw new ConfigurationException("Set rpc_address OR rpc_interface, not both", false);
-    } else if (config.rpc_address != null) {
-      try {
-        rpcAddress = InetAddress.getByName(config.rpc_address);
-      } catch (UnknownHostException e) {
-        throw new ConfigurationException(
-            "Unknown host in rpc_address " + config.rpc_address, false);
-      }
-    } else if (config.rpc_interface != null) {
-      rpcAddress =
-          getNetworkInterfaceAddress(
-              config.rpc_interface, "rpc_interface", config.rpc_interface_prefer_ipv6);
-    } else {
-      rpcAddress = FBUtilities.getJustLocalAddress();
-    }
-  }
-
-  public static int getNativeTransportPort() {
+  public int getNativeTransportPort() {
     return Integer.parseInt(
         System.getProperty(
             Config.PROPERTY_PREFIX + "native_transport_port",
             Integer.toString(conf.native_transport_port)));
   }
 
-  public static int getNativeTransportPortSSL() {
+  public int getNativeTransportPortSSL() {
     return conf.native_transport_port_ssl == null
         ? getNativeTransportPort()
         : conf.native_transport_port_ssl;
   }
 
-  public static InetAddress getRpcAddress() {
+  public InetAddress getRpcAddress() {
     return rpcAddress;
   }
 
-  public static boolean getRpcKeepAlive() {
+  public boolean getRpcKeepAlive() {
     return conf.rpc_keepalive;
   }
 
-  public static EncryptionOptions getNativeProtocolEncryptionOptions() {
+  public EncryptionOptions getNativeProtocolEncryptionOptions() {
     return conf.client_encryption_options;
   }
 
-  public static long getNativeTransportMaxConcurrentRequestsInBytes() {
+  public long getNativeTransportMaxConcurrentRequestsInBytes() {
     return conf.native_transport_max_concurrent_requests_in_bytes;
   }
 
-  public static void setNativeTransportMaxConcurrentRequestsInBytes(
-      long maxConcurrentRequestsInBytes) {
+  public void setNativeTransportMaxConcurrentRequestsInBytes(long maxConcurrentRequestsInBytes) {
     conf.native_transport_max_concurrent_requests_in_bytes = maxConcurrentRequestsInBytes;
   }
 
-  public static long getNativeTransportMaxConcurrentRequestsInBytesPerIp() {
+  public long getNativeTransportMaxConcurrentRequestsInBytesPerIp() {
     return conf.native_transport_max_concurrent_requests_in_bytes_per_ip;
   }
 
-  public static void setNativeTransportMaxConcurrentRequestsInBytesPerIp(
+  public void setNativeTransportMaxConcurrentRequestsInBytesPerIp(
       long maxConcurrentRequestsInBytes) {
     conf.native_transport_max_concurrent_requests_in_bytes_per_ip = maxConcurrentRequestsInBytes;
   }
 
-  public static long getNativeTransportMaxConcurrentConnections() {
+  public long getNativeTransportMaxConcurrentConnections() {
     return conf.native_transport_max_concurrent_connections;
   }
 
-  public static long getNativeTransportMaxConcurrentConnectionsPerIp() {
+  public long getNativeTransportMaxConcurrentConnectionsPerIp() {
     return conf.native_transport_max_concurrent_connections_per_ip;
   }
 
-  public static long nativeTransportIdleTimeout() {
+  public long nativeTransportIdleTimeout() {
     return conf.native_transport_idle_timeout_in_ms;
   }
 
-  public static boolean useNativeTransportLegacyFlusher() {
+  public boolean useNativeTransportLegacyFlusher() {
     return conf.native_transport_flush_in_batches_legacy;
   }
 
-  public static int getNativeTransportFrameBlockSize() {
+  public int getNativeTransportFrameBlockSize() {
     // TODO: Will need updated for protocol v5. The default of 32 was removed as part of this change
     // https://github.com/apache/cassandra/commit/a7c4ba9eeecb365e7c4753d8eaab747edd9a632a#diff-e966f41bc2a418becfe687134ec8cf542eb051eead7fb4917e65a3a2e7c9bce3L191
     return (int) ByteUnit.KIBI_BYTES.toBytes(32);
   }
 
-  public static int getNativeTransportMaxFrameSize() {
+  public int getNativeTransportMaxFrameSize() {
     return (int) ByteUnit.MEBI_BYTES.toBytes(conf.native_transport_max_frame_size_in_mb);
   }
 
-  public static boolean getNativeTransportAllowOlderProtocols() {
+  public boolean getNativeTransportAllowOlderProtocols() {
     return conf.native_transport_allow_older_protocols;
+  }
+
+  private static InetAddress computeRpcAddress(Config config) {
+    /* Local IP, hostname or interface to bind RPC server to */
+    if (config.rpc_address != null && config.rpc_interface != null) {
+      throw new ConfigurationException("Set rpc_address OR rpc_interface, not both", false);
+    } else if (config.rpc_address != null) {
+      try {
+        return InetAddress.getByName(config.rpc_address);
+      } catch (UnknownHostException e) {
+        throw new ConfigurationException(
+            "Unknown host in rpc_address " + config.rpc_address, false);
+      }
+    } else if (config.rpc_interface != null) {
+      return getNetworkInterfaceAddress(
+          config.rpc_interface, "rpc_interface", config.rpc_interface_prefer_ipv6);
+    } else {
+      return FBUtilities.getJustLocalAddress();
+    }
   }
 
   private static InetAddress getNetworkInterfaceAddress(

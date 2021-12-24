@@ -45,6 +45,7 @@ public class CqlImpl {
   private Collection<CqlServer> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
 
+  private final TransportDescriptor transportDescriptor;
   private final Persistence persistence;
   private final Metrics metrics;
   private final AuthenticationService authentication;
@@ -56,7 +57,8 @@ public class CqlImpl {
       Metrics metrics,
       AuthenticationService authentication,
       ClientInfoMetricsTagProvider clientInfoTagProvider) {
-    TransportDescriptor.daemonInitialization(config);
+
+    this.transportDescriptor = new TransportDescriptor(config);
 
     // Please see the comment on setUnsetValue().
     CBUtil.setUnsetValue(persistence.unsetValue());
@@ -76,17 +78,17 @@ public class CqlImpl {
   }
 
   public void start() {
-    int nativePort = TransportDescriptor.getNativeTransportPort();
-    int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
-    InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
+    int nativePort = transportDescriptor.getNativeTransportPort();
+    int nativePortSSL = transportDescriptor.getNativeTransportPortSSL();
+    InetAddress nativeAddr = transportDescriptor.getRpcAddress();
 
     CqlServer.Builder builder =
-        new CqlServer.Builder(persistence, authentication)
+        new CqlServer.Builder(transportDescriptor, persistence, authentication)
             .withEventLoopGroup(workerGroup)
             .withHost(nativeAddr);
 
-    TransportDescriptor.getNativeProtocolEncryptionOptions().applyConfig();
-    if (!TransportDescriptor.getNativeProtocolEncryptionOptions().isEnabled()) {
+    transportDescriptor.getNativeProtocolEncryptionOptions().applyConfig();
+    if (!transportDescriptor.getNativeProtocolEncryptionOptions().isEnabled()) {
       servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
     } else {
       if (nativePort != nativePortSSL) {

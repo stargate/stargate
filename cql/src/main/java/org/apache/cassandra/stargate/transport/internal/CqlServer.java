@@ -74,7 +74,24 @@ import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.apache.cassandra.stargate.transport.internal.frame.checksum.ChecksummingTransformers;
+import org.apache.cassandra.stargate.transport.internal.messages.AuthChallenge;
+import org.apache.cassandra.stargate.transport.internal.messages.AuthResponse;
+import org.apache.cassandra.stargate.transport.internal.messages.AuthSuccess;
+import org.apache.cassandra.stargate.transport.internal.messages.AuthenticateMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.BatchMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.ExecuteMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.OptionsMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.PrepareMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.QueryMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.ReadyMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.RegisterMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.ResultMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.StartupMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.SupportedMessage;
+import org.apache.cassandra.stargate.transport.internal.messages.UnsupportedMessageCodec;
 import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +104,11 @@ public class CqlServer implements CassandraDaemon.Server {
   private static final Logger logger = LoggerFactory.getLogger(CqlServer.class);
   private static final boolean useEpoll = CqlImpl.useEpoll();
 
+  private final TransportDescriptor transportDescriptor;
   private final ConnectionTracker connectionTracker = new ConnectionTracker();
+  // global inflight payload across all channels across all endpoints
+  private final ResourceLimits.Concurrent globalRequestPayloadInFlight;
+  private final Map<Message.Type, Message.Codec<?>> messageCodecs;
 
   public final InetSocketAddress socket;
   public final Persistence persistence;
@@ -98,6 +119,11 @@ public class CqlServer implements CassandraDaemon.Server {
   private final EventLoopGroup workerGroup;
 
   private CqlServer(Builder builder) {
+    this.transportDescriptor = builder.transportDescriptor;
+    this.globalRequestPayloadInFlight =
+        new ResourceLimits.Concurrent(
+            transportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes());
+    this.messageCodecs = buildMessageCodecs(transportDescriptor);
     this.persistence = builder.persistence;
     this.authentication = builder.authentication;
     this.socket = builder.getSocket();
@@ -131,7 +157,7 @@ public class CqlServer implements CassandraDaemon.Server {
             .channel(useEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
             .childOption(ChannelOption.TCP_NODELAY, true)
             .childOption(ChannelOption.SO_LINGER, 0)
-            .childOption(ChannelOption.SO_KEEPALIVE, TransportDescriptor.getRpcKeepAlive())
+            .childOption(ChannelOption.SO_KEEPALIVE, transportDescriptor.getRpcKeepAlive())
             .childOption(ChannelOption.ALLOCATOR, CBUtil.allocator)
             .childOption(
                 ChannelOption.WRITE_BUFFER_WATER_MARK,
@@ -139,7 +165,7 @@ public class CqlServer implements CassandraDaemon.Server {
     if (workerGroup != null) bootstrap = bootstrap.group(workerGroup);
 
     if (this.useSSL) {
-      final EncryptionOptions clientEnc = TransportDescriptor.getNativeProtocolEncryptionOptions();
+      final EncryptionOptions clientEnc = transportDescriptor.getNativeProtocolEncryptionOptions();
 
       if (clientEnc.isOptional()) {
         logger.info("Enabling optionally encrypted CQL connections between client and server");
@@ -213,6 +239,32 @@ public class CqlServer implements CassandraDaemon.Server {
     connectionTracker.protocolVersionTracker.clear();
   }
 
+  private Map<Message.Type, Message.Codec<?>> buildMessageCodecs(
+      TransportDescriptor transportDescriptor) {
+
+    Map<Message.Type, Message.Codec<?>> codecs = new EnumMap<>(Message.Type.class);
+    codecs.put(Message.Type.ERROR, ErrorMessage.codec);
+    codecs.put(
+        Message.Type.STARTUP,
+        new StartupMessage.Codec(new ChecksummingTransformers(transportDescriptor)));
+    codecs.put(Message.Type.READY, ReadyMessage.codec);
+    codecs.put(Message.Type.AUTHENTICATE, AuthenticateMessage.codec);
+    codecs.put(Message.Type.CREDENTIALS, UnsupportedMessageCodec.instance);
+    codecs.put(Message.Type.OPTIONS, OptionsMessage.codec);
+    codecs.put(Message.Type.SUPPORTED, SupportedMessage.codec);
+    codecs.put(Message.Type.QUERY, QueryMessage.codec);
+    codecs.put(Message.Type.RESULT, ResultMessage.codec);
+    codecs.put(Message.Type.PREPARE, PrepareMessage.codec);
+    codecs.put(Message.Type.EXECUTE, ExecuteMessage.codec);
+    codecs.put(Message.Type.REGISTER, RegisterMessage.codec);
+    codecs.put(Message.Type.EVENT, EventMessage.codec);
+    codecs.put(Message.Type.BATCH, BatchMessage.codec);
+    codecs.put(Message.Type.AUTH_CHALLENGE, AuthChallenge.codec);
+    codecs.put(Message.Type.AUTH_RESPONSE, AuthResponse.codec);
+    codecs.put(Message.Type.AUTH_SUCCESS, AuthSuccess.codec);
+    return Collections.unmodifiableMap(codecs);
+  }
+
   private void close() {
     // Close opened connections
     connectionTracker.closeAll();
@@ -222,6 +274,7 @@ public class CqlServer implements CassandraDaemon.Server {
 
   public static class Builder {
 
+    private final TransportDescriptor transportDescriptor;
     private final Persistence persistence;
     private final AuthenticationService authentication;
     private EventLoopGroup workerGroup;
@@ -230,7 +283,12 @@ public class CqlServer implements CassandraDaemon.Server {
     private int port = -1;
     private InetSocketAddress socket;
 
-    public Builder(Persistence persistence, AuthenticationService authentication) {
+    public Builder(
+        TransportDescriptor transportDescriptor,
+        Persistence persistence,
+        AuthenticationService authentication) {
+      assert transportDescriptor != null;
+      this.transportDescriptor = transportDescriptor;
       assert persistence != null;
       this.persistence = persistence;
       this.authentication = authentication;
@@ -371,11 +429,6 @@ public class CqlServer implements CassandraDaemon.Server {
     }
   }
 
-  // global inflight payload across all channels across all endpoints
-  private static final ResourceLimits.Concurrent globalRequestPayloadInFlight =
-      new ResourceLimits.Concurrent(
-          TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes());
-
   public static class EndpointPayloadTracker {
     // inflight payload per endpoint across corresponding channels
     private static final ConcurrentMap<InetAddress, EndpointPayloadTracker>
@@ -383,58 +436,28 @@ public class CqlServer implements CassandraDaemon.Server {
 
     private final AtomicInteger refCount = new AtomicInteger(0);
     private final InetAddress endpoint;
+    private final CqlServer server;
+    final ResourceLimits.EndpointAndGlobal endpointAndGlobalPayloadsInFlight;
 
-    final ResourceLimits.EndpointAndGlobal endpointAndGlobalPayloadsInFlight =
-        new ResourceLimits.EndpointAndGlobal(
-            new ResourceLimits.Concurrent(
-                TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp()),
-            globalRequestPayloadInFlight);
-
-    private EndpointPayloadTracker(InetAddress endpoint) {
+    private EndpointPayloadTracker(InetAddress endpoint, CqlServer server) {
       this.endpoint = endpoint;
+      this.server = server;
+      this.endpointAndGlobalPayloadsInFlight =
+          new ResourceLimits.EndpointAndGlobal(
+              new ResourceLimits.Concurrent(
+                  server.transportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp()),
+              server.globalRequestPayloadInFlight);
     }
 
-    public static EndpointPayloadTracker get(InetAddress endpoint) {
+    public static EndpointPayloadTracker get(InetAddress endpoint, CqlServer server) {
       while (true) {
         EndpointPayloadTracker result =
             requestPayloadInFlightPerEndpoint.computeIfAbsent(
-                endpoint, EndpointPayloadTracker::new);
+                endpoint, e -> new EndpointPayloadTracker(e, server));
         if (result.acquire()) return result;
 
         requestPayloadInFlightPerEndpoint.remove(endpoint, result);
       }
-    }
-
-    public static long getGlobalLimit() {
-      return TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes();
-    }
-
-    public static void setGlobalLimit(long newLimit) {
-      TransportDescriptor.setNativeTransportMaxConcurrentRequestsInBytes(newLimit);
-      long existingLimit =
-          globalRequestPayloadInFlight.setLimit(
-              TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes());
-
-      logger.info(
-          "Changed native_max_transport_requests_in_bytes from {} to {}", existingLimit, newLimit);
-    }
-
-    public static long getEndpointLimit() {
-      return TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
-    }
-
-    public static void setEndpointLimit(long newLimit) {
-      long existingLimit =
-          TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
-      TransportDescriptor.setNativeTransportMaxConcurrentRequestsInBytesPerIp(
-          newLimit); // ensure new trackers get the new limit
-      for (EndpointPayloadTracker tracker : requestPayloadInFlightPerEndpoint.values())
-        existingLimit = tracker.endpointAndGlobalPayloadsInFlight.endpoint().setLimit(newLimit);
-
-      logger.info(
-          "Changed native_max_transport_requests_in_bytes_per_ip from {} to {}",
-          existingLimit,
-          newLimit);
     }
 
     private boolean acquire() {
@@ -449,24 +472,26 @@ public class CqlServer implements CassandraDaemon.Server {
 
   private static class Initializer extends ChannelInitializer<Channel> {
     // Stateless handlers
-    private static final Message.ProtocolDecoder messageDecoder = new Message.ProtocolDecoder();
-    private static final Message.ProtocolEncoder messageEncoder = new Message.ProtocolEncoder();
-    private static final Frame.InboundBodyTransformer inboundFrameTransformer =
+    private final Message.ProtocolDecoder messageDecoder;
+    private final Message.ProtocolEncoder messageEncoder;
+    private final Frame.InboundBodyTransformer inboundFrameTransformer =
         new Frame.InboundBodyTransformer();
-    private static final Frame.OutboundBodyTransformer outboundFrameTransformer =
+    private final Frame.OutboundBodyTransformer outboundFrameTransformer =
         new Frame.OutboundBodyTransformer();
-    private static final Frame.Encoder frameEncoder = new Frame.Encoder();
-    private static final Message.ExceptionHandler exceptionHandler = new Message.ExceptionHandler();
-    private static final ConnectionLimitHandler connectionLimitHandler =
-        new ConnectionLimitHandler();
+    private final Frame.Encoder frameEncoder = new Frame.Encoder();
+    private final Message.ExceptionHandler exceptionHandler = new Message.ExceptionHandler();
+    private final ConnectionLimitHandler connectionLimitHandler;
 
-    public static final Boolean USE_PROXY_PROTOCOL =
+    public final Boolean USE_PROXY_PROTOCOL =
         Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
     private final CqlServer server;
 
     public Initializer(CqlServer server) {
       this.server = server;
+      this.connectionLimitHandler = new ConnectionLimitHandler(server.transportDescriptor);
+      this.messageDecoder = new Message.ProtocolDecoder(server.messageCodecs);
+      this.messageEncoder = new Message.ProtocolEncoder(server.messageCodecs);
     }
 
     @Override
@@ -474,13 +499,13 @@ public class CqlServer implements CassandraDaemon.Server {
       ChannelPipeline pipeline = channel.pipeline();
 
       // Add the ConnectionLimitHandler to the pipeline if configured to do so.
-      if (TransportDescriptor.getNativeTransportMaxConcurrentConnections() > 0
-          || TransportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0) {
+      if (server.transportDescriptor.getNativeTransportMaxConcurrentConnections() > 0
+          || server.transportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0) {
         // Add as first to the pipeline so the limit is enforced as first action.
         pipeline.addFirst("connectionLimitHandler", connectionLimitHandler);
       }
 
-      long idleTimeout = TransportDescriptor.nativeTransportIdleTimeout();
+      long idleTimeout = server.transportDescriptor.nativeTransportIdleTimeout();
       if (idleTimeout > 0) {
         pipeline.addLast(
             "idleStateHandler",
@@ -502,7 +527,8 @@ public class CqlServer implements CassandraDaemon.Server {
 
       // pipeline.addLast("debug", new LoggingHandler());
 
-      pipeline.addLast("frameDecoder", new Frame.Decoder(server::newConnection));
+      pipeline.addLast(
+          "frameDecoder", new Frame.Decoder(server::newConnection, server.transportDescriptor));
       pipeline.addLast("frameEncoder", frameEncoder);
 
       pipeline.addLast("inboundFrameTransformer", inboundFrameTransformer);
@@ -514,9 +540,9 @@ public class CqlServer implements CassandraDaemon.Server {
       pipeline.addLast(
           "executor",
           new Message.Dispatcher(
-              TransportDescriptor.useNativeTransportLegacyFlusher(),
+              server.transportDescriptor.useNativeTransportLegacyFlusher(),
               EndpointPayloadTracker.get(
-                  ((InetSocketAddress) channel.remoteAddress()).getAddress())));
+                  ((InetSocketAddress) channel.remoteAddress()).getAddress(), server)));
 
       // The exceptionHandler will take care of handling exceptionCaught(...) events while still
       // running

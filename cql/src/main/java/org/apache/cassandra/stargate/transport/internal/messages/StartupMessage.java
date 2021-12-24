@@ -27,7 +27,7 @@ import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.stargate.transport.internal.frame.checksum.ChecksummingTransformer;
+import org.apache.cassandra.stargate.transport.internal.frame.checksum.ChecksummingTransformers;
 import org.apache.cassandra.stargate.transport.internal.frame.compress.CompressingTransformer;
 import org.apache.cassandra.stargate.transport.internal.frame.compress.Compressor;
 import org.apache.cassandra.stargate.transport.internal.frame.compress.LZ4Compressor;
@@ -45,29 +45,39 @@ public class StartupMessage extends Message.Request {
   public static final String CHECKSUM = "CONTENT_CHECKSUM";
   public static final String THROW_ON_OVERLOAD = "THROW_ON_OVERLOAD";
 
-  public static final Message.Codec<StartupMessage> codec =
-      new Message.Codec<StartupMessage>() {
-        @Override
-        public StartupMessage decode(ByteBuf body, ProtocolVersion version) {
-          return new StartupMessage(upperCaseKeys(CBUtil.readStringMap(body)));
-        }
+  public static class Codec implements Message.Codec<StartupMessage> {
 
-        @Override
-        public void encode(StartupMessage msg, ByteBuf dest, ProtocolVersion version) {
-          CBUtil.writeStringMap(msg.options, dest);
-        }
+    private final ChecksummingTransformers checksummingTransformers;
 
-        @Override
-        public int encodedSize(StartupMessage msg, ProtocolVersion version) {
-          return CBUtil.sizeOfStringMap(msg.options);
-        }
-      };
+    public Codec(ChecksummingTransformers checksummingTransformers) {
+      this.checksummingTransformers = checksummingTransformers;
+    }
+
+    @Override
+    public StartupMessage decode(ByteBuf body, ProtocolVersion version) {
+      return new StartupMessage(
+          upperCaseKeys(CBUtil.readStringMap(body)), checksummingTransformers);
+    }
+
+    @Override
+    public void encode(StartupMessage msg, ByteBuf dest, ProtocolVersion version) {
+      CBUtil.writeStringMap(msg.options, dest);
+    }
+
+    @Override
+    public int encodedSize(StartupMessage msg, ProtocolVersion version) {
+      return CBUtil.sizeOfStringMap(msg.options);
+    }
+  };
 
   public final Map<String, String> options;
+  private final ChecksummingTransformers checksummingTransformers;
 
-  public StartupMessage(Map<String, String> options) {
+  public StartupMessage(
+      Map<String, String> options, ChecksummingTransformers checksummingTransformers) {
     super(Message.Type.STARTUP);
     this.options = options;
+    this.checksummingTransformers = checksummingTransformers;
   }
 
   @Override
@@ -95,7 +105,7 @@ public class StartupMessage extends Message.Request {
             String.format(
                 "Invalid message flag. Protocol version %s does not support frame body checksums",
                 connection.getVersion().toString()));
-      connection.setTransformer(ChecksummingTransformer.getTransformer(checksumType, compressor));
+      connection.setTransformer(checksummingTransformers.get(checksumType, compressor));
     } else if (null != compressor) {
       connection.setTransformer(CompressingTransformer.getTransformer(compressor));
     }

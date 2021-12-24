@@ -41,14 +41,19 @@ final class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
   private static final NoSpamLogger noSpamLogger =
       NoSpamLogger.getLogger(logger, 1L, TimeUnit.MINUTES);
 
+  private final TransportDescriptor transportDescriptor;
   private final ConcurrentMap<InetAddress, AtomicLong> connectionsPerClient =
       new ConcurrentHashMap<>();
   private final AtomicLong counter = new AtomicLong(0);
 
+  public ConnectionLimitHandler(TransportDescriptor transportDescriptor) {
+    this.transportDescriptor = transportDescriptor;
+  }
+
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     final long count = counter.incrementAndGet();
-    long limit = TransportDescriptor.getNativeTransportMaxConcurrentConnections();
+    long limit = transportDescriptor.getNativeTransportMaxConcurrentConnections();
     // Setting the limit to -1 disables it.
     if (limit < 0) {
       limit = Long.MAX_VALUE;
@@ -61,7 +66,7 @@ final class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
           count);
       ctx.close();
     } else {
-      long perIpLimit = TransportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp();
+      long perIpLimit = transportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp();
       if (perIpLimit > 0) {
         InetAddress address = ((InetSocketAddress) ctx.channel().remoteAddress()).getAddress();
 
