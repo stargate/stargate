@@ -11,6 +11,10 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
@@ -136,21 +140,21 @@ public class ToProtoValueCodecs {
   }
 
   protected ToProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for LIST column specified as: " + columnSpec);
+    QueryOuterClass.TypeSpec.List listSpec = columnSpec.getType().getList();
+    return new CollectionCodec(
+        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement()), '[', ']');
   }
 
   protected ToProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    //    QueryOuterClass.TypeSpec.Map mapSpec = columnSpec.getType().getMap();
-    // return new MapCodec(
-    //        codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for MAP column specified as: " + columnSpec);
+    QueryOuterClass.TypeSpec.Map mapSpec = columnSpec.getType().getMap();
+    return new MapCodec(
+        codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
   }
 
   protected ToProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for SET column specified as: " + columnSpec);
+    QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
+    return new CollectionCodec(
+        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()), '{', '}');
   }
 
   protected static String columnDesc(QueryOuterClass.ColumnSpec columnSpec) {
@@ -607,6 +611,13 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      // Since we are getting this JSON or path expression, it must be a
+      // Base64-encoded String:
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      // But just for sake of completeness I guess we can accept other theoritcal
+      // possibilities
       if (value instanceof byte[]) {
         return Values.of((byte[]) value);
       } else if (value instanceof ByteBuffer) {
@@ -621,5 +632,78 @@ public class ToProtoValueCodecs {
     }
   }
 
-  /* Structured type codec implementations */
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Structured type codec implementations
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  /**
+   * Note: since internally gRPC uses Collection to represent Lists and Sets alike, all we need is
+   * one codec.
+   */
+  protected static final class CollectionCodec extends ToProtoCodecBase {
+    protected final ToProtoValueCodec elementCodec;
+    protected final char openingBrace;
+    protected final char closingBrace;
+
+    public CollectionCodec(
+        String id, ToProtoValueCodec elementCodec, char openingBrace, char closingBrace) {
+      super(id);
+      this.elementCodec = elementCodec;
+      this.openingBrace = openingBrace;
+      this.closingBrace = closingBrace;
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object javaValue) {
+      if (javaValue instanceof Collection<?>) {
+        List<QueryOuterClass.Value> elements = new ArrayList<>();
+        for (Object value : (Collection<?>) javaValue) {
+          elements.add(elementCodec.protoValueFromStrictlyTyped(value));
+        }
+        return Values.of(elements);
+      }
+      return cannotCoerce(javaValue);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      List<QueryOuterClass.Value> elements = new ArrayList<>();
+      StringifiedValueUtil.decodeStringifiedCollection(
+          value, elementCodec, elements, openingBrace, closingBrace);
+      return Values.of(elements);
+    }
+  }
+
+  protected static final class MapCodec extends ToProtoCodecBase {
+    private final ToProtoValueCodec keyCodec, valueCodec;
+
+    public MapCodec(ToProtoValueCodec keyCodec, ToProtoValueCodec valueCodec) {
+      super("TypeSpec.Map");
+      this.keyCodec = keyCodec;
+      this.valueCodec = valueCodec;
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object mapValue) {
+      if (mapValue instanceof Map<?, ?>) {
+        // Maps are actually encoded as Collections where keys and values are interleaved
+        List<QueryOuterClass.Value> elements = new ArrayList<>();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) mapValue).entrySet()) {
+          elements.add(keyCodec.protoValueFromStrictlyTyped(entry.getKey()));
+          elements.add(valueCodec.protoValueFromStrictlyTyped(entry.getValue()));
+        }
+        return Values.of(elements);
+      }
+      return cannotCoerce(mapValue);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      List<QueryOuterClass.Value> elements = new ArrayList<>();
+      StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
+      return Values.of(elements);
+    }
+  }
 }
