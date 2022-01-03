@@ -61,6 +61,16 @@ public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
   }
 
   @Override
+  public String getLocalDatacenter() {
+    return snitchProperties.getDc();
+  }
+
+  @Override
+  public String getLocalRack() {
+    return snitchProperties.getRack();
+  }
+
+  @Override
   public String toString() {
     return "StargateConfigSnitch{myDC='"
         + snitchProperties.getDc()
