@@ -24,12 +24,13 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.net.InetAddress;
-import java.util.Arrays;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.CqlServer;
@@ -42,7 +43,11 @@ public class CqlImpl {
 
   private static final Logger logger = LoggerFactory.getLogger(CqlImpl.class);
 
-  private Collection<CqlServer> servers = Collections.emptyList();
+  private static final String ADDITIONAL_PORTS_PROPERTY = "stargate.cql.additional_ports";
+  private static final String INTERNAL_ADDRESS_PROPERTY = "stargate.cql.internal_listen_address";
+  private static final String INTERNAL_PORT_PROPERTY = "stargate.cql.internal_port";
+
+  private volatile Collection<CqlServer> servers = Collections.emptyList();
   private final EventLoopGroup workerGroup;
 
   private final TransportDescriptor transportDescriptor;
@@ -78,6 +83,27 @@ public class CqlImpl {
   }
 
   public void start() {
+
+    double metricsUpdatePeriodSeconds =
+        Double.parseDouble(System.getProperty("stargate.cql.metrics.updatePeriodSeconds", "0.1"));
+
+    servers = Collections.unmodifiableList(buildServers());
+
+    ClientMetrics.instance.init(
+        servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricsUpdatePeriodSeconds);
+    servers.forEach(CqlServer::start);
+    persistence.setRpcReady(true);
+  }
+
+  public void stop() {
+    persistence.setRpcReady(false);
+    servers.forEach(CqlServer::stop);
+    ClientMetrics.instance.shutdown();
+  }
+
+  private List<CqlServer> buildServers() {
+    List<CqlServer> result = new ArrayList<>();
+
     int nativePort = transportDescriptor.getNativeTransportPort();
     int nativePortSSL = transportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = transportDescriptor.getRpcAddress();
@@ -89,62 +115,107 @@ public class CqlImpl {
 
     transportDescriptor.getNativeProtocolEncryptionOptions().applyConfig();
     if (!transportDescriptor.getNativeProtocolEncryptionOptions().isEnabled()) {
-      servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
+      result.add(builder.withSSL(false).withPort(nativePort).build());
     } else {
       if (nativePort != nativePortSSL) {
         // user asked for dedicated ssl port for supporting both non-ssl and ssl connections
-        servers =
-            Collections.unmodifiableList(
-                Arrays.asList(
-                    builder.withSSL(false).withPort(nativePort).build(),
-                    builder.withSSL(true).withPort(nativePortSSL).build()));
+        result.add(builder.withSSL(false).withPort(nativePort).build());
+        result.add(builder.withSSL(true).withPort(nativePortSSL).build());
       } else {
         // ssl only mode using configured native port
-        servers = Collections.singleton(builder.withSSL(true).withPort(nativePort).build());
+        result.add(builder.withSSL(true).withPort(nativePort).build());
       }
     }
 
-    String additionalPorts = System.getProperty("stargate.cql.additional_ports");
-    if (additionalPorts != null) {
-      List<CqlServer> additionalServers =
-          Arrays.stream(additionalPorts.split("\\s*,\\s*"))
-              .map(
-                  s -> {
-                    int port;
-                    try {
-                      port = Integer.parseInt(s);
-                    } catch (NumberFormatException e) {
-                      port = 0;
-                    }
-                    if (port <= 0) {
-                      logger.error(
-                          "Invalid port value found in property 'stargate.cql.additional_ports': {}",
-                          s);
-                    }
-                    return port;
-                  })
-              .filter(p -> p > 0)
-              .map(p -> builder.withSSL(false).withPort(p).build())
-              .collect(Collectors.toList());
-
-      if (!additionalServers.isEmpty()) {
-        additionalServers.addAll(servers);
-        servers = Collections.unmodifiableList(additionalServers);
-      }
+    List<Integer> additionalPorts = getAdditionalPorts();
+    for (Integer port : additionalPorts) {
+      result.add(builder.withSSL(false).withPort(port).build());
     }
 
-    double metricsUpdatePeriodSeconds =
-        Double.parseDouble(System.getProperty("stargate.cql.metrics.updatePeriodSeconds", "0.1"));
-    ClientMetrics.instance.init(
-        servers, metrics.getMeterRegistry(), clientInfoTagProvider, metricsUpdatePeriodSeconds);
-    servers.forEach(CqlServer::start);
-    persistence.setRpcReady(true);
+    InetAddress internalAddress = getInternalAddress();
+    Integer internalPort = getInternalPort(additionalPorts);
+    result.add(
+        new CqlServer.Builder(transportDescriptor.toInternal(), persistence, authentication)
+            .withEventLoopGroup(workerGroup)
+            .withHost(internalAddress)
+            .withSSL(false)
+            .withPort(internalPort)
+            .build());
+
+    return result;
   }
 
-  public void stop() {
-    persistence.setRpcReady(false);
-    servers.forEach(CqlServer::stop);
-    ClientMetrics.instance.shutdown();
+  private List<Integer> getAdditionalPorts() {
+    String property = System.getProperty(ADDITIONAL_PORTS_PROPERTY);
+    if (property == null) {
+      return Collections.emptyList();
+    } else {
+      List<Integer> ports = new ArrayList<>();
+      for (String s : property.split("\\s*,\\s*")) {
+        int port;
+        try {
+          port = Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+          port = 0;
+        }
+        if (port <= 0) {
+          logger.error(
+              "Invalid port value found in property '{}': {}", ADDITIONAL_PORTS_PROPERTY, s);
+        } else if (port == transportDescriptor.getNativeTransportPort()) {
+          logger.error(
+              "Value in property '{}}' is already used as the main port: {}",
+              ADDITIONAL_PORTS_PROPERTY,
+              s);
+        } else if (port == transportDescriptor.getNativeTransportPortSSL()) {
+          logger.error(
+              "Value in property '{}}' is already used " + "as the main SSL port: {}",
+              ADDITIONAL_PORTS_PROPERTY,
+              s);
+        } else if (ports.contains(port)) {
+          logger.error(
+              "Duplicate port value found in property '{}': {}", s, ADDITIONAL_PORTS_PROPERTY);
+        } else {
+          ports.add(port);
+        }
+      }
+      return ports;
+    }
+  }
+
+  private InetAddress getInternalAddress() {
+    String property = System.getProperty(INTERNAL_ADDRESS_PROPERTY);
+    if (property == null) {
+      return transportDescriptor.getRpcAddress();
+    } else {
+      try {
+        return InetAddress.getByName(property);
+      } catch (UnknownHostException e) {
+        throw new ConfigurationException(
+            String.format("Unknown host in property '%s' %s", INTERNAL_ADDRESS_PROPERTY, property),
+            false);
+      }
+    }
+  }
+
+  private Integer getInternalPort(List<Integer> additionalPorts) {
+    int internalPort = Integer.getInteger(INTERNAL_PORT_PROPERTY, 9044);
+    if (internalPort == transportDescriptor.getNativeTransportPort()) {
+      throw new ConfigurationException(
+          String.format(
+              "Invalid value for property '%s' (%d): already used as the external port",
+              INTERNAL_PORT_PROPERTY, internalPort));
+    } else if (internalPort == transportDescriptor.getNativeTransportPortSSL()) {
+      throw new ConfigurationException(
+          String.format(
+              "Invalid value for property '%s' (%d): already used as the external SSL port",
+              INTERNAL_PORT_PROPERTY, internalPort));
+    } else if (additionalPorts.contains(internalPort)) {
+      throw new ConfigurationException(
+          String.format(
+              "Invalid value for property '%s' (%d): already used in property '%s'",
+              INTERNAL_PORT_PROPERTY, internalPort, ADDITIONAL_PORTS_PROPERTY));
+    }
+    return internalPort;
   }
 
   public static boolean useEpoll() {

@@ -104,15 +104,15 @@ public class CqlServer implements CassandraDaemon.Server {
   private static final Logger logger = LoggerFactory.getLogger(CqlServer.class);
   private static final boolean useEpoll = CqlImpl.useEpoll();
 
-  private final TransportDescriptor transportDescriptor;
-  private final ConnectionTracker connectionTracker = new ConnectionTracker();
+  final TransportDescriptor transportDescriptor;
+  final ConnectionTracker connectionTracker = new ConnectionTracker();
   // global inflight payload across all channels across all endpoints
   private final ResourceLimits.Concurrent globalRequestPayloadInFlight;
   private final Map<Message.Type, Message.Codec<?>> messageCodecs;
 
-  public final InetSocketAddress socket;
-  public final Persistence persistence;
-  public final AuthenticationService authentication;
+  private final InetSocketAddress socket;
+  final Persistence persistence;
+  final AuthenticationService authentication;
   public boolean useSSL = false;
   private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -198,14 +198,7 @@ public class CqlServer implements CassandraDaemon.Server {
   }
 
   private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
-    return new ServerConnection(
-        channel,
-        socket.getPort(),
-        proxyInfo,
-        version,
-        connectionTracker,
-        persistence,
-        authentication);
+    return new ServerConnection(channel, socket.getPort(), proxyInfo, version, this);
   }
 
   public int countConnectedClients() {
@@ -521,7 +514,7 @@ public class CqlServer implements CassandraDaemon.Server {
             });
       }
 
-      if (USE_PROXY_PROTOCOL) {
+      if (USE_PROXY_PROTOCOL && !server.transportDescriptor.isInternal()) {
         pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
       }
 

@@ -41,6 +41,7 @@ public class ServerConnection extends Connection {
   private final ClientInfo clientInfo;
   private final Persistence.Connection persistenceConnection;
   private final AuthenticationService authentication;
+  private final TransportDescriptor transportDescriptor;
   private volatile ConnectionStage stage;
   public final Counter requests = new Counter();
 
@@ -49,16 +50,15 @@ public class ServerConnection extends Connection {
       int boundPort,
       ProxyInfo proxyInfo,
       ProtocolVersion version,
-      Connection.Tracker tracker,
-      Persistence persistence,
-      AuthenticationService authentication) {
+      CqlServer server) {
     this(
         channel,
         proxyInfo,
         version,
-        tracker,
-        persistence,
-        authentication,
+        server.connectionTracker,
+        server.persistence,
+        server.authentication,
+        server.transportDescriptor,
         getClientInfo(channel, boundPort, proxyInfo));
   }
 
@@ -66,9 +66,10 @@ public class ServerConnection extends Connection {
       Channel channel,
       ProxyInfo proxyInfo,
       ProtocolVersion version,
-      Connection.Tracker tracker,
+      Tracker tracker,
       Persistence persistence,
       AuthenticationService authentication,
+      TransportDescriptor transportDescriptor,
       ClientInfo clientInfo) {
     super(channel, version, tracker, ClientMetrics.instance.connectionMetrics(clientInfo));
     this.clientInfo = clientInfo;
@@ -77,6 +78,7 @@ public class ServerConnection extends Connection {
     if (proxyInfo != null) this.persistenceConnection.setCustomProperties(proxyInfo.toHeaders());
 
     this.authentication = authentication;
+    this.transportDescriptor = transportDescriptor;
     this.stage = ConnectionStage.ESTABLISHED;
   }
 
@@ -159,7 +161,7 @@ public class ServerConnection extends Connection {
               .newSaslNegotiator(clientInfo.remoteAddress().getAddress(), certificates());
 
       saslNegotiator =
-          authentication == null
+          (authentication == null || transportDescriptor.isInternal())
               ? negotiator
               : authentication.getSaslNegotiator(negotiator, clientInfo);
     }

@@ -41,10 +41,28 @@ public class TransportDescriptor {
 
   private final Config conf;
   private final InetAddress rpcAddress;
+  private final boolean internal;
 
   public TransportDescriptor(Config config) {
-    this.conf = config;
-    this.rpcAddress = computeRpcAddress(config);
+    this(config, computeRpcAddress(config), false);
+  }
+
+  private TransportDescriptor(Config conf, InetAddress rpcAddress, boolean internal) {
+    this.conf = conf;
+    this.rpcAddress = rpcAddress;
+    this.internal = internal;
+  }
+
+  /** @see #isInternal() */
+  public TransportDescriptor toInternal() {
+    return new TransportDescriptor(conf, rpcAddress, true);
+  }
+
+  /**
+   * Whether this is the "internal" transport used by Stargate services to query the persistence.
+   */
+  public boolean isInternal() {
+    return internal;
   }
 
   public int getNativeTransportPort() {
