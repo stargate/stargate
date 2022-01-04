@@ -50,6 +50,15 @@ public class ExceptionHandler {
     this.responseObserver = responseObserver;
   }
 
+  /**
+   * It handles the throwable that can be gRPC {@link StatusRuntimeException}, persistence related
+   * {@link PersistenceException} or unknown. It recursively unwraps the underlying exception if it
+   * is {@link CompletionException} or {@link MessageHandler.ExceptionWithIdempotencyInfo}. Finally,
+   * it converts the exception to a gRPC specific response using the {@link
+   * StreamObserver#onError(Throwable)} method.
+   *
+   * @param throwable
+   */
   protected void handleException(Throwable throwable) {
     exceptionOccurred.set(true);
     if (throwable instanceof CompletionException
