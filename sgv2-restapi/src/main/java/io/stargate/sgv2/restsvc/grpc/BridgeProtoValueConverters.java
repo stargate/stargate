@@ -46,6 +46,7 @@ public class BridgeProtoValueConverters {
     return FromProtoConverter.construct(names, codecs);
   }
 
+  /** Factory method that will fetch converters for all fields. */
   public ToProtoConverter toProtoConverter(Schema.CqlTable forTable) {
     // retain order for error message info
     Map<String, ToProtoValueCodec> codecsByName = new LinkedHashMap<>();

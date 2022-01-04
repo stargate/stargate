@@ -82,9 +82,31 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-    // !!! To Be Implemented:
+    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    List<BuiltCondition> whereConditions =
+        new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
 
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    String cql;
+    if (columns.isEmpty()) {
+      cql =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(keyspaceName, tableName)
+              .where(whereConditions)
+              .orderBy(sortOrder)
+              .build();
+    } else {
+      cql =
+          new QueryBuilder()
+              .select()
+              .column(columns)
+              .from(keyspaceName, tableName)
+              .where(whereConditions)
+              .orderBy(sortOrder)
+              .build();
+    }
+    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
   }
 
   @Override

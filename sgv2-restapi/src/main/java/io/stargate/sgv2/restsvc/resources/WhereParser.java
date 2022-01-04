@@ -3,16 +3,15 @@ package io.stargate.sgv2.restsvc.resources;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
+import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,51 +23,16 @@ public class WhereParser {
           //    {"key1": 1, "key1": 2} or {"key1": {"eq": 1, "eq":2}}
           JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
 
-  static class TableForWhere {
-    private final Map<String, String> columnTypes;
+  private final Schema.CqlTable tableDef;
+  private final ToProtoConverter converter;
 
-    private TableForWhere(Map<String, String> columnTypes) {
-      this.columnTypes = columnTypes;
-    }
-
-    public static TableForWhere create(Schema.CqlTable tableDef) {
-      Map<String, String> columnMap = new HashMap<>();
-      addColumns(columnMap, tableDef.getPartitionKeyColumnsList());
-      addColumns(columnMap, tableDef.getClusteringKeyColumnsList());
-      addColumns(columnMap, tableDef.getStaticColumnsList());
-      addColumns(columnMap, tableDef.getColumnsList());
-      return new TableForWhere(columnMap);
-    }
-
-    private static void addColumns(
-        Map<String, String> columnTypes, List<QueryOuterClass.ColumnSpec> columnDefs) {
-      for (QueryOuterClass.ColumnSpec columnDef : columnDefs) {
-        // false -> do NOT include "frozen<...>" around definition
-        final String type =
-            BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(columnDef.getType(), false);
-        // To support case-insensitive lookups, add both original and (if different), lower-cased
-        String name = columnDef.getName();
-        columnTypes.put(name, type);
-        String lcName = name.toLowerCase();
-        if (lcName != name) { // toLowerCase() returns original String if no changes
-          columnTypes.put(lcName, type);
-        }
-      }
-    }
-
-    public String findType(String columnName) {
-      // Assume in most cases
-      String type = columnTypes.get(columnName);
-      // Need to allow case-insensitive lookups as well
-      if (type == null) {
-        type = columnTypes.get(columnName.toLowerCase());
-      }
-      return type;
-    }
+  public WhereParser(Schema.CqlTable tableDef, ToProtoConverter converter) {
+    this.tableDef = tableDef;
+    this.converter = converter;
   }
 
-  public static List<BuiltCondition> parseWhere(String whereParam, Schema.CqlTable rawTableDef)
-      throws IOException {
+  public List<BuiltCondition> parseWhere(
+      String whereParam, QueryOuterClass.Values.Builder valuesBuilder) {
     JsonNode jsonTree;
     try {
       jsonTree = MAPPER.readTree(whereParam);
@@ -82,14 +46,9 @@ public class WhereParser {
     }
 
     final List<BuiltCondition> conditions = new ArrayList<>();
-    TableForWhere tableDef = TableForWhere.create(rawTableDef);
 
     for (Map.Entry<String, JsonNode> whereCondition : asIterable(jsonTree.fields())) {
       String fieldName = whereCondition.getKey();
-      String fieldType = tableDef.findType(fieldName);
-      if (fieldType == null) {
-        throw new IllegalArgumentException(String.format("Unknown field name '%s'.", fieldName));
-      }
       JsonNode condition = whereCondition.getValue();
       if (!condition.isObject()) {
         throw new IllegalArgumentException(
@@ -100,42 +59,28 @@ public class WhereParser {
         String rawOp = operandAndValue.getKey();
         FilterOp operator = FilterOp.decode(rawOp);
 
-        JsonNode value = operandAndValue.getValue();
-        if (value.isNull()) {
+        JsonNode valueNode = operandAndValue.getValue();
+        if (valueNode.isNull()) {
           throw new IllegalArgumentException(
               String.format(
                   "Value entry for field %s, operation %s was expecting a value, but found null.",
                   fieldName, rawOp));
         }
 
-        QueryContext context = new QueryContext();
-        context.fieldName = fieldName;
-        context.rawOp = rawOp;
-        context.operator = operator;
-        context.value = value;
-        context.type = fieldType;
-
         switch (operator) {
           case $IN:
-            evaluateIn(conditions, context);
-            break;
+            //            evaluateIn(conditions, context);
           case $EXISTS:
-            evaluateExists(conditions, context);
-            break;
+            //            evaluateExists(conditions, context);
           case $CONTAINS:
-            evaluateContains(conditions, context);
-            break;
+            //            evaluateContains(conditions, context);
           case $CONTAINSKEY:
-            evaluateContainsKey(conditions, context);
-            break;
+            //            evaluateContainsKey(conditions, context);
           case $CONTAINSENTRY:
-            evaluateContainsEntry(conditions, context);
-            break;
+            //            evaluateContainsEntry(conditions, context);
+            throw new IllegalArgumentException("Operation " + operator + " not yet supported");
           default: // GT, GTE, LT, LTE, EQ, NE
-            {
-              addToCondition(conditions, context);
-              break;
-            }
+            addSimpleCondition(conditions, fieldName, operator, valueNode, valuesBuilder);
         }
       }
     }
@@ -147,8 +92,53 @@ public class WhereParser {
     return () -> iterator;
   }
 
+  private void addSimpleCondition(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      FilterOp filterOp,
+      JsonNode valueNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    if (valueNode.isTextual()) {
+      addSingleSimpleCondition(
+          conditions, fieldName, filterOp, valueNode.textValue(), valuesBuilder);
+    } else if (valueNode.isArray()) {
+      for (JsonNode element : valueNode) {
+        addSingleSimpleCondition(
+            conditions, fieldName, filterOp, nodeToRawObject(element), valuesBuilder);
+      }
+    } else {
+      addSingleSimpleCondition(
+          conditions, fieldName, filterOp, nodeToRawObject(valueNode), valuesBuilder);
+    }
+  }
+
+  private Object nodeToRawObject(JsonNode valueNode) {
+    try {
+      return MAPPER.treeToValue(valueNode, Object.class);
+    } catch (IOException e) {
+      // Should be impossible as all JsonNodes map to a java.lang.Object, but is declared so:
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  private void addSingleSimpleCondition(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      FilterOp filterOp,
+      Object rawValue,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    final QueryOuterClass.Value opValue;
+    if (rawValue instanceof String) {
+      opValue = converter.protoValueFromStringified(fieldName, (String) rawValue);
+    } else {
+      opValue = converter.protoValueFromStrictlyTyped(fieldName, rawValue);
+    }
+    conditions.add(BuiltCondition.ofMarker(fieldName, filterOp.predicate));
+    valuesBuilder.addValues(opValue);
+  }
+
+  /*
   private static void addToCondition(List<BuiltCondition> conditions, QueryContext context) {
-    /*
     if (context.value.isArray()) {
       for (JsonNode element : asIterable(context.value.elements())) {
         Object val = Converters.toCqlValue(context.type, element.asText());
@@ -158,8 +148,8 @@ public class WhereParser {
       Object val = Converters.toCqlValue(context.type, context.value.asText());
       conditions.add(conditionToWhere(context.fieldName, context.operator, val));
     }
-     */
   }
+     */
 
   /*
   private static BuiltCondition conditionToWhere(String fieldName, FilterOp op, Object value) {
@@ -167,8 +157,8 @@ public class WhereParser {
   }
    */
 
+  /*
   private static void evaluateContainsKey(List<BuiltCondition> conditions, QueryContext context) {
-    /*
     if (context.type == null || !context.type.isMap()) {
       throw new IllegalArgumentException(
           String.format(
@@ -177,11 +167,11 @@ public class WhereParser {
     }
     context.type = context.type.parameters().get(0);
     addToCondition(conditions, context);
-    */
   }
+    */
 
+  /*
   private static void evaluateContains(List<BuiltCondition> conditions, QueryContext context) {
-    /*
     }
     if (context.type == null || !context.type.isCollection()) {
       throw new IllegalArgumentException(
@@ -192,17 +182,18 @@ public class WhereParser {
     context.type =
         context.type.isMap() ? context.type.parameters().get(1) : context.type.parameters().get(0);
     addToCondition(conditions, context);
-     */
   }
+     */
 
+  /*
   private static void evaluateExists(List<BuiltCondition> conditions, QueryContext context) {
-    /*
     if (!context.value.isBoolean() || !context.value.booleanValue()) {
       throw new IllegalArgumentException("`exists` only supports the value `true`.");
     }
     conditions.add(conditionToWhere(context.fieldName, context.operator, true));
-     */
   }
+     */
+  /*
 
   private static void evaluateContainsEntry(List<BuiltCondition> conditions, QueryContext context) {
     if (context.value.isObject()) {
@@ -249,9 +240,10 @@ public class WhereParser {
     conditions.add(
         BuiltCondition.of(
             LHS.mapAccess(context.fieldName, mapKey), context.operator.predicate, mapValue));
-     */
   }
+     */
 
+  /*
   private static void evaluateIn(List<BuiltCondition> conditions, QueryContext context)
       throws IOException {
     if (!context.value.isArray()) {
@@ -271,28 +263,30 @@ public class WhereParser {
             rawList.stream()
                 .map(obj -> Converters.toCqlValue(context.type, obj))
                 .collect(Collectors.toList())));
+  }
      */
-  }
 
-  public static class BuiltCondition {
-    public final String columnName;
-    public final Predicate predicate;
-    public final Object value;
+  /*
+    public static class BuiltCondition {
+      public final String columnName;
+      public final Predicate predicate;
+      public final Object value;
 
-    public BuiltCondition(String columnName, Predicate predicate, Object value) {
-      this.columnName = columnName;
-      this.predicate = predicate;
-      this.value = value;
+      public BuiltCondition(String columnName, Predicate predicate, Object value) {
+        this.columnName = columnName;
+        this.predicate = predicate;
+        this.value = value;
+      }
     }
-  }
 
-  private static class QueryContext {
-    public String fieldName;
-    public String rawOp;
-    public FilterOp operator;
-    public JsonNode value;
-    public String type; // full CQL type definition NOT including "frozen" marker
-  }
+    private static class QueryContext {
+      public String fieldName;
+      public String rawOp;
+      public FilterOp operator;
+      public Object value;
+  //    public String type; // full CQL type definition NOT including "frozen" marker
+    }
+     */
 
   enum FilterOp {
     $EQ("==", Predicate.EQ, "$eq"),
@@ -325,29 +319,6 @@ public class WhereParser {
       } catch (IllegalArgumentException iea) {
         throw new IllegalArgumentException(String.format("Operation %s is not supported.", rawOp));
       }
-    }
-  }
-
-  enum Predicate {
-    EQ("="),
-    NEQ("!="),
-    LT("<"),
-    GT(">"),
-    LTE("<="),
-    GTE(">="),
-    IN("IN"),
-    CONTAINS("CONTAINS"),
-    CONTAINS_KEY("CONTAINS KEY");
-
-    private final String cql;
-
-    Predicate(String cql) {
-      this.cql = cql;
-    }
-
-    @Override
-    public String toString() {
-      return cql;
     }
   }
 }
