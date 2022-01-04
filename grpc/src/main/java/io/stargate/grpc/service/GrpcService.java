@@ -98,7 +98,8 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 schemaAgreementRetries,
                 synchronizedStreamObserver,
                 inFlight,
-                exceptionHandler));
+                exceptionHandler),
+        executor);
   }
 
   @Override
@@ -116,7 +117,8 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 persistence,
                 synchronizedStreamObserver,
                 inFlight,
-                exceptionHandler));
+                exceptionHandler),
+        executor);
   }
 
   static class ResponseAndTraceId {

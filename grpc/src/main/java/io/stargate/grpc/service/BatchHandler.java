@@ -94,8 +94,6 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
 
   @Override
   protected CompletionStage<ResponseAndTraceId> buildResponse(Result result) {
-    System.out.println(
-        "Build response for batch: " + result + " Thread:" + Thread.currentThread().getName());
     Response.Builder responseBuilder = makeResponseBuilder(result);
 
     if (result.kind != Result.Kind.Void && result.kind != Result.Kind.Rows) {

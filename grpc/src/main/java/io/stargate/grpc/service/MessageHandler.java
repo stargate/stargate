@@ -105,11 +105,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                         "The retry decision: " + decision + " is not supported.");
                 }
               } else {
-                System.out.println(
-                    "executeWithRetry#setSuccess: "
-                        + response
-                        + " Thread:"
-                        + Thread.currentThread().getName());
                 setSuccess(response);
               }
             });
