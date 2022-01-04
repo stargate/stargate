@@ -17,6 +17,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Helper class that handles parsing of "WHERE" clause for GET rows endpoint.
+ *
+ * <p>Note: code modified from StargateV1 "WhereParser" ({@code
+ * io.stargate.web.service.WhereParser}) which unfortunately could not be used as-is due to
+ * dependencies on SGv1 to persistence type system.
+ */
 public class WhereParser {
   private static final ObjectMapper MAPPER =
       new ObjectMapper(
@@ -159,92 +166,6 @@ public class WhereParser {
       throw new IllegalArgumentException(e);
     }
   }
-
-  /*
-  private static void evaluateContainsKey(List<BuiltCondition> conditions, QueryContext context) {
-    if (context.type == null || !context.type.isMap()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Field %s: operation %s is only supported for map types",
-              context.fieldName, context.rawOp));
-    }
-    context.type = context.type.parameters().get(0);
-    addToCondition(conditions, context);
-  }
-    */
-
-  /*
-  private static void evaluateContains(List<BuiltCondition> conditions, QueryContext context) {
-    }
-    if (context.type == null || !context.type.isCollection()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Field %s: operation %s is only supported for collection types",
-              context.fieldName, context.rawOp));
-    }
-    context.type =
-        context.type.isMap() ? context.type.parameters().get(1) : context.type.parameters().get(0);
-    addToCondition(conditions, context);
-  }
-     */
-
-  /*
-  private static void evaluateExists(List<BuiltCondition> conditions, QueryContext context) {
-    if (!context.value.isBoolean() || !context.value.booleanValue()) {
-      throw new IllegalArgumentException("`exists` only supports the value `true`.");
-    }
-    conditions.add(conditionToWhere(context.fieldName, context.operator, true));
-  }
-     */
-  /*
-
-  private static void evaluateContainsEntry(List<BuiltCondition> conditions, QueryContext context) {
-    if (context.value.isObject()) {
-      addEntryCondition(conditions, context);
-    } else if (context.value.isArray()) {
-      JsonNode entries = context.value;
-      for (JsonNode entry : asIterable(entries.elements())) {
-        context.value = entry;
-        addEntryCondition(conditions, context);
-      }
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "Value entry for field %s, operation %s must be an object "
-                  + "with two fields 'key' and 'value' or an array of those objects.",
-              context.fieldName, context.rawOp));
-    }
-  }
-
-  private static void addEntryCondition(List<BuiltCondition> conditions, QueryContext context) {
-    JsonNode entryKey, entryValue;
-    if (!context.value.isObject()
-        || context.value.size() != 2
-        || (entryKey = context.value.get("key")) == null
-        || (entryValue = context.value.get("value")) == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Value entry for field %s, operation %s must be an object "
-                  + "with two fields 'key' and 'value'.",
-              context.fieldName, context.rawOp));
-    }
-
-    /*
-    if (context.type == null || !context.type.isMap()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Field %s: operation %s is only supported for map types",
-              context.fieldName, context.rawOp));
-    }
-    Column.ColumnType keyType = context.type.parameters().get(0);
-    Column.ColumnType valueType = context.type.parameters().get(1);
-    Object mapKey = Converters.toCqlValue(keyType, entryKey.asText());
-    Object mapValue = Converters.toCqlValue(valueType, entryValue.asText());
-    conditions.add(
-        BuiltCondition.of(
-            LHS.mapAccess(context.fieldName, mapKey), context.operator.predicate, mapValue));
-  }
-     */
 
   enum FilterOp {
     $EQ("==", Predicate.EQ, "$eq"),
