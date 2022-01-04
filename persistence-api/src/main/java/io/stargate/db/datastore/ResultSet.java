@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
-import javax.validation.constraints.NotNull;
 
 public interface ResultSet extends Iterable<Row> {
 
@@ -109,7 +108,6 @@ public interface ResultSet extends Iterable<Row> {
 
   List<Column> columns();
 
-  @NotNull
   @Override
   Iterator<Row> iterator();
 

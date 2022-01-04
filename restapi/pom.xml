@@ -13,16 +13,11 @@
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
   </properties>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-healthchecks</artifactId>
-      <version>${dropwizard.metrics.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -41,6 +36,13 @@
       <groupId>io.stargate.metrics</groupId>
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -86,12 +88,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>javax.validation</groupId>
-      <artifactId>validation-api</artifactId>
-      <version>1.1.0.Final</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
@@ -103,7 +99,7 @@
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jersey2-jaxrs</artifactId>
-      <version>1.6.2</version>
+      <version>${swagger-jersey2-jaxrs.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.jsurfer</groupId>
@@ -118,6 +114,18 @@
       <groupId>com.bpodgursky</groupId>
       <artifactId>jbool_expressions</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.reactivex.rxjava3</groupId>
+      <artifactId>rxjava</artifactId>
+      <version>3.0.12</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.akarnokd</groupId>
+      <artifactId>rxjava3-extensions</artifactId>
+      <version>3.0.1</version>
+    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -144,20 +152,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.reactivex.rxjava3</groupId>
-      <artifactId>rxjava</artifactId>
-      <version>3.0.12</version>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.github.akarnokd</groupId>
-      <artifactId>rxjava3-extensions</artifactId>
-      <version>3.0.1</version>
-    </dependency>
-      <dependency>
-          <groupId>org.mockito</groupId>
-          <artifactId>mockito-junit-jupiter</artifactId>
-          <scope>test</scope>
-      </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>

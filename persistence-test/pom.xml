@@ -9,12 +9,15 @@
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-test</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- Other dependencies, note that these are not in the test scope -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -49,13 +52,12 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <scope>compile</scope>
     </dependency>
+    <!-- IMPORTANT: please note that this dependency must be in sync with the transitive version in the cassandra-all in persistence 3.11, 4.0 and DSE 6.8 projects -->
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.9.8</version>
-      <scope>compile</scope>
+      <version>2.9.10</version>
     </dependency>
   </dependencies>
 </project>

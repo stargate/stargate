@@ -27,7 +27,6 @@ import io.stargate.db.Persistence;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.security.cert.X509Certificate;
-import javax.validation.constraints.NotNull;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -80,7 +79,6 @@ public class ServerConnection extends Connection {
     this.stage = ConnectionStage.ESTABLISHED;
   }
 
-  @NotNull
   private static ClientInfo getClientInfo(Channel channel, int boundPort, ProxyInfo proxyInfo) {
     return new ClientInfo(
         proxyInfo != null ? proxyInfo.sourceAddress : (InetSocketAddress) channel.remoteAddress(),

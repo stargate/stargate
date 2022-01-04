@@ -9,12 +9,15 @@
   <groupId>io.stargate.metrics</groupId>
   <artifactId>metrics-jersey</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
@@ -35,6 +38,7 @@
       </exclusions>
     </dependency>
 
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
