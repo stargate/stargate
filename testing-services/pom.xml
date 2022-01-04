@@ -9,6 +9,7 @@
   <groupId>io.stargate.it</groupId>
   <artifactId>testing-services</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>

@@ -9,6 +9,9 @@
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
   <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
@@ -17,12 +20,12 @@
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.26</dropwizard.version>
+    <dropwizard.version>2.0.27</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.27</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.28</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
@@ -37,11 +40,13 @@
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
     <grpc.version>1.42.1</grpc.version>
-    <immutables.version>2.5.6</immutables.version>
+    <immutables.version>2.8.8</immutables.version>
+    <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.7.3</micrometer.version>
     <prometheus.version>0.10.0</prometheus.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
+    <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
 
     <!-- And finally test/build deps -->
 
@@ -51,7 +56,9 @@
     <errorprone.version>2.3.4</errorprone.version>
     <jacoco.version>0.8.6</jacoco.version>
     <junit.version>5.8.2</junit.version>
-    <mockito.version>3.5.13</mockito.version>
+    <mockito.version>3.12.4</mockito.version>
+    <assertj.version>3.21.0</assertj.version>
+    <awaitility.version>4.1.1</awaitility.version>
   </properties>
   <dependencies>
     <!-- Basic OSGi dependency, provided by container -->
@@ -502,6 +509,31 @@
         <version>${dropwizard.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-core</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-healthchecks</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-jvm</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-servlet</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>${dropwizard.metrics.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
         <version>${jetty.version}</version>
@@ -582,6 +614,16 @@
         <version>${prometheus.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.immutables</groupId>
+        <artifactId>value</artifactId>
+        <version>${immutables.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.javatuples</groupId>
+        <artifactId>javatuples</artifactId>
+        <version>${javatuples.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.bpodgursky</groupId>
         <artifactId>jbool_expressions</artifactId>
         <version>1.23</version>
@@ -624,7 +666,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.17.2</version>
+        <version>${assertj.version}</version>
       </dependency>
       <dependency>
         <groupId>io.dropwizard</groupId>
@@ -640,7 +682,7 @@
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
-        <version>4.0.3</version>
+        <version>${awaitility.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
