@@ -9,15 +9,12 @@
   <groupId>io.stargate.auth.table</groupId>
   <artifactId>auth-table-based-service</artifactId>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
@@ -31,6 +28,19 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mindrot</groupId>
+      <artifactId>jbcrypt</artifactId>
+      <version>0.4</version>
+    </dependency>
+
+    <!-- Test dependencies -->
     <!-- 21-Sep-2021, tatu: If you need to use Guava for NON-test code (runtime),
              note that you need to BOTH change scope to "runtime" AND add
              OSGi import: see f.ex "cql/pom.xml" for example of how to do it.
@@ -41,11 +51,6 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mindrot</groupId>
-      <artifactId>jbcrypt</artifactId>
-      <version>0.4</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

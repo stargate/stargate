@@ -13,6 +13,7 @@
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
   </properties>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
@@ -31,6 +32,14 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- 3rd party dependencies -->
+    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-jersey</artifactId>
     </dependency>
@@ -39,26 +48,16 @@
       <artifactId>dropwizard-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.stargate.db</groupId>
-      <artifactId>persistence-api</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.hibernate.validator</groupId>
-          <artifactId>hibernate-validator</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-logging</artifactId>
     </dependency>
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jersey2-jaxrs</artifactId>
-      <version>1.6.2</version>
+      <version>${swagger-jersey2-jaxrs.version}</version>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-testing</artifactId>

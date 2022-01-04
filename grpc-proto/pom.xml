@@ -13,6 +13,7 @@
   <artifactId>grpc-proto</artifactId>
 
   <dependencies>
+    <!-- gRPC -->
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
@@ -23,6 +24,8 @@
       <artifactId>grpc-stub</artifactId>
       <version>${grpc.version}</version>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

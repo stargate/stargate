@@ -16,7 +16,6 @@
 package io.stargate.db;
 
 import java.util.Objects;
-import javax.validation.constraints.NotNull;
 
 /**
  * Represents a row key (e.g., a partition key) decorated in a way that the objects can be compared
@@ -38,7 +37,7 @@ public final class ComparableKey<T extends Comparable<? super T>>
   }
 
   @Override
-  public int compareTo(@NotNull ComparableKey<?> o) {
+  public int compareTo(ComparableKey<?> o) {
     if (equals(o)) {
       return 0;
     }

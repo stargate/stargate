@@ -9,7 +9,7 @@
   <groupId>io.stargate.grpc</groupId>
   <artifactId>grpc</artifactId>
   <dependencies>
-    <!-- Stargate -->
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
@@ -28,6 +28,7 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- gRPC -->
     <dependency>
       <groupId>io.stargate.grpc</groupId>
@@ -49,7 +50,8 @@
       <artifactId>grpc-stub</artifactId>
       <version>${grpc.version}</version>
     </dependency>
-    <!-- Other -->
+
+    <!-- 3rd party dependencies -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
@@ -63,11 +65,21 @@
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
-    <!-- Test -->
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>19.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>annotations</artifactId>
+      <version>2.0.1</version>
+    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -84,17 +96,6 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jetbrains</groupId>
-      <artifactId>annotations</artifactId>
-      <version>19.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>annotations</artifactId>
-      <version>2.0.1</version>
-      <scope>compile</scope>
     </dependency>
   </dependencies>
   <build>
