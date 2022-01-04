@@ -78,15 +78,20 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    Schema.CqlTable tableDef =
+    final Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
-    List<BuiltCondition> whereConditions =
-        new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
+    final QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    final List<BuiltCondition> whereConditions;
+    try {
+      whereConditions =
+          new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
+    } catch (IllegalArgumentException e) {
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+    }
 
-    String cql;
+    final String cql;
     if (columns.isEmpty()) {
       cql =
           new QueryBuilder()
