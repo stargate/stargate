@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
@@ -69,6 +70,8 @@ public class WhereParser {
 
         switch (operator) {
           case $IN:
+            addInOperation(conditions, fieldName, valueNode, valuesBuilder);
+            break;
             //            evaluateIn(conditions, context);
           case $EXISTS:
             //            evaluateExists(conditions, context);
@@ -80,7 +83,7 @@ public class WhereParser {
             //            evaluateContainsEntry(conditions, context);
             throw new IllegalArgumentException("Operation " + operator + " not yet supported");
           default: // GT, GTE, LT, LTE, EQ, NE
-            addSimpleCondition(conditions, fieldName, operator, valueNode, valuesBuilder);
+            addSimpleOperation(conditions, fieldName, operator, valueNode, valuesBuilder);
         }
       }
     }
@@ -92,7 +95,7 @@ public class WhereParser {
     return () -> iterator;
   }
 
-  private void addSimpleCondition(
+  private void addSimpleOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       FilterOp filterOp,
@@ -112,15 +115,6 @@ public class WhereParser {
     }
   }
 
-  private Object nodeToRawObject(JsonNode valueNode) {
-    try {
-      return MAPPER.treeToValue(valueNode, Object.class);
-    } catch (IOException e) {
-      // Should be impossible as all JsonNodes map to a java.lang.Object, but is declared so:
-      throw new IllegalArgumentException(e);
-    }
-  }
-
   private void addSingleSimpleCondition(
       List<BuiltCondition> conditions,
       String fieldName,
@@ -137,25 +131,34 @@ public class WhereParser {
     valuesBuilder.addValues(opValue);
   }
 
-  /*
-  private static void addToCondition(List<BuiltCondition> conditions, QueryContext context) {
-    if (context.value.isArray()) {
-      for (JsonNode element : asIterable(context.value.elements())) {
-        Object val = Converters.toCqlValue(context.type, element.asText());
-        conditions.add(conditionToWhere(context.fieldName, context.operator, val));
-      }
-    } else {
-      Object val = Converters.toCqlValue(context.type, context.value.asText());
-      conditions.add(conditionToWhere(context.fieldName, context.operator, val));
+  private void addInOperation(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      JsonNode valueNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    if (!valueNode.isArray() || valueNode.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value entry for field '%s', operation %s must be a non-empty array",
+              fieldName, FilterOp.$IN.rawValue));
+    }
+    List<QueryOuterClass.Value> inValues = new ArrayList<>();
+    for (JsonNode element : valueNode) {
+      final Object rawElement = nodeToRawObject(element);
+      inValues.add(converter.protoValueFromStrictlyTyped(fieldName, rawElement));
+    }
+    conditions.add(BuiltCondition.ofMarker(fieldName, Predicate.IN));
+    valuesBuilder.addValues(Values.of(inValues));
+  }
+
+  private Object nodeToRawObject(JsonNode valueNode) {
+    try {
+      return MAPPER.treeToValue(valueNode, Object.class);
+    } catch (IOException e) {
+      // Should be impossible as all JsonNodes map to a java.lang.Object, but is declared so:
+      throw new IllegalArgumentException(e);
     }
   }
-     */
-
-  /*
-  private static BuiltCondition conditionToWhere(String fieldName, FilterOp op, Object value) {
-    return BuiltCondition.of(fieldName, op.predicate, value);
-  }
-   */
 
   /*
   private static void evaluateContainsKey(List<BuiltCondition> conditions, QueryContext context) {
@@ -241,51 +244,6 @@ public class WhereParser {
         BuiltCondition.of(
             LHS.mapAccess(context.fieldName, mapKey), context.operator.predicate, mapValue));
   }
-     */
-
-  /*
-  private static void evaluateIn(List<BuiltCondition> conditions, QueryContext context)
-      throws IOException {
-    if (!context.value.isArray()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Value entry for field %s, operation %s must be an array.",
-              context.fieldName, context.rawOp));
-    }
-    ObjectReader reader = MAPPER.readerFor(new TypeReference<List<Object>>() {});
-
-    List<Object> rawList = reader.readValue(context.value);
-    /*
-    conditions.add(
-        conditionToWhere(
-            context.fieldName,
-            context.operator,
-            rawList.stream()
-                .map(obj -> Converters.toCqlValue(context.type, obj))
-                .collect(Collectors.toList())));
-  }
-     */
-
-  /*
-    public static class BuiltCondition {
-      public final String columnName;
-      public final Predicate predicate;
-      public final Object value;
-
-      public BuiltCondition(String columnName, Predicate predicate, Object value) {
-        this.columnName = columnName;
-        this.predicate = predicate;
-        this.value = value;
-      }
-    }
-
-    private static class QueryContext {
-      public String fieldName;
-      public String rawOp;
-      public FilterOp operator;
-      public Object value;
-  //    public String type; // full CQL type definition NOT including "frozen" marker
-    }
      */
 
   enum FilterOp {
