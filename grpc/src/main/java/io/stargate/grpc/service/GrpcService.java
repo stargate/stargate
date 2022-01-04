@@ -55,33 +55,39 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
     new QueryHandler(
             query,
             CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
-            responseObserver,
-            new ExceptionHandler(responseObserver))
+            synchronizedStreamObserver,
+            new ExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
     new BatchHandler(
             batch,
             CONNECTION_KEY.get(),
             persistence,
-            responseObserver,
-            new ExceptionHandler(responseObserver))
+            synchronizedStreamObserver,
+            new ExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 
   @Override
   public StreamObserver<Query> executeQueryStream(StreamObserver<Response> responseObserver) {
-    ExceptionHandler exceptionHandler = new ExceptionHandler(responseObserver);
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
     return new MessageStreamObserver<>(
-        responseObserver,
+        synchronizedStreamObserver,
         exceptionHandler,
         (query, inFlight) ->
             new StreamingQueryHandler(
@@ -90,23 +96,25 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 persistence,
                 executor,
                 schemaAgreementRetries,
-                responseObserver,
+                synchronizedStreamObserver,
                 inFlight,
                 exceptionHandler));
   }
 
   @Override
   public StreamObserver<Batch> executeBatchStream(StreamObserver<Response> responseObserver) {
-    ExceptionHandler exceptionHandler = new ExceptionHandler(responseObserver);
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
     return new MessageStreamObserver<>(
-        responseObserver,
+        synchronizedStreamObserver,
         exceptionHandler,
         (batch, inFlight) ->
             new StreamingBatchHandler(
                 batch,
                 CONNECTION_KEY.get(),
                 persistence,
-                responseObserver,
+                synchronizedStreamObserver,
                 inFlight,
                 exceptionHandler));
   }

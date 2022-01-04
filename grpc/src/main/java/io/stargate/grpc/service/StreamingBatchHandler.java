@@ -23,9 +23,7 @@ public class StreamingBatchHandler extends BatchHandler {
   protected void setSuccess(QueryOuterClass.Response response) {
     System.out.println(
         "SetSuccess for Batch: " + response + "Thread: " + Thread.currentThread().getName());
-    synchronized (responseObserver) {
-      responseObserver.onNext(response);
-    }
+    responseObserver.onNext(response);
     inFlight.decrementAndGet();
     // do not invoke onComplete. The caller(client) may invoke it
     // once it completes sending a stream of queries

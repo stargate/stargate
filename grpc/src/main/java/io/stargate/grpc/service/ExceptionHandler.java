@@ -66,22 +66,18 @@ public class ExceptionHandler {
       handleException(throwable.getCause());
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
-      synchronized (responseObserver) {
-        responseObserver.onError(throwable);
-      }
+      responseObserver.onError(throwable);
     } else if (throwable instanceof UnhandledClientException) {
       onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
       handlePersistenceException((PersistenceException) throwable);
     } else {
       LOG.error("Unhandled error returning UNKNOWN to the client", throwable);
-      synchronized (responseObserver) {
-        responseObserver.onError(
-            Status.UNKNOWN
-                .withDescription(throwable.getMessage())
-                .withCause(throwable)
-                .asRuntimeException());
-      }
+      responseObserver.onError(
+          Status.UNKNOWN
+              .withDescription(throwable.getMessage())
+              .withCause(throwable)
+              .asRuntimeException());
     }
   }
 
@@ -257,10 +253,8 @@ public class ExceptionHandler {
 
   private void onError(Status status, Throwable throwable, Metadata trailer) {
     status = status.withDescription(throwable.getMessage()).withCause(throwable);
-    synchronized (responseObserver) {
-      responseObserver.onError(
-          trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
-    }
+    responseObserver.onError(
+        trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
   }
 
   private void onError(Status status, Throwable throwable) {

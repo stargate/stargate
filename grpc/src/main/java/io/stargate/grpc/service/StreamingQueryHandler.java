@@ -31,9 +31,7 @@ public class StreamingQueryHandler extends QueryHandler {
 
   @Override
   protected synchronized void setSuccess(QueryOuterClass.Response response) {
-    synchronized (responseObserver) {
-      responseObserver.onNext(response);
-    }
+    responseObserver.onNext(response);
     inFlight.decrementAndGet();
     // do not invoke onComplete. The caller(client) may invoke it
     // once it completes sending a stream of queries
