@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.db.util;
+package io.stargate.core.util;
 
 /** A simple interface capable of providing current time timestamps in millis and micros. */
 public interface TimeSource {

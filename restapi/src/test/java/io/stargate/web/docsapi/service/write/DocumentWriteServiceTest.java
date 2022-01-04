@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.reactivex.rxjava3.core.Single;
+import io.stargate.core.util.TimeSource;
 import io.stargate.db.BatchType;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.DataStore;
@@ -28,7 +29,6 @@ import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.ValidatingDataStore;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
-import io.stargate.db.util.TimeSource;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;

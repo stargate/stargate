@@ -17,7 +17,7 @@ package io.stargate.db.datastore.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.db.util.TimeSource;
+import io.stargate.core.util.TimeSource;
 import java.time.Duration;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.jupiter.api.Test;

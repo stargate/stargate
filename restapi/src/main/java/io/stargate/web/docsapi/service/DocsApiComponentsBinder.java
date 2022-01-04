@@ -1,6 +1,6 @@
 package io.stargate.web.docsapi.service;
 
-import io.stargate.db.util.TimeSource;
+import io.stargate.core.util.TimeSource;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.condition.ConditionParser;

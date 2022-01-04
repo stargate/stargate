@@ -15,7 +15,7 @@
  */
 package io.stargate.db.datastore.common.util;
 
-import io.stargate.db.util.TimeSource;
+import io.stargate.core.util.TimeSource;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
