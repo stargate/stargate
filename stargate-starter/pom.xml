@@ -166,9 +166,7 @@
         </dependencies>
         <configuration>
           <from>
-            <!-- TODO: using more full image instead of slim which includes iproute2 libaio1 packages
-            (Jib doesn't have a way to do apt-get) -->
-            <image>openjdk:8u292</image>
+            <image>docker://stargateio/stargate-persistence:8u312</image>
           </from>
           <to>
             <image>docker.io/stargateio/stargate-starter:v${project.version}</image>
