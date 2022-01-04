@@ -55,10 +55,10 @@ public class StargateConfigSnitch extends GossipingPropertyFileSnitch {
 
   @Override
   public String toString() {
-    return "StargateConfigSnitch{myDC='"
+    return "StargateConfigSnitch{DC='"
         + snitchProperties.getDc()
         + '\''
-        + ", myRack='"
+        + ", rack='"
         + snitchProperties.getRack()
         + "'}";
   }
