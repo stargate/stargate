@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import io.grpc.Attributes;
 import io.grpc.Grpc;
 import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
@@ -65,13 +66,7 @@ public class NewConnectionInterceptorTest {
     Persistence persistence = mock(Persistence.class);
     when(persistence.newConnection(any())).thenReturn(connection);
 
-    ServerCall call = mock(ServerCall.class);
-
-    Attributes attributes =
-        Attributes.newBuilder()
-            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
-            .build();
-    when(call.getAttributes()).thenReturn(attributes);
+    ServerCall call = mockCall();
 
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "abc");
@@ -99,7 +94,7 @@ public class NewConnectionInterceptorTest {
     AuthenticationService authenticationService = mock(AuthenticationService.class);
 
     ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    ServerCall call = mockCall();
 
     Metadata metadata = new Metadata();
     NewConnectionInterceptor interceptor =
@@ -126,13 +121,7 @@ public class NewConnectionInterceptorTest {
         .thenThrow(new UnauthorizedException(""));
 
     ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
-
-    Attributes attributes =
-        Attributes.newBuilder()
-            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
-            .build();
-    when(call.getAttributes()).thenReturn(attributes);
+    ServerCall call = mockCall();
 
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "invalid");
@@ -160,13 +149,7 @@ public class NewConnectionInterceptorTest {
         .thenThrow(new UnhandledClientException(""));
 
     ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
-
-    Attributes attributes =
-        Attributes.newBuilder()
-            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
-            .build();
-    when(call.getAttributes()).thenReturn(attributes);
+    ServerCall call = mockCall();
 
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
@@ -204,15 +187,9 @@ public class NewConnectionInterceptorTest {
     when(persistence.newConnection(any())).thenReturn(connection);
 
     ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    ServerCall call = mockCall();
 
     when(call.getAuthority()).thenReturn("example.com");
-
-    Attributes attributes =
-        Attributes.newBuilder()
-            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
-            .build();
-    when(call.getAttributes()).thenReturn(attributes);
 
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
@@ -221,5 +198,25 @@ public class NewConnectionInterceptorTest {
     interceptor.interceptCall(call, metadata, next);
 
     verify(authenticationService, times(1)).validateToken(anyString(), any(Map.class));
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private ServerCall mockCall() {
+    ServerCall call = mock(ServerCall.class);
+    MethodDescriptor.Marshaller marshaller = mock(MethodDescriptor.Marshaller.class);
+    MethodDescriptor methodDescriptor =
+        MethodDescriptor.newBuilder()
+            .setFullMethodName("MockMethod")
+            .setType(MethodDescriptor.MethodType.UNARY)
+            .setRequestMarshaller(marshaller)
+            .setResponseMarshaller(marshaller)
+            .build();
+    when(call.getMethodDescriptor()).thenReturn(methodDescriptor);
+    Attributes attributes =
+        Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress(8090))
+            .build();
+    when(call.getAttributes()).thenReturn(attributes);
+    return call;
   }
 }
