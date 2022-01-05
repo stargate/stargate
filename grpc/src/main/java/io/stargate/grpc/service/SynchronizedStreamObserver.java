@@ -4,7 +4,7 @@ import io.grpc.stub.StreamObserver;
 
 /**
  * It wraps the underlying {@link StreamObserver} and delegates all the method to it. Additionally,
- * it adds a synchronization on {@code this} because, as stated in the <a
+ * it adds a synchronization on the {@code StreamObserver} because, as stated in the <a
  * href="https://grpc.github.io/grpc-java/javadoc/io/grpc/stub/StreamObserver.html">StreamObserver
  * docs</a>:
  *
@@ -28,21 +28,21 @@ public class SynchronizedStreamObserver<V> implements StreamObserver<V> {
 
   @Override
   public void onNext(V value) {
-    synchronized (this) {
+    synchronized (streamObserver) {
       streamObserver.onNext(value);
     }
   }
 
   @Override
   public void onError(Throwable t) {
-    synchronized (this) {
+    synchronized (streamObserver) {
       streamObserver.onError(t);
     }
   }
 
   @Override
   public void onCompleted() {
-    synchronized (this) {
+    synchronized (streamObserver) {
       streamObserver.onCompleted();
     }
   }

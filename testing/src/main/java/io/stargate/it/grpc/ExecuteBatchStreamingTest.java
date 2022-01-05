@@ -30,10 +30,10 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateStub;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
@@ -55,7 +55,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
   @Test
   public void simpleStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
-    List<Response> responses = new ArrayList<>();
+    List<Response> responses = new CopyOnWriteArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<Response> responseStreamObserver =
@@ -95,12 +95,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     // because all reactive calls are non-blocking. Therefore, we need to wait for response of two
     // batch insert
     // queries
-    Awaitility.await()
-        .atMost(10, TimeUnit.SECONDS)
-        .until(
-            () -> {
-              return responses.size() == 2;
-            });
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> responses.size() == 2);
     requestObserver.onCompleted();
 
     Response response =

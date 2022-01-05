@@ -29,10 +29,10 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.StargateGrpc.StargateStub;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
@@ -54,7 +54,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
   @Test
   public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
-    List<Response> responses = new ArrayList<>();
+    List<Response> responses = new CopyOnWriteArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<Response> responseStreamObserver =
