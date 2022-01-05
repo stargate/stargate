@@ -1011,6 +1011,38 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(namesReceived).isEqualTo(namesExpected);
   }
 
+  // 04-Jan-2022, tatu: Verifies existing behavior of Stargate REST 1.0,
+  //   which seems to differ from Documents API. Whether right or wrong,
+  //   this behavior is what exists.
+  @Test
+  public void getRowsWithExistsQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "enabled boolean"),
+        Collections.singletonList("id"),
+        Collections.singletonList("enabled"));
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "enabled false"),
+            Arrays.asList("id 1", "firstName Dave", "enabled true"),
+            Arrays.asList("id 2", "firstName Frank", "enabled true"),
+            Arrays.asList("id 1", "firstName Pete", "enabled false")));
+
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"enabled\":{\"$exists\":true}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
+  }
+
   @Test
   public void getRowsWithTimestampQuery() throws IOException {
     createKeyspace(keyspaceName);
