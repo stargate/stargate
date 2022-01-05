@@ -78,13 +78,40 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    Schema.CqlTable tableDef =
+    final Schema.CqlTable tableDef =
         BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
     final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-    // !!! To Be Implemented:
+    final QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    final List<BuiltCondition> whereConditions;
+    try {
+      whereConditions =
+          new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
+    } catch (IllegalArgumentException e) {
+      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+    }
 
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    final String cql;
+    if (columns.isEmpty()) {
+      cql =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(keyspaceName, tableName)
+              .where(whereConditions)
+              .orderBy(sortOrder)
+              .build();
+    } else {
+      cql =
+          new QueryBuilder()
+              .select()
+              .column(columns)
+              .from(keyspaceName, tableName)
+              .where(whereConditions)
+              .orderBy(sortOrder)
+              .build();
+    }
+    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
   }
 
   @Override

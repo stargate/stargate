@@ -26,6 +26,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.auth.model.AuthTokenResponse;
@@ -989,6 +990,25 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo("1");
     assertThat(data.get(0).get("firstname")).isEqualTo("Sarah");
+
+    // Let's also test with three values (of which 2 match)
+    whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"firstname\":{\"$in\":[\"Sarah\", \"Bob\", \"John\" ]}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+
+    JsonNode root = objectMapper.readTree(body);
+    Set<String> namesReceived =
+        new LinkedHashSet<>(
+            Arrays.asList(
+                root.path(0).path("firstname").asText(), root.path(1).path("firstname").asText()));
+    Set<String> namesExpected = new LinkedHashSet<>(Arrays.asList("Sarah", "John"));
+    assertThat(namesReceived).isEqualTo(namesExpected);
   }
 
   @Test
@@ -1212,8 +1232,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     ApiError response = objectMapper.readValue(body, ApiError.class);
 
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: Unknown field name 'invalid_field'.");
+    assertThat(response.getDescription()).contains("Unknown field name 'invalid_field'");
   }
 
   @Test

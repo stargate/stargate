@@ -67,7 +67,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   @Test
   public void restApiHttpRequestMetrics() throws IOException {
     // call the rest api path with target header
-    String path = String.format("%s/v1/keyspaces", restUrlBase);
+    String path = String.format("%s/v2/schemas/keyspaces", restUrlBase);
     OkHttpClient client = new OkHttpClient().newBuilder().build();
     Request request =
         new Request.Builder()
@@ -97,7 +97,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                           assertThat(metric)
                               .contains("method=\"GET\"")
                               .contains("module=\"restapi\"")
-                              .contains("uri=\"/v1/keyspaces\"")
+                              .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.95\"")
@@ -107,7 +107,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                           assertThat(metric)
                               .contains("method=\"GET\"")
                               .contains("module=\"restapi\"")
-                              .contains("uri=\"/v1/keyspaces\"")
+                              .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                               .contains("quantile=\"0.99\""))
@@ -126,7 +126,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                               .contains("error=\"false\"")
                               .contains("module=\"restapi\"")
                               .doesNotContain("method=\"GET\"")
-                              .doesNotContain("uri=\"/v1/keyspaces\"")
+                              .doesNotContain("uri=\"/v2/schemas/keyspaces\"")
                               .doesNotContain(String.format("status=\"%d\"", status))
                               .doesNotContain(
                                   TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));

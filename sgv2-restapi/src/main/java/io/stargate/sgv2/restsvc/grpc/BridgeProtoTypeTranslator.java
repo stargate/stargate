@@ -19,10 +19,12 @@ public class BridgeProtoTypeTranslator {
    * Bridge/gRPC {@code TypeSpec}: type definition String should be something that may be included
    * directly in a CQL statement
    *
-   * @param type Bridge/gRPC type specification of type type
+   * @param type Bridge/gRPC type specification of type
+   * @param includeFrozen Whether to include surrounding "frozen<...></...> in result or not
    * @return Valid CQL type definition String that matches given type specification
    */
-  public static String cqlTypeFromBridgeTypeSpec(QueryOuterClass.TypeSpec type) {
+  public static String cqlTypeFromBridgeTypeSpec(
+      QueryOuterClass.TypeSpec type, boolean includeFrozen) {
     boolean frozen;
     String desc;
 
@@ -32,7 +34,7 @@ public class BridgeProtoTypeTranslator {
       case LIST:
         {
           QueryOuterClass.TypeSpec.List listType = type.getList();
-          desc = "list<" + cqlTypeFromBridgeTypeSpec(listType.getElement()) + ">";
+          desc = "list<" + cqlTypeFromBridgeTypeSpec(listType.getElement(), includeFrozen) + ">";
           frozen = listType.getFrozen();
           break;
         }
@@ -41,9 +43,9 @@ public class BridgeProtoTypeTranslator {
           QueryOuterClass.TypeSpec.Map mapType = type.getMap();
           desc =
               "map<"
-                  + cqlTypeFromBridgeTypeSpec(mapType.getKey())
+                  + cqlTypeFromBridgeTypeSpec(mapType.getKey(), includeFrozen)
                   + ", "
-                  + cqlTypeFromBridgeTypeSpec(mapType.getValue())
+                  + cqlTypeFromBridgeTypeSpec(mapType.getValue(), includeFrozen)
                   + ">";
           frozen = mapType.getFrozen();
           break;
@@ -51,7 +53,7 @@ public class BridgeProtoTypeTranslator {
       case SET:
         {
           QueryOuterClass.TypeSpec.Set setType = type.getSet();
-          desc = "set<" + cqlTypeFromBridgeTypeSpec(setType.getElement()) + ">";
+          desc = "set<" + cqlTypeFromBridgeTypeSpec(setType.getElement(), includeFrozen) + ">";
           frozen = setType.getFrozen();
           break;
         }
@@ -60,7 +62,7 @@ public class BridgeProtoTypeTranslator {
           QueryOuterClass.TypeSpec.Tuple tupleType = type.getTuple();
           String types =
               tupleType.getElementsList().stream()
-                  .map(elem -> cqlTypeFromBridgeTypeSpec(elem))
+                  .map(elem -> cqlTypeFromBridgeTypeSpec(elem, includeFrozen))
                   .collect(Collectors.joining(", "));
           desc = "tuple<" + types + ">";
           frozen = false;
@@ -77,7 +79,7 @@ public class BridgeProtoTypeTranslator {
       default:
         throw new IllegalArgumentException("Undefined/unrecognized TypeSpec: " + type);
     }
-    if (frozen) {
+    if (includeFrozen && frozen) {
       desc = "frozen<" + desc + ">";
     }
     return desc;
