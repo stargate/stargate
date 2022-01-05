@@ -35,6 +35,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.core.util.TimeSource;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;

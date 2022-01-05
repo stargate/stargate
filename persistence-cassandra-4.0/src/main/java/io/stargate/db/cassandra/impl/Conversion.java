@@ -7,14 +7,12 @@ import io.stargate.db.BatchType;
 import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
-import io.stargate.db.datastore.common.util.ColumnUtils;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -28,11 +26,31 @@ import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.LivenessInfo;
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.AsciiType;
+import org.apache.cassandra.db.marshal.BooleanType;
+import org.apache.cassandra.db.marshal.ByteType;
+import org.apache.cassandra.db.marshal.BytesType;
+import org.apache.cassandra.db.marshal.CounterColumnType;
+import org.apache.cassandra.db.marshal.DecimalType;
+import org.apache.cassandra.db.marshal.DoubleType;
+import org.apache.cassandra.db.marshal.DurationType;
+import org.apache.cassandra.db.marshal.FloatType;
+import org.apache.cassandra.db.marshal.InetAddressType;
+import org.apache.cassandra.db.marshal.Int32Type;
+import org.apache.cassandra.db.marshal.IntegerType;
 import org.apache.cassandra.db.marshal.ListType;
+import org.apache.cassandra.db.marshal.LongType;
 import org.apache.cassandra.db.marshal.MapType;
 import org.apache.cassandra.db.marshal.ReversedType;
 import org.apache.cassandra.db.marshal.SetType;
+import org.apache.cassandra.db.marshal.ShortType;
+import org.apache.cassandra.db.marshal.SimpleDateType;
+import org.apache.cassandra.db.marshal.TimeType;
+import org.apache.cassandra.db.marshal.TimeUUIDType;
+import org.apache.cassandra.db.marshal.TimestampType;
 import org.apache.cassandra.db.marshal.TupleType;
+import org.apache.cassandra.db.marshal.UTF8Type;
+import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.db.rows.BTreeRow;
 import org.apache.cassandra.exceptions.CassandraException;
@@ -89,20 +107,28 @@ public class Conversion {
 
   static {
     Map<Class<? extends AbstractType>, Column.Type> types = new HashMap<>();
-    Arrays.asList(Column.Type.values())
-        .forEach(
-            ct -> {
-              if (ct != Column.Type.Tuple
-                  && ct != Column.Type.List
-                  && ct != Column.Type.Map
-                  && ct != Column.Type.Set
-                  && ct != Column.Type.Point
-                  && ct != Column.Type.Polygon
-                  && ct != Column.Type.LineString
-                  && ct != Column.Type.UDT) {
-                types.put(ColumnUtils.toInternalType(ct).getClass(), ct);
-              }
-            });
+    types.put(AsciiType.instance.getClass(), Column.Type.Ascii);
+    types.put(LongType.instance.getClass(), Column.Type.Bigint);
+    types.put(BytesType.instance.getClass(), Column.Type.Blob);
+    types.put(ByteType.instance.getClass(), Column.Type.Tinyint);
+    types.put(BooleanType.instance.getClass(), Column.Type.Boolean);
+    types.put(CounterColumnType.instance.getClass(), Column.Type.Counter);
+    types.put(SimpleDateType.instance.getClass(), Column.Type.Date);
+    types.put(DecimalType.instance.getClass(), Column.Type.Decimal);
+    types.put(DoubleType.instance.getClass(), Column.Type.Double);
+    types.put(DurationType.instance.getClass(), Column.Type.Duration);
+    types.put(FloatType.instance.getClass(), Column.Type.Float);
+    types.put(InetAddressType.instance.getClass(), Column.Type.Inet);
+    types.put(Int32Type.instance.getClass(), Column.Type.Int);
+    types.put(IntegerType.instance.getClass(), Column.Type.Varint);
+    types.put(ShortType.instance.getClass(), Column.Type.Smallint);
+    types.put(UUIDType.instance.getClass(), Column.Type.Uuid);
+    // TODO update to Text after #1506
+    types.put(UTF8Type.instance.getClass(), Column.Type.Varchar);
+    types.put(TimeType.instance.getClass(), Column.Type.Time);
+    types.put(TimestampType.instance.getClass(), Column.Type.Timestamp);
+    types.put(TimeUUIDType.instance.getClass(), Column.Type.Timeuuid);
+
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
 

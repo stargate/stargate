@@ -23,6 +23,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.core.util.TimeSource;
 import io.stargate.db.Authenticator;
 import io.stargate.db.Batch;
 import io.stargate.db.BoundStatement;
@@ -97,7 +98,6 @@ import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
-import org.apache.cassandra.utils.SystemTimeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -577,7 +577,7 @@ public class Cassandra311Persistence
           Cassandra311Persistence.this::isInSchemaAgreement,
           Cassandra311Persistence.this::isStorageInSchemaAgreement,
           SCHEMA_SYNC_GRACE_PERIOD,
-          new SystemTimeSource());
+          TimeSource.SYSTEM);
     }
 
     @Override
