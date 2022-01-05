@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
+import io.stargate.db.schema.Column;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -13,7 +14,26 @@ import java.util.List;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.db.marshal.AsciiType;
+import org.apache.cassandra.db.marshal.BooleanType;
+import org.apache.cassandra.db.marshal.ByteType;
+import org.apache.cassandra.db.marshal.BytesType;
+import org.apache.cassandra.db.marshal.CounterColumnType;
+import org.apache.cassandra.db.marshal.DecimalType;
+import org.apache.cassandra.db.marshal.DoubleType;
+import org.apache.cassandra.db.marshal.DurationType;
+import org.apache.cassandra.db.marshal.FloatType;
+import org.apache.cassandra.db.marshal.InetAddressType;
+import org.apache.cassandra.db.marshal.Int32Type;
+import org.apache.cassandra.db.marshal.IntegerType;
+import org.apache.cassandra.db.marshal.LongType;
+import org.apache.cassandra.db.marshal.ShortType;
+import org.apache.cassandra.db.marshal.SimpleDateType;
+import org.apache.cassandra.db.marshal.TimeType;
+import org.apache.cassandra.db.marshal.TimeUUIDType;
+import org.apache.cassandra.db.marshal.TimestampType;
 import org.apache.cassandra.db.marshal.UTF8Type;
+import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -100,6 +120,7 @@ class ConversionTest {
 
   @Nested
   class RequestFailureReasons {
+
     private RequestFailureReason convert(
         org.apache.cassandra.exceptions.RequestFailureReason internal) {
       return Conversion.toExternal(ImmutableMap.of(InetAddress.getLoopbackAddress(), internal))
@@ -134,6 +155,150 @@ class ConversionTest {
             .withFailMessage(() -> "" + r + " should not convert to UNKNOWN")
             .isNotEqualTo(RequestFailureReason.UNKNOWN);
       }
+    }
+  }
+
+  @Nested
+  class GetTypeFromInternal {
+
+    @Test
+    public void asciiType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(AsciiType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Ascii);
+    }
+
+    @Test
+    public void longType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(LongType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Bigint);
+    }
+
+    @Test
+    public void bytesType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(BytesType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Blob);
+    }
+
+    @Test
+    public void byteType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(ByteType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Tinyint);
+    }
+
+    @Test
+    public void booleanType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(BooleanType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Boolean);
+    }
+
+    @Test
+    public void counterColumnType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(CounterColumnType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Counter);
+    }
+
+    @Test
+    public void simpleDateType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(SimpleDateType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Date);
+    }
+
+    @Test
+    public void decimalType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(DecimalType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Decimal);
+    }
+
+    @Test
+    public void doubleType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(DoubleType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Double);
+    }
+
+    @Test
+    public void durationType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(DurationType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Duration);
+    }
+
+    @Test
+    public void floatType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(FloatType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Float);
+    }
+
+    @Test
+    public void inetAddressType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(InetAddressType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Inet);
+    }
+
+    @Test
+    public void int32Type() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(Int32Type.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Int);
+    }
+
+    @Test
+    public void integerType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(IntegerType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Varint);
+    }
+
+    @Test
+    public void shortType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(ShortType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Smallint);
+    }
+
+    @Test
+    public void uuidType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(UUIDType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Uuid);
+    }
+
+    @Test
+    public void utf8Type() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(UTF8Type.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Varchar);
+    }
+
+    @Test
+    public void timeType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(TimeType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Time);
+    }
+
+    @Test
+    public void timestampType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(TimestampType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Timestamp);
+    }
+
+    @Test
+    public void timeUUIDType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(TimeUUIDType.instance);
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Timeuuid);
     }
   }
 }
