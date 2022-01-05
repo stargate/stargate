@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.auth.model.AuthTokenResponse;
@@ -75,6 +76,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   private String tableName;
   private static String authToken;
   private String host;
+  private String restUrlBase;
 
   // NOTE! Does not automatically disable exception on unknown properties to have
   // stricter matching of expected return types: if needed, can override on
@@ -107,6 +109,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   @BeforeEach
   public void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
     host = "http://" + cluster.seedAddress();
+    restUrlBase = host + ":8082";
 
     String body =
         RestUtils.post(
@@ -953,8 +956,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&raw=true",
-                host, keyspaceName, tableName, whereClause),
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
     List<Map<String, Object>> data =
@@ -962,6 +965,57 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo("1");
     assertThat(data.get(0).get("firstName")).isEqualTo("Sarah");
+
+    // Let's also test with three values (of which 2 match)
+    whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"firstName\":{\"$in\":[\"Sarah\", \"Bob\", \"John\" ]}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+
+    JsonNode root = objectMapper.readTree(body);
+    Set<String> namesReceived =
+        new LinkedHashSet<>(
+            Arrays.asList(
+                root.path(0).path("firstName").asText(), root.path(1).path("firstName").asText()));
+    Set<String> namesExpected = new LinkedHashSet<>(Arrays.asList("Sarah", "John"));
+    assertThat(namesReceived).isEqualTo(namesExpected);
+  }
+
+  // 04-Jan-2022, tatu: Verifies existing behavior of Stargate REST 1.0,
+  //   which seems to differ from Documents API. Whether right or wrong,
+  //   this behavior is what exists.
+  @Test
+  public void getRowsWithExistsQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "enabled boolean"),
+        Collections.singletonList("id"),
+        Collections.singletonList("enabled"));
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "enabled false"),
+            Arrays.asList("id 1", "firstName Dave", "enabled true"),
+            Arrays.asList("id 2", "firstName Frank", "enabled true"),
+            Arrays.asList("id 1", "firstName Pete", "enabled false")));
+
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"enabled\":{\"$exists\":true}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
   }
 
   @Test
