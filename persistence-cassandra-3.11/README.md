@@ -15,6 +15,7 @@ Set the version of the driver in the `cassandra.bundled-driver.version` property
 * Check if the new version has a transitive dependency to `org.apache.cassandra:cassandra-thrift`, and if it does remove that dependency from our [pom.xml](pom.xml).
 The `cassandra-thrift` was explicitly added when updating to `3.11.11` as it was not anymore in the `cassandra-all`.
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to 3.11.
+Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea.
 * Make sure everything compiles and CI tests are green.
 * Update the [DEVGUIDE.md](../DEV_GUIDE.md) and replace the old version in the examples.
 * Update this `README.md` file with the new or updated instructions.
