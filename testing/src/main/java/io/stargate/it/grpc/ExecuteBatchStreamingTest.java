@@ -62,19 +62,14 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
         new StreamObserver<Response>() {
           @Override
           public void onNext(Response value) {
-            System.out.println("client onNext: " + value);
             responses.add(value);
           }
 
           @Override
-          public void onError(Throwable t) {
-            System.out.println("error: " + t);
-          }
+          public void onError(Throwable t) {}
 
           @Override
-          public void onCompleted() {
-            System.out.println("client completed ");
-          }
+          public void onCompleted() {}
         };
 
     StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);

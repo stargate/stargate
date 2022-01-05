@@ -86,10 +86,10 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
     ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
-    return new MessageStreamObserver<>(
+    return new MessageStreamObserver<Query>(
         synchronizedStreamObserver,
         exceptionHandler,
-        (query, inFlight) ->
+        (query, successHandler) ->
             new StreamingQueryHandler(
                 query,
                 CONNECTION_KEY.get(),
@@ -97,9 +97,8 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
                 executor,
                 schemaAgreementRetries,
                 synchronizedStreamObserver,
-                inFlight,
-                exceptionHandler),
-        executor);
+                successHandler,
+                exceptionHandler));
   }
 
   @Override
@@ -107,18 +106,17 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
     ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
-    return new MessageStreamObserver<>(
+    return new MessageStreamObserver<Batch>(
         synchronizedStreamObserver,
         exceptionHandler,
-        (batch, inFlight) ->
+        (batch, successHandler) ->
             new StreamingBatchHandler(
                 batch,
                 CONNECTION_KEY.get(),
                 persistence,
                 synchronizedStreamObserver,
-                inFlight,
-                exceptionHandler),
-        executor);
+                successHandler,
+                exceptionHandler));
   }
 
   static class ResponseAndTraceId {

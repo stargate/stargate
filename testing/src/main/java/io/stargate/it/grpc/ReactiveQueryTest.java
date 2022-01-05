@@ -153,6 +153,10 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
         .verify();
   }
 
+  // todo write test for error, next, error, complete
+
+  // test for ordering
+
   @Test
   public void completeEmptyStream() {
     ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();

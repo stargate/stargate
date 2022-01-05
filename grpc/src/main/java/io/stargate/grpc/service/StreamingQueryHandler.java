@@ -4,10 +4,9 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class StreamingQueryHandler extends QueryHandler {
-  private final AtomicLong inFlight;
+  private final SuccessHandler successHandler;
 
   StreamingQueryHandler(
       QueryOuterClass.Query query,
@@ -16,7 +15,7 @@ public class StreamingQueryHandler extends QueryHandler {
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<QueryOuterClass.Response> responseObserver,
-      AtomicLong inFlight,
+      SuccessHandler successHandler,
       ExceptionHandler exceptionHandler) {
     super(
         query,
@@ -26,18 +25,11 @@ public class StreamingQueryHandler extends QueryHandler {
         schemaAgreementRetries,
         responseObserver,
         exceptionHandler);
-    this.inFlight = inFlight;
+    this.successHandler = successHandler;
   }
 
   @Override
-  protected synchronized void setSuccess(QueryOuterClass.Response response) {
-    try {
-      responseObserver.onNext(response);
-    } finally {
-      inFlight.decrementAndGet();
-    }
-    // do not invoke onComplete. The caller(client) may invoke it
-    // once it completes sending a stream of queries
-
+  protected void setSuccess(QueryOuterClass.Response response) {
+    successHandler.handleResponse(response);
   }
 }

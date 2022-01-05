@@ -1,13 +1,9 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.GeneratedMessageV3;
-import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.proto.QueryOuterClass;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
@@ -19,39 +15,41 @@ import java.util.function.BiFunction;
  *     io.stargate.proto.QueryOuterClass.Query} and {@link io.stargate.proto.QueryOuterClass.Batch}
  */
 public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
-    implements StreamObserver<MessageT> {
-
-  static final int DELAY_BETWEEN_ON_COMPLETE_CHECKS_MS = 100;
-  private static final int ON_COMPLETE_RETRIES_DEFAULT =
-      Integer.getInteger("stargate.grpc.streaming.on_complete.retries", 100);
+    implements StreamObserver<MessageT>, SuccessHandler {
 
   private final AtomicLong inFlight = new AtomicLong(0);
+  private final AtomicBoolean clientSignalComplete = new AtomicBoolean(false);
   private final ExceptionHandler exceptionHandler;
-  private final BiFunction<MessageT, AtomicLong, MessageHandler<MessageT, ?>> handlerProducer;
+  private final BiFunction<MessageT, SuccessHandler, MessageHandler<MessageT, ?>> handlerProducer;
   private final StreamObserver<QueryOuterClass.Response> responseObserver;
-  private final ScheduledExecutorService executor;
-  private final int onCompleteRetries;
-
-  MessageStreamObserver(
-      StreamObserver<QueryOuterClass.Response> responseObserver,
-      ExceptionHandler exceptionHandler,
-      BiFunction<MessageT, AtomicLong, MessageHandler<MessageT, ?>> handlerProducer,
-      ScheduledExecutorService executor,
-      int onCompleteRetries) {
-    this.responseObserver = responseObserver;
-    this.exceptionHandler = exceptionHandler;
-    this.handlerProducer = handlerProducer;
-    this.executor = executor;
-    this.onCompleteRetries = onCompleteRetries;
-  }
 
   public MessageStreamObserver(
       StreamObserver<QueryOuterClass.Response> responseObserver,
       ExceptionHandler exceptionHandler,
-      BiFunction<MessageT, AtomicLong, MessageHandler<MessageT, ?>> handlerProducer,
-      ScheduledExecutorService executor) {
-    this(
-        responseObserver, exceptionHandler, handlerProducer, executor, ON_COMPLETE_RETRIES_DEFAULT);
+      BiFunction<MessageT, SuccessHandler, MessageHandler<MessageT, ?>> handlerProducer) {
+    this.responseObserver = responseObserver;
+    this.exceptionHandler = exceptionHandler;
+    this.handlerProducer = handlerProducer;
+  }
+
+  /**
+   * Calls {@code StreamObserver#onNext} for a response. Next, it decrements the {@code inFlight}
+   * and checks if the {@code this#onCompleted()} was called. If it was (and there were no errors),
+   * it calls {@code onCompleted()} on the {@code this#responseObserver}.
+   *
+   * @param response
+   */
+  @Override
+  public void handleResponse(QueryOuterClass.Response response) {
+    try {
+      responseObserver.onNext(response);
+    } finally {
+      if (inFlight.decrementAndGet() == 0) {
+        if (clientSignalComplete.get() && !exceptionHandler.getExceptionOccurred()) {
+          responseObserver.onCompleted();
+        }
+      }
+    }
   }
 
   /**
@@ -63,7 +61,7 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
   @Override
   public void onNext(MessageT value) {
     inFlight.incrementAndGet();
-    handlerProducer.apply(value, inFlight).handle();
+    handlerProducer.apply(value, this).handle();
   }
 
   @Override
@@ -72,8 +70,12 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
   }
 
   /**
-   * It completes the response Observer. If there are any in-flight Queries, it waits until all of
-   * them are processed.
+   * It completes the response Observer. If there are no in-flight Queries, it calls the onComplete
+   * immediately(). If there are any in-flight queries, it will not call onComplete() but only save
+   * the fact that the onComplete was issued by the caller. The last {@code
+   * this#onNext(GeneratedMessageV3)} will call {@code StreamObserver#onCompleted()} when there will
+   * be no more in-flight requests. For more info, see documentation of {@code
+   * this#handleResponse(QueryOuterClass.Response)}.
    *
    * <p>According to reactive contract:
    *
@@ -85,49 +87,13 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
    */
   @Override
   public void onCompleted() {
-    CompletableFuture<Void> shouldComplete = new CompletableFuture<>();
     if (exceptionHandler.getExceptionOccurred()) {
       return;
     }
+    clientSignalComplete.set(true);
 
-    executor.schedule(
-        () -> waitForAllInFlightProcessed(onCompleteRetries - 1, shouldComplete),
-        DELAY_BETWEEN_ON_COMPLETE_CHECKS_MS,
-        TimeUnit.MILLISECONDS);
-    try {
-      shouldComplete.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private void waitForAllInFlightProcessed(
-      int remainingAttempts, CompletableFuture<Void> shouldComplete) {
-    if (exceptionHandler.getExceptionOccurred()) {
-      shouldComplete.complete(null);
-      return;
-    }
-
-    if (remainingAttempts == 0) {
-      responseObserver.onError(
-          Status.DEADLINE_EXCEEDED
-              .withDescription(
-                  "Failed to complete stream after "
-                      + (DELAY_BETWEEN_ON_COMPLETE_CHECKS_MS * onCompleteRetries)
-                      + " milliseconds.")
-              .asException());
-      shouldComplete.complete(null);
-      return;
-    }
-
-    if (inFlight.get() > 0) {
-      executor.schedule(
-          () -> waitForAllInFlightProcessed(remainingAttempts - 1, shouldComplete),
-          100,
-          TimeUnit.MILLISECONDS);
-    } else {
+    if (inFlight.get() == 0) {
       responseObserver.onCompleted();
-      shouldComplete.complete(null);
     }
   }
 }
