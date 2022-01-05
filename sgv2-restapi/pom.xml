@@ -269,7 +269,8 @@
         <version>3.1.4</version>
         <configuration>
           <from>
-            <image>openjdk:8u312-slim</image>
+            <!-- Using Java 11 for base image works, even if compiling with Java 8 -->
+            <image>openjdk:11.0.13-jre-slim</image>
           </from>
           <to>
             <image>docker.io/stargateio/stargate-restapi:v${project.version}</image>
