@@ -1003,8 +1003,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             Arrays.asList("id 1", "firstName Bob", "enabled false"),
             Arrays.asList("id 1", "firstName Dave", "enabled true"),
             Arrays.asList("id 2", "firstName Frank", "enabled true"),
-            Arrays.asList("id 1", "firstName Pete", "enabled false")
-        ));
+            Arrays.asList("id 1", "firstName Pete", "enabled false")));
 
     String whereClause = "{\"id\":{\"$eq\":\"1\"},\"enabled\":{\"$exists\":true}}";
     String body =
