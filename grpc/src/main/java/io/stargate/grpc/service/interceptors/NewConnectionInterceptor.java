@@ -40,7 +40,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       StargateOuterClass.getDescriptor()
           .getServices()
           .get(0)
-          .findMethodByName("getSchemaNotifications")
+          .findMethodByName("GetSchemaNotifications")
           .getFullName();
 
   public static final Metadata.Key<String> TOKEN_KEY =
