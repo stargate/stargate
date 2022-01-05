@@ -17,8 +17,8 @@ package io.stargate.db.datastore.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.stargate.core.util.TimeSource;
 import java.time.Duration;
-import org.apache.cassandra.utils.SystemTimeSource;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.jupiter.api.Test;
 
@@ -28,10 +28,7 @@ class SchemaAgreementAchievableCheckTest {
       boolean schemasAgree, boolean storageSchemasAgree) {
     SchemaAgreementAchievableCheck check =
         new SchemaAgreementAchievableCheck(
-            () -> schemasAgree,
-            () -> storageSchemasAgree,
-            Duration.ofMillis(5),
-            new SystemTimeSource());
+            () -> schemasAgree, () -> storageSchemasAgree, Duration.ofMillis(5), TimeSource.SYSTEM);
     return assertThat(check.isHealthy());
   }
 

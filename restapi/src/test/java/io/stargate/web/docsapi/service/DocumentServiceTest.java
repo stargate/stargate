@@ -39,6 +39,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.core.util.TimeSource;
 import io.stargate.db.BatchType;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.DataStoreFactory;
@@ -65,7 +66,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
@@ -114,8 +114,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private static final Schema schema = ImmutableSchema.builder().addKeyspaces(keyspace).build();
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  private final AtomicLong now = new AtomicLong();
-  private final TimeSource timeSource = now::get;
+  @Mock private TimeSource timeSource;
   private static final DocsApiConfiguration config = DocsApiConfiguration.DEFAULT;
   private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
   private final String authToken = "test-auth-token";
@@ -328,7 +327,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .inBatch(batchType)
         .returningNothing();
 
-    now.set(100);
+    when(timeSource.currentTimeMicros()).thenReturn(100L);
     service.putAtPath(
         authToken,
         keyspace.name(),
@@ -369,7 +368,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .inBatch(batchType)
         .returningNothing();
 
-    now.set(200);
+    when(timeSource.currentTimeMicros()).thenReturn(200L);
     service.putAtPath(
         authToken,
         keyspace.name(),
@@ -413,7 +412,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         .inBatch(batchType)
         .returningNothing();
 
-    now.set(200);
+    when(timeSource.currentTimeMicros()).thenReturn(200L);
     service.putAtPath(
         authToken,
         keyspace.name(),
@@ -470,7 +469,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
         datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
     ByteArrayInputStream in =
         new ByteArrayInputStream("[{\"a\":\"b\"}]".getBytes(StandardCharsets.UTF_8));
-    now.set(200);
+    when(timeSource.currentTimeMicros()).thenReturn(200L);
     withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 199L, "b")
         .inBatch(batchType)
         .returningNothing();
@@ -575,7 +574,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
           .inBatch(batchType)
           .returningNothing();
 
-      now.set(200);
+      when(timeSource.currentTimeMicros()).thenReturn(200L);
       Response r =
           resource.writeManyDocs(
               headers,
@@ -619,7 +618,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
           .inBatch(batchType)
           .returningNothing();
 
-      now.set(200);
+      when(timeSource.currentTimeMicros()).thenReturn(200L);
       DocumentResponseWrapper<Object> r =
           unwrap(
               resource.patchDoc(
