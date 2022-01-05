@@ -11,9 +11,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 class MessageStreamObserverTest {
+  private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
+
   @Test
   @SuppressWarnings("unchecked")
   public void shouldOnCompleteWhenThereIsNoInFlight() {
@@ -100,5 +103,10 @@ class MessageStreamObserverTest {
     observer.onCompleted();
     // then should not call the caller' onComplete because there are still requests in-flight
     verify(callerStreamObserver, timeout(1000).times(0)).onCompleted();
+  }
+
+  @AfterAll
+  public static void cleanup() {
+    EXECUTOR.shutdown();
   }
 }
