@@ -119,6 +119,26 @@ public class WhereParserTest {
             "Value entry for field name, operation $gt was expecting a value, but found null.");
   }
 
+  // 04-Jan-2022, tatu: Verifies existing behavior as used by Stargate REST 1.0,
+  //   which seems to differ from Documents API.
+  @Test
+  public void testParseExistsSimple() throws Exception {
+    ImmutableTable table =
+        ImmutableTable.builder()
+            .name("table")
+            .keyspace("keyspace")
+            .addColumns(
+                ImmutableColumn.create("name", Type.Text),
+                ImmutableColumn.create("enabled", Type.Boolean))
+            .build();
+    List<BuiltCondition> whereActual =
+        WhereParser.parseWhere("{ \"enabled\": {\"$exists\": true} }", table);
+    List<BuiltCondition> whereExpected =
+        singletonList(BuiltCondition.of("enabled", Predicate.EQ, Boolean.TRUE));
+
+    assertThat(whereActual).isEqualTo(whereExpected);
+  }
+
   @Test
   public void testParseExistsNumber() {
     String whereParam = "{ \"name\": {\"$exists\": 5} }";
@@ -188,7 +208,7 @@ public class WhereParserTest {
   }
 
   @Test
-  public void testDuplicateJsonKey() throws IOException {
+  public void testDuplicateJsonKey() {
     String whereParam = "{\"text\": {\"$eq\": \"a\", \"$eq\": \"b\"}}";
     ImmutableTable table =
         ImmutableTable.builder()

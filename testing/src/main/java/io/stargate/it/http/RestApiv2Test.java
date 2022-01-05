@@ -986,23 +986,27 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(namesReceived).isEqualTo(namesExpected);
   }
 
+  // 04-Jan-2022, tatu: Verifies existing behavior of Stargate REST 1.0,
+  //   which seems to differ from Documents API. Whether right or wrong,
+  //   this behavior is what exists.
   @Test
   public void getRowsWithExistsQuery() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "extra text"),
+        Arrays.asList("id text", "firstName text", "enabled boolean"),
         Collections.singletonList("id"),
-        Collections.singletonList("firstName"));
+        Collections.singletonList("enabled"));
 
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "firstName Bob"),
-            Arrays.asList("id 1", "firstName Dave"),
-            Arrays.asList("id 1", "firstName Jack", "lastName Daniels")));
+            Arrays.asList("id 1", "firstName Bob", "enabled false"),
+            Arrays.asList("id 1", "firstName Dave", "enabled true"),
+            Arrays.asList("id 2", "firstName Frank", "enabled true"),
+            Arrays.asList("id 1", "firstName Pete", "enabled false")
+        ));
 
-    // First let's try to find something that does not exist
-    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"extra\":{\"$exists\":true}}";
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"enabled\":{\"$exists\":true}}";
     String body =
         RestUtils.get(
             authToken,
@@ -1011,7 +1015,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
-    assertThat(json.size()).isEqualTo(0);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
   }
 
   @Test
