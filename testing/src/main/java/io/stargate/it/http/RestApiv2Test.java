@@ -968,7 +968,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // Let's also test with three values (of which 2 match)
     whereClause =
-        "{\"id\":{\"$eq\":\"1\"},\"firstname\":{\"$in\":[\"Sarah\", \"Bob\", \"John\" ]}}";
+        "{\"id\":{\"$eq\":\"1\"},\"firstName\":{\"$in\":[\"Sarah\", \"Bob\", \"John\" ]}}";
     body =
         RestUtils.get(
             authToken,
@@ -981,7 +981,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Set<String> namesReceived =
         new LinkedHashSet<>(
             Arrays.asList(
-                root.path(0).path("firstname").asText(), root.path(1).path("firstname").asText()));
+                root.path(0).path("firstName").asText(), root.path(1).path("firstName").asText()));
     Set<String> namesExpected = new LinkedHashSet<>(Arrays.asList("Sarah", "John"));
     assertThat(namesReceived).isEqualTo(namesExpected);
   }
