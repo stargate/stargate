@@ -120,7 +120,9 @@ public class WhereParserTest {
   }
 
   // 04-Jan-2022, tatu: Verifies existing behavior as used by Stargate REST 1.0,
-  //   which seems to differ from Documents API.
+  //   which seems to differ from Documents API. Specifically, for REST API
+  //   filter gets translated to "field $EQ true", whereas Document API applies
+  //   "true" existence filter (if Document has field with any value).
   @Test
   public void testParseExistsSimple() throws Exception {
     ImmutableTable table =
