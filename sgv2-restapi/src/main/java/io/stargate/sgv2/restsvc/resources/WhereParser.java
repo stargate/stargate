@@ -167,7 +167,11 @@ public class WhereParser {
       throw new IllegalArgumentException(
           String.format("`%s` only supports the value `true`.", FilterOp.$EXISTS.rawValue));
     }
-    // Could fetch field metadata to verify it is Boolean but persistence can verify that
+    // Could also fetch field metadata to verify it is Boolean. But persistence can verify that
+
+    // 05-Jan-2022, tatu: As per [https://github.com/stargate/stargate/discussions/1519]
+    //   behavior with REST API (vs Documents API) is problematic. We implement it the same way
+    //   for StargateV2 as for V1, for compatibility reasons.
     addSingleSimpleOperator(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE, valuesBuilder);
   }
 
