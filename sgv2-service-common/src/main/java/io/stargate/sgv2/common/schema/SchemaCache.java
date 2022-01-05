@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 
 public class SchemaCache {
 
-  private final StargateStub stub;
+  private static final Logger LOG = LoggerFactory.getLogger(SchemaCache.class);
 
   public static SchemaCache newInstance(StargateStub stub) {
     SchemaCache cache = new SchemaCache(stub);
@@ -44,8 +44,7 @@ public class SchemaCache {
     return cache;
   }
 
-  private static final Logger LOG = LoggerFactory.getLogger(SchemaCache.class);
-
+  private final StargateStub stub;
   private final ConcurrentMap<String, CqlKeyspaceDescribe> keyspaces = new ConcurrentHashMap<>();
   private final CopyOnWriteArrayList<SchemaListener> listeners = new CopyOnWriteArrayList<>();
 
