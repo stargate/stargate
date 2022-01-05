@@ -17,8 +17,8 @@ package io.stargate.db.datastore.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.stargate.core.util.TimeSource;
 import java.time.Duration;
-import org.apache.cassandra.utils.TimeSource;
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.reactivex.rxjava3.core.Single;
+import io.stargate.core.util.TimeSource;
 import io.stargate.db.BatchType;
 import io.stargate.db.datastore.AbstractDataStoreTest;
 import io.stargate.db.datastore.DataStore;
@@ -33,7 +34,6 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.web.docsapi.service.JsonShreddedRow;
-import io.stargate.web.docsapi.service.TimeSource;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;

@@ -15,9 +15,9 @@
  */
 package io.stargate.db.datastore.common.util;
 
+import io.stargate.core.util.TimeSource;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.cassandra.utils.TimeSource;
 
 public abstract class HealthCheckWithGracePeriod {
   protected final Duration gracePeriod;

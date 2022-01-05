@@ -1,5 +1,6 @@
 package io.stargate.db.dse.impl;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import io.stargate.db.datastore.common.AbstractCassandraSchemaConverter;
 import io.stargate.db.schema.Column;
@@ -8,7 +9,9 @@ import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.cassandra.cql3.statements.schema.IndexTarget;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.index.Index;
@@ -28,6 +31,11 @@ public class SchemaConverter
         UserType,
         IndexMetadata,
         ViewTableMetadata> {
+
+  @Override
+  protected Set<String> getExcludedIndexOptions() {
+    return ImmutableSet.of(IndexTarget.CUSTOM_INDEX_OPTION_NAME, IndexTarget.TARGET_OPTION_NAME);
+  }
 
   @Override
   protected String keyspaceName(KeyspaceMetadata keyspace) {
@@ -146,7 +154,7 @@ public class SchemaConverter
   @Override
   protected Map<String, String> indexOptions(IndexMetadata index) {
     return index.options.entrySet().stream()
-        .filter(x -> !EXCLUDED_INDEX_OPTIONS.contains(x.getKey()))
+        .filter(x -> !getExcludedIndexOptions().contains(x.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
