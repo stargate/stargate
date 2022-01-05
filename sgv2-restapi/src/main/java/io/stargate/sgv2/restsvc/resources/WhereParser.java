@@ -77,11 +77,11 @@ public class WhereParser {
 
         switch (operator) {
           case $IN:
-            addInOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addInOperator(conditions, fieldName, valueNode, valuesBuilder);
             break;
-            //            evaluateIn(conditions, context);
           case $EXISTS:
-            //            evaluateExists(conditions, context);
+            addExistsOperator(conditions, fieldName, valueNode, valuesBuilder);
+            break;
           case $CONTAINS:
             //            evaluateContains(conditions, context);
           case $CONTAINSKEY:
@@ -90,7 +90,7 @@ public class WhereParser {
             //            evaluateContainsEntry(conditions, context);
             throw new IllegalArgumentException("Operation " + operator + " not yet supported");
           default: // GT, GTE, LT, LTE, EQ, NE
-            addSimpleOperation(conditions, fieldName, operator, valueNode, valuesBuilder);
+            addSimpleOperator(conditions, fieldName, operator, valueNode, valuesBuilder);
         }
       }
     }
@@ -102,27 +102,27 @@ public class WhereParser {
     return () -> iterator;
   }
 
-  private void addSimpleOperation(
+  private void addSimpleOperator(
       List<BuiltCondition> conditions,
       String fieldName,
       FilterOp filterOp,
       JsonNode valueNode,
       QueryOuterClass.Values.Builder valuesBuilder) {
     if (valueNode.isTextual()) {
-      addSingleSimpleCondition(
+      addSingleSimpleOperator(
           conditions, fieldName, filterOp, valueNode.textValue(), valuesBuilder);
     } else if (valueNode.isArray()) {
       for (JsonNode element : valueNode) {
-        addSingleSimpleCondition(
+        addSingleSimpleOperator(
             conditions, fieldName, filterOp, nodeToRawObject(element), valuesBuilder);
       }
     } else {
-      addSingleSimpleCondition(
+      addSingleSimpleOperator(
           conditions, fieldName, filterOp, nodeToRawObject(valueNode), valuesBuilder);
     }
   }
 
-  private void addSingleSimpleCondition(
+  private void addSingleSimpleOperator(
       List<BuiltCondition> conditions,
       String fieldName,
       FilterOp filterOp,
@@ -138,7 +138,7 @@ public class WhereParser {
     valuesBuilder.addValues(opValue);
   }
 
-  private void addInOperation(
+  private void addInOperator(
       List<BuiltCondition> conditions,
       String fieldName,
       JsonNode valueNode,
@@ -156,6 +156,19 @@ public class WhereParser {
     }
     conditions.add(BuiltCondition.ofMarker(fieldName, Predicate.IN));
     valuesBuilder.addValues(Values.of(inValues));
+  }
+
+  private void addExistsOperator(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      JsonNode valueNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    if (!valueNode.isBoolean() || !valueNode.booleanValue()) {
+      throw new IllegalArgumentException(
+          String.format("`%s` only supports the value `true`.", FilterOp.$EXISTS.rawValue));
+    }
+    // Could fetch field metadata to verify it is Boolean but persistence can verify that
+    addSingleSimpleOperator(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE, valuesBuilder);
   }
 
   private Object nodeToRawObject(JsonNode valueNode) {
