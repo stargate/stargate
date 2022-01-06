@@ -1022,41 +1022,40 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void getRowsWithSetContainsQuery() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
-            tableName,
-            Arrays.asList("id text", "tags set<text>", "firstName text"),
-            Collections.singletonList("id"),
-            Collections.singletonList("firstName"));
+        tableName,
+        Arrays.asList("id text", "tags set<text>", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
     createTestIndex(keyspaceName, tableName, "tags", "tags_index", false);
 
     insertTestTableRows(
-            Arrays.asList(
-                    Arrays.asList("id 1", "firstName Bob", "tags {'a','b'}"),
-                    Arrays.asList("id 1", "firstName Dave", "tags {'b','c'}"),
-                    Arrays.asList("id 1", "firstName Fred", "tags {'x'}")
-            ));
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "tags {'a','b'}"),
+            Arrays.asList("id 1", "firstName Dave", "tags {'b','c'}"),
+            Arrays.asList("id 1", "firstName Fred", "tags {'x'}")));
 
     // First, no match
     String whereClause = "{\"id\":{\"$eq\":\"1\"},\"tags\":{\"$contains\":\"z\"}}";
     String body =
-            RestUtils.get(
-                    authToken,
-                    String.format(
-                            "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
-                            restUrlBase, keyspaceName, tableName, whereClause),
-                    HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(0);
 
     // and then 2 matches
     whereClause = "{\"id\":{\"$eq\":\"1\"},\"tags\": {\"$contains\": \"b\"}}";
     body =
-            RestUtils.get(
-                    authToken,
-                    String.format(
-                            "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
-                            restUrlBase, keyspaceName, tableName, whereClause),
-                    HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
     json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(2);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Bob");
@@ -3089,25 +3088,28 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
-  private void createTestIndex(String keyspaceName, String tableName, String columnName,
-                              String indexName, boolean ifNotExists)
-          throws IOException {
+  private void createTestIndex(
+      String keyspaceName,
+      String tableName,
+      String columnName,
+      String indexName,
+      boolean ifNotExists)
+      throws IOException {
     IndexAdd indexAdd = new IndexAdd();
     indexAdd.setColumn(columnName);
     indexAdd.setName(indexName);
     indexAdd.setIfNotExists(ifNotExists);
 
     String body =
-            RestUtils.post(
-                    authToken,
-                    String.format(
-                            "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
-                            restUrlBase, keyspaceName, tableName),
-                    objectMapper.writeValueAsString(indexAdd),
-                    HttpStatus.SC_CREATED);
+        RestUtils.post(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, keyspaceName, tableName),
+            objectMapper.writeValueAsString(indexAdd),
+            HttpStatus.SC_CREATED);
     SuccessResponse successResponse =
-            objectMapper.readValue(body, new TypeReference<SuccessResponse>() {
-    });
+        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
     assertThat(successResponse.getSuccess()).isTrue();
   }
 
