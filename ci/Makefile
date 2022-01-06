@@ -19,6 +19,17 @@ build-docker:
 	docker build -t ${IMG} .
 	docker tag ${IMG} ${IMG_GCP}
 
-push:
+push: check-image push-exe
+
+check-image:
+	$(eval image := $(shell gcloud container images list-tags gcr.io/stargateio/stargate-builder | grep "${VERSION}"))
+	@if [ -n "${image}" ]; then \
+		echo -n "The image with the version ${VERSION} exists, do you want to overwrite [Y/n]?" \
+			&& read ans \
+			&& [ $${ans:-y} = y ] \
+			|| (echo "Aborted!"; exit 1) \
+	fi
+
+push-exe:
 	@echo Push docker image ${IMG_GCP} to GCP..
 	docker push ${IMG_GCP}
