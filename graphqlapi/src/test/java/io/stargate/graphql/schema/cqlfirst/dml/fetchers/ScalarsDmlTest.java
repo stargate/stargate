@@ -260,8 +260,6 @@ public class ScalarsDmlTest extends DmlTestBase {
         arguments(Column.Type.Tinyint, (long) Byte.MAX_VALUE, null),
         arguments(Column.Type.Timeuuid, "30821634-13ad-11eb-adc1-0242ac120002", null),
         arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef", null),
-        arguments(Column.Type.Varchar, "abc123", "'abc123'"),
-        arguments(Column.Type.Varchar, "", "''"),
         arguments(Column.Type.Varint, "0", null),
         arguments(Column.Type.Varint, "-1", null),
         arguments(Column.Type.Varint, "1", null),

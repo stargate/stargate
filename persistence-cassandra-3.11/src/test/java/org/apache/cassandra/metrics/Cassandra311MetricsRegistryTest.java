@@ -50,7 +50,7 @@ public class Cassandra311MetricsRegistryTest {
 
   @Test
   public void versionCheck() {
-    String supportedVersion = "3.11.9";
+    String supportedVersion = "3.11.11";
     String currentVersion = FBUtilities.getReleaseVersionString();
 
     assertThat(currentVersion)

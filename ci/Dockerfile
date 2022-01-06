@@ -1,4 +1,8 @@
-FROM ubuntu:bionic
+FROM ubuntu:focal
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update \
     && apt-get install -y \
@@ -19,7 +23,7 @@ RUN apt-get update \
 
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
-RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable" \
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" \
     && apt-get update \
     && apt-cache policy docker-ce \
     && apt-get install docker-ce -y
@@ -42,8 +46,8 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
     sudo python setup.py install
 
 # Create clusters to pre-download necessary artifacts
-RUN ccm create -v 4.0.0 stargate_40 && ccm remove stargate_40
-RUN ccm create -v 3.11.8 stargate_311 && ccm remove stargate_311
-RUN ccm create -v 6.8.13 --dse stargate_dse68 && ccm remove stargate_dse68
+RUN ccm create -v 4.0.1 stargate_40 && ccm remove stargate_40
+RUN ccm create -v 3.11.11 stargate_311 && ccm remove stargate_311
+RUN ccm create -v 6.8.16 --dse stargate_dse68 && ccm remove stargate_dse68
 
 CMD ["/bin/bash"]

@@ -50,7 +50,7 @@ class Cassandra311PersistenceActivatorTest {
 
   @Test
   void testMakeConfigWithCustomConfig() throws IOException {
-    // This is the path to the default Cassandra 3.11.8 cassandra.yaml
+    // This is the path to the default Cassandra 3.11.x cassandra.yaml
     // with row_cache_size_in_mb set to 1024 to test the override.
     System.setProperty(
         "stargate.unsafe.cassandra_config_path", "src/test/resources/cassandra.yaml");

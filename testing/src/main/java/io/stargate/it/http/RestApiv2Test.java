@@ -361,7 +361,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             columnDefinition ->
                 assertThat(columnDefinition)
                     .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false)));
+                    .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, text>>", false)));
   }
 
   @Test
@@ -2261,7 +2261,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     ColumnDefinition column = readWrappedRESTResponse(body, ColumnDefinition.class);
     assertThat(column)
         .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, varchar>>", false));
+        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, text>>", false));
   }
 
   @Test
@@ -2301,7 +2301,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTable(keyspaceName, tableName);
 
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "varchar");
+    ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
 
     String body =
         RestUtils.post(
@@ -2631,7 +2631,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // create UDT
     String udtString =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"varchar\"}]}";
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.post(
         authToken,
@@ -2641,7 +2641,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // update UDT: add new field
     udtString =
-        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"varchar\"}]}";
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
 
     RestUtils.put(
         authToken,
@@ -2694,7 +2694,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // update UDT: add and rename field
     udtString =
         "{\"name\": \"udt2\","
-            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"varchar\"}]},"
+            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"text\"}]},"
             + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
 
     RestUtils.put(
@@ -2864,10 +2864,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
     assertThat(fields.size()).isEqualTo(1);
     assertThat(fields.get(0).get("name")).isEqualTo("firstname");
-
-    // 20-Dec-2021, tatu: This is due to [stargate#1499], so fails with v2.0.0
-    //    until we can change the test to expect "text" instead
-    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("varchar");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("text");
   }
 
   @Test
@@ -3127,7 +3124,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, varchar>>"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, text>>"));
     columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
     columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
 

@@ -127,13 +127,13 @@ public class ScalarsTest extends BaseIntegrationTest {
         // Serialized as JSON Number
         arguments(Column.Type.Smallint, 32_767),
         arguments(Column.Type.Text, "abc123", "'abc123'"),
+        arguments(Column.Type.Text, ""),
         arguments(Column.Type.Time, "23:59:31.123456789"),
         arguments(Column.Type.Timestamp, formatInstant(now())),
         arguments(Column.Type.Tinyint, -128),
         arguments(Column.Type.Tinyint, 1),
         arguments(Column.Type.Timeuuid, Uuids.timeBased().toString()),
         arguments(Column.Type.Uuid, "f3abdfbf-479f-407b-9fde-128145bd7bef"),
-        arguments(Column.Type.Varchar, ""),
         arguments(Column.Type.Varint, "92233720368547758070000"));
   }
 

@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.cql3.BatchQueryOptions;
@@ -310,7 +309,6 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
-  @NotNull
   private AuthenticationSubject loadAuthenticationSubject(Map<String, ByteBuffer> customPayload) {
     AuthenticatedUser user = Serializer.load(customPayload);
     return AuthenticationSubject.of(user);
