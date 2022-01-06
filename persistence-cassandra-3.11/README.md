@@ -8,9 +8,10 @@ The current Cassandra version this module depends on is `3.11.11`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
-* Check what is the version of the `com.datastax.cassandra:cassandra-driver-core` in the `org.apache.cassandra:cassandra-all` for the updated version. 
+* Check the transitive dependencies of the `org.apache.cassandra:cassandra-all` for the new version.
+Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core` that `cassandra-all` depends on, is same as in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
-Set the version of the driver in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
+Note that transitive dependencies can be seen on [mvnrepository.com](https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all) or by running `./mvnw dependency:tree -pl persistence-cassandra-3.11`.
 * Change the version in the [Cassandra311MetricsRegistryTest.java](src/test/java/org/apache/cassandra/metrics/Cassandra311MetricsRegistryTest.java) to the new one.
 * Check if the new version has a transitive dependency to `org.apache.cassandra:cassandra-thrift`, and if it does remove that dependency from our [pom.xml](pom.xml).
 The `cassandra-thrift` was explicitly added when updating to `3.11.11` as it was not anymore in the `cassandra-all`.
