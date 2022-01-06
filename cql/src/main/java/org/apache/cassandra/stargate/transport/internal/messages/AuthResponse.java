@@ -26,8 +26,8 @@ import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
+import org.apache.cassandra.stargate.transport.internal.ExternalServerConnection;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.stargate.transport.internal.ServerConnection;
 
 /**
  * A SASL token message sent from client to server. Some SASL mechanisms and clients may send an
@@ -73,15 +73,20 @@ public class AuthResponse extends Message.Request {
     persistence()
         .executeAuthResponse(
             () -> {
+
+              // We should never get here for internal connections, because auth is handled
+              // internally, before any external message are proxied.
+              assert connection instanceof ExternalServerConnection;
+
               try {
                 Authenticator.SaslNegotiator negotiator =
-                    ((ServerConnection) connection).getSaslNegotiator();
+                    ((ExternalServerConnection) connection).getSaslNegotiator();
                 byte[] challenge = negotiator.evaluateResponse(token);
                 if (negotiator.isComplete()) {
                   AuthenticatedUser authenticatedUser = negotiator.getAuthenticatedUser();
                   persistenceConnection().login(authenticatedUser);
                   if (authenticatedUser.token() != null) {
-                    ((ServerConnection) connection)
+                    ((ExternalServerConnection) connection)
                         .clientInfo()
                         .setAuthenticatedUser(authenticatedUser);
                   }

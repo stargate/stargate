@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
+import org.apache.cassandra.stargate.transport.internal.ExternalServerConnection;
 import org.apache.cassandra.stargate.transport.internal.Message;
 import org.apache.cassandra.stargate.transport.internal.frame.checksum.ChecksummingTransformers;
 import org.apache.cassandra.stargate.transport.internal.frame.compress.CompressingTransformer;
@@ -112,16 +113,21 @@ public class StartupMessage extends Message.Request {
 
     connection.setThrowOnOverload("1".equals(options.get(THROW_ON_OVERLOAD)));
 
-    String driverName = options.get(DRIVER_NAME);
-    if (null != driverName) {
-      clientInfo().registerDriverInfo(DriverInfo.of(driverName, options.get(DRIVER_VERSION)));
-    }
+    if (connection instanceof ExternalServerConnection) {
+      String driverName = options.get(DRIVER_NAME);
+      if (driverName != null) {
+        ((ExternalServerConnection) connection)
+            .clientInfo()
+            .registerDriverInfo(DriverInfo.of(driverName, options.get(DRIVER_VERSION)));
+      }
 
-    Authenticator authenticator = persistence().getAuthenticator();
-    if (authenticator.requireAuthentication())
-      return CompletableFuture.completedFuture(
-          new AuthenticateMessage(authenticator.getInternalClassName()));
-    else return CompletableFuture.completedFuture(new ReadyMessage());
+      Authenticator authenticator = persistence().getAuthenticator();
+      if (authenticator.requireAuthentication()) {
+        return CompletableFuture.completedFuture(
+            new AuthenticateMessage(authenticator.getInternalClassName()));
+      }
+    }
+    return CompletableFuture.completedFuture(new ReadyMessage());
   }
 
   private static Map<String, String> upperCaseKeys(Map<String, String> options) {

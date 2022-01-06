@@ -18,6 +18,7 @@
 package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.stargate.db.Persistence;
 import io.stargate.db.Result;
 import io.stargate.db.SimpleStatement;
 import java.util.concurrent.CompletableFuture;
@@ -70,10 +71,10 @@ public class QueryMessage extends Message.Request {
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     SimpleStatement statement = new SimpleStatement(query, options.getValues(), options.getNames());
+    Persistence.Connection connection = persistenceConnection();
     CompletableFuture<? extends Result> future =
-        persistenceConnection().execute(statement, makeParameters(options), queryStartNanoTime);
-    return SchemaAgreement.maybeWaitForAgreement(future, persistenceConnection())
-        .thenApply(ResultMessage::new);
+        connection.execute(statement, makeParameters(options), queryStartNanoTime);
+    return SchemaAgreement.maybeWaitForAgreement(future, connection).thenApply(ResultMessage::new);
   }
 
   @Override

@@ -32,6 +32,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.CodecException;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -198,17 +199,32 @@ public abstract class Message {
   }
 
   public Persistence.Connection persistenceConnection() {
-    assert connection instanceof ServerConnection;
-    return ((ServerConnection) connection).persistenceConnection();
+    if (connection instanceof ExternalServerConnection) {
+      return ((ExternalServerConnection) connection).persistenceConnection();
+    } else if (connection instanceof InternalServerConnection) {
+      Persistence.Connection connection =
+          ((InternalServerConnection) this.connection).persistenceConnection(customPayload);
+      connection
+          .loggedUser()
+          .ifPresent(
+              user -> {
+                Map<String, ByteBuffer> serializedUser =
+                    AuthenticatedUser.Serializer.serialize(user);
+                if (customPayload == null) {
+                  customPayload = serializedUser;
+                } else {
+                  customPayload.putAll(serializedUser);
+                }
+              });
+      return connection;
+    } else {
+      throw new AssertionError("Unexpected connection type " + connection.getClass().getName());
+    }
   }
 
   public Persistence persistence() {
-    return persistenceConnection().persistence();
-  }
-
-  public ClientInfo clientInfo() {
     assert connection instanceof ServerConnection;
-    return ((ServerConnection) connection).clientInfo();
+    return ((ServerConnection) connection).persistence();
   }
 
   public abstract static class Request extends Message {
@@ -328,10 +344,11 @@ public abstract class Message {
           Request req = (Request) message;
           Connection connection = ctx.channel().attr(Connection.attributeKey).get();
 
-          if (connection != null
-              && ((ServerConnection) connection).clientInfo() != null
-              && ((ServerConnection) connection).clientInfo().getAuthenticatedUser() != null) {
-            ClientInfo clientInfo = ((ServerConnection) connection).clientInfo();
+          if (connection instanceof ExternalServerConnection
+              && ((ExternalServerConnection) connection).clientInfo() != null
+              && ((ExternalServerConnection) connection).clientInfo().getAuthenticatedUser()
+                  != null) {
+            ClientInfo clientInfo = ((ExternalServerConnection) connection).clientInfo();
 
             if (customPayload != null) {
               clientInfo.storeAuthenticationData(customPayload);
@@ -340,7 +357,10 @@ public abstract class Message {
               clientInfo.storeAuthenticationData(payload);
               message.setCustomPayload(payload);
             }
+            // Note: for internal connections, the user is copied to the payload by
+            // persistenceConnection()
           }
+
           req.attach(connection);
           if (isTracing) {
             req.setTracingRequested();

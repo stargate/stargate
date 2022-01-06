@@ -105,6 +105,7 @@ public class CqlServer implements CassandraDaemon.Server {
   private static final boolean useEpoll = CqlImpl.useEpoll();
 
   final TransportDescriptor transportDescriptor;
+  final PersistenceConnectionFactory persistenceConnectionFactory;
   final ConnectionTracker connectionTracker = new ConnectionTracker();
   // global inflight payload across all channels across all endpoints
   private final ResourceLimits.Concurrent globalRequestPayloadInFlight;
@@ -120,6 +121,10 @@ public class CqlServer implements CassandraDaemon.Server {
 
   private CqlServer(Builder builder) {
     this.transportDescriptor = builder.transportDescriptor;
+    this.persistenceConnectionFactory =
+        transportDescriptor.isInternal()
+            ? new PersistenceConnectionFactory(builder.persistence, builder.authentication)
+            : null;
     this.globalRequestPayloadInFlight =
         new ResourceLimits.Concurrent(
             transportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes());
@@ -198,7 +203,9 @@ public class CqlServer implements CassandraDaemon.Server {
   }
 
   private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
-    return new ServerConnection(channel, socket.getPort(), proxyInfo, version, this);
+    return transportDescriptor.isInternal()
+        ? new InternalServerConnection(channel, version, this)
+        : new ExternalServerConnection(channel, socket.getPort(), proxyInfo, version, this);
   }
 
   public int countConnectedClients() {
@@ -217,8 +224,8 @@ public class CqlServer implements CassandraDaemon.Server {
     List<ConnectedClient> result = new ArrayList<>();
     for (Channel c : connectionTracker.allChannels) {
       Connection conn = c.attr(Connection.attributeKey).get();
-      if (conn instanceof ServerConnection)
-        result.add(new ConnectedClient((ServerConnection) conn));
+      if (conn instanceof ExternalServerConnection)
+        result.add(new ConnectedClient((ExternalServerConnection) conn));
     }
     return result;
   }
@@ -398,8 +405,8 @@ public class CqlServer implements CassandraDaemon.Server {
       Map<String, Integer> result = new HashMap<>();
       for (Channel c : allChannels) {
         Connection connection = c.attr(Connection.attributeKey).get();
-        if (connection instanceof ServerConnection) {
-          ServerConnection conn = (ServerConnection) connection;
+        if (connection instanceof ExternalServerConnection) {
+          ExternalServerConnection conn = (ExternalServerConnection) connection;
           Optional<AuthenticatedUser> user = conn.persistenceConnection().loggedUser();
           String name = user.map(AuthenticatedUser::name).orElse("unknown");
           result.put(name, result.getOrDefault(name, 0) + 1);

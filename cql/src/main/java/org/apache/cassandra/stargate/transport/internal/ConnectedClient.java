@@ -41,9 +41,9 @@ public final class ConnectedClient {
 
   private static final String UNDEFINED = "undefined";
 
-  private final ServerConnection connection;
+  private final ExternalServerConnection connection;
 
-  ConnectedClient(ServerConnection connection) {
+  ConnectedClient(ExternalServerConnection connection) {
     this.connection = connection;
   }
 
