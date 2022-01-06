@@ -58,7 +58,6 @@ public class ColumnUtils {
     CODECS.put(Column.Type.Timeuuid, ImmutableCodecs.builder().codec(TypeCodecs.TIMEUUID).build());
     CODECS.put(Column.Type.Tinyint, ImmutableCodecs.builder().codec(TypeCodecs.TINYINT).build());
     CODECS.put(Column.Type.Uuid, ImmutableCodecs.builder().codec(TypeCodecs.UUID).build());
-    CODECS.put(Column.Type.Varchar, ImmutableCodecs.builder().codec(TypeCodecs.TEXT).build());
     CODECS.put(Column.Type.Varint, ImmutableCodecs.builder().codec(TypeCodecs.VARINT).build());
   }
 

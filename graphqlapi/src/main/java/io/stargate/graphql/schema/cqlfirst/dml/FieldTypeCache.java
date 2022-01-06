@@ -75,11 +75,6 @@ abstract class FieldTypeCache<GraphqlT> {
       type = ImmutableListType.builder().addAllParameters(type.parameters()).build();
     }
 
-    // CQL text and varchar use the same GraphQL type.
-    if (type == Type.Varchar) {
-      type = Type.Text;
-    }
-
     return type;
   }
 
@@ -99,7 +94,6 @@ abstract class FieldTypeCache<GraphqlT> {
       case Int:
         return Scalars.GraphQLInt;
       case Text:
-      case Varchar:
         return Scalars.GraphQLString;
       default:
         return CqlScalar.fromCqlType(type)

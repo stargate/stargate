@@ -218,8 +218,7 @@ public class FieldTypeCachesTest {
             arguments(Type.Boolean, Scalars.GraphQLBoolean),
             arguments(Type.Double, Scalars.GraphQLFloat),
             arguments(Type.Int, Scalars.GraphQLInt),
-            arguments(Type.Text, Scalars.GraphQLString),
-            arguments(Type.Varchar, Scalars.GraphQLString));
+            arguments(Type.Text, Scalars.GraphQLString));
     Stream<Arguments> cqlScalars =
         Arrays.stream(CqlScalar.values()).map(s -> arguments(s.getCqlType(), s.getGraphqlType()));
     return Stream.concat(builtinScalars, cqlScalars);

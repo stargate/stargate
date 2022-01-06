@@ -113,6 +113,10 @@ public class Cassandra311Persistence
 
   private static final Logger logger = LoggerFactory.getLogger(Cassandra311Persistence.class);
 
+  // copied from org.apache.cassandra.service.MigrationCoordinator.MIGRATION_DELAY_IN_MS
+  // please keep in sync
+  private static final int MIGRATION_DELAY_IN_MS = 60000;
+
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
 
@@ -122,7 +126,7 @@ public class Cassandra311Persistence
    * unknown how long a schema migration takes this waits for an extra MIGRATION_DELAY_IN_MS.
    */
   private static final int STARTUP_DELAY_MS =
-      Integer.getInteger("stargate.startup_delay_ms", 3 * MigrationManager.MIGRATION_DELAY_IN_MS);
+      Integer.getInteger("stargate.startup_delay_ms", 3 * MIGRATION_DELAY_IN_MS);
 
   // SCHEMA_SYNC_GRACE_PERIOD should be longer than MigrationManager.MIGRATION_DELAY_IN_MS to allow
   // the schema pull tasks to be initiated, plus some time for executing the pull requests plus
@@ -131,9 +135,7 @@ public class Cassandra311Persistence
   // operation should complete within the default MIGRATION_DELAY_IN_MS.
   private static final Duration SCHEMA_SYNC_GRACE_PERIOD =
       Duration.ofMillis(
-          Long.getLong(
-              "stargate.schema_sync_grace_period_ms",
-              2 * MigrationManager.MIGRATION_DELAY_IN_MS + 10_000));
+          Long.getLong("stargate.schema_sync_grace_period_ms", 2 * MIGRATION_DELAY_IN_MS + 10_000));
 
   private final SchemaCheck schemaCheck = new SchemaCheck();
 
@@ -203,7 +205,6 @@ public class Cassandra311Persistence
     executor =
         SHARED.newExecutor(
             DatabaseDescriptor.getNativeTransportMaxThreads(),
-            Integer.MAX_VALUE,
             "transport",
             "Native-Transport-Requests");
 

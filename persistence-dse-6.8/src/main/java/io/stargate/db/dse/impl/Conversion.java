@@ -177,8 +177,7 @@ public class Conversion {
     types.put(IntegerType.instance.getClass(), Column.Type.Varint);
     types.put(ShortType.instance.getClass(), Column.Type.Smallint);
     types.put(UUIDType.instance.getClass(), Column.Type.Uuid);
-    // TODO update to Text after #1506
-    types.put(UTF8Type.instance.getClass(), Column.Type.Varchar);
+    types.put(UTF8Type.instance.getClass(), Column.Type.Text);
     types.put(TimeType.instance.getClass(), Column.Type.Time);
     types.put(TimestampType.instance.getClass(), Column.Type.Timestamp);
     types.put(TimeUUIDType.instance.getClass(), Column.Type.Timeuuid);

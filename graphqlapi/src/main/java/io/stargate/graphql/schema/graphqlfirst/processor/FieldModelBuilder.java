@@ -42,7 +42,7 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
       ImmutableMap.<String, Column.ColumnType>builder()
           .put(Scalars.GraphQLInt.getName(), Column.Type.Int)
           .put(Scalars.GraphQLFloat.getName(), Column.Type.Double)
-          .put(Scalars.GraphQLString.getName(), Column.Type.Varchar)
+          .put(Scalars.GraphQLString.getName(), Column.Type.Text)
           .put(Scalars.GraphQLBoolean.getName(), Column.Type.Boolean)
           .put(Scalars.GraphQLID.getName(), Column.Type.Uuid)
           .build();
@@ -167,7 +167,7 @@ class FieldModelBuilder extends ModelBuilderBase<FieldModel> {
         TypeDefinition<?> definition =
             typeRegistry.getType(typeName).orElseThrow(AssertionError::new);
         if (definition instanceof EnumTypeDefinition) {
-          return Column.Type.Varchar;
+          return Column.Type.Text;
         }
         if (definition instanceof ObjectTypeDefinition) {
           return expectUdt((ObjectTypeDefinition) definition);

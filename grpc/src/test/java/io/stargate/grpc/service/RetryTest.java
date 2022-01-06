@@ -62,13 +62,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             true,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -96,8 +96,7 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            Utils.makePreparedMetadata(Column.create("k", Type.Text), Column.create("v", Type.Int)),
             true,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
@@ -125,8 +124,7 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            Utils.makePreparedMetadata(Column.create("k", Type.Text), Column.create("v", Type.Int)),
             true,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
@@ -153,13 +151,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             true,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -187,13 +185,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             true,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -221,13 +219,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             true,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -255,13 +253,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             true,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -288,13 +286,13 @@ public class RetryTest extends BaseGrpcServiceTest {
     final String releaseVersion = "4.0.0";
 
     ResultMetadata resultMetadata =
-        Utils.makeResultMetadata(Column.create("release_version", Type.Varchar));
+        Utils.makeResultMetadata(Column.create("release_version", Type.Text));
     Prepared prepared =
         new Prepared(
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             resultMetadata,
-            Utils.makePreparedMetadata(Column.create("key", Type.Varchar)),
+            Utils.makePreparedMetadata(Column.create("key", Type.Text)),
             false,
             false);
     when(connection.prepare(eq(query), any(Parameters.class)))
@@ -372,8 +370,7 @@ public class RetryTest extends BaseGrpcServiceTest {
             Utils.STATEMENT_ID,
             Utils.RESULT_METADATA_ID,
             Utils.makeResultMetadata(),
-            Utils.makePreparedMetadata(
-                Column.create("k", Type.Varchar), Column.create("v", Type.Int)),
+            Utils.makePreparedMetadata(Column.create("k", Type.Text), Column.create("v", Type.Int)),
             false,
             false);
     when(connection.prepare(anyString(), any(Parameters.class)))
