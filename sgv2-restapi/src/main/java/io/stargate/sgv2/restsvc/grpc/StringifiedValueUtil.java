@@ -26,11 +26,12 @@ public class StringifiedValueUtil {
               "Invalid %s value '%s': at character %d expecting '%c' but got EOF",
               typeDesc, value, idx, openingBrace));
     }
-    if (value.charAt(idx++) != openingBrace) {
+    char c = value.charAt(idx++);
+    if (c != openingBrace) {
       throw new IllegalArgumentException(
           String.format(
               "Invalid %s value '%s': at character %d expecting '%s' but got '%c'",
-              typeDesc, value, idx, openingBrace, value.charAt(idx)));
+              typeDesc, value, idx, openingBrace, c));
     }
     idx = skipSpaces(value, idx);
     if (idx >= value.length()) {
