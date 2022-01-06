@@ -822,7 +822,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     JsonNode data = getResponseWrapper.getData();
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.at("/0/id").asText()).isEqualTo(rowIdentifier);
-    assertThat(data.at("/0/firstName").asText()).isEqualTo("John");
+    assertThat(data.at("/0/firstname").asText()).isEqualTo("John");
   }
 
   @Test
