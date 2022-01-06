@@ -60,7 +60,7 @@ public class StorageHealthChecker extends HealthCheck {
           .name(TABLE_NAME)
           .addColumns(
               ImmutableColumn.create(PK_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Uuid),
-              ImmutableColumn.create(VALUE_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar))
+              ImmutableColumn.create(VALUE_COLUMN_NAME, Column.Kind.Regular, Column.Type.Text))
           .build();
   private final DataStoreFactory dataStoreFactory;
 

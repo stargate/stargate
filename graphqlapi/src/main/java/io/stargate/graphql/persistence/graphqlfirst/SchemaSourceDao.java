@@ -73,14 +73,13 @@ public class SchemaSourceDao {
           .name(TABLE_NAME)
           .addColumns(
               ImmutableColumn.create(
-                  KEYSPACE_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Varchar),
+                  KEYSPACE_COLUMN_NAME, Column.Kind.PartitionKey, Column.Type.Text),
               ImmutableColumn.create(
                   VERSION_COLUMN_NAME,
                   Column.Kind.Clustering,
                   Column.Type.Timeuuid,
                   Column.Order.DESC),
-              ImmutableColumn.create(
-                  CONTENTS_COLUMN_NAME, Column.Kind.Regular, Column.Type.Varchar),
+              ImmutableColumn.create(CONTENTS_COLUMN_NAME, Column.Kind.Regular, Column.Type.Text),
               ImmutableColumn.create(
                   LATEST_VERSION_COLUMN_NAME, Column.Kind.Static, Column.Type.Timeuuid),
               ImmutableColumn.create(

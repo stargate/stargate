@@ -210,7 +210,6 @@ public class Converters {
 
     switch (type.rawType()) {
       case Text:
-      case Varchar:
       case Ascii:
       case Uuid:
       case Timeuuid:
@@ -537,9 +536,7 @@ public class Converters {
       return toCqlUdt((UserDefinedType) type, value);
     }
 
-    if (rawType == Column.Type.Text
-        || rawType == Column.Type.Varchar
-        || rawType == Column.Type.Ascii) {
+    if (rawType == Column.Type.Text || rawType == Column.Type.Ascii) {
       return value;
     }
 

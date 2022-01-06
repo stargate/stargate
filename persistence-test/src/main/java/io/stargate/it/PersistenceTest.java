@@ -46,7 +46,6 @@ import static io.stargate.db.schema.Column.Type.Timeuuid;
 import static io.stargate.db.schema.Column.Type.Tinyint;
 import static io.stargate.db.schema.Column.Type.Tuple;
 import static io.stargate.db.schema.Column.Type.Uuid;
-import static io.stargate.db.schema.Column.Type.Varchar;
 import static io.stargate.db.schema.Column.Type.Varint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -266,14 +265,14 @@ public abstract class PersistenceTest {
         .queryBuilder()
         .create()
         .table(keyspace, table)
-        .column("PK1", Varchar, PartitionKey)
-        .column("PK2", Varchar, PartitionKey)
-        .column("CC1", Varchar, Clustering, ASC)
-        .column("CC2", Varchar, Clustering, DESC)
-        .column("R1", Varchar)
-        .column("R2", Varchar)
-        .column("S1", Varchar, Static)
-        .column("S2", Varchar, Static)
+        .column("PK1", Text, PartitionKey)
+        .column("PK2", Text, PartitionKey)
+        .column("CC1", Text, Clustering, ASC)
+        .column("CC2", Text, Clustering, DESC)
+        .column("R1", Text)
+        .column("R2", Text)
+        .column("S1", Text, Static)
+        .column("S2", Text, Static)
         .build()
         .execute()
         .join();
@@ -282,14 +281,14 @@ public abstract class PersistenceTest {
             Schema.build()
                 .keyspace(keyspace)
                 .table(table)
-                .column("PK1", Varchar, PartitionKey)
-                .column("PK2", Varchar, PartitionKey)
-                .column("CC1", Varchar, Clustering, ASC)
-                .column("CC2", Varchar, Clustering, DESC)
-                .column("S1", Varchar, Static)
-                .column("S2", Varchar, Static)
-                .column("R1", Varchar)
-                .column("R2", Varchar)
+                .column("PK1", Text, PartitionKey)
+                .column("PK2", Text, PartitionKey)
+                .column("CC1", Text, Clustering, ASC)
+                .column("CC2", Text, Clustering, DESC)
+                .column("S1", Text, Static)
+                .column("S2", Text, Static)
+                .column("R1", Text)
+                .column("R2", Text)
                 .build()
                 .keyspace(keyspace)
                 .table(table));
@@ -302,9 +301,9 @@ public abstract class PersistenceTest {
     createKeyspace();
 
     Column.ColumnType nestedTuple = Tuple.of(Int, Double);
-    Column.ColumnType tupleType = Tuple.of(Varchar, nestedTuple);
+    Column.ColumnType tupleType = Tuple.of(Text, nestedTuple);
     Column.ColumnType nestedDuration = Tuple.of(Int, Duration);
-    Column.ColumnType tupleTypeWithDuration = Tuple.of(Varchar, nestedDuration);
+    Column.ColumnType tupleTypeWithDuration = Tuple.of(Text, nestedDuration);
     //        Column.ColumnType nestedGeo = Tuple.of(Polygon, LineString);
     //        Column.ColumnType tupleTypeWithGeo = Tuple.of(Point, nestedGeo);
 
@@ -318,7 +317,7 @@ public abstract class PersistenceTest {
     //        UserDefinedType udtType =
     // ImmutableUserDefinedType.builder().name("My_udt").keyspace(ks.name())
     //                .addColumns(Column.create("a", Int), Column.create("b", Int),
-    // Column.create("c", Varchar)).build();
+    // Column.create("c", Text)).build();
 
     List<Pair<Column.ColumnType, Object>> values =
         ImmutableList.<Pair<Column.ColumnType, Object>>builder()
@@ -341,7 +340,7 @@ public abstract class PersistenceTest {
             .add(Pair.with(Inet, Inet4Address.getByAddress(new byte[] {2, 3, 4, 5})))
             .add(Pair.with(Int, 4))
             .add(Pair.with(List.of(Double), Arrays.asList(3.0, 4.5)))
-            .add(Pair.with(Map.of(Varchar, Int), ImmutableMap.of("Alice", 3, "Bob", 4)))
+            .add(Pair.with(Map.of(Text, Int), ImmutableMap.of("Alice", 3, "Bob", 4)))
             .add(Pair.with(Set.of(Double), ImmutableSet.of(3.4, 5.3)))
             .add(
                 Pair.with(
@@ -350,7 +349,7 @@ public abstract class PersistenceTest {
                         CqlDuration.newInstance(2, 3, 5), CqlDuration.newInstance(2, 3, 6))))
             .add(
                 Pair.with(
-                    Map.of(Varchar, Duration),
+                    Map.of(Text, Duration),
                     ImmutableMap.of(
                         "Alice",
                         CqlDuration.newInstance(2, 3, 5),
@@ -368,7 +367,7 @@ public abstract class PersistenceTest {
                     tupleTypeWithDuration.create(
                         "Test", nestedDuration.create(2, CqlDuration.newInstance(2, 3, 6)))))
             .add(Pair.with(Uuid, random()))
-            .add(Pair.with(Varchar, "Hi"))
+            .add(Pair.with(Text, "Hi"))
             .add(Pair.with(Varint, BigInteger.valueOf(23)))
             //                .add(Pair.with(Point, point))
             //                .add(Pair.with(Polygon, polygon))
@@ -396,7 +395,7 @@ public abstract class PersistenceTest {
 
             // Frozen types
             .add(Pair.with(List.of(Double).frozen(), Arrays.asList(3.0, 4.5)))
-            .add(Pair.with(Map.of(Varchar, Int).frozen(), ImmutableMap.of("Alice", 3, "Bob", 4)))
+            .add(Pair.with(Map.of(Text, Int).frozen(), ImmutableMap.of("Alice", 3, "Bob", 4)))
             .add(Pair.with(Set.of(Double).frozen(), ImmutableSet.of(3.4, 5.3)))
             .build();
 
@@ -504,7 +503,6 @@ public abstract class PersistenceTest {
             .put(Timeuuid, timeBased())
             .put(Tinyint, (byte) 4)
             .put(Uuid, random())
-            .put(Varchar, "some varchar")
             .put(Varint, BigInteger.valueOf(23))
             //                .put(Point, new Point(3.3, 4.4))
             //                .put(Polygon, new Polygon(new Point(30, 10), new Point(10, 20), new
@@ -561,9 +559,9 @@ public abstract class PersistenceTest {
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
-        .column("b", Varchar)
+        .column("b", Text)
         .column("c", Uuid)
-        .column("d", Varchar)
+        .column("d", Text)
         .build()
         .execute()
         .join();
@@ -584,9 +582,9 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .column("a", Int, PartitionKey)
-                .column("b", Varchar)
+                .column("b", Text)
                 .column("c", Uuid)
-                .column("d", Varchar)
+                .column("d", Text)
                 .secondaryIndex("byB")
                 .column("b")
                 .build()
@@ -610,9 +608,9 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .column("a", Int, PartitionKey)
-                .column("b", Varchar)
+                .column("b", Text)
                 .column("c", Uuid)
-                .column("d", Varchar)
+                .column("d", Text)
                 .secondaryIndex("byB")
                 .column("b")
                 .secondaryIndex("byC")
@@ -644,9 +642,9 @@ public abstract class PersistenceTest {
             .keyspace(keyspace)
             .table(table)
             .column("a", Int, PartitionKey)
-            .column("b", Varchar)
+            .column("b", Text)
             .column("c", Uuid)
-            .column("d", Varchar)
+            .column("d", Text)
             .secondaryIndex("byB")
             .column("b")
             .secondaryIndex("byC")
@@ -674,7 +672,7 @@ public abstract class PersistenceTest {
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
-        .column("b", Varchar, Clustering)
+        .column("b", Text, Clustering)
         .withComment("test-comment1")
         .build()
         .execute()
@@ -698,7 +696,7 @@ public abstract class PersistenceTest {
     assertThat(mv.comment()).isEqualTo("test-comment2");
     assertThat(mv.columns()).hasSize(2);
     assertThat(mv.column("b").kind()).isEqualTo(PartitionKey);
-    assertThat(mv.column("b").type()).isEqualTo(Varchar);
+    assertThat(mv.column("b").type()).isEqualTo(Text);
     assertThat(mv.column("a").kind()).isEqualTo(Clustering);
     assertThat(mv.column("a").type()).isEqualTo(Int);
   }
@@ -853,7 +851,6 @@ public abstract class PersistenceTest {
         .put(Timeuuid, timeBased())
         .put(Tinyint, (byte) 4)
         .put(Uuid, random())
-        .put(Varchar, "some varchar")
         .put(Varint, BigInteger.valueOf(23))
         //                .put(Point, new Point(3.3, 4.4))
         //                .put(Polygon, new Polygon(new Point(30, 10), new Point(10, 20), new
@@ -877,13 +874,13 @@ public abstract class PersistenceTest {
                 Column.create("a", Int),
                 Column.create("mylist", List.of(Double)),
                 Column.create("myset", Set.of(Double)),
-                Column.create("mymap", Map.of(Varchar, Int)),
-                Column.create("mytuple", Tuple.of(Varchar, Tuple.of(Int, Double))))
+                Column.create("mymap", Map.of(Text, Int)),
+                Column.create("mytuple", Tuple.of(Text, Tuple.of(Int, Double))))
             .build();
     dataStore.queryBuilder().create().type(keyspace, udtType).build().execute().join();
     ks = dataStore.schema().keyspace(ks.name());
     Column.ColumnType nestedTuple = Tuple.of(Int, Double);
-    Column.ColumnType tupleType = Tuple.of(Varchar, nestedTuple);
+    Column.ColumnType tupleType = Tuple.of(Text, nestedTuple);
 
     dataStore
         .queryBuilder()
@@ -940,9 +937,9 @@ public abstract class PersistenceTest {
   public void testTupleMismatch() throws ExecutionException, InterruptedException {
     Keyspace ks = createKeyspace();
     Column.ColumnType nested = Tuple.of(Text, Double);
-    Column.ColumnType tupleType = Tuple.of(Varchar, nested);
+    Column.ColumnType tupleType = Tuple.of(Text, nested);
     Column.ColumnType alternativeNested = Tuple.of(Int, Double);
-    Column.ColumnType alternativeType = Tuple.of(Varchar, alternativeNested);
+    Column.ColumnType alternativeType = Tuple.of(Text, alternativeNested);
 
     dataStore
         .queryBuilder()
@@ -975,7 +972,7 @@ public abstract class PersistenceTest {
     } catch (IllegalArgumentException ex) {
       assertThat(ex)
           .hasMessage(
-              "Wrong value type provided for column 'tuple'. Provided type 'Integer' is not compatible with expected CQL type 'varchar' at location 'tuple.frozen<tuple<varchar, frozen<tuple<varchar, double>>>>[1].frozen<tuple<varchar, double>>[0]'.");
+              "Wrong value type provided for column 'tuple'. Provided type 'Integer' is not compatible with expected CQL type 'Text' at location 'tuple.frozen<tuple<Text, frozen<tuple<Text, double>>>>[1].frozen<tuple<Text, double>>[0]'.");
     }
   }
 
@@ -1007,7 +1004,7 @@ public abstract class PersistenceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
             "Invalid value provided for 'name': "
-                + "Java value 42 of type 'java.lang.Integer' is not a valid value for CQL type varchar");
+                + "Java value 42 of type 'java.lang.Integer' is not a valid value for CQL type text");
   }
 
   @Disabled("Disabling for now since it fails with a strange MV schema generated")
@@ -1019,7 +1016,7 @@ public abstract class PersistenceTest {
         .create()
         .table(keyspace, table)
         .column("a", Int, PartitionKey)
-        .column("b", Varchar)
+        .column("b", Text)
         .column("c", Uuid)
         .build()
         .execute()
@@ -1044,7 +1041,7 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .column("a", Int, PartitionKey)
-                .column("b", Varchar)
+                .column("b", Text)
                 .column("c", Uuid)
                 .materializedView("byB")
                 .column("b", PartitionKey)
@@ -1073,7 +1070,7 @@ public abstract class PersistenceTest {
                 .keyspace(keyspace)
                 .table(table)
                 .column("a", Int, PartitionKey)
-                .column("b", Varchar)
+                .column("b", Text)
                 .column("c", Uuid)
                 .materializedView("byB")
                 .column("b", PartitionKey)

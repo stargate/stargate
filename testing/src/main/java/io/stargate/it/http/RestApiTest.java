@@ -233,8 +233,7 @@ public class RestApiTest extends BaseIntegrationTest {
     assertThat(columnDefinitions.size()).isEqualTo(4);
     columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
     assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
-    assertThat(columnDefinitions.get(0).getTypeDefinition())
-        .isEqualTo("frozen<map<date, varchar>>");
+    assertThat(columnDefinitions.get(0).getTypeDefinition()).isEqualTo("frozen<map<date, text>>");
   }
 
   @Test
@@ -1195,8 +1194,7 @@ public class RestApiTest extends BaseIntegrationTest {
     assertThat(columnDefinitions.size()).isEqualTo(4);
     columnDefinitions.sort(Comparator.comparing(ColumnDefinition::getName));
     assertThat(columnDefinitions.get(0).getName()).isEqualTo("col1");
-    assertThat(columnDefinitions.get(0).getTypeDefinition())
-        .isEqualTo("frozen<map<date, varchar>>");
+    assertThat(columnDefinitions.get(0).getTypeDefinition()).isEqualTo("frozen<map<date, text>>");
   }
 
   @Test
@@ -1214,7 +1212,7 @@ public class RestApiTest extends BaseIntegrationTest {
     ColumnDefinition columnDefinition =
         objectMapper.readValue(body, new TypeReference<ColumnDefinition>() {});
     assertThat(columnDefinition.getName()).isEqualTo("firstName");
-    assertThat(columnDefinition.getTypeDefinition()).isEqualTo("varchar");
+    assertThat(columnDefinition.getTypeDefinition()).isEqualTo("text");
   }
 
   @Test
@@ -1278,7 +1276,7 @@ public class RestApiTest extends BaseIntegrationTest {
     List<ColumnDefinition> columnDefinitions = new ArrayList<>();
 
     columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, varchar>>"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, text>>"));
     columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
     columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
 

@@ -230,7 +230,9 @@ message TypeSpec {
     DOUBLE = 0x07;
     FLOAT = 0x08;
     INT = 0x09;
-    TEXT = 0xA;
+    // Note that TEXT and VARCHAR are synonyms in Cassandra. gRPC responses will always use VARCHAR,
+    // regardless of the name that was used for creation.
+    TEXT = 0xA [deprecated = true];
     TIMESTAMP = 0x0B;
     UUID = 0x0C;
     VARCHAR = 0x0D;

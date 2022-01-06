@@ -299,7 +299,7 @@ class ConversionTest {
     public void utf8Type() {
       Column.ColumnType result = Conversion.getTypeFromInternal(UTF8Type.instance);
 
-      assertThat(result.rawType()).isEqualTo(Column.Type.Varchar);
+      assertThat(result.rawType()).isEqualTo(Column.Type.Text);
     }
 
     @Test

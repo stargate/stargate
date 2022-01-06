@@ -53,7 +53,7 @@ public class ProcessResultTest {
     return Stream.of(
         ResultSetBuilder.builder()
             .addActualColumn(Column.create("c1", Column.Type.Int))
-            .addActualColumn(Column.create("c2", Column.Type.Varchar))
+            .addActualColumn(Column.create("c2", Column.Type.Text))
             .addActualColumn(Column.create("c3", Column.Type.Uuid))
             .addExpectedColumn(
                 ColumnSpec.newBuilder()
@@ -80,7 +80,7 @@ public class ProcessResultTest {
             .build(false),
         ResultSetBuilder.builder()
             .addActualColumn(Column.create("c1", Column.Type.Int))
-            .addActualColumn(Column.create("c2", Column.Type.Varchar))
+            .addActualColumn(Column.create("c2", Column.Type.Text))
             .addActualColumn(Column.create("c3", Column.Type.Uuid))
             .addActualRow(1, "a", UUID.fromString("d1dbc5ca-b4e9-43ec-9ffd-e5bada9dc531"))
             .addActualRow(2, "b", UUID.fromString("f09f1429-05d1-4dd3-98fc-a5324ebcb113"))
