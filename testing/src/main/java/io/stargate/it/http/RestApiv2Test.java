@@ -109,6 +109,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     }
   }
 
+  static class JsonNodeGetResponseWrapper extends GetResponseWrapper<JsonNode> {
+    public JsonNodeGetResponseWrapper() {
+      super(-1, null, null);
+    }
+  }
+
   // TablesResource specifies only as "Map" but it looks to me like:
   static class NameResponse {
     public String name;
@@ -811,12 +817,44 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
 
-    @SuppressWarnings("rawtypes")
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        objectMapper.readValue(body, ListOfMapsGetResponseWrapper.class);
-    List<Map<String, Object>> data = getResponseWrapper.getData();
-    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("firstname")).isEqualTo("John");
+    JsonNodeGetResponseWrapper getResponseWrapper =
+        objectMapper.readValue(body, JsonNodeGetResponseWrapper.class);
+    JsonNode data = getResponseWrapper.getData();
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.at("/0/id").asText()).isEqualTo(rowIdentifier);
+    assertThat(data.at("/0/firstName").asText()).isEqualTo("John");
+  }
+
+  @Test
+  public void getRowsWithQuery2Filters() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "age int", "firstName text"),
+        Collections.singletonList("id"),
+        Arrays.asList("age", "firstName"));
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "age 25"),
+            Arrays.asList("id 1", "firstName Dave", "age 40"),
+            Arrays.asList("id 1", "firstName Fred", "age 63")));
+
+    // Test the case where we have 2 filters ($gt and $lt) for one field
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"age\":{\"$gt\":30,\"$lt\":50}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNodeGetResponseWrapper getResponseWrapper =
+        objectMapper.readValue(body, JsonNodeGetResponseWrapper.class);
+    JsonNode data = getResponseWrapper.getData();
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.at("/0/id").asText()).isEqualTo("1");
+    assertThat(data.at("/0/firstName").asText()).isEqualTo("Dave");
   }
 
   @Test
