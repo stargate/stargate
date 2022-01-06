@@ -160,7 +160,13 @@ public class BridgeProtoTypeTranslator {
     static {
       simpleBridgeToCqlTypes = new EnumMap<>(QueryOuterClass.TypeSpec.Basic.class);
       for (QueryOuterClass.TypeSpec.Basic basicType : QueryOuterClass.TypeSpec.Basic.values()) {
-        simpleBridgeToCqlTypes.put(basicType, basicType.name().toLowerCase());
+        String cqlName = basicType.name().toLowerCase();
+        // 06-Jan-2021, tatu: One exception; let's map "Varchar" to "Text". Not the cleanest
+        //    way but has to do since internally Varchar is still used:
+        if ("varchar".equals(cqlName)) {
+          cqlName = "text";
+        }
+        simpleBridgeToCqlTypes.put(basicType, cqlName);
       }
     }
 
