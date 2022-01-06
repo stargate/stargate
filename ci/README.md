@@ -13,18 +13,19 @@ The docker image is directly referenced in the [cloudbuild.yaml](../cloudbuild.y
 
 ### Prerequisites
 
-In order to push the new docker image to the GCP image registry `gcr.io/stargateio`, besides having permissions to do so, you should authenticate and setup your docker configuration using:
+In order to push the new docker image to the GCP image registry `gcr.io/stargateio`, besides having permissions to do so, you should authenticate and set up your docker configuration using:
 
 ```bash
 gcloud auth login
 gcloud auth configure-docker
 ```
 
+That said, it's assumed that `gcloud` is available on the system, as it's going to be used for getting the existing image tags in the [Makefile](./Makefile).
+
 ### Process
 
 * Perform wanted updates related to the image.
 * Bump the `VERSION` variable in the [Makefile](Makefile).
-**This step is mandatory, otherwise you will overwrite the existing image.**
 * Run `make info` and confirm that the image you are about to build and push has a correct tag.
 * Run `make build push`.
 It will build the image and push to the GCP repository.
