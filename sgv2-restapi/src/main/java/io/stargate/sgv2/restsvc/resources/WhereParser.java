@@ -83,7 +83,8 @@ public class WhereParser {
             addExistsOperator(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $CONTAINS:
-            //            evaluateContains(conditions, context);
+            addContainsOperator(conditions, fieldName, valueNode, valuesBuilder);
+            break;
           case $CONTAINSKEY:
             //            evaluateContainsKey(conditions, context);
           case $CONTAINSENTRY:
@@ -136,6 +137,17 @@ public class WhereParser {
     }
     conditions.add(BuiltCondition.ofMarker(fieldName, filterOp.predicate));
     valuesBuilder.addValues(opValue);
+  }
+
+  private void addContainsOperator(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      JsonNode valueNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    // Can only use Contains for containers (maps, sets, lists); could get field
+    // metadata here, but for now will let persistence validate everything
+    final Object rawValue = nodeToRawObject(valueNode);
+    addSingleSimpleOperator(conditions, fieldName, FilterOp.$CONTAINS, rawValue, valuesBuilder);
   }
 
   private void addInOperator(
