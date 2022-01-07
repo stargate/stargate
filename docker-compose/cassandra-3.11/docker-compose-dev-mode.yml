@@ -1,10 +1,10 @@
 version: '2'
 
 services:
-  stargate:
-    image: stargateio/sgv2-coordinator-3_11:v2.0.0-ALPHA1-SNAPSHOT
+  coordinator:
+    image: stargateio/sgv2-coordinator-3_11:${SGTAG}
     networks:
-      - backend
+      - stargate
     ports:
       - 9045:9042
       - 8080:8080
@@ -19,18 +19,18 @@ services:
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true
       - DEVELOPER_MODE=true
-  stargate-restapi:
+  restapi:
     image: stargateio/stargate-restapi:${SGTAG}
     depends_on:
-      - stargate
+      - coordinator
     networks:
-      - backend
+      - stargate
     ports:
       - 8082:8082
     mem_limit: 2G
     environment:
-      - STARGATE_GRPC_HOST=stargate
+      - STARGATE_GRPC_HOST=coordinator
       - STARGATE_GRPC_PORT=8090
       - STARGATE_REST_PORT=8082
 networks:
-  backend:
+  stargate:

@@ -4,7 +4,7 @@ services:
   backend-1:
     image: cassandra:${CASSTAG}
     networks:
-      - backend
+      - stargate
     ports:
       - 9044:9042
     mem_limit: 2G
@@ -16,7 +16,7 @@ services:
   backend-2:
     image: cassandra:${CASSTAG}
     networks:
-      - backend
+      - stargate
     mem_limit: 2G
     depends_on:
       - backend-1
@@ -28,7 +28,7 @@ services:
   backend-3:
     image: cassandra:${CASSTAG}
     networks:
-      - backend
+      - stargate
     mem_limit: 2G
     depends_on:
       - backend-2
@@ -37,12 +37,12 @@ services:
       - MAX_HEAP_SIZE=1024M
       - CASSANDRA_SEEDS=backend-1
       - CASSANDRA_CLUSTER_NAME=c3-${CASSTAG}-cluster
-  stargate:
+  coordinator:
     image: stargateio/stargate-3_11:${SGTAG}
     depends_on: 
       - backend-1
     networks:
-      - backend
+      - stargate
     ports:
       - 9045:9042
       - 8080:8080
@@ -58,5 +58,18 @@ services:
       - RACK_NAME=rack1
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true
+  restapi:
+    image: stargateio/stargate-restapi:${SGTAG}
+    depends_on:
+      - coordinator
+    networks:
+      - stargate
+    ports:
+      - 8082:8082
+    mem_limit: 2G
+    environment:
+      - STARGATE_GRPC_HOST=coordinator
+      - STARGATE_GRPC_PORT=8090
+      - STARGATE_REST_PORT=8082
 networks:
-  backend:
+  stargate:
