@@ -20,6 +20,14 @@ public abstract class ToProtoValueCodec {
   }
 
   /**
+   * Accessor for "key" codec, if type being handled has one: non-null for Map types, {@code null}
+   * for all other types.
+   *
+   * @return Value codec this codec uses, if any; {@code null} if none
+   */
+  public abstract ToProtoValueCodec getKeyCodec();
+
+  /**
    * Accessor for "value" codec, if type being handled has one: non-null for Container types (like
    * {@code set}, {@code map}, {@code list}), {@code null} for simple types.
    *

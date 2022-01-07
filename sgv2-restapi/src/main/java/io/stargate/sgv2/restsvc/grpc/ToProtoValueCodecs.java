@@ -227,6 +227,11 @@ public class ToProtoValueCodecs {
     public ToProtoValueCodec getValueCodec() {
       return null;
     }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
   }
 
   /*
@@ -676,6 +681,11 @@ public class ToProtoValueCodecs {
     }
 
     @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+
+    @Override
     public ToProtoValueCodec getValueCodec() {
       return elementCodec;
     }
@@ -708,6 +718,11 @@ public class ToProtoValueCodecs {
       super("TypeSpec.Map");
       this.keyCodec = keyCodec;
       this.valueCodec = valueCodec;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return keyCodec;
     }
 
     @Override

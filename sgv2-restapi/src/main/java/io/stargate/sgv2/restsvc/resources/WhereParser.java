@@ -86,7 +86,8 @@ public class WhereParser {
             addContainsOperation(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $CONTAINSKEY:
-            //            evaluateContainsKey(conditions, context);
+            addContainsKeyOperation(conditions, fieldName, valueNode, valuesBuilder);
+            break;
           case $CONTAINSENTRY:
             //            evaluateContainsEntry(conditions, context);
             throw new IllegalArgumentException("Operation " + operation + " not yet supported");
@@ -144,7 +145,7 @@ public class WhereParser {
       String fieldName,
       JsonNode valueNode,
       QueryOuterClass.Values.Builder valuesBuilder) {
-    // First conver from JsonNode into "natural" Java Object (scalar, List, Map etc)
+    // First convert from JsonNode into "natural" Java Object (scalar, List, Map etc)
     final Object rawValue = nodeToRawObject(valueNode);
     // And then try to decode into "Content" value of Container type
     final QueryOuterClass.Value opValue =
@@ -155,9 +156,31 @@ public class WhereParser {
       throw new IllegalArgumentException(
           String.format(
               "Field '%s' not of container type (list, map, set); has to be for operation %s",
-              fieldName, FilterOp.$IN.rawValue));
+              fieldName, FilterOp.$CONTAINS.rawValue));
     }
     conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINS.predicate));
+    valuesBuilder.addValues(opValue);
+  }
+
+  private void addContainsKeyOperation(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      JsonNode valueNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    // First convert from JsonNode into "natural" Java Object (scalar, List, Map etc)
+    final Object rawValue = nodeToRawObject(valueNode);
+    // And then try to decode into "Key" value of Map type
+    final QueryOuterClass.Value opValue =
+        converter.keyProtoValueFromLooselyTyped(fieldName, rawValue);
+    // For containers results is always non-null (Bridge/gRPC has marker for "null" values");
+    // non-container types return null as marker
+    if (opValue == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field '%s' not of map type, set); has to be for operation %s",
+              fieldName, FilterOp.$CONTAINSKEY.rawValue));
+    }
+    conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINSKEY.predicate));
     valuesBuilder.addValues(opValue);
   }
 

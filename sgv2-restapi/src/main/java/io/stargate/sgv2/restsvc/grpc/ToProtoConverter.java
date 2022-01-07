@@ -87,6 +87,44 @@ public class ToProtoConverter {
    * #protoValueFromLooselyTyped} (failing with exception if no such field found), but if one found:
    *
    * <ul>
+   *   <li>If field has Map type, use its Key codec for converting value
+   *   <li>Return {@code null} if field is NOT of Map type
+   * </ul>
+   *
+   * @param fieldName Name of field to find
+   * @param value Loosely typed value to convert to Map key type
+   * @return Converted value if field is of Map type and conversion succeeds; {@code null} if field
+   *     is of non-Map type.
+   */
+  public QueryOuterClass.Value keyProtoValueFromLooselyTyped(String fieldName, Object value) {
+    final ToProtoValueCodec mainCodec = getCodec(fieldName);
+    final ToProtoValueCodec keyCodec = mainCodec.getKeyCodec();
+
+    // Non-container type? If so, return null so caller can indicate problem
+    if (keyCodec == null) {
+      return null;
+    }
+    try {
+      if (value instanceof String) {
+        // Need to allow optional use of "extra" single quotes
+        String strValue = StringifiedValueUtil.handleSingleQuotes((String) value);
+        return keyCodec.protoValueFromStringified(strValue);
+      }
+      return keyCodec.protoValueFromStrictlyTyped(value);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Failed to deserialize key value for field '%s', problem: %s",
+              fullFieldName(fieldName), e.getMessage()),
+          e);
+    }
+  }
+
+  /**
+   * Specialized method that will try to find Field codec similar to {@link
+   * #protoValueFromLooselyTyped} (failing with exception if no such field found), but if one found:
+   *
+   * <ul>
    *   <li>If field has Container type (set, list, map), use its "content" / value codec for
    *       converting value
    *   <li>Return {@code null} if field is NOT of Container type
@@ -111,7 +149,7 @@ public class ToProtoConverter {
         String strValue = StringifiedValueUtil.handleSingleQuotes((String) value);
         return valueCodec.protoValueFromStringified(strValue);
       }
-      return valueCodec.protoValueFromLooselyTyped(value);
+      return valueCodec.protoValueFromStrictlyTyped(value);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           String.format(
