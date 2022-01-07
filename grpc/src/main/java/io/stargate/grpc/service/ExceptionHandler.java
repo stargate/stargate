@@ -8,7 +8,8 @@ import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.StreamObserver;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.exceptions.AlreadyExistsException;
 import org.apache.cassandra.stargate.exceptions.CasWriteUnknownResultException;
 import org.apache.cassandra.stargate.exceptions.FunctionExecutionException;
@@ -22,7 +23,7 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExceptionHandler {
+public abstract class ExceptionHandler {
   private static final Logger LOG = LoggerFactory.getLogger(ExceptionHandler.class);
 
   static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
@@ -42,13 +43,8 @@ public class ExceptionHandler {
   static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
 
-  private final StreamObserver<QueryOuterClass.Response> responseObserver;
-  private final AtomicBoolean exceptionOccurred = new AtomicBoolean(false);
-
-  public ExceptionHandler(StreamObserver<QueryOuterClass.Response> responseObserver) {
-
-    this.responseObserver = responseObserver;
-  }
+  protected abstract void onError(
+      @Nonnull Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer);
 
   /**
    * It handles the throwable that can be gRPC {@link StatusRuntimeException}, persistence related
@@ -60,24 +56,22 @@ public class ExceptionHandler {
    * @param throwable
    */
   protected void handleException(Throwable throwable) {
-    exceptionOccurred.set(true);
     if (throwable instanceof CompletionException
         || throwable instanceof MessageHandler.ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());
-    } else if (throwable instanceof StatusException
-        || throwable instanceof StatusRuntimeException) {
-      responseObserver.onError(throwable);
+    } else if (throwable instanceof StatusException) {
+      StatusException se = (StatusException) throwable;
+      onError(se.getStatus(), throwable, se.getTrailers());
+    } else if (throwable instanceof StatusRuntimeException) {
+      StatusRuntimeException sre = (StatusRuntimeException) throwable;
+      onError(sre.getStatus(), throwable, sre.getTrailers());
     } else if (throwable instanceof UnhandledClientException) {
       onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
       handlePersistenceException((PersistenceException) throwable);
     } else {
       LOG.error("Unhandled error returning UNKNOWN to the client", throwable);
-      responseObserver.onError(
-          Status.UNKNOWN
-              .withDescription(throwable.getMessage())
-              .withCause(throwable)
-              .asRuntimeException());
+      onError(Status.UNKNOWN.withDescription(throwable.getMessage()).withCause(throwable));
     }
   }
 
@@ -251,23 +245,17 @@ public class ExceptionHandler {
                 .build()));
   }
 
-  private void onError(Status status, Throwable throwable, Metadata trailer) {
-    status = status.withDescription(throwable.getMessage()).withCause(throwable);
-    responseObserver.onError(
-        trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
-  }
-
   private void onError(Status status, Throwable throwable) {
     onError(status, throwable, null);
+  }
+
+  private void onError(Status status) {
+    onError(status, status.asRuntimeException());
   }
 
   private <T> Metadata makeTrailer(Metadata.Key<T> key, T value) {
     Metadata trailer = new Metadata();
     trailer.put(key, value);
     return trailer;
-  }
-
-  public boolean getExceptionOccurred() {
-    return exceptionOccurred.get();
   }
 }

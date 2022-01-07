@@ -5,7 +5,7 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Implements the {@link StreamObserver} interface. It is able to process Query and Batch (both
@@ -20,16 +20,16 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
   private final AtomicLong inFlight = new AtomicLong(0);
   private final AtomicBoolean clientSignalComplete = new AtomicBoolean(false);
   private final ExceptionHandler exceptionHandler;
-  private final BiFunction<MessageT, SuccessHandler, MessageHandler<MessageT, ?>> handlerProducer;
-  private final StreamObserver<QueryOuterClass.Response> responseObserver;
+  StreamingHandlerFactory<MessageT> streamingHandlerFactory;
+  private final StreamObserver<QueryOuterClass.StreamingResponse> responseObserver;
 
   public MessageStreamObserver(
-      StreamObserver<QueryOuterClass.Response> responseObserver,
-      ExceptionHandler exceptionHandler,
-      BiFunction<MessageT, SuccessHandler, MessageHandler<MessageT, ?>> handlerProducer) {
+      StreamObserver<QueryOuterClass.StreamingResponse> responseObserver,
+      Function<SuccessHandler, ExceptionHandler> exceptionHandlerProducer,
+      StreamingHandlerFactory<MessageT> streamingHandlerFactory) {
     this.responseObserver = responseObserver;
-    this.exceptionHandler = exceptionHandler;
-    this.handlerProducer = handlerProducer;
+    this.streamingHandlerFactory = streamingHandlerFactory;
+    this.exceptionHandler = exceptionHandlerProducer.apply(this);
   }
 
   /**
@@ -40,14 +40,12 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
    * @param response
    */
   @Override
-  public void handleResponse(QueryOuterClass.Response response) {
+  public void handleResponse(QueryOuterClass.StreamingResponse response) {
     try {
       responseObserver.onNext(response);
     } finally {
-      if (inFlight.decrementAndGet() == 0) {
-        if (clientSignalComplete.get() && !exceptionHandler.getExceptionOccurred()) {
-          responseObserver.onCompleted();
-        }
+      if (inFlight.decrementAndGet() == 0 && clientSignalComplete.get()) {
+        responseObserver.onCompleted();
       }
     }
   }
@@ -61,7 +59,7 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
   @Override
   public void onNext(MessageT value) {
     inFlight.incrementAndGet();
-    handlerProducer.apply(value, this).handle();
+    streamingHandlerFactory.create(value, this, exceptionHandler).handle();
   }
 
   @Override
@@ -87,9 +85,6 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
    */
   @Override
   public void onCompleted() {
-    if (exceptionHandler.getExceptionOccurred()) {
-      return;
-    }
     clientSignalComplete.set(true);
 
     if (inFlight.get() == 0) {

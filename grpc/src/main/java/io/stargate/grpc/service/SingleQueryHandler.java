@@ -1,27 +1,28 @@
 package io.stargate.grpc.service;
 
+import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class StreamingQueryHandler extends QueryHandler {
-  private final SuccessHandler successHandler;
+public class SingleQueryHandler extends QueryHandler {
+  private final StreamObserver<QueryOuterClass.Response> responseObserver;
 
-  StreamingQueryHandler(
+  SingleQueryHandler(
       QueryOuterClass.Query query,
       Persistence.Connection connection,
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
-      SuccessHandler successHandler,
+      StreamObserver<QueryOuterClass.Response> responseObserver,
       ExceptionHandler exceptionHandler) {
     super(query, connection, persistence, executor, schemaAgreementRetries, exceptionHandler);
-    this.successHandler = successHandler;
+    this.responseObserver = responseObserver;
   }
 
   @Override
   protected void setSuccess(QueryOuterClass.Response response) {
-    successHandler.handleResponse(
-        QueryOuterClass.StreamingResponse.newBuilder().setResponse(response).build());
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 }

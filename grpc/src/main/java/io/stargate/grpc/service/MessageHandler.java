@@ -21,7 +21,6 @@ import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -59,7 +58,6 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
   protected final MessageT message;
   protected final Connection connection;
   protected final Persistence persistence;
-  protected final StreamObserver<Response> responseObserver;
   private final DefaultRetryPolicy retryPolicy;
   private final ExceptionHandler exceptionHandler;
 
@@ -67,12 +65,10 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
       MessageT message,
       Connection connection,
       Persistence persistence,
-      StreamObserver<Response> responseObserver,
       ExceptionHandler exceptionHandler) {
     this.message = message;
     this.connection = connection;
     this.persistence = persistence;
-    this.responseObserver = responseObserver;
     this.retryPolicy = new DefaultRetryPolicy();
     this.exceptionHandler = exceptionHandler;
   }
@@ -267,10 +263,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
                 });
   }
 
-  protected void setSuccess(Response response) {
-    responseObserver.onNext(response);
-    responseObserver.onCompleted();
-  }
+  protected abstract void setSuccess(Response response);
 
   protected <V> CompletionStage<V> failedFuture(Exception e, boolean isIdempotent) {
     CompletableFuture<V> failedFuture = new CompletableFuture<>();

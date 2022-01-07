@@ -16,6 +16,7 @@
 syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
+import "google/rpc/status.proto";
 
 option java_package = "io.stargate.proto";
 option go_package = "stargate/proto";
@@ -350,6 +351,13 @@ message Response {
   repeated string warnings = 2;
   // The tracing information, if it was requested for the query.
   Traces traces = 3;
+}
+
+message StreamingResponse {
+  oneof message{
+    Response response = 1;
+    google.rpc.Status status = 2;
+  }
 }
 
 // Thrown when the coordinator knows there is not enough replicas alive to perform a query with the

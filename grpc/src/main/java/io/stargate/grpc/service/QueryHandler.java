@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -40,7 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class QueryHandler extends MessageHandler<Query, Prepared> {
+abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final ScheduledExecutorService executor;
@@ -52,9 +51,8 @@ class QueryHandler extends MessageHandler<Query, Prepared> {
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
-      StreamObserver<Response> responseObserver,
       ExceptionHandler exceptionHandler) {
-    super(query, connection, persistence, responseObserver, exceptionHandler);
+    super(query, connection, persistence, exceptionHandler);
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
     QueryParameters queryParameters = query.getParameters();

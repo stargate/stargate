@@ -19,15 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import io.grpc.StatusRuntimeException;
+import com.google.rpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.StreamingResponse;
 import io.stargate.proto.StargateGrpc.StargateStub;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -54,13 +54,13 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
   @Test
   public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
-    List<Response> responses = new CopyOnWriteArrayList<>();
+    List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
-    StreamObserver<Response> responseStreamObserver =
-        new StreamObserver<Response>() {
+    StreamObserver<StreamingResponse> responseStreamObserver =
+        new StreamObserver<StreamingResponse>() {
           @Override
-          public void onNext(Response value) {
+          public void onNext(StreamingResponse value) {
             responses.add(value);
           }
 
@@ -94,10 +94,10 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
     assertThat(responses.get(0)).isNotNull();
     assertThat(responses.get(1)).isNotNull();
-    Response response = responses.get(2);
+    StreamingResponse response = responses.get(2);
 
-    assertThat(response.hasResultSet()).isTrue();
-    ResultSet rs = response.getResultSet();
+    assertThat(response.getResponse().hasResultSet()).isTrue();
+    ResultSet rs = response.getResponse().getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
@@ -107,13 +107,16 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
 
   @Test
   public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace) {
+    List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
     AtomicReference<Throwable> error = new AtomicReference<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
-    StreamObserver<Response> responseStreamObserver =
-        new StreamObserver<Response>() {
+    StreamObserver<StreamingResponse> responseStreamObserver =
+        new StreamObserver<StreamingResponse>() {
           @Override
-          public void onNext(Response value) {}
+          public void onNext(StreamingResponse value) {
+            responses.add(value);
+          }
 
           @Override
           public void onError(Throwable t) {
@@ -129,9 +132,55 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
     requestObserver.onNext(
         cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
 
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> error.get() != null);
-    Throwable throwable = error.get();
-    assertThat(throwable).isInstanceOf(StatusRuntimeException.class);
-    assertThat(throwable.getMessage()).contains("INVALID_ARGUMENT").contains("not_existing");
+    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 1);
+    requestObserver.onCompleted();
+    assertThat(error.get()).isNull();
+
+    StreamingResponse streamingResponse = responses.get(0);
+    Status status = streamingResponse.getStatus();
+    assertThat(status.getCode()).isEqualTo(3);
+    assertThat(status.getMessage()).isEqualTo("unconfigured table not_existing");
+  }
+
+  @Test
+  public void streamingQueryWithNextAndError(@TestKeyspace CqlIdentifier keyspace) {
+    AtomicReference<Throwable> error = new AtomicReference<>();
+    List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
+
+    StargateStub stub = asyncStubWithCallCredentials();
+    StreamObserver<StreamingResponse> responseStreamObserver =
+        new StreamObserver<StreamingResponse>() {
+          @Override
+          public void onNext(StreamingResponse value) {
+            responses.add(value);
+          }
+
+          @Override
+          public void onError(Throwable t) {
+            error.set(t);
+          }
+
+          @Override
+          public void onCompleted() {}
+        };
+
+    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+
+    requestObserver.onNext(
+        cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+
+    requestObserver.onNext(
+        cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+
+    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
+    requestObserver.onCompleted();
+    assertThat(error.get()).isNull();
+    assertThat(responses.get(0).getResponse()).isNotNull();
+
+    // todo potential ordering problem
+    StreamingResponse streamingResponse = responses.get(1);
+    Status status = streamingResponse.getStatus();
+    assertThat(status.getCode()).isEqualTo(3);
+    assertThat(status.getMessage()).isEqualTo("unconfigured table not_existing");
   }
 }

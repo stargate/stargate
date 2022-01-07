@@ -16,7 +16,6 @@
 package io.stargate.grpc.service;
 
 import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import io.stargate.db.BatchType;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
@@ -43,7 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
+abstract class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
@@ -55,9 +54,8 @@ class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotenc
       Batch batch,
       Connection connection,
       Persistence persistence,
-      StreamObserver<Response> responseObserver,
       ExceptionHandler exceptionHandler) {
-    super(batch, connection, persistence, responseObserver, exceptionHandler);
+    super(batch, connection, persistence, exceptionHandler);
     BatchParameters batchParameters = batch.getParameters();
     this.decoratedKeyspace =
         batchParameters.hasKeyspace()

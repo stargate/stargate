@@ -4,6 +4,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.rpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -60,7 +61,7 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
               emitter.complete(); // client-side complete signal
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(insertQueries);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeQueryStream(insertQueries);
     StepVerifier.create(responseFlux)
         .expectNextMatches(Objects::nonNull)
         .expectNextMatches(Objects::nonNull)
@@ -71,8 +72,8 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
     StepVerifier.create(responseFlux)
         .expectNextMatches(
             response -> {
-              assertThat(response.hasResultSet()).isTrue();
-              QueryOuterClass.ResultSet rs = response.getResultSet();
+              assertThat(response.getResponse().hasResultSet()).isTrue();
+              QueryOuterClass.ResultSet rs = response.getResponse().getResultSet();
               assertThat(new HashSet<>(rs.getRowsList()))
                   .isEqualTo(
                       new HashSet<>(
@@ -82,29 +83,6 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
               return rs.getRowsList().size() == 2;
             })
         .expectComplete()
-        .verify();
-  }
-
-  @Test
-  public void reactiveServerSideErrorPropagation(@TestKeyspace CqlIdentifier keyspace) {
-    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-
-    Flux<QueryOuterClass.Query> wrongQuery =
-        Flux.create(
-            emitter -> {
-              emitter.next(
-                  cqlQuery(
-                      "INSERT INTO not_existing (k, v) VALUES ('a', 1)",
-                      queryParameters(keyspace)));
-            });
-
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(wrongQuery);
-    StepVerifier.create(responseFlux)
-        .expectErrorMatches(
-            e ->
-                e instanceof StatusRuntimeException
-                    && e.getMessage().contains("INVALID_ARGUMENT")
-                    && e.getMessage().contains("not_existing"))
         .verify();
   }
 
@@ -120,16 +98,18 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
                   cqlQuery(
                       "INSERT INTO not_existing (k, v) VALUES ('a', 1)",
                       queryParameters(keyspace)));
-              emitter.complete(); // complete signal is ignored
+              emitter.complete();
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeQueryStream(streamWithError);
     StepVerifier.create(responseFlux)
-        .expectErrorMatches(
-            e ->
-                e instanceof StatusRuntimeException
-                    && e.getMessage().contains("INVALID_ARGUMENT")
-                    && e.getMessage().contains("not_existing"))
+        .expectNextMatches(
+            r -> {
+              Status status = r.getStatus();
+              return status.getCode() == 3
+                  && status.getMessage().equals("unconfigured table not_existing");
+            })
+        .expectComplete()
         .verify();
   }
 
@@ -144,7 +124,7 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
               emitter.complete(); // complete signal is ignored
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(streamWithError);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeQueryStream(streamWithError);
     StepVerifier.create(responseFlux)
         .expectErrorMatches(
             e ->
@@ -153,9 +133,8 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
         .verify();
   }
 
-  // todo write test for error, next, error, complete
-
-  // test for ordering
+  // todo write tests for error, next, error, complete
+  // tests for ordering
 
   @Test
   public void completeEmptyStream() {
@@ -163,7 +142,8 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
 
     Flux<QueryOuterClass.Query> emptyWithComplete = Flux.create(FluxSink::complete);
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeQueryStream(emptyWithComplete);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux =
+        stub.executeQueryStream(emptyWithComplete);
     StepVerifier.create(responseFlux).expectComplete().verify();
   }
 }

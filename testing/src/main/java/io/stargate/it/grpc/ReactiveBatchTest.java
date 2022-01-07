@@ -2,6 +2,7 @@ package io.stargate.it.grpc;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.rpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -61,7 +62,7 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
               emitter.complete(); // client-side complete signal
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(insertQueries);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeBatchStream(insertQueries);
     StepVerifier.create(responseFlux)
         .expectNextMatches(Objects::nonNull)
         .expectNextMatches(Objects::nonNull)
@@ -82,30 +83,6 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void reactiveServerSideErrorPropagation(@TestKeyspace CqlIdentifier keyspace) {
-    ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
-
-    Flux<QueryOuterClass.Batch> wrongQuery =
-        Flux.create(
-            emitter ->
-                emitter.next(
-                    QueryOuterClass.Batch.newBuilder()
-                        .addQueries(
-                            cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
-                        .setParameters(batchParameters(keyspace))
-                        .build()));
-
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(wrongQuery);
-    StepVerifier.create(responseFlux)
-        .expectErrorMatches(
-            e ->
-                e instanceof StatusRuntimeException
-                    && e.getMessage().contains("INVALID_ARGUMENT")
-                    && e.getMessage().contains("not_existing"))
-        .verify();
-  }
-
-  @Test
   public void reactiveServerSideErrorPropagationCompleteProcessing(
       @TestKeyspace CqlIdentifier keyspace) {
     ReactorStargateGrpc.ReactorStargateStub stub = reactiveStubWithCallCredentials();
@@ -118,16 +95,18 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
                       .addQueries(cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
                       .setParameters(batchParameters(keyspace))
                       .build());
-              emitter.complete(); // complete signal is ignored
+              emitter.complete();
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(wrongQuery);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeBatchStream(wrongQuery);
     StepVerifier.create(responseFlux)
-        .expectErrorMatches(
-            e ->
-                e instanceof StatusRuntimeException
-                    && e.getMessage().contains("INVALID_ARGUMENT")
-                    && e.getMessage().contains("not_existing"))
+        .expectNextMatches(
+            r -> {
+              Status status = r.getStatus();
+              return status.getCode() == 3
+                  && status.getMessage().equals("unconfigured table not_existing");
+            })
+        .expectComplete()
         .verify();
   }
 
@@ -142,7 +121,7 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
               emitter.complete(); // complete signal is ignored
             });
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(streamWithError);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux = stub.executeBatchStream(streamWithError);
     StepVerifier.create(responseFlux)
         .expectErrorMatches(
             e ->
@@ -157,7 +136,8 @@ public class ReactiveBatchTest extends GrpcIntegrationTest {
 
     Flux<QueryOuterClass.Batch> emptyWithComplete = Flux.create(FluxSink::complete);
 
-    Flux<QueryOuterClass.Response> responseFlux = stub.executeBatchStream(emptyWithComplete);
+    Flux<QueryOuterClass.StreamingResponse> responseFlux =
+        stub.executeBatchStream(emptyWithComplete);
     StepVerifier.create(responseFlux).expectComplete().verify();
   }
 }

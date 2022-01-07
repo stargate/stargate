@@ -23,6 +23,7 @@ import io.stargate.db.Result;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.StreamingResponse;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,14 +58,14 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new QueryHandler(
+    new SingleQueryHandler(
             query,
             CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
             synchronizedStreamObserver,
-            new ExceptionHandler(synchronizedStreamObserver))
+            new SingleExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 
@@ -72,51 +73,36 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new BatchHandler(
+    new SingleBatchHandler(
             batch,
             CONNECTION_KEY.get(),
             persistence,
             synchronizedStreamObserver,
-            new ExceptionHandler(synchronizedStreamObserver))
+            new SingleExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 
   @Override
-  public StreamObserver<Query> executeQueryStream(StreamObserver<Response> responseObserver) {
-    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+  public StreamObserver<Query> executeQueryStream(
+      StreamObserver<StreamingResponse> responseObserver) {
+    SynchronizedStreamObserver<StreamingResponse> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
-    return new MessageStreamObserver<Query>(
+    return new MessageStreamObserver<>(
         synchronizedStreamObserver,
-        exceptionHandler,
-        (query, successHandler) ->
-            new StreamingQueryHandler(
-                query,
-                CONNECTION_KEY.get(),
-                persistence,
-                executor,
-                schemaAgreementRetries,
-                synchronizedStreamObserver,
-                successHandler,
-                exceptionHandler));
+        StreamingExceptionHandler::new,
+        new StreamingQueryHandlerFactory(
+            CONNECTION_KEY.get(), persistence, executor, schemaAgreementRetries));
   }
 
   @Override
-  public StreamObserver<Batch> executeBatchStream(StreamObserver<Response> responseObserver) {
-    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+  public StreamObserver<Batch> executeBatchStream(
+      StreamObserver<StreamingResponse> responseObserver) {
+    SynchronizedStreamObserver<StreamingResponse> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    ExceptionHandler exceptionHandler = new ExceptionHandler(synchronizedStreamObserver);
-    return new MessageStreamObserver<Batch>(
+    return new MessageStreamObserver<>(
         synchronizedStreamObserver,
-        exceptionHandler,
-        (batch, successHandler) ->
-            new StreamingBatchHandler(
-                batch,
-                CONNECTION_KEY.get(),
-                persistence,
-                synchronizedStreamObserver,
-                successHandler,
-                exceptionHandler));
+        StreamingExceptionHandler::new,
+        new StreamingBatchHandlerFactory(CONNECTION_KEY.get(), persistence));
   }
 
   static class ResponseAndTraceId {

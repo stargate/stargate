@@ -10,7 +10,6 @@ import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
@@ -21,21 +20,20 @@ class MessageStreamObserverTest {
   @SuppressWarnings("unchecked")
   public void shouldOnCompleteWhenThereIsNoInFlight() {
     // given
-    StreamObserver<QueryOuterClass.Response> callerStreamObserver = mock(StreamObserver.class);
-    StreamObserver<QueryOuterClass.Response> responseStreamObserver =
+    StreamObserver<QueryOuterClass.StreamingResponse> callerStreamObserver =
+        mock(StreamObserver.class);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
         new SynchronizedStreamObserver<>(callerStreamObserver);
-    ExceptionHandler exceptionHandler = new ExceptionHandler(responseStreamObserver);
-    BiFunction<QueryOuterClass.Query, SuccessHandler, MessageHandler<QueryOuterClass.Query, ?>>
-        handlerProducer =
-            (query, successHandler) -> {
-              successHandler.handleResponse(
-                  QueryOuterClass.Response.newBuilder().build()); // inFlight is decremented
-              return mock(MessageHandler.class);
-            };
+    StreamingHandlerFactory<QueryOuterClass.Query> streamingHandlerFactory =
+        (query, successHandler, exH) -> {
+          successHandler.handleResponse(
+              QueryOuterClass.StreamingResponse.newBuilder().build()); // inFlight is decremented
+          return mock(MessageHandler.class);
+        };
 
     MessageStreamObserver<QueryOuterClass.Query> observer =
         new MessageStreamObserver<QueryOuterClass.Query>(
-            responseStreamObserver, exceptionHandler, handlerProducer);
+            responseStreamObserver, (v) -> mock(ExceptionHandler.class), streamingHandlerFactory);
 
     // when
     observer.onNext(QueryOuterClass.Query.newBuilder().build());
@@ -49,25 +47,25 @@ class MessageStreamObserverTest {
   public void shouldWaitWithOnCompleteWhenThereAreRequestsInFlight() {
     // given
     ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-    StreamObserver<QueryOuterClass.Response> callerStreamObserver = mock(StreamObserver.class);
-    StreamObserver<QueryOuterClass.Response> responseStreamObserver =
+    StreamObserver<QueryOuterClass.StreamingResponse> callerStreamObserver =
+        mock(StreamObserver.class);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
         new SynchronizedStreamObserver<>(callerStreamObserver);
-    ExceptionHandler exceptionHandler = new ExceptionHandler(responseStreamObserver);
-    BiFunction<QueryOuterClass.Query, SuccessHandler, MessageHandler<QueryOuterClass.Query, ?>>
-        handlerProducer =
-            (query, successHandler) -> {
-              // decrement inFlight after a delay 500 MS delay
-              executor.schedule(
-                  () ->
-                      successHandler.handleResponse(QueryOuterClass.Response.newBuilder().build()),
-                  500,
-                  TimeUnit.MILLISECONDS);
-              return mock(MessageHandler.class);
-            };
+    StreamingHandlerFactory<QueryOuterClass.Query> streamingHandlerFactory =
+        (query, successHandler, exH) -> {
+          // decrement inFlight after a delay 500 MS delay
+          executor.schedule(
+              () ->
+                  successHandler.handleResponse(
+                      QueryOuterClass.StreamingResponse.newBuilder().build()),
+              500,
+              TimeUnit.MILLISECONDS);
+          return mock(MessageHandler.class);
+        };
 
     MessageStreamObserver<QueryOuterClass.Query> observer =
         new MessageStreamObserver<QueryOuterClass.Query>(
-            responseStreamObserver, exceptionHandler, handlerProducer);
+            responseStreamObserver, (v) -> mock(ExceptionHandler.class), streamingHandlerFactory);
 
     // when
     observer.onNext(QueryOuterClass.Query.newBuilder().build());
@@ -83,20 +81,19 @@ class MessageStreamObserverTest {
   @SuppressWarnings("unchecked")
   public void shouldNotCallOnCompleteWhenThereAreRequestsInFlightNotDecremented() {
     // given
-    StreamObserver<QueryOuterClass.Response> callerStreamObserver = mock(StreamObserver.class);
-    StreamObserver<QueryOuterClass.Response> responseStreamObserver =
+    StreamObserver<QueryOuterClass.StreamingResponse> callerStreamObserver =
+        mock(StreamObserver.class);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
         new SynchronizedStreamObserver<>(callerStreamObserver);
-    ExceptionHandler exceptionHandler = new ExceptionHandler(responseStreamObserver);
-    BiFunction<QueryOuterClass.Query, SuccessHandler, MessageHandler<QueryOuterClass.Query, ?>>
-        handlerProducer =
-            (query, successHandler) -> {
-              // do not decrement inFlight
-              return mock(MessageHandler.class);
-            };
+    StreamingHandlerFactory<QueryOuterClass.Query> streamingHandlerFactory =
+        (query, successHandler, exH) -> {
+          // do not decrement inFlight
+          return mock(MessageHandler.class);
+        };
 
     MessageStreamObserver<QueryOuterClass.Query> observer =
         new MessageStreamObserver<QueryOuterClass.Query>(
-            responseStreamObserver, exceptionHandler, handlerProducer);
+            responseStreamObserver, (v) -> mock(ExceptionHandler.class), streamingHandlerFactory);
 
     // when
     observer.onNext(QueryOuterClass.Query.newBuilder().build());
