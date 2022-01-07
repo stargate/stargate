@@ -10,6 +10,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -89,8 +90,8 @@ public class WhereParser {
             addContainsKeyOperation(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $CONTAINSENTRY:
-            //            evaluateContainsEntry(conditions, context);
-            throw new IllegalArgumentException("Operation " + operation + " not yet supported");
+            addContainsEntryOperation(conditions, fieldName, valueNode, valuesBuilder);
+            break;
           default: // GT, GTE, LT, LTE, EQ, NE
             addSimpleOperation(conditions, fieldName, operation, valueNode, valuesBuilder);
         }
@@ -177,11 +178,51 @@ public class WhereParser {
     if (opValue == null) {
       throw new IllegalArgumentException(
           String.format(
-              "Field '%s' not of map type, set); has to be for operation %s",
+              "Field '%s' not of map type; has to be for operation %s",
               fieldName, FilterOp.$CONTAINSKEY.rawValue));
     }
     conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINSKEY.predicate));
     valuesBuilder.addValues(opValue);
+  }
+
+  private void addContainsEntryOperation(
+      List<BuiltCondition> conditions,
+      String fieldName,
+      JsonNode entryNode,
+      QueryOuterClass.Values.Builder valuesBuilder) {
+    // First: we need a JSON Object with "key" and "value"
+    JsonNode keyNode = entryNode.get("key");
+    JsonNode valueNode = entryNode.get("value");
+    if ((keyNode == null) || (valueNode == null)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value entry for field %s, operation %s must be an object with two fields 'key' and 'value'",
+              fieldName, FilterOp.$CONTAINSENTRY.rawValue));
+    }
+
+    // First convert from JsonNode into "natural" Java Object (scalar, List, Map etc)
+    final Object rawKey = nodeToRawObject(keyNode);
+    final Object rawValue = nodeToRawObject(valueNode);
+
+    // Looks like we cannot pass Key as bound parameter, so no need to convert.
+    // But we do want to check field is of Map type anyway so
+    // And then try to decode Key and Value to match
+    if (converter.getCodec(fieldName).getKeyCodec() == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Field '%s' not of map type; has to be for operation %s",
+              fieldName, FilterOp.$CONTAINSENTRY.rawValue));
+    }
+    // But we can pass value via placeholder
+    final QueryOuterClass.Value opContentValue =
+        converter.contentProtoValueFromLooselyTyped(fieldName, rawValue);
+
+    conditions.add(
+        BuiltCondition.of(
+            BuiltCondition.LHS.mapAccess(fieldName, rawKey),
+            FilterOp.$CONTAINSENTRY.predicate,
+            Value.marker()));
+    valuesBuilder.addValues(opContentValue);
   }
 
   private void addInOperation(
