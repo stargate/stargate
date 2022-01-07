@@ -4,6 +4,8 @@ import com.google.protobuf.Any;
 import com.google.rpc.ErrorInfo;
 import io.grpc.Metadata;
 import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.service.ExceptionHandler;
 import io.stargate.grpc.service.SuccessHandler;
 import io.stargate.proto.QueryOuterClass;
@@ -33,12 +35,17 @@ public class StreamingExceptionHandler extends ExceptionHandler {
   private com.google.rpc.Status convertStatus(
       @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
     if (status == null) {
-      status = Status.UNKNOWN;
+      if (throwable instanceof StatusException) {
+        status = ((StatusException) throwable).getStatus();
+      } else if (throwable instanceof StatusRuntimeException) {
+        status = ((StatusRuntimeException) throwable).getStatus();
+      } else {
+        status = Status.UNKNOWN;
+      }
     }
-    status = status.withDescription(throwable.getMessage()).withCause(throwable);
 
-    String description = Optional.ofNullable(status.getDescription()).orElse("");
-    String cause = Optional.ofNullable(status.getCause()).map(Throwable::getMessage).orElse("");
+    String description = status.getCode().toString();
+    String cause = Optional.ofNullable(throwable.getMessage()).orElse("");
 
     Map<String, String> metadata = new HashMap<>();
     if (trailer != null) {
