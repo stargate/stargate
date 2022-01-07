@@ -1115,6 +1115,52 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void getRowsWithContainsEntryQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        keyspaceName, tableName, "attributes", "attributes_map_index", false, IndexKind.ENTRIES);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "attributes {'a':'1'}"),
+            Arrays.asList("id 1", "firstName Dave", "attributes {'b':'2'}"),
+            Arrays.asList("id 1", "firstName Fred", "attributes {'c':'3'}")));
+
+    // First, no match
+    String whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":\"1\"}}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(0);
+
+    // and then a single match
+    whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":\"3\"}}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Fred");
+  }
+
+  @Test
   public void getRowsWithTimestampQuery() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
