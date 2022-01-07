@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+  stargate:
+    image: stargateio/sgv2-coordinator-3_11:v2.0.0-ALPHA1-SNAPSHOT
+    networks:
+      - backend
+    ports:
+      - 9045:9042
+      - 8080:8080
+      - 8081:8081
+      - 8084:8084
+    mem_limit: 2G
+    environment:
+      - JAVA_OPTS="-Xmx2G"
+      - CLUSTER_NAME=c4-${CASSTAG}-cluster
+      - CLUSTER_VERSION=3.11
+      - RACK_NAME=rack1
+      - DATACENTER_NAME=datacenter1
+      - ENABLE_AUTH=true
+      - DEVELOPER_MODE=true
+  stargate-restapi:
+    image: stargateio/stargate-restapi:${SGTAG}
+    depends_on:
+      - stargate
+    networks:
+      - backend
+    ports:
+      - 8082:8082
+    mem_limit: 2G
+    environment:
+      - STARGATE_GRPC_HOST=stargate
+      - STARGATE_GRPC_PORT=8090
+      - STARGATE_REST_PORT=8082
+networks:
+  backend:
