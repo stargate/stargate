@@ -65,7 +65,7 @@ public class WhereParser {
 
       for (Map.Entry<String, JsonNode> operandAndValue : asIterable(condition.fields())) {
         String rawOp = operandAndValue.getKey();
-        FilterOp operator = FilterOp.decode(rawOp);
+        FilterOp operation = FilterOp.decode(rawOp);
 
         JsonNode valueNode = operandAndValue.getValue();
         if (valueNode.isNull()) {
@@ -75,23 +75,23 @@ public class WhereParser {
                   fieldName, rawOp));
         }
 
-        switch (operator) {
+        switch (operation) {
           case $IN:
-            addInOperator(conditions, fieldName, valueNode, valuesBuilder);
+            addInOperation(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $EXISTS:
-            addExistsOperator(conditions, fieldName, valueNode, valuesBuilder);
+            addExistsOperation(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $CONTAINS:
-            addContainsOperator(conditions, fieldName, valueNode, valuesBuilder);
+            addContainsOperation(conditions, fieldName, valueNode, valuesBuilder);
             break;
           case $CONTAINSKEY:
             //            evaluateContainsKey(conditions, context);
           case $CONTAINSENTRY:
             //            evaluateContainsEntry(conditions, context);
-            throw new IllegalArgumentException("Operation " + operator + " not yet supported");
+            throw new IllegalArgumentException("Operation " + operation + " not yet supported");
           default: // GT, GTE, LT, LTE, EQ, NE
-            addSimpleOperator(conditions, fieldName, operator, valueNode, valuesBuilder);
+            addSimpleOperation(conditions, fieldName, operation, valueNode, valuesBuilder);
         }
       }
     }
@@ -103,27 +103,27 @@ public class WhereParser {
     return () -> iterator;
   }
 
-  private void addSimpleOperator(
+  private void addSimpleOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       FilterOp filterOp,
       JsonNode valueNode,
       QueryOuterClass.Values.Builder valuesBuilder) {
     if (valueNode.isTextual()) {
-      addSingleSimpleOperator(
+      addSingleSimpleOperation(
           conditions, fieldName, filterOp, valueNode.textValue(), valuesBuilder);
     } else if (valueNode.isArray()) {
       for (JsonNode element : valueNode) {
-        addSingleSimpleOperator(
+        addSingleSimpleOperation(
             conditions, fieldName, filterOp, nodeToRawObject(element), valuesBuilder);
       }
     } else {
-      addSingleSimpleOperator(
+      addSingleSimpleOperation(
           conditions, fieldName, filterOp, nodeToRawObject(valueNode), valuesBuilder);
     }
   }
 
-  private void addSingleSimpleOperator(
+  private void addSingleSimpleOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       FilterOp filterOp,
@@ -139,7 +139,7 @@ public class WhereParser {
     valuesBuilder.addValues(opValue);
   }
 
-  private void addContainsOperator(
+  private void addContainsOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       JsonNode valueNode,
@@ -147,10 +147,19 @@ public class WhereParser {
     // Can only use Contains for containers (maps, sets, lists); could get field
     // metadata here, but for now will let persistence validate everything
     final Object rawValue = nodeToRawObject(valueNode);
-    addSingleSimpleOperator(conditions, fieldName, FilterOp.$CONTAINS, rawValue, valuesBuilder);
+    final QueryOuterClass.Value opValue =
+        converter.contentProtoValueFromLooselyTyped(fieldName, rawValue);
+    if (opValue == null) { // non-container type
+      throw new IllegalArgumentException(
+          String.format(
+              "Field '%s' not of container type (list, map, set); has to be for operation %s",
+              fieldName, FilterOp.$IN.rawValue));
+    }
+    conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINS.predicate));
+    valuesBuilder.addValues(opValue);
   }
 
-  private void addInOperator(
+  private void addInOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       JsonNode valueNode,
@@ -170,7 +179,7 @@ public class WhereParser {
     valuesBuilder.addValues(Values.of(inValues));
   }
 
-  private void addExistsOperator(
+  private void addExistsOperation(
       List<BuiltCondition> conditions,
       String fieldName,
       JsonNode valueNode,
@@ -184,7 +193,7 @@ public class WhereParser {
     // 05-Jan-2022, tatu: As per [https://github.com/stargate/stargate/discussions/1519]
     //   behavior with REST API (vs Documents API) is problematic. We implement it the same way
     //   for StargateV2 as for V1, for compatibility reasons.
-    addSingleSimpleOperator(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE, valuesBuilder);
+    addSingleSimpleOperation(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE, valuesBuilder);
   }
 
   private Object nodeToRawObject(JsonNode valueNode) {

@@ -82,7 +82,46 @@ public class ToProtoConverter {
     }
   }
 
-  private ToProtoValueCodec getCodec(String fieldName) {
+  /**
+   * Specialized method that will try to find Field codec similar to {@link
+   * #protoValueFromLooselyTyped} (failing with exception if no such field found), but if one found:
+   *
+   * <ul>
+   *   <li>If field has Container type (set, list, map), use its "content" / value codec for
+   *       converting value
+   *   <li>Return {@code null} if field is NOT of Container type
+   * </ul>
+   *
+   * @param fieldName Name of field to find
+   * @param value Loosely typed value to convert to Container content type
+   * @return Converted value if field is of Container type and conversion succeeds; {@code null} if
+   *     field is of non-Container type.
+   */
+  public QueryOuterClass.Value contentProtoValueFromLooselyTyped(String fieldName, Object value) {
+    final ToProtoValueCodec mainCodec = getCodec(fieldName);
+    final ToProtoValueCodec valueCodec = mainCodec.getValueCodec();
+
+    // Non-container type? If so, return null so caller can indicate problem
+    if (valueCodec == null) {
+      return null;
+    }
+    try {
+      if (value instanceof String) {
+        // Need to allow optional use of "extra" single quotes
+        String strValue = StringifiedValueUtil.handleSingleQuotes((String) value);
+        return valueCodec.protoValueFromStringified(strValue);
+      }
+      return valueCodec.protoValueFromLooselyTyped(value);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Failed to deserialize content value for field '%s', problem: %s",
+              fullFieldName(fieldName), e.getMessage()),
+          e);
+    }
+  }
+
+  public ToProtoValueCodec getCodec(String fieldName) {
     ToProtoValueCodec codec = codecsByName.get(fieldName);
     if (codec == null) {
       throw new IllegalArgumentException(
