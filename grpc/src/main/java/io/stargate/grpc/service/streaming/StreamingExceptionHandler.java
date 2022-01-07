@@ -42,12 +42,12 @@ public class StreamingExceptionHandler extends ExceptionHandler {
       }
     }
 
-    String description = status.getCode().toString();
+    String code = status.getCode().toString();
     String cause = Optional.ofNullable(throwable.getMessage()).orElse("");
 
     return com.google.rpc.Status.newBuilder()
         .setCode(status.getCode().value())
-        .setMessage(description)
+        .setMessage(String.format("%s: %s", code, cause))
         .addDetails(Any.pack(ErrorInfo.newBuilder().setReason(cause).build()))
         .build();
   }

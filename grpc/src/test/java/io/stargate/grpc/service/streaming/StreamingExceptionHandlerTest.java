@@ -1,6 +1,5 @@
 package io.stargate.grpc.service.streaming;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,17 +55,17 @@ class StreamingExceptionHandlerTest {
         Arguments.of(
             new StatusException(Status.UNAVAILABLE),
             Status.UNAVAILABLE,
-            "UNAVAILABLE",
+            "UNAVAILABLE: UNAVAILABLE",
             "UNAVAILABLE"),
         Arguments.of(
             new UnhandledClientException("Problem when handling"),
             Status.UNAVAILABLE,
-            "UNAVAILABLE",
+            "UNAVAILABLE: Problem when handling",
             "Problem when handling"),
         Arguments.of(
             new WriteTimeoutException(WriteType.SIMPLE, ConsistencyLevel.ALL, 0, 0),
             Status.DEADLINE_EXCEEDED,
-            "DEADLINE_EXCEEDED",
+            "DEADLINE_EXCEEDED: Operation timed out - received only 0 responses.",
             "Operation timed out - received only 0 responses."));
   }
 }

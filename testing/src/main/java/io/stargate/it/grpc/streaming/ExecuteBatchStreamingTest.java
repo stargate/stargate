@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.rpc.ErrorInfo;
 import com.google.rpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.Values;
@@ -115,7 +117,8 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace) {
+  public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace)
+      throws InvalidProtocolBufferException {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
     AtomicReference<Throwable> error = new AtomicReference<>();
 
@@ -152,11 +155,14 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     StreamingResponse streamingResponse = responses.get(0);
     Status status = streamingResponse.getStatus();
     assertThat(status.getCode()).isEqualTo(3);
-    assertThat(status.getMessage()).isEqualTo("unconfigured table not_existing");
+    assertThat(status.getMessage()).isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
+    assertThat(ErrorInfo.parseFrom(status.getDetails(0).getValue()).getReason())
+        .isEqualTo("unconfigured table not_existing");
   }
 
   @Test
-  public void streamingBatchQueryWithNextAndError(@TestKeyspace CqlIdentifier keyspace) {
+  public void streamingBatchQueryWithNextAndError(@TestKeyspace CqlIdentifier keyspace)
+      throws InvalidProtocolBufferException {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
     AtomicReference<Throwable> error = new AtomicReference<>();
 
@@ -194,12 +200,15 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> responses.size() == 2);
     requestObserver.onCompleted();
     assertThat(error.get()).isNull();
-    assertThat(responses.get(0).getResponse()).isNotNull();
-
-    // todo potential ordering problem
-    StreamingResponse streamingResponse = responses.get(1);
+    // gRPC guarantees message ordering within an individual RPC call.
+    // Both onNext may be executed as a separate RPC calls, therefore we cannot be sure about the
+    // order or responses.
+    StreamingResponse streamingResponse =
+        responses.stream().filter(v -> v.getStatus().getCode() == 3).findFirst().get();
     Status status = streamingResponse.getStatus();
     assertThat(status.getCode()).isEqualTo(3);
-    assertThat(status.getMessage()).isEqualTo("unconfigured table not_existing");
+    assertThat(status.getMessage()).isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
+    assertThat(ErrorInfo.parseFrom(status.getDetails(0).getValue()).getReason())
+        .isEqualTo("unconfigured table not_existing");
   }
 }
