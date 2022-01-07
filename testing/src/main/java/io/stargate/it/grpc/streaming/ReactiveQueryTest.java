@@ -107,10 +107,7 @@ public class ReactiveQueryTest extends GrpcIntegrationTest {
         .expectNextMatches(
             r -> {
               Status status = r.getStatus();
-              return status.getCode() == 3
-                  && status
-                      .getMessage()
-                      .equals("INVALID_ARGUMENT: unconfigured table not_existing");
+              return status.getCode() == 3 && status.getMessage().contains("not_existing");
             })
         .expectComplete()
         .verify();

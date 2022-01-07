@@ -143,9 +143,10 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
     StreamingResponse streamingResponse = responses.get(0);
     Status status = streamingResponse.getStatus();
     assertThat(status.getCode()).isEqualTo(3);
-    assertThat(status.getMessage()).isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
+    assertThat(status.getMessage()).contains("INVALID_ARGUMENT");
+    assertThat(status.getMessage()).contains("not_existing");
     assertThat(ErrorInfo.parseFrom(status.getDetails(0).getValue()).getReason())
-        .isEqualTo("unconfigured table not_existing");
+        .contains("not_existing");
   }
 
   @Test
@@ -190,8 +191,9 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
         responses.stream().filter(v -> v.getStatus().getCode() == 3).findFirst().get();
     Status status = streamingResponse.getStatus();
     assertThat(status.getCode()).isEqualTo(3);
-    assertThat(status.getMessage()).isEqualTo("INVALID_ARGUMENT: unconfigured table not_existing");
+    assertThat(status.getMessage()).contains("INVALID_ARGUMENT");
+    assertThat(status.getMessage()).contains("not_existing");
     assertThat(ErrorInfo.parseFrom(status.getDetails(0).getValue()).getReason())
-        .isEqualTo("unconfigured table not_existing");
+        .contains("not_existing");
   }
 }
