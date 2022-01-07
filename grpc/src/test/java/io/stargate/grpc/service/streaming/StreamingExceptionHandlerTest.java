@@ -11,8 +11,6 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.stargate.grpc.service.SuccessHandler;
 import io.stargate.proto.QueryOuterClass;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
@@ -30,8 +28,7 @@ class StreamingExceptionHandlerTest {
       Throwable throwable,
       Status expectedStatus,
       String expectedDescription,
-      String expectedCause,
-      Map<String, String> expectedMetadata) {
+      String expectedCause) {
     // given
     SuccessHandler successHandler = mock(SuccessHandler.class);
     StreamingExceptionHandler streamingExceptionHandler =
@@ -49,11 +46,7 @@ class StreamingExceptionHandlerTest {
                         .setCode(expectedStatus.getCode().value())
                         .setMessage(expectedDescription)
                         .addDetails(
-                            Any.pack(
-                                ErrorInfo.newBuilder()
-                                    .setReason(expectedCause)
-                                    .putAllMetadata(expectedMetadata)
-                                    .build()))
+                            Any.pack(ErrorInfo.newBuilder().setReason(expectedCause).build()))
                         .build())
                 .build());
   }
@@ -64,19 +57,16 @@ class StreamingExceptionHandlerTest {
             new StatusException(Status.UNAVAILABLE),
             Status.UNAVAILABLE,
             "UNAVAILABLE",
-            "UNAVAILABLE",
-            new HashMap<String, String>()),
+            "UNAVAILABLE"),
         Arguments.of(
             new UnhandledClientException("Problem when handling"),
             Status.UNAVAILABLE,
             "UNAVAILABLE",
-            "Problem when handling",
-            new HashMap<String, String>()),
+            "Problem when handling"),
         Arguments.of(
             new WriteTimeoutException(WriteType.SIMPLE, ConsistencyLevel.ALL, 0, 0),
             Status.DEADLINE_EXCEEDED,
             "DEADLINE_EXCEEDED",
-            "Operation timed out - received only 0 responses.",
-            new HashMap<String, String>()));
+            "Operation timed out - received only 0 responses."));
   }
 }
