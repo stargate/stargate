@@ -39,13 +39,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-abstract class QueryHandler extends MessageHandler<Query, Prepared> {
+public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
 
-  QueryHandler(
+  protected QueryHandler(
       Query query,
       Connection connection,
       Persistence persistence,

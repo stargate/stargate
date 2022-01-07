@@ -1,4 +1,4 @@
-package io.stargate.grpc.service;
+package io.stargate.grpc.service.streaming;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
@@ -6,6 +6,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.grpc.stub.StreamObserver;
+import io.stargate.grpc.service.ExceptionHandler;
+import io.stargate.grpc.service.MessageHandler;
+import io.stargate.grpc.service.SynchronizedStreamObserver;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

@@ -51,7 +51,7 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
  * @param <MessageT> the type of gRPC message being handled.
  * @param <PreparedT> the persistence object resulting from the preparation of the query(ies).
  */
-abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
+public abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
 
   protected static final ConsistencyLevel DEFAULT_TRACING_CONSISTENCY = ConsistencyLevel.ONE;
 
@@ -73,7 +73,7 @@ abstract class MessageHandler<MessageT extends GeneratedMessageV3, PreparedT> {
     this.exceptionHandler = exceptionHandler;
   }
 
-  void handle() {
+  public void handle() {
     try {
       validate();
       executeWithRetry(0);

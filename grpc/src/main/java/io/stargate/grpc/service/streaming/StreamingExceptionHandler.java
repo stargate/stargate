@@ -1,9 +1,11 @@
-package io.stargate.grpc.service;
+package io.stargate.grpc.service.streaming;
 
 import com.google.protobuf.Any;
 import com.google.rpc.ErrorInfo;
 import io.grpc.Metadata;
 import io.grpc.Status;
+import io.stargate.grpc.service.ExceptionHandler;
+import io.stargate.grpc.service.SuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,16 +22,21 @@ public class StreamingExceptionHandler extends ExceptionHandler {
 
   @Override
   protected void onError(
-      @Nonnull Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
-    status = status.withDescription(throwable.getMessage()).withCause(throwable);
+      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
     // propagate streaming error as a Status
     successHandler.handleResponse(
         QueryOuterClass.StreamingResponse.newBuilder()
-            .setStatus(convertStatus(status, trailer))
+            .setStatus(convertStatus(status, throwable, trailer))
             .build());
   }
 
-  private com.google.rpc.Status convertStatus(Status status, @Nullable Metadata trailer) {
+  private com.google.rpc.Status convertStatus(
+      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
+    if (status == null) {
+      status = Status.UNKNOWN;
+    }
+    status = status.withDescription(throwable.getMessage()).withCause(throwable);
+
     String description = Optional.ofNullable(status.getDescription()).orElse("");
     String cause = Optional.ofNullable(status.getCause()).map(Throwable::getMessage).orElse("");
 

@@ -1,4 +1,4 @@
-package io.stargate.it.grpc;
+package io.stargate.it.grpc.streaming;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -8,6 +8,7 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.grpc.GrpcIntegrationTest;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.ReactorStargateGrpc;
 import java.util.Arrays;

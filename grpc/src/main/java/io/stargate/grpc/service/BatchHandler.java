@@ -42,7 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-abstract class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
+public abstract class BatchHandler
+    extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
@@ -50,7 +51,7 @@ abstract class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndI
 
   private final String decoratedKeyspace;
 
-  BatchHandler(
+  protected BatchHandler(
       Batch batch,
       Connection connection,
       Persistence persistence,

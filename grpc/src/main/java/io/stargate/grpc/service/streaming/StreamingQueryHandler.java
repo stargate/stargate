@@ -1,6 +1,9 @@
-package io.stargate.grpc.service;
+package io.stargate.grpc.service.streaming;
 
 import io.stargate.db.Persistence;
+import io.stargate.grpc.service.ExceptionHandler;
+import io.stargate.grpc.service.QueryHandler;
+import io.stargate.grpc.service.SuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.ScheduledExecutorService;
 

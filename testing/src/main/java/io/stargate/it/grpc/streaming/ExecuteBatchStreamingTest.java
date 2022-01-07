@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.it.grpc;
+package io.stargate.it.grpc.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +25,10 @@ import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.it.grpc.GrpcIntegrationTest;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.Batch;
+import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.StreamingResponse;
 import io.stargate.proto.StargateGrpc.StargateStub;
@@ -45,7 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
-public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
+public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
   @AfterEach
   public void cleanup(CqlSession session) {
@@ -53,7 +56,7 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void simpleStreamingQuery(@TestKeyspace CqlIdentifier keyspace) {
+  public void simpleStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
@@ -71,38 +74,44 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
           public void onCompleted() {}
         };
 
-    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+            .addQueries(
+                cqlBatchQuery(
+                    "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
     requestObserver.onNext(
-        cqlQuery(
-            "INSERT INTO test (k, v) VALUES (?, ?)",
-            queryParameters(keyspace),
-            Values.of("b"),
-            Values.of(2)));
+        Batch.newBuilder()
+            .addQueries(
+                cqlBatchQuery(
+                    "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("c"), Values.of(3)))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
-    // all inserted records may be not visible to the 3rd query (SELECT)
-    // because all calls are non-blocking. Therefore, we need to wait for response of two insert
+    // all inserted records may be not visible to the subsequent SELECT query
+    // because all reactive calls are non-blocking. Therefore, we need to wait for response of two
+    // batch insert
     // queries
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
-
-    requestObserver.onNext(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> responses.size() == 2);
     requestObserver.onCompleted();
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 3);
 
-    assertThat(responses.get(0)).isNotNull();
-    assertThat(responses.get(1)).isNotNull();
-    StreamingResponse response = responses.get(2);
-
-    assertThat(response.getResponse().hasResultSet()).isTrue();
-    ResultSet rs = response.getResponse().getResultSet();
+    Response response =
+        stubWithCallCredentials()
+            .executeQuery(cqlQuery("SELECT * FROM test", queryParameters(keyspace)));
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet();
     assertThat(new HashSet<>(rs.getRowsList()))
         .isEqualTo(
             new HashSet<>(
                 Arrays.asList(
-                    rowOf(Values.of("a"), Values.of(1)), rowOf(Values.of("b"), Values.of(2)))));
+                    rowOf(Values.of("a"), Values.of(1)),
+                    rowOf(Values.of("b"), Values.of(2)),
+                    rowOf(Values.of("c"), Values.of(3)))));
   }
 
   @Test
@@ -127,10 +136,14 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
           public void onCompleted() {}
         };
 
-    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+    StreamObserver<QueryOuterClass.Batch> requestObserver =
+        stub.executeBatchStream(responseStreamObserver);
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
     Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 1);
     requestObserver.onCompleted();
@@ -143,9 +156,9 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void streamingQueryWithNextAndError(@TestKeyspace CqlIdentifier keyspace) {
-    AtomicReference<Throwable> error = new AtomicReference<>();
+  public void streamingBatchQueryWithNextAndError(@TestKeyspace CqlIdentifier keyspace) {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
+    AtomicReference<Throwable> error = new AtomicReference<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
     StreamObserver<StreamingResponse> responseStreamObserver =
@@ -164,15 +177,21 @@ public class ExecuteQueryStreamingTest extends GrpcIntegrationTest {
           public void onCompleted() {}
         };
 
-    StreamObserver<Query> requestObserver = stub.executeQueryStream(responseStreamObserver);
+    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO test (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
     requestObserver.onNext(
-        cqlQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)", queryParameters(keyspace)));
+        Batch.newBuilder()
+            .addQueries(cqlBatchQuery("INSERT INTO not_existing (k, v) VALUES ('a', 1)"))
+            .setParameters(batchParameters(keyspace))
+            .build());
 
-    Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> responses.size() == 2);
+    Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> responses.size() == 2);
     requestObserver.onCompleted();
     assertThat(error.get()).isNull();
     assertThat(responses.get(0).getResponse()).isNotNull();

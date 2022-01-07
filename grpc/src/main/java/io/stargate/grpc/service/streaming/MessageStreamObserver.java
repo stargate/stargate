@@ -1,7 +1,10 @@
-package io.stargate.grpc.service;
+package io.stargate.grpc.service.streaming;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.stub.StreamObserver;
+import io.stargate.grpc.service.ExceptionHandler;
+import io.stargate.grpc.service.MessageHandler;
+import io.stargate.grpc.service.SuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;

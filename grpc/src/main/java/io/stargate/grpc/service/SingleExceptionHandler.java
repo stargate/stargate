@@ -17,7 +17,11 @@ public class SingleExceptionHandler extends ExceptionHandler {
 
   @Override
   protected void onError(
-      @Nonnull Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
+      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
+    if (status == null) {
+      responseObserver.onError(throwable);
+      return;
+    }
     status = status.withDescription(throwable.getMessage()).withCause(throwable);
     responseObserver.onError(
         trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());

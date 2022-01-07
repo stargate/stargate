@@ -44,7 +44,7 @@ public abstract class ExceptionHandler {
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
 
   protected abstract void onError(
-      @Nonnull Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer);
+      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer);
 
   /**
    * It handles the throwable that can be gRPC {@link StatusRuntimeException}, persistence related
@@ -55,16 +55,13 @@ public abstract class ExceptionHandler {
    *
    * @param throwable
    */
-  protected void handleException(Throwable throwable) {
+  public void handleException(Throwable throwable) {
     if (throwable instanceof CompletionException
         || throwable instanceof MessageHandler.ExceptionWithIdempotencyInfo) {
       handleException(throwable.getCause());
-    } else if (throwable instanceof StatusException) {
-      StatusException se = (StatusException) throwable;
-      onError(se.getStatus(), throwable, se.getTrailers());
-    } else if (throwable instanceof StatusRuntimeException) {
-      StatusRuntimeException sre = (StatusRuntimeException) throwable;
-      onError(sre.getStatus(), throwable, sre.getTrailers());
+    } else if (throwable instanceof StatusException
+        || throwable instanceof StatusRuntimeException) {
+      onError(throwable);
     } else if (throwable instanceof UnhandledClientException) {
       onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
@@ -251,6 +248,10 @@ public abstract class ExceptionHandler {
 
   private void onError(Status status) {
     onError(status, status.asRuntimeException());
+  }
+
+  private void onError(Throwable throwable) {
+    onError(null, throwable, null);
   }
 
   private <T> Metadata makeTrailer(Metadata.Key<T> key, T value) {
