@@ -1027,7 +1027,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         Collections.singletonList("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
-    createTestIndex(keyspaceName, tableName, "tags", "tags_index", false);
+    createTestIndex(keyspaceName, tableName, "tags", "tags_index", false, IndexKind.VALUES);
 
     insertTestTableRows(
         Arrays.asList(
@@ -1062,6 +1062,54 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(json.at("/1/firstName").asText()).isEqualTo("Dave");
 
     // 05-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
+    //    alas, resulting query will not work ("need to ALLOW FILTERING").
+    //    So not testing that case.
+  }
+
+  @Test
+  public void getRowsWithContainsKeyQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        keyspaceName, tableName, "attributes", "attributes_map_index", false, IndexKind.KEYS);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "attributes {'a':'1'}"),
+            Arrays.asList("id 1", "firstName Dave", "attributes {'b':'2'}"),
+            Arrays.asList("id 1", "firstName Fred", "attributes {'c':'3'}")));
+
+    // First, no match
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"d\"}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(0);
+
+    // and then a single match
+    whereClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"b\"}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
+
+    // 06-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
     //    alas, resulting query will not work ("need to ALLOW FILTERING").
     //    So not testing that case.
   }
@@ -3093,12 +3141,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
       String tableName,
       String columnName,
       String indexName,
-      boolean ifNotExists)
+      boolean ifNotExists,
+      IndexKind kind)
       throws IOException {
     IndexAdd indexAdd = new IndexAdd();
     indexAdd.setColumn(columnName);
     indexAdd.setName(indexName);
     indexAdd.setIfNotExists(ifNotExists);
+    indexAdd.setKind(kind);
 
     String body =
         RestUtils.post(
