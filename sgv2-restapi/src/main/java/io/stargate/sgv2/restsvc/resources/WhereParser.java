@@ -144,12 +144,14 @@ public class WhereParser {
       String fieldName,
       JsonNode valueNode,
       QueryOuterClass.Values.Builder valuesBuilder) {
-    // Can only use Contains for containers (maps, sets, lists); could get field
-    // metadata here, but for now will let persistence validate everything
+    // First conver from JsonNode into "natural" Java Object (scalar, List, Map etc)
     final Object rawValue = nodeToRawObject(valueNode);
+    // And then try to decode into "Content" value of Container type
     final QueryOuterClass.Value opValue =
         converter.contentProtoValueFromLooselyTyped(fieldName, rawValue);
-    if (opValue == null) { // non-container type
+    // For containers results is always non-null (Bridge/gRPC has marker for "null" values");
+    // non-container types return null as marker
+    if (opValue == null) {
       throw new IllegalArgumentException(
           String.format(
               "Field '%s' not of container type (list, map, set); has to be for operation %s",
