@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -30,6 +31,10 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.restsvc.driver.CqlSessionFactory;
+import io.stargate.sgv2.restsvc.driver.CreateScopedCqlSessionFilter;
+import io.stargate.sgv2.restsvc.driver.ScopedCqlSessionFactory;
+import io.stargate.sgv2.restsvc.driver.Unscoped;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
@@ -95,7 +100,10 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
+    CqlSession cqlSession = CqlSessionFactory.newInstance();
+
     environment.jersey().register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.grpc)));
+    environment.jersey().register(new CreateScopedCqlSessionFilter(cqlSession));
 
     environment
         .jersey()
@@ -106,6 +114,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
                 bindFactory(GrpcStubFactory.class)
                     .to(StargateGrpc.StargateBlockingStub.class)
+                    .in(RequestScoped.class);
+
+                bind(cqlSession).to(CqlSession.class).qualifiedBy(Unscoped.LITERAL);
+                bindFactory(ScopedCqlSessionFactory.class)
+                    .to(CqlSession.class)
                     .in(RequestScoped.class);
               }
             });

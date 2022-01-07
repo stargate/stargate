@@ -126,6 +126,11 @@
       <artifactId>java-uuid-generator</artifactId>
       <version>4.0.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${driver.version}</version>
+    </dependency>
 
     <!-- test dependencies -->
     <dependency>
