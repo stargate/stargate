@@ -161,8 +161,14 @@ public class ToProtoValueCodecs {
     return "'" + columnSpec.getName() + "'";
   }
 
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Base classes
+  /////////////////////////////////////////////////////////////////////////
+   */
+
   /**
-   * Base class for all codec implementations, scalar and structured. Mostly used to containe helper
+   * Base class for all codec implementations, scalar and structured. Mostly used to contain helper
    * methods used for error reporting.
    */
   protected abstract static class ToProtoCodecBase extends ToProtoValueCodec {
@@ -212,9 +218,29 @@ public class ToProtoValueCodecs {
     }
   }
 
-  /* Basic/scalar codec implementations */
+  protected abstract static class ToProtoScalarCodecBase extends ToProtoCodecBase {
+    protected ToProtoScalarCodecBase(String grpcTypeDesc) {
+      super(grpcTypeDesc);
+    }
 
-  protected static final class BooleanCodec extends ToProtoCodecBase {
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return null;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Basic/scalar codec implementations
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected static final class BooleanCodec extends ToProtoScalarCodecBase {
     public BooleanCodec() {
       super("TypeSpec.Basic.BOOLEAN");
     }
@@ -247,7 +273,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class IntCodec extends ToProtoCodecBase {
+  protected static final class IntCodec extends ToProtoScalarCodecBase {
     public IntCodec() {
       super("TypeSpec.Basic.INT");
     }
@@ -276,7 +302,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class ShortCodec extends ToProtoCodecBase {
+  protected static final class ShortCodec extends ToProtoScalarCodecBase {
     public ShortCodec() {
       super("TypeSpec.Basic.SMALLINT");
     }
@@ -301,7 +327,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class ByteCodec extends ToProtoCodecBase {
+  protected static final class ByteCodec extends ToProtoScalarCodecBase {
     public ByteCodec() {
       super("TypeSpec.Basic.TINYINT");
     }
@@ -326,7 +352,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class LongCodec extends ToProtoCodecBase {
+  protected static final class LongCodec extends ToProtoScalarCodecBase {
     public LongCodec(String numberType) {
       super("TypeSpec.Basic." + numberType);
     }
@@ -355,7 +381,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class VarintCodec extends ToProtoCodecBase {
+  protected static final class VarintCodec extends ToProtoScalarCodecBase {
     public VarintCodec() {
       super("TypeSpec.Basic.VARINT");
     }
@@ -381,7 +407,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class FloatCodec extends ToProtoCodecBase {
+  protected static final class FloatCodec extends ToProtoScalarCodecBase {
     public FloatCodec() {
       super("TypeSpec.Basic.FLOAT");
     }
@@ -406,7 +432,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class DoubleCodec extends ToProtoCodecBase {
+  protected static final class DoubleCodec extends ToProtoScalarCodecBase {
     public DoubleCodec() {
       super("TypeSpec.Basic.DOUBLE");
     }
@@ -432,7 +458,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class DecimalCodec extends ToProtoCodecBase {
+  protected static final class DecimalCodec extends ToProtoScalarCodecBase {
     public DecimalCodec() {
       super("TypeSpec.Basic.DECIMAL");
     }
@@ -458,7 +484,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class TextCodec extends ToProtoCodecBase {
+  protected static final class TextCodec extends ToProtoScalarCodecBase {
 
     public TextCodec() {
       super("TypeSpec.Basic.TEXT");
@@ -475,7 +501,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class UUIDCodec extends ToProtoCodecBase {
+  protected static final class UUIDCodec extends ToProtoScalarCodecBase {
     public UUIDCodec(String typeDesc) {
       super("TypeSpec.Basic." + typeDesc);
     }
@@ -504,7 +530,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class InetCodec extends ToProtoCodecBase {
+  protected static final class InetCodec extends ToProtoScalarCodecBase {
     public InetCodec() {
       super("TypeSpec.Basic.INET");
     }
@@ -531,7 +557,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class TimestampCodec extends ToProtoCodecBase {
+  protected static final class TimestampCodec extends ToProtoScalarCodecBase {
     public TimestampCodec() {
       super("TypeSpec.Basic.TIMESTAMP");
     }
@@ -557,7 +583,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class DateCodec extends ToProtoCodecBase {
+  protected static final class DateCodec extends ToProtoScalarCodecBase {
     public DateCodec() {
       super("TypeSpec.Basic.DATE");
     }
@@ -580,7 +606,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class TimeCodec extends ToProtoCodecBase {
+  protected static final class TimeCodec extends ToProtoScalarCodecBase {
     public TimeCodec() {
       super("TypeSpec.Basic.TIME");
     }
@@ -603,8 +629,7 @@ public class ToProtoValueCodecs {
     }
   }
 
-  protected static final class BlobCodec extends ToProtoCodecBase {
-
+  protected static final class BlobCodec extends ToProtoScalarCodecBase {
     public BlobCodec() {
       super("TypeSpec.Basic.BLOB");
     }
@@ -656,6 +681,16 @@ public class ToProtoValueCodecs {
     }
 
     @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return elementCodec;
+    }
+
+    @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object javaValue) {
       if (javaValue instanceof Collection<?>) {
         List<QueryOuterClass.Value> elements = new ArrayList<>();
@@ -683,6 +718,16 @@ public class ToProtoValueCodecs {
       super("TypeSpec.Map");
       this.keyCodec = keyCodec;
       this.valueCodec = valueCodec;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return keyCodec;
+    }
+
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return valueCodec;
     }
 
     @Override
