@@ -1478,7 +1478,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
         udtString,
         HttpStatus.SC_CREATED);
 
