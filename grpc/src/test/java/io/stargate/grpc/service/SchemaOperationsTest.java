@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+// Note: StargateV2-only test
 public class SchemaOperationsTest extends BaseGrpcServiceTest {
 
   @Test
@@ -73,7 +74,7 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
                 .getPartitionKeyColumns(0)
                 .getType()
                 .getBasic()
-                .equals(TypeSpec.Basic.TEXT))
+                .equals(TypeSpec.Basic.VARCHAR))
         .isTrue();
     assertThat(response.getTables(0).getClusteringKeyColumnsCount() == 1).isTrue();
     assertThat(response.getTables(0).getClusteringKeyColumns(0).getName().equals("leaf")).isTrue();
@@ -83,7 +84,7 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
                 .getClusteringKeyColumns(0)
                 .getType()
                 .getBasic()
-                .equals(TypeSpec.Basic.TEXT))
+                .equals(TypeSpec.Basic.VARCHAR))
         .isTrue();
     assertThat(response.getTables(0).getClusteringOrdersCount() == 1).isTrue();
     assertThat(
@@ -101,7 +102,7 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
                 .getStaticColumns(0)
                 .getType()
                 .getBasic()
-                .equals(TypeSpec.Basic.TEXT))
+                .equals(TypeSpec.Basic.VARCHAR))
         .isTrue();
     assertThat(response.getTables(0).getColumnsCount() == 2).isTrue();
     Map<String, ColumnSpec> columnMap =
