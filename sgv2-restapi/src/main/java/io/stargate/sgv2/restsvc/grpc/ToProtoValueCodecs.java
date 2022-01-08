@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -806,8 +807,9 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
-      throw new IllegalArgumentException(
-          "Stringified decoding not yet implemented: input = " + value);
+      Map<String, QueryOuterClass.Value> decoded = new LinkedHashMap<>();
+      StringifiedValueUtil.decodeStringifiedUDT(value, fieldCodecs, udtName, decoded);
+      return Values.udtOf(decoded);
     }
   }
 }

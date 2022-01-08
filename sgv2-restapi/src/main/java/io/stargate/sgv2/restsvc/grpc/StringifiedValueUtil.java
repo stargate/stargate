@@ -2,6 +2,7 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.QueryOuterClass;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Helper class that deals with "Stringified" variants of structured values.
@@ -168,6 +169,103 @@ public class StringifiedValueUtil {
     }
     throw new IllegalArgumentException(
         String.format("Invalid map value '%s': missing closing '}'", value));
+  }
+
+  // Unfortunately lots of duplication with preceding Map handler; may want to
+  // figure out ways to refactor
+  public static void decodeStringifiedUDT(
+      String value,
+      Map<String, ToProtoValueCodec> fieldCodecs,
+      String udtName,
+      Map<String, QueryOuterClass.Value> results) {
+    int idx = skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid UDT value '%s': at character %d expecting '{' but got EOF", value, idx));
+    }
+    if (value.charAt(idx++) != '{') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid UDT value '%s': at character %d expecting '{' but got '%c'",
+              value, idx, value.charAt(idx)));
+    }
+
+    idx = skipSpaces(value, idx);
+
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid UDT value '%s': at character %d expecting element or '}' but got EOF",
+              value, idx));
+    }
+    if (value.charAt(idx) == '}') {
+      return;
+    }
+
+    while (idx < value.length()) {
+      int n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format("Invalid UDT value '%s': invalid CQL value at character %d", value, idx));
+      }
+
+      // Anything clever about UDT field names?
+      final String fieldName = handleSingleQuotes(value.substring(idx, n));
+      final ToProtoValueCodec valueCodec = fieldCodecs.get(fieldName);
+      if (valueCodec == null) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid UDT '%s' value '%s': unrecognized field '%s'", udtName, value, fieldName));
+      }
+
+      idx = skipSpaces(value, n);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid UDT value '%s': at character %d expecting ':' but got EOF", value, idx));
+      }
+      if (value.charAt(idx) != ':') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid UDT value '%s': at character %d expecting ':' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+      idx = skipSpaces(value, ++idx);
+
+      n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format("Invalid UDT value '%s': invalid CQL value at character %d", value, idx));
+      }
+
+      QueryOuterClass.Value v =
+          valueCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
+      idx = n;
+
+      results.put(fieldName, v);
+
+      idx = skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid UDT value '%s': at character %d expecting ',' or '}' but got EOF",
+                value, idx));
+      }
+      if (value.charAt(idx) == '}') {
+        return;
+      }
+      if (value.charAt(idx++) != ',') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid UDT value '%s': at character %d expecting ',' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+
+      idx = skipSpaces(value, idx);
+    }
+    throw new IllegalArgumentException(
+        String.format("Invalid UDT value '%s': missing closing '}'", value));
   }
 
   // // // Public helper methods
