@@ -798,7 +798,7 @@ public class ToProtoValueCodecs {
             throw new IllegalArgumentException(
                 String.format("UDT '%s' does not have field '%s'", udtName, fieldName));
           }
-          decoded.put(fieldName, codec.protoValueFromStrictlyTyped(entry.getKey()));
+          decoded.put(fieldName, codec.protoValueFromStrictlyTyped(entry.getValue()));
         }
         return Values.udtOf(decoded);
       }

@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -61,15 +62,8 @@ public class FromProtoValueCodecs {
         return setCodecFor(columnSpec);
       case TUPLE:
         return tupleCodecFor(columnSpec);
-
-        // Cases not yet supported:
       case UDT:
-        throw new IllegalArgumentException(
-            "Can not (yet) create Codec for TypeSpec "
-                + type.getSpecCase()
-                + " for column '"
-                + columnSpec.getName()
-                + "'");
+        return udtCodecFor(columnSpec);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -157,6 +151,17 @@ public class FromProtoValueCodecs {
   protected FromProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
     return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
+  }
+
+  protected FromProtoValueCodec udtCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Udt udtSpec = columnSpec.getType().getUdt();
+    Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
+    Map<String, FromProtoValueCodec> fieldCodecs = new HashMap<>();
+    for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {
+      final String fieldName = entry.getKey();
+      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue()));
+    }
+    return new UDTCodec(udtSpec.getName(), fieldCodecs);
   }
 
   protected FromProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -561,6 +566,54 @@ public class FromProtoValueCodecs {
             "Illegal Map representation, odd number of Value elements (" + len + ")");
       }
       return len;
+    }
+  }
+
+  protected static final class UDTCodec extends FromProtoValueCodec {
+    private final String udtName;
+    private final Map<String, FromProtoValueCodec> fieldCodecs;
+
+    public UDTCodec(String udtName, Map<String, FromProtoValueCodec> fieldCodecs) {
+      this.udtName = udtName;
+      this.fieldCodecs = fieldCodecs;
+    }
+
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      QueryOuterClass.UdtValue coll = value.getUdt();
+      Map<String, QueryOuterClass.Value> encodedFields = coll.getFieldsMap();
+      Map<Object, Object> result = new LinkedHashMap<>(encodedFields.size());
+
+      for (Map.Entry<String, QueryOuterClass.Value> entry : encodedFields.entrySet()) {
+        final String fieldName = entry.getKey();
+        FromProtoValueCodec codec = fieldCodecs.get(fieldName);
+        if (codec == null) {
+          throw new IllegalArgumentException(
+              String.format("UDT '%s' does not have field '%s'", udtName, fieldName));
+        }
+        result.put(fieldName, codec.fromProtoValue(entry.getValue()));
+      }
+
+      return result;
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      QueryOuterClass.UdtValue coll = value.getUdt();
+      Map<String, QueryOuterClass.Value> encodedFields = coll.getFieldsMap();
+      ObjectNode result = jsonNodeFactory.objectNode();
+
+      for (Map.Entry<String, QueryOuterClass.Value> entry : encodedFields.entrySet()) {
+        final String fieldName = entry.getKey();
+        FromProtoValueCodec codec = fieldCodecs.get(fieldName);
+        if (codec == null) {
+          throw new IllegalArgumentException(
+              String.format("UDT '%s' does not have field '%s'", udtName, fieldName));
+        }
+        result.set(fieldName, codec.jsonNodeFrom(entry.getValue()));
+      }
+
+      return result;
     }
   }
 }
