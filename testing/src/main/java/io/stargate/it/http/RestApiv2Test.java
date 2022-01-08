@@ -1468,6 +1468,45 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void getRowsWithUDT() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // create UDT: note -- UDT names must be lower-case it seems (mixed case fails)
+    String udtString =
+            "{\"name\": \"test_udt\", \"fields\":"
+                    + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
+                    + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+    RestUtils.post(
+            authToken,
+            String.format("%s:8082/v2/schemas/keyspaces/%s/types", host, keyspaceName),
+            udtString,
+            HttpStatus.SC_CREATED);
+
+    createTestTable(
+            tableName,
+            Arrays.asList("id text", "details test_udt"),
+            Collections.singletonList("id"),
+            Collections.emptyList());
+
+    insertTestTableRows(
+            Arrays.asList(
+                    Arrays.asList("id 1", "details {name:'Bob',age:36}"),
+                    Arrays.asList("id 2", "details {name:'Alice',age:29}"),
+                    Arrays.asList("id 3", "details {name:'Peter',age:75}")));
+
+    String body =
+            RestUtils.get(
+                    authToken,
+                    String.format(
+                            "%s:8082/v2/keyspaces/%s/%s/%s?raw=true", host, keyspaceName, tableName, "2"),
+                    HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/details/name").asText()).isEqualTo("Alice");
+    assertThat(json.at("/0/details/age").intValue()).isEqualTo(29);
+  }
+
+  @Test
   public void getRowsSort() throws IOException {
     String rowIdentifier = setupClusteringTestCase();
 
