@@ -1,5 +1,44 @@
 # Changelog
 
+## [v1.0.46](https://github.com/stargate/stargate/tree/v1.0.46) (2022-01-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.45...v1.0.46)
+
+**Fixed bugs:**
+
+- Persistence API exposes Utf8Type as `varchar` instead of `text` [\#1499](https://github.com/stargate/stargate/issues/1499)
+
+**Closed issues:**
+
+- CI docker file uses old versions when creating and removing ccm [\#1520](https://github.com/stargate/stargate/issues/1520)
+- SGv2/REST: refactor `TablesResource`, `KeyspacesResource` to have api/impl separation [\#1483](https://github.com/stargate/stargate/issues/1483)
+- SGv2/REST: implement support for "Stringified" versions of structured types \(List, Map, Tuple\) [\#1479](https://github.com/stargate/stargate/issues/1479)
+- SGv2/REST: implement `UserDefinedTypesResource` [\#1478](https://github.com/stargate/stargate/issues/1478)
+- Support Materialized Views in REST API [\#1324](https://github.com/stargate/stargate/issues/1324)
+- Document insert statements should be prepared [\#1282](https://github.com/stargate/stargate/issues/1282)
+- Remove cassandra-3.11 dependency from persistence-common [\#781](https://github.com/stargate/stargate/issues/781)
+- Ability to set JSON schema on a collection, to be enforced on write [\#613](https://github.com/stargate/stargate/issues/613)
+
+**Merged pull requests:**
+
+- More testing wrt \#1517: $contains for set\<text\> [\#1524](https://github.com/stargate/stargate/pull/1524) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1520: updated CI docker image, correct ccm versions, updated … [\#1521](https://github.com/stargate/stargate/pull/1521) ([ivansenic](https://github.com/ivansenic))
+- Add a test for REST API, for existing "where ... $exists" behavior. [\#1518](https://github.com/stargate/stargate/pull/1518) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#781: remove cassandra-all dependency from persistence-commons [\#1510](https://github.com/stargate/stargate/pull/1510) ([ivansenic](https://github.com/ivansenic))
+- aligned the DSE version to 6.8.16 in the integration test profile [\#1508](https://github.com/stargate/stargate/pull/1508) ([ivansenic](https://github.com/ivansenic))
+- updated persistence-cassandra-3.11 to 3.11.11 [\#1507](https://github.com/stargate/stargate/pull/1507) ([ivansenic](https://github.com/ivansenic))
+- Rename Column.Type.Varchar to Text, remove protocol code 10 \(fixes \#1499\) [\#1506](https://github.com/stargate/stargate/pull/1506) ([olim7t](https://github.com/olim7t))
+- update and unify dependencies [\#1505](https://github.com/stargate/stargate/pull/1505) ([ivansenic](https://github.com/ivansenic))
+- automated code cleanup [\#1504](https://github.com/stargate/stargate/pull/1504) ([ivansenic](https://github.com/ivansenic))
+- organized imports in all projects [\#1503](https://github.com/stargate/stargate/pull/1503) ([ivansenic](https://github.com/ivansenic))
+- removing reference to google email list [\#1502](https://github.com/stargate/stargate/pull/1502) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Update DropWizard 2.0.21 -\> 2.0.26, deps [\#1497](https://github.com/stargate/stargate/pull/1497) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- write documents with the new shredding and writer [\#1488](https://github.com/stargate/stargate/pull/1488) ([ivansenic](https://github.com/ivansenic))
+- remove reflection usage from the request hot path in C4 [\#1476](https://github.com/stargate/stargate/pull/1476) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#1459](https://github.com/stargate/stargate/pull/1459) ([github-actions[bot]](https://github.com/apps/github-actions))
+- fix flaky in testToStringWithCollections [\#1383](https://github.com/stargate/stargate/pull/1383) ([arianacai1997](https://github.com/arianacai1997))
+- Support reading rows from a Materialized View [\#1349](https://github.com/stargate/stargate/pull/1349) ([dougwettlaufer](https://github.com/dougwettlaufer))
+
 ## [v1.0.45](https://github.com/stargate/stargate/tree/v1.0.45) (2021-12-07)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.44...v1.0.45)
