@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -62,9 +64,11 @@ public class ToProtoValueCodecs {
       case SET:
         return setCodecFor(columnSpec);
 
+      case UDT:
+        return udtCodecFor(columnSpec);
+
         // Cases not yet supported:
       case TUPLE:
-      case UDT:
         throw new IllegalArgumentException(
             "Can not (yet) create Codec for TypeSpec "
                 + type.getSpecCase()
@@ -155,6 +159,17 @@ public class ToProtoValueCodecs {
     QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
     return new CollectionCodec(
         "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()), '{', '}');
+  }
+
+  protected ToProtoValueCodec udtCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Udt spec = columnSpec.getType().getUdt();
+    Map<String, QueryOuterClass.TypeSpec> fieldSpecs = spec.getFieldsMap();
+    Map<String, ToProtoValueCodec> fieldCodecs = new HashMap<>();
+    for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {
+      final String fieldName = entry.getKey();
+      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue()));
+    }
+    return new UDTCodec(spec.getName(), fieldCodecs);
   }
 
   protected static String columnDesc(QueryOuterClass.ColumnSpec columnSpec) {
@@ -749,6 +764,52 @@ public class ToProtoValueCodecs {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
       StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
       return Values.of(elements);
+    }
+  }
+
+  protected static final class UDTCodec extends ToProtoCodecBase {
+    private final String udtName;
+    private final Map<String, ToProtoValueCodec> fieldCodecs;
+
+    public UDTCodec(String udtName, Map<String, ToProtoValueCodec> fieldCodecs) {
+      super("TypeSpec.UDT." + udtName);
+      this.udtName = udtName;
+      this.fieldCodecs = fieldCodecs;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return null;
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object mapValue) {
+      if (mapValue instanceof Map<?, ?>) {
+        Map<String, QueryOuterClass.Value> decoded = new HashMap<>();
+        for (Map.Entry<String, Object> entry : ((Map<String, Object>) mapValue).entrySet()) {
+          final String fieldName = entry.getKey();
+          ToProtoValueCodec codec = fieldCodecs.get(fieldName);
+          if (codec == null) {
+            throw new IllegalArgumentException(
+                String.format("UDT '%s' does not have field '%s'", udtName, fieldName));
+          }
+          decoded.put(fieldName, codec.protoValueFromStrictlyTyped(entry.getValue()));
+        }
+        return Values.udtOf(decoded);
+      }
+      return cannotCoerce(mapValue);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      Map<String, QueryOuterClass.Value> decoded = new LinkedHashMap<>();
+      StringifiedValueUtil.decodeStringifiedUDT(value, fieldCodecs, udtName, decoded);
+      return Values.udtOf(decoded);
     }
   }
 }
