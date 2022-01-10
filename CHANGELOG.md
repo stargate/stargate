@@ -1,18 +1,5 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.46...HEAD)
-
-**Closed issues:**
-
-- Missing integration tests for REST API operators $EXISTS, $CONTAINS\(|KEY|ENTRY\) [\#1517](https://github.com/stargate/stargate/issues/1517)
-
-**Merged pull requests:**
-
-- Add test for GET-where/$containsKey and $containsEntry [\#1533](https://github.com/stargate/stargate/pull/1533) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- More REST API test coverage: test with 2 filters for one field \(gt + lt\) [\#1530](https://github.com/stargate/stargate/pull/1530) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
 ## [v1.0.46](https://github.com/stargate/stargate/tree/v1.0.46) (2022-01-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.45...v1.0.46)
