@@ -1497,19 +1497,19 @@ public class RestApiv2Test extends BaseIntegrationTest {
   public void getRowsWithTuple() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
-            tableName,
-            Arrays.asList("id text", "data tuple<int,boolean>"),
-            Collections.singletonList("id"),
-            Collections.emptyList());
+        tableName,
+        Arrays.asList("id text", "data tuple<int,boolean>"),
+        Collections.singletonList("id"),
+        Collections.emptyList());
     insertTestTableRows(
-            Arrays.asList(
-                    Arrays.asList("id 1", "data (28,false)"), Arrays.asList("id 2", "data (39,true)")));
+        Arrays.asList(
+            Arrays.asList("id 1", "data (28,false)"), Arrays.asList("id 2", "data (39,true)")));
     String body =
-            RestUtils.get(
-                    authToken,
-                    String.format(
-                            "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
-                    HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
