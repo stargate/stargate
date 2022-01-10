@@ -34,7 +34,6 @@ import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.restsvc.driver.CqlSessionFactory;
 import io.stargate.sgv2.restsvc.driver.CreateScopedCqlSessionFilter;
 import io.stargate.sgv2.restsvc.driver.ScopedCqlSessionFactory;
-import io.stargate.sgv2.restsvc.driver.Unscoped;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
@@ -116,7 +115,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                     .to(StargateGrpc.StargateBlockingStub.class)
                     .in(RequestScoped.class);
 
-                bind(cqlSession).to(CqlSession.class).qualifiedBy(Unscoped.LITERAL);
                 bindFactory(ScopedCqlSessionFactory.class)
                     .to(CqlSession.class)
                     .in(RequestScoped.class);
