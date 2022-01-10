@@ -18,7 +18,6 @@ package io.stargate.grpc.service;
 import com.google.protobuf.StringValue;
 import com.sun.org.slf4j.internal.Logger;
 import com.sun.org.slf4j.internal.LoggerFactory;
-import io.grpc.StatusException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
@@ -66,16 +65,8 @@ class SchemaNotificationsHandler implements EventListener {
         notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
       }
       responseObserver.onNext(notification.build());
-    } catch (StatusException e) {
-      // We can't report the error to the client because that would terminate the gRPC operation,
-      // and we want to keep it running.
-      LOG.error(
-          "Unexpected error while processing change {} {} {} {}, skipping notification",
-          type,
-          target,
-          keyspace,
-          name,
-          e);
+    } catch (Throwable t) {
+      responseObserver.onError(t);
     }
   }
 
