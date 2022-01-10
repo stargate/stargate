@@ -9,6 +9,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.web.models.Keyspace;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
       "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
+@ExtendWith(RestApiExtension.class)
 @RestApiSpec()
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
@@ -88,7 +90,8 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(RestApiConnectionInfo restApi) throws IOException {
+  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+      throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
