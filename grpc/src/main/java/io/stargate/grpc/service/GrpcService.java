@@ -30,6 +30,8 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
+import io.stargate.proto.Schema.GetSchemaNotificationsParams;
+import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -106,6 +108,12 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
     SchemaHandler.describeTable(request, persistence, responseObserver);
+  }
+
+  @Override
+  public void getSchemaNotifications(
+      GetSchemaNotificationsParams request, StreamObserver<SchemaNotification> responseObserver) {
+    new SchemaNotificationsHandler(persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {

@@ -19,9 +19,15 @@ import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
-import io.stargate.db.*;
+import io.stargate.db.Persistence;
 import io.stargate.db.query.builder.Replication;
-import io.stargate.db.schema.*;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Index;
+import io.stargate.db.schema.Keyspace;
+import io.stargate.db.schema.MaterializedView;
+import io.stargate.db.schema.SecondaryIndex;
+import io.stargate.db.schema.Table;
+import io.stargate.db.schema.UserDefinedType;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema.ColumnOrderBy;
@@ -33,6 +39,7 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,63 +49,67 @@ class SchemaHandler {
       DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-
     try {
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-
-      CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
-      CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
-      cqlKeyspaceBuilder.setName(keyspace.name());
-
-      HashMap<String, String> replication = new HashMap<String, String>(keyspace.replication());
-      if (replication.containsKey("class")) {
-        String strategyName = replication.remove("class");
-        if (strategyName.equals("SimpleStrategy")) {
-          cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
-        } else if (strategyName.equals("NetworkTopologyStrategy")) {
-          Map<String, Integer> replicationMap = new HashMap<String, Integer>();
-          for (Map.Entry<String, String> entry : replication.entrySet()) {
-            replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
-          }
-
-          cqlKeyspaceBuilder.putOptions(
-              "replication", Replication.networkTopologyStrategy(replicationMap).toString());
-        }
-      }
-
-      if (keyspace.durableWrites().isPresent()) {
-        cqlKeyspaceBuilder.putOptions("durable_writes", keyspace.durableWrites().get().toString());
-      }
-
-      describeResultBuilder.setCqlKeyspace(cqlKeyspaceBuilder.build());
-
-      for (UserDefinedType udt : keyspace.userDefinedTypes()) {
-
-        Udt.Builder udtBuilder = Udt.newBuilder();
-        udtBuilder.setName(udt.name());
-        udtBuilder.setFrozen(udt.isFrozen());
-        for (Column column : udt.columns()) {
-          udtBuilder.putFields(
-              column.name(),
-              ValuesHelper.convertType(ValuesHelper.columnTypeNotNull(column).rawType()));
-        }
-        describeResultBuilder.addTypes(udtBuilder.build());
-      }
-
-      for (Table table : keyspace.tables()) {
-        describeResultBuilder.addTables(buildCqlTable(table));
-      }
-
-      responseObserver.onNext(describeResultBuilder.build());
+      responseObserver.onNext(buildKeyspaceDescription(query.getKeyspaceName(), persistence));
       responseObserver.onCompleted();
     } catch (StatusException e) {
       responseObserver.onError(e);
     }
+  }
+
+  static CqlKeyspaceDescribe buildKeyspaceDescription(String keyspaceName, Persistence persistence)
+      throws StatusException {
+    String decoratedKeyspace =
+        persistence.decorateKeyspaceName(keyspaceName, GrpcService.HEADERS_KEY.get());
+    Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+    if (keyspace == null) {
+      throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
+    }
+
+    CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
+    CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
+    cqlKeyspaceBuilder.setName(keyspace.name());
+
+    Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
+    if (replication.containsKey("class")) {
+      String strategyName = replication.remove("class");
+      if (strategyName.equals("SimpleStrategy")) {
+        cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
+      } else if (strategyName.equals("NetworkTopologyStrategy")) {
+        Map<String, Integer> replicationMap = new HashMap<String, Integer>();
+        for (Map.Entry<String, String> entry : replication.entrySet()) {
+          replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
+        }
+
+        cqlKeyspaceBuilder.putOptions(
+            "replication", Replication.networkTopologyStrategy(replicationMap).toString());
+      }
+    }
+
+    if (keyspace.durableWrites().isPresent()) {
+      cqlKeyspaceBuilder.putOptions("durable_writes", keyspace.durableWrites().get().toString());
+    }
+
+    describeResultBuilder.setCqlKeyspace(cqlKeyspaceBuilder.build());
+
+    for (UserDefinedType udt : keyspace.userDefinedTypes()) {
+
+      Udt.Builder udtBuilder = Udt.newBuilder();
+      udtBuilder.setName(udt.name());
+      udtBuilder.setFrozen(udt.isFrozen());
+      for (Column column : udt.columns()) {
+        udtBuilder.putFields(
+            column.name(),
+            ValuesHelper.convertType(ValuesHelper.columnTypeNotNull(column).rawType()));
+      }
+      describeResultBuilder.addTypes(udtBuilder.build());
+    }
+
+    for (Table table : keyspace.tables()) {
+      describeResultBuilder.addTables(buildCqlTable(table));
+    }
+
+    return describeResultBuilder.build();
   }
 
   public static void describeTable(

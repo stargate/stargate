@@ -40,5 +40,8 @@ service Stargate {
 
   // Similar to CQL "DESCRIBE KEYSPACE"
   rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
+
+  // Requests notification of schema changes.
+  rpc GetSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
 }
 
