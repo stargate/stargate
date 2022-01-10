@@ -6,6 +6,7 @@ import io.stargate.grpc.service.MessageHandler;
 import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 
+/** Constructs the {@link StreamingBatchHandler}. */
 public class StreamingBatchHandlerFactory
     implements StreamingHandlerFactory<QueryOuterClass.Batch> {
 

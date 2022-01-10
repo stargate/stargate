@@ -7,6 +7,7 @@ import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.ScheduledExecutorService;
 
+/** Constructs the {@link StreamingQueryHandler}. */
 public class StreamingQueryHandlerFactory
     implements StreamingHandlerFactory<QueryOuterClass.Query> {
 

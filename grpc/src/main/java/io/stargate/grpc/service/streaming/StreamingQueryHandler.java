@@ -7,6 +7,12 @@ import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Handles the response for normal queries, constructs the {@link
+ * io.stargate.proto.QueryOuterClass.StreamingResponse} for the {@link
+ * io.stargate.proto.QueryOuterClass.Response}. Finally, invokes the {@link StreamingSuccessHandler}
+ * for it.
+ */
 public class StreamingQueryHandler extends QueryHandler {
   private final StreamingSuccessHandler streamingSuccessHandler;
 

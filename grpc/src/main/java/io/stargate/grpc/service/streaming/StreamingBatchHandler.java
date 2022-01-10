@@ -6,6 +6,12 @@ import io.stargate.grpc.service.ExceptionHandler;
 import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 
+/**
+ * Handles the response for Batch queries, constructs the {@link
+ * io.stargate.proto.QueryOuterClass.StreamingResponse} for the {@link
+ * io.stargate.proto.QueryOuterClass.Response}. Finally, invokes the {@link StreamingSuccessHandler}
+ * for it.
+ */
 public class StreamingBatchHandler extends BatchHandler {
   private final StreamingSuccessHandler streamingSuccessHandler;
 
