@@ -17,6 +17,7 @@ package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.EventListener;
 import java.util.List;
+import java.util.Objects;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.service.MigrationListener;
 
@@ -121,5 +122,22 @@ public class EventListenerWrapper extends MigrationListener {
   public void onDropAggregate(
       String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
     wrapped.onDropAggregate(keyspace, aggregate, AbstractType.asCQLTypeStringList(argumentTypes));
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) {
+      return true;
+    } else if (other instanceof EventListenerWrapper) {
+      EventListenerWrapper that = (EventListenerWrapper) other;
+      return Objects.equals(this.wrapped, that.wrapped);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(wrapped);
   }
 }
