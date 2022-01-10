@@ -40,6 +40,7 @@ import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
+import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResourceCql;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResourceImpl;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2UDTsResourceImpl;
@@ -153,6 +154,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
+
+    environment.jersey().register(Sgv2KeyspacesResourceCql.class);
   }
 
   private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {

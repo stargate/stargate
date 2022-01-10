@@ -131,6 +131,11 @@
       <artifactId>java-driver-core</artifactId>
       <version>${driver.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${driver.version}</version>
+    </dependency>
 
     <!-- test dependencies -->
     <dependency>
